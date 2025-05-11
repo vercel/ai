@@ -1,17 +1,18 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { DataStreamPart } from '../../src';
+import { createAsyncIterableStream } from '../util/async-iterable-stream';
 import { processChatResponse } from './process-chat-response';
 import { UIMessage } from './ui-messages';
-import { createAsyncIterableStream } from '../util/async-iterable-stream';
+import { consumeStream } from '../util/consume-stream';
 
 function createDataProtocolStream(parts: DataStreamPart[]) {
-  return createAsyncIterableStream(convertArrayToReadableStream(parts));
+  return convertArrayToReadableStream(parts);
 }
 
 let updateCalls: Array<{
   message: UIMessage;
 }> = [];
-const update = (options: { message: UIMessage }) => {
+const onUpdate = (options: { message: UIMessage }) => {
   // clone to preserve the original object
   updateCalls.push(structuredClone(options));
 };
@@ -46,12 +47,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -63,7 +66,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -76,7 +78,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -93,7 +94,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -110,7 +110,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -122,6 +121,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -169,12 +169,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -186,7 +188,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -199,7 +200,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -224,7 +224,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -252,7 +251,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -283,7 +281,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -318,7 +315,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -330,6 +326,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -395,29 +392,31 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: {
-          role: 'assistant',
-          id: 'original-id',
-          metadata: undefined,
-          parts: [
-            {
-              type: 'tool-invocation',
-              toolInvocation: {
-                args: {},
-                result: { location: 'Berlin' },
-                state: 'result',
-                step: 0,
-                toolCallId: 'tool-call-id-original',
-                toolName: 'tool-name-original',
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: {
+            role: 'assistant',
+            id: 'original-id',
+            metadata: undefined,
+            parts: [
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  args: {},
+                  result: { location: 'Berlin' },
+                  state: 'result',
+                  step: 0,
+                  toolCallId: 'tool-call-id-original',
+                  toolName: 'tool-name-original',
+                },
               },
-            },
-          ],
-        },
+            ],
+          },
+        }),
       });
     });
 
@@ -443,7 +442,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-0",
               "role": "assistant",
             },
           },
@@ -469,7 +467,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -507,7 +504,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -548,7 +544,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -592,7 +587,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -640,7 +634,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -652,6 +645,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": true,
             "message": {
               "id": "msg-123",
               "metadata": undefined,
@@ -733,12 +727,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -750,7 +746,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -763,7 +758,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -780,7 +774,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -797,7 +790,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -826,7 +818,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -858,7 +849,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -893,7 +883,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -932,7 +921,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-8",
               "role": "assistant",
             },
           },
@@ -971,7 +959,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-9",
               "role": "assistant",
             },
           },
@@ -983,6 +970,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -1073,12 +1061,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -1090,7 +1080,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -1103,7 +1092,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -1121,7 +1109,6 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -1143,7 +1130,6 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -1177,7 +1163,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -1214,7 +1199,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -1254,7 +1238,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -1303,7 +1286,6 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-8",
               "role": "assistant",
             },
           },
@@ -1356,7 +1338,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-9",
               "role": "assistant",
             },
           },
@@ -1368,6 +1349,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -1492,12 +1474,14 @@ describe('processChatResponse', () => {
         },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -1515,7 +1499,6 @@ describe('processChatResponse', () => {
                 "start": "start-1",
               },
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -1536,7 +1519,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -1561,7 +1543,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -1588,7 +1569,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -1615,7 +1595,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -1644,7 +1623,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -1675,7 +1653,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -1687,6 +1664,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {
@@ -1739,12 +1717,14 @@ describe('processChatResponse', () => {
         },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -1756,7 +1736,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -1769,7 +1748,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -1786,7 +1764,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -1805,7 +1782,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -1817,6 +1793,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {
@@ -1857,20 +1834,22 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: {
-          role: 'assistant',
-          id: 'original-id',
-          metadata: {
-            key1: 'value-1a',
-            key3: 'value-3a',
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: {
+            role: 'assistant',
+            id: 'original-id',
+            metadata: {
+              key1: 'value-1a',
+              key3: 'value-3a',
+            },
+            parts: [],
           },
-          parts: [],
-        },
+        }),
       });
     });
 
@@ -1885,7 +1864,6 @@ describe('processChatResponse', () => {
                 "key3": "value-3a",
               },
               "parts": [],
-              "revisionId": "id-0",
               "role": "assistant",
             },
           },
@@ -1902,7 +1880,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -1923,7 +1900,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -1935,6 +1911,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": true,
             "message": {
               "id": "msg-123",
               "metadata": {
@@ -2004,12 +1981,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -2021,7 +2000,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -2034,7 +2012,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -2057,7 +2034,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2082,7 +2058,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -2107,7 +2082,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -2132,7 +2106,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -2158,7 +2131,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -2170,6 +2142,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2210,12 +2183,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -2227,7 +2202,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -2240,7 +2214,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -2257,7 +2230,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2274,7 +2246,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -2286,6 +2257,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2356,12 +2328,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -2373,7 +2347,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -2386,7 +2359,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -2404,7 +2376,6 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2426,7 +2397,6 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -2448,7 +2418,6 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -2466,7 +2435,6 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -2488,7 +2456,6 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -2514,7 +2481,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-8",
               "role": "assistant",
             },
           },
@@ -2526,6 +2492,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2572,13 +2539,15 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
-        onToolCall: vi.fn().mockResolvedValue('test-result'),
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+          onToolCall: vi.fn().mockResolvedValue('test-result'),
+        }),
       });
     });
 
@@ -2590,7 +2559,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -2603,7 +2571,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -2628,7 +2595,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2654,7 +2620,6 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -2666,6 +2631,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2715,12 +2681,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -2732,7 +2700,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -2745,7 +2712,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -2762,7 +2728,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2789,7 +2754,6 @@ describe('processChatResponse', () => {
                   "type": "source",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -2801,6 +2765,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2856,12 +2821,14 @@ describe('processChatResponse', () => {
         { type: 'finish', value: {} },
       ]);
 
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
+      await consumeStream({
+        stream: processChatResponse({
+          stream,
+          onUpdate,
+          onFinish,
+          newMessageId: 'no-id',
+          lastMessage: undefined,
+        }),
       });
     });
 
@@ -2873,7 +2840,6 @@ describe('processChatResponse', () => {
               "id": "msg-123",
               "metadata": {},
               "parts": [],
-              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -2886,7 +2852,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -2903,7 +2868,6 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2925,7 +2889,6 @@ describe('processChatResponse', () => {
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
                 },
               ],
-              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -2947,7 +2910,6 @@ describe('processChatResponse', () => {
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
                 },
               ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -2974,7 +2936,6 @@ describe('processChatResponse', () => {
                   "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
                 },
               ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -2986,6 +2947,7 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
+            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},

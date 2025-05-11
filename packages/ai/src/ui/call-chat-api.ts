@@ -4,6 +4,7 @@ import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
 import { UIMessage } from './ui-messages';
 import { UseChatOptions } from './use-chat';
+import { consumeStream } from '../util/consume-stream';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -91,19 +92,36 @@ export async function callChatApi<MESSAGE_METADATA = any>({
     case 'data': {
       // TODO check protocol version header
 
-      await processChatResponse({
-        stream: parseEncodedDataStream({
-          stream: response.body,
-          onError: error => {
-            throw error;
+      await consumeStream({
+        stream: processChatResponse({
+          stream: parseEncodedDataStream({
+            stream: response.body,
+            onError: error => {
+              throw error;
+            },
+          }),
+          onUpdate({ message }) {
+            const copiedMessage = {
+              // deep copy the message to ensure that deep changes (msg attachments) are updated
+              // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
+              ...structuredClone(message),
+
+              // add a revision id to ensure that the message is updated with SWR. SWR uses a
+              // hashing approach by default to detect changes, but it only works for shallow
+              // changes. This is why we need to add a revision id to ensure that the message
+              // is updated with SWR (without it, the changes get stuck in SWR and are not
+              // forwarded to rendering):
+              revisionId: generateId(),
+            } as UIMessage;
+
+            onUpdate({ message: copiedMessage });
           },
+          lastMessage,
+          onToolCall,
+          onFinish,
+          newMessageId: generateId(),
+          messageMetadataSchema,
         }),
-        update: onUpdate,
-        lastMessage,
-        onToolCall,
-        onFinish,
-        generateId,
-        messageMetadataSchema,
       });
       return;
     }

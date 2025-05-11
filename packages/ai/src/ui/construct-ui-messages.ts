@@ -1,5 +1,7 @@
 import { DataStreamPart } from '../data-stream';
-import { TextUIPart, UIMessage } from './ui-messages';
+import { createAsyncIterableStream } from '../util/async-iterable-stream';
+import { processChatResponse } from './process-chat-response';
+import { UIMessage } from './ui-messages';
 
 export function constructUIMessages({
   newMessageId,
@@ -7,7 +9,7 @@ export function constructUIMessages({
   uiMessageStream,
   onFinish,
 }: {
-  newMessageId: string | undefined;
+  newMessageId: string;
   originalMessages: UIMessage[];
   uiMessageStream: ReadableStream<DataStreamPart>;
   onFinish: (options: {
@@ -33,50 +35,21 @@ export function constructUIMessages({
     return uiMessageStream;
   }
 
-  const lastMessage = originalMessages[originalMessages.length - 1];
-  const isContinuation = lastMessage?.role === 'assistant';
-
-  const responseMessage: UIMessage = isContinuation
-    ? lastMessage
-    : {
-        id: newMessageId ?? 'TODO',
-        role: 'assistant',
-        parts: [],
-      };
-
-  let currentTextPart: TextUIPart | undefined = undefined;
-
-  return uiMessageStream.pipeThrough(
-    new TransformStream({
-      transform(chunk, controller) {
-        if (chunk.type === 'start') {
-          chunk.value.messageId = responseMessage.id;
-        }
-
-        controller.enqueue(chunk);
-
-        if (chunk.type === 'text') {
-          if (currentTextPart == null) {
-            currentTextPart = { type: 'text', text: chunk.value };
-            responseMessage.parts.push(currentTextPart);
-          } else {
-            currentTextPart.text += chunk.value;
-          }
-        }
-      },
-
-      flush() {
-        onFinish({
-          isContinuation,
-          responseMessage,
-          messages: [
-            ...(isContinuation
-              ? originalMessages.slice(0, -1)
-              : originalMessages),
-            responseMessage,
-          ],
-        });
-      },
-    }),
-  );
+  return processChatResponse({
+    stream: createAsyncIterableStream(uiMessageStream),
+    lastMessage: originalMessages[originalMessages.length - 1],
+    newMessageId,
+    onFinish: ({ message, isContinuation }) => {
+      onFinish({
+        isContinuation,
+        responseMessage: message,
+        messages: [
+          ...(isContinuation
+            ? originalMessages.slice(0, -1)
+            : originalMessages),
+          message,
+        ],
+      });
+    },
+  });
 }
