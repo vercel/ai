@@ -1,0 +1,1852 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`processChatResponse > scenario: delayed message annotations in onFinish > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "annotations": [
+        {
+          "example": "annotation",
+        },
+      ],
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "text",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: delayed message annotations in onFinish > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "text",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        {
+          "example": "annotation",
+        },
+      ],
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "text",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: message annotations in onChunk > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "annotations": [
+        "annotation1",
+        "annotation2",
+      ],
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "t1t2",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: message annotations in onChunk > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        "annotation1",
+      ],
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        "annotation1",
+      ],
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "t1",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        "annotation1",
+        "annotation2",
+      ],
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "t1",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        "annotation1",
+        "annotation2",
+      ],
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "t1t2",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: message annotations with existing assistant lastMessage > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "annotations": [
+        "annotation0",
+        "annotation1",
+      ],
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "text": "t1",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: message annotations with existing assistant lastMessage > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        "annotation0",
+        "annotation1",
+      ],
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [],
+      "revisionId": "id-0",
+      "role": "assistant",
+    },
+    "replaceLastMessage": true,
+  },
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        "annotation0",
+        "annotation1",
+      ],
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "text": "t1",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": true,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: onToolCall is executed > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": "test-result",
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: onToolCall is executed > should call the update function twice with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "state": "call",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": "test-result",
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server provides file parts > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:And another one:",
+          "type": "text",
+        },
+        {
+          "mediaType": "text/plain",
+          "type": "file",
+          "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+        },
+        {
+          "mediaType": "application/json",
+          "type": "file",
+          "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server provides file parts > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:",
+          "type": "text",
+        },
+        {
+          "mediaType": "text/plain",
+          "type": "file",
+          "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:And another one:",
+          "type": "text",
+        },
+        {
+          "mediaType": "text/plain",
+          "type": "file",
+          "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:And another one:",
+          "type": "text",
+        },
+        {
+          "mediaType": "text/plain",
+          "type": "file",
+          "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+        },
+        {
+          "mediaType": "application/json",
+          "type": "file",
+          "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
+        },
+      ],
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server provides message ids > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server provides message ids > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "text": "Hello, ",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server provides reasoning > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "abc123",
+            },
+          },
+          "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Hi there!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server provides reasoning > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "providerMetadata": undefined,
+          "text": "I will open the conversation",
+          "type": "reasoning",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
+            },
+          },
+          "text": "I will open the conversation with witty banter. ",
+          "type": "reasoning",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "isRedacted": true,
+            },
+          },
+          "text": "I will open the conversation with witty banter. redacted-data",
+          "type": "reasoning",
+        },
+      ],
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "providerMetadata": undefined,
+          "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed,",
+          "type": "reasoning",
+        },
+      ],
+      "revisionId": "id-5",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "abc123",
+            },
+          },
+          "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
+          "type": "reasoning",
+        },
+      ],
+      "revisionId": "id-6",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "abc123",
+            },
+          },
+          "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Hi there!",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-7",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server provides sources > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "source": {
+            "id": "source-id",
+            "sourceType": "url",
+            "title": "Example",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          "type": "source",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server provides sources > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "source": {
+            "id": "source-id",
+            "sourceType": "url",
+            "title": "Example",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          "type": "source",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server-side tool roundtrip > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server-side tool roundtrip > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "state": "call",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server-side tool roundtrip with existing assistant message > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {},
+            "result": {
+              "location": "Berlin",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id-original",
+            "toolName": "tool-name-original",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-start",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 1,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server-side tool roundtrip with existing assistant message > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {},
+            "result": {
+              "location": "Berlin",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id-original",
+            "toolName": "tool-name-original",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-start",
+        },
+      ],
+      "revisionId": "id-0",
+      "role": "assistant",
+    },
+    "replaceLastMessage": true,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {},
+            "result": {
+              "location": "Berlin",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id-original",
+            "toolName": "tool-name-original",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-start",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "state": "call",
+            "step": 1,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": true,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {},
+            "result": {
+              "location": "Berlin",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id-original",
+            "toolName": "tool-name-original",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-start",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 1,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": true,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {},
+            "result": {
+              "location": "Berlin",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id-original",
+            "toolName": "tool-name-original",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-start",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 1,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": true,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server-side tool roundtrip with multiple assistant reasoning > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
+            },
+          },
+          "text": "I will use a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "abc123",
+            },
+          },
+          "text": "I know know the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server-side tool roundtrip with multiple assistant reasoning > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "providerMetadata": undefined,
+          "text": "I will ",
+          "type": "reasoning",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
+            },
+          },
+          "text": "I will use a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
+            },
+          },
+          "text": "I will use a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "state": "call",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
+            },
+          },
+          "text": "I will use a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
+            },
+          },
+          "text": "I will use a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "abc123",
+            },
+          },
+          "text": "I know know the weather in London.",
+          "type": "reasoning",
+        },
+      ],
+      "revisionId": "id-5",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
+            },
+          },
+          "text": "I will use a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "abc123",
+            },
+          },
+          "text": "I know know the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-6",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server-side tool roundtrip with multiple assistant texts > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will use a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: server-side tool roundtrip with multiple assistant texts > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will ",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will use a tool to get the weather in London.",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will use a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "state": "call",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will use a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will use a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London ",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-5",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will use a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-6",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: simple text response > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: simple text response > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Hello, ",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: tool call streaming > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "testArg": "test-value",
+            },
+            "result": "test-result",
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-0",
+            "toolName": "test-tool",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "totalTokens": 15,
+    },
+  },
+]
+`;
+
+exports[`processChatResponse > scenario: tool call streaming > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": undefined,
+            "state": "partial-call",
+            "step": 0,
+            "toolCallId": "tool-call-0",
+            "toolName": "test-tool",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "testArg": "t",
+            },
+            "state": "partial-call",
+            "step": 0,
+            "toolCallId": "tool-call-0",
+            "toolName": "test-tool",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "testArg": "test-value",
+            },
+            "state": "partial-call",
+            "step": 0,
+            "toolCallId": "tool-call-0",
+            "toolName": "test-tool",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "testArg": "test-value",
+            },
+            "state": "call",
+            "step": 0,
+            "toolCallId": "tool-call-0",
+            "toolName": "test-tool",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "testArg": "test-value",
+            },
+            "result": "test-result",
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-0",
+            "toolName": "test-tool",
+          },
+          "type": "tool-invocation",
+        },
+      ],
+      "revisionId": "id-5",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
