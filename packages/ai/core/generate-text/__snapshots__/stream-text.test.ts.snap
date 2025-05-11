@@ -5,7 +5,9 @@ exports[`streamText > multiple stream consumption > should support text stream, 
   "dataStream": [
     {
       "type": "start-step",
-      "value": {},
+      "value": {
+        "metadata": undefined,
+      },
     },
     {
       "type": "text",
@@ -21,11 +23,15 @@ exports[`streamText > multiple stream consumption > should support text stream, 
     },
     {
       "type": "finish-step",
-      "value": {},
+      "value": {
+        "metadata": undefined,
+      },
     },
     {
       "type": "finish",
-      "value": {},
+      "value": {
+        "metadata": undefined,
+      },
     },
   ],
   "fullStream": [
@@ -3215,11 +3221,14 @@ exports[`streamText > result.toDataStream > should create a data stream 1`] = `
     "type": "start",
     "value": {
       "messageId": undefined,
+      "metadata": undefined,
     },
   },
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "text",
@@ -3235,11 +3244,15 @@ exports[`streamText > result.toDataStream > should create a data stream 1`] = `
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "finish",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
@@ -3248,7 +3261,9 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
 [
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "error",
@@ -3256,11 +3271,15 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "finish",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
@@ -3269,7 +3288,9 @@ exports[`streamText > result.toDataStream > should omit message finish event (d:
 [
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "text",
@@ -3277,7 +3298,9 @@ exports[`streamText > result.toDataStream > should omit message finish event (d:
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
@@ -3286,7 +3309,9 @@ exports[`streamText > result.toDataStream > should send file content 1`] = `
 [
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "file",
@@ -3308,11 +3333,15 @@ exports[`streamText > result.toDataStream > should send file content 1`] = `
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "finish",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
@@ -3321,7 +3350,9 @@ exports[`streamText > result.toDataStream > should send reasoning content when s
 [
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "reasoning",
@@ -3409,11 +3440,15 @@ exports[`streamText > result.toDataStream > should send reasoning content when s
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "finish",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
@@ -3422,7 +3457,9 @@ exports[`streamText > result.toDataStream > should send source content when send
 [
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "source",
@@ -3460,11 +3497,15 @@ exports[`streamText > result.toDataStream > should send source content when send
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "finish",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
@@ -3473,7 +3514,9 @@ exports[`streamText > result.toDataStream > should send tool call and tool resul
 [
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "tool-call",
@@ -3494,11 +3537,15 @@ exports[`streamText > result.toDataStream > should send tool call and tool resul
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "finish",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
@@ -3507,7 +3554,9 @@ exports[`streamText > result.toDataStream > should send tool call, tool call str
 [
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "tool-call-streaming-start",
@@ -3549,11 +3598,15 @@ exports[`streamText > result.toDataStream > should send tool call, tool call str
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "finish",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
@@ -3562,7 +3615,9 @@ exports[`streamText > result.toDataStream > should support custom error messages
 [
   {
     "type": "start-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "error",
@@ -3570,11 +3625,15 @@ exports[`streamText > result.toDataStream > should support custom error messages
   },
   {
     "type": "finish-step",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
   {
     "type": "finish",
-    "value": {},
+    "value": {
+      "metadata": undefined,
+    },
   },
 ]
 `;
