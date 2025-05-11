@@ -213,6 +213,7 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
   },
   {
     "id": "2",
+    "metadata": undefined,
     "parts": [
       {
         "type": "step-start",
@@ -277,6 +278,7 @@ exports[`appendResponseMessages > after user message > appends assistant message
   },
   {
     "id": "123",
+    "metadata": undefined,
     "parts": [
       {
         "type": "step-start",
@@ -306,6 +308,7 @@ exports[`appendResponseMessages > after user message > appends assistant message
   },
   {
     "id": "123",
+    "metadata": undefined,
     "parts": [
       {
         "type": "step-start",
@@ -356,6 +359,7 @@ exports[`appendResponseMessages > after user message > appends assistant message
   },
   {
     "id": "123",
+    "metadata": undefined,
     "parts": [
       {
         "type": "step-start",
@@ -384,6 +388,7 @@ exports[`appendResponseMessages > after user message > handles tool calls and ma
   },
   {
     "id": "123",
+    "metadata": undefined,
     "parts": [
       {
         "type": "step-start",
