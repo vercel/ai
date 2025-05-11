@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { ExampleMetadata } from './example-metadata-schema';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -10,7 +11,7 @@ export async function POST(req: Request) {
   });
 
   return result.toDataStreamResponse({
-    messageMetadata: ({ part }) => {
+    messageMetadata: ({ part }): ExampleMetadata | undefined => {
       // send custom information to the client on start:
       if (part.type === 'start') {
         return {

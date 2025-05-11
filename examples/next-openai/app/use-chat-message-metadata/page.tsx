@@ -2,7 +2,7 @@
 
 import { zodSchema } from '@ai-sdk/provider-utils';
 import { useChat } from '@ai-sdk/react';
-import { z } from 'zod';
+import { exampleMetadataSchema } from '../api/use-chat-message-metadata/example-metadata-schema';
 
 export default function Chat() {
   const {
@@ -16,15 +16,7 @@ export default function Chat() {
     stop,
   } = useChat({
     api: '/api/use-chat-message-metadata',
-    messageMetadataSchema: zodSchema(
-      z.object({
-        createdAt: z.string().optional(),
-        duration: z.number().optional(),
-        model: z.string().optional(),
-        totalTokens: z.number().optional(),
-        finishReason: z.string().optional(),
-      }),
-    ),
+    messageMetadataSchema: zodSchema(exampleMetadataSchema),
   });
 
   return (
