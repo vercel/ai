@@ -3,7 +3,8 @@ import {
   Schema,
   validateTypes,
 } from '@ai-sdk/provider-utils';
-import { parseEncodedDataStream } from '../data-stream/parse-encoded-data-stream';
+import { DataStreamPart } from '../data-stream/data-stream-parts';
+import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
@@ -26,7 +27,7 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
   generateId = generateIdFunction,
   messageMetadataSchema,
 }: {
-  stream: ReadableStream<Uint8Array>;
+  stream: AsyncIterableStream<DataStreamPart>;
   update: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
@@ -112,17 +113,7 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
     }
   }
 
-  const streamParts = parseEncodedDataStream(stream);
-
-  for await (const part of streamParts) {
-    if (!part.success) {
-      throw new Error(part.error.message);
-    }
-
-    const {
-      value: { type, value },
-    } = part;
-
+  for await (const { type, value } of stream) {
     switch (type) {
       case 'text': {
         if (currentTextPart == null) {

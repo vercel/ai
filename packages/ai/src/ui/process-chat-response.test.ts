@@ -1,15 +1,11 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { DataStreamPart } from '../../src';
-import { JsonToSseTransformStream } from '../../src/data-stream/json-to-sse-transform-stream';
 import { processChatResponse } from './process-chat-response';
 import { UIMessage } from './ui-messages';
+import { createAsyncIterableStream } from '../util/async-iterable-stream';
 
-function createDataProtocolStream(
-  parts: DataStreamPart[],
-): ReadableStream<Uint8Array> {
-  return convertArrayToReadableStream(parts)
-    .pipeThrough(new JsonToSseTransformStream())
-    .pipeThrough(new TextEncoderStream());
+function createDataProtocolStream(parts: DataStreamPart[]) {
+  return createAsyncIterableStream(convertArrayToReadableStream(parts));
 }
 
 let updateCalls: Array<{

@@ -1,4 +1,5 @@
 import { IdGenerator, Schema } from '@ai-sdk/provider-utils';
+import { parseEncodedDataStream } from '../data-stream/parse-encoded-data-stream';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
 import { UIMessage } from './ui-messages';
@@ -91,7 +92,12 @@ export async function callChatApi<MESSAGE_METADATA = any>({
       // TODO check protocol version header
 
       await processChatResponse({
-        stream: response.body,
+        stream: parseEncodedDataStream({
+          stream: response.body,
+          onError: error => {
+            throw error;
+          },
+        }),
         update: onUpdate,
         lastMessage,
         onToolCall,
