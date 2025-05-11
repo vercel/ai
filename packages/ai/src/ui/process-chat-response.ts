@@ -25,7 +25,7 @@ export async function processChatResponse({
   update: (options: { message: UIMessage }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: { message: UIMessage }) => void;
-  generateId?: () => string; // TODO remove once store is in place
+  generateId?: () => string;
   lastMessage: UIMessage | undefined;
 }) {
   const replaceLastMessage = lastMessage?.role === 'assistant';
