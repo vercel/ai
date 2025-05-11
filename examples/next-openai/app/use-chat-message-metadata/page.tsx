@@ -42,11 +42,6 @@ export default function Chat() {
           {message.metadata?.finishReason && (
             <div>Finish reason: {message.metadata.finishReason}</div>
           )}
-          {message.parts.map((part, index) => {
-            if (part.type === 'text') {
-              return <div key={index}>{part.text}</div>;
-            }
-          })}
         </div>
       ))}
 

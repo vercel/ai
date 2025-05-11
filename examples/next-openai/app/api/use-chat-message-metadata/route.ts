@@ -5,8 +5,6 @@ import { ExampleMetadata } from './example-metadata-schema';
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  console.log(JSON.stringify(messages, null, 2));
-
   const result = streamText({
     model: openai('gpt-4o'),
     prompt: convertToModelMessages(messages),
