@@ -1,4 +1,3 @@
-import { JSONValue } from '@ai-sdk/provider';
 import {
   FetchFunction,
   IdGenerator,
@@ -17,16 +16,6 @@ export type ChatRequestOptions = {
   Additional body JSON properties that should be sent to the API endpoint.
    */
   body?: object;
-
-  /**
-  Additional data to be sent to the API endpoint.
-     */
-  data?: JSONValue;
-
-  /**
-   * Allow submitting an empty message. Defaults to `false`.
-   */
-  allowEmptySubmit?: boolean;
 };
 
 export type UseChatOptions<MESSAGE_METADATA = unknown> = {
