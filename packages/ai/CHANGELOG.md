@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.0-canary.22
+
+### Major Changes
+
+- e7dc6c7: chore (ai): remove onResponse callback
+- a34eb39: chore (ai): remove `data` and `allowEmptySubmit` from `ChatRequestOptions`
+- b33ed7a: chore (ai): rename DataStream* to UIMessage*
+- 765f1cd: chore (ai): remove deprecated useChat isLoading helper
+
 ## 5.0.0-canary.21
 
 ### Major Changes
