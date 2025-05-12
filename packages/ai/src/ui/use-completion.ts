@@ -36,11 +36,6 @@ export type UseCompletionOptions = {
   initialCompletion?: string;
 
   /**
-   * Callback function to be called when the API response is received.
-   */
-  onResponse?: (response: Response) => void | Promise<void>;
-
-  /**
    * Callback function to be called when the completion is finished streaming.
    */
   onFinish?: (prompt: string, completion: string) => void;

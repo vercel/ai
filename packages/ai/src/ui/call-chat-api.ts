@@ -24,7 +24,6 @@ export async function callChatApi<MESSAGE_METADATA>({
   credentials,
   headers,
   abortController,
-  onResponse,
   onUpdate,
   onFinish,
   onToolCall,
@@ -40,7 +39,6 @@ export async function callChatApi<MESSAGE_METADATA>({
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
-  onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
   onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
   onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
@@ -73,10 +71,6 @@ export async function callChatApi<MESSAGE_METADATA>({
           signal: abortController?.()?.signal,
           credentials,
         });
-
-  if (onResponse != null) {
-    await onResponse(response);
-  }
 
   if (!response.ok) {
     throw new Error(

@@ -236,7 +236,6 @@ export class Chat<MESSAGE_METADATA = unknown> {
           ...chatRequest.headers,
         },
         abortController: () => abortController,
-        onResponse: this.#options.onResponse,
         onUpdate: ({ message }) => {
           this.#store.status = 'streaming';
 

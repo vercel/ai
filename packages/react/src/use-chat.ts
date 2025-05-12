@@ -132,7 +132,6 @@ export function useChat<MESSAGE_METADATA>({
   experimental_prepareRequestBody,
   maxSteps = 1,
   streamProtocol = 'data',
-  onResponse,
   onFinish,
   onError,
   credentials,
@@ -330,7 +329,6 @@ Default is undefined, which disables throttling.
     [
       api,
       extraMetadataRef,
-      onResponse,
       onFinish,
       onError,
       streamProtocol,
