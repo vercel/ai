@@ -28,3 +28,5 @@ export type {
 export type { TranscriptionModelResponseMetadata } from './transcription-model-response-metadata';
 export type { SpeechModel, SpeechWarning } from './speech-model';
 export type { SpeechModelResponseMetadata } from './speech-model-response-metadata';
+export type { IsolationModel, IsolationWarning } from './isolation-model';
+export type { IsolationModelResponseMetadata } from './isolation-model-response-metadata';
