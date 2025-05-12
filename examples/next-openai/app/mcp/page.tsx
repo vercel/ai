@@ -14,10 +14,6 @@ export default function Chat() {
     stop,
   } = useChat({
     api: '/mcp/chat',
-    onFinish(_message, { usage, finishReason }) {
-      console.log('Usage', usage);
-      console.log('FinishReason', finishReason);
-    },
   });
 
   return (

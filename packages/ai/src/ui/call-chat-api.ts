@@ -1,5 +1,14 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { IdGenerator } from '@ai-sdk/provider-utils';
+import {
+  IdGenerator,
+  parseJsonEventStream,
+  ParseResult,
+  Schema,
+} from '@ai-sdk/provider-utils';
+import {
+  DataStreamPart,
+  dataStreamPartSchema,
+} from '../data-stream/data-stream-parts';
+import { consumeStream } from '../util/consume-stream';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
 import { UIMessage } from './ui-messages';
@@ -8,7 +17,7 @@ import { UseChatOptions } from './use-chat';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export async function callChatApi({
+export async function callChatApi<MESSAGE_METADATA>({
   api,
   body,
   streamProtocol = 'data',
@@ -22,8 +31,8 @@ export async function callChatApi({
   generateId,
   fetch = getOriginalFetch(),
   lastMessage,
-  getCurrentDate,
   requestType = 'generate',
+  messageMetadataSchema,
 }: {
   api: string;
   body: Record<string, any>;
@@ -32,18 +41,14 @@ export async function callChatApi({
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  onUpdate: (options: {
-    message: UIMessage;
-    data: JSONValue[] | undefined;
-    replaceLastMessage: boolean;
-  }) => void;
-  onFinish: UseChatOptions['onFinish'];
-  onToolCall: UseChatOptions['onToolCall'];
+  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
+  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  lastMessage: UIMessage | undefined;
-  getCurrentDate: () => Date;
+  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   requestType?: 'generate' | 'resume';
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 }) {
   const response =
     requestType === 'resume'
@@ -83,29 +88,58 @@ export async function callChatApi({
 
   switch (streamProtocol) {
     case 'text': {
-      await processChatTextResponse({
+      await processChatTextResponse<MESSAGE_METADATA>({
         stream: response.body,
         update: onUpdate,
         onFinish,
         generateId,
-        getCurrentDate,
       });
       return;
     }
 
     case 'data': {
-      await processChatResponse({
-        stream: response.body,
-        update: onUpdate,
-        lastMessage,
-        onToolCall,
-        onFinish({ message, finishReason, usage }) {
-          if (onFinish && message != null) {
-            onFinish(message, { usage, finishReason });
-          }
+      // TODO check protocol version header
+
+      await consumeStream({
+        stream: processChatResponse({
+          stream: parseJsonEventStream({
+            stream: response.body,
+            schema: dataStreamPartSchema,
+          }).pipeThrough(
+            new TransformStream<ParseResult<DataStreamPart>, DataStreamPart>({
+              async transform(part, controller) {
+                if (!part.success) {
+                  throw part.error;
+                }
+                controller.enqueue(part.value);
+              },
+            }),
+          ),
+          onUpdate({ message }) {
+            const copiedMessage = {
+              // deep copy the message to ensure that deep changes (msg attachments) are updated
+              // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
+              ...structuredClone(message),
+
+              // add a revision id to ensure that the message is updated with SWR. SWR uses a
+              // hashing approach by default to detect changes, but it only works for shallow
+              // changes. This is why we need to add a revision id to ensure that the message
+              // is updated with SWR (without it, the changes get stuck in SWR and are not
+              // forwarded to rendering):
+              revisionId: generateId(),
+            } as UIMessage<MESSAGE_METADATA>;
+
+            onUpdate({ message: copiedMessage });
+          },
+          lastMessage,
+          onToolCall,
+          onFinish,
+          newMessageId: generateId(),
+          messageMetadataSchema,
+        }),
+        onError: error => {
+          throw error;
         },
-        generateId,
-        getCurrentDate,
       });
       return;
     }

@@ -2,7 +2,6 @@ import {
   callCompletionApi,
   generateId,
   type CompletionRequestOptions,
-  type JSONValue,
   type UseCompletionOptions,
 } from 'ai';
 import {
@@ -30,18 +29,6 @@ export class Completion {
     this.#store.completions.set(this.#id, value);
   }
 
-  /**
-   * Additional data added on the server via StreamData.
-   *
-   * This is writable, so you can use it to transform or clear the chat data.
-   */
-  get data() {
-    return this.#store.data;
-  }
-  set data(value: JSONValue[]) {
-    this.#store.data = value;
-  }
-
   /** The error object of the API request */
   get error() {
     return this.#store.error;
@@ -58,12 +45,9 @@ export class Completion {
   }
 
   constructor(options: CompletionOptions = {}) {
-    if (hasCompletionContext()) {
-      this.#keyedStore = getCompletionContext();
-    } else {
-      this.#keyedStore = new KeyedCompletionStore();
-    }
-
+    this.#keyedStore = hasCompletionContext()
+      ? getCompletionContext()
+      : new KeyedCompletionStore();
     this.#options = options;
     this.completion = options.initialCompletion ?? '';
     this.input = options.initialInput ?? '';
@@ -115,9 +99,6 @@ export class Completion {
       // throttle streamed ui updates:
       setCompletion: completion => {
         this.completion = completion;
-      },
-      onData: data => {
-        this.data.push(...data);
       },
       setLoading: loading => {
         this.#store.loading = loading;

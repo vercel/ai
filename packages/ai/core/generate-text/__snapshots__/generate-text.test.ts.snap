@@ -41,7 +41,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -53,7 +52,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
       ],
@@ -97,7 +95,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -109,7 +106,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
         {
@@ -119,7 +115,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
               "type": "text",
             },
           ],
-          "id": "msg-2",
           "role": "assistant",
         },
       ],
@@ -151,7 +146,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
         "type": "tool-call",
       },
     ],
-    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -163,7 +157,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
         "type": "tool-result",
       },
     ],
-    "id": "msg-1",
     "role": "tool",
   },
   {
@@ -173,7 +166,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
         "type": "text",
       },
     ],
-    "id": "msg-2",
     "role": "assistant",
   },
 ]
@@ -220,7 +212,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -232,7 +223,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
       ],
@@ -276,7 +266,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -288,7 +277,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
         {
@@ -298,7 +286,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
               "type": "text",
             },
           ],
-          "id": "msg-2",
           "role": "assistant",
         },
       ],
@@ -358,7 +345,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -370,7 +356,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
       ],
@@ -414,7 +399,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -426,7 +410,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
         {
@@ -436,7 +419,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
               "type": "text",
             },
           ],
-          "id": "msg-2",
           "role": "assistant",
         },
       ],
@@ -468,7 +450,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
         "type": "tool-call",
       },
     ],
-    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -480,7 +461,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
         "type": "tool-result",
       },
     ],
-    "id": "msg-1",
     "role": "tool",
   },
   {
@@ -490,7 +470,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
         "type": "text",
       },
     ],
-    "id": "msg-2",
     "role": "assistant",
   },
 ]
@@ -537,7 +516,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -549,7 +527,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
       ],
@@ -593,7 +570,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -605,7 +581,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
         {
@@ -615,7 +590,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
               "type": "text",
             },
           ],
-          "id": "msg-2",
           "role": "assistant",
         },
       ],
@@ -668,7 +642,6 @@ exports[`result.response > should contain response body and headers 1`] = `
           "type": "text",
         },
       ],
-      "id": "msg-0",
       "role": "assistant",
     },
   ],
@@ -692,7 +665,6 @@ exports[`result.response > should contain response body and headers 2`] = `
           "type": "text",
         },
       ],
-      "id": "msg-0",
       "role": "assistant",
     },
   ],
@@ -718,7 +690,6 @@ exports[`result.response.messages > should contain assistant response message an
         "type": "tool-call",
       },
     ],
-    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -730,7 +701,6 @@ exports[`result.response.messages > should contain assistant response message an
         "type": "tool-result",
       },
     ],
-    "id": "msg-1",
     "role": "tool",
   },
 ]
@@ -745,7 +715,6 @@ exports[`result.response.messages > should contain assistant response message wh
         "type": "text",
       },
     ],
-    "id": "msg-0",
     "role": "assistant",
   },
 ]
@@ -778,7 +747,6 @@ exports[`result.response.messages > should contain reasoning 1`] = `
         "type": "text",
       },
     ],
-    "id": "msg-0",
     "role": "assistant",
   },
 ]
@@ -873,7 +841,6 @@ exports[`result.steps > should add the reasoning from the model response to the 
               "type": "text",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -946,7 +913,6 @@ exports[`result.steps > should contain files 1`] = `
               "type": "file",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
       ],
@@ -1013,7 +979,6 @@ exports[`result.steps > should contain sources 1`] = `
               "type": "text",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
       ],

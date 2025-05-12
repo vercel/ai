@@ -1,6 +1,11 @@
-import { AssistantContent, ToolContent, ToolResultPart } from '../prompt';
+import {
+  AssistantContent,
+  AssistantModelMessage,
+  ToolContent,
+  ToolModelMessage,
+  ToolResultPart,
+} from '../prompt';
 import { ContentPart } from './content-part';
-import { ResponseMessage } from './response-message';
 import { ToolSet } from './tool-set';
 
 /**
@@ -9,15 +14,11 @@ Converts the result of a `generateText` or `streamText` call to a list of respon
 export function toResponseMessages<TOOLS extends ToolSet>({
   content: inputContent,
   tools,
-  messageId,
-  generateMessageId,
 }: {
   content: Array<ContentPart<TOOLS>>;
   tools: TOOLS;
-  messageId: string;
-  generateMessageId: () => string;
-}): Array<ResponseMessage> {
-  const responseMessages: Array<ResponseMessage> = [];
+}): Array<AssistantModelMessage | ToolModelMessage> {
+  const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
   const content: AssistantContent = inputContent
     .filter(part => part.type !== 'tool-result' && part.type !== 'source')
@@ -47,7 +48,6 @@ export function toResponseMessages<TOOLS extends ToolSet>({
     responseMessages.push({
       role: 'assistant',
       content,
-      id: messageId,
     });
   }
 
@@ -76,7 +76,6 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   if (toolResultContent.length > 0) {
     responseMessages.push({
       role: 'tool',
-      id: generateMessageId(),
       content: toolResultContent,
     });
   }

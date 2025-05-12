@@ -2,12 +2,8 @@
 import { useChat } from '@ai-sdk/vue';
 import { computed } from 'vue';
 
-const { error, input, status, handleSubmit, messages, reload, stop } = useChat({
-  onFinish(message, { usage, finishReason }) {
-    console.log('Usage', usage);
-    console.log('FinishReason', finishReason);
-  },
-});
+const { error, input, status, handleSubmit, messages, reload, stop } =
+  useChat();
 
 const disabled = computed(() => status.value !== 'ready');
 </script>

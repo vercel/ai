@@ -1,7 +1,6 @@
-import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
-import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
-import { LanguageModelUsage } from '../../core/types/usage';
-import { processDataStream } from '../data-stream/process-data-stream';
+import { Schema, validateTypes } from '@ai-sdk/provider-utils';
+import { DataStreamPart } from '../data-stream/data-stream-parts';
+import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
@@ -14,42 +13,34 @@ import type {
 } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
-export async function processChatResponse({
+export function processChatResponse<MESSAGE_METADATA = unknown>({
   stream,
-  update,
+  onUpdate,
   onToolCall,
   onFinish,
-  generateId = generateIdFunction,
-  getCurrentDate = () => new Date(),
   lastMessage,
+  newMessageId,
+  messageMetadataSchema,
 }: {
-  stream: ReadableStream<Uint8Array>;
-  update: (options: {
-    message: UIMessage;
-    data: JSONValue[] | undefined;
-    replaceLastMessage: boolean;
-  }) => void;
+  stream: ReadableStream<DataStreamPart>;
+  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  newMessageId: string;
   onToolCall?: UseChatOptions['onToolCall'];
-  onFinish?: (options: {
-    message: UIMessage | undefined;
-    finishReason: LanguageModelV2FinishReason;
-    usage: LanguageModelUsage;
-  }) => void;
-  generateId?: () => string;
-  getCurrentDate?: () => Date;
-  lastMessage: UIMessage | undefined;
-}) {
-  const replaceLastMessage = lastMessage?.role === 'assistant';
+  onUpdate?: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+  onFinish?: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+}): ReadableStream<DataStreamPart> {
+  const isContinuation = lastMessage?.role === 'assistant';
 
-  let step = replaceLastMessage
+  let step = isContinuation
     ? 1 + (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0)
     : 0;
 
-  const message: UIMessage = replaceLastMessage
+  const message: UIMessage<MESSAGE_METADATA> = isContinuation
     ? structuredClone(lastMessage)
     : {
-        id: generateId(),
-        createdAt: getCurrentDate(),
+        id: newMessageId,
+        metadata: {} as MESSAGE_METADATA,
         role: 'assistant',
         parts: [],
       };
@@ -77,242 +68,273 @@ export async function processChatResponse({
     }
   }
 
-  const data: JSONValue[] = [];
-
-  // keep list of current message annotations for message
-  let messageAnnotations: JSONValue[] | undefined = replaceLastMessage
-    ? lastMessage?.annotations
-    : undefined;
-
   // keep track of partial tool calls
   const partialToolCalls: Record<
     string,
     { text: string; step: number; index: number; toolName: string }
   > = {};
 
-  let usage: LanguageModelUsage = {
-    inputTokens: undefined,
-    outputTokens: undefined,
-    totalTokens: undefined,
-  };
-  let finishReason: LanguageModelV2FinishReason = 'unknown';
+  async function updateMessageMetadata(metadata: unknown) {
+    if (metadata != null) {
+      const mergedMetadata =
+        message.metadata != null
+          ? mergeObjects(message.metadata, metadata)
+          : metadata;
 
-  function execUpdate() {
-    // make a copy of the data array to ensure UI is updated (SWR)
-    const copiedData = [...data];
+      if (messageMetadataSchema != null) {
+        await validateTypes({
+          value: mergedMetadata,
+          schema: messageMetadataSchema,
+        });
+      }
 
-    // keeps the currentMessage up to date with the latest annotations,
-    // even if annotations preceded the message creation
-    if (messageAnnotations?.length) {
-      message.annotations = messageAnnotations;
+      message.metadata = mergedMetadata as MESSAGE_METADATA;
     }
-
-    const copiedMessage = {
-      // deep copy the message to ensure that deep changes (msg attachments) are updated
-      // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
-      ...structuredClone(message),
-      // add a revision id to ensure that the message is updated with SWR. SWR uses a
-      // hashing approach by default to detect changes, but it only works for shallow
-      // changes. This is why we need to add a revision id to ensure that the message
-      // is updated with SWR (without it, the changes get stuck in SWR and are not
-      // forwarded to rendering):
-      revisionId: generateId(),
-    } as UIMessage;
-
-    update({
-      message: copiedMessage,
-      data: copiedData,
-      replaceLastMessage,
-    });
   }
 
-  await processDataStream({
-    stream,
-    onTextPart(value) {
-      if (currentTextPart == null) {
-        currentTextPart = {
-          type: 'text',
-          text: value,
-        };
-        message.parts.push(currentTextPart);
-      } else {
-        currentTextPart.text += value;
-      }
+  return stream.pipeThrough(
+    new TransformStream<DataStreamPart, DataStreamPart>({
+      async transform(chunk, controller) {
+        const { type, value } = chunk;
 
-      execUpdate();
-    },
-    onReasoningPart(value) {
-      if (currentReasoningPart == null) {
-        currentReasoningPart = {
-          type: 'reasoning',
-          text: value.text,
-          providerMetadata: value.providerMetadata,
-        };
-        message.parts.push(currentReasoningPart);
-      } else {
-        currentReasoningPart.text += value.text;
-        currentReasoningPart.providerMetadata = value.providerMetadata;
-      }
+        switch (type) {
+          case 'text': {
+            if (currentTextPart == null) {
+              currentTextPart = {
+                type: 'text',
+                text: value,
+              };
+              message.parts.push(currentTextPart);
+            } else {
+              currentTextPart.text += value;
+            }
 
-      execUpdate();
-    },
-    onReasoningPartFinish(value) {
-      if (currentReasoningPart != null) {
-        currentReasoningPart = undefined;
-      }
-    },
-    onFilePart(value) {
-      message.parts.push({
-        type: 'file',
-        mediaType: value.mediaType,
-        url: value.url,
-      });
+            onUpdate?.({ message });
+            break;
+          }
 
-      execUpdate();
-    },
-    onSourcePart(value) {
-      message.parts.push({
-        type: 'source',
-        source: value,
-      });
+          case 'reasoning': {
+            if (currentReasoningPart == null) {
+              currentReasoningPart = {
+                type: 'reasoning',
+                text: value.text,
+                providerMetadata: value.providerMetadata,
+              };
+              message.parts.push(currentReasoningPart);
+            } else {
+              currentReasoningPart.text += value.text;
+              currentReasoningPart.providerMetadata = value.providerMetadata;
+            }
 
-      execUpdate();
-    },
-    onToolCallStreamingStartPart(value) {
-      const toolInvocations = getToolInvocations(message);
+            onUpdate?.({ message });
+            break;
+          }
 
-      // add the partial tool call to the map
-      partialToolCalls[value.toolCallId] = {
-        text: '',
-        step,
-        toolName: value.toolName,
-        index: toolInvocations.length,
-      };
+          case 'reasoning-part-finish': {
+            if (currentReasoningPart != null) {
+              currentReasoningPart = undefined;
+            }
+            break;
+          }
 
-      updateToolInvocationPart(value.toolCallId, {
-        state: 'partial-call',
-        step,
-        toolCallId: value.toolCallId,
-        toolName: value.toolName,
-        args: undefined,
-      } as const);
+          case 'file': {
+            message.parts.push({
+              type: 'file',
+              mediaType: value.mediaType,
+              url: value.url,
+            });
 
-      execUpdate();
-    },
-    async onToolCallDeltaPart(value) {
-      const partialToolCall = partialToolCalls[value.toolCallId];
+            onUpdate?.({ message });
+            break;
+          }
 
-      partialToolCall.text += value.argsTextDelta;
+          case 'source': {
+            message.parts.push({
+              type: 'source',
+              source: value,
+            });
 
-      const { value: partialArgs } = await parsePartialJson(
-        partialToolCall.text,
-      );
+            onUpdate?.({ message });
+            break;
+          }
 
-      updateToolInvocationPart(value.toolCallId, {
-        state: 'partial-call',
-        step: partialToolCall.step,
-        toolCallId: value.toolCallId,
-        toolName: partialToolCall.toolName,
-        args: partialArgs,
-      } as const);
+          case 'tool-call-streaming-start': {
+            const toolInvocations = getToolInvocations(message);
 
-      execUpdate();
-    },
-    async onToolCallPart(value) {
-      updateToolInvocationPart(value.toolCallId, {
-        state: 'call',
-        step,
-        ...value,
-      } as const);
+            // add the partial tool call to the map
+            partialToolCalls[value.toolCallId] = {
+              text: '',
+              step,
+              toolName: value.toolName,
+              index: toolInvocations.length,
+            };
 
-      execUpdate();
+            updateToolInvocationPart(value.toolCallId, {
+              state: 'partial-call',
+              step,
+              toolCallId: value.toolCallId,
+              toolName: value.toolName,
+              args: undefined,
+            } as const);
 
-      // invoke the onToolCall callback if it exists. This is blocking.
-      // In the future we should make this non-blocking, which
-      // requires additional state management for error handling etc.
-      if (onToolCall) {
-        const result = await onToolCall({
-          toolCall: value,
-        });
-        if (result != null) {
-          updateToolInvocationPart(value.toolCallId, {
-            state: 'result',
-            step,
-            ...value,
-            result,
-          } as const);
+            onUpdate?.({ message });
+            break;
+          }
 
-          execUpdate();
+          case 'tool-call-delta': {
+            const partialToolCall = partialToolCalls[value.toolCallId];
+
+            partialToolCall.text += value.argsTextDelta;
+
+            const { value: partialArgs } = await parsePartialJson(
+              partialToolCall.text,
+            );
+
+            updateToolInvocationPart(value.toolCallId, {
+              state: 'partial-call',
+              step: partialToolCall.step,
+              toolCallId: value.toolCallId,
+              toolName: partialToolCall.toolName,
+              args: partialArgs,
+            } as const);
+
+            onUpdate?.({ message });
+            break;
+          }
+
+          case 'tool-call': {
+            // workaround for Zod issue where unknown includes undefined
+            const call = { args: value.args!, ...value };
+
+            updateToolInvocationPart(value.toolCallId, {
+              state: 'call',
+              step,
+              ...call,
+            } as const);
+
+            onUpdate?.({ message });
+
+            // invoke the onToolCall callback if it exists. This is blocking.
+            // In the future we should make this non-blocking, which
+            // requires additional state management for error handling etc.
+            if (onToolCall) {
+              const result = await onToolCall({
+                toolCall: call,
+              });
+              if (result != null) {
+                updateToolInvocationPart(value.toolCallId, {
+                  state: 'result',
+                  step,
+                  ...call,
+                  result,
+                } as const);
+
+                onUpdate?.({ message });
+              }
+            }
+            break;
+          }
+
+          case 'tool-result': {
+            const toolInvocations = getToolInvocations(message);
+
+            if (toolInvocations == null) {
+              throw new Error('tool_result must be preceded by a tool_call');
+            }
+
+            // find if there is any tool invocation with the same toolCallId
+            // and replace it with the result
+            const toolInvocationIndex = toolInvocations.findIndex(
+              invocation => invocation.toolCallId === value.toolCallId,
+            );
+
+            if (toolInvocationIndex === -1) {
+              throw new Error(
+                'tool_result must be preceded by a tool_call with the same toolCallId',
+              );
+            }
+
+            // workaround for Zod issue where unknown includes undefined
+            const result = { result: value.result!, ...value };
+
+            updateToolInvocationPart(value.toolCallId, {
+              ...toolInvocations[toolInvocationIndex],
+              state: 'result' as const,
+              ...result,
+            } as const);
+
+            onUpdate?.({ message });
+            break;
+          }
+
+          case 'start-step': {
+            // add a step boundary part to the message
+            message.parts.push({ type: 'step-start' });
+
+            await updateMessageMetadata(value.metadata);
+            onUpdate?.({ message });
+            break;
+          }
+
+          case 'finish-step': {
+            step += 1;
+
+            // reset the current text and reasoning parts
+            currentTextPart = undefined;
+            currentReasoningPart = undefined;
+
+            await updateMessageMetadata(value.metadata);
+            if (value.metadata != null) {
+              onUpdate?.({ message });
+            }
+            break;
+          }
+
+          case 'start': {
+            if (value.messageId != null) {
+              message.id = value.messageId;
+            }
+
+            await updateMessageMetadata(value.metadata);
+
+            if (value.messageId != null || value.metadata != null) {
+              onUpdate?.({ message });
+            }
+            break;
+          }
+
+          case 'finish': {
+            await updateMessageMetadata(value.metadata);
+            if (value.metadata != null) {
+              onUpdate?.({ message });
+            }
+            break;
+          }
+
+          case 'metadata': {
+            await updateMessageMetadata(value.metadata);
+            if (value.metadata != null) {
+              onUpdate?.({ message });
+            }
+            break;
+          }
+
+          case 'error': {
+            throw new Error(value);
+          }
+
+          default: {
+            const _exhaustiveCheck: never = type;
+            throw new Error(`Unhandled stream part: ${_exhaustiveCheck}`);
+          }
         }
-      }
-    },
-    onToolResultPart(value) {
-      const toolInvocations = getToolInvocations(message);
 
-      if (toolInvocations == null) {
-        throw new Error('tool_result must be preceded by a tool_call');
-      }
+        controller.enqueue(chunk);
+      },
 
-      // find if there is any tool invocation with the same toolCallId
-      // and replace it with the result
-      const toolInvocationIndex = toolInvocations.findIndex(
-        invocation => invocation.toolCallId === value.toolCallId,
-      );
-
-      if (toolInvocationIndex === -1) {
-        throw new Error(
-          'tool_result must be preceded by a tool_call with the same toolCallId',
-        );
-      }
-
-      updateToolInvocationPart(value.toolCallId, {
-        ...toolInvocations[toolInvocationIndex],
-        state: 'result' as const,
-        ...value,
-      } as const);
-
-      execUpdate();
-    },
-    onDataPart(value) {
-      data.push(...value);
-      execUpdate();
-    },
-    onMessageAnnotationsPart(value) {
-      if (messageAnnotations == null) {
-        messageAnnotations = [...value];
-      } else {
-        messageAnnotations.push(...value);
-      }
-
-      execUpdate();
-    },
-    onFinishStepPart() {
-      step += 1;
-
-      // reset the current text and reasoning parts
-      currentTextPart = undefined;
-      currentReasoningPart = undefined;
-    },
-    onStartStepPart(value) {
-      // keep message id stable when we are updating an existing message:
-      if (!replaceLastMessage) {
-        message.id = value.messageId;
-      }
-
-      // add a step boundary part to the message
-      message.parts.push({ type: 'step-start' });
-      execUpdate();
-    },
-    onFinishMessagePart(value) {
-      finishReason = value.finishReason;
-      if (value.usage != null) {
-        usage = value.usage as LanguageModelUsage;
-      }
-    },
-    onErrorPart(error) {
-      throw new Error(error);
-    },
-  });
-
-  onFinish?.({ message, finishReason, usage });
+      flush() {
+        onFinish?.({ message });
+      },
+    }),
+  );
 }

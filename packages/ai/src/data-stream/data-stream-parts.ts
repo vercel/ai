@@ -1,23 +1,5 @@
 import { z } from 'zod';
 
-const languageModelUsageSchema = z.object({
-  inputTokens: z.number().optional(),
-  outputTokens: z.number().optional(),
-  totalTokens: z.number().optional(),
-  reasoningTokens: z.number().optional(),
-  cachedInputTokens: z.number().optional(),
-});
-
-const finishReasonSchema = z.enum([
-  'stop',
-  'length',
-  'tool-calls',
-  'content-filter',
-  'other',
-  'error',
-  'unknown',
-]);
-
 const toolCallSchema = z.object({
   toolCallId: z.string(),
   toolName: z.string(),
@@ -45,16 +27,8 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
     value: z.string(),
   }),
   z.object({
-    type: z.literal('data'),
-    value: z.array(z.any()), // TODO json validation
-  }),
-  z.object({
     type: z.literal('error'),
     value: z.string(),
-  }),
-  z.object({
-    type: z.literal('message-annotations'),
-    value: z.array(z.any()), // TODO json validation
   }),
   z.object({
     type: z.literal('tool-call'),
@@ -73,27 +47,6 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
     value: z.object({ toolCallId: z.string(), argsTextDelta: z.string() }),
   }),
   z.object({
-    type: z.literal('finish-message'),
-    value: z.object({
-      finishReason: finishReasonSchema,
-      // TODO v5 remove usage from finish event (only on step-finish)
-      usage: languageModelUsageSchema.optional(),
-    }),
-  }),
-  z.object({
-    type: z.literal('finish-step'),
-    value: z.object({
-      finishReason: finishReasonSchema,
-      usage: languageModelUsageSchema.optional(),
-    }),
-  }),
-  z.object({
-    type: z.literal('start-step'),
-    value: z.object({
-      messageId: z.string(),
-    }),
-  }),
-  z.object({
     type: z.literal('reasoning'),
     value: z.object({
       text: z.string(),
@@ -109,6 +62,37 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
     value: z.object({
       url: z.string(),
       mediaType: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('metadata'),
+    value: z.object({
+      metadata: z.unknown(),
+    }),
+  }),
+  z.object({
+    type: z.literal('start-step'),
+    value: z.object({
+      metadata: z.unknown(),
+    }),
+  }),
+  z.object({
+    type: z.literal('finish-step'),
+    value: z.object({
+      metadata: z.unknown(),
+    }),
+  }),
+  z.object({
+    type: z.literal('start'),
+    value: z.object({
+      messageId: z.string().optional(),
+      metadata: z.unknown(),
+    }),
+  }),
+  z.object({
+    type: z.literal('finish'),
+    value: z.object({
+      metadata: z.unknown(),
     }),
   }),
   z.object({

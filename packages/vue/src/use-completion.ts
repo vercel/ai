@@ -1,8 +1,4 @@
-import type {
-  CompletionRequestOptions,
-  JSONValue,
-  UseCompletionOptions,
-} from 'ai';
+import type { CompletionRequestOptions, UseCompletionOptions } from 'ai';
 import { callCompletionApi } from 'ai';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
@@ -44,9 +40,6 @@ export type UseCompletionHelpers = {
   handleSubmit: (event?: { preventDefault?: () => void }) => void;
   /** Whether the API request is in progress */
   isLoading: Ref<boolean | undefined>;
-
-  /** Additional data added on the server via StreamData */
-  data: Ref<JSONValue[] | undefined>;
 };
 
 let uniqueId = 0;
@@ -85,10 +78,6 @@ export function useCompletion({
 
   isLoading.value ??= false;
 
-  const { data: streamData, mutate: mutateStreamData } = useSWRV<
-    JSONValue[] | undefined
-  >(`${completionId}-data`, null);
-
   // Force the `data` to be `initialCompletion` if it's `undefined`.
   data.value ||= initialCompletion;
 
@@ -108,7 +97,6 @@ export function useCompletion({
     prompt: string,
     options?: CompletionRequestOptions,
   ) {
-    const existingData = (streamData.value ?? []) as JSONValue[];
     return callCompletionApi({
       api,
       prompt,
@@ -133,9 +121,6 @@ export function useCompletion({
       onResponse,
       onFinish,
       onError,
-      onData: data => {
-        mutateStreamData(() => [...existingData, ...(data ?? [])]);
-      },
       fetch,
     });
   }
@@ -175,6 +160,5 @@ export function useCompletion({
     input,
     handleSubmit,
     isLoading,
-    data: streamData,
   };
 }

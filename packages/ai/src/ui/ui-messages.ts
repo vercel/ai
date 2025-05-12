@@ -1,4 +1,4 @@
-import { JSONValue, LanguageModelV2Source } from '@ai-sdk/provider';
+import { LanguageModelV2Source } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 
 /**
@@ -18,17 +18,11 @@ export type ToolInvocation =
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
-export interface UIMessage {
+export interface UIMessage<METADATA = unknown> {
   /**
 A unique identifier for the message.
    */
   id: string;
-
-  /**
-The timestamp of the message.
-   */
-  // TODO solve optionality similar id
-  createdAt?: Date;
 
   /**
 The role of the message.
@@ -36,10 +30,9 @@ The role of the message.
   role: 'system' | 'user' | 'assistant';
 
   /**
-Additional message-specific information added on the server via StreamData
+The metadata of the message.
    */
-  // TODO replace with special part
-  annotations?: JSONValue[] | undefined;
+  metadata?: METADATA;
 
   /**
 The parts of the message. Use this for rendering the message in the UI.
@@ -147,6 +140,9 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateUIMessage = Omit<UIMessage, 'id'> & {
-  id?: UIMessage['id'];
+export type CreateUIMessage<METADATA = unknown> = Omit<
+  UIMessage<METADATA>,
+  'id'
+> & {
+  id?: UIMessage<METADATA>['id'];
 };

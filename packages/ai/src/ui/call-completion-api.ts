@@ -1,5 +1,9 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { processDataStream } from '../../src/data-stream/process-data-stream';
+import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
+import {
+  DataStreamPart,
+  dataStreamPartSchema,
+} from '../data-stream/data-stream-parts';
+import { consumeStream } from '../util/consume-stream';
 import { processTextStream } from './process-text-stream';
 
 // use function to allow for mocking in tests:
@@ -19,7 +23,6 @@ export async function callCompletionApi({
   onResponse,
   onFinish,
   onError,
-  onData,
   fetch = getOriginalFetch(),
 }: {
   api: string;
@@ -35,7 +38,6 @@ export async function callCompletionApi({
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onFinish: ((prompt: string, completion: string) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
-  onData: ((data: JSONValue[]) => void) | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
   try {
@@ -96,17 +98,30 @@ export async function callCompletionApi({
         break;
       }
       case 'data': {
-        await processDataStream({
-          stream: response.body,
-          onTextPart(value) {
-            result += value;
-            setCompletion(result);
-          },
-          onDataPart(value) {
-            onData?.(value);
-          },
-          onErrorPart(value) {
-            throw new Error(value);
+        await consumeStream({
+          stream: parseJsonEventStream({
+            stream: response.body,
+            schema: dataStreamPartSchema,
+          }).pipeThrough(
+            new TransformStream<ParseResult<DataStreamPart>, DataStreamPart>({
+              async transform(part) {
+                if (!part.success) {
+                  throw part.error;
+                }
+
+                const { type, value } = part.value;
+
+                if (type === 'text') {
+                  result += value;
+                  setCompletion(result);
+                } else if (type === 'error') {
+                  throw new Error(value);
+                }
+              },
+            }),
+          ),
+          onError: error => {
+            throw error;
           },
         });
         break;

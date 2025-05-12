@@ -605,6 +605,9 @@ importers:
       '@ai-sdk/perplexity':
         specifier: workspace:*
         version: link:../../packages/perplexity
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../../packages/provider-utils
       '@ai-sdk/react':
         specifier: workspace:*
         version: link:../../packages/react

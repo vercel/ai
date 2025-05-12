@@ -1,11 +1,8 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import { ZodSchema } from 'zod';
-import {
-  createEventSourceParserStream,
-  EventSourceChunk,
-} from './event-source-parser-stream';
 import { extractResponseHeaders } from './extract-response-headers';
 import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
+import { parseJsonEventStream } from './parse-json-event-stream';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -96,26 +93,10 @@ export const createEventSourceResponseHandler =
 
     return {
       responseHeaders,
-      value: response.body
-        .pipeThrough(new TextDecoderStream())
-        .pipeThrough(createEventSourceParserStream())
-        .pipeThrough(
-          new TransformStream<EventSourceChunk, ParseResult<T>>({
-            async transform({ data }, controller) {
-              // ignore the 'DONE' event that e.g. OpenAI sends:
-              if (data === '[DONE]') {
-                return;
-              }
-
-              controller.enqueue(
-                await safeParseJSON({
-                  text: data,
-                  schema: chunkSchema,
-                }),
-              );
-            },
-          }),
-        ),
+      value: parseJsonEventStream({
+        stream: response.body,
+        schema: chunkSchema,
+      }),
     };
   };
 

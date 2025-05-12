@@ -59,7 +59,11 @@ export async function parseJSON<T>({
 
 export type ParseResult<T> =
   | { success: true; value: T; rawValue: unknown }
-  | { success: false; error: JSONParseError | TypeValidationError };
+  | {
+      success: false;
+      error: JSONParseError | TypeValidationError;
+      rawValue: unknown;
+    };
 
 /**
  * Safely parses a JSON string and returns the result as an object of type `unknown`.
@@ -97,17 +101,14 @@ export async function safeParseJSON<T>({
       return { success: true, value: value as T, rawValue: value };
     }
 
-    const validationResult = await safeValidateTypes({ value, schema });
-
-    return validationResult.success
-      ? { ...validationResult, rawValue: value }
-      : validationResult;
+    return await safeValidateTypes({ value, schema });
   } catch (error) {
     return {
       success: false,
       error: JSONParseError.isInstance(error)
         ? error
         : new JSONParseError({ text, cause: error }),
+      rawValue: undefined,
     };
   }
 }

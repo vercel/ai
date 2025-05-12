@@ -1,6 +1,10 @@
-import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
-import { FetchFunction, IdGenerator, ToolCall } from '@ai-sdk/provider-utils';
-import { LanguageModelUsage } from '../../core/types/usage';
+import { JSONValue } from '@ai-sdk/provider';
+import {
+  FetchFunction,
+  IdGenerator,
+  Schema,
+  ToolCall,
+} from '@ai-sdk/provider-utils';
 import { UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
@@ -25,7 +29,13 @@ export type ChatRequestOptions = {
   allowEmptySubmit?: boolean;
 };
 
-export type UseChatOptions = {
+export type UseChatOptions<MESSAGE_METADATA = unknown> = {
+  /**
+   * Schema for the message metadata. Validates the message metadata.
+   * Message metadata can be undefined or must match the schema.
+   */
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
@@ -42,7 +52,7 @@ export type UseChatOptions = {
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
    */
-  initialMessages?: UIMessage[];
+  initialMessages?: UIMessage<NoInfer<MESSAGE_METADATA>>[];
 
   /**
    * Initial input of the chat.
@@ -71,16 +81,10 @@ export type UseChatOptions = {
    * Optional callback function that is called when the assistant message is finished streaming.
    *
    * @param message The message that was streamed.
-   * @param options.usage The token usage of the message.
-   * @param options.finishReason The finish reason of the message.
    */
-  onFinish?: (
-    message: UIMessage,
-    options: {
-      usage: LanguageModelUsage;
-      finishReason: LanguageModelV2FinishReason;
-    },
-  ) => void;
+  onFinish?: (options: {
+    message: UIMessage<NoInfer<MESSAGE_METADATA>>;
+  }) => void;
 
   /**
    * Callback function to be called when an error is encountered.

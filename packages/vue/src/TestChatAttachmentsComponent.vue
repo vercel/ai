@@ -7,9 +7,6 @@ import { useChat } from './use-chat';
 const { messages, handleSubmit, status, input } = useChat({
   id: generateId(),
   generateId: mockId(),
-  '~internal': {
-    currentDate: mockValues(new Date('2025-01-01')),
-  },
 });
 const files = ref<FileList>();
 const fileInputRef = ref<HTMLInputElement | null>(null);

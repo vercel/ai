@@ -14,9 +14,6 @@ const { messages, append } = useChat({
   },
   id: generateId(),
   generateId: mockId(),
-  '~internal': {
-    currentDate: mockValues(new Date('2025-01-01')),
-  },
 });
 </script>
 
