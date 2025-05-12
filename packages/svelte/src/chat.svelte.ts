@@ -10,7 +10,6 @@ import {
   updateToolCallResult,
   type ChatRequestOptions,
   type CreateUIMessage,
-  type JSONValue,
   type UIMessage,
   type UseChatOptions,
 } from 'ai';
@@ -100,14 +99,14 @@ export class Chat<MESSAGE_METADATA = unknown> {
    */
   append = async (
     message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
-    { data, headers, body }: ChatRequestOptions = {},
+    { headers, body }: ChatRequestOptions = {},
   ) => {
     const messages = this.messages.concat({
       ...message,
       id: message.id ?? this.#generateId(),
     });
 
-    return this.#triggerRequest({ messages, headers, body, data });
+    return this.#triggerRequest({ messages, headers, body });
   };
 
   /**
@@ -115,7 +114,7 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload = async ({ data, headers, body }: ChatRequestOptions = {}) => {
+  reload = async ({ headers, body }: ChatRequestOptions = {}) => {
     if (this.messages.length === 0) {
       return;
     }
@@ -128,7 +127,6 @@ export class Chat<MESSAGE_METADATA = unknown> {
           : this.messages,
       headers,
       body,
-      data,
     });
   };
 
@@ -152,11 +150,12 @@ export class Chat<MESSAGE_METADATA = unknown> {
     options: ChatRequestOptions & { files?: FileList } = {},
   ) => {
     event?.preventDefault?.();
-    if (!this.input && !options.allowEmptySubmit) return;
 
     const fileParts = Array.isArray(options?.files)
       ? options.files
       : await convertFileListToFileUIParts(options?.files);
+
+    if (!this.input && fileParts.length === 0) return;
 
     const messages = this.messages.concat({
       id: this.#generateId(),
@@ -164,19 +163,12 @@ export class Chat<MESSAGE_METADATA = unknown> {
       parts: [...fileParts, { type: 'text', text: this.input }],
     });
 
-    const chatRequest: {
-      headers?: Record<string, string> | Headers;
-      body?: object;
-      messages: UIMessage<MESSAGE_METADATA>[];
-      data?: JSONValue;
-    } = {
+    const request = this.#triggerRequest({
       messages,
       headers: options.headers,
       body: options.body,
-      data: options.data,
-    };
+    });
 
-    const request = this.#triggerRequest(chatRequest);
     this.input = '';
     await request;
   };
@@ -208,12 +200,11 @@ export class Chat<MESSAGE_METADATA = unknown> {
     }
   };
 
-  #triggerRequest = async (chatRequest: {
-    headers?: Record<string, string> | Headers;
-    body?: object;
-    messages: UIMessage<MESSAGE_METADATA>[];
-    data?: JSONValue;
-  }) => {
+  #triggerRequest = async (
+    chatRequest: ChatRequestOptions & {
+      messages: UIMessage<MESSAGE_METADATA>[];
+    },
+  ) => {
     this.#store.status = 'submitted';
     this.#store.error = undefined;
 
@@ -235,7 +226,6 @@ export class Chat<MESSAGE_METADATA = unknown> {
         body: {
           id: this.id,
           messages,
-          data: chatRequest.data,
           ...$state.snapshot(this.#options.body),
           ...chatRequest.body,
         },

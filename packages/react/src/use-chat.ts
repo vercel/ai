@@ -1,9 +1,7 @@
 import type {
   ChatRequestOptions,
-  ChatStatus,
   CreateUIMessage,
   FileUIPart,
-  JSONValue,
   UIMessage,
   UseChatOptions,
 } from 'ai';
@@ -30,20 +28,39 @@ import { useChatStore } from './use-chat-store';
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
 export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
+  /**
+   * The id of the chat.
+   */
+  readonly id: string;
+
+  /**
+   * Hook status:
+   *
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  readonly status: 'submitted' | 'streaming' | 'ready' | 'error';
+
   /** Current messages in the chat */
-  messages: UIMessage<MESSAGE_METADATA>[];
+  readonly messages: UIMessage<MESSAGE_METADATA>[];
+
   /** The error object of the API request */
-  error: undefined | Error;
+  readonly error: undefined | Error;
+
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
+   *
    * @param message The message to append
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+    message: CreateUIMessage<MESSAGE_METADATA>,
+    options?: ChatRequestOptions,
+  ) => Promise<void>;
+
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
@@ -52,6 +69,7 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   reload: (
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
+
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
@@ -74,16 +92,20 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
           messages: UIMessage<MESSAGE_METADATA>[],
         ) => UIMessage<MESSAGE_METADATA>[]),
   ) => void;
+
   /** The current value of the input */
   input: string;
+
   /** setState-powered method to update the input value */
   setInput: React.Dispatch<React.SetStateAction<string>>;
+
   /** An input/textarea-ready onChange handler to control the value of the input */
   handleInputChange: (
     e:
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
+
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
@@ -91,17 +113,6 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
       files?: FileList | FileUIPart[];
     },
   ) => void;
-  metadata?: Object;
-
-  /**
-   * Hook status:
-   *
-   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
-   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
-   * - `ready`: The full response has been received and processed; a new user message can be submitted.
-   * - `error`: An error occurred during the API request, preventing successful completion.
-   */
-  status: ChatStatus;
 
   addToolResult: ({
     toolCallId,
@@ -109,10 +120,7 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   }: {
     toolCallId: string;
     result: any;
-  }) => Promise<void>;
-
-  /** The id of the chat */
-  id: string;
+  }) => void;
 };
 
 export function useChat<MESSAGE_METADATA>({
@@ -140,14 +148,13 @@ export function useChat<MESSAGE_METADATA>({
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
    *
+   * @param id The id of the chat.
    * @param messages The current messages in the chat.
-   * @param requestData The data object passed in the chat request.
    * @param requestBody The request body object passed in the chat request.
    */
   experimental_prepareRequestBody?: (options: {
     id: string;
-    messages: UIMessage[];
-    requestData?: JSONValue;
+    messages: UIMessage<MESSAGE_METADATA>[];
     requestBody?: object;
   }) => unknown;
 
@@ -239,17 +246,14 @@ Default is undefined, which disables throttling.
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async ({
-      chatRequest = {},
-      requestType = 'generate',
-    }: {
-      chatRequest?: {
-        headers?: Record<string, string> | Headers;
-        body?: object;
-      };
-      requestType?: 'generate' | 'resume';
-    } = {}) => {
-      setStatus({ status: 'submitted', chatId });
+    async (
+      chatRequest: ChatRequestOptions & {
+        messages: UIMessage<MESSAGE_METADATA>[];
+      },
+      requestType: 'generate' | 'resume' = 'generate',
+    ) => {
+      mutateStatus('submitted');
+      setError(undefined);
 
       const chatMessages = getMessages(chatId);
       const messageCount = chatMessages.length;
@@ -343,31 +347,25 @@ Default is undefined, which disables throttling.
   );
 
   const append = useCallback(
-    (
-      message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
+    async (
+      message: CreateUIMessage<MESSAGE_METADATA>,
       { headers, body }: ChatRequestOptions = {},
     ) => {
-      chatStore.current.appendMessage({
-        id: chatId,
-        message: {
+      await triggerRequest({
+        messages: messagesRef.current.concat({
           ...message,
           id: message.id ?? generateId(),
-        },
-      });
-
-      return triggerRequest({
-        chatRequest: {
-          headers,
-          body,
-        },
+        }),
+        headers,
+        body,
       });
     },
-    [chatStore, chatId, generateId, triggerRequest],
+    [triggerRequest, generateId],
   );
 
   const reload = useCallback(
-    async ({ data, headers, body }: ChatRequestOptions = {}) => {
-      const messages = getMessages(chatId) ?? [];
+    async ({ headers, body }: ChatRequestOptions = {}) => {
+      const messages = messagesRef.current;
 
       if (messages.length === 0) {
         return null;
@@ -377,10 +375,10 @@ Default is undefined, which disables throttling.
 
       // Remove last assistant message and retry last user message.
       return triggerRequest({
-        chatRequest: {
-          headers,
-          body,
-        },
+        messages:
+          lastMessage.role === 'assistant' ? messages.slice(0, -1) : messages,
+        headers,
+        body,
       });
     },
     [chatId, getMessages, triggerRequest],
@@ -432,7 +430,11 @@ Default is undefined, which disables throttling.
     ) => {
       event?.preventDefault?.();
 
-      if (!input && !options.allowEmptySubmit) return;
+      const fileParts = Array.isArray(options?.files)
+        ? options.files
+        : await convertFileListToFileUIParts(options?.files);
+
+      if (!input && fileParts.length === 0) return;
 
       if (metadata) {
         extraMetadataRef.current = {
@@ -441,25 +443,15 @@ Default is undefined, which disables throttling.
         };
       }
 
-      const fileParts = Array.isArray(options?.files)
-        ? options.files
-        : await convertFileListToFileUIParts(options?.files);
-
-      chatStore.current.appendMessage({
-        id: chatId,
-        message: {
+      triggerRequest({
+        messages: messagesRef.current.concat({
           id: generateId(),
           role: 'user',
           metadata: undefined,
           parts: [...fileParts, { type: 'text', text: input }],
-        },
-      });
-
-      triggerRequest({
-        chatRequest: {
-          headers: options.headers,
-          body: options.body,
-        },
+        }),
+        headers: options.headers,
+        body: options.body,
       });
 
       setInput('');

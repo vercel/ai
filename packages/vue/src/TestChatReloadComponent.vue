@@ -36,7 +36,6 @@ const { messages, append, reload } = useChat({
       data-testid="do-reload"
       @click="
         reload({
-          data: { 'test-data-key': 'test-data-value' },
           body: { 'request-body-key': 'request-body-value' },
           headers: { 'header-key': 'header-value' },
         })

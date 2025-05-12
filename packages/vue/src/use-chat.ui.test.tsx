@@ -63,7 +63,6 @@ describe('prepareRequestBody', () => {
           parts: [{ type: 'text', text: 'hi' }],
         },
       ],
-      requestData: { 'test-data-key': 'test-data-value' },
       requestBody: { 'request-body-key': 'request-body-value' },
     });
 
@@ -392,12 +391,6 @@ describe('form actions (with options)', () => {
       },
       {
         type: 'stream-chunks',
-        chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-          formatDataStreamPart({ type: 'text', value: token }),
-        ),
-      },
-      {
-        type: 'stream-chunks',
         chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
           formatDataStreamPart({ type: 'text', value: token }),
         ),
@@ -416,28 +409,17 @@ describe('form actions (with options)', () => {
       'AI: Hello, world.',
     );
 
-    const secondInput = screen.getByTestId('do-input');
-    await userEvent.type(secondInput, '{Enter}');
-
-    await screen.findByTestId('message-2');
-    expect(screen.getByTestId('message-2')).toHaveTextContent('User:');
-
-    await screen.findByTestId('message-3');
-    expect(screen.getByTestId('message-3')).toHaveTextContent(
-      'AI: How can I help you?',
-    );
-
     const thirdInput = screen.getByTestId('do-input');
     await userEvent.type(thirdInput, 'what color is the sky?');
     await userEvent.keyboard('{Enter}');
 
-    await screen.findByTestId('message-4');
-    expect(screen.getByTestId('message-4')).toHaveTextContent(
+    await screen.findByTestId('message-2');
+    expect(screen.getByTestId('message-2')).toHaveTextContent(
       'User: what color is the sky?',
     );
 
-    await screen.findByTestId('message-5');
-    expect(screen.getByTestId('message-5')).toHaveTextContent(
+    await screen.findByTestId('message-3');
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
       'AI: The sky is blue.',
     );
   });
@@ -473,9 +455,6 @@ describe('reload', () => {
     await userEvent.click(screen.getByTestId('do-reload'));
 
     expect(await server.calls[1].requestBodyJson).toStrictEqual({
-      data: {
-        'test-data-key': 'test-data-value',
-      },
       id: expect.any(String),
       messages: [
         {

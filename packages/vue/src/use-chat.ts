@@ -18,7 +18,7 @@ import {
 } from 'ai';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
-import { computed, ref, unref } from 'vue';
+import { ref, unref } from 'vue';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
@@ -156,7 +156,7 @@ export function useChat<MESSAGE_METADATA = unknown>(
   // Force the `data` to be `initialMessages` if it's `undefined`.
   messagesData.value ??= initialMessages;
 
-  const mutate = (data?: UIMessage[]) => {
+  const mutate = (data?: UIMessage<MESSAGE_METADATA>[]) => {
     store[key] = data;
     return originalMutate();
   };
@@ -165,14 +165,12 @@ export function useChat<MESSAGE_METADATA = unknown>(
   const messages = messagesData as Ref<UIMessage<MESSAGE_METADATA>[]>;
 
   const error = ref<undefined | Error>(undefined);
-  // cannot use JSONValue[] in ref because of infinite Typescript recursion:
-  const streamData = ref<undefined | unknown[]>(undefined);
 
   let abortController: AbortController | null = null;
 
   async function triggerRequest(
     messagesSnapshot: UIMessage<MESSAGE_METADATA>[],
-    { data, headers, body }: ChatRequestOptions = {},
+    { headers, body }: ChatRequestOptions = {},
   ) {
     error.value = undefined;
     status.value = 'submitted';
@@ -195,12 +193,10 @@ export function useChat<MESSAGE_METADATA = unknown>(
         body: experimental_prepareRequestBody?.({
           id: chatId,
           messages: messagesSnapshot,
-          requestData: data,
           requestBody: body,
         }) ?? {
           id: chatId,
           messages: messagesSnapshot,
-          data,
           ...unref(metadataBody), // Use unref to unwrap the ref value
           ...body,
         },
@@ -315,19 +311,6 @@ export function useChat<MESSAGE_METADATA = unknown>(
     mutate(messagesArg);
   };
 
-  const setData = (
-    dataArg:
-      | JSONValue[]
-      | undefined
-      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-  ) => {
-    if (typeof dataArg === 'function') {
-      dataArg = dataArg(streamData.value as JSONValue[] | undefined);
-    }
-
-    streamData.value = dataArg;
-  };
-
   const input = ref(initialInput);
 
   const handleSubmit = async (
@@ -338,11 +321,11 @@ export function useChat<MESSAGE_METADATA = unknown>(
 
     const inputValue = input.value;
 
-    if (!inputValue && !options.allowEmptySubmit) return;
-
     const fileParts = Array.isArray(options?.files)
       ? options.files
       : await convertFileListToFileUIParts(options?.files);
+
+    if (!inputValue && fileParts.length === 0) return;
 
     triggerRequest(
       messages.value.concat({
