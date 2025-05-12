@@ -2,6 +2,22 @@
 '@ai-sdk/provider': major
 ---
 
+## Language Model V2
+
+### `LanguageModelV1Middleware` has been renamed to `LanguageModelV2Middleware` and is now exported from `@ai-sdk/provider`
+
+Before:
+
+```ts
+import { LanguageModelV1 } from 'ai';
+```
+
+After:
+
+```ts
+import { LanguageModelV2 } from '@ai-sdk/provider';
+```
+
 chore (provider): cleanup request and rawRequest (language model v2)
 chore (provider): merge rawRequest into request (language model v2)
 chore (provider): refactor usage (language model v2)
