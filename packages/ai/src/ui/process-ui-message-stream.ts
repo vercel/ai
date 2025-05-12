@@ -25,16 +25,18 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: () => void;
   acquireMessageLock: () => Promise<{
-    message: UIMessage<MESSAGE_METADATA>;
-    currentTextPart: TextUIPart | undefined;
-    setCurrentTextPart: (part: TextUIPart | undefined) => void;
-    currentReasoningPart: ReasoningUIPart | undefined;
-    setCurrentReasoningPart: (part: ReasoningUIPart | undefined) => void;
-    partialToolCalls: Record<
-      string,
-      { text: string; step: number; index: number; toolName: string }
-    >;
-    writeMessage: () => Promise<void>;
+    state: {
+      message: UIMessage<MESSAGE_METADATA>;
+      currentTextPart: TextUIPart | undefined;
+      setCurrentTextPart: (part: TextUIPart | undefined) => void;
+      currentReasoningPart: ReasoningUIPart | undefined;
+      setCurrentReasoningPart: (part: ReasoningUIPart | undefined) => void;
+      partialToolCalls: Record<
+        string,
+        { text: string; step: number; index: number; toolName: string }
+      >;
+    };
+    write: () => Promise<void>;
     release: () => void;
   }>;
 }): ReadableStream<UIMessageStreamPart> {
@@ -43,13 +45,15 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
       async transform(chunk, controller) {
         // get current state when chunk is being processed
         const {
-          message,
-          currentTextPart,
-          setCurrentTextPart,
-          currentReasoningPart,
-          setCurrentReasoningPart,
-          partialToolCalls,
-          writeMessage,
+          state: {
+            message,
+            currentTextPart,
+            setCurrentTextPart,
+            currentReasoningPart,
+            setCurrentReasoningPart,
+            partialToolCalls,
+          },
+          write,
           release,
         } = await acquireMessageLock();
 
@@ -144,7 +148,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 currentTextPart.text += value;
               }
 
-              await writeMessage();
+              await write();
               break;
             }
 
@@ -162,7 +166,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 currentReasoningPart.providerMetadata = value.providerMetadata;
               }
 
-              await writeMessage();
+              await write();
               break;
             }
 
@@ -180,7 +184,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 url: value.url,
               });
 
-              await writeMessage();
+              await write();
               break;
             }
 
@@ -190,7 +194,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 source: value,
               });
 
-              writeMessage();
+              write();
               break;
             }
 
@@ -213,7 +217,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 args: undefined,
               } as const);
 
-              writeMessage();
+              write();
               break;
             }
 
@@ -234,7 +238,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 args: partialArgs,
               } as const);
 
-              writeMessage();
+              write();
               break;
             }
 
@@ -248,7 +252,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 ...call,
               } as const);
 
-              writeMessage();
+              write();
 
               // invoke the onToolCall callback if it exists. This is blocking.
               // In the future we should make this non-blocking, which
@@ -265,7 +269,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                     result,
                   } as const);
 
-                  writeMessage();
+                  write();
                 }
               }
               break;
@@ -299,7 +303,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 ...result,
               } as const);
 
-              writeMessage();
+              write();
               break;
             }
 
@@ -308,7 +312,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
               message.parts.push({ type: 'step-start' });
 
               await updateMessageMetadata(value.metadata);
-              writeMessage();
+              write();
               break;
             }
 
@@ -321,7 +325,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
 
               await updateMessageMetadata(value.metadata);
               if (value.metadata != null) {
-                writeMessage();
+                write();
               }
               break;
             }
@@ -334,7 +338,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
               await updateMessageMetadata(value.metadata);
 
               if (value.messageId != null || value.metadata != null) {
-                writeMessage();
+                write();
               }
               break;
             }
@@ -342,7 +346,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
             case 'finish': {
               await updateMessageMetadata(value.metadata);
               if (value.metadata != null) {
-                writeMessage();
+                write();
               }
               break;
             }
@@ -350,7 +354,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
             case 'metadata': {
               await updateMessageMetadata(value.metadata);
               if (value.metadata != null) {
-                writeMessage();
+                write();
               }
               break;
             }
