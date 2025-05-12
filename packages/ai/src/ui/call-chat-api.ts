@@ -20,7 +20,7 @@ const getOriginalFetch = () => fetch;
 export async function callChatApi<MESSAGE_METADATA>({
   api,
   body,
-  streamProtocol = 'data',
+  streamProtocol = 'ui-message',
   credentials,
   headers,
   abortController,
@@ -35,7 +35,7 @@ export async function callChatApi<MESSAGE_METADATA>({
 }: {
   api: string;
   body: Record<string, any>;
-  streamProtocol: 'data' | 'text' | undefined;
+  streamProtocol: 'ui-message' | 'text' | undefined;
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
@@ -91,7 +91,7 @@ export async function callChatApi<MESSAGE_METADATA>({
       return;
     }
 
-    case 'data': {
+    case 'ui-message': {
       // TODO check protocol version header
 
       await consumeStream({

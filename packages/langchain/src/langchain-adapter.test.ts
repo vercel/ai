@@ -2,7 +2,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from 'ai/test';
-import { toDataStream } from './langchain-adapter';
+import { toUIMessageStream } from './langchain-adapter';
 
 describe('toDataStream', () => {
   it('should convert ReadableStream<LangChainAIMessageChunk>', async () => {
@@ -11,7 +11,7 @@ describe('toDataStream', () => {
       { content: [{ type: 'text', text: 'World' }] },
     ]);
 
-    expect(await convertReadableStreamToArray(toDataStream(inputStream)))
+    expect(await convertReadableStreamToArray(toUIMessageStream(inputStream)))
       .toMatchInlineSnapshot(`
         [
           {
@@ -29,7 +29,7 @@ describe('toDataStream', () => {
   it('should convert ReadableStream<string> (LangChain StringOutputParser)', async () => {
     const inputStream = convertArrayToReadableStream(['Hello', 'World']);
 
-    expect(await convertReadableStreamToArray(toDataStream(inputStream)))
+    expect(await convertReadableStreamToArray(toUIMessageStream(inputStream)))
       .toMatchInlineSnapshot(`
         [
           {
@@ -50,7 +50,7 @@ describe('toDataStream', () => {
       { event: 'on_chat_model_stream', data: { chunk: { content: 'World' } } },
     ]);
 
-    expect(await convertReadableStreamToArray(toDataStream(inputStream)))
+    expect(await convertReadableStreamToArray(toUIMessageStream(inputStream)))
       .toMatchInlineSnapshot(`
         [
           {
