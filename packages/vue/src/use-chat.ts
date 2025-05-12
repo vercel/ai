@@ -82,16 +82,6 @@ export type UseChatHelpers = {
    */
   status: Ref<'submitted' | 'streaming' | 'ready' | 'error'>;
 
-  /** Additional data added on the server via StreamData. */
-  data: Ref<JSONValue[] | undefined>;
-  /** Set the data of the chat. You can use this to transform or clear the chat data. */
-  setData: (
-    data:
-      | JSONValue[]
-      | undefined
-      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-  ) => void;
-
   addToolResult: ({
     toolCallId,
     result,
@@ -148,18 +138,10 @@ export function useChat(
       requestData?: JSONValue;
       requestBody?: object;
     }) => unknown;
-
-    '~internal'?: {
-      currentDate?: () => Date;
-    };
   } = {
     maxSteps: 1,
   },
 ): UseChatHelpers {
-  // allow overriding the current date for testing purposes:
-  const getCurrentDate = () =>
-    options['~internal']?.currentDate?.() ?? new Date();
-
   // Generate a unique ID for the chat if not provided.
   const chatId = id ?? generateId();
 
@@ -236,8 +218,11 @@ export function useChat(
         abortController: () => abortController,
         credentials,
         onResponse,
-        onUpdate({ message, data, replaceLastMessage }) {
+        onUpdate({ message }) {
           status.value = 'streaming';
+
+          const replaceLastMessage =
+            message.id === messagesSnapshot[messagesSnapshot.length - 1].id;
 
           mutate([
             ...(replaceLastMessage
@@ -245,9 +230,6 @@ export function useChat(
               : messagesSnapshot),
             message,
           ]);
-          if (data?.length) {
-            streamData.value = [...existingData, ...data];
-          }
         },
         onFinish,
         generateId,
@@ -257,7 +239,6 @@ export function useChat(
         lastMessage: recursiveToRaw(
           messagesSnapshot[messagesSnapshot.length - 1],
         ),
-        getCurrentDate,
       });
 
       status.value = 'ready';
@@ -297,7 +278,6 @@ export function useChat(
       messages.value.concat({
         ...message,
         id: message.id ?? generateId(),
-        createdAt: message.createdAt ?? getCurrentDate(),
         parts: message.parts,
       }),
       options,
@@ -365,7 +345,6 @@ export function useChat(
     triggerRequest(
       messages.value.concat({
         id: generateId(),
-        createdAt: getCurrentDate(),
         role: 'user',
         parts: [...fileParts, { type: 'text', text: inputValue }],
       }),
@@ -418,8 +397,6 @@ export function useChat(
       () => status.value === 'submitted' || status.value === 'streaming',
     ),
     status: status as Ref<'submitted' | 'streaming' | 'ready' | 'error'>,
-    data: streamData as Ref<undefined | JSONValue[]>,
-    setData,
     addToolResult,
   };
 }
