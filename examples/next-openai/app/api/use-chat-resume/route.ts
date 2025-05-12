@@ -6,7 +6,6 @@ import {
 } from '@/util/chat-store';
 import { openai } from '@ai-sdk/openai';
 import {
-  appendResponseMessages,
   convertToModelMessages,
   createDataStream,
   generateId,
@@ -47,18 +46,15 @@ export async function POST(req: Request) {
       const result = streamText({
         model: openai('gpt-4o'),
         messages: convertToModelMessages(messages),
-        onFinish: async ({ response }) => {
-          await saveChat({
-            id,
-            messages: appendResponseMessages({
-              messages,
-              responseMessages: response.messages,
-            }),
-          });
-        },
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(
+        result.toDataStream({
+          onFinish: ({ messages }) => {
+            saveChat({ id, messages });
+          },
+        }),
+      );
     },
   });
 
