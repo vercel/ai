@@ -341,6 +341,7 @@ Default is undefined, which disables throttling.
       fetch,
       throttleWaitMs,
       chatId,
+      messageMetadataSchema,
     ],
   );
 
