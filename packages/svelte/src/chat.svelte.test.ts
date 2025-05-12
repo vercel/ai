@@ -457,172 +457,6 @@ describe('form actions', () => {
     await chat.handleSubmit();
     expect(chat.messages.at(2)).toBeUndefined();
   });
-
-  it('should allow empty submit', async () => {
-    server.urls['/api/chat'].response = [
-      {
-        type: 'stream-chunks',
-        chunks: ['Hello', ',', ' world', '.'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['How', ' can', ' I', ' help', ' you', '?'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['The', ' sky', ' is', ' blue', '.'],
-      },
-    ];
-
-    chat.input = 'hi';
-    await chat.handleSubmit();
-    expect(chat.input).toBe('');
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-      }),
-    );
-
-    expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "id-1",
-          "parts": [
-            {
-              "text": "hi",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-2",
-          "parts": [
-            {
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
-
-    await chat.handleSubmit(undefined, { allowEmptySubmit: true });
-
-    expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "id-1",
-          "parts": [
-            {
-              "text": "hi",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-2",
-          "parts": [
-            {
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "id": "id-3",
-          "parts": [
-            {
-              "text": "",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-4",
-          "parts": [
-            {
-              "text": "How can I help you?",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
-
-    chat.input = 'What color is the sky?';
-    await chat.handleSubmit();
-
-    expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "id-1",
-          "parts": [
-            {
-              "text": "hi",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-2",
-          "parts": [
-            {
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "id": "id-3",
-          "parts": [
-            {
-              "text": "",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-4",
-          "parts": [
-            {
-              "text": "How can I help you?",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "id": "id-5",
-          "parts": [
-            {
-              "text": "What color is the sky?",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-6",
-          "parts": [
-            {
-              "text": "The sky is blue.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
-  });
 });
 
 describe('onToolCall', () => {
@@ -1454,7 +1288,6 @@ describe('file attachments with empty text content', () => {
     };
 
     await chat.handleSubmit(undefined, {
-      allowEmptySubmit: true,
       files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
@@ -1566,16 +1399,12 @@ describe('reload', () => {
 
     // Setup done, call reload:
     await chat.reload({
-      data: { 'test-data-key': 'test-data-value' },
       body: { 'request-body-key': 'request-body-value' },
       headers: { 'header-key': 'header-value' },
     });
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "data": {
-          "test-data-key": "test-data-value",
-        },
         "id": "id-0",
         "messages": [
           {

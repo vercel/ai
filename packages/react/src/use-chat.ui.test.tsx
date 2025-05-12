@@ -526,94 +526,6 @@ describe('form actions', () => {
   });
 });
 
-describe('form actions (with options)', () => {
-  setupTestComponent(() => {
-    const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat({ streamProtocol: 'text' });
-
-    return (
-      <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join('')}
-          </div>
-        ))}
-
-        <form
-          onSubmit={event => {
-            handleSubmit(event, {
-              allowEmptySubmit: true,
-            });
-          }}
-        >
-          <input
-            value={input}
-            placeholder="Send message..."
-            onChange={handleInputChange}
-            disabled={status !== 'ready'}
-            data-testid="do-input"
-          />
-        </form>
-      </div>
-    );
-  });
-
-  it('allowEmptySubmit', async () => {
-    server.urls['/api/chat'].response = [
-      {
-        type: 'stream-chunks',
-        chunks: ['Hello', ',', ' world', '.'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['How', ' can', ' I', ' help', ' you', '?'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['The', ' sky', ' is', ' blue', '.'],
-      },
-    ];
-
-    const firstInput = screen.getByTestId('do-input');
-    await userEvent.type(firstInput, 'hi');
-    await userEvent.keyboard('{Enter}');
-
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Hello, world.',
-    );
-
-    const secondInput = screen.getByTestId('do-input');
-    await userEvent.type(secondInput, '{Enter}');
-
-    await screen.findByTestId('message-2');
-    expect(screen.getByTestId('message-2')).toHaveTextContent('User:');
-
-    expect(screen.getByTestId('message-3')).toHaveTextContent(
-      'AI: How can I help you?',
-    );
-
-    const thirdInput = screen.getByTestId('do-input');
-    await userEvent.type(thirdInput, 'what color is the sky?');
-    await userEvent.type(thirdInput, '{Enter}');
-
-    expect(screen.getByTestId('message-4')).toHaveTextContent(
-      'User: what color is the sky?',
-    );
-
-    await screen.findByTestId('message-5');
-    expect(screen.getByTestId('message-5')).toHaveTextContent(
-      'AI: The sky is blue.',
-    );
-  });
-});
-
 describe('prepareRequestBody', () => {
   let bodyOptions: any;
 
@@ -647,7 +559,6 @@ describe('prepareRequestBody', () => {
                 parts: [{ text: 'hi', type: 'text' }],
               },
               {
-                data: { 'test-data-key': 'test-data-value' },
                 body: { 'request-body-key': 'request-body-value' },
               },
             );
@@ -694,9 +605,6 @@ describe('prepareRequestBody', () => {
         ],
         "requestBody": {
           "request-body-key": "request-body-value",
-        },
-        "requestData": {
-          "test-data-key": "test-data-value",
         },
       }
     `);
@@ -1568,7 +1476,6 @@ describe('attachments with empty submit', () => {
         <form
           onSubmit={event => {
             handleSubmit(event, {
-              allowEmptySubmit: true,
               files: [
                 {
                   type: 'file',
@@ -1807,7 +1714,6 @@ describe('reload', () => {
           data-testid="do-reload"
           onClick={() => {
             reload({
-              data: { 'test-data-key': 'test-data-value' },
               body: { 'request-body-key': 'request-body-value' },
               headers: { 'header-key': 'header-value' },
             });
@@ -1845,9 +1751,6 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "data": {
-          "test-data-key": "test-data-value",
-        },
         "id": "id-0",
         "messages": [
           {
