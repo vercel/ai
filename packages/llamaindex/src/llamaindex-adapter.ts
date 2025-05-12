@@ -1,4 +1,4 @@
-import { DataStreamPart } from 'ai';
+import { UIMessageStreamPart } from 'ai';
 import { convertAsyncIteratorToReadableStream } from 'ai/internal';
 import {
   createCallbacksTransformer,
@@ -9,7 +9,7 @@ type EngineResponse = {
   delta: string;
 };
 
-export function toDataStream(
+export function toUIMessageStream(
   stream: AsyncIterable<EngineResponse>,
   callbacks?: StreamCallbacks,
 ) {
@@ -25,7 +25,7 @@ export function toDataStream(
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(
-      new TransformStream<string, DataStreamPart>({
+      new TransformStream<string, UIMessageStreamPart>({
         transform: async (chunk, controller) => {
           controller.enqueue({ type: 'text', value: chunk });
         },

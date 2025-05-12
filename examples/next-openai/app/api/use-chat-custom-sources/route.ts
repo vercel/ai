@@ -1,10 +1,14 @@
 import { openai } from '@ai-sdk/openai';
-import { createDataStream, createDataStreamResponse, streamText } from 'ai';
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const dataStream = createDataStream({
+  const stream = createUIMessageStream({
     execute: writer => {
       // write a custom url source to the stream:
       writer.write({
@@ -23,9 +27,9 @@ export async function POST(req: Request) {
         messages,
       });
 
-      writer.merge(result.toDataStream());
+      writer.merge(result.toUIMessageStream());
     },
   });
 
-  return createDataStreamResponse({ dataStream });
+  return createUIMessageStreamResponse({ stream });
 }

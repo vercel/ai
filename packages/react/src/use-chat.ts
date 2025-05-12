@@ -131,7 +131,7 @@ export function useChat<MESSAGE_METADATA>({
   onToolCall,
   experimental_prepareRequestBody,
   maxSteps = 1,
-  streamProtocol = 'data',
+  streamProtocol = 'ui-message',
   onFinish,
   onError,
   credentials,

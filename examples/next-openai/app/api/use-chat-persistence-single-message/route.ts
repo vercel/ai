@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     originalMessages: messages,
     onFinish: ({ messages }) => {
       saveChat({ id, messages });

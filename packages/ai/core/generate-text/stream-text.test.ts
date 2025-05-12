@@ -809,7 +809,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.pipeDataStreamToResponse', async () => {
+  describe('result.pipeUIMessageStreamToResponse', async () => {
     it('should write data stream parts to a Node.js response-like object', async () => {
       const mockResponse = createMockServerResponse();
 
@@ -818,7 +818,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -829,7 +829,7 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
@@ -870,7 +870,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         status: 201,
         statusText: 'foo',
         headers: {
@@ -890,7 +890,7 @@ describe('streamText', () => {
           "content-type": "text/event-stream",
           "custom-header": "custom-value",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
 
@@ -936,7 +936,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -955,7 +955,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         onError: error => `custom error message: ${error}`,
       });
 
@@ -981,7 +981,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         experimental_sendFinish: false,
       });
 
@@ -998,7 +998,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         sendReasoning: true,
       });
 
@@ -1011,7 +1011,7 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
@@ -1076,7 +1076,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         sendSources: true,
       });
 
@@ -1089,7 +1089,7 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
@@ -1127,7 +1127,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -1138,7 +1138,7 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
@@ -1202,14 +1202,14 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.toDataStream', () => {
+  describe('result.toUIMessageStream', () => {
     it('should create a data stream', async () => {
       const result = streamText({
         model: createTestModel(),
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1256,7 +1256,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(result.toDataStream()),
+        await convertReadableStreamToArray(result.toUIMessageStream()),
       ).toMatchSnapshot();
     });
 
@@ -1303,7 +1303,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(result.toDataStream()),
+        await convertReadableStreamToArray(result.toUIMessageStream()),
       ).toMatchSnapshot();
     });
 
@@ -1313,7 +1313,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({
+      const dataStream = result.toUIMessageStream({
         messageMetadata: mockValues(
           { key1: 'value1' },
           { key2: 'value2' },
@@ -1384,7 +1384,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1399,7 +1399,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({
+      const dataStream = result.toUIMessageStream({
         onError: error => `custom error message: ${error}`,
       });
 
@@ -1421,7 +1421,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({
+      const dataStream = result.toUIMessageStream({
         experimental_sendFinish: false,
       });
 
@@ -1434,7 +1434,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({ sendReasoning: true });
+      const dataStream = result.toUIMessageStream({ sendReasoning: true });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1445,7 +1445,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({ sendSources: true });
+      const dataStream = result.toUIMessageStream({ sendSources: true });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1456,32 +1456,32 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
   });
 
-  describe('result.toDataStreamResponse', () => {
+  describe('result.toUIMessageStreamResponse', () => {
     it('should create a Response with a data stream', async () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
       });
 
-      const response = result.toDataStreamResponse();
+      const response = result.toUIMessageStreamResponse();
 
       expect(response.status).toStrictEqual(200);
       expect(Object.fromEntries(response.headers.entries()))
         .toMatchInlineSnapshot(`
-        {
-          "cache-control": "no-cache",
-          "connection": "keep-alive",
-          "content-type": "text/event-stream",
-          "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
-        }
-      `);
+          {
+            "cache-control": "no-cache",
+            "connection": "keep-alive",
+            "content-type": "text/event-stream",
+            "x-accel-buffering": "no",
+            "x-vercel-ai-ui-message-stream": "v1",
+          }
+        `);
 
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
@@ -1520,7 +1520,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      const response = result.toDataStreamResponse({
+      const response = result.toUIMessageStreamResponse({
         status: 201,
         statusText: 'foo',
         headers: {
@@ -1538,7 +1538,7 @@ describe('streamText', () => {
             "content-type": "text/event-stream",
             "custom-header": "custom-value",
             "x-accel-buffering": "no",
-            "x-vercel-ai-data-stream": "v2",
+            "x-vercel-ai-ui-message-stream": "v1",
           }
         `);
       expect(await convertResponseStreamToArray(response))
@@ -1582,7 +1582,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      const response = result.toDataStreamResponse();
+      const response = result.toUIMessageStreamResponse();
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
@@ -1597,7 +1597,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      const response = result.toDataStreamResponse({
+      const response = result.toUIMessageStreamResponse({
         onError: error => `custom error message: ${error}`,
       });
 
@@ -1739,7 +1739,9 @@ describe('streamText', () => {
       expect({
         textStream: await convertAsyncIterableToArray(result.textStream),
         fullStream: await convertAsyncIterableToArray(result.fullStream),
-        dataStream: await convertReadableStreamToArray(result.toDataStream()),
+        dataStream: await convertReadableStreamToArray(
+          result.toUIMessageStream(),
+        ),
       }).toMatchSnapshot();
     });
   });

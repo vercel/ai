@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     originalMessages: messages,
     onFinish: ({ messages }) => {
       saveChat({ id, messages });

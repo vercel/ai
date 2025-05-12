@@ -1,15 +1,15 @@
-import { DataStreamPart } from './data-stream-parts';
+import { UIMessageStreamPart } from './ui-message-stream-parts';
 
-export interface DataStreamWriter {
+export interface UIMessageStreamWriter {
   /**
    * Appends a data stream part to the stream.
    */
-  write(part: DataStreamPart): void;
+  write(part: UIMessageStreamPart): void;
 
   /**
    * Merges the contents of another stream to this stream.
    */
-  merge(stream: ReadableStream<DataStreamPart>): void;
+  merge(stream: ReadableStream<UIMessageStreamPart>): void;
 
   /**
    * Error handler that is used by the data stream writer.

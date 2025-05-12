@@ -31,7 +31,9 @@ export class Chat<MESSAGE_METADATA = unknown> {
   readonly #api = $derived(this.#options.api ?? '/api/chat');
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
   readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
-  readonly #streamProtocol = $derived(this.#options.streamProtocol ?? 'data');
+  readonly #streamProtocol = $derived(
+    this.#options.streamProtocol ?? 'ui-message',
+  );
   readonly #keyedStore = $state<KeyedChatStore<MESSAGE_METADATA>>()!;
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated

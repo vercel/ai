@@ -1,10 +1,10 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { DataStreamPart } from '../../src';
+import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
-import { processChatResponse } from './process-chat-response';
+import { processUIMessageStream } from './process-ui-message-stream';
 import { UIMessage } from './ui-messages';
 
-function createDataProtocolStream(parts: DataStreamPart[]) {
+function createUIMessageStream(parts: UIMessageStreamPart[]) {
   return convertArrayToReadableStream(parts);
 }
 
@@ -13,7 +13,7 @@ let updateCalls: Array<{
 }> = [];
 const onUpdate = (options: { message: UIMessage }) => {
   // clone to preserve the original object
-  if (data) updateDataCalls.push(structuredClone(data));
+  updateCalls.push(structuredClone(options));
 };
 
 let finishCalls: Array<{
@@ -24,53 +24,20 @@ const onFinish = (options: { message: UIMessage | undefined }) => {
   finishCalls.push({ ...options });
 };
 
-const chatId = 'chat-id';
-let store: ChatStore;
-let storeSpy: MockInstance<
-  ({
-    chatId,
-    partDelta,
-    messageId,
-  }: {
-    chatId: string;
-    partDelta: UIMessage['parts'][number];
-    messageId?: string;
-  }) => Promise<void>
->;
-
 export function mockId(): () => string {
   let counter = 0;
   return () => `id-${counter++}`;
 }
 
-describe('processChatResponse', () => {
+describe('processUIMessageStream', () => {
   beforeEach(() => {
-    updateDataCalls = [];
+    updateCalls = [];
     finishCalls = [];
   });
 
   describe('scenario: simple text response', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date(),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'Hello, ' },
@@ -80,7 +47,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -175,25 +142,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date(),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -219,7 +168,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -415,43 +364,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with existing assistant message', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hello, how are you?' }],
-              },
-              {
-                role: 'assistant',
-                id: 'original-id',
-                createdAt: new Date('2023-01-02T00:00:00.000Z'),
-                parts: [
-                  {
-                    type: 'tool-invocation',
-                    toolInvocation: {
-                      args: {},
-                      result: { location: 'Berlin' },
-                      state: 'result',
-                      step: 0,
-                      toolCallId: 'tool-call-id-original',
-                      toolName: 'tool-name-original',
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -477,7 +390,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -782,25 +695,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with multiple assistant texts', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'I will ' },
@@ -829,7 +724,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1115,25 +1010,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with multiple assistant reasoning', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'reasoning', value: { text: 'I will ' } },
@@ -1180,7 +1057,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1525,25 +1402,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: message metadata', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         {
           type: 'start',
           value: {
@@ -1610,7 +1469,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1835,7 +1694,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: delayed message metadata after finish', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 't1' },
@@ -1852,7 +1711,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1951,7 +1810,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: message metadata with existing assistant lastMessage', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         {
           type: 'start-step',
@@ -1968,7 +1827,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2070,25 +1929,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: tool call streaming', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -2132,7 +1973,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2323,7 +2164,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides message ids', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'Hello, ' },
@@ -2333,7 +2174,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2428,7 +2269,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides reasoning', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -2477,7 +2318,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2671,25 +2512,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: onToolCall is executed', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -2705,7 +2528,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2827,25 +2650,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides sources', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'The weather in London is sunny.' },
@@ -2864,7 +2669,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2979,25 +2784,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides file parts', () => {
     beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        '~internal': {
-          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-        },
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'Here is a file:' },
@@ -3021,7 +2808,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,

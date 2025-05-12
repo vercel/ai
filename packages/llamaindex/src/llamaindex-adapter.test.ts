@@ -2,16 +2,16 @@ import {
   convertArrayToAsyncIterable,
   convertReadableStreamToArray,
 } from 'ai/test';
-import { toDataStream } from './llamaindex-adapter';
+import { toUIMessageStream } from './llamaindex-adapter';
 
-describe('toDataStream', () => {
+describe('toUIMessageStream', () => {
   it('should convert AsyncIterable<EngineResponse>', async () => {
     const inputStream = convertArrayToAsyncIterable([
       { delta: 'Hello' },
       { delta: 'World' },
     ]);
 
-    expect(await convertReadableStreamToArray(toDataStream(inputStream)))
+    expect(await convertReadableStreamToArray(toUIMessageStream(inputStream)))
       .toMatchInlineSnapshot(`
         [
           {

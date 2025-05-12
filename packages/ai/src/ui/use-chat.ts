@@ -116,9 +116,9 @@ export type UseChatOptions<MESSAGE_METADATA = unknown> = {
   body?: object;
 
   /**
-  Streaming protocol that is used. Defaults to `data`.
+  Streaming protocol that is used. Defaults to `ui-message`.
      */
-  streamProtocol?: 'data' | 'text';
+  streamProtocol?: 'ui-message' | 'text';
 
   /**
   Custom fetch implementation. You can use it as a middleware to intercept requests,

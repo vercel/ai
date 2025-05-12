@@ -105,7 +105,7 @@ export function useChat<MESSAGE_METADATA = unknown>(
     id,
     initialMessages = [],
     initialInput = '',
-    streamProtocol = 'data',
+    streamProtocol = 'ui-message',
     onFinish,
     onError,
     credentials,
