@@ -6,9 +6,6 @@ import { useChat } from './use-chat';
 const { messages, append, reload } = useChat({
   id: generateId(),
   generateId: mockId(),
-  '~internal': {
-    currentDate: mockValues(new Date('2025-01-01')),
-  },
 });
 </script>
 

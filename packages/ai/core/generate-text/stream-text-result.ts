@@ -13,26 +13,56 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ResponseMessage } from './response-message';
+import { UIMessage } from '../../src/ui/ui-messages';
 
 export type DataStreamOptions = {
   /**
-   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
-   *
-   * @return error message to include in the data stream.
+   * Message ID that is sent to the client if a new message is created.
+   * This is intended to be used for the UI message,
+   * if the last original message is not an assistant message
+   * (in which case that message ID is used).
    */
-  onError?: (error: unknown) => string;
+  newMessageId?: string;
 
   /**
-   * Send usage parts to the client.
-   * Default to true.
+   * The original messages.
    */
-  // TODO change default to false in v5: secure by default
-  sendUsage?: boolean;
+  originalMessages?: UIMessage[];
+
+  onFinish?: (options: {
+    /**
+     * The updates list of UI messages.
+     */
+    messages: UIMessage[];
+
+    /**
+     * Indicates whether the response message is a continuation of the last original message,
+     * or if a new message was created.
+     */
+    isContinuation: boolean;
+
+    /**
+     * The message that was sent to the client as a response
+     * (including the original message if it was extended).
+     */
+    responseMessage: UIMessage;
+  }) => void;
+
+  /**
+   * Extracts message metadata that will be send to the client.
+   *
+   * Called on `start` and `finish` events.
+   */
+  messageMetadata?: (options: {
+    part: TextStreamPart<ToolSet> & {
+      type: 'start' | 'finish' | 'start-step' | 'finish-step';
+    };
+  }) => unknown;
 
   /**
    * Send reasoning parts to the client.
@@ -66,6 +96,13 @@ export type DataStreamOptions = {
    * the message start event from being sent multiple times.
    */
   experimental_sendStart?: boolean;
+
+  /**
+   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   *
+   * @return error message to include in the data stream.
+   */
+  onError?: (error: unknown) => string;
 };
 
 export type ConsumeStreamOptions = {
@@ -301,36 +338,24 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       argsTextDelta: string;
     }
   | {
-      type: 'step-start';
-      messageId: string;
+      type: 'start-step';
       request: LanguageModelRequestMetadata;
       warnings: CallWarning[];
     }
   | {
-      type: 'step-finish';
-      messageId: string;
-
-      // TODO 5.0 breaking change: remove request (on start instead)
-      request: LanguageModelRequestMetadata;
-      // TODO 5.0 breaking change: remove warnings (on start instead)
-      warnings: CallWarning[] | undefined;
-
+      type: 'finish-step';
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
       providerMetadata: ProviderMetadata | undefined;
     }
   | {
+      type: 'start';
+    }
+  | {
       type: 'finish';
       finishReason: FinishReason;
-      usage: LanguageModelUsage;
-      providerMetadata: ProviderMetadata | undefined;
-
-      /**
-       * @deprecated use response on step-finish instead
-       */
-      // TODO 5.0 breaking change: remove response (on step instead)
-      response: LanguageModelResponseMetadata;
+      totalUsage: LanguageModelUsage;
     }
   | {
       type: 'error';

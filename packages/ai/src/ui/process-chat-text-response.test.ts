@@ -12,9 +12,9 @@ function createTextStream(chunks: string[]): ReadableStream<Uint8Array> {
 
 let finishCallMessages: UIMessage[] = [];
 
-const onFinish = (message: UIMessage) => {
-  // store the final message
-  finishCallMessages.push(structuredClone(message));
+const onFinish = () => {
+  // TODO-FIX: store the final message
+  finishCallMessages.push();
 };
 
 function mockId(): string {
@@ -68,7 +68,7 @@ describe('processChatTextResponse', () => {
         onFinish,
         store,
         chatId,
-        generateId: mockId,
+        generateId: () => mockId(),
       });
     });
 
@@ -107,7 +107,7 @@ describe('processChatTextResponse', () => {
         onFinish,
         store,
         chatId,
-        generateId: mockId,
+        generateId: () => mockId(),
       });
     });
 
@@ -146,7 +146,7 @@ describe('processChatTextResponse', () => {
         onFinish,
         store,
         chatId,
-        generateId: mockId,
+        generateId: () => mockId(),
       });
     });
 

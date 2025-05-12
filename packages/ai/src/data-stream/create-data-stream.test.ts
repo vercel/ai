@@ -9,17 +9,15 @@ describe('createDataStream', () => {
   it('should send data stream part and close the stream', async () => {
     const stream = createDataStream({
       execute: dataStream => {
-        dataStream.write({ type: 'data', value: ['1a'] });
+        dataStream.write({ type: 'text', value: '1a' });
       },
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "data",
-          "value": [
-            "1a",
-          ],
+          "type": "text",
+          "value": "1a",
         },
       ]
     `);
@@ -31,8 +29,8 @@ describe('createDataStream', () => {
         dataStream.merge(
           new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'data', value: ['1a'] });
-              controller.enqueue({ type: 'data', value: ['1b'] });
+              controller.enqueue({ type: 'text', value: '1a' });
+              controller.enqueue({ type: 'text', value: '1b' });
               controller.close();
             },
           }),
@@ -43,16 +41,12 @@ describe('createDataStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "data",
-          "value": [
-            "1a",
-          ],
+          "type": "text",
+          "value": "1a",
         },
         {
-          "type": "data",
-          "value": [
-            "1b",
-          ],
+          "type": "text",
+          "value": "1b",
         },
       ]
     `);
@@ -64,7 +58,7 @@ describe('createDataStream', () => {
     const stream = createDataStream({
       execute: async dataStream => {
         await waitPromise.value;
-        dataStream.write({ type: 'data', value: ['1a'] });
+        dataStream.write({ type: 'text', value: '1a' });
       },
     });
 
@@ -73,10 +67,8 @@ describe('createDataStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "data",
-          "value": [
-            "1a",
-          ],
+          "type": "text",
+          "value": "1a",
         },
       ]
     `);
@@ -88,7 +80,7 @@ describe('createDataStream', () => {
 
     const stream = createDataStream({
       execute: dataStream => {
-        dataStream.write({ type: 'data', value: ['data-part-1'] });
+        dataStream.write({ type: 'text', value: 'data-part-1' });
 
         dataStream.merge(
           new ReadableStream({
@@ -98,9 +90,9 @@ describe('createDataStream', () => {
           }),
         );
 
-        controller1!.enqueue({ type: 'data', value: ['1a'] });
-        dataStream.write({ type: 'data', value: ['data-part-2'] });
-        controller1!.enqueue({ type: 'data', value: ['1b'] });
+        controller1!.enqueue({ type: 'text', value: '1a' });
+        dataStream.write({ type: 'text', value: 'data-part-2' });
+        controller1!.enqueue({ type: 'text', value: '1b' });
 
         dataStream.merge(
           new ReadableStream({
@@ -110,79 +102,59 @@ describe('createDataStream', () => {
           }),
         );
 
-        dataStream.write({ type: 'data', value: ['data-part-3'] });
+        dataStream.write({ type: 'text', value: 'data-part-3' });
       },
     });
 
-    controller2!.enqueue({ type: 'data', value: ['2a'] });
-    controller1!.enqueue({ type: 'data', value: ['1c'] });
-    controller2!.enqueue({ type: 'data', value: ['2b'] });
+    controller2!.enqueue({ type: 'text', value: '2a' });
+    controller1!.enqueue({ type: 'text', value: '1c' });
+    controller2!.enqueue({ type: 'text', value: '2b' });
     controller2!.close();
-    controller1!.enqueue({ type: 'data', value: ['1d'] });
-    controller1!.enqueue({ type: 'data', value: ['1e'] });
+    controller1!.enqueue({ type: 'text', value: '1d' });
+    controller1!.enqueue({ type: 'text', value: '1e' });
     controller1!.close();
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "data",
-          "value": [
-            "data-part-1",
-          ],
+          "type": "text",
+          "value": "data-part-1",
         },
         {
-          "type": "data",
-          "value": [
-            "data-part-2",
-          ],
+          "type": "text",
+          "value": "data-part-2",
         },
         {
-          "type": "data",
-          "value": [
-            "data-part-3",
-          ],
+          "type": "text",
+          "value": "data-part-3",
         },
         {
-          "type": "data",
-          "value": [
-            "1a",
-          ],
+          "type": "text",
+          "value": "1a",
         },
         {
-          "type": "data",
-          "value": [
-            "2a",
-          ],
+          "type": "text",
+          "value": "2a",
         },
         {
-          "type": "data",
-          "value": [
-            "1b",
-          ],
+          "type": "text",
+          "value": "1b",
         },
         {
-          "type": "data",
-          "value": [
-            "2b",
-          ],
+          "type": "text",
+          "value": "2b",
         },
         {
-          "type": "data",
-          "value": [
-            "1c",
-          ],
+          "type": "text",
+          "value": "1c",
         },
         {
-          "type": "data",
-          "value": [
-            "1d",
-          ],
+          "type": "text",
+          "value": "1d",
         },
         {
-          "type": "data",
-          "value": [
-            "1e",
-          ],
+          "type": "text",
+          "value": "1e",
         },
       ]
     `);
@@ -212,16 +184,16 @@ describe('createDataStream', () => {
       onError: () => 'error-message',
     });
 
-    controller1!.enqueue({ type: 'data', value: ['1a'] });
+    controller1!.enqueue({ type: 'text', value: '1a' });
     controller1!.error(new Error('1-error'));
-    controller2!.enqueue({ type: 'data', value: ['2a'] });
-    controller2!.enqueue({ type: 'data', value: ['2b'] });
+    controller2!.enqueue({ type: 'text', value: '2a' });
+    controller2!.enqueue({ type: 'text', value: '2b' });
     controller2!.close();
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
-      { type: 'data', value: ['1a'] },
-      { type: 'data', value: ['2a'] },
-      { type: 'data', value: ['2b'] },
+      { type: 'text', value: '1a' },
+      { type: 'text', value: '2a' },
+      { type: 'text', value: '2b' },
       { type: 'error', value: 'error-message' },
     ]);
   });
@@ -257,17 +229,17 @@ describe('createDataStream', () => {
 
     const stream = createDataStream({
       execute: dataStreamArg => {
-        dataStreamArg.write({ type: 'data', value: ['1a'] });
+        dataStreamArg.write({ type: 'text', value: '1a' });
         dataStream = dataStreamArg;
       },
     });
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
-      { type: 'data', value: ['1a'] },
+      { type: 'text', value: '1a' },
     ]);
 
     expect(() =>
-      dataStream!.write({ type: 'data', value: ['1b'] }),
+      dataStream!.write({ type: 'text', value: '1b' }),
     ).not.toThrow();
   });
 
@@ -302,7 +274,7 @@ describe('createDataStream', () => {
     // function is finished
     expect(done).toBe(true);
 
-    controller1!.enqueue({ type: 'data', value: ['1a'] });
+    controller1!.enqueue({ type: 'text', value: '1a' });
     await pull();
 
     // controller1 is still open, create 2nd stream
@@ -320,14 +292,14 @@ describe('createDataStream', () => {
     await delay(); // relinquish control
 
     // it should still be able to write to controller2
-    controller2!.enqueue({ type: 'data', value: ['2a'] });
+    controller2!.enqueue({ type: 'text', value: '2a' });
     controller2!.close();
 
     await pull();
 
     expect(result).toEqual([
-      { type: 'data', value: ['1a'] },
-      { type: 'data', value: ['2a'] },
+      { type: 'text', value: '1a' },
+      { type: 'text', value: '2a' },
     ]);
   });
 });

@@ -18,7 +18,7 @@ async function main() {
 
   for await (const part of result.fullStream) {
     switch (part.type) {
-      case 'finish': {
+      case 'finish-step': {
         console.log('Logprobs:', part.providerMetadata?.openai.logprobs);
         break;
       }

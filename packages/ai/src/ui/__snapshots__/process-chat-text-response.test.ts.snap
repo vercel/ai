@@ -68,7 +68,6 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
 exports[`processChatTextResponse > scenario: multiple short chunks > should call the onFinish function after the stream ends 1`] = `
 [
   {
-    "createdAt": 2025-01-01T00:00:00.000Z,
     "id": "test-id",
     "parts": [
       {
@@ -150,7 +149,6 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
 exports[`processChatTextResponse > scenario: simple text response > should call the onFinish function after the stream ends 1`] = `
 [
   {
-    "createdAt": 2025-01-01T00:00:00.000Z,
     "id": "test-id",
     "parts": [
       {

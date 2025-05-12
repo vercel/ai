@@ -1,6 +1,5 @@
 'use client';
 
-import { createIdGenerator } from 'ai';
 import { UIMessage, useChat } from '@ai-sdk/react';
 
 export default function Chat({
@@ -11,7 +10,6 @@ export default function Chat({
     api: '/api/use-chat-persistence-single-message',
     id, // use the provided chatId
     initialMessages, // initial messages if provided
-    generateId: createIdGenerator({ prefix: 'msgc', size: 16 }), // id format for client-side messages
 
     // only send the last message to the server:
     experimental_prepareRequestBody({ messages, id }) {

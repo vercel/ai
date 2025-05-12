@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { generateId } from 'ai';
-import { mockId, mockValues } from 'ai/test';
+import { mockId } from 'ai/test';
 import { computed } from 'vue';
 import { useChat } from './use-chat';
 
 const { messages, handleSubmit, status, input } = useChat({
   id: generateId(),
   generateId: mockId(),
-  '~internal': {
-    currentDate: mockValues(new Date('2025-01-01')),
-  },
 });
 const isLoading = computed(() => status.value !== 'ready');
 </script>

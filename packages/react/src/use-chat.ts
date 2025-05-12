@@ -24,15 +24,14 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import useSWR from 'swr';
 import { throttle } from './throttle';
 import { useChatStore } from './use-chat-store';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
-export type UseChatHelpers = {
+export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   /** Current messages in the chat */
-  messages: UIMessage[];
+  messages: UIMessage<MESSAGE_METADATA>[];
   /** The error object of the API request */
   error: undefined | Error;
   /**
@@ -42,7 +41,7 @@ export type UseChatHelpers = {
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: UIMessage | CreateUIMessage,
+    message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
@@ -69,7 +68,11 @@ export type UseChatHelpers = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
+    messages:
+      | UIMessage<MESSAGE_METADATA>[]
+      | ((
+          messages: UIMessage<MESSAGE_METADATA>[],
+        ) => UIMessage<MESSAGE_METADATA>[]),
   ) => void;
   /** The current value of the input */
   input: string;
@@ -107,17 +110,6 @@ export type UseChatHelpers = {
    */
   status: ChatStatus;
 
-  /** Additional data added on the server via StreamData. */
-  data?: JSONValue[];
-
-  /** Set the data of the chat. You can use this to transform or clear the chat data. */
-  setData: (
-    data:
-      | JSONValue[]
-      | undefined
-      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-  ) => void;
-
   addToolResult: ({
     toolCallId,
     result,
@@ -130,7 +122,7 @@ export type UseChatHelpers = {
   id: string;
 };
 
-export function useChat({
+export function useChat<MESSAGE_METADATA>({
   api = '/api/chat',
   id,
   store,
@@ -148,10 +140,8 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   experimental_throttle: throttleWaitMs,
-  ...options
-}: UseChatOptions & {
-  key?: string;
-
+  messageMetadataSchema,
+}: UseChatOptions<MESSAGE_METADATA> & {
   /**
    * Experimental (React only). When a function is provided, it will be used
    * to prepare the request body for the chat API. This can be useful for
@@ -173,16 +163,7 @@ Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-
-  '~internal'?: {
-    currentDate?: () => Date;
-  };
-} = {}): UseChatHelpers {
-  // allow overriding the current date for testing purposes:
-  const getCurrentDate = useCallback(() => {
-    return options['~internal']?.currentDate?.() ?? new Date();
-  }, [options]);
-
+} = {}): UseChatHelpers<MESSAGE_METADATA> {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -247,17 +228,6 @@ Default is undefined, which disables throttling.
     () => getError(chatId),
   );
 
-  // Stream data
-  const { data: streamData, mutate: mutateStreamData } = useSWR<
-    JSONValue[] | undefined
-  >([chatKey, 'streamData'], null);
-
-  // Keep the latest stream data in a ref
-  const streamDataRef = useRef<JSONValue[] | undefined>(streamData);
-  useEffect(() => {
-    streamDataRef.current = streamData;
-  }, [streamData]);
-
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -283,7 +253,6 @@ Default is undefined, which disables throttling.
       chatRequest?: {
         headers?: Record<string, string> | Headers;
         body?: object;
-        data?: JSONValue;
       };
       requestType?: 'generate' | 'resume';
     } = {}) => {
@@ -299,24 +268,15 @@ Default is undefined, which disables throttling.
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
-        const throttledMutateStreamData = throttle(
-          mutateStreamData,
-          throttleWaitMs,
-        );
-
-        const existingData = streamDataRef.current;
-
         await callChatApi({
           api,
           body: experimental_prepareRequestBody?.({
             id: chatId,
             messages: chatMessages,
-            requestData: chatRequest.data,
             requestBody: chatRequest.body,
           }) ?? {
             id: chatId,
             messages: chatMessages,
-            data: chatRequest.data,
             ...extraMetadataRef.current.body,
             ...chatRequest.body,
           },
@@ -328,14 +288,6 @@ Default is undefined, which disables throttling.
           },
           abortController: () => abortControllerRef.current,
           onResponse,
-          onUpdateData(data) {
-            if (data?.length) {
-              throttledMutateStreamData(
-                [...(existingData ?? []), ...data],
-                false,
-              );
-            }
-          },
           onToolCall,
           onFinish,
           fetch,
@@ -343,6 +295,7 @@ Default is undefined, which disables throttling.
           store: chatStore.current,
           generateId,
           chatId,
+          messageMetadataSchema,
         });
 
         abortControllerRef.current = null;
@@ -378,35 +331,34 @@ Default is undefined, which disables throttling.
       }
     },
     [
-      setStatus,
-      chatId,
-      getMessages,
-      maxSteps,
-      mutateStreamData,
-      throttleWaitMs,
       api,
-      experimental_prepareRequestBody,
-      streamProtocol,
+      extraMetadataRef,
       onResponse,
-      onToolCall,
       onFinish,
-      fetch,
-      generateId,
       onError,
+      streamProtocol,
+      experimental_prepareRequestBody,
+      onToolCall,
+      maxSteps,
+      abortControllerRef,
+      generateId,
+      fetch,
+      throttleWaitMs,
+      chatId,
+      messageMetadataSchema,
     ],
   );
 
   const append = useCallback(
     (
-      message: UIMessage | CreateUIMessage,
-      { data, headers, body }: ChatRequestOptions = {},
+      message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
+      { headers, body }: ChatRequestOptions = {},
     ) => {
       chatStore.current.appendMessage({
         id: chatId,
         message: {
           ...message,
-          createdAt: message.createdAt ?? getCurrentDate(),
-          id: generateId(),
+          id: message.id ?? generateId(),
         },
       });
 
@@ -414,11 +366,10 @@ Default is undefined, which disables throttling.
         chatRequest: {
           headers,
           body,
-          data,
         },
       });
     },
-    [chatStore, chatId, getCurrentDate, generateId, triggerRequest],
+    [chatStore, chatId, generateId, triggerRequest],
   );
 
   const reload = useCallback(
@@ -436,7 +387,6 @@ Default is undefined, which disables throttling.
         chatRequest: {
           headers,
           body,
-          data,
         },
       });
     },
@@ -457,7 +407,13 @@ Default is undefined, which disables throttling.
   }, [triggerRequest]);
 
   const setMessages = useCallback(
-    (messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => {
+    (
+      messages:
+        | UIMessage<MESSAGE_METADATA>[]
+        | ((
+            messages: UIMessage<MESSAGE_METADATA>[],
+          ) => UIMessage<MESSAGE_METADATA>[]),
+    ) => {
       if (typeof messages === 'function') {
         messages = messages(getMessages(chatId) ?? []);
       }
@@ -468,23 +424,6 @@ Default is undefined, which disables throttling.
       });
     },
     [chatId, getMessages],
-  );
-
-  const setData = useCallback(
-    (
-      data:
-        | JSONValue[]
-        | undefined
-        | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-    ) => {
-      if (typeof data === 'function') {
-        data = data(streamDataRef.current);
-      }
-
-      mutateStreamData(data, false);
-      streamDataRef.current = data;
-    },
-    [mutateStreamData],
   );
 
   // Input state and handlers.
@@ -517,8 +456,8 @@ Default is undefined, which disables throttling.
         id: chatId,
         message: {
           id: generateId(),
-          createdAt: getCurrentDate(),
           role: 'user',
+          metadata: undefined,
           parts: [...fileParts, { type: 'text', text: input }],
         },
       });
@@ -527,13 +466,12 @@ Default is undefined, which disables throttling.
         chatRequest: {
           headers: options.headers,
           body: options.body,
-          data: options.data,
         },
       });
 
       setInput('');
     },
-    [input, chatStore, chatId, generateId, getCurrentDate, triggerRequest],
+    [input, chatId, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {
@@ -578,8 +516,6 @@ Default is undefined, which disables throttling.
     messages: messages ?? [],
     id: chatId,
     setMessages,
-    data: streamData,
-    setData,
     error,
     append,
     reload,

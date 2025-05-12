@@ -82,7 +82,7 @@ async function main() {
 
       case 'finish': {
         console.log('Finish reason:', part.finishReason);
-        console.log('Usage:', part.usage);
+        console.log('Total Usage:', part.totalUsage);
         break;
       }
 

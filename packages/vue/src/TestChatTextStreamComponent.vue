@@ -1,20 +1,13 @@
 <script setup lang="ts">
-import { LanguageModelUsage } from 'ai';
 import { reactive } from 'vue';
 import { UIMessage, useChat } from './use-chat';
 
-const onFinishCalls: Array<{
-  message: UIMessage;
-  options: {
-    finishReason: string;
-    usage: LanguageModelUsage;
-  };
-}> = reactive([]);
+const onFinishCalls: Array<{ message: UIMessage }> = reactive([]);
 
 const { messages, append } = useChat({
   streamProtocol: 'text',
-  onFinish: (message, options) => {
-    onFinishCalls.push({ message, options });
+  onFinish: options => {
+    onFinishCalls.push(options);
   },
 });
 </script>

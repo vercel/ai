@@ -73,6 +73,7 @@ describe('safeParseJSON', () => {
     expect(result).toEqual({
       success: false,
       error: expect.any(TypeValidationError),
+      rawValue: { age: 'twenty' },
     });
   });
 
