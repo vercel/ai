@@ -1307,6 +1307,73 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
+    it('should send metadata as defined in the metadata function', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toDataStream({
+        messageMetadata: mockValues(
+          { key1: 'value1' },
+          { key2: 'value2' },
+          { key3: 'value3' },
+          { key4: 'value4' },
+        ),
+      });
+
+      expect(await convertReadableStreamToArray(dataStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+              "value": {
+                "messageId": undefined,
+                "metadata": {
+                  "key1": "value1",
+                },
+              },
+            },
+            {
+              "type": "start-step",
+              "value": {
+                "metadata": {
+                  "key2": "value2",
+                },
+              },
+            },
+            {
+              "type": "text",
+              "value": "Hello",
+            },
+            {
+              "type": "text",
+              "value": ", ",
+            },
+            {
+              "type": "text",
+              "value": "world!",
+            },
+            {
+              "type": "finish-step",
+              "value": {
+                "metadata": {
+                  "key3": "value3",
+                },
+              },
+            },
+            {
+              "type": "finish",
+              "value": {
+                "metadata": {
+                  "key4": "value4",
+                },
+              },
+            },
+          ]
+        `);
+    });
+
     it('should mask error messages by default', async () => {
       const result = streamText({
         model: createTestModel({
