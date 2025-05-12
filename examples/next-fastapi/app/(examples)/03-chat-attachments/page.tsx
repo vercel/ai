@@ -6,9 +6,8 @@ import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    streamProtocol: 'data',
-  });
+  const { messages, input, handleSubmit, handleInputChange, status } =
+    useChat();
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);

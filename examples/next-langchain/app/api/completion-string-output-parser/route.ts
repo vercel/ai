@@ -1,4 +1,4 @@
-import { toDataStream } from '@ai-sdk/langchain';
+import { toUIMessageStream } from '@ai-sdk/langchain';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { ChatOpenAI } from '@langchain/openai';
 import { createUIMessageStreamResponse } from 'ai';
@@ -19,6 +19,6 @@ export async function POST(req: Request) {
   const stream = await model.pipe(parser).stream(prompt);
 
   return createUIMessageStreamResponse({
-    dataStream: toDataStream(stream),
+    stream: toUIMessageStream(stream),
   });
 }
