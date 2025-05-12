@@ -1,4 +1,4 @@
-import { isAbortError, type Schema } from '@ai-sdk/provider-utils';
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   callChatApi,
   convertFileListToFileUIParts,
