@@ -5,7 +5,12 @@ import {
   LanguageModelV1ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+
+import {
+  convertUint8ArrayToBase64,
+  convertImageUrlToBase64,
+} from '@ai-sdk/provider-utils';
+
 import {
   AnthropicAssistantMessage,
   AnthropicCacheControl,
@@ -13,7 +18,7 @@ import {
   AnthropicUserMessage,
 } from './anthropic-api-types';
 
-export function convertToAnthropicMessagesPrompt({
+export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
@@ -21,10 +26,10 @@ export function convertToAnthropicMessagesPrompt({
   prompt: LanguageModelV1Prompt;
   sendReasoning: boolean;
   warnings: LanguageModelV1CallWarning[];
-}): {
+}): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
-} {
+}> {
   const betas = new Set<string>();
   const blocks = groupIntoBlocks(prompt);
 
@@ -101,19 +106,30 @@ export function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'image': {
+                    let base64Image: string = '';
+
+                    // Converts the image to base64 if it is a URL
+                    if (part.image instanceof URL) {
+                      try {
+                        base64Image = await convertImageUrlToBase64(
+                          part.image.toString(),
+                        );
+                      } catch (error) {
+                        throw new Error(
+                          `Failed to convert image URL to base64: ${error}`,
+                        );
+                      }
+                    }
                     anthropicContent.push({
                       type: 'image',
-                      source:
-                        part.image instanceof URL
-                          ? {
-                              type: 'url',
-                              url: part.image.toString(),
-                            }
-                          : {
-                              type: 'base64',
-                              media_type: part.mimeType ?? 'image/jpeg',
-                              data: convertUint8ArrayToBase64(part.image),
-                            },
+                      source: {
+                        type: 'base64',
+                        media_type: part.mimeType ?? 'image/jpeg',
+                        data:
+                          part.image instanceof URL
+                            ? base64Image
+                            : convertUint8ArrayToBase64(part.image),
+                      },
                       cache_control: cacheControl,
                     });
 
