@@ -10,7 +10,6 @@ import {
   updateToolCallResult,
   type ChatRequestOptions,
   type CreateUIMessage,
-  type JSONValue,
   type UIMessage,
   type UseChatOptions,
 } from 'ai';

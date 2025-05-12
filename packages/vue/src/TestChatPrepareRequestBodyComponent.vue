@@ -43,7 +43,6 @@ const isLoading = computed(() => status.value !== 'ready');
             parts: [{ text: 'hi', type: 'text' }],
           },
           {
-            data: { 'test-data-key': 'test-data-value' },
             body: { 'request-body-key': 'request-body-value' },
           },
         )
