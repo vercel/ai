@@ -213,12 +213,18 @@ Default is undefined, which disables throttling.
       store: chatStore.current,
     });
 
+  const throttledCallbackRef = useRef<() => void>();
+
   const messages = useSyncExternalStore(
-    callback =>
-      subscribe({
-        onStoreChange: callback,
+    callback => {
+      if (!throttledCallbackRef.current) {
+        throttledCallbackRef.current = throttle(callback, throttleWaitMs);
+      }
+      return subscribe({
+        onStoreChange: throttledCallbackRef.current,
         eventType: 'chat-messages-changed',
-      }),
+      });
+    },
     () => getMessages(chatId),
     () => getMessages(chatId),
   );
