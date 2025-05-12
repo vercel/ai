@@ -5,7 +5,6 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { render } from '@testing-library/svelte';
 import { getToolInvocations, type DataStreamPart, type UIMessage } from 'ai';
-import { mockValues } from 'ai/test';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
