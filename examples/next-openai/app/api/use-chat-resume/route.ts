@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       });
 
       writer.merge(
-        result.toDataStream({
+        result.toUIMessageStream({
           onFinish: ({ messages }) => {
             saveChat({ id, messages });
           },

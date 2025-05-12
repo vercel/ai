@@ -818,7 +818,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -870,7 +870,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         status: 201,
         statusText: 'foo',
         headers: {
@@ -936,7 +936,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -955,7 +955,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         onError: error => `custom error message: ${error}`,
       });
 
@@ -981,7 +981,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         experimental_sendFinish: false,
       });
 
@@ -998,7 +998,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         sendReasoning: true,
       });
 
@@ -1076,7 +1076,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         sendSources: true,
       });
 
@@ -1127,7 +1127,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -1209,7 +1209,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1256,7 +1256,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(result.toDataStream()),
+        await convertReadableStreamToArray(result.toUIMessageStream()),
       ).toMatchSnapshot();
     });
 
@@ -1303,7 +1303,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(result.toDataStream()),
+        await convertReadableStreamToArray(result.toUIMessageStream()),
       ).toMatchSnapshot();
     });
 
@@ -1313,7 +1313,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({
+      const dataStream = result.toUIMessageStream({
         messageMetadata: mockValues(
           { key1: 'value1' },
           { key2: 'value2' },
@@ -1384,7 +1384,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1399,7 +1399,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({
+      const dataStream = result.toUIMessageStream({
         onError: error => `custom error message: ${error}`,
       });
 
@@ -1421,7 +1421,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({
+      const dataStream = result.toUIMessageStream({
         experimental_sendFinish: false,
       });
 
@@ -1434,7 +1434,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({ sendReasoning: true });
+      const dataStream = result.toUIMessageStream({ sendReasoning: true });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1445,7 +1445,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({ sendSources: true });
+      const dataStream = result.toUIMessageStream({ sendSources: true });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1456,7 +1456,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1469,7 +1469,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      const response = result.toDataStreamResponse();
+      const response = result.toUIMessageStreamResponse();
 
       expect(response.status).toStrictEqual(200);
       expect(Object.fromEntries(response.headers.entries()))
@@ -1520,7 +1520,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      const response = result.toDataStreamResponse({
+      const response = result.toUIMessageStreamResponse({
         status: 201,
         statusText: 'foo',
         headers: {
@@ -1582,7 +1582,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      const response = result.toDataStreamResponse();
+      const response = result.toUIMessageStreamResponse();
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
@@ -1597,7 +1597,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      const response = result.toDataStreamResponse({
+      const response = result.toUIMessageStreamResponse({
         onError: error => `custom error message: ${error}`,
       });
 
@@ -1739,7 +1739,9 @@ describe('streamText', () => {
       expect({
         textStream: await convertAsyncIterableToArray(result.textStream),
         fullStream: await convertAsyncIterableToArray(result.fullStream),
-        dataStream: await convertReadableStreamToArray(result.toDataStream()),
+        dataStream: await convertReadableStreamToArray(
+          result.toUIMessageStream(),
+        ),
       }).toMatchSnapshot();
     });
   });

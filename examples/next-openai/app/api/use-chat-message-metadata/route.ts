@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     prompt: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     messageMetadata: ({ part }): ExampleMetadata | undefined => {
       // send custom information to the client on start:
       if (part.type === 'start') {
