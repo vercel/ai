@@ -230,7 +230,7 @@ export class Chat<MESSAGE_METADATA = unknown> {
       // Optimistically update messages
       this.messages = messages;
 
-      await callChatApi<MESSAGE_METADATA>({
+      await callChatApi({
         api: this.#api,
         body: {
           id: this.id,
@@ -268,9 +268,7 @@ export class Chat<MESSAGE_METADATA = unknown> {
         lastMessage: $state.snapshot(
           this.messages[this.messages.length - 1],
         ) as UIMessage<MESSAGE_METADATA>,
-        messageMetadataSchema: this.#messageMetadataSchema as
-          | Schema<MESSAGE_METADATA>
-          | undefined,
+        messageMetadataSchema: this.#messageMetadataSchema,
       });
 
       this.#abortController = undefined;

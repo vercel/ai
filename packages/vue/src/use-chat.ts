@@ -22,9 +22,9 @@ import { computed, ref, unref } from 'vue';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
-export type UseChatHelpers = {
+export type UseChatHelpers<MESSAGE_METADATA> = {
   /** Current messages in the chat */
-  messages: Ref<UIMessage[]>;
+  messages: Ref<UIMessage<MESSAGE_METADATA>[]>;
   /** The error object of the API request */
   error: Ref<undefined | Error>;
   /**
@@ -32,7 +32,7 @@ export type UseChatHelpers = {
    * the assistant's response.
    */
   append: (
-    message: UIMessage | CreateUIMessage,
+    message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
@@ -53,7 +53,11 @@ export type UseChatHelpers = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
+    messages:
+      | UIMessage<MESSAGE_METADATA>[]
+      | ((
+          messages: UIMessage<MESSAGE_METADATA>[],
+        ) => UIMessage<MESSAGE_METADATA>[]),
   ) => void;
   /** The current value of the input */
   input: Ref<string>;
@@ -96,13 +100,13 @@ export type UseChatHelpers = {
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
-const store: Record<string, UIMessage[] | undefined> = {};
+const store: Record<string, UIMessage<any>[] | undefined> = {};
 const statusStore: Record<
   string,
   Ref<'submitted' | 'streaming' | 'ready' | 'error'>
 > = {};
 
-export function useChat(
+export function useChat<MESSAGE_METADATA = unknown>(
   {
     api = '/api/chat',
     id,
@@ -120,8 +124,8 @@ export function useChat(
     fetch,
     maxSteps = 1,
     experimental_prepareRequestBody,
-    ...options
-  }: UseChatOptions & {
+    messageMetadataSchema,
+  }: UseChatOptions<MESSAGE_METADATA> & {
     /**
      * Experimental (Vue only). When a function is provided, it will be used
      * to prepare the request body for the chat API. This can be useful for
@@ -134,22 +138,21 @@ export function useChat(
      */
     experimental_prepareRequestBody?: (options: {
       id: string;
-      messages: UIMessage[];
+      messages: UIMessage<MESSAGE_METADATA>[];
       requestData?: JSONValue;
       requestBody?: object;
     }) => unknown;
   } = {
     maxSteps: 1,
   },
-): UseChatHelpers {
+): UseChatHelpers<MESSAGE_METADATA> {
   // Generate a unique ID for the chat if not provided.
   const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
-  const { data: messagesData, mutate: originalMutate } = useSWRV<UIMessage[]>(
-    key,
-    () => store[key] ?? initialMessages,
-  );
+  const { data: messagesData, mutate: originalMutate } = useSWRV<
+    UIMessage<MESSAGE_METADATA>[]
+  >(key, () => store[key] ?? initialMessages);
 
   const status =
     statusStore[chatId] ??
@@ -166,7 +169,7 @@ export function useChat(
   };
 
   // Because of the `initialData` option, the `data` will never be `undefined`.
-  const messages = messagesData as Ref<UIMessage[]>;
+  const messages = messagesData as Ref<UIMessage<MESSAGE_METADATA>[]>;
 
   const error = ref<undefined | Error>(undefined);
   // cannot use JSONValue[] in ref because of infinite Typescript recursion:
@@ -175,7 +178,7 @@ export function useChat(
   let abortController: AbortController | null = null;
 
   async function triggerRequest(
-    messagesSnapshot: UIMessage[],
+    messagesSnapshot: UIMessage<MESSAGE_METADATA>[],
     { data, headers, body }: ChatRequestOptions = {},
   ) {
     error.value = undefined;
@@ -193,8 +196,6 @@ export function useChat(
 
       // Do an optimistic update to show the updated messages immediately:
       mutate(messagesSnapshot);
-
-      const existingData = (streamData.value ?? []) as JSONValue[];
 
       await callChatApi({
         api,
@@ -239,6 +240,7 @@ export function useChat(
         lastMessage: recursiveToRaw(
           messagesSnapshot[messagesSnapshot.length - 1],
         ),
+        messageMetadataSchema,
       });
 
       status.value = 'ready';
@@ -273,7 +275,10 @@ export function useChat(
     }
   }
 
-  const append: UseChatHelpers['append'] = async (message, options) => {
+  const append: UseChatHelpers<MESSAGE_METADATA>['append'] = async (
+    message,
+    options,
+  ) => {
     return triggerRequest(
       messages.value.concat({
         ...message,
@@ -284,7 +289,7 @@ export function useChat(
     );
   };
 
-  const reload: UseChatHelpers['reload'] = async options => {
+  const reload: UseChatHelpers<MESSAGE_METADATA>['reload'] = async options => {
     const messagesSnapshot = messages.value;
     if (messagesSnapshot.length === 0) return null;
 
@@ -304,7 +309,11 @@ export function useChat(
   };
 
   const setMessages = (
-    messagesArg: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
+    messagesArg:
+      | UIMessage<MESSAGE_METADATA>[]
+      | ((
+          messages: UIMessage<MESSAGE_METADATA>[],
+        ) => UIMessage<MESSAGE_METADATA>[]),
   ) => {
     if (typeof messagesArg === 'function') {
       messagesArg = messagesArg(messages.value);
