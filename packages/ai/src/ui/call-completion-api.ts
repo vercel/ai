@@ -1,13 +1,10 @@
-import { JSONValue } from '@ai-sdk/provider';
 import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
 import {
   DataStreamPart,
   dataStreamPartSchema,
 } from '../data-stream/data-stream-parts';
 import { consumeStream } from '../util/consume-stream';
-import { processChatResponse } from './process-chat-response';
 import { processTextStream } from './process-text-stream';
-import { UIMessage } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -26,7 +23,6 @@ export async function callCompletionApi({
   onResponse,
   onFinish,
   onError,
-  onData,
   fetch = getOriginalFetch(),
 }: {
   api: string;
@@ -42,7 +38,6 @@ export async function callCompletionApi({
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onFinish: ((prompt: string, completion: string) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
-  onData: ((data: JSONValue[]) => void) | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
   try {

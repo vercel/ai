@@ -1019,12 +1019,8 @@ describe('tool invocations', () => {
     await userEvent.click(screen.getByTestId('do-append'));
 
     // start stream
-    controller1.write(
-      formatDataStreamPart({
-        type: 'start-step',
-        value: {},
-      }),
-    );
+    controller1.write(formatDataStreamPart({ type: 'start', value: {} }));
+    controller1.write(formatDataStreamPart({ type: 'start-step', value: {} }));
 
     // tool call
     controller1.write(
@@ -1903,9 +1899,7 @@ describe('test sending additional fields during message submission', () => {
           onClick={() => {
             append({
               role: 'user',
-              metadata: {
-                test: 'example',
-              },
+              metadata: { test: 'example' },
               parts: [{ text: 'hi', type: 'text' }],
             });
           }}
@@ -1914,7 +1908,7 @@ describe('test sending additional fields during message submission', () => {
     );
   });
 
-  it('annotations', async () => {
+  it('should send metadata with the message', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [formatDataStreamPart({ type: 'text', value: 'first response' })],

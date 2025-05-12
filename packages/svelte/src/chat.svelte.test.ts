@@ -71,47 +71,6 @@ describe('data protocol stream', () => {
     );
   });
 
-  it('should correctly manage streamed response in data', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatDataStreamPart({ type: 'data', value: [{ t1: 'v1' }] }),
-        formatDataStreamPart({ type: 'data', value: [{ t1: 'v2' }] }),
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-      ],
-    };
-
-    await chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-    expect(chat.data).toStrictEqual([{ t1: 'v1' }, { t1: 'v2' }]);
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-      }),
-    );
-  });
-
-  it('should clear data', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatDataStreamPart({ type: 'data', value: [{ t1: 'v1' }] }),
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-      ],
-    };
-
-    await chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-    expect(chat.data).toStrictEqual([{ t1: 'v1' }]);
-    chat.data = undefined;
-    expect(chat.data).toBeUndefined();
-  });
-
   it('should show error response when there is a server error', async () => {
     server.urls['/api/chat'].response = {
       type: 'error',
@@ -1008,14 +967,8 @@ describe('tool invocations', () => {
     });
 
     // start stream
-    controller1.write(
-      formatDataStreamPart({
-        type: 'start-step',
-        value: {
-          messageId: '1234',
-        },
-      }),
-    );
+    controller1.write(formatDataStreamPart({ type: 'start', value: {} }));
+    controller1.write(formatDataStreamPart({ type: 'start-step', value: {} }));
 
     // tool call
     controller1.write(
@@ -1069,23 +1022,8 @@ describe('tool invocations', () => {
     expect(server.calls.length).toBe(1);
 
     // finish stream
-    controller1.write(
-      formatDataStreamPart({
-        type: 'finish-step',
-        value: {
-          finishReason: 'tool-calls',
-        },
-      }),
-    );
-
-    controller1.write(
-      formatDataStreamPart({
-        type: 'finish-message',
-        value: {
-          finishReason: 'tool-calls',
-        },
-      }),
-    );
+    controller1.write(formatDataStreamPart({ type: 'finish-step', value: {} }));
+    controller1.write(formatDataStreamPart({ type: 'finish', value: {} }));
 
     await controller1.close();
 
@@ -1112,9 +1050,6 @@ describe('maxSteps', () => {
         maxSteps: 5,
         id: 'test-id',
         generateId: mockId(),
-        '~internal': {
-          currentDate: mockValues(new Date('2025-01-01')),
-        },
       });
       onToolCallInvoked = false;
     });
@@ -1248,9 +1183,6 @@ describe('file attachments with data url', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1508,9 +1440,6 @@ describe('file attachments with empty text content', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1599,9 +1528,6 @@ describe('reload', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1691,7 +1617,7 @@ describe('test sending additional fields during message submission', () => {
     });
   });
 
-  it('should send annotations with the message', async () => {
+  it('should send metadata with the message', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: ['0:"first response"\n'],
@@ -1699,7 +1625,7 @@ describe('test sending additional fields during message submission', () => {
 
     await chat.append({
       role: 'user',
-      annotations: ['this is an annotation'],
+      metadata: { test: 'example' },
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -1714,10 +1640,10 @@ describe('test sending additional fields during message submission', () => {
         "id": "id-0",
         "messages": [
           {
-            "annotations": [
-              "this is an annotation",
-            ],
             "id": "id-1",
+            "metadata": {
+              "test": "example",
+            },
             "parts": [
               {
                 "text": "hi",
@@ -1867,7 +1793,7 @@ describe('generateId function', () => {
     };
 
     const chatWithCustomId = new Chat({
-      generateId: vi.fn().mockReturnValue('custom-id'),
+      generateId: mockId({ prefix: 'testid' }),
     });
 
     await chatWithCustomId.append({
@@ -1875,20 +1801,32 @@ describe('generateId function', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chatWithCustomId.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        id: 'custom-id',
-        role: 'user',
-      }),
-    );
-
-    expect(chatWithCustomId.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        id: 'custom-id',
-        role: 'assistant',
-        parts: [{ text: 'Hello, world.', type: 'text' }],
-      }),
-    );
+    expect(chatWithCustomId.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "testid-1",
+          "parts": [
+            {
+              "text": "hi",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "id": "123",
+          "metadata": {},
+          "parts": [
+            {
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "revisionId": "testid-7",
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });
 
