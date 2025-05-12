@@ -70,13 +70,6 @@ export type UseChatHelpers<MESSAGE_METADATA> = {
   ) => void;
 
   /**
-   * Whether the API request is in progress
-   *
-   * @deprecated use `status` instead
-   */
-  isLoading: Ref<boolean>;
-
-  /**
    * Hook status:
    *
    * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
@@ -402,9 +395,6 @@ export function useChat<MESSAGE_METADATA = unknown>(
     setMessages,
     input,
     handleSubmit,
-    isLoading: computed(
-      () => status.value === 'submitted' || status.value === 'streaming',
-    ),
     status: status as Ref<'submitted' | 'streaming' | 'ready' | 'error'>,
     addToolResult,
   };

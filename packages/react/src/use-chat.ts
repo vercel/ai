@@ -94,13 +94,6 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   metadata?: Object;
 
   /**
-   * Whether the API request is in progress
-   *
-   * @deprecated use `status` instead
-   */
-  isLoading: boolean;
-
-  /**
    * Hook status:
    *
    * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
@@ -525,7 +518,6 @@ Default is undefined, which disables throttling.
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading: status === 'submitted' || status === 'streaming',
     status,
     addToolResult,
   };
