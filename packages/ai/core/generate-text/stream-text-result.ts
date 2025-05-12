@@ -1,5 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
+import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { ReasoningPart } from '../prompt/content-part';
 import {
@@ -274,7 +274,9 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   @return A data stream.
      */
-  toDataStream(options?: DataStreamOptions): ReadableStream<DataStreamPart>;
+  toDataStream(
+    options?: DataStreamOptions,
+  ): ReadableStream<UIMessageStreamPart>;
 
   /**
   Writes data stream output to a Node.js response-like object.

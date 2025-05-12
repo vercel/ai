@@ -21,7 +21,7 @@ const sourceSchema = z.object({
   providerMetadata: z.any().optional(), // Use z.any() for generic metadata
 });
 
-export const dataStreamPartSchema = z.discriminatedUnion('type', [
+export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('text'),
     value: z.string(),
@@ -101,4 +101,4 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export type DataStreamPart = z.infer<typeof dataStreamPartSchema>;
+export type UIMessageStreamPart = z.infer<typeof uiMessageStreamPartSchema>;

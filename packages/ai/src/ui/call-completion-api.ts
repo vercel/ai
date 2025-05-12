@@ -1,8 +1,8 @@
 import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
 import {
-  DataStreamPart,
-  dataStreamPartSchema,
-} from '../data-stream/data-stream-parts';
+  UIMessageStreamPart,
+  uiMessageStreamPartSchema,
+} from '../ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
 import { processTextStream } from './process-text-stream';
 
@@ -91,9 +91,12 @@ export async function callCompletionApi({
         await consumeStream({
           stream: parseJsonEventStream({
             stream: response.body,
-            schema: dataStreamPartSchema,
+            schema: uiMessageStreamPartSchema,
           }).pipeThrough(
-            new TransformStream<ParseResult<DataStreamPart>, DataStreamPart>({
+            new TransformStream<
+              ParseResult<UIMessageStreamPart>,
+              UIMessageStreamPart
+            >({
               async transform(part) {
                 if (!part.success) {
                   throw part.error;

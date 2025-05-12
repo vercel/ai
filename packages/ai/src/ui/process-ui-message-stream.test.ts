@@ -1,11 +1,10 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { DataStreamPart } from '../../src';
-import { createAsyncIterableStream } from '../util/async-iterable-stream';
-import { processChatResponse } from './process-chat-response';
-import { UIMessage } from './ui-messages';
+import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
+import { processUIMessageStream } from './process-ui-message-stream';
+import { UIMessage } from './ui-messages';
 
-function createDataProtocolStream(parts: DataStreamPart[]) {
+function createUIMessageStream(parts: UIMessageStreamPart[]) {
   return convertArrayToReadableStream(parts);
 }
 
@@ -30,7 +29,7 @@ export function mockId(): () => string {
   return () => `id-${counter++}`;
 }
 
-describe('processChatResponse', () => {
+describe('processUIMessageStream', () => {
   beforeEach(() => {
     updateCalls = [];
     finishCalls = [];
@@ -38,7 +37,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: simple text response', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'Hello, ' },
@@ -48,7 +47,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -143,7 +142,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -169,7 +168,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -365,7 +364,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with existing assistant message', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -391,7 +390,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -696,7 +695,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with multiple assistant texts', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'I will ' },
@@ -725,7 +724,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1011,7 +1010,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with multiple assistant reasoning', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'reasoning', value: { text: 'I will ' } },
@@ -1058,7 +1057,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1403,7 +1402,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: message metadata', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         {
           type: 'start',
           value: {
@@ -1470,7 +1469,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1695,7 +1694,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: delayed message metadata after finish', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 't1' },
@@ -1712,7 +1711,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1811,7 +1810,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: message metadata with existing assistant lastMessage', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         {
           type: 'start-step',
@@ -1828,7 +1827,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -1930,7 +1929,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: tool call streaming', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -1974,7 +1973,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2165,7 +2164,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides message ids', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'Hello, ' },
@@ -2175,7 +2174,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2270,7 +2269,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides reasoning', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -2319,7 +2318,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2513,7 +2512,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: onToolCall is executed', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         {
@@ -2529,7 +2528,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2651,7 +2650,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides sources', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'The weather in London is sunny.' },
@@ -2670,7 +2669,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,
@@ -2785,7 +2784,7 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides file parts', () => {
     beforeEach(async () => {
-      const stream = createDataProtocolStream([
+      const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step', value: {} },
         { type: 'text', value: 'Here is a file:' },
@@ -2809,7 +2808,7 @@ describe('processChatResponse', () => {
       ]);
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream,
           onUpdate,
           onFinish,

@@ -2,17 +2,17 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { createDataStreamResponse } from './create-data-stream-response';
+import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
 
 describe('createDataStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {
-    const response = createDataStreamResponse({
+    const response = createUIMessageStreamResponse({
       status: 200,
       statusText: 'OK',
       headers: {
         'Custom-Header': 'test',
       },
-      dataStream: convertArrayToReadableStream([
+      stream: convertArrayToReadableStream([
         { type: 'text', value: 'test-data' },
       ]),
     });
@@ -52,9 +52,9 @@ describe('createDataStreamResponse', () => {
   });
 
   it('should handle errors in the stream', async () => {
-    const response = createDataStreamResponse({
+    const response = createUIMessageStreamResponse({
       status: 200,
-      dataStream: convertArrayToReadableStream([
+      stream: convertArrayToReadableStream([
         { type: 'error', value: 'Custom error message' },
       ]),
     });

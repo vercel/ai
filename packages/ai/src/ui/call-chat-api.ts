@@ -5,11 +5,11 @@ import {
   Schema,
 } from '@ai-sdk/provider-utils';
 import {
-  DataStreamPart,
-  dataStreamPartSchema,
-} from '../data-stream/data-stream-parts';
+  UIMessageStreamPart,
+  uiMessageStreamPartSchema,
+} from '../ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
-import { processChatResponse } from './process-chat-response';
+import { processUIMessageStream } from './process-ui-message-stream';
 import { processChatTextResponse } from './process-chat-text-response';
 import { UIMessage } from './ui-messages';
 import { UseChatOptions } from './use-chat';
@@ -95,12 +95,15 @@ export async function callChatApi<MESSAGE_METADATA>({
       // TODO check protocol version header
 
       await consumeStream({
-        stream: processChatResponse({
+        stream: processUIMessageStream({
           stream: parseJsonEventStream({
             stream: response.body,
-            schema: dataStreamPartSchema,
+            schema: uiMessageStreamPartSchema,
           }).pipeThrough(
-            new TransformStream<ParseResult<DataStreamPart>, DataStreamPart>({
+            new TransformStream<
+              ParseResult<UIMessageStreamPart>,
+              UIMessageStreamPart
+            >({
               async transform(part, controller) {
                 if (!part.success) {
                   throw part.error;

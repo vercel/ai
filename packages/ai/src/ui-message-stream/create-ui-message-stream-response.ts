@@ -1,24 +1,24 @@
 import { prepareHeaders } from '../util/prepare-headers';
-import { dataStreamHeaders } from './data-stream-headers';
-import { DataStreamPart } from './data-stream-parts';
+import { uiMessageStreamHeaders } from './ui-message-stream-headers';
+import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 
-export function createDataStreamResponse({
+export function createUIMessageStreamResponse({
   status,
   statusText,
   headers,
-  dataStream,
+  stream,
 }: ResponseInit & {
-  dataStream: ReadableStream<DataStreamPart>;
+  stream: ReadableStream<UIMessageStreamPart>;
 }): Response {
   return new Response(
-    dataStream
+    stream
       .pipeThrough(new JsonToSseTransformStream())
       .pipeThrough(new TextEncoderStream()),
     {
       status,
       statusText,
-      headers: prepareHeaders(headers, dataStreamHeaders),
+      headers: prepareHeaders(headers, uiMessageStreamHeaders),
     },
   );
 }

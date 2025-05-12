@@ -1,15 +1,15 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { DelayedPromise } from '../util/delayed-promise';
-import { createDataStream } from './create-data-stream';
-import { DataStreamPart } from './data-stream-parts';
-import { DataStreamWriter } from './data-stream-writer';
+import { createUIMessageStream } from './create-ui-message-stream';
+import { UIMessageStreamPart } from './ui-message-stream-parts';
+import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
-describe('createDataStream', () => {
+describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
-    const stream = createDataStream({
-      execute: dataStream => {
-        dataStream.write({ type: 'text', value: '1a' });
+    const stream = createUIMessageStream({
+      execute: stream => {
+        stream.write({ type: 'text', value: '1a' });
       },
     });
 
@@ -24,9 +24,9 @@ describe('createDataStream', () => {
   });
 
   it('should forward a single stream with 2 elements', async () => {
-    const stream = createDataStream({
-      execute: dataStream => {
-        dataStream.merge(
+    const stream = createUIMessageStream({
+      execute: stream => {
+        stream.merge(
           new ReadableStream({
             start(controller) {
               controller.enqueue({ type: 'text', value: '1a' });
@@ -55,10 +55,10 @@ describe('createDataStream', () => {
   it('should send async message annotation and close the stream', async () => {
     const waitPromise = new DelayedPromise<void>();
 
-    const stream = createDataStream({
-      execute: async dataStream => {
+    const stream = createUIMessageStream({
+      execute: async stream => {
         await waitPromise.value;
-        dataStream.write({ type: 'text', value: '1a' });
+        stream.write({ type: 'text', value: '1a' });
       },
     });
 
@@ -75,14 +75,14 @@ describe('createDataStream', () => {
   });
 
   it('should forward elements from multiple streams and data parts', async () => {
-    let controller1: ReadableStreamDefaultController<DataStreamPart>;
-    let controller2: ReadableStreamDefaultController<DataStreamPart>;
+    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
 
-    const stream = createDataStream({
-      execute: dataStream => {
-        dataStream.write({ type: 'text', value: 'data-part-1' });
+    const stream = createUIMessageStream({
+      execute: stream => {
+        stream.write({ type: 'text', value: 'data-part-1' });
 
-        dataStream.merge(
+        stream.merge(
           new ReadableStream({
             start(controllerArg) {
               controller1 = controllerArg;
@@ -91,10 +91,10 @@ describe('createDataStream', () => {
         );
 
         controller1!.enqueue({ type: 'text', value: '1a' });
-        dataStream.write({ type: 'text', value: 'data-part-2' });
+        stream.write({ type: 'text', value: 'data-part-2' });
         controller1!.enqueue({ type: 'text', value: '1b' });
 
-        dataStream.merge(
+        stream.merge(
           new ReadableStream({
             start(controllerArg) {
               controller2 = controllerArg;
@@ -102,7 +102,7 @@ describe('createDataStream', () => {
           }),
         );
 
-        dataStream.write({ type: 'text', value: 'data-part-3' });
+        stream.write({ type: 'text', value: 'data-part-3' });
       },
     });
 
@@ -161,19 +161,19 @@ describe('createDataStream', () => {
   });
 
   it('should add error parts when stream errors', async () => {
-    let controller1: ReadableStreamDefaultController<DataStreamPart>;
-    let controller2: ReadableStreamDefaultController<DataStreamPart>;
+    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
 
-    const stream = createDataStream({
-      execute: dataStream => {
-        dataStream.merge(
+    const stream = createUIMessageStream({
+      execute: stream => {
+        stream.merge(
           new ReadableStream({
             start(controllerArg) {
               controller1 = controllerArg;
             },
           }),
         );
-        dataStream.merge(
+        stream.merge(
           new ReadableStream({
             start(controllerArg) {
               controller2 = controllerArg;
@@ -199,7 +199,7 @@ describe('createDataStream', () => {
   });
 
   it('should add error parts when execute throws', async () => {
-    const stream = createDataStream({
+    const stream = createUIMessageStream({
       execute: () => {
         throw new Error('execute-error');
       },
@@ -212,7 +212,7 @@ describe('createDataStream', () => {
   });
 
   it('should add error parts when execute throws with promise', async () => {
-    const stream = createDataStream({
+    const stream = createUIMessageStream({
       execute: async () => {
         throw new Error('execute-error');
       },
@@ -225,12 +225,12 @@ describe('createDataStream', () => {
   });
 
   it('should suppress error when writing to closed stream', async () => {
-    let dataStream: DataStreamWriter;
+    let uiMessageStream: UIMessageStreamWriter;
 
-    const stream = createDataStream({
-      execute: dataStreamArg => {
-        dataStreamArg.write({ type: 'text', value: '1a' });
-        dataStream = dataStreamArg;
+    const stream = createUIMessageStream({
+      execute: uiMessageStreamArg => {
+        uiMessageStreamArg.write({ type: 'text', value: '1a' });
+        uiMessageStream = uiMessageStreamArg;
       },
     });
 
@@ -239,19 +239,19 @@ describe('createDataStream', () => {
     ]);
 
     expect(() =>
-      dataStream!.write({ type: 'text', value: '1b' }),
+      uiMessageStream!.write({ type: 'text', value: '1b' }),
     ).not.toThrow();
   });
 
   it('should support writing from delayed merged streams', async () => {
-    let dataStream: DataStreamWriter;
-    let controller1: ReadableStreamDefaultController<DataStreamPart>;
-    let controller2: ReadableStreamDefaultController<DataStreamPart>;
+    let uiMessageStream: UIMessageStreamWriter;
+    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
     let done = false;
 
-    const stream = createDataStream({
-      execute: dataStreamArg => {
-        dataStreamArg.merge(
+    const stream = createUIMessageStream({
+      execute: uiMessageStreamArg => {
+        uiMessageStreamArg.merge(
           new ReadableStream({
             start(controllerArg) {
               controller1 = controllerArg;
@@ -259,12 +259,12 @@ describe('createDataStream', () => {
           }),
         );
 
-        dataStream = dataStreamArg;
+        uiMessageStream = uiMessageStreamArg;
         done = true;
       },
     });
 
-    const result: DataStreamPart[] = [];
+    const result: UIMessageStreamPart[] = [];
     const reader = stream.getReader();
     async function pull() {
       const { value, done } = await reader.read();
@@ -278,7 +278,7 @@ describe('createDataStream', () => {
     await pull();
 
     // controller1 is still open, create 2nd stream
-    dataStream!.merge(
+    uiMessageStream!.merge(
       new ReadableStream({
         start(controllerArg) {
           controller2 = controllerArg;

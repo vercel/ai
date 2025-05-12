@@ -1,19 +1,19 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { createMockServerResponse } from '../../core/test/mock-server-response';
-import { pipeDataStreamToResponse } from './pipe-data-stream-to-response';
+import { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 
-describe('pipeDataStreamToResponse', () => {
+describe('pipeUIMessageStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeDataStreamToResponse({
+    pipeUIMessageStreamToResponse({
       response: mockResponse,
       status: 200,
       statusText: 'OK',
       headers: {
         'Custom-Header': 'test',
       },
-      dataStream: convertArrayToReadableStream([
+      stream: convertArrayToReadableStream([
         { type: 'text', value: 'test-data' },
       ]),
     });
@@ -54,10 +54,10 @@ describe('pipeDataStreamToResponse', () => {
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeDataStreamToResponse({
+    pipeUIMessageStreamToResponse({
       response: mockResponse,
       status: 200,
-      dataStream: convertArrayToReadableStream([
+      stream: convertArrayToReadableStream([
         { type: 'error', value: 'Custom error message' },
       ]),
     });
