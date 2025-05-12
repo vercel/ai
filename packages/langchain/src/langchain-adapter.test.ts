@@ -4,7 +4,7 @@ import {
 } from 'ai/test';
 import { toUIMessageStream } from './langchain-adapter';
 
-describe('toDataStream', () => {
+describe('toUIMessageStream', () => {
   it('should convert ReadableStream<LangChainAIMessageChunk>', async () => {
     const inputStream = convertArrayToReadableStream([
       { content: 'Hello' },

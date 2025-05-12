@@ -1,4 +1,4 @@
-export { createUIMessageStream as createDataStream } from './create-ui-message-stream';
+export { createUIMessageStream } from './create-ui-message-stream';
 export { createUIMessageStreamResponse } from './create-ui-message-stream-response';
 export type { UIMessageStreamPart } from './ui-message-stream-parts';
 export type { UIMessageStreamWriter } from './ui-message-stream-writer';

@@ -3,7 +3,7 @@ import {
   createDataStreamResponse,
   UIMessage,
   streamText,
-  createDataStream,
+  createUIMessageStream,
   convertToModelMessages,
 } from 'ai';
 import { processToolCalls } from './utils';
@@ -15,7 +15,7 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  const dataStream = createDataStream({
+  const dataStream = createUIMessageStream({
     execute: async writer => {
       // Utility function to handle tools that require human confirmation
       // Checks for confirmation in last message and then runs associated tool

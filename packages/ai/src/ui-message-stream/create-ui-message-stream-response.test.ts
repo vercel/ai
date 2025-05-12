@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
 
-describe('createDataStreamResponse', () => {
+describe('createUIMessageStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {
     const response = createUIMessageStreamResponse({
       status: 200,
@@ -25,15 +25,15 @@ describe('createDataStreamResponse', () => {
     // Verify headers
     expect(Object.fromEntries(response.headers.entries()))
       .toMatchInlineSnapshot(`
-      {
-        "cache-control": "no-cache",
-        "connection": "keep-alive",
-        "content-type": "text/event-stream",
-        "custom-header": "test",
-        "x-accel-buffering": "no",
-        "x-vercel-ai-data-stream": "v2",
-      }
-    `);
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "custom-header": "test",
+          "x-accel-buffering": "no",
+          "x-vercel-ai-ui-message-stream": "v1",
+        }
+      `);
 
     expect(
       await convertReadableStreamToArray(

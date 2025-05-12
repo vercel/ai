@@ -809,7 +809,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.pipeDataStreamToResponse', async () => {
+  describe('result.pipeUIMessageStreamToResponse', async () => {
     it('should write data stream parts to a Node.js response-like object', async () => {
       const mockResponse = createMockServerResponse();
 
@@ -829,7 +829,7 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
@@ -890,7 +890,7 @@ describe('streamText', () => {
           "content-type": "text/event-stream",
           "custom-header": "custom-value",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
 
@@ -1011,7 +1011,7 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
@@ -1089,7 +1089,7 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
@@ -1138,7 +1138,7 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
@@ -1202,7 +1202,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.toDataStream', () => {
+  describe('result.toUIMessageStream', () => {
     it('should create a data stream', async () => {
       const result = streamText({
         model: createTestModel(),
@@ -1462,7 +1462,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.toDataStreamResponse', () => {
+  describe('result.toUIMessageStreamResponse', () => {
     it('should create a Response with a data stream', async () => {
       const result = streamText({
         model: createTestModel(),
@@ -1474,14 +1474,14 @@ describe('streamText', () => {
       expect(response.status).toStrictEqual(200);
       expect(Object.fromEntries(response.headers.entries()))
         .toMatchInlineSnapshot(`
-        {
-          "cache-control": "no-cache",
-          "connection": "keep-alive",
-          "content-type": "text/event-stream",
-          "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
-        }
-      `);
+          {
+            "cache-control": "no-cache",
+            "connection": "keep-alive",
+            "content-type": "text/event-stream",
+            "x-accel-buffering": "no",
+            "x-vercel-ai-ui-message-stream": "v1",
+          }
+        `);
 
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
@@ -1538,7 +1538,7 @@ describe('streamText', () => {
             "content-type": "text/event-stream",
             "custom-header": "custom-value",
             "x-accel-buffering": "no",
-            "x-vercel-ai-data-stream": "v2",
+            "x-vercel-ai-ui-message-stream": "v1",
           }
         `);
       expect(await convertResponseStreamToArray(response))

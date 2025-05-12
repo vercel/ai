@@ -33,7 +33,7 @@ describe('pipeUIMessageStreamToResponse', () => {
         "content-type": "text/event-stream",
         "custom-header": "test",
         "x-accel-buffering": "no",
-        "x-vercel-ai-data-stream": "v2",
+        "x-vercel-ai-ui-message-stream": "v1",
       }
     `);
 

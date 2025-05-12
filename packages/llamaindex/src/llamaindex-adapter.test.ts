@@ -4,7 +4,7 @@ import {
 } from 'ai/test';
 import { toUIMessageStream } from './llamaindex-adapter';
 
-describe('toDataStream', () => {
+describe('toUIMessageStream', () => {
   it('should convert AsyncIterable<EngineResponse>', async () => {
     const inputStream = convertArrayToAsyncIterable([
       { delta: 'Hello' },
