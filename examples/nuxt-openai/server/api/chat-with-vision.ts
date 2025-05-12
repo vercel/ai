@@ -30,6 +30,6 @@ export default defineLazyEventHandler(async () => {
     });
 
     // Respond with the stream
-    return response.toDataStreamResponse();
+    return response.toUIMessageStreamResponse();
   });
 });

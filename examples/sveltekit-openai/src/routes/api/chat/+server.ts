@@ -49,5 +49,5 @@ export const POST = async ({ request }) => {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 };
