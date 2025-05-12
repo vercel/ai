@@ -1,8 +1,14 @@
 import { loadChat } from '@util/chat-store';
 import Chat from './chat';
+import { UIMessage } from 'ai';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params; // get the chat ID from the URL
-  const messages = await loadChat(id); // load the chat messages
-  return <Chat id={id} initialMessages={messages} />; // display the chat
+  // get the chat ID from the URL:
+  const { id } = await props.params;
+
+  // load the chat messages:
+  const messages = (await loadChat(id)) as UIMessage<{ createdAt: string }>[];
+
+  // display the chat:
+  return <Chat id={id} initialMessages={messages} />;
 }

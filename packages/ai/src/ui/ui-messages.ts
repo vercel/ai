@@ -18,7 +18,7 @@ export type ToolInvocation =
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
-export interface UIMessage<METADATA = any> {
+export interface UIMessage<METADATA = unknown> {
   /**
 A unique identifier for the message.
    */
@@ -140,6 +140,9 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateUIMessage = Omit<UIMessage, 'id'> & {
-  id?: UIMessage['id'];
+export type CreateUIMessage<METADATA = unknown> = Omit<
+  UIMessage<METADATA>,
+  'id'
+> & {
+  id?: UIMessage<METADATA>['id'];
 };

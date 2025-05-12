@@ -3,7 +3,6 @@ import type {
   CreateUIMessage,
   FileUIPart,
   JSONValue,
-  Schema,
   UIMessage,
   UseChatOptions,
 } from 'ai';
@@ -24,7 +23,7 @@ import { useStableValue } from './util/use-stable-value';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
-export type UseChatHelpers<MESSAGE_METADATA> = {
+export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   /** Current messages in the chat */
   messages: UIMessage<MESSAGE_METADATA>[];
   /** The error object of the API request */
@@ -36,7 +35,7 @@ export type UseChatHelpers<MESSAGE_METADATA> = {
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: UIMessage | CreateUIMessage,
+    message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
@@ -63,7 +62,11 @@ export type UseChatHelpers<MESSAGE_METADATA> = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
+    messages:
+      | UIMessage<MESSAGE_METADATA>[]
+      | ((
+          messages: UIMessage<MESSAGE_METADATA>[],
+        ) => UIMessage<MESSAGE_METADATA>[]),
   ) => void;
   /** The current value of the input */
   input: string;
@@ -150,12 +153,6 @@ export function useChat<MESSAGE_METADATA>({
   }) => unknown;
 
   /**
-   * Schema for the message metadata. Validates the message metadata.
-   * Message metadata can be undefined or must match the schema.
-   */
-  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
-
-  /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
@@ -176,14 +173,14 @@ Default is undefined, which disables throttling.
   );
 
   // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data: messages, mutate } = useSWR<UIMessage[]>(
+  const { data: messages, mutate } = useSWR<UIMessage<MESSAGE_METADATA>[]>(
     [chatKey, 'messages'],
     null,
     { fallbackData: processedInitialMessages },
   );
 
   // Keep the latest messages in a ref.
-  const messagesRef = useRef<UIMessage[]>(messages || []);
+  const messagesRef = useRef<UIMessage<MESSAGE_METADATA>[]>(messages || []);
   useEffect(() => {
     messagesRef.current = messages || [];
   }, [messages]);
@@ -218,7 +215,7 @@ Default is undefined, which disables throttling.
       chatRequest: {
         headers?: Record<string, string> | Headers;
         body?: object;
-        messages: UIMessage[];
+        messages: UIMessage<MESSAGE_METADATA>[];
         data?: JSONValue;
       },
       requestType: 'generate' | 'resume' = 'generate',
@@ -347,7 +344,7 @@ Default is undefined, which disables throttling.
 
   const append = useCallback(
     (
-      message: UIMessage | CreateUIMessage,
+      message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
       { data, headers, body }: ChatRequestOptions = {},
     ) =>
       triggerRequest({
@@ -397,7 +394,13 @@ Default is undefined, which disables throttling.
   }, [triggerRequest]);
 
   const setMessages = useCallback(
-    (messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => {
+    (
+      messages:
+        | UIMessage<MESSAGE_METADATA>[]
+        | ((
+            messages: UIMessage<MESSAGE_METADATA>[],
+          ) => UIMessage<MESSAGE_METADATA>[]),
+    ) => {
       if (typeof messages === 'function') {
         messages = messages(messagesRef.current);
       }

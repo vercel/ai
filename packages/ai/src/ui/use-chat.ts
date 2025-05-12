@@ -1,5 +1,10 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { FetchFunction, IdGenerator, ToolCall } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  IdGenerator,
+  Schema,
+  ToolCall,
+} from '@ai-sdk/provider-utils';
 import { UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
@@ -24,7 +29,13 @@ export type ChatRequestOptions = {
   allowEmptySubmit?: boolean;
 };
 
-export type UseChatOptions<MESSAGE_METADATA = any> = {
+export type UseChatOptions<MESSAGE_METADATA = unknown> = {
+  /**
+   * Schema for the message metadata. Validates the message metadata.
+   * Message metadata can be undefined or must match the schema.
+   */
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
@@ -41,7 +52,7 @@ export type UseChatOptions<MESSAGE_METADATA = any> = {
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
    */
-  initialMessages?: UIMessage<MESSAGE_METADATA>[];
+  initialMessages?: UIMessage<NoInfer<MESSAGE_METADATA>>[];
 
   /**
    * Initial input of the chat.
@@ -71,7 +82,9 @@ export type UseChatOptions<MESSAGE_METADATA = any> = {
    *
    * @param message The message that was streamed.
    */
-  onFinish?: (options: { message: UIMessage }) => void;
+  onFinish?: (options: {
+    message: UIMessage<NoInfer<MESSAGE_METADATA>>;
+  }) => void;
 
   /**
    * Callback function to be called when an error is encountered.

@@ -17,7 +17,7 @@ import { UseChatOptions } from './use-chat';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export async function callChatApi<MESSAGE_METADATA = any>({
+export async function callChatApi<MESSAGE_METADATA>({
   api,
   body,
   streamProtocol = 'data',
@@ -41,12 +41,12 @@ export async function callChatApi<MESSAGE_METADATA = any>({
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  onUpdate: (options: { message: UIMessage }) => void;
-  onFinish: UseChatOptions['onFinish'];
-  onToolCall: UseChatOptions['onToolCall'];
+  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
+  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  lastMessage: UIMessage | undefined;
+  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   requestType?: 'generate' | 'resume';
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 }) {
@@ -88,7 +88,7 @@ export async function callChatApi<MESSAGE_METADATA = any>({
 
   switch (streamProtocol) {
     case 'text': {
-      await processChatTextResponse({
+      await processChatTextResponse<MESSAGE_METADATA>({
         stream: response.body,
         update: onUpdate,
         onFinish,
@@ -127,7 +127,7 @@ export async function callChatApi<MESSAGE_METADATA = any>({
               // is updated with SWR (without it, the changes get stuck in SWR and are not
               // forwarded to rendering):
               revisionId: generateId(),
-            } as UIMessage;
+            } as UIMessage<MESSAGE_METADATA>;
 
             onUpdate({ message: copiedMessage });
           },

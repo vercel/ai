@@ -13,7 +13,7 @@ import type {
 } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
-export function processChatResponse<MESSAGE_METADATA = any>({
+export function processChatResponse<MESSAGE_METADATA = unknown>({
   stream,
   onUpdate,
   onToolCall,

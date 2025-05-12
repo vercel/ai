@@ -1,15 +1,25 @@
 'use client';
 
+import { zodSchema } from '@ai-sdk/provider-utils';
 import { UIMessage, useChat } from '@ai-sdk/react';
+import { z } from 'zod';
 
 export default function Chat({
   id,
   initialMessages,
-}: { id?: string | undefined; initialMessages?: UIMessage[] } = {}) {
+}: {
+  id?: string | undefined;
+  initialMessages?: UIMessage<{ createdAt: string }>[];
+} = {}) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat({
     api: '/api/use-chat-persistence-metadata',
     id, // use the provided chatId
     initialMessages, // initial messages if provided
+    messageMetadataSchema: zodSchema(
+      z.object({
+        createdAt: z.string().datetime(),
+      }),
+    ),
   });
 
   return (
