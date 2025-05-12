@@ -1,5 +1,14 @@
 # @ai-sdk/deepseek
 
+## 1.0.0-canary.17
+
+### Patch Changes
+
+- Updated dependencies [516be5b]
+- Updated dependencies [ea7a7c9]
+  - @ai-sdk/openai-compatible@1.0.0-canary.17
+  - @ai-sdk/provider-utils@3.0.0-canary.17
+
 ## 1.0.0-canary.16
 
 ### Patch Changes

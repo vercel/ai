@@ -1,5 +1,56 @@
 # ai
 
+## 5.0.0-canary.21
+
+### Major Changes
+
+- d964901: - remove setting temperature to `0` by default
+  - remove `null` option from `DefaultSettingsMiddleware`
+  - remove setting defaults for `temperature` and `stopSequences` in `ai` to enable middleware changes
+- 0560977: chore (ai): improve consistency of generate text result, stream text result, and step result
+- 516be5b: ### Move Image Model Settings into generate options
+
+  Image Models no longer have settings. Instead, `maxImagesPerCall` can be passed directly to `generateImage()`. All other image settings can be passed to `providerOptions[provider]`.
+
+  Before
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1', {
+      maxImagesPerCall: 5,
+      pollIntervalMillis: 500,
+    }),
+    prompt,
+    n: 10,
+  });
+  ```
+
+  After
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1'),
+    prompt,
+    n: 10,
+    maxImagesPerCall: 5,
+    providerOptions: {
+      luma: { pollIntervalMillis: 5 },
+    },
+  });
+  ```
+
+  Pull Request: https://github.com/vercel/ai/pull/6180
+
+- bfbfc4c: feat (ai): streamText/generateText: totalUsage contains usage for all steps. usage is for a single step.
+- ea7a7c9: feat (ui): UI message metadata
+- 1409e13: chore (ai): remove experimental continueSteps
+
+### Patch Changes
+
+- 66af894: fix (ai): respect content order in toResponseMessages
+- Updated dependencies [ea7a7c9]
+  - @ai-sdk/provider-utils@3.0.0-canary.17
+
 ## 5.0.0-canary.20
 
 ### Major Changes

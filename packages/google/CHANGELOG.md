@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 2.0.0-canary.18
+
+### Patch Changes
+
+- f07a6d4: fix(providers/google): accept nullish in safetyRatings
+- Updated dependencies [ea7a7c9]
+  - @ai-sdk/provider-utils@3.0.0-canary.17
+
 ## 2.0.0-canary.17
 
 ### Patch Changes
