@@ -1,5 +1,12 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0-canary.17
+
+### Patch Changes
+
+- Updated dependencies [ea7a7c9]
+  - @ai-sdk/provider-utils@3.0.0-canary.17
+
 ## 3.0.0-canary.16
 
 ### Patch Changes
