@@ -1431,7 +1431,7 @@ describe('processChatResponse', () => {
         },
         { type: 'text', value: 't1' },
         {
-          type: 'message-metadata',
+          type: 'metadata',
           value: {
             metadata: {
               metadata: 'metadata-1',
@@ -1702,7 +1702,7 @@ describe('processChatResponse', () => {
         { type: 'finish-step', value: {} },
         { type: 'finish', value: {} },
         {
-          type: 'message-metadata',
+          type: 'metadata',
           value: {
             metadata: {
               key1: 'value-1',

@@ -311,7 +311,7 @@ export function processChatResponse<MESSAGE_METADATA = any>({
             break;
           }
 
-          case 'message-metadata': {
+          case 'metadata': {
             await updateMessageMetadata(value.metadata);
             if (value.metadata != null) {
               onUpdate?.({ message });

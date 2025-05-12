@@ -65,7 +65,7 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
     }),
   }),
   z.object({
-    type: z.literal('message-metadata'),
+    type: z.literal('metadata'),
     value: z.object({
       metadata: z.unknown(),
     }),
