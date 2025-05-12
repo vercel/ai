@@ -14,10 +14,7 @@ Here is a basic example that uses both the AI SDK and LlamaIndex together with t
 You can use the AI SDK's [`LlamaIndexWorkflowAdapter`](/docs/reference/stream-helpers/llamaindex-workflow-adapter) to stream events from a LlamaIndex [AgentWorkflow or Workflow](https://ts.llamaindex.ai/docs/llamaindex/modules/agents/agent_workflow) to the client.
 
 ```tsx filename="app/api/completion/route.ts" highlight="17"
-import {
-  tool,
-  OpenAI
-} from 'llamaindex';
+import { tool, OpenAI } from 'llamaindex';
 import { agent, startAgentEvent, run } from '@llamaindex/workflow';
 import { LlamaIndexWorkflowAdapter } from 'ai';
 import { z } from 'zod';
@@ -25,8 +22,8 @@ import { z } from 'zod';
 const calculatorAgent = agent({
   tools: [
     tool({
-      name: "add",
-      description: "Adds two numbers",
+      name: 'add',
+      description: 'Adds two numbers',
       parameters: z.object({ x: z.number(), y: z.number() }),
       execute: ({ x, y }) => x + y,
     }),
@@ -41,7 +38,7 @@ export async function POST(req: Request) {
     calculatorAgent,
     startAgentEvent.with({
       userInput: prompt,
-    })
+    }),
   );
 
   return LlamaIndexWorkflowAdapter.toDataStreamResponse(eventStream);
