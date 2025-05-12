@@ -20,7 +20,6 @@ export async function callCompletionApi({
   setLoading,
   setError,
   setAbortController,
-  onResponse,
   onFinish,
   onError,
   fetch = getOriginalFetch(),
@@ -35,7 +34,6 @@ export async function callCompletionApi({
   setLoading: (loading: boolean) => void;
   setError: (error: Error | undefined) => void;
   setAbortController: (abortController: AbortController | null) => void;
-  onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onFinish: ((prompt: string, completion: string) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
@@ -65,14 +63,6 @@ export async function callCompletionApi({
     }).catch(err => {
       throw err;
     });
-
-    if (onResponse) {
-      try {
-        await onResponse(response);
-      } catch (err) {
-        throw err;
-      }
-    }
 
     if (!response.ok) {
       throw new Error(

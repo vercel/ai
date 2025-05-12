@@ -106,7 +106,6 @@ export function useChat<MESSAGE_METADATA = unknown>(
     initialMessages = [],
     initialInput = '',
     streamProtocol = 'data',
-    onResponse,
     onFinish,
     onError,
     credentials,
@@ -207,7 +206,6 @@ export function useChat<MESSAGE_METADATA = unknown>(
         },
         abortController: () => abortController,
         credentials,
-        onResponse,
         onUpdate({ message }) {
           status.value = 'streaming';
 

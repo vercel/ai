@@ -109,7 +109,6 @@ export class Completion {
       setAbortController: abortController => {
         this.#abortController = abortController ?? undefined;
       },
-      onResponse: this.#options.onResponse,
       onFinish: this.#options.onFinish,
       onError: this.#options.onError,
     });
