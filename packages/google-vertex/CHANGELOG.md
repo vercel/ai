@@ -1,5 +1,50 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-canary.18
+
+### Major Changes
+
+- 516be5b: ### Move Image Model Settings into generate options
+
+  Image Models no longer have settings. Instead, `maxImagesPerCall` can be passed directly to `generateImage()`. All other image settings can be passed to `providerOptions[provider]`.
+
+  Before
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1', {
+      maxImagesPerCall: 5,
+      pollIntervalMillis: 500,
+    }),
+    prompt,
+    n: 10,
+  });
+  ```
+
+  After
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1'),
+    prompt,
+    n: 10,
+    maxImagesPerCall: 5,
+    providerOptions: {
+      luma: { pollIntervalMillis: 5 },
+    },
+  });
+  ```
+
+  Pull Request: https://github.com/vercel/ai/pull/6180
+
+### Patch Changes
+
+- Updated dependencies [f07a6d4]
+- Updated dependencies [ea7a7c9]
+  - @ai-sdk/google@2.0.0-canary.18
+  - @ai-sdk/provider-utils@3.0.0-canary.17
+  - @ai-sdk/anthropic@2.0.0-canary.17
+
 ## 3.0.0-canary.17
 
 ### Patch Changes

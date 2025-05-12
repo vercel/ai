@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-canary.17
+
+### Major Changes
+
+- ea7a7c9: feat (ui): UI message metadata
+
 ## 3.0.0-canary.16
 
 ### Patch Changes
