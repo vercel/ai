@@ -38,9 +38,6 @@ describe('data protocol stream', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -193,13 +190,10 @@ describe('data protocol stream', () => {
         formatDataStreamPart({ type: 'text', value: ' world' }),
         formatDataStreamPart({ type: 'text', value: '.' }),
         formatDataStreamPart({
-          type: 'finish-message',
+          type: 'finish',
           value: {
-            finishReason: 'stop',
-            usage: {
-              inputTokens: 1,
-              outputTokens: 3,
-              totalTokens: 4,
+            metadata: {
+              example: 'metadata',
             },
           },
         }),
@@ -210,31 +204,27 @@ describe('data protocol stream', () => {
     const chatWithOnFinish = new Chat({
       onFinish,
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
     await chatWithOnFinish.append({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(onFinish).toHaveBeenCalledExactlyOnceWith(
-      {
-        id: expect.any(String),
-        createdAt: expect.any(Date),
-        role: 'assistant',
-        parts: [{ text: 'Hello, world.', type: 'text' }],
-      },
-      {
-        finishReason: 'stop',
-        usage: {
-          inputTokens: 1,
-          outputTokens: 3,
-          totalTokens: 4,
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      message: {
+        id: 'id-2',
+        metadata: {
+          example: 'metadata',
         },
+        parts: [
+          {
+            text: 'Hello, world.',
+            type: 'text',
+          },
+        ],
+        role: 'assistant',
       },
-    );
+    });
   });
 
   describe('id', () => {
@@ -254,7 +244,6 @@ describe('data protocol stream', () => {
           "id": "id-0",
           "messages": [
             {
-              "createdAt": "2025-01-01T00:00:00.000Z",
               "id": "id-1",
               "parts": [
                 {
@@ -353,9 +342,6 @@ describe('text stream', () => {
     chat = new Chat({
       streamProtocol: 'text',
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -373,7 +359,6 @@ describe('text stream', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -384,7 +369,6 @@ describe('text stream', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
             {
@@ -451,18 +435,13 @@ describe('text stream', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(onFinish).toHaveBeenCalledExactlyOnceWith(
-      {
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      message: {
         id: expect.any(String),
-        createdAt: expect.any(Date),
         role: 'assistant',
         parts: [{ text: 'Hello, world.', type: 'text' }],
       },
-      {
-        finishReason: 'unknown',
-        usage: {},
-      },
-    );
+    });
   });
 });
 
@@ -473,9 +452,6 @@ describe('form actions', () => {
     chat = new Chat({
       streamProtocol: 'text',
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -498,7 +474,6 @@ describe('form actions', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -509,7 +484,6 @@ describe('form actions', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
             {
@@ -554,7 +528,6 @@ describe('form actions', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -565,7 +538,6 @@ describe('form actions', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
             {
@@ -583,7 +555,6 @@ describe('form actions', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -594,7 +565,6 @@ describe('form actions', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
             {
@@ -605,7 +575,6 @@ describe('form actions', () => {
           "role": "assistant",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-3",
           "parts": [
             {
@@ -616,7 +585,6 @@ describe('form actions', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-4",
           "parts": [
             {
@@ -635,7 +603,6 @@ describe('form actions', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -646,7 +613,6 @@ describe('form actions', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
             {
@@ -657,7 +623,6 @@ describe('form actions', () => {
           "role": "assistant",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-3",
           "parts": [
             {
@@ -668,7 +633,6 @@ describe('form actions', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-4",
           "parts": [
             {
@@ -679,7 +643,6 @@ describe('form actions', () => {
           "role": "assistant",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-5",
           "parts": [
             {
@@ -690,7 +653,6 @@ describe('form actions', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-6",
           "parts": [
             {
@@ -1190,7 +1152,6 @@ describe('maxSteps', () => {
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
-            "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-0",
             "parts": [
               {
@@ -1201,8 +1162,8 @@ describe('maxSteps', () => {
             "role": "user",
           },
           {
-            "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-1",
+            "metadata": {},
             "parts": [
               {
                 "toolInvocation": {
@@ -1222,7 +1183,7 @@ describe('maxSteps', () => {
                 "type": "text",
               },
             ],
-            "revisionId": "id-4",
+            "revisionId": "id-5",
             "role": "assistant",
           },
         ]
@@ -1317,7 +1278,6 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -1334,8 +1294,8 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
+          "metadata": {},
           "parts": [
             {
               "text": "Response to message with text attachment",
@@ -1353,7 +1313,6 @@ describe('file attachments with data url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1398,7 +1357,6 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -1415,8 +1373,8 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
+          "metadata": {},
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1434,7 +1392,6 @@ describe('file attachments with data url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1462,9 +1419,6 @@ describe('file attachments with url', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1492,7 +1446,6 @@ describe('file attachments with url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -1509,8 +1462,8 @@ describe('file attachments with url', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
+          "metadata": {},
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1528,7 +1481,6 @@ describe('file attachments with url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1585,7 +1537,6 @@ describe('file attachments with empty text content', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -1602,8 +1553,8 @@ describe('file attachments with empty text content', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
+          "metadata": {},
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1621,7 +1572,6 @@ describe('file attachments with empty text content', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1704,7 +1654,6 @@ describe('reload', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1739,9 +1688,6 @@ describe('test sending additional fields during message submission', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1771,7 +1717,6 @@ describe('test sending additional fields during message submission', () => {
             "annotations": [
               "this is an annotation",
             ],
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1913,6 +1858,7 @@ describe('generateId function', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
+        formatDataStreamPart({ type: 'start', value: { messageId: '123' } }),
         formatDataStreamPart({ type: 'text', value: 'Hello' }),
         formatDataStreamPart({ type: 'text', value: ',' }),
         formatDataStreamPart({ type: 'text', value: ' world' }),
@@ -1920,9 +1866,8 @@ describe('generateId function', () => {
       ],
     };
 
-    const mockGenerateId = vi.fn().mockReturnValue('custom-id');
     const chatWithCustomId = new Chat({
-      generateId: mockGenerateId,
+      generateId: vi.fn().mockReturnValue('custom-id'),
     });
 
     await chatWithCustomId.append({

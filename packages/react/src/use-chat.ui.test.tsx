@@ -251,7 +251,6 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
-          "isContinuation": false,
           "message": {
             "id": "id-2",
             "metadata": {

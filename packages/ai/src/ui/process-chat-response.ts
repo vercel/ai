@@ -28,18 +28,7 @@ export function processChatResponse<MESSAGE_METADATA = any>({
   newMessageId: string;
   onToolCall?: UseChatOptions['onToolCall'];
   onUpdate?: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
-  onFinish?: (options: {
-    /**
-     * Indicates whether the response message is a continuation of the last original message,
-     * or if a new message was created.
-     */
-    isContinuation: boolean;
-
-    /**
-     * The message. Includes the original last message if it was continued.
-     */
-    message: UIMessage<MESSAGE_METADATA>;
-  }) => void;
+  onFinish?: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
 }): ReadableStream<DataStreamPart> {
   const isContinuation = lastMessage?.role === 'assistant';
 
@@ -344,7 +333,7 @@ export function processChatResponse<MESSAGE_METADATA = any>({
       },
 
       flush() {
-        onFinish?.({ message, isContinuation });
+        onFinish?.({ message });
       },
     }),
   );

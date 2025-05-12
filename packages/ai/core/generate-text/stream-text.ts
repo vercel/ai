@@ -1517,7 +1517,8 @@ However, the LLM results are expected to be small enough to not cause issues.
           stream: baseStream,
           lastMessage,
           newMessageId: messageId ?? this.generateId(),
-          onFinish: ({ message, isContinuation }) => {
+          onFinish: ({ message }) => {
+            const isContinuation = message.id === lastMessage?.id;
             onFinish({
               isContinuation,
               responseMessage: message,

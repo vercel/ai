@@ -121,7 +121,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -326,7 +325,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -645,7 +643,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": true,
             "message": {
               "id": "msg-123",
               "metadata": undefined,
@@ -970,7 +967,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -1349,7 +1345,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -1664,7 +1659,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {
@@ -1793,7 +1787,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {
@@ -1911,7 +1904,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": true,
             "message": {
               "id": "msg-123",
               "metadata": {
@@ -2142,7 +2134,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2257,7 +2248,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2492,7 +2482,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2631,7 +2620,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2765,7 +2753,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},
@@ -2947,7 +2934,6 @@ describe('processChatResponse', () => {
       expect(finishCalls).toMatchInlineSnapshot(`
         [
           {
-            "isContinuation": false,
             "message": {
               "id": "msg-123",
               "metadata": {},

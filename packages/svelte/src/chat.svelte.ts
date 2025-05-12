@@ -21,13 +21,7 @@ import {
   hasChatContext,
 } from './chat-context.svelte.js';
 
-export type ChatOptions = Readonly<
-  UseChatOptions & {
-    '~internal'?: {
-      currentDate?: () => Date;
-    };
-  }
->;
+export type ChatOptions = Readonly<UseChatOptions>;
 
 export type { CreateUIMessage, UIMessage };
 
@@ -45,18 +39,6 @@ export class Chat {
   readonly id = $derived(this.#options.id ?? this.#generateId());
   readonly #store = $derived(this.#keyedStore.get(this.id));
   #abortController: AbortController | undefined;
-
-  /**
-   * Additional data added on the server via StreamData.
-   *
-   * This is writable, so you can use it to transform or clear the chat data.
-   */
-  get data() {
-    return this.#store.data;
-  }
-  set data(value: JSONValue[] | undefined) {
-    this.#store.data = value;
-  }
 
   /**
    * Hook status:
@@ -91,10 +73,6 @@ export class Chat {
     untrack(() => (this.#store.messages = value));
   }
 
-  private currentDate = $derived(
-    this.#options['~internal']?.currentDate ?? (() => new Date()),
-  );
-
   constructor(options: ChatOptions = {}) {
     if (hasChatContext()) {
       this.#keyedStore = getChatContext();
@@ -120,8 +98,6 @@ export class Chat {
     const messages = this.messages.concat({
       ...message,
       id: message.id ?? this.#generateId(),
-      createdAt: message.createdAt ?? this.currentDate(),
-      parts: message.parts,
     });
 
     return this.#triggerRequest({ messages, headers, body, data });
@@ -177,7 +153,6 @@ export class Chat {
 
     const messages = this.messages.concat({
       id: this.#generateId(),
-      createdAt: this.currentDate(),
       role: 'user',
       parts: [...fileParts, { type: 'text', text: this.input }],
     });
@@ -248,7 +223,6 @@ export class Chat {
       // Optimistically update messages
       this.messages = messages;
 
-      const existingData = this.data ?? [];
       await callChatApi({
         api: this.#api,
         body: {
@@ -266,8 +240,11 @@ export class Chat {
         },
         abortController: () => abortController,
         onResponse: this.#options.onResponse,
-        onUpdate: ({ message, data, replaceLastMessage }) => {
+        onUpdate: ({ message }) => {
           this.#store.status = 'streaming';
+
+          const replaceLastMessage =
+            message.id === messages[messages.length - 1].id;
 
           this.messages = messages;
           if (replaceLastMessage) {
@@ -275,16 +252,10 @@ export class Chat {
           } else {
             this.messages.push(message);
           }
-
-          if (data?.length) {
-            this.data = existingData;
-            this.data.push(...data);
-          }
         },
         onToolCall: this.#options.onToolCall,
         onFinish: this.#options.onFinish,
         generateId: this.#generateId,
-        getCurrentDate: this.currentDate,
         fetch: this.#options.fetch,
         // callChatApi calls structuredClone on the message
         lastMessage: $state.snapshot(this.messages[this.messages.length - 1]),
