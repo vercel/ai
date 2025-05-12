@@ -197,3 +197,7 @@ The client throws `MCPClientError` for:
 For tool execution, errors are propagated as `CallToolError` errors.
 
 For unknown errors, the client exposes an `onUncaughtError` callback that can be used to manually log or handle errors that are not covered by known error types.
+
+## Connection Stability
+
+The MCP client automatically responds to ping requests from the server, which helps maintain connection stability during long-lived sessions. This is handled internally and requires no additional configuration. When the server sends a ping request, the client responds appropriately to indicate it's still active and connected.
