@@ -62,11 +62,6 @@ export type UseChatOptions<MESSAGE_METADATA = unknown> = {
   }) => void | Promise<unknown> | unknown;
 
   /**
-   * Callback function to be called when the API response is received.
-   */
-  onResponse?: (response: Response) => void | Promise<void>;
-
-  /**
    * Optional callback function that is called when the assistant message is finished streaming.
    *
    * @param message The message that was streamed.

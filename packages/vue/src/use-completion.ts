@@ -57,7 +57,6 @@ export function useCompletion({
   headers,
   body,
   streamProtocol,
-  onResponse,
   onFinish,
   onError,
   fetch,
@@ -118,7 +117,6 @@ export function useCompletion({
       setAbortController: controller => {
         abortController = controller;
       },
-      onResponse,
       onFinish,
       onError,
       fetch,

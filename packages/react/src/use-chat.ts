@@ -127,7 +127,6 @@ export function useChat<MESSAGE_METADATA>({
   experimental_prepareRequestBody,
   maxSteps = 1,
   streamProtocol = 'data',
-  onResponse,
   onFinish,
   onError,
   credentials,
@@ -256,7 +255,6 @@ Default is undefined, which disables throttling.
             ...chatRequest.headers,
           },
           abortController: () => abortControllerRef.current,
-          onResponse,
           onUpdate({ message }) {
             mutateStatus('streaming');
 
@@ -320,7 +318,6 @@ Default is undefined, which disables throttling.
       mutateStatus,
       api,
       extraMetadataRef,
-      onResponse,
       onFinish,
       onError,
       setError,
