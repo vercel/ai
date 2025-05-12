@@ -4,12 +4,16 @@ import {
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
 import { render } from '@testing-library/svelte';
-import { getToolInvocations, type DataStreamPart, type UIMessage } from 'ai';
+import {
+  getToolInvocations,
+  type UIMessage,
+  type UIMessageStreamPart,
+} from 'ai';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
 
-function formatDataStreamPart(part: DataStreamPart) {
+function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
@@ -44,10 +48,10 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        formatDataStreamPart({ type: 'text', value: ',' }),
-        formatDataStreamPart({ type: 'text', value: ' world' }),
-        formatDataStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', value: 'Hello' }),
+        formatStreamPart({ type: 'text', value: ',' }),
+        formatStreamPart({ type: 'text', value: ' world' }),
+        formatStreamPart({ type: 'text', value: '.' }),
       ],
     };
 
@@ -89,7 +93,7 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'error',
           value: 'custom error message',
         }),
@@ -117,7 +121,7 @@ describe('data protocol stream', () => {
         parts: [{ text: 'hi', type: 'text' }],
       });
       await vi.waitFor(() => expect(chat.status).toBe('submitted'));
-      controller.write(formatDataStreamPart({ type: 'text', value: 'Hello' }));
+      controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
       await vi.waitFor(() => expect(chat.status).toBe('streaming'));
       controller.close();
       await appendOperation;
@@ -143,11 +147,11 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        formatDataStreamPart({ type: 'text', value: ',' }),
-        formatDataStreamPart({ type: 'text', value: ' world' }),
-        formatDataStreamPart({ type: 'text', value: '.' }),
-        formatDataStreamPart({
+        formatStreamPart({ type: 'text', value: 'Hello' }),
+        formatStreamPart({ type: 'text', value: ',' }),
+        formatStreamPart({ type: 'text', value: ' world' }),
+        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({
           type: 'finish',
           value: {
             metadata: {
@@ -220,10 +224,10 @@ describe('data protocol stream', () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatDataStreamPart({ type: 'text', value: 'Hello' }),
-          formatDataStreamPart({ type: 'text', value: ',' }),
-          formatDataStreamPart({ type: 'text', value: ' world' }),
-          formatDataStreamPart({ type: 'text', value: '.' }),
+          formatStreamPart({ type: 'text', value: 'Hello' }),
+          formatStreamPart({ type: 'text', value: ',' }),
+          formatStreamPart({ type: 'text', value: ' world' }),
+          formatStreamPart({ type: 'text', value: '.' }),
         ],
       };
 
@@ -254,10 +258,10 @@ describe('data protocol stream', () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatDataStreamPart({ type: 'text', value: 'Hello' }),
-          formatDataStreamPart({ type: 'text', value: ',' }),
-          formatDataStreamPart({ type: 'text', value: ' world' }),
-          formatDataStreamPart({ type: 'text', value: '.' }),
+          formatStreamPart({ type: 'text', value: 'Hello' }),
+          formatStreamPart({ type: 'text', value: ',' }),
+          formatStreamPart({ type: 'text', value: ' world' }),
+          formatStreamPart({ type: 'text', value: '.' }),
         ],
       };
 
@@ -481,7 +485,7 @@ describe('onToolCall', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'tool-call',
           value: {
             toolCallId: 'tool-call-0',
@@ -549,7 +553,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call-streaming-start',
         value: {
           toolCallId: 'tool-call-0',
@@ -573,7 +577,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call-delta',
         value: {
           toolCallId: 'tool-call-0',
@@ -597,7 +601,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call-delta',
         value: {
           toolCallId: 'tool-call-0',
@@ -621,7 +625,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call',
         value: {
           toolCallId: 'tool-call-0',
@@ -646,7 +650,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-result',
         value: {
           toolCallId: 'tool-call-0',
@@ -682,7 +686,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call',
         value: {
           toolCallId: 'tool-call-0',
@@ -707,7 +711,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-result',
         value: {
           toolCallId: 'tool-call-0',
@@ -734,7 +738,7 @@ describe('tool invocations', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'tool-call',
           value: {
             toolCallId: 'tool-call-0',
@@ -800,12 +804,12 @@ describe('tool invocations', () => {
     });
 
     // start stream
-    controller1.write(formatDataStreamPart({ type: 'start', value: {} }));
-    controller1.write(formatDataStreamPart({ type: 'start-step', value: {} }));
+    controller1.write(formatStreamPart({ type: 'start', value: {} }));
+    controller1.write(formatStreamPart({ type: 'start-step', value: {} }));
 
     // tool call
     controller1.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call',
         value: {
           toolCallId: 'tool-call-0',
@@ -855,8 +859,8 @@ describe('tool invocations', () => {
     expect(server.calls.length).toBe(1);
 
     // finish stream
-    controller1.write(formatDataStreamPart({ type: 'finish-step', value: {} }));
-    controller1.write(formatDataStreamPart({ type: 'finish', value: {} }));
+    controller1.write(formatStreamPart({ type: 'finish-step', value: {} }));
+    controller1.write(formatStreamPart({ type: 'finish', value: {} }));
 
     await controller1.close();
 
@@ -892,7 +896,7 @@ describe('maxSteps', () => {
         {
           type: 'stream-chunks',
           chunks: [
-            formatDataStreamPart({
+            formatStreamPart({
               type: 'tool-call',
               value: {
                 toolCallId: 'tool-call-0',
@@ -904,9 +908,7 @@ describe('maxSteps', () => {
         },
         {
           type: 'stream-chunks',
-          chunks: [
-            formatDataStreamPart({ type: 'text', value: 'final result' }),
-          ],
+          chunks: [formatStreamPart({ type: 'text', value: 'final result' })],
         },
       ];
 
@@ -981,7 +983,7 @@ describe('maxSteps', () => {
         {
           type: 'stream-chunks',
           chunks: [
-            formatDataStreamPart({
+            formatStreamPart({
               type: 'tool-call',
               value: {
                 toolCallId: 'tool-call-0',
@@ -1023,7 +1025,7 @@ describe('file attachments with data url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'text',
           value: 'Response to message with text attachment',
         }),
@@ -1102,7 +1104,7 @@ describe('file attachments with data url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'text',
           value: 'Response to message with image attachment',
         }),
@@ -1191,7 +1193,7 @@ describe('file attachments with url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'text',
           value: 'Response to message with image attachment',
         }),
@@ -1280,7 +1282,7 @@ describe('file attachments with empty text content', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'text',
           value: 'Response to message with image attachment',
         }),
@@ -1367,15 +1369,11 @@ describe('reload', () => {
     server.urls['/api/chat'].response = [
       {
         type: 'stream-chunks',
-        chunks: [
-          formatDataStreamPart({ type: 'text', value: 'first response' }),
-        ],
+        chunks: [formatStreamPart({ type: 'text', value: 'first response' })],
       },
       {
         type: 'stream-chunks',
-        chunks: [
-          formatDataStreamPart({ type: 'text', value: 'second response' }),
-        ],
+        chunks: [formatStreamPart({ type: 'text', value: 'second response' })],
       },
     ];
 
@@ -1536,10 +1534,10 @@ describe('synchronization', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        formatDataStreamPart({ type: 'text', value: ',' }),
-        formatDataStreamPart({ type: 'text', value: ' world' }),
-        formatDataStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', value: 'Hello' }),
+        formatStreamPart({ type: 'text', value: ',' }),
+        formatStreamPart({ type: 'text', value: ' world' }),
+        formatStreamPart({ type: 'text', value: '.' }),
       ],
     };
 
@@ -1589,7 +1587,7 @@ describe('synchronization', () => {
       expect(chat2.status).toBe('submitted');
     });
 
-    controller.write(formatDataStreamPart({ type: 'text', value: 'Hello' }));
+    controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
     await vi.waitFor(() => {
       expect(chat1.status).toBe('streaming');
       expect(chat2.status).toBe('streaming');
@@ -1612,11 +1610,11 @@ describe('generateId function', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({ type: 'start', value: { messageId: '123' } }),
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        formatDataStreamPart({ type: 'text', value: ',' }),
-        formatDataStreamPart({ type: 'text', value: ' world' }),
-        formatDataStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'start', value: { messageId: '123' } }),
+        formatStreamPart({ type: 'text', value: 'Hello' }),
+        formatStreamPart({ type: 'text', value: ',' }),
+        formatStreamPart({ type: 'text', value: ' world' }),
+        formatStreamPart({ type: 'text', value: '.' }),
       ],
     };
 

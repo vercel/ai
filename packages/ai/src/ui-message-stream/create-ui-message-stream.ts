@@ -1,14 +1,14 @@
-import { DataStreamPart } from './data-stream-parts';
-import { DataStreamWriter } from './data-stream-writer';
+import { UIMessageStreamPart } from './ui-message-stream-parts';
+import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
-export function createDataStream({
+export function createUIMessageStream({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
 }: {
-  execute: (writer: DataStreamWriter) => Promise<void> | void;
+  execute: (writer: UIMessageStreamWriter) => Promise<void> | void;
   onError?: (error: unknown) => string;
-}): ReadableStream<DataStreamPart> {
-  let controller!: ReadableStreamDefaultController<DataStreamPart>;
+}): ReadableStream<UIMessageStreamPart> {
+  let controller!: ReadableStreamDefaultController<UIMessageStreamPart>;
 
   const ongoingStreamPromises: Promise<void>[] = [];
 
@@ -18,7 +18,7 @@ export function createDataStream({
     },
   });
 
-  function safeEnqueue(data: DataStreamPart) {
+  function safeEnqueue(data: UIMessageStreamPart) {
     try {
       controller.enqueue(data);
     } catch (error) {
@@ -28,7 +28,7 @@ export function createDataStream({
 
   try {
     const result = execute({
-      write(part: DataStreamPart) {
+      write(part: UIMessageStreamPart) {
         safeEnqueue(part);
       },
       merge(streamArg) {

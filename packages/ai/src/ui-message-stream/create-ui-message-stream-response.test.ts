@@ -2,17 +2,17 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { createDataStreamResponse } from './create-data-stream-response';
+import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
 
-describe('createDataStreamResponse', () => {
+describe('createUIMessageStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {
-    const response = createDataStreamResponse({
+    const response = createUIMessageStreamResponse({
       status: 200,
       statusText: 'OK',
       headers: {
         'Custom-Header': 'test',
       },
-      dataStream: convertArrayToReadableStream([
+      stream: convertArrayToReadableStream([
         { type: 'text', value: 'test-data' },
       ]),
     });
@@ -25,15 +25,15 @@ describe('createDataStreamResponse', () => {
     // Verify headers
     expect(Object.fromEntries(response.headers.entries()))
       .toMatchInlineSnapshot(`
-      {
-        "cache-control": "no-cache",
-        "connection": "keep-alive",
-        "content-type": "text/event-stream",
-        "custom-header": "test",
-        "x-accel-buffering": "no",
-        "x-vercel-ai-data-stream": "v2",
-      }
-    `);
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "custom-header": "test",
+          "x-accel-buffering": "no",
+          "x-vercel-ai-ui-message-stream": "v1",
+        }
+      `);
 
     expect(
       await convertReadableStreamToArray(
@@ -52,9 +52,9 @@ describe('createDataStreamResponse', () => {
   });
 
   it('should handle errors in the stream', async () => {
-    const response = createDataStreamResponse({
+    const response = createUIMessageStreamResponse({
       status: 200,
-      dataStream: convertArrayToReadableStream([
+      stream: convertArrayToReadableStream([
         { type: 'error', value: 'Custom error message' },
       ]),
     });

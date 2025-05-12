@@ -9,10 +9,10 @@ export {
 } from '@ai-sdk/provider-utils';
 
 // directory exports
-export * from './data-stream';
 export * from './error';
 export * from './text-stream';
 export * from './ui';
+export * from './ui-message-stream';
 export * from './util';
 
 // directory exports from /core

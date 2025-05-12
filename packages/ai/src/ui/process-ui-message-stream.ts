@@ -1,5 +1,5 @@
 import { Schema, validateTypes } from '@ai-sdk/provider-utils';
-import { DataStreamPart } from '../data-stream/data-stream-parts';
+import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
@@ -13,7 +13,7 @@ import type {
 } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
-export function processChatResponse<MESSAGE_METADATA = unknown>({
+export function processUIMessageStream<MESSAGE_METADATA = unknown>({
   stream,
   onUpdate,
   onToolCall,
@@ -22,14 +22,14 @@ export function processChatResponse<MESSAGE_METADATA = unknown>({
   newMessageId,
   messageMetadataSchema,
 }: {
-  stream: ReadableStream<DataStreamPart>;
+  stream: ReadableStream<UIMessageStreamPart>;
   lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
   newMessageId: string;
   onToolCall?: UseChatOptions['onToolCall'];
   onUpdate?: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
   onFinish?: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
-}): ReadableStream<DataStreamPart> {
+}): ReadableStream<UIMessageStreamPart> {
   const isContinuation = lastMessage?.role === 'assistant';
 
   let step = isContinuation
@@ -93,7 +93,7 @@ export function processChatResponse<MESSAGE_METADATA = unknown>({
   }
 
   return stream.pipeThrough(
-    new TransformStream<DataStreamPart, DataStreamPart>({
+    new TransformStream<UIMessageStreamPart, UIMessageStreamPart>({
       async transform(chunk, controller) {
         const { type, value } = chunk;
 

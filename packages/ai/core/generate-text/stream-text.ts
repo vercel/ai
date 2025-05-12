@@ -2,14 +2,14 @@ import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
-import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
-import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
+import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
+import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
 import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { processChatResponse } from '../../src/ui/process-chat-response';
+import { processUIMessageStream } from '../../src/ui/process-ui-message-stream';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -51,7 +51,7 @@ import {
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   ConsumeStreamOptions,
-  DataStreamOptions,
+  UIMessageStreamOptions,
   StreamTextResult,
   TextStreamPart,
 } from './stream-text-result';
@@ -1344,7 +1344,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  toDataStream({
+  toUIMessageStream({
     newMessageId,
     originalMessages = [],
     onFinish,
@@ -1354,13 +1354,13 @@ However, the LLM results are expected to be small enough to not cause issues.
     experimental_sendStart = true,
     experimental_sendFinish = true,
     onError = () => 'An error occurred.', // mask error messages for safety by default
-  }: DataStreamOptions = {}): ReadableStream<DataStreamPart> {
+  }: UIMessageStreamOptions = {}): ReadableStream<UIMessageStreamPart> {
     const lastMessage = originalMessages[originalMessages.length - 1];
     const isContinuation = lastMessage?.role === 'assistant';
     const messageId = isContinuation ? lastMessage.id : newMessageId;
 
     const baseStream = this.fullStream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, DataStreamPart>({
+      new TransformStream<TextStreamPart<TOOLS>, UIMessageStreamPart>({
         transform: async (part, controller) => {
           const partType = part.type;
           switch (partType) {
@@ -1513,7 +1513,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return onFinish == null
       ? baseStream
-      : processChatResponse({
+      : processUIMessageStream({
           stream: baseStream,
           lastMessage,
           newMessageId: messageId ?? this.generateId(),
@@ -1533,7 +1533,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         });
   }
 
-  pipeDataStreamToResponse(
+  pipeUIMessageStreamToResponse(
     response: ServerResponse,
     {
       newMessageId,
@@ -1546,11 +1546,11 @@ However, the LLM results are expected to be small enough to not cause issues.
       experimental_sendStart,
       onError,
       ...init
-    }: ResponseInit & DataStreamOptions = {},
+    }: ResponseInit & UIMessageStreamOptions = {},
   ) {
-    pipeDataStreamToResponse({
+    pipeUIMessageStreamToResponse({
       response,
-      dataStream: this.toDataStream({
+      stream: this.toUIMessageStream({
         newMessageId,
         originalMessages,
         onFinish,
@@ -1573,7 +1573,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toDataStreamResponse({
+  toUIMessageStreamResponse({
     newMessageId,
     originalMessages,
     onFinish,
@@ -1584,9 +1584,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     experimental_sendStart,
     onError,
     ...init
-  }: ResponseInit & DataStreamOptions = {}): Response {
-    return createDataStreamResponse({
-      dataStream: this.toDataStream({
+  }: ResponseInit & UIMessageStreamOptions = {}): Response {
+    return createUIMessageStreamResponse({
+      stream: this.toUIMessageStream({
         newMessageId,
         originalMessages,
         onFinish,

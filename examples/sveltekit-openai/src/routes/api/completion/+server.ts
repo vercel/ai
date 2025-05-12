@@ -7,7 +7,7 @@ const openai = createOpenAI({
 });
 
 const system = `
-Generate a completion for the given prompt. Your completion should never start with the text of the prompt, but should continue the prompt in a natural way. 
+Generate a completion for the given prompt. Your completion should never start with the text of the prompt, but should continue the prompt in a natural way.
 Your completion should provide a maximum of 100 additional words. Only provide completions you're highly confident are likely to be accurate.
 
 Here are some examples:
@@ -33,5 +33,5 @@ export const POST = async ({ request }) => {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 };

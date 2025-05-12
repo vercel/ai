@@ -17,7 +17,7 @@ app.post('/', async c => {
   c.header('X-Vercel-AI-Data-Stream', 'v1');
   c.header('Content-Type', 'text/plain; charset=utf-8');
 
-  return stream(c, stream => stream.pipe(result.toDataStream()));
+  return stream(c, stream => stream.pipe(result.toUIMessageStream()));
 });
 
 app.post('/stream-data', async c => {
@@ -27,7 +27,7 @@ app.post('/stream-data', async c => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  const dataStream = result.toDataStream({
+  const dataStream = result.toUIMessageStream({
     onError: error => {
       // Error messages are masked by default for security reasons.
       // If you want to expose the error message to the client, you can do so here:

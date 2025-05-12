@@ -15,5 +15,5 @@ export default async function handler(
 
   // write the data stream to the response
   // Note: this is sent as a single response, not a stream
-  result.pipeDataStreamToResponse(response);
+  result.pipeUIMessageStreamToResponse(response);
 }

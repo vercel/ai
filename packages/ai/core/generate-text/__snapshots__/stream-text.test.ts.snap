@@ -2778,7 +2778,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 ]
 `;
 
-exports[`streamText > result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
+exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error messages by default 1`] = `
 [
   "data: {"type":"start-step","value":{}}
 
@@ -2798,7 +2798,7 @@ exports[`streamText > result.pipeDataStreamToResponse > should mask error messag
 ]
 `;
 
-exports[`streamText > result.pipeDataStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
+exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
   "data: {"type":"start-step","value":{}}
 
@@ -2815,7 +2815,7 @@ exports[`streamText > result.pipeDataStreamToResponse > should omit message fini
 ]
 `;
 
-exports[`streamText > result.pipeDataStreamToResponse > should support custom error messages 1`] = `
+exports[`streamText > result.pipeUIMessageStreamToResponse > should support custom error messages 1`] = `
 [
   "data: {"type":"start-step","value":{}}
 
@@ -3215,7 +3215,7 @@ exports[`streamText > result.textStream > should not include reasoning content i
 
 exports[`streamText > result.textStream > should swallow error to prevent server crash 1`] = `[]`;
 
-exports[`streamText > result.toDataStream > should create a data stream 1`] = `
+exports[`streamText > result.toUIMessageStream > should create a data stream 1`] = `
 [
   {
     "type": "start",
@@ -3257,7 +3257,7 @@ exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 ]
 `;
 
-exports[`streamText > result.toDataStream > should mask error messages by default 1`] = `
+exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [
   {
     "type": "start-step",
@@ -3284,7 +3284,7 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
 ]
 `;
 
-exports[`streamText > result.toDataStream > should omit message finish event (d:) when sendFinish is false 1`] = `
+exports[`streamText > result.toUIMessageStream > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
   {
     "type": "start-step",
@@ -3305,7 +3305,7 @@ exports[`streamText > result.toDataStream > should omit message finish event (d:
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send file content 1`] = `
+exports[`streamText > result.toUIMessageStream > should send file content 1`] = `
 [
   {
     "type": "start-step",
@@ -3346,7 +3346,7 @@ exports[`streamText > result.toDataStream > should send file content 1`] = `
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send reasoning content when sendReasoning is true 1`] = `
+exports[`streamText > result.toUIMessageStream > should send reasoning content when sendReasoning is true 1`] = `
 [
   {
     "type": "start-step",
@@ -3453,7 +3453,7 @@ exports[`streamText > result.toDataStream > should send reasoning content when s
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send source content when sendSources is true 1`] = `
+exports[`streamText > result.toUIMessageStream > should send source content when sendSources is true 1`] = `
 [
   {
     "type": "start-step",
@@ -3510,7 +3510,7 @@ exports[`streamText > result.toDataStream > should send source content when send
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send tool call and tool result stream parts 1`] = `
+exports[`streamText > result.toUIMessageStream > should send tool call and tool result stream parts 1`] = `
 [
   {
     "type": "start-step",
@@ -3550,7 +3550,7 @@ exports[`streamText > result.toDataStream > should send tool call and tool resul
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
+exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
 [
   {
     "type": "start-step",
@@ -3611,7 +3611,7 @@ exports[`streamText > result.toDataStream > should send tool call, tool call str
 ]
 `;
 
-exports[`streamText > result.toDataStream > should support custom error messages 1`] = `
+exports[`streamText > result.toUIMessageStream > should support custom error messages 1`] = `
 [
   {
     "type": "start-step",
@@ -3638,7 +3638,7 @@ exports[`streamText > result.toDataStream > should support custom error messages
 ]
 `;
 
-exports[`streamText > result.toDataStreamResponse > should mask error messages by default 1`] = `
+exports[`streamText > result.toUIMessageStreamResponse > should mask error messages by default 1`] = `
 [
   "data: {"type":"start-step","value":{}}
 
@@ -3658,7 +3658,7 @@ exports[`streamText > result.toDataStreamResponse > should mask error messages b
 ]
 `;
 
-exports[`streamText > result.toDataStreamResponse > should support custom error messages 1`] = `
+exports[`streamText > result.toUIMessageStreamResponse > should support custom error messages 1`] = `
 [
   "data: {"type":"start-step","value":{}}
 

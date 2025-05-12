@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     originalMessages: messages,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {

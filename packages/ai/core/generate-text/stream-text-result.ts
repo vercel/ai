@@ -1,5 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
+import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { ReasoningPart } from '../prompt/content-part';
 import {
@@ -20,7 +20,7 @@ import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 import { UIMessage } from '../../src/ui/ui-messages';
 
-export type DataStreamOptions = {
+export type UIMessageStreamOptions = {
   /**
    * Message ID that is sent to the client if a new message is created.
    * This is intended to be used for the UI message,
@@ -263,7 +263,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   consumeStream(options?: ConsumeStreamOptions): Promise<void>;
 
   /**
-  Converts the result to a data stream.
+  Converts the result to a UI message stream.
 
   @param options.getErrorMessage an optional function that converts an error to an error message.
   @param options.sendUsage whether to send the usage information to the client. Defaults to true.
@@ -272,12 +272,14 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.experimental_sendFinish whether to send the finish information to the client. Defaults to true.
   @param options.experimental_sendStart whether to send the start information to the client. Defaults to true.
 
-  @return A data stream.
+  @return A UI message stream.
      */
-  toDataStream(options?: DataStreamOptions): ReadableStream<DataStreamPart>;
+  toUIMessageStream(
+    options?: UIMessageStreamOptions,
+  ): ReadableStream<UIMessageStreamPart>;
 
   /**
-  Writes data stream output to a Node.js response-like object.
+  Writes UI message stream output to a Node.js response-like object.
   @param response A Node.js response-like object (ServerResponse).
   @param options.status The status code.
   @param options.statusText The status text.
@@ -286,9 +288,9 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
      */
-  pipeDataStreamToResponse(
+  pipeUIMessageStreamToResponse(
     response: ServerResponse,
-    options?: ResponseInit & DataStreamOptions,
+    options?: ResponseInit & UIMessageStreamOptions,
   ): void;
 
   /**
@@ -302,17 +304,18 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   /**
   Converts the result to a streamed response object with a stream data part stream.
-  It can be used with the `useChat` and `useCompletion` hooks.
+
   @param options.status The status code.
   @param options.statusText The status text.
   @param options.headers The headers.
-  @param options.data The stream data.
   @param options.getErrorMessage An optional function that converts an error to an error message.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
   @return A response object.
      */
-  toDataStreamResponse(options?: ResponseInit & DataStreamOptions): Response;
+  toUIMessageStreamResponse(
+    options?: ResponseInit & UIMessageStreamOptions,
+  ): Response;
 
   /**
   Creates a simple text stream response.

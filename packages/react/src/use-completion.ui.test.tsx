@@ -5,11 +5,11 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { UIMessageStreamPart } from 'ai';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
-import { DataStreamPart } from 'ai';
 
-function formatDataStreamPart(part: DataStreamPart) {
+function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
@@ -60,10 +60,10 @@ describe('stream data stream', () => {
       server.urls['/api/completion'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatDataStreamPart({ type: 'text', value: 'Hello' }),
-          formatDataStreamPart({ type: 'text', value: ',' }),
-          formatDataStreamPart({ type: 'text', value: ' world' }),
-          formatDataStreamPart({ type: 'text', value: '.' }),
+          formatStreamPart({ type: 'text', value: 'Hello' }),
+          formatStreamPart({ type: 'text', value: ',' }),
+          formatStreamPart({ type: 'text', value: ' world' }),
+          formatStreamPart({ type: 'text', value: '.' }),
         ],
       };
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
@@ -98,7 +98,7 @@ describe('stream data stream', () => {
 
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-      controller.write(formatDataStreamPart({ type: 'text', value: 'Hello' }));
+      controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
 
       await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('true');
