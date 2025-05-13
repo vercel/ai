@@ -1,9 +1,7 @@
-import { parsePartialJson } from '../util';
 import { SingleJobQueue } from '../util/single-job-queue';
 import type {
   ReasoningUIPart,
   TextUIPart,
-  ToolInvocation,
   ToolInvocationUIPart,
   UIMessage,
 } from './ui-messages';
@@ -35,9 +33,12 @@ export interface ChatState {
     partialState: {
       textPart?: TextUIPart;
       reasoningPart?: ReasoningUIPart;
-      toolParts?: Record<string, ToolInvocationUIPart>;
+      toolCalls?: Record<
+        string,
+        { text: string; step: number; index: number; toolName: string }
+      >;
       // Maintains accumulated string representation of tool invocation args:
-      toolArgs?: Record<string, string>;
+      // toolArgs?: Record<string, string>;
     };
   };
   error?: Error;
@@ -67,6 +68,29 @@ export class ChatStore {
     );
     this.subscribers = new Set();
     this.getCurrentDate = currentDate;
+  }
+
+  async acquireMessageLock(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    await chat.queue?.acquire(async () => {
+      // here is where we would want to do the mutations
+    });
+
+    return {
+      state: {
+        message: chat.activeResponse?.message,
+        currentTextPart: chat.activeResponse?.partialState?.textPart,
+        currentReasoningPart: chat.activeResponse?.partialState?.reasoningPart,
+        partialToolCalls: chat.activeResponse?.partialState?.toolCalls,
+      },
+      write: async () => {
+        this.emitEvent({ type: 'chat-status-changed', chatId: id }); // Do we need this then? If we remove, do we lose out of granular subscriptions?
+        this.emitEvent({ type: 'chat-messages-changed', chatId: id });
+      },
+      release: () => jobPromise,
+    };
   }
 
   hasChat(id: string) {
@@ -287,74 +311,74 @@ export class ChatStore {
     chat.messages.push(chat.activeResponse!.message);
   }
 
-  async addOrUpdateAssistantMessageParts({
-    chatId,
-    partDelta,
-    messageId,
-    generateId,
-  }: {
-    chatId: string;
-    partDelta: UIMessage['parts'][number];
-    messageId?: string;
-    generateId: () => string;
-  }) {
-    const chat = this.chats.get(chatId);
-    if (!chat) return;
+  // async addOrUpdateAssistantMessageParts({
+  //   chatId,
+  //   partDelta,
+  //   messageId,
+  //   generateId,
+  // }: {
+  //   chatId: string;
+  //   partDelta: UIMessage['parts'][number];
+  //   messageId?: string;
+  //   generateId: () => string;
+  // }) {
+  //   const chat = this.chats.get(chatId);
+  //   if (!chat) return;
 
-    if (!chat.activeResponse) {
-      this.initializeActiveResponse({
-        chatId,
-        messageId,
-        generateId,
-      });
-    }
+  //   if (!chat.activeResponse) {
+  //     this.initializeActiveResponse({
+  //       chatId,
+  //       messageId,
+  //       generateId,
+  //     });
+  //   }
 
-    const activeResponse = chat.activeResponse!;
+  //   const activeResponse = chat.activeResponse!;
 
-    switch (partDelta.type) {
-      // Parts that are updated in place:
-      case 'text': {
-        if (activeResponse.partialState.textPart) {
-          activeResponse.partialState.textPart.text += partDelta.text;
-        } else {
-          activeResponse.partialState.textPart = { ...partDelta };
-          activeResponse.message.parts.push(
-            activeResponse.partialState.textPart,
-          );
-        }
-        break;
-      }
-      case 'reasoning': {
-        this.addOrUpdateReasoning({
-          reasoning: partDelta,
-          activeResponse,
-        });
-        break;
-      }
-      case 'tool-invocation': {
-        await this.addOrUpdateToolInvocation({
-          toolInvocation: partDelta.toolInvocation,
-          activeResponse,
-          chatId,
-        });
-        break;
-      }
-      // Parts that are just appended to parts array:
-      case 'step-start':
-      case 'source':
-      case 'file': {
-        activeResponse.message.parts.push(partDelta);
-        break;
-      }
-      default: {
-        throw new Error('Invalid message part type');
-      }
-    }
+  //   switch (partDelta.type) {
+  //     // Parts that are updated in place:
+  //     case 'text': {
+  //       if (activeResponse.partialState.textPart) {
+  //         activeResponse.partialState.textPart.text += partDelta.text;
+  //       } else {
+  //         activeResponse.partialState.textPart = { ...partDelta };
+  //         activeResponse.message.parts.push(
+  //           activeResponse.partialState.textPart,
+  //         );
+  //       }
+  //       break;
+  //     }
+  //     case 'reasoning': {
+  //       this.addOrUpdateReasoning({
+  //         reasoning: partDelta,
+  //         activeResponse,
+  //       });
+  //       break;
+  //     }
+  //     case 'tool-invocation': {
+  //       await this.addOrUpdateToolInvocation({
+  //         toolInvocation: partDelta.toolInvocation,
+  //         activeResponse,
+  //         chatId,
+  //       });
+  //       break;
+  //     }
+  //     // Parts that are just appended to parts array:
+  //     case 'step-start':
+  //     case 'source':
+  //     case 'file': {
+  //       activeResponse.message.parts.push(partDelta);
+  //       break;
+  //     }
+  //     default: {
+  //       throw new Error('Invalid message part type');
+  //     }
+  //   }
 
-    chat.activeResponse!.message.revisionId = generateId();
-    chat.messages = [...chat.messages];
-    this.emitEvent({ type: 'chat-messages-changed', chatId });
-  }
+  //   chat.activeResponse!.message.revisionId = generateId();
+  //   chat.messages = [...chat.messages];
+  //   this.emitEvent({ type: 'chat-messages-changed', chatId });
+  // }
 
   updateActiveResponse({
     chatId,
@@ -401,122 +425,122 @@ export class ChatStore {
     chat.activeResponse.partialState = partialState;
   }
 
-  private async addOrUpdateToolInvocation({
-    chatId,
-    toolInvocation,
-    activeResponse,
-  }: {
-    chatId: string;
-    toolInvocation: ToolInvocation;
-    activeResponse: ChatState['activeResponse'];
-  }) {
-    if (!activeResponse) return;
+  // private async addOrUpdateToolInvocation({
+  //   chatId,
+  //   toolInvocation,
+  //   activeResponse,
+  // }: {
+  //   chatId: string;
+  //   toolInvocation: ToolInvocation;
+  //   activeResponse: ChatState['activeResponse'];
+  // }) {
+  //   if (!activeResponse) return;
 
-    const { toolCallId } = toolInvocation;
-    const { message, partialState } = activeResponse;
+  //   const { toolCallId } = toolInvocation;
+  //   const { message, partialState } = activeResponse;
 
-    if (!partialState.toolParts) partialState.toolParts = {};
-    if (!partialState.toolArgs) partialState.toolArgs = {};
+  //   if (!partialState.toolParts) partialState.toolParts = {};
+  //   if (!partialState.toolArgs) partialState.toolArgs = {};
 
-    const existingToolPart = partialState.toolParts[toolCallId] || {};
-    const existingToolInvocation = existingToolPart?.toolInvocation;
+  //   const existingToolPart = partialState.toolParts[toolCallId] || {};
+  //   const existingToolInvocation = existingToolPart?.toolInvocation;
 
-    if (existingToolInvocation) {
-      existingToolInvocation.state = toolInvocation.state;
+  //   if (existingToolInvocation) {
+  //     existingToolInvocation.state = toolInvocation.state;
 
-      switch (existingToolInvocation.state) {
-        case 'partial-call': {
-          partialState.toolArgs[toolCallId] += toolInvocation.args;
-          const { value: partialArgs } = await parsePartialJson(
-            partialState.toolArgs[toolCallId],
-          );
-          existingToolInvocation.args = partialArgs;
-          break;
-        }
-        case 'call': {
-          existingToolInvocation.args = toolInvocation.args;
-          break;
-        }
-        case 'result': {
-          // @ts-expect-error - Due to the switch statement narrowing down the type of `existingToolInvocation`, TS is not aware that toolInvocation is also a result Tool Invocation even though both are the same type:
-          existingToolInvocation.result = toolInvocation.result;
-          break;
-        }
-        default: {
-          throw new Error('Invalid tool invocation state');
-        }
-      }
-    } else {
-      if (toolInvocation.state === 'result') {
-        throw new Error('tool_result must be preceded by a tool_call');
-      }
+  //     switch (existingToolInvocation.state) {
+  //       case 'partial-call': {
+  //         partialState.toolArgs[toolCallId] += toolInvocation.args;
+  //         const { value: partialArgs } = await parsePartialJson(
+  //           partialState.toolArgs[toolCallId],
+  //         );
+  //         existingToolInvocation.args = partialArgs;
+  //         break;
+  //       }
+  //       case 'call': {
+  //         existingToolInvocation.args = toolInvocation.args;
+  //         break;
+  //       }
+  //       case 'result': {
+  //         // @ts-expect-error - Due to the switch statement narrowing down the type of `existingToolInvocation`, TS is not aware that toolInvocation is also a result Tool Invocation even though both are the same type:
+  //         existingToolInvocation.result = toolInvocation.result;
+  //         break;
+  //       }
+  //       default: {
+  //         throw new Error('Invalid tool invocation state');
+  //       }
+  //     }
+  //   } else {
+  //     if (toolInvocation.state === 'result') {
+  //       throw new Error('tool_result must be preceded by a tool_call');
+  //     }
 
-      if (
-        toolInvocation.state !== 'partial-call' &&
-        toolInvocation.state !== 'call'
-      ) {
-        throw new Error('Invalid tool invocation state');
-      }
+  //     if (
+  //       toolInvocation.state !== 'partial-call' &&
+  //       toolInvocation.state !== 'call'
+  //     ) {
+  //       throw new Error('Invalid tool invocation state');
+  //     }
 
-      const partialToolPart: ToolInvocationUIPart = {
-        type: 'tool-invocation',
-        toolInvocation: {
-          args: toolInvocation.args ?? '',
-          step: this.calculateStep(chatId),
-          toolName: toolInvocation.toolName,
-          state: toolInvocation.state,
-          toolCallId,
-        } as ToolInvocation,
-      };
+  //     const partialToolPart: ToolInvocationUIPart = {
+  //       type: 'tool-invocation',
+  //       toolInvocation: {
+  //         args: toolInvocation.args ?? '',
+  //         step: this.calculateStep(chatId),
+  //         toolName: toolInvocation.toolName,
+  //         state: toolInvocation.state,
+  //         toolCallId,
+  //       } as ToolInvocation,
+  //     };
 
-      partialState.toolParts[toolCallId] = partialToolPart;
-      partialState.toolArgs[toolCallId] = toolInvocation.args ?? '';
-      message.parts.push(partialToolPart);
-    }
-  }
+  //     partialState.toolParts[toolCallId] = partialToolPart;
+  //     partialState.toolArgs[toolCallId] = toolInvocation.args ?? '';
+  //     message.parts.push(partialToolPart);
+  //   }
+  // }
 
-  private addOrUpdateReasoning({
-    reasoning,
-    activeResponse,
-  }: {
-    reasoning: ReasoningUIPart;
-    activeResponse: ChatState['activeResponse'];
-  }) {
-    if (!activeResponse) return;
+  // private addOrUpdateReasoning({
+  //   reasoning,
+  //   activeResponse,
+  // }: {
+  //   reasoning: ReasoningUIPart;
+  //   activeResponse: ChatState['activeResponse'];
+  // }) {
+  //   if (!activeResponse) return;
 
-    const partialReasoning = activeResponse.partialState.reasoningPart;
+  //   const partialReasoning = activeResponse.partialState.reasoningPart;
 
-    const { text: reasoningTextDelta, providerMetadata } = reasoning;
+  //   const { text: reasoningTextDelta, providerMetadata } = reasoning;
 
-    const isFinishedPart =
-      partialReasoning &&
-      reasoningTextDelta === '' &&
-      providerMetadata === undefined;
+  //   const isFinishedPart =
+  //     partialReasoning &&
+  //     reasoningTextDelta === '' &&
+  //     providerMetadata === undefined;
 
-    // Clear temporary state on `reasoning_part_finish`:
-    if (isFinishedPart) {
-      activeResponse.partialState.reasoningPart = undefined;
-      return;
-    }
+  //   // Clear temporary state on `reasoning_part_finish`:
+  //   if (isFinishedPart) {
+  //     activeResponse.partialState.reasoningPart = undefined;
+  //     return;
+  //   }
 
-    if (partialReasoning) {
-      partialReasoning.text += reasoningTextDelta;
-    } else {
-      activeResponse.partialState.reasoningPart = {
-        type: 'reasoning',
-        text: reasoningTextDelta,
-      };
-      activeResponse.message.parts.push(
-        activeResponse.partialState.reasoningPart,
-      );
-    }
+  //   if (partialReasoning) {
+  //     partialReasoning.text += reasoningTextDelta;
+  //   } else {
+  //     activeResponse.partialState.reasoningPart = {
+  //       type: 'reasoning',
+  //       text: reasoningTextDelta,
+  //     };
+  //     activeResponse.message.parts.push(
+  //       activeResponse.partialState.reasoningPart,
+  //     );
+  //   }
 
-    // Only update provider metadata if defined in the reasoning part:
-    if (providerMetadata) {
-      activeResponse.partialState.reasoningPart!.providerMetadata =
-        providerMetadata;
-    }
-  }
+  //   // Only update provider metadata if defined in the reasoning part:
+  //   if (providerMetadata) {
+  //     activeResponse.partialState.reasoningPart!.providerMetadata =
+  //       providerMetadata;
+  //   }
+  // }
 
   clear(id?: string) {
     if (id) {
