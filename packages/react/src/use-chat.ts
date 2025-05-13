@@ -223,8 +223,8 @@ Default is undefined, which disables throttling.
       chatStore.current.triggerRequest({
         chatId,
         requestType,
-        body: chatRequest.body,
-        headers: chatRequest.headers,
+        customBody: chatRequest.body,
+        customHeaders: chatRequest.headers,
         messages: chatRequest.messages,
         onFinish,
         onError,

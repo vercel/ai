@@ -34,6 +34,35 @@ export interface Chat<MESSAGE_METADATA> {
   error?: Error;
 }
 
+// TODO rename to something better
+type ExtendedCallOptions<MESSAGE_METADATA> = {
+  customHeaders?: ChatRequestOptions['headers'];
+  customBody?: ChatRequestOptions['body'];
+  onError?: (error: Error) => void;
+
+  /**
+Optional callback function that is invoked when a tool call is received.
+Intended for automatic client-side tool execution.
+
+You can optionally return a result for the tool call,
+either synchronously or asynchronously.
+   */
+  onToolCall?: ({
+    toolCall,
+  }: {
+    toolCall: ToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
+
+  /**
+   * Optional callback function that is called when the assistant message is finished streaming.
+   *
+   * @param message The message that was streamed.
+   */
+  onFinish?: (options: {
+    message: UIMessage<NoInfer<MESSAGE_METADATA>>;
+  }) => void;
+};
+
 export class ChatStore<MESSAGE_METADATA> {
   private chats: Map<string, Chat<MESSAGE_METADATA>>;
   private subscribers: Set<ChatStoreSubscriber>;
@@ -183,43 +212,20 @@ export class ChatStore<MESSAGE_METADATA> {
   // TODO this should not be exposed
   async triggerRequest({
     chatId,
+    messages: chatMessages,
     requestType,
+    customHeaders,
+    customBody,
     onError,
     onToolCall,
     onFinish,
-    ...chatRequest
-  }: ChatRequestOptions & {
+  }: ExtendedCallOptions<MESSAGE_METADATA> & {
     chatId: string;
     messages: UIMessage<MESSAGE_METADATA>[];
     requestType: 'generate' | 'resume';
-    onError?: (error: Error) => void;
-
-    /**
-  Optional callback function that is invoked when a tool call is received.
-  Intended for automatic client-side tool execution.
-
-  You can optionally return a result for the tool call,
-  either synchronously or asynchronously.
-     */
-    onToolCall?: ({
-      toolCall,
-    }: {
-      toolCall: ToolCall<string, unknown>;
-    }) => void | Promise<unknown> | unknown;
-
-    /**
-     * Optional callback function that is called when the assistant message is finished streaming.
-     *
-     * @param message The message that was streamed.
-     */
-    onFinish?: (options: {
-      message: UIMessage<NoInfer<MESSAGE_METADATA>>;
-    }) => void;
   }) {
     const self = this;
     this.setStatus({ id: chatId, status: 'submitted', error: undefined });
-
-    const chatMessages = chatRequest.messages;
 
     const messageCount = chatMessages.length;
     const maxStep = extractMaxToolInvocationStep(
@@ -240,8 +246,8 @@ export class ChatStore<MESSAGE_METADATA> {
       const stream = await self.transport.submitMessages({
         chatId,
         messages: chatMessages,
-        customRequestBody: chatRequest.body,
-        customHeaders: chatRequest.headers,
+        customRequestBody: customBody,
+        customHeaders,
         abortController,
         requestType,
       });
@@ -309,7 +315,8 @@ export class ChatStore<MESSAGE_METADATA> {
         onError,
         onToolCall,
         onFinish,
-        ...chatRequest,
+        customHeaders,
+        customBody,
         messages: messagesX,
       });
     }
@@ -323,34 +330,9 @@ export class ChatStore<MESSAGE_METADATA> {
     onError,
     onToolCall,
     onFinish,
-  }: {
+  }: ExtendedCallOptions<MESSAGE_METADATA> & {
     chatId: string;
     message: CreateUIMessage<MESSAGE_METADATA>;
-    customHeaders: ChatRequestOptions['headers'];
-    customBody: ChatRequestOptions['body'];
-    onError?: (error: Error) => void;
-
-    /**
-  Optional callback function that is invoked when a tool call is received.
-  Intended for automatic client-side tool execution.
-
-  You can optionally return a result for the tool call,
-  either synchronously or asynchronously.
-     */
-    onToolCall?: ({
-      toolCall,
-    }: {
-      toolCall: ToolCall<string, unknown>;
-    }) => void | Promise<unknown> | unknown;
-
-    /**
-     * Optional callback function that is called when the assistant message is finished streaming.
-     *
-     * @param message The message that was streamed.
-     */
-    onFinish?: (options: {
-      message: UIMessage<NoInfer<MESSAGE_METADATA>>;
-    }) => void;
   }) {
     const chat = this.getChat(chatId);
     const currentMessages = chat.messages;
@@ -361,8 +343,8 @@ export class ChatStore<MESSAGE_METADATA> {
         ...message,
         id: message.id ?? this.generateId(),
       }),
-      headers: customHeaders,
-      body: customBody,
+      customHeaders,
+      customBody,
       requestType: 'generate',
       onError,
       onToolCall,
