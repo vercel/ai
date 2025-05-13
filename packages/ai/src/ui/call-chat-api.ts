@@ -17,21 +17,15 @@ import { UseChatOptions } from './use-chat';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export async function callChatApi<MESSAGE_METADATA>({
+export async function fetchUIMessageStream({
   api,
   body,
   streamProtocol = 'ui-message',
   credentials,
   headers,
   abortController,
-  onUpdate,
-  onFinish,
-  onToolCall,
-  generateId,
   fetch = getOriginalFetch(),
-  lastMessage,
   requestType = 'generate',
-  messageMetadataSchema,
 }: {
   api: string;
   body: Record<string, any>;
@@ -39,15 +33,9 @@ export async function callChatApi<MESSAGE_METADATA>({
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
-  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
-  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
-  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
-  generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   requestType?: 'generate' | 'resume';
-  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
-}) {
+}): Promise<ReadableStream<UIMessageStreamPart>> {
   const response =
     requestType === 'resume'
       ? await fetch(`${api}?chatId=${body.id}`, {
@@ -80,31 +68,48 @@ export async function callChatApi<MESSAGE_METADATA>({
     throw new Error('The response body is empty.');
   }
 
-  const uiMessageStream =
-    streamProtocol === 'text'
-      ? transformTextToUiMessageStream({
-          stream: response.body,
-        })
-      : parseJsonEventStream({
-          stream: response.body,
-          schema: uiMessageStreamPartSchema,
-        }).pipeThrough(
-          new TransformStream<
-            ParseResult<UIMessageStreamPart>,
-            UIMessageStreamPart
-          >({
-            async transform(part, controller) {
-              if (!part.success) {
-                throw part.error;
-              }
-              controller.enqueue(part.value);
-            },
-          }),
-        );
+  return streamProtocol === 'text'
+    ? transformTextToUiMessageStream({
+        stream: response.body,
+      })
+    : parseJsonEventStream({
+        stream: response.body,
+        schema: uiMessageStreamPartSchema,
+      }).pipeThrough(
+        new TransformStream<
+          ParseResult<UIMessageStreamPart>,
+          UIMessageStreamPart
+        >({
+          async transform(part, controller) {
+            if (!part.success) {
+              throw part.error;
+            }
+            controller.enqueue(part.value);
+          },
+        }),
+      );
+}
 
+export async function consumeUIMessageStream<MESSAGE_METADATA>({
+  stream,
+  onUpdate,
+  onFinish,
+  onToolCall,
+  generateId,
+  lastMessage,
+  messageMetadataSchema,
+}: {
+  stream: ReadableStream<UIMessageStreamPart>;
+  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
+  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
+  generateId: IdGenerator;
+  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+}) {
   await consumeStream({
     stream: processUIMessageStream({
-      stream: uiMessageStream,
+      stream,
       onUpdate({ message }) {
         const copiedMessage = {
           // deep copy the message to ensure that deep changes (msg attachments) are updated
@@ -130,5 +135,58 @@ export async function callChatApi<MESSAGE_METADATA>({
     onError: error => {
       throw error;
     },
+  });
+}
+
+export async function callChatApi<MESSAGE_METADATA>({
+  api,
+  body,
+  streamProtocol = 'ui-message',
+  credentials,
+  headers,
+  abortController,
+  onUpdate,
+  onFinish,
+  onToolCall,
+  generateId,
+  fetch = getOriginalFetch(),
+  lastMessage,
+  requestType = 'generate',
+  messageMetadataSchema,
+}: {
+  api: string;
+  body: Record<string, any>;
+  streamProtocol: 'ui-message' | 'text' | undefined;
+  credentials: RequestCredentials | undefined;
+  headers: HeadersInit | undefined;
+  abortController: (() => AbortController | null) | undefined;
+  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
+  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
+  generateId: IdGenerator;
+  fetch: ReturnType<typeof getOriginalFetch> | undefined;
+  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
+  requestType?: 'generate' | 'resume';
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+}) {
+  const stream = await fetchUIMessageStream({
+    api,
+    body,
+    streamProtocol,
+    credentials,
+    headers,
+    abortController,
+    fetch,
+    requestType,
+  });
+
+  await consumeUIMessageStream({
+    stream,
+    onUpdate,
+    onFinish,
+    onToolCall,
+    generateId,
+    lastMessage,
+    messageMetadataSchema,
   });
 }
