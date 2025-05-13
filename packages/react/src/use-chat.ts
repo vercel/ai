@@ -169,7 +169,15 @@ Default is undefined, which disables throttling.
 
   // chat store setup
   // TODO enable as arg
-  const chatStore = useRef(new ChatStore<MESSAGE_METADATA>());
+  const chatStore = useRef(
+    new ChatStore<MESSAGE_METADATA>({
+      api,
+      generateId,
+      fetch,
+      streamProtocol,
+      messageMetadataSchema,
+    }),
+  );
 
   // ensure the chat is in the store
   if (!chatStore.current.hasChat(chatId)) {
@@ -208,10 +216,7 @@ Default is undefined, which disables throttling.
       chatStore.current.triggerRequest({
         chatId,
         requestType,
-        api,
-        streamProtocol,
         maxSteps,
-        generateId,
         credentials: extraMetadataRef.current.credentials,
         experimental_prepareRequestBody,
         body: {
@@ -226,7 +231,6 @@ Default is undefined, which disables throttling.
         onFinish,
         onError,
         onToolCall,
-        messageMetadataSchema,
       }),
     [
       api,

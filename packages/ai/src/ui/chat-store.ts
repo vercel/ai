@@ -1,10 +1,16 @@
-import { IdGenerator, Schema, ToolCall } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  IdGenerator,
+  Schema,
+  ToolCall,
+  generateId as generateIdFunc,
+} from '@ai-sdk/provider-utils';
 import { callChatApi } from './call-chat-api';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import { shouldResubmitMessages } from './should-resubmit-messages';
 import type { UIMessage } from './ui-messages';
-import { ChatRequestOptions } from './use-chat';
+import { ChatRequestOptions, UseChatOptions } from './use-chat';
 
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
@@ -27,16 +33,31 @@ export interface Chat<MESSAGE_METADATA> {
 export class ChatStore<MESSAGE_METADATA> {
   private chats: Map<string, Chat<MESSAGE_METADATA>>;
   private subscribers: Set<ChatStoreSubscriber>;
+  private generateId: IdGenerator;
+  private fetch: FetchFunction | undefined;
+  private streamProtocol: 'ui-message' | 'text';
+  private api: string;
+  private messageMetadataSchema: Schema<MESSAGE_METADATA> | undefined;
 
   constructor({
     chats = {},
+    api,
+    generateId,
+    fetch,
+    messageMetadataSchema,
+    streamProtocol = 'text',
   }: {
     chats?: {
       [id: string]: {
         messages: UIMessage<MESSAGE_METADATA>[];
       };
     };
-  } = {}) {
+    api: string;
+    generateId?: UseChatOptions['generateId'];
+    fetch?: UseChatOptions['fetch'];
+    streamProtocol?: UseChatOptions['streamProtocol'];
+    messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  }) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
         id,
@@ -48,7 +69,13 @@ export class ChatStore<MESSAGE_METADATA> {
         },
       ]),
     );
+
+    this.api = api;
     this.subscribers = new Set();
+    this.generateId = generateId ?? generateIdFunc;
+    this.fetch = fetch;
+    this.streamProtocol = streamProtocol ?? 'ui-message';
+    this.messageMetadataSchema = messageMetadataSchema;
   }
 
   hasChat(id: string) {
@@ -156,27 +183,20 @@ export class ChatStore<MESSAGE_METADATA> {
   async triggerRequest({
     chatId,
     requestType,
-    api,
     experimental_prepareRequestBody,
-    streamProtocol,
     credentials,
     maxSteps,
     onError,
-    generateId,
     onToolCall,
     onFinish,
-    messageMetadataSchema,
     ...chatRequest
   }: ChatRequestOptions & {
     chatId: string;
     messages: UIMessage<MESSAGE_METADATA>[];
     requestType: 'generate' | 'resume';
-    api: string;
-    streamProtocol: 'ui-message' | 'text';
     credentials: RequestCredentials | undefined;
     maxSteps: number;
     onError?: (error: Error) => void;
-    generateId: IdGenerator;
 
     /**
      * Experimental (React only). When a function is provided, it will be used
@@ -214,12 +234,6 @@ export class ChatStore<MESSAGE_METADATA> {
     onFinish?: (options: {
       message: UIMessage<NoInfer<MESSAGE_METADATA>>;
     }) => void;
-
-    /**
-     * Schema for the message metadata. Validates the message metadata.
-     * Message metadata can be undefined or must match the schema.
-     */
-    messageMetadataSchema?: Schema<MESSAGE_METADATA>;
   }) {
     const self = this;
     this.setStatus({ id: chatId, status: 'submitted', error: undefined });
@@ -243,7 +257,7 @@ export class ChatStore<MESSAGE_METADATA> {
       // throttledMutate(chatMessages, false);
 
       await callChatApi({
-        api,
+        api: self.api,
         body: experimental_prepareRequestBody?.({
           id: chatId,
           messages: chatMessages,
@@ -253,7 +267,7 @@ export class ChatStore<MESSAGE_METADATA> {
           messages: chatMessages,
           ...chatRequest.body,
         },
-        streamProtocol,
+        streamProtocol: self.streamProtocol,
         credentials,
         headers: {
           ...chatRequest.headers,
@@ -279,11 +293,11 @@ export class ChatStore<MESSAGE_METADATA> {
         },
         onToolCall,
         onFinish,
-        generateId,
-        fetch,
+        generateId: self.generateId,
+        fetch: self.fetch,
         lastMessage: chatMessages[chatMessages.length - 1],
         requestType,
-        messageMetadataSchema,
+        messageMetadataSchema: self.messageMetadataSchema,
       });
 
       // TODO clear
@@ -319,16 +333,12 @@ export class ChatStore<MESSAGE_METADATA> {
       await self.triggerRequest({
         chatId,
         requestType,
-        api,
         experimental_prepareRequestBody,
-        streamProtocol,
         credentials,
         maxSteps,
         onError,
         onToolCall,
         onFinish,
-        messageMetadataSchema,
-        generateId,
         ...chatRequest,
         messages: messagesX,
       });
