@@ -11,7 +11,6 @@ export function useChatStore<MESSAGE_METADATA>({
   messages: UIMessage<MESSAGE_METADATA>[];
   status: ChatStatus;
   error: Error | undefined;
-  setStatus: (options: { status: ChatStatus; error?: Error }) => void;
 } {
   const subscribe = useCallback(
     ({
@@ -65,18 +64,9 @@ export function useChatStore<MESSAGE_METADATA>({
     () => store.getMessages(chatId),
   );
 
-  const setStatus = useCallback(
-    ({ status, error }: { status: ChatStatus; error?: Error }) => {
-      store.setStatus({ id: chatId, status, error });
-    },
-    [store, chatId],
-  );
-
   return {
     messages,
     status,
     error,
-
-    setStatus,
   };
 }

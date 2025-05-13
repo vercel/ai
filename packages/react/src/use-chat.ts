@@ -176,7 +176,7 @@ Default is undefined, which disables throttling.
     chatStore.current.addChat(chatId, processedInitialMessages ?? []);
   }
 
-  const { messages, error, status, setStatus } = useChatStore({
+  const { messages, error, status } = useChatStore({
     store: chatStore.current,
     chatId,
   });
@@ -229,7 +229,6 @@ Default is undefined, which disables throttling.
         messageMetadataSchema,
       }),
     [
-      setStatus,
       api,
       extraMetadataRef,
       onFinish,
