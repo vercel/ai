@@ -298,13 +298,13 @@ export class ChatStore<MESSAGE_METADATA> {
 
     // auto-submit when all tool calls in the last assistant message have results
     // and assistant has not answered yet
-    const messagesX = self.getMessages(chatId);
+    const currentMessages = self.getMessages(chatId);
     if (
       shouldResubmitMessages({
         originalMaxToolInvocationStep: maxStep,
         originalMessageCount: messageCount,
         maxSteps: self.maxSteps,
-        messages: messagesX,
+        messages: currentMessages,
       })
     ) {
       await self.triggerRequest({
@@ -315,7 +315,7 @@ export class ChatStore<MESSAGE_METADATA> {
         onFinish,
         headers,
         body,
-        messages: messagesX,
+        messages: currentMessages,
       });
     }
   }
