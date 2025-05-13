@@ -1,4 +1,4 @@
-import { ChatStatus, ChatStore, UIMessage, type ChatStoreEvent } from 'ai';
+import { ChatStore, type ChatStoreEvent } from 'ai';
 import { useCallback, useSyncExternalStore } from 'react';
 
 export function useChatStore<MESSAGE_METADATA>({
@@ -7,18 +7,7 @@ export function useChatStore<MESSAGE_METADATA>({
 }: {
   store: ChatStore<MESSAGE_METADATA>;
   chatId: string;
-}): {
-  messages: UIMessage<MESSAGE_METADATA>[];
-  status: ChatStatus;
-  error: Error | undefined;
-  addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: unknown;
-  }) => void;
-} {
+}) {
   const subscribe = useCallback(
     ({
       onStoreChange,
@@ -41,9 +30,22 @@ export function useChatStore<MESSAGE_METADATA>({
   );
 
   const addToolResult = useCallback(
-    ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
-      store.addToolResult({ chatId, toolCallId, result });
-    },
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['addToolResult']>[0],
+        'chatId'
+      >,
+    ) => store.addToolResult({ chatId, ...options }),
+    [store, chatId],
+  );
+
+  const submitMessage = useCallback(
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['submitMessage']>[0],
+        'chatId'
+      >,
+    ) => store.submitMessage({ chatId, ...options }),
     [store, chatId],
   );
 
@@ -82,6 +84,8 @@ export function useChatStore<MESSAGE_METADATA>({
     messages,
     status,
     error,
+
     addToolResult,
+    submitMessage,
   };
 }

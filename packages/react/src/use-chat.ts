@@ -190,10 +190,11 @@ Default is undefined, which disables throttling.
     chatStore.current.addChat(chatId, processedInitialMessages ?? []);
   }
 
-  const { messages, error, status, addToolResult } = useChatStore({
-    store: chatStore.current,
-    chatId,
-  });
+  const { messages, error, status, addToolResult, submitMessage } =
+    useChatStore({
+      store: chatStore.current,
+      chatId,
+    });
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -244,20 +245,19 @@ Default is undefined, which disables throttling.
   );
 
   const append = useCallback(
-    async (
+    (
       message: CreateUIMessage<MESSAGE_METADATA>,
       { headers, body }: ChatRequestOptions = {},
-    ) => {
-      await triggerRequest({
-        messages: messages.concat({
-          ...message,
-          id: message.id ?? generateId(),
-        }),
-        headers,
-        body,
-      });
-    },
-    [triggerRequest, generateId, messages],
+    ) =>
+      submitMessage({
+        message,
+        customHeaders: headers,
+        customBody: body,
+        onError,
+        onToolCall,
+        onFinish,
+      }),
+    [submitMessage, onError, onToolCall, onFinish],
   );
 
   const reload = useCallback(

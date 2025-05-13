@@ -12,7 +12,7 @@ import {
   isAssistantMessageWithCompletedToolCalls,
   shouldResubmitMessages,
 } from './should-resubmit-messages';
-import type { UIMessage } from './ui-messages';
+import type { CreateUIMessage, UIMessage } from './ui-messages';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
 import { updateToolCallResult } from './update-tool-call-result';
 
@@ -180,6 +180,7 @@ export class ChatStore<MESSAGE_METADATA> {
     this.setMessages({ id, messages: chat.messages.slice(0, -1) });
   }
 
+  // TODO this should not be exposed
   async triggerRequest({
     chatId,
     requestType,
@@ -312,6 +313,61 @@ export class ChatStore<MESSAGE_METADATA> {
         messages: messagesX,
       });
     }
+  }
+
+  async submitMessage({
+    chatId,
+    message,
+    customHeaders,
+    customBody,
+    onError,
+    onToolCall,
+    onFinish,
+  }: {
+    chatId: string;
+    message: CreateUIMessage<MESSAGE_METADATA>;
+    customHeaders: ChatRequestOptions['headers'];
+    customBody: ChatRequestOptions['body'];
+    onError?: (error: Error) => void;
+
+    /**
+  Optional callback function that is invoked when a tool call is received.
+  Intended for automatic client-side tool execution.
+
+  You can optionally return a result for the tool call,
+  either synchronously or asynchronously.
+     */
+    onToolCall?: ({
+      toolCall,
+    }: {
+      toolCall: ToolCall<string, unknown>;
+    }) => void | Promise<unknown> | unknown;
+
+    /**
+     * Optional callback function that is called when the assistant message is finished streaming.
+     *
+     * @param message The message that was streamed.
+     */
+    onFinish?: (options: {
+      message: UIMessage<NoInfer<MESSAGE_METADATA>>;
+    }) => void;
+  }) {
+    const chat = this.getChat(chatId);
+    const currentMessages = chat.messages;
+
+    await this.triggerRequest({
+      chatId,
+      messages: currentMessages.concat({
+        ...message,
+        id: message.id ?? this.generateId(),
+      }),
+      headers: customHeaders,
+      body: customBody,
+      requestType: 'generate',
+      onError,
+      onToolCall,
+      onFinish,
+    });
   }
 
   addToolResult({
