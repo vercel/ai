@@ -12,7 +12,6 @@ import {
   safeValidateTypes,
   Schema,
   ValidationResult,
-  type StandardSchemaV1,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';

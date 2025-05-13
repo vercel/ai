@@ -40,7 +40,7 @@ export async function safeValidateTypes<T_OBJECT>({
   value,
   schema,
 }: {
-  value: unknown;
+  value: T_OBJECT;
   schema: StandardSchemaV1<T_OBJECT> | Validator<T_OBJECT>;
 }): Promise<
   | {
