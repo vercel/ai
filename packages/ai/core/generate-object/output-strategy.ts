@@ -81,15 +81,15 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   ): Promise<ValidationResult<JSONValue>> {
     return value === undefined
       ? {
-          success: false,
-          error: new NoObjectGeneratedError({
-            message: 'No object generated: response did not match schema.',
-            text: context.text,
-            response: context.response,
-            usage: context.usage,
-            finishReason: context.finishReason,
-          }),
-        }
+        success: false,
+        error: new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          text: context.text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        }),
+      }
       : { success: true, value };
   },
 
@@ -100,11 +100,11 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   },
 };
 
-const objectOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
-  schema: Schema<T_SCHEMA>,
+const objectOutputStrategy = <OBJECT>(
+  schema: Schema<StandardSchemaV1<OBJECT>>,
 ): OutputStrategy<
-  DeepPartial<StandardSchemaV1.InferOutput<T_SCHEMA>>,
-  StandardSchemaV1.InferOutput<T_SCHEMA>,
+  DeepPartial<OBJECT>,
+  OBJECT,
   never
 > => ({
   type: 'object',
@@ -115,7 +115,7 @@ const objectOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
       success: true,
       value: {
         // Note: currently no validation of partial results:
-        partial: value as DeepPartial<StandardSchemaV1.InferOutput<T_SCHEMA>>,
+        partial: value as DeepPartial<OBJECT>,
         textDelta,
       },
     };
@@ -123,7 +123,7 @@ const objectOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
 
   async validateFinalResult(
     value: JSONValue | undefined,
-  ): Promise<ValidationResult<StandardSchemaV1.InferOutput<T_SCHEMA>>> {
+  ): Promise<ValidationResult<OBJECT>> {
     return safeValidateTypes({ value, schema });
   },
 
@@ -134,12 +134,12 @@ const objectOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
   },
 });
 
-const arrayOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
-  schema: Schema<T_SCHEMA>,
+const arrayOutputStrategy = <OBJECT>(
+  schema: Schema<StandardSchemaV1<OBJECT>>,
 ): OutputStrategy<
-  StandardSchemaV1.InferOutput<T_SCHEMA>[],
-  StandardSchemaV1.InferOutput<T_SCHEMA>[],
-  AsyncIterableStream<StandardSchemaV1.InferOutput<T_SCHEMA>>
+  StandardSchemaV1.InferOutput<OBJECT>[],
+  StandardSchemaV1.InferOutput<OBJECT>[],
+  AsyncIterableStream<StandardSchemaV1.InferOutput<OBJECT>>
 > => {
   // remove $schema from schema.jsonSchema:
   const { $schema, ...itemSchema } = schema.jsonSchema;
@@ -178,7 +178,7 @@ const arrayOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
       }
 
       const inputArray = value.elements as Array<JSONObject>;
-      const resultArray: Array<StandardSchemaV1.InferOutput<T_SCHEMA>> = [];
+      const resultArray: Array<StandardSchemaV1.InferOutput<OBJECT>> = [];
 
       for (let i = 0; i < inputArray.length; i++) {
         const element = inputArray[i];
@@ -233,7 +233,7 @@ const arrayOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
     async validateFinalResult(
       value: JSONValue | undefined,
     ): Promise<
-      ValidationResult<Array<StandardSchemaV1.InferOutput<T_SCHEMA>>>
+      ValidationResult<Array<StandardSchemaV1.InferOutput<OBJECT>>>
     > {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
@@ -258,13 +258,13 @@ const arrayOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
 
       return {
         success: true,
-        value: inputArray as Array<StandardSchemaV1.InferOutput<T_SCHEMA>>,
+        value: inputArray as Array<StandardSchemaV1.InferOutput<OBJECT>>,
       };
     },
 
     createElementStream(
       originalStream: ReadableStream<
-        ObjectStreamPart<StandardSchemaV1.InferOutput<T_SCHEMA>[]>
+        ObjectStreamPart<StandardSchemaV1.InferOutput<OBJECT>[]>
       >,
     ) {
       let publishedElements = 0;
@@ -272,8 +272,8 @@ const arrayOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
       return createAsyncIterableStream(
         originalStream.pipeThrough(
           new TransformStream<
-            ObjectStreamPart<StandardSchemaV1.InferOutput<T_SCHEMA>[]>,
-            StandardSchemaV1.InferOutput<T_SCHEMA>
+            ObjectStreamPart<StandardSchemaV1.InferOutput<OBJECT>[]>,
+            StandardSchemaV1.InferOutput<OBJECT>
           >({
             transform(chunk, controller) {
               switch (chunk.type) {
@@ -351,12 +351,12 @@ const enumOutputStrategy = <ENUM extends string>(
       return enumValues.includes(result as ENUM)
         ? { success: true, value: result as ENUM }
         : {
-            success: false,
-            error: new TypeValidationError({
-              value,
-              cause: 'value must be a string in the enum',
-            }),
-          };
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause: 'value must be a string in the enum',
+          }),
+        };
     },
 
     async validatePartialResult({ value, textDelta }) {
@@ -405,14 +405,14 @@ const enumOutputStrategy = <ENUM extends string>(
   };
 };
 
-export function getOutputStrategy<T_SCHEMA extends StandardSchemaV1>({
+export function getOutputStrategy<OBJECT>({
   output,
   schema,
   enumValues,
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
-  schema?: Schema<T_SCHEMA>;
-  enumValues?: Array<StandardSchemaV1.InferInput<T_SCHEMA>>;
+  schema?: Schema<StandardSchemaV1<OBJECT>>;
+  enumValues?: Array<OBJECT>;
 }): OutputStrategy<any, any, any> {
   switch (output) {
     case 'object':
