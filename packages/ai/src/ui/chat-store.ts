@@ -12,15 +12,14 @@ export interface ChatStoreEvent {
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
-export interface Chat {
+export interface Chat<MESSAGE_METADATA> {
   status: ChatStatus;
-  messages: UIMessage[];
+  messages: UIMessage<MESSAGE_METADATA>[];
   error?: Error;
 }
 
-// TODO generics, message metadata
-export class ChatStore {
-  private chats: Map<string, Chat>;
+export class ChatStore<MESSAGE_METADATA> {
+  private chats: Map<string, Chat<MESSAGE_METADATA>>;
   private subscribers: Set<ChatStoreSubscriber>;
 
   constructor({
@@ -28,7 +27,7 @@ export class ChatStore {
   }: {
     chats?: {
       [id: string]: {
-        messages: UIMessage[];
+        messages: UIMessage<MESSAGE_METADATA>[];
       };
     };
   } = {}) {
@@ -50,7 +49,7 @@ export class ChatStore {
     return this.chats.has(id);
   }
 
-  addChat(id: string, messages: UIMessage[]) {
+  addChat(id: string, messages: UIMessage<MESSAGE_METADATA>[]) {
     this.chats.set(id, {
       messages,
       status: 'ready',
@@ -75,7 +74,7 @@ export class ChatStore {
     error,
   }: {
     id: string;
-    status: Chat['status'];
+    status: Chat<MESSAGE_METADATA>['status'];
     error?: Error;
   }) {
     const chat = this.getChat(id);
@@ -106,14 +105,26 @@ export class ChatStore {
     return () => this.subscribers.delete(subscriber);
   }
 
-  setMessages({ id, messages }: { id: string; messages: UIMessage[] }) {
+  setMessages({
+    id,
+    messages,
+  }: {
+    id: string;
+    messages: UIMessage<MESSAGE_METADATA>[];
+  }) {
     const chat = this.getChat(id);
 
     chat.messages = [...messages];
     this.emitEvent({ type: 'chat-messages-changed', chatId: id });
   }
 
-  appendMessage({ id, message }: { id: string; message: UIMessage }) {
+  appendMessage({
+    id,
+    message,
+  }: {
+    id: string;
+    message: UIMessage<MESSAGE_METADATA>;
+  }) {
     const chat = this.getChat(id);
 
     chat.messages = [...chat.messages, { ...message }];
@@ -142,7 +153,7 @@ export class ChatStore {
     }
   }
 
-  private getChat(id: string): Chat {
+  private getChat(id: string): Chat<MESSAGE_METADATA> {
     if (!this.hasChat(id)) {
       throw new Error(`chat '${id}' not found`); // TODO AI SDK error
     }

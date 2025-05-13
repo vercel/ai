@@ -5,7 +5,7 @@ export function useChatStore<MESSAGE_METADATA>({
   store,
   chatId,
 }: {
-  store: ChatStore;
+  store: ChatStore<MESSAGE_METADATA>;
   chatId: string;
 }): {
   messages: UIMessage<MESSAGE_METADATA>[];
@@ -78,14 +78,12 @@ export function useChatStore<MESSAGE_METADATA>({
   );
 
   return {
-    // TODO fix generics
-    messages: messages as UIMessage<MESSAGE_METADATA>[],
-
+    messages,
     status,
     error,
 
-    // TODO refactor, fix generics
-    getLatestMessages: getLatestMessages as () => UIMessage<MESSAGE_METADATA>[],
+    // TODO remove once pushed into chatstore
+    getLatestMessages,
 
     setStatus,
   };

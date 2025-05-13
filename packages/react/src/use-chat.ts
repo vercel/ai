@@ -173,7 +173,7 @@ Default is undefined, which disables throttling.
 
   // chat store setup
   // TODO enable as arg
-  const chatStore = useRef(new ChatStore());
+  const chatStore = useRef(new ChatStore<MESSAGE_METADATA>());
 
   // ensure the chat is in the store
   if (!chatStore.current.hasChat(chatId)) {
@@ -181,7 +181,7 @@ Default is undefined, which disables throttling.
   }
 
   const { messages, error, status, setStatus, getLatestMessages } =
-    useChatStore<MESSAGE_METADATA>({
+    useChatStore({
       store: chatStore.current,
       chatId,
     });
