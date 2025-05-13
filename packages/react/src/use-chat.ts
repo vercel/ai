@@ -24,7 +24,6 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import useSWR from 'swr';
 import { useChatStore } from './use-chat-store';
 import { useStableValue } from './util/use-stable-value';
 
@@ -171,7 +170,6 @@ Default is undefined, which disables throttling.
 
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
   const chatId = id ?? hookId;
-  const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
 
   // Store array of the processed initial messages to avoid re-renders:
   const stableInitialMessages = useStableValue(initialMessages ?? []);
@@ -215,20 +213,15 @@ Default is undefined, which disables throttling.
     () => getStatus(chatId),
   );
 
-  // Store the chat state in SWR, using the chatId as the key to share states.
-  // const { data: messages, mutate } = useSWR<UIMessage<MESSAGE_METADATA>[]>(
-  //   [chatKey, 'messages'],
-  //   null,
-  //   { fallbackData: processedInitialMessages },
-  // );
-
-  // const { data: status = 'ready', mutate: mutateStatus } = useSWR<
-  //   'submitted' | 'streaming' | 'ready' | 'error'
-  // >([chatKey, 'status'], null);
-
-  const { data: error = undefined, mutate: setError } = useSWR<
-    undefined | Error
-  >([chatKey, 'error'], null);
+  const error = useSyncExternalStore(
+    callback =>
+      subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-status-changed',
+      }),
+    () => getError(chatId),
+    () => getError(chatId),
+  );
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -257,8 +250,8 @@ Default is undefined, which disables throttling.
       chatStore.current.setStatus({
         id: chatId,
         status: 'submitted',
+        error: undefined,
       });
-      setError(undefined);
 
       const chatMessages = chatRequest.messages;
 
@@ -346,7 +339,6 @@ Default is undefined, which disables throttling.
           onError(err);
         }
 
-        setError(err as Error);
         chatStore.current.setStatus({
           id: chatId,
           status: 'error',
@@ -374,7 +366,6 @@ Default is undefined, which disables throttling.
       extraMetadataRef,
       onFinish,
       onError,
-      setError,
       streamProtocol,
       experimental_prepareRequestBody,
       onToolCall,
