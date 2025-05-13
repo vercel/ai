@@ -1,20 +1,16 @@
 import {
-  FetchFunction,
   IdGenerator,
   Schema,
   ToolCall,
   generateId as generateIdFunc,
 } from '@ai-sdk/provider-utils';
-import { consumeUIMessageStream, fetchUIMessageStream } from './call-chat-api';
+import { consumeUIMessageStream } from './call-chat-api';
+import { ChatStoreBackend } from './chat-store-backend';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import { shouldResubmitMessages } from './should-resubmit-messages';
 import type { UIMessage } from './ui-messages';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
-import {
-  ChatStoreBackend,
-  DefaultChatStoreBackend,
-} from './chat-store-backend';
 
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
@@ -38,29 +34,23 @@ export class ChatStore<MESSAGE_METADATA> {
   private chats: Map<string, Chat<MESSAGE_METADATA>>;
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
-  private fetch: FetchFunction | undefined;
-  private streamProtocol: 'ui-message' | 'text';
-  private api: string;
   private messageMetadataSchema: Schema<MESSAGE_METADATA> | undefined;
+  private backend: ChatStoreBackend<MESSAGE_METADATA>;
 
   constructor({
     chats = {},
-    api,
     generateId,
-    fetch,
     messageMetadataSchema,
-    streamProtocol = 'text',
+    backend,
   }: {
     chats?: {
       [id: string]: {
         messages: UIMessage<MESSAGE_METADATA>[];
       };
     };
-    api: string;
     generateId?: UseChatOptions['generateId'];
-    fetch?: UseChatOptions['fetch'];
-    streamProtocol?: UseChatOptions['streamProtocol'];
     messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+    backend: ChatStoreBackend<MESSAGE_METADATA>;
   }) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
@@ -74,11 +64,9 @@ export class ChatStore<MESSAGE_METADATA> {
       ]),
     );
 
-    this.api = api;
+    this.backend = backend;
     this.subscribers = new Set();
     this.generateId = generateId ?? generateIdFunc;
-    this.fetch = fetch;
-    this.streamProtocol = streamProtocol ?? 'ui-message';
     this.messageMetadataSchema = messageMetadataSchema;
   }
 
@@ -260,21 +248,7 @@ export class ChatStore<MESSAGE_METADATA> {
       // // Do an optimistic update to show the updated messages immediately:
       // throttledMutate(chatMessages, false);
 
-      const backend: ChatStoreBackend = new DefaultChatStoreBackend({
-        api: self.api,
-        credentials,
-        headers: {}, // TODO
-        body: {}, // TODO
-        streamProtocol: self.streamProtocol,
-        fetch: self.fetch,
-        prepareRequestBody: experimental_prepareRequestBody as (options: {
-          id: string;
-          messages: UIMessage<unknown>[];
-          requestBody?: object;
-        }) => unknown,
-      });
-
-      const stream = await backend.submitMessages({
+      const stream = await self.backend.submitMessages({
         chatId,
         messages: chatMessages,
         customRequestBody: chatRequest.body,

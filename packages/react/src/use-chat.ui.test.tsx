@@ -607,9 +607,7 @@ describe('prepareRequestBody', () => {
             "role": "user",
           },
         ],
-        "requestBody": {
-          "request-body-key": "request-body-value",
-        },
+        "request-body-key": "request-body-value",
       }
     `);
 

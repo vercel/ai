@@ -8,6 +8,7 @@ import type {
 import {
   ChatStore,
   convertFileListToFileUIParts,
+  DefaultChatStoreBackend,
   generateId as generateIdFunc,
   isAssistantMessageWithCompletedToolCalls,
   updateToolCallResult,
@@ -171,10 +172,16 @@ Default is undefined, which disables throttling.
   // TODO enable as arg
   const chatStore = useRef(
     new ChatStore<MESSAGE_METADATA>({
-      api,
+      backend: new DefaultChatStoreBackend<MESSAGE_METADATA>({
+        api,
+        fetch,
+        streamProtocol,
+        credentials,
+        headers,
+        body,
+        prepareRequestBody: experimental_prepareRequestBody,
+      }),
       generateId,
-      fetch,
-      streamProtocol,
       messageMetadataSchema,
     }),
   );
@@ -219,14 +226,8 @@ Default is undefined, which disables throttling.
         maxSteps,
         credentials: extraMetadataRef.current.credentials,
         experimental_prepareRequestBody,
-        body: {
-          ...extraMetadataRef.current.body,
-          ...chatRequest.body,
-        },
-        headers: {
-          ...extraMetadataRef.current.headers,
-          ...chatRequest.headers,
-        },
+        body: chatRequest.body,
+        headers: chatRequest.headers,
         messages: chatRequest.messages,
         onFinish,
         onError,

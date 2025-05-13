@@ -3,10 +3,10 @@ import { UIMessageStreamPart } from '../ui-message-stream';
 import { fetchUIMessageStream } from './call-chat-api';
 import { UIMessage } from './ui-messages';
 
-export interface ChatStoreBackend {
+export interface ChatStoreBackend<MESSAGE_METADATA> {
   submitMessages: (options: {
     chatId: string;
-    messages: UIMessage<unknown>[];
+    messages: UIMessage<MESSAGE_METADATA>[];
     abortController: AbortController;
     customRequestBody?: object;
     customHeaders?: Record<string, string> | Headers;
@@ -14,7 +14,9 @@ export interface ChatStoreBackend {
   }) => Promise<ReadableStream<UIMessageStreamPart>>;
 }
 
-export class DefaultChatStoreBackend implements ChatStoreBackend {
+export class DefaultChatStoreBackend<MESSAGE_METADATA>
+  implements ChatStoreBackend<MESSAGE_METADATA>
+{
   private api: string;
   private credentials?: RequestCredentials;
   private headers?: Record<string, string> | Headers;
@@ -23,7 +25,7 @@ export class DefaultChatStoreBackend implements ChatStoreBackend {
   private fetch?: FetchFunction;
   private prepareRequestBody?: (options: {
     id: string;
-    messages: UIMessage<unknown>[];
+    messages: UIMessage<MESSAGE_METADATA>[];
     requestBody?: object;
   }) => unknown;
 
@@ -86,7 +88,7 @@ export class DefaultChatStoreBackend implements ChatStoreBackend {
      */
     prepareRequestBody?: (options: {
       id: string;
-      messages: UIMessage<unknown>[];
+      messages: UIMessage<MESSAGE_METADATA>[];
       requestBody?: object;
     }) => unknown;
   }) {
@@ -106,7 +108,7 @@ export class DefaultChatStoreBackend implements ChatStoreBackend {
     customRequestBody,
     customHeaders,
     requestType,
-  }: Parameters<ChatStoreBackend['submitMessages']>[0]) {
+  }: Parameters<ChatStoreBackend<MESSAGE_METADATA>['submitMessages']>[0]) {
     return fetchUIMessageStream({
       api: this.api,
       headers: {
@@ -116,10 +118,12 @@ export class DefaultChatStoreBackend implements ChatStoreBackend {
       body: this.prepareRequestBody?.({
         id: chatId, // TODO change to chatId
         messages,
-        requestBody: customRequestBody,
+        ...this.body,
+        ...customRequestBody,
       }) ?? {
         id: chatId, // TODO change to chatId
         messages,
+        ...this.body,
         ...customRequestBody,
       },
       streamProtocol: this.streamProtocol,
