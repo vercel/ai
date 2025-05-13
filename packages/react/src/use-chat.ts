@@ -338,20 +338,22 @@ Default is undefined, which disables throttling.
         };
       }
 
-      triggerRequest({
-        messages: messages.concat({
+      append(
+        {
           id: generateId(),
           role: 'user',
           metadata: undefined,
           parts: [...fileParts, { type: 'text', text: input }],
-        }),
-        headers: options.headers,
-        body: options.body,
-      });
+        },
+        {
+          headers: options.headers,
+          body: options.body,
+        },
+      );
 
       setInput('');
     },
-    [input, generateId, triggerRequest, messages],
+    [input, generateId, append, messages],
   );
 
   const handleInputChange = (e: any) => {
