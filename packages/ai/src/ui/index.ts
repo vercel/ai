@@ -1,6 +1,7 @@
 export { appendClientMessage } from './append-client-message';
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
+export { ChatStore, type ChatStatus, type ChatStoreEvent } from './chat-store';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {
   convertToCoreMessages,
@@ -15,8 +16,8 @@ export {
 } from './should-resubmit-messages';
 export * from './ui-messages';
 export { updateToolCallResult } from './update-tool-call-result';
-export { type UseChatOptions, type ChatRequestOptions } from './use-chat';
+export { type ChatRequestOptions, type UseChatOptions } from './use-chat';
 export {
-  type UseCompletionOptions,
   type CompletionRequestOptions,
+  type UseCompletionOptions,
 } from './use-completion';
