@@ -368,18 +368,10 @@ export class ChatStore<MESSAGE_METADATA> {
       toolResult: result,
     });
 
-    // array mutation is required to trigger a re-render
+    // array mutation is required to trigger a re-render (???)
     this.setMessages({
       id: chatId,
-      messages: [
-        ...currentMessages.slice(0, currentMessages.length - 1),
-        {
-          ...currentMessages[currentMessages.length - 1],
-          // @ts-ignore
-          // update the revisionId to trigger a re-render
-          revisionId: this.generateId(),
-        },
-      ],
+      messages: currentMessages,
     });
 
     // when the request is ongoing, the auto-submit will be triggered after the request is finished
