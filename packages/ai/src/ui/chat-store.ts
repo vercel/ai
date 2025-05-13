@@ -89,7 +89,7 @@ export class ChatStore {
         this.emitEvent({ type: 'chat-status-changed', chatId: id }); // Do we need this then? If we remove, do we lose out of granular subscriptions?
         this.emitEvent({ type: 'chat-messages-changed', chatId: id });
       },
-      release: () => jobPromise,
+      release: () => {},
     };
   }
 
