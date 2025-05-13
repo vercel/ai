@@ -68,6 +68,20 @@ export async function register() {
 }
 ```
 
+### Add @lmnr-ai/lmnr to your next.config
+
+In your `next.config.js` (`.ts` / `.mjs`), add the following lines:
+
+```javascript
+const nextConfig = {
+  serverExternalPackages: ['@lmnr-ai/lmnr'],
+};
+
+export default nextConfig;
+```
+
+This is because Laminar depends on OpenTelemetry, which uses some Node.js-specific functionality, and we need to inform Next.js about it. Learn more in the [Next.js docs](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages).
+
 ### Tracing AI SDK calls
 
 Then, when you call AI SDK functions in any of your API routes, add the Laminar tracer to the `experimental_telemetry` option.
