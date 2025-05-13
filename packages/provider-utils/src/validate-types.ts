@@ -11,13 +11,13 @@ import { Validator, asValidator } from './validator';
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
  * @returns {Promise<T>} - The typed object.
  */
-export async function validateTypes<T extends StandardSchemaV1>({
+export async function validateTypes<T_OBJECT>({
   value,
   schema,
 }: {
-  value: StandardSchemaV1.InferInput<T>;
-  schema: T | Validator<StandardSchemaV1.InferInput<T>>;
-}): Promise<StandardSchemaV1.InferOutput<T>> {
+  value: T_OBJECT;
+  schema: StandardSchemaV1<T_OBJECT> | Validator<T_OBJECT>;
+}): Promise<T_OBJECT> {
   const result = await safeValidateTypes({ value, schema: schema });
 
   if (!result.success) {
@@ -36,29 +36,29 @@ export async function validateTypes<T extends StandardSchemaV1>({
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export async function safeValidateTypes<T extends StandardSchemaV1>({
+export async function safeValidateTypes<T_OBJECT>({
   value,
   schema,
 }: {
-  value: StandardSchemaV1.InferInput<T>;
-  schema: T | Validator<StandardSchemaV1.InferInput<T>>;
+  value: T_OBJECT;
+  schema: StandardSchemaV1<T_OBJECT> | Validator<T_OBJECT>;
 }): Promise<
   | {
-      success: true;
-      value: StandardSchemaV1.InferOutput<T>;
-      rawValue: StandardSchemaV1.InferInput<T>;
-    }
+    success: true;
+    value: StandardSchemaV1.InferOutput<StandardSchemaV1<T_OBJECT>>;
+    rawValue: T_OBJECT;
+  }
   | {
-      success: false;
-      error: TypeValidationError;
-      rawValue: StandardSchemaV1.InferInput<T>;
-    }
+    success: false;
+    error: TypeValidationError;
+    rawValue: T_OBJECT;
+  }
 > {
   const validator = asValidator(schema);
 
   try {
     if (validator.validate == null) {
-      return { success: true, value: value as T, rawValue: value };
+      return { success: true, value: value, rawValue: value };
     }
 
     const result = await validator.validate(value);
