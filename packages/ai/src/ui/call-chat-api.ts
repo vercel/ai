@@ -110,22 +110,7 @@ export async function consumeUIMessageStream<MESSAGE_METADATA>({
   await consumeStream({
     stream: processUIMessageStream({
       stream,
-      onUpdate({ message }) {
-        const copiedMessage = {
-          // deep copy the message to ensure that deep changes (msg attachments) are updated
-          // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
-          ...structuredClone(message),
-
-          // add a revision id to ensure that the message is updated with SWR. SWR uses a
-          // hashing approach by default to detect changes, but it only works for shallow
-          // changes. This is why we need to add a revision id to ensure that the message
-          // is updated with SWR (without it, the changes get stuck in SWR and are not
-          // forwarded to rendering):
-          revisionId: generateId(),
-        } as UIMessage<MESSAGE_METADATA>;
-
-        onUpdate({ message: copiedMessage });
-      },
+      onUpdate,
       lastMessage,
       onToolCall,
       onFinish,

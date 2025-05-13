@@ -144,7 +144,7 @@ export class ChatStore<MESSAGE_METADATA> {
     chat.status = status;
     chat.error = error;
 
-    this.emitEvent({ type: 'chat-status-changed', chatId: id, error });
+    this.emit({ type: 'chat-status-changed', chatId: id, error });
   }
 
   getError(id: string) {
@@ -172,10 +172,9 @@ export class ChatStore<MESSAGE_METADATA> {
     id: string;
     messages: UIMessage<MESSAGE_METADATA>[];
   }) {
-    const chat = this.getChat(id);
-
-    chat.messages = [...messages];
-    this.emitEvent({ type: 'chat-messages-changed', chatId: id });
+    // mutate the messages array directly:
+    this.getChat(id).messages = [...messages];
+    this.emit({ type: 'chat-messages-changed', chatId: id });
   }
 
   appendMessage({
@@ -188,7 +187,7 @@ export class ChatStore<MESSAGE_METADATA> {
     const chat = this.getChat(id);
 
     chat.messages = [...chat.messages, { ...message }];
-    this.emitEvent({ type: 'chat-messages-changed', chatId: id });
+    this.emit({ type: 'chat-messages-changed', chatId: id });
   }
 
   removeAssistantResponse(id: string) {
@@ -368,11 +367,9 @@ export class ChatStore<MESSAGE_METADATA> {
       toolResult: result,
     });
 
-    // array mutation is required to trigger a re-render (???)
-    this.setMessages({
-      id: chatId,
-      messages: currentMessages,
-    });
+    // updated the messages array:
+    // TODO we need better immutability
+    this.setMessages({ id: chatId, messages: currentMessages });
 
     // when the request is ongoing, the auto-submit will be triggered after the request is finished
     if (chat.status === 'submitted' || chat.status === 'streaming') {
@@ -390,7 +387,7 @@ export class ChatStore<MESSAGE_METADATA> {
     }
   }
 
-  private emitEvent(event: ChatStoreEvent) {
+  private emit(event: ChatStoreEvent) {
     for (const subscriber of this.subscribers) {
       subscriber.onChatChanged(event);
     }

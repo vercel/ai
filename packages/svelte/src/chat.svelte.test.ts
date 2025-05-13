@@ -342,7 +342,6 @@ describe('text stream', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-7",
           "role": "assistant",
         },
       ]
@@ -467,7 +466,6 @@ describe('form actions', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-7",
           "role": "assistant",
         },
       ]
@@ -968,7 +966,6 @@ describe('maxSteps', () => {
                 "type": "text",
               },
             ],
-            "revisionId": "id-5",
             "role": "assistant",
           },
         ]
@@ -1084,7 +1081,6 @@ describe('file attachments with data url', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-3",
           "role": "assistant",
         },
       ]
@@ -1163,7 +1159,6 @@ describe('file attachments with data url', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-3",
           "role": "assistant",
         },
       ]
@@ -1252,7 +1247,6 @@ describe('file attachments with url', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-3",
           "role": "assistant",
         },
       ]
@@ -1339,7 +1333,6 @@ describe('file attachments with empty text content', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-3",
           "role": "assistant",
         },
       ]
@@ -1663,7 +1656,6 @@ describe('generateId function', () => {
               "type": "text",
             },
           ],
-          "revisionId": "testid-7",
           "role": "assistant",
         },
       ]

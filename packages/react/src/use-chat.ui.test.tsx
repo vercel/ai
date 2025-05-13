@@ -112,7 +112,6 @@ describe('data protocol stream', () => {
               text: 'Hello, world.',
             },
           ],
-          revisionId: 'id-6',
         },
       ]);
     });
@@ -243,7 +242,6 @@ describe('data protocol stream', () => {
               text: 'Hello, world.',
             },
           ],
-          revisionId: 'id-7',
         },
       ]);
     });
@@ -339,7 +337,6 @@ describe('data protocol stream', () => {
               },
             ],
             role: 'assistant',
-            revisionId: 'id-6',
           },
         ]);
       });
@@ -1234,7 +1231,6 @@ describe('file attachments with data url', () => {
             },
           ],
           role: 'assistant',
-          revisionId: 'id-2',
         },
       ]);
     });
@@ -1318,7 +1314,6 @@ describe('file attachments with data url', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: expect.any(String),
         },
       ]);
     });
@@ -1434,7 +1429,6 @@ describe('file attachments with url', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: expect.any(String),
         },
       ]);
     });
@@ -1541,7 +1535,6 @@ describe('attachments with empty submit', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: 'id-3',
         },
       ]);
     });
@@ -1653,7 +1646,6 @@ describe('should append message with attachments', () => {
               type: 'text',
             },
           ],
-          revisionId: 'id-3',
           role: 'assistant',
         },
       ]);
