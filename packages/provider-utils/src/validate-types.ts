@@ -40,25 +40,25 @@ export async function safeValidateTypes<T_OBJECT>({
   value,
   schema,
 }: {
-  value: T_OBJECT;
+  value: unknown;
   schema: StandardSchemaV1<T_OBJECT> | Validator<T_OBJECT>;
 }): Promise<
   | {
     success: true;
-    value: StandardSchemaV1.InferOutput<StandardSchemaV1<T_OBJECT>>;
-    rawValue: T_OBJECT;
+    value: T_OBJECT;
+    rawValue: unknown;
   }
   | {
     success: false;
     error: TypeValidationError;
-    rawValue: T_OBJECT;
+    rawValue: unknown;
   }
 > {
   const validator = asValidator(schema);
 
   try {
     if (validator.validate == null) {
-      return { success: true, value: value, rawValue: value };
+      return { success: true, value, rawValue: value };
     }
 
     const result = await validator.validate(value);

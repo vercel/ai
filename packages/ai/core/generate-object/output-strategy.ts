@@ -101,7 +101,7 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
 };
 
 const objectOutputStrategy = <OBJECT>(
-  schema: Schema<StandardSchemaV1<OBJECT>>,
+  schema: Schema<OBJECT>,
 ): OutputStrategy<
   DeepPartial<OBJECT>,
   OBJECT,
@@ -135,11 +135,11 @@ const objectOutputStrategy = <OBJECT>(
 });
 
 const arrayOutputStrategy = <OBJECT>(
-  schema: Schema<StandardSchemaV1<OBJECT>>,
+  schema: Schema<OBJECT>,
 ): OutputStrategy<
-  StandardSchemaV1.InferOutput<OBJECT>[],
-  StandardSchemaV1.InferOutput<OBJECT>[],
-  AsyncIterableStream<StandardSchemaV1.InferOutput<OBJECT>>
+  OBJECT[],
+  OBJECT[],
+  AsyncIterableStream<OBJECT>
 > => {
   // remove $schema from schema.jsonSchema:
   const { $schema, ...itemSchema } = schema.jsonSchema;
@@ -178,7 +178,7 @@ const arrayOutputStrategy = <OBJECT>(
       }
 
       const inputArray = value.elements as Array<JSONObject>;
-      const resultArray: Array<StandardSchemaV1.InferOutput<OBJECT>> = [];
+      const resultArray: Array<OBJECT> = [];
 
       for (let i = 0; i < inputArray.length; i++) {
         const element = inputArray[i];
@@ -233,7 +233,7 @@ const arrayOutputStrategy = <OBJECT>(
     async validateFinalResult(
       value: JSONValue | undefined,
     ): Promise<
-      ValidationResult<Array<StandardSchemaV1.InferOutput<OBJECT>>>
+      ValidationResult<Array<OBJECT>>
     > {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
@@ -258,13 +258,13 @@ const arrayOutputStrategy = <OBJECT>(
 
       return {
         success: true,
-        value: inputArray as Array<StandardSchemaV1.InferOutput<OBJECT>>,
+        value: inputArray as Array<OBJECT>,
       };
     },
 
     createElementStream(
       originalStream: ReadableStream<
-        ObjectStreamPart<StandardSchemaV1.InferOutput<OBJECT>[]>
+        ObjectStreamPart<OBJECT[]>
       >,
     ) {
       let publishedElements = 0;
@@ -272,8 +272,8 @@ const arrayOutputStrategy = <OBJECT>(
       return createAsyncIterableStream(
         originalStream.pipeThrough(
           new TransformStream<
-            ObjectStreamPart<StandardSchemaV1.InferOutput<OBJECT>[]>,
-            StandardSchemaV1.InferOutput<OBJECT>
+            ObjectStreamPart<OBJECT[]>,
+            OBJECT
           >({
             transform(chunk, controller) {
               switch (chunk.type) {
@@ -411,7 +411,7 @@ export function getOutputStrategy<OBJECT>({
   enumValues,
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
-  schema?: Schema<StandardSchemaV1<OBJECT>>;
+  schema?: Schema<OBJECT>;
   enumValues?: Array<OBJECT>;
 }): OutputStrategy<any, any, any> {
   switch (output) {

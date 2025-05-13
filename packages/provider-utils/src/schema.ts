@@ -73,7 +73,7 @@ export function asSchema<T_OBJECT>(
     });
   }
 
-  if (schema == null) {
+  if (isSchema(schema)) {
     return jsonSchema({
       properties: {},
       additionalProperties: false,
