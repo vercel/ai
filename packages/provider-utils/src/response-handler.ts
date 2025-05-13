@@ -1,13 +1,5 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
-<<<<<<< HEAD
 import { StandardSchemaV1 } from '@standard-schema/spec';
-import {
-  createEventSourceParserStream,
-  EventSourceChunk,
-} from './event-source-parser-stream';
-=======
-import { ZodSchema } from 'zod';
->>>>>>> @{-1}
 import { extractResponseHeaders } from './extract-response-headers';
 import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
@@ -90,27 +82,27 @@ export const createJsonErrorResponseHandler =
 
 export const createEventSourceResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: StandardSchemaV1<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
-  async ({ response }: { response: Response }) => {
-    const responseHeaders = extractResponseHeaders(response);
+    async ({ response }: { response: Response }) => {
+      const responseHeaders = extractResponseHeaders(response);
 
-    if (response.body == null) {
-      throw new EmptyResponseBodyError({});
-    }
+      if (response.body == null) {
+        throw new EmptyResponseBodyError({});
+      }
 
-    return {
-      responseHeaders,
-      value: parseJsonEventStream({
-        stream: response.body,
-        schema: chunkSchema,
-      }),
+      return {
+        responseHeaders,
+        value: parseJsonEventStream({
+          stream: response.body,
+          schema: chunkSchema,
+        }),
+      };
     };
-  };
 
 export const createJsonStreamResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: StandardSchemaV1<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
     async ({ response }: { response: Response }) => {
       const responseHeaders = extractResponseHeaders(response);
@@ -144,7 +136,7 @@ export const createJsonStreamResponseHandler =
     };
 
 export const createJsonResponseHandler =
-  <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
+  <T>(responseSchema: StandardSchemaV1<T>): ResponseHandler<T> =>
     async ({ response, url, requestBodyValues }) => {
       const responseBody = await response.text();
 

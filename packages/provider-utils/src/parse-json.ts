@@ -29,14 +29,14 @@ export async function parseJSON(options: {
 export async function parseJSON<T_SCHEMA extends StandardSchemaV1>(options: {
   text: string;
   schema: T_SCHEMA | Validator<T_SCHEMA>;
-}): Promise<T_SCHEMA>;
+}): Promise<StandardSchemaV1.InferOutput<T_SCHEMA>>;
 export async function parseJSON<T_SCHEMA extends StandardSchemaV1>({
   text,
   schema,
 }: {
   text: string;
   schema?: T_SCHEMA | Validator<T_SCHEMA>;
-}): Promise<T_SCHEMA> {
+}): Promise<StandardSchemaV1.InferOutput<T_SCHEMA>> {
   try {
     const value = secureJsonParse(text);
 
@@ -60,10 +60,10 @@ export async function parseJSON<T_SCHEMA extends StandardSchemaV1>({
 export type ParseResult<T> =
   | { success: true; value: T; rawValue: unknown }
   | {
-      success: false;
-      error: JSONParseError | TypeValidationError;
-      rawValue: unknown;
-    };
+    success: false;
+    error: JSONParseError | TypeValidationError;
+    rawValue: unknown;
+  };
 
 /**
  * Safely parses a JSON string and returns the result as an object of type `unknown`.

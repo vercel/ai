@@ -1,4 +1,4 @@
-import { ZodSchema } from 'zod';
+import { StandardSchemaV1 } from '@standard-schema/spec';
 import {
   createEventSourceParserStream,
   EventSourceChunk,
@@ -8,12 +8,12 @@ import { ParseResult, safeParseJSON } from './parse-json';
 /**
  * Parses a JSON event stream into a stream of parsed JSON objects.
  */
-export function parseJsonEventStream<T>({
+export function parseJsonEventStream<T extends StandardSchemaV1>({
   stream,
   schema,
 }: {
   stream: ReadableStream<Uint8Array>;
-  schema: ZodSchema<T>;
+  schema: StandardSchemaV1<T>;
 }): ReadableStream<ParseResult<T>> {
   return stream
     .pipeThrough(new TextDecoderStream())
