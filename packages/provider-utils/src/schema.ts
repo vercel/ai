@@ -1,5 +1,4 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { Validator, validatorSymbol } from './validator';
 
 /**
@@ -7,7 +6,7 @@ import { Validator, validatorSymbol } from './validator';
  */
 const schemaSymbol = Symbol.for('vercel.ai.schema');
 
-export type Schema<OBJECT> =
+export type Schema<OBJECT = unknown> =
   Validator<OBJECT> & {
     /**
      * Used to mark schemas so we can support both Zod and custom schemas.
@@ -31,7 +30,7 @@ export type Schema<OBJECT> =
  * @param jsonSchema The JSON Schema for the schema.
  * @param options.validate Optional. A validation function for the schema.
  */
-export function jsonSchema<T extends StandardSchemaV1 = StandardSchemaV1>(
+export function jsonSchema<OBJECT = unknown>(
   jsonSchema: JSONSchema7,
   {
     validate,
@@ -39,13 +38,13 @@ export function jsonSchema<T extends StandardSchemaV1 = StandardSchemaV1>(
     validate?: (
       value: unknown,
     ) => PromiseLike<
-      { success: true; value: T } | { success: false; error: Error }
+      { success: true; value: OBJECT } | { success: false; error: Error }
     >;
   } = {},
 ): Schema<T> {
   return {
     [schemaSymbol]: true,
-    _type: undefined as unknown as T, // should never be used directly
+    _type: undefined as unknown as OBJECT, // should never be used directly
     [validatorSymbol]: true,
     jsonSchema,
     validate,
@@ -64,7 +63,7 @@ function isSchema(value: unknown): value is Schema {
 }
 
 export function asSchema<T_OBJECT>(
-  schema: Schema<StandardSchemaV1<T_OBJECT>> | undefined,
+  schema: Schema<T_OBJECT> | undefined,
 ): Schema<T_OBJECT> {
   if (schema == null) {
     return jsonSchema({
