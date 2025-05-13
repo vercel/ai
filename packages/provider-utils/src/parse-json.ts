@@ -21,22 +21,22 @@ export async function parseJSON(options: {
 /**
  * Parses a JSON string into a strongly-typed object using the provided schema.
  *
- * @template T - The type of the object to parse the JSON into.
+ * @template T_SCHEMA - The type of the object to parse the JSON into.
  * @param {string} text - The JSON string to parse.
- * @param {Validator<T>} schema - The schema to use for parsing the JSON.
- * @returns {Promise<T>} - The parsed object.
+ * @param {Validator<T_SCHEMA>} schema - The schema to use for parsing the JSON.
+ * @returns {Promise<T_SCHEMA>} - The parsed object.
  */
-export async function parseJSON<T extends StandardSchemaV1>(options: {
+export async function parseJSON<T_SCHEMA extends StandardSchemaV1>(options: {
   text: string;
-  schema: T | Validator<T>;
-}): Promise<T>;
-export async function parseJSON<T extends StandardSchemaV1>({
+  schema: T_SCHEMA | Validator<T_SCHEMA>;
+}): Promise<T_SCHEMA>;
+export async function parseJSON<T_SCHEMA extends StandardSchemaV1>({
   text,
   schema,
 }: {
   text: string;
-  schema?: T | Validator<T>;
-}): Promise<T> {
+  schema?: T_SCHEMA | Validator<T_SCHEMA>;
+}): Promise<T_SCHEMA> {
   try {
     const value = secureJsonParse(text);
 
