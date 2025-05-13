@@ -10,9 +10,16 @@ import {
   convertFileListToFileUIParts,
   DefaultChatTransport,
   generateId as generateIdFunc,
+  type ChatStoreEvent,
 } from 'ai';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useChatStore } from './use-chat-store';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { useStableValue } from './util/use-stable-value';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
@@ -190,18 +197,97 @@ Default is undefined, which disables throttling.
     chatStore.current.addChat(chatId, processedInitialMessages ?? []);
   }
 
-  const {
-    messages,
-    error,
-    status,
-    addToolResult,
-    submitMessage,
-    resubmitLastUserMessage,
-    resumeStream,
-  } = useChatStore({
-    store: chatStore.current,
-    chatId,
-  });
+  const subscribe = useCallback(
+    ({
+      onStoreChange,
+      eventType,
+    }: {
+      onStoreChange: () => void;
+      eventType: ChatStoreEvent['type'];
+    }) => {
+      return chatStore.current.subscribe({
+        onChatChanged: event => {
+          if (event.chatId !== chatId || event.type !== eventType) {
+            return;
+          }
+
+          onStoreChange();
+        },
+      });
+    },
+    [chatStore, chatId],
+  );
+
+  const addToolResult = useCallback(
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['addToolResult']>[0],
+        'chatId'
+      >,
+    ) => chatStore.current.addToolResult({ chatId, ...options }),
+    [chatStore, chatId],
+  );
+
+  const submitMessage = useCallback(
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['submitMessage']>[0],
+        'chatId'
+      >,
+    ) => chatStore.current.submitMessage({ chatId, ...options }),
+    [chatStore, chatId],
+  );
+
+  const resubmitLastUserMessage = useCallback(
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['resubmitLastUserMessage']>[0],
+        'chatId'
+      >,
+    ) => chatStore.current.resubmitLastUserMessage({ chatId, ...options }),
+    [chatStore, chatId],
+  );
+
+  const resumeStream = useCallback(
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['resumeStream']>[0],
+        'chatId'
+      >,
+    ) => chatStore.current.resumeStream({ chatId, ...options }),
+    [chatStore, chatId],
+  );
+
+  const error = useSyncExternalStore(
+    callback =>
+      subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-status-changed',
+      }),
+    () => chatStore.current.getError(chatId),
+    () => chatStore.current.getError(chatId),
+  );
+
+  const status = useSyncExternalStore(
+    callback =>
+      subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-status-changed',
+      }),
+    () => chatStore.current.getStatus(chatId),
+    () => chatStore.current.getStatus(chatId),
+  );
+
+  const messages = useSyncExternalStore(
+    callback => {
+      return subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-messages-changed',
+      });
+    },
+    () => chatStore.current.getMessages(chatId),
+    () => chatStore.current.getMessages(chatId),
+  );
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
