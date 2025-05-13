@@ -5,12 +5,16 @@ import {
   ToolCall,
   generateId as generateIdFunc,
 } from '@ai-sdk/provider-utils';
-import { callChatApi } from './call-chat-api';
+import { consumeUIMessageStream, fetchUIMessageStream } from './call-chat-api';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import { shouldResubmitMessages } from './should-resubmit-messages';
 import type { UIMessage } from './ui-messages';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
+import {
+  ChatStoreBackend,
+  DefaultChatStoreBackend,
+} from './chat-store-backend';
 
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
@@ -256,23 +260,31 @@ export class ChatStore<MESSAGE_METADATA> {
       // // Do an optimistic update to show the updated messages immediately:
       // throttledMutate(chatMessages, false);
 
-      await callChatApi({
+      const backend: ChatStoreBackend = new DefaultChatStoreBackend({
         api: self.api,
-        body: experimental_prepareRequestBody?.({
-          id: chatId,
-          messages: chatMessages,
-          requestBody: chatRequest.body,
-        }) ?? {
-          id: chatId,
-          messages: chatMessages,
-          ...chatRequest.body,
-        },
-        streamProtocol: self.streamProtocol,
         credentials,
-        headers: {
-          ...chatRequest.headers,
-        },
-        abortController: () => abortController,
+        headers: {}, // TODO
+        body: {}, // TODO
+        streamProtocol: self.streamProtocol,
+        fetch: self.fetch,
+        prepareRequestBody: experimental_prepareRequestBody as (options: {
+          id: string;
+          messages: UIMessage<unknown>[];
+          requestBody?: object;
+        }) => unknown,
+      });
+
+      const stream = await backend.submitMessages({
+        chatId,
+        messages: chatMessages,
+        customRequestBody: chatRequest.body,
+        customHeaders: chatRequest.headers,
+        abortController,
+        requestType,
+      });
+
+      await consumeUIMessageStream({
+        stream,
         onUpdate({ message }) {
           self.setStatus({ id: chatId, status: 'streaming' });
 
@@ -294,9 +306,7 @@ export class ChatStore<MESSAGE_METADATA> {
         onToolCall,
         onFinish,
         generateId: self.generateId,
-        fetch: self.fetch,
         lastMessage: chatMessages[chatMessages.length - 1],
-        requestType,
         messageMetadataSchema: self.messageMetadataSchema,
       });
 
