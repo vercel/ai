@@ -321,7 +321,6 @@ Default is undefined, which disables throttling.
       options: ChatRequestOptions & {
         files?: FileList | FileUIPart[];
       } = {},
-      metadata?: Object,
     ) => {
       event?.preventDefault?.();
 
@@ -330,13 +329,6 @@ Default is undefined, which disables throttling.
         : await convertFileListToFileUIParts(options?.files);
 
       if (!input && fileParts.length === 0) return;
-
-      if (metadata) {
-        extraMetadataRef.current = {
-          ...extraMetadataRef.current,
-          ...metadata,
-        };
-      }
 
       append(
         {
