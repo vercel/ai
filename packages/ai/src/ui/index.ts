@@ -20,7 +20,4 @@ export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
-export {
-  type ChatStoreBackend,
-  DefaultChatStoreBackend,
-} from './chat-store-backend';
+export { type ChatTransport, DefaultChatTransport } from './chat-transport';

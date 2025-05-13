@@ -8,12 +8,12 @@ import type {
 import {
   ChatStore,
   convertFileListToFileUIParts,
-  DefaultChatStoreBackend,
   generateId as generateIdFunc,
   isAssistantMessageWithCompletedToolCalls,
   updateToolCallResult,
 } from 'ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DefaultChatTransport } from '../../ai/src/ui/chat-transport';
 import { useChatStore } from './use-chat-store';
 import { useStableValue } from './util/use-stable-value';
 
@@ -172,7 +172,7 @@ Default is undefined, which disables throttling.
   // TODO enable as arg
   const chatStore = useRef(
     new ChatStore<MESSAGE_METADATA>({
-      backend: new DefaultChatStoreBackend<MESSAGE_METADATA>({
+      transport: new DefaultChatTransport<MESSAGE_METADATA>({
         api,
         fetch,
         streamProtocol,

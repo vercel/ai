@@ -5,7 +5,7 @@ import {
   generateId as generateIdFunc,
 } from '@ai-sdk/provider-utils';
 import { consumeUIMessageStream } from './call-chat-api';
-import { ChatStoreBackend } from './chat-store-backend';
+import { ChatTransport } from './chat-transport';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import { shouldResubmitMessages } from './should-resubmit-messages';
@@ -35,13 +35,13 @@ export class ChatStore<MESSAGE_METADATA> {
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
   private messageMetadataSchema: Schema<MESSAGE_METADATA> | undefined;
-  private backend: ChatStoreBackend<MESSAGE_METADATA>;
+  private transport: ChatTransport<MESSAGE_METADATA>;
 
   constructor({
     chats = {},
     generateId,
     messageMetadataSchema,
-    backend,
+    transport,
   }: {
     chats?: {
       [id: string]: {
@@ -50,7 +50,7 @@ export class ChatStore<MESSAGE_METADATA> {
     };
     generateId?: UseChatOptions['generateId'];
     messageMetadataSchema?: Schema<MESSAGE_METADATA>;
-    backend: ChatStoreBackend<MESSAGE_METADATA>;
+    transport: ChatTransport<MESSAGE_METADATA>;
   }) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
@@ -64,7 +64,7 @@ export class ChatStore<MESSAGE_METADATA> {
       ]),
     );
 
-    this.backend = backend;
+    this.transport = transport;
     this.subscribers = new Set();
     this.generateId = generateId ?? generateIdFunc;
     this.messageMetadataSchema = messageMetadataSchema;
@@ -230,7 +230,7 @@ export class ChatStore<MESSAGE_METADATA> {
       // // Do an optimistic update to show the updated messages immediately:
       // throttledMutate(chatMessages, false);
 
-      const stream = await self.backend.submitMessages({
+      const stream = await self.transport.submitMessages({
         chatId,
         messages: chatMessages,
         customRequestBody: chatRequest.body,

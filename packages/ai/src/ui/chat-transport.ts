@@ -3,7 +3,7 @@ import { UIMessageStreamPart } from '../ui-message-stream';
 import { fetchUIMessageStream } from './call-chat-api';
 import { UIMessage } from './ui-messages';
 
-export interface ChatStoreBackend<MESSAGE_METADATA> {
+export interface ChatTransport<MESSAGE_METADATA> {
   submitMessages: (options: {
     chatId: string;
     messages: UIMessage<MESSAGE_METADATA>[];
@@ -14,8 +14,8 @@ export interface ChatStoreBackend<MESSAGE_METADATA> {
   }) => Promise<ReadableStream<UIMessageStreamPart>>;
 }
 
-export class DefaultChatStoreBackend<MESSAGE_METADATA>
-  implements ChatStoreBackend<MESSAGE_METADATA>
+export class DefaultChatTransport<MESSAGE_METADATA>
+  implements ChatTransport<MESSAGE_METADATA>
 {
   private api: string;
   private credentials?: RequestCredentials;
@@ -108,7 +108,7 @@ export class DefaultChatStoreBackend<MESSAGE_METADATA>
     customRequestBody,
     customHeaders,
     requestType,
-  }: Parameters<ChatStoreBackend<MESSAGE_METADATA>['submitMessages']>[0]) {
+  }: Parameters<ChatTransport<MESSAGE_METADATA>['submitMessages']>[0]) {
     return fetchUIMessageStream({
       api: this.api,
       headers: {
