@@ -1,9 +1,19 @@
-import { ChatStatus, ChatStore, type ChatStoreEvent, type UIMessage } from 'ai';
-import { useCallback } from 'react';
+import { ChatStatus, ChatStore, UIMessage, type ChatStoreEvent } from 'ai';
+import { useCallback, useSyncExternalStore } from 'react';
 
-const EMPTY_ARRAY: UIMessage[] = [];
-
-export function useChatStore({ store }: { store: ChatStore }) {
+export function useChatStore<MESSAGE_METADATA>({
+  store,
+  chatId,
+}: {
+  store: ChatStore;
+  chatId: string;
+}): {
+  messages: UIMessage<MESSAGE_METADATA>[];
+  status: ChatStatus;
+  error: Error | undefined;
+  getLatestMessages: () => UIMessage<MESSAGE_METADATA>[];
+  setStatus: (options: { status: ChatStatus; error?: Error }) => void;
+} {
   const subscribe = useCallback(
     ({
       onStoreChange,
@@ -14,50 +24,69 @@ export function useChatStore({ store }: { store: ChatStore }) {
     }) => {
       return store.subscribe({
         onChatChanged: event => {
-          if (event.type === eventType) {
-            onStoreChange();
+          if (event.chatId !== chatId || event.type !== eventType) {
+            return;
           }
+
+          onStoreChange();
         },
       });
     },
-    [store],
+    [store, chatId],
   );
 
-  const getMessages = useCallback(
-    (chatId: string) => {
-      return store.getMessages(chatId) ?? EMPTY_ARRAY;
-    },
-    [store],
-  );
+  const getLatestMessages = useCallback(() => {
+    return store.getMessages(chatId);
+  }, [store, chatId]);
 
-  const getStatus = useCallback(
-    (chatId: string) => {
-      return store.getStatus(chatId) ?? 'ready';
-    },
-    [store],
-  );
-
-  const getError = useCallback(
-    (chatId: string) => {
-      return store.getError(chatId);
-    },
-    [store],
+  const error = useSyncExternalStore(
+    callback =>
+      subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-status-changed',
+      }),
+    () => store.getError(chatId),
+    () => store.getError(chatId),
   );
 
   const setStatus = useCallback(
-    ({
-      status,
-      error,
-      chatId,
-    }: {
-      status: ChatStatus;
-      error?: Error;
-      chatId: string;
-    }) => {
+    ({ status, error }: { status: ChatStatus; error?: Error }) => {
       store.setStatus({ id: chatId, status, error });
     },
-    [store],
+    [store, chatId],
   );
 
-  return { subscribe, getMessages, getStatus, getError, setStatus };
+  const status = useSyncExternalStore(
+    callback =>
+      subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-status-changed',
+      }),
+    () => store.getStatus(chatId),
+    () => store.getStatus(chatId),
+  );
+
+  const messages = useSyncExternalStore(
+    callback => {
+      return subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-messages-changed',
+      });
+    },
+    () => getLatestMessages(),
+    () => getLatestMessages(),
+  );
+
+  return {
+    // TODO fix generics
+    messages: messages as UIMessage<MESSAGE_METADATA>[],
+
+    status,
+    error,
+
+    // TODO refactor, fix generics
+    getLatestMessages: getLatestMessages as () => UIMessage<MESSAGE_METADATA>[],
+
+    setStatus,
+  };
 }

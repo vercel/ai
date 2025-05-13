@@ -1118,10 +1118,11 @@ describe('maxSteps', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('error');
-      expect(screen.getByTestId('error')).toHaveTextContent(
-        'Error: call failure',
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Error: call failure',
+        );
+      });
 
       expect(onToolCallCounter).toBe(1);
     });

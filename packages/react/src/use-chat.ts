@@ -16,14 +16,7 @@ import {
   shouldResubmitMessages,
   updateToolCallResult,
 } from 'ai';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useChatStore } from './use-chat-store';
 import { useStableValue } from './util/use-stable-value';
 
@@ -187,41 +180,11 @@ Default is undefined, which disables throttling.
     chatStore.current.addChat(chatId, processedInitialMessages ?? []);
   }
 
-  const { subscribe, getMessages, getStatus, getError, setStatus } =
-    useChatStore({
+  const { messages, error, status, setStatus, getLatestMessages } =
+    useChatStore<MESSAGE_METADATA>({
       store: chatStore.current,
+      chatId,
     });
-
-  const messages = useSyncExternalStore(
-    callback => {
-      return subscribe({
-        onStoreChange: callback,
-        eventType: 'chat-messages-changed',
-      });
-    },
-    () => getMessages(chatId),
-    () => getMessages(chatId),
-  );
-
-  const status = useSyncExternalStore(
-    callback =>
-      subscribe({
-        onStoreChange: callback,
-        eventType: 'chat-status-changed',
-      }),
-    () => getStatus(chatId),
-    () => getStatus(chatId),
-  );
-
-  const error = useSyncExternalStore(
-    callback =>
-      subscribe({
-        onStoreChange: callback,
-        eventType: 'chat-status-changed',
-      }),
-    () => getError(chatId),
-    () => getError(chatId),
-  );
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -247,11 +210,7 @@ Default is undefined, which disables throttling.
       },
       requestType: 'generate' | 'resume' = 'generate',
     ) => {
-      chatStore.current.setStatus({
-        id: chatId,
-        status: 'submitted',
-        error: undefined,
-      });
+      setStatus({ status: 'submitted', error: undefined });
 
       const chatMessages = chatRequest.messages;
 
@@ -289,10 +248,7 @@ Default is undefined, which disables throttling.
           },
           abortController: () => abortControllerRef.current,
           onUpdate({ message }) {
-            chatStore.current.setStatus({
-              id: chatId,
-              status: 'streaming',
-            });
+            setStatus({ status: 'streaming' });
 
             const replaceLastMessage =
               message.id === chatMessages[chatMessages.length - 1].id;
@@ -320,18 +276,12 @@ Default is undefined, which disables throttling.
 
         abortControllerRef.current = null;
 
-        chatStore.current.setStatus({
-          id: chatId,
-          status: 'ready',
-        });
+        setStatus({ status: 'ready' });
       } catch (err) {
         // Ignore abort errors as they are expected.
         if ((err as any).name === 'AbortError') {
           abortControllerRef.current = null;
-          chatStore.current.setStatus({
-            id: chatId,
-            status: 'ready',
-          });
+          setStatus({ status: 'ready' });
           return null;
         }
 
@@ -339,29 +289,25 @@ Default is undefined, which disables throttling.
           onError(err);
         }
 
-        chatStore.current.setStatus({
-          id: chatId,
-          status: 'error',
-          error: err as Error,
-        });
+        setStatus({ status: 'error', error: err as Error });
       }
 
       // auto-submit when all tool calls in the last assistant message have results
       // and assistant has not answered yet
-      const messages = getMessages(chatId) as UIMessage<MESSAGE_METADATA>[];
+      const messagesX = getLatestMessages();
       if (
         shouldResubmitMessages({
           originalMaxToolInvocationStep: maxStep,
           originalMessageCount: messageCount,
           maxSteps,
-          messages,
+          messages: messagesX,
         })
       ) {
-        await triggerRequest({ messages });
+        await triggerRequest({ messages: messagesX });
       }
     },
     [
-      getMessages,
+      setStatus,
       api,
       extraMetadataRef,
       onFinish,
@@ -376,6 +322,7 @@ Default is undefined, which disables throttling.
       // throttleWaitMs,
       chatId,
       messageMetadataSchema,
+      getLatestMessages,
     ],
   );
 
@@ -385,25 +332,19 @@ Default is undefined, which disables throttling.
       { headers, body }: ChatRequestOptions = {},
     ) => {
       await triggerRequest({
-        // TODO generics
-        messages: (getMessages(chatId) as UIMessage<MESSAGE_METADATA>[]).concat(
-          {
-            ...message,
-            id: message.id ?? generateId(),
-          },
-        ),
+        messages: messages.concat({
+          ...message,
+          id: message.id ?? generateId(),
+        }),
         headers,
         body,
       });
     },
-    [triggerRequest, generateId, getMessages, chatId],
+    [triggerRequest, generateId, messages],
   );
 
   const reload = useCallback(
     async ({ headers, body }: ChatRequestOptions = {}) => {
-      // TODO generics
-      const messages = getMessages(chatId) as UIMessage<MESSAGE_METADATA>[];
-
       if (messages.length === 0) {
         return null;
       }
@@ -417,7 +358,7 @@ Default is undefined, which disables throttling.
         body,
       });
     },
-    [triggerRequest, getMessages, chatId],
+    [triggerRequest, messages],
   );
 
   const stop = useCallback(() => {
@@ -428,33 +369,27 @@ Default is undefined, which disables throttling.
   }, []);
 
   const experimental_resume = useCallback(async () => {
-    // TODO generics
-    const messages = getMessages(chatId) as UIMessage<MESSAGE_METADATA>[];
-
     triggerRequest({ messages }, 'resume');
-  }, [triggerRequest, getMessages, chatId]);
+  }, [triggerRequest, messages]);
 
   const setMessages = useCallback(
     (
-      messages:
+      messagesParam:
         | UIMessage<MESSAGE_METADATA>[]
         | ((
             messages: UIMessage<MESSAGE_METADATA>[],
           ) => UIMessage<MESSAGE_METADATA>[]),
     ) => {
-      if (typeof messages === 'function') {
-        messages = messages(
-          // TODO generics
-          getMessages(chatId) as UIMessage<MESSAGE_METADATA>[],
-        );
+      if (typeof messagesParam === 'function') {
+        messagesParam = messagesParam(messages);
       }
 
       chatStore.current.setMessages({
         id: chatId,
-        messages,
+        messages: messagesParam,
       });
     },
-    [chatId, getMessages],
+    [chatId, messages],
   );
 
   // Input state and handlers.
@@ -484,22 +419,19 @@ Default is undefined, which disables throttling.
       }
 
       triggerRequest({
-        // TODO generics
-        messages: (getMessages(chatId) as UIMessage<MESSAGE_METADATA>[]).concat(
-          {
-            id: generateId(),
-            role: 'user',
-            metadata: undefined,
-            parts: [...fileParts, { type: 'text', text: input }],
-          },
-        ),
+        messages: messages.concat({
+          id: generateId(),
+          role: 'user',
+          metadata: undefined,
+          parts: [...fileParts, { type: 'text', text: input }],
+        }),
         headers: options.headers,
         body: options.body,
       });
 
       setInput('');
     },
-    [input, generateId, triggerRequest, getMessages, chatId],
+    [input, generateId, triggerRequest, messages],
   );
 
   const handleInputChange = (e: any) => {
@@ -508,10 +440,7 @@ Default is undefined, which disables throttling.
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
-      // TODO generics
-      const currentMessages = getMessages(
-        chatId,
-      ) as UIMessage<MESSAGE_METADATA>[];
+      const currentMessages = messages;
 
       updateToolCallResult({
         messages: currentMessages,
@@ -534,10 +463,7 @@ Default is undefined, which disables throttling.
       });
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
-      if (
-        getStatus(chatId) === 'submitted' ||
-        getStatus(chatId) === 'streaming'
-      ) {
+      if (status === 'submitted' || status === 'streaming') {
         return;
       }
 
@@ -547,11 +473,11 @@ Default is undefined, which disables throttling.
         triggerRequest({ messages: currentMessages });
       }
     },
-    [getStatus, triggerRequest, generateId, chatId, getMessages],
+    [status, triggerRequest, generateId, chatId, messages],
   );
 
   return {
-    messages: messages as UIMessage<MESSAGE_METADATA>[], // TODO generics
+    messages,
     id: chatId,
     setMessages,
     error,
