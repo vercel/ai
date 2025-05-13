@@ -6,9 +6,8 @@ import {
 } from '@/util/chat-store';
 import { openai } from '@ai-sdk/openai';
 import {
-  appendResponseMessages,
   convertToModelMessages,
-  createDataStream,
+  createUIMessageStream,
   generateId,
   JsonToSseTransformStream,
   streamText,
@@ -42,23 +41,20 @@ export async function POST(req: Request) {
 
   await appendStreamId({ chatId: id, streamId });
 
-  const stream = createDataStream({
+  const stream = createUIMessageStream({
     execute: writer => {
       const result = streamText({
         model: openai('gpt-4o'),
         messages: convertToModelMessages(messages),
-        onFinish: async ({ response }) => {
-          await saveChat({
-            id,
-            messages: appendResponseMessages({
-              messages,
-              responseMessages: response.messages,
-            }),
-          });
-        },
       });
 
-      writer.merge(result.toDataStream());
+      writer.merge(
+        result.toUIMessageStream({
+          onFinish: ({ messages }) => {
+            saveChat({ id, messages });
+          },
+        }),
+      );
     },
   });
 
@@ -93,7 +89,7 @@ export async function GET(request: Request) {
     return new Response('No recent stream found', { status: 404 });
   }
 
-  const emptyDataStream = createDataStream({
+  const emptyDataStream = createUIMessageStream({
     execute: () => {},
   });
 

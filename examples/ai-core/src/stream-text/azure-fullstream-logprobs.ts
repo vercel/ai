@@ -20,7 +20,7 @@ async function main() {
         break;
       }
 
-      case 'finish': {
+      case 'finish-step': {
         console.log(`finishReason: ${part.finishReason}`);
         console.log('Logprobs:', part.providerMetadata?.azure.logprobs); // object: { string, number, array}
       }

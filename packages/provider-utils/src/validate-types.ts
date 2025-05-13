@@ -43,29 +43,32 @@ export async function safeValidateTypes<T extends StandardSchemaV1>({
   value: unknown;
   schema: T | Validator<T>;
 }): Promise<
-  { success: true; value: T } | { success: false; error: TypeValidationError }
+  | { success: true; value: T; rawValue: unknown }
+  | { success: false; error: TypeValidationError; rawValue: unknown }
 > {
   const validator = asValidator(schema);
 
   try {
     if (validator.validate == null) {
-      return { success: true, value: value as T };
+      return { success: true, value: value as T, rawValue: value };
     }
 
     const result = await validator.validate(value);
 
     if (result.success) {
-      return result;
+      return { success: true, value: result.value, rawValue: value };
     }
 
     return {
       success: false,
       error: TypeValidationError.wrap({ value, cause: result.error }),
+      rawValue: value,
     };
   } catch (error) {
     return {
       success: false,
       error: TypeValidationError.wrap({ value, cause: error }),
+      rawValue: value,
     };
   }
 }

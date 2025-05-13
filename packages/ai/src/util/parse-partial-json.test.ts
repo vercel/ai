@@ -40,6 +40,7 @@ describe('parsePartialJson', () => {
       .mockResolvedValueOnce({
         success: false,
         error: new JSONParseError({ text: partialJson, cause: undefined }),
+        rawValue: partialJson,
       })
       .mockResolvedValueOnce({
         success: true,
@@ -63,6 +64,7 @@ describe('parsePartialJson', () => {
     vi.mocked(safeParseJSON).mockResolvedValue({
       success: false,
       error: new JSONParseError({ text: invalidJson, cause: undefined }),
+      rawValue: invalidJson,
     });
     vi.mocked(fixJson).mockReturnValueOnce(invalidJson);
 

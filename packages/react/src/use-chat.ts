@@ -2,7 +2,6 @@ import type {
   ChatRequestOptions,
   CreateUIMessage,
   FileUIPart,
-  JSONValue,
   UIMessage,
   UseChatOptions,
 } from 'ai';
@@ -23,21 +22,40 @@ import { useStableValue } from './util/use-stable-value';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
-export type UseChatHelpers = {
+export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
+  /**
+   * The id of the chat.
+   */
+  readonly id: string;
+
+  /**
+   * Hook status:
+   *
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  readonly status: 'submitted' | 'streaming' | 'ready' | 'error';
+
   /** Current messages in the chat */
-  messages: UIMessage[];
+  readonly messages: UIMessage<MESSAGE_METADATA>[];
+
   /** The error object of the API request */
-  error: undefined | Error;
+  readonly error: undefined | Error;
+
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
+   *
    * @param message The message to append
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: UIMessage | CreateUIMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+    message: CreateUIMessage<MESSAGE_METADATA>,
+    options?: ChatRequestOptions,
+  ) => Promise<void>;
+
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
@@ -46,6 +64,7 @@ export type UseChatHelpers = {
   reload: (
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
+
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
@@ -62,53 +81,32 @@ export type UseChatHelpers = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
+    messages:
+      | UIMessage<MESSAGE_METADATA>[]
+      | ((
+          messages: UIMessage<MESSAGE_METADATA>[],
+        ) => UIMessage<MESSAGE_METADATA>[]),
   ) => void;
+
   /** The current value of the input */
   input: string;
+
   /** setState-powered method to update the input value */
   setInput: React.Dispatch<React.SetStateAction<string>>;
+
   /** An input/textarea-ready onChange handler to control the value of the input */
   handleInputChange: (
     e:
       | React.ChangeEvent<HTMLInputElement>
       | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
+
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions & {
       files?: FileList | FileUIPart[];
     },
-  ) => void;
-  metadata?: Object;
-
-  /**
-   * Whether the API request is in progress
-   *
-   * @deprecated use `status` instead
-   */
-  isLoading: boolean;
-
-  /**
-   * Hook status:
-   *
-   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
-   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
-   * - `ready`: The full response has been received and processed; a new user message can be submitted.
-   * - `error`: An error occurred during the API request, preventing successful completion.
-   */
-  status: 'submitted' | 'streaming' | 'ready' | 'error';
-
-  /** Additional data added on the server via StreamData. */
-  data?: JSONValue[];
-
-  /** Set the data of the chat. You can use this to transform or clear the chat data. */
-  setData: (
-    data:
-      | JSONValue[]
-      | undefined
-      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
   ) => void;
 
   addToolResult: ({
@@ -118,12 +116,9 @@ export type UseChatHelpers = {
     toolCallId: string;
     result: any;
   }) => void;
-
-  /** The id of the chat */
-  id: string;
 };
 
-export function useChat({
+export function useChat<MESSAGE_METADATA>({
   api = '/api/chat',
   id,
   initialMessages,
@@ -131,8 +126,7 @@ export function useChat({
   onToolCall,
   experimental_prepareRequestBody,
   maxSteps = 1,
-  streamProtocol = 'data',
-  onResponse,
+  streamProtocol = 'ui-message',
   onFinish,
   onError,
   credentials,
@@ -141,23 +135,20 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   experimental_throttle: throttleWaitMs,
-  ...options
-}: UseChatOptions & {
-  key?: string;
-
+  messageMetadataSchema,
+}: UseChatOptions<MESSAGE_METADATA> & {
   /**
    * Experimental (React only). When a function is provided, it will be used
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
    *
+   * @param id The id of the chat.
    * @param messages The current messages in the chat.
-   * @param requestData The data object passed in the chat request.
    * @param requestBody The request body object passed in the chat request.
    */
   experimental_prepareRequestBody?: (options: {
     id: string;
-    messages: UIMessage[];
-    requestData?: JSONValue;
+    messages: UIMessage<MESSAGE_METADATA>[];
     requestBody?: object;
   }) => unknown;
 
@@ -166,16 +157,7 @@ Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-
-  '~internal'?: {
-    currentDate?: () => Date;
-  };
-} = {}): UseChatHelpers {
-  // allow overriding the current date for testing purposes:
-  const getCurrentDate = useCallback(() => {
-    return options['~internal']?.currentDate?.() ?? new Date();
-  }, [options]);
-
+} = {}): UseChatHelpers<MESSAGE_METADATA> {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -191,28 +173,17 @@ Default is undefined, which disables throttling.
   );
 
   // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data: messages, mutate } = useSWR<UIMessage[]>(
+  const { data: messages, mutate } = useSWR<UIMessage<MESSAGE_METADATA>[]>(
     [chatKey, 'messages'],
     null,
     { fallbackData: processedInitialMessages },
   );
 
   // Keep the latest messages in a ref.
-  const messagesRef = useRef<UIMessage[]>(messages || []);
+  const messagesRef = useRef<UIMessage<MESSAGE_METADATA>[]>(messages || []);
   useEffect(() => {
     messagesRef.current = messages || [];
   }, [messages]);
-
-  // stream data
-  const { data: streamData, mutate: mutateStreamData } = useSWR<
-    JSONValue[] | undefined
-  >([chatKey, 'streamData'], null);
-
-  // keep the latest stream data in a ref
-  const streamDataRef = useRef<JSONValue[] | undefined>(streamData);
-  useEffect(() => {
-    streamDataRef.current = streamData;
-  }, [streamData]);
 
   const { data: status = 'ready', mutate: mutateStatus } = useSWR<
     'submitted' | 'streaming' | 'ready' | 'error'
@@ -241,11 +212,8 @@ Default is undefined, which disables throttling.
 
   const triggerRequest = useCallback(
     async (
-      chatRequest: {
-        headers?: Record<string, string> | Headers;
-        body?: object;
-        messages: UIMessage[];
-        data?: JSONValue;
+      chatRequest: ChatRequestOptions & {
+        messages: UIMessage<MESSAGE_METADATA>[];
       },
       requestType: 'generate' | 'resume' = 'generate',
     ) => {
@@ -264,27 +232,19 @@ Default is undefined, which disables throttling.
         abortControllerRef.current = abortController;
 
         const throttledMutate = throttle(mutate, throttleWaitMs);
-        const throttledMutateStreamData = throttle(
-          mutateStreamData,
-          throttleWaitMs,
-        );
 
         // Do an optimistic update to show the updated messages immediately:
         throttledMutate(chatMessages, false);
-
-        const existingData = streamDataRef.current;
 
         await callChatApi({
           api,
           body: experimental_prepareRequestBody?.({
             id: chatId,
             messages: chatMessages,
-            requestData: chatRequest.data,
             requestBody: chatRequest.body,
           }) ?? {
             id: chatId,
             messages: chatMessages,
-            data: chatRequest.data,
             ...extraMetadataRef.current.body,
             ...chatRequest.body,
           },
@@ -295,9 +255,11 @@ Default is undefined, which disables throttling.
             ...chatRequest.headers,
           },
           abortController: () => abortControllerRef.current,
-          onResponse,
-          onUpdate({ message, data, replaceLastMessage }) {
+          onUpdate({ message }) {
             mutateStatus('streaming');
+
+            const replaceLastMessage =
+              message.id === chatMessages[chatMessages.length - 1].id;
 
             throttledMutate(
               [
@@ -308,21 +270,14 @@ Default is undefined, which disables throttling.
               ],
               false,
             );
-
-            if (data?.length) {
-              throttledMutateStreamData(
-                [...(existingData ?? []), ...data],
-                false,
-              );
-            }
           },
           onToolCall,
           onFinish,
           generateId,
           fetch,
           lastMessage: chatMessages[chatMessages.length - 1],
-          getCurrentDate,
           requestType,
+          messageMetadataSchema,
         });
 
         abortControllerRef.current = null;
@@ -363,12 +318,9 @@ Default is undefined, which disables throttling.
       mutateStatus,
       api,
       extraMetadataRef,
-      onResponse,
       onFinish,
       onError,
       setError,
-      mutateStreamData,
-      streamDataRef,
       streamProtocol,
       experimental_prepareRequestBody,
       onToolCall,
@@ -379,30 +331,29 @@ Default is undefined, which disables throttling.
       fetch,
       throttleWaitMs,
       chatId,
-      getCurrentDate,
+      messageMetadataSchema,
     ],
   );
 
   const append = useCallback(
-    (
-      message: UIMessage | CreateUIMessage,
-      { data, headers, body }: ChatRequestOptions = {},
-    ) =>
-      triggerRequest({
+    async (
+      message: CreateUIMessage<MESSAGE_METADATA>,
+      { headers, body }: ChatRequestOptions = {},
+    ) => {
+      await triggerRequest({
         messages: messagesRef.current.concat({
           ...message,
           id: message.id ?? generateId(),
-          createdAt: message.createdAt ?? getCurrentDate(),
         }),
         headers,
         body,
-        data,
-      }),
-    [triggerRequest, generateId, getCurrentDate],
+      });
+    },
+    [triggerRequest, generateId],
   );
 
   const reload = useCallback(
-    async ({ data, headers, body }: ChatRequestOptions = {}) => {
+    async ({ headers, body }: ChatRequestOptions = {}) => {
       const messages = messagesRef.current;
 
       if (messages.length === 0) {
@@ -416,7 +367,6 @@ Default is undefined, which disables throttling.
           lastMessage.role === 'assistant' ? messages.slice(0, -1) : messages,
         headers,
         body,
-        data,
       });
     },
     [triggerRequest],
@@ -436,7 +386,13 @@ Default is undefined, which disables throttling.
   }, [triggerRequest]);
 
   const setMessages = useCallback(
-    (messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => {
+    (
+      messages:
+        | UIMessage<MESSAGE_METADATA>[]
+        | ((
+            messages: UIMessage<MESSAGE_METADATA>[],
+          ) => UIMessage<MESSAGE_METADATA>[]),
+    ) => {
       if (typeof messages === 'function') {
         messages = messages(messagesRef.current);
       }
@@ -445,23 +401,6 @@ Default is undefined, which disables throttling.
       messagesRef.current = messages;
     },
     [mutate],
-  );
-
-  const setData = useCallback(
-    (
-      data:
-        | JSONValue[]
-        | undefined
-        | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-    ) => {
-      if (typeof data === 'function') {
-        data = data(streamDataRef.current);
-      }
-
-      mutateStreamData(data, false);
-      streamDataRef.current = data;
-    },
-    [mutateStreamData],
   );
 
   // Input state and handlers.
@@ -477,7 +416,11 @@ Default is undefined, which disables throttling.
     ) => {
       event?.preventDefault?.();
 
-      if (!input && !options.allowEmptySubmit) return;
+      const fileParts = Array.isArray(options?.files)
+        ? options.files
+        : await convertFileListToFileUIParts(options?.files);
+
+      if (!input && fileParts.length === 0) return;
 
       if (metadata) {
         extraMetadataRef.current = {
@@ -486,25 +429,20 @@ Default is undefined, which disables throttling.
         };
       }
 
-      const fileParts = Array.isArray(options?.files)
-        ? options.files
-        : await convertFileListToFileUIParts(options?.files);
-
       triggerRequest({
         messages: messagesRef.current.concat({
           id: generateId(),
-          createdAt: getCurrentDate(),
           role: 'user',
+          metadata: undefined,
           parts: [...fileParts, { type: 'text', text: input }],
         }),
         headers: options.headers,
         body: options.body,
-        data: options.data,
       });
 
       setInput('');
     },
-    [input, generateId, triggerRequest, getCurrentDate],
+    [input, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {
@@ -553,8 +491,6 @@ Default is undefined, which disables throttling.
     messages: messages ?? [],
     id: chatId,
     setMessages,
-    data: streamData,
-    setData,
     error,
     append,
     reload,
@@ -564,7 +500,6 @@ Default is undefined, which disables throttling.
     setInput,
     handleInputChange,
     handleSubmit,
-    isLoading: status === 'submitted' || status === 'streaming',
     status,
     addToolResult,
   };

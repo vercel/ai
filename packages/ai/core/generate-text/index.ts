@@ -17,7 +17,7 @@ export type {
   StreamTextTransform,
 } from './stream-text';
 export type {
-  DataStreamOptions,
+  UIMessageStreamOptions,
   StreamTextResult,
   TextStreamPart,
 } from './stream-text-result';

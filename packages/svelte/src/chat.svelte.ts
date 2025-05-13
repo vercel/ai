@@ -10,7 +10,6 @@ import {
   updateToolCallResult,
   type ChatRequestOptions,
   type CreateUIMessage,
-  type JSONValue,
   type UIMessage,
   type UseChatOptions,
 } from 'ai';
@@ -21,42 +20,33 @@ import {
   hasChatContext,
 } from './chat-context.svelte.js';
 
-export type ChatOptions = Readonly<
-  UseChatOptions & {
-    '~internal'?: {
-      currentDate?: () => Date;
-    };
-  }
+export type ChatOptions<MESSAGE_METADATA = unknown> = Readonly<
+  UseChatOptions<MESSAGE_METADATA>
 >;
 
 export type { CreateUIMessage, UIMessage };
 
-export class Chat {
-  readonly #options: ChatOptions = {};
+export class Chat<MESSAGE_METADATA = unknown> {
+  readonly #options: ChatOptions<MESSAGE_METADATA> = {};
   readonly #api = $derived(this.#options.api ?? '/api/chat');
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
   readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
-  readonly #streamProtocol = $derived(this.#options.streamProtocol ?? 'data');
-  readonly #keyedStore = $state<KeyedChatStore>()!;
+  readonly #streamProtocol = $derived(
+    this.#options.streamProtocol ?? 'ui-message',
+  );
+  readonly #keyedStore = $state<KeyedChatStore<MESSAGE_METADATA>>()!;
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
    */
   readonly id = $derived(this.#options.id ?? this.#generateId());
   readonly #store = $derived(this.#keyedStore.get(this.id));
-  #abortController: AbortController | undefined;
 
-  /**
-   * Additional data added on the server via StreamData.
-   *
-   * This is writable, so you can use it to transform or clear the chat data.
-   */
-  get data() {
-    return this.#store.data;
-  }
-  set data(value: JSONValue[] | undefined) {
-    this.#store.data = value;
-  }
+  readonly #messageMetadataSchema = $derived(
+    this.#options.messageMetadataSchema,
+  );
+
+  #abortController: AbortController | undefined;
 
   /**
    * Hook status:
@@ -84,22 +74,18 @@ export class Chat {
    * This is writable, which is useful when you want to edit the messages on the client, and then
    * trigger {@link reload} to regenerate the AI response.
    */
-  get messages(): UIMessage[] {
+  get messages(): UIMessage<MESSAGE_METADATA>[] {
     return this.#store.messages;
   }
-  set messages(value: UIMessage[]) {
+  set messages(value: UIMessage<MESSAGE_METADATA>[]) {
     untrack(() => (this.#store.messages = value));
   }
 
-  private currentDate = $derived(
-    this.#options['~internal']?.currentDate ?? (() => new Date()),
-  );
-
-  constructor(options: ChatOptions = {}) {
+  constructor(options: ChatOptions<MESSAGE_METADATA> = {}) {
     if (hasChatContext()) {
-      this.#keyedStore = getChatContext();
+      this.#keyedStore = getChatContext() as KeyedChatStore<MESSAGE_METADATA>;
     } else {
-      this.#keyedStore = new KeyedChatStore();
+      this.#keyedStore = new KeyedChatStore<MESSAGE_METADATA>();
     }
 
     this.#options = options;
@@ -114,17 +100,15 @@ export class Chat {
    * @param options Additional options to pass to the API call
    */
   append = async (
-    message: UIMessage | CreateUIMessage,
-    { data, headers, body }: ChatRequestOptions = {},
+    message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
+    { headers, body }: ChatRequestOptions = {},
   ) => {
     const messages = this.messages.concat({
       ...message,
       id: message.id ?? this.#generateId(),
-      createdAt: message.createdAt ?? this.currentDate(),
-      parts: message.parts,
     });
 
-    return this.#triggerRequest({ messages, headers, body, data });
+    return this.#triggerRequest({ messages, headers, body });
   };
 
   /**
@@ -132,7 +116,7 @@ export class Chat {
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload = async ({ data, headers, body }: ChatRequestOptions = {}) => {
+  reload = async ({ headers, body }: ChatRequestOptions = {}) => {
     if (this.messages.length === 0) {
       return;
     }
@@ -145,7 +129,6 @@ export class Chat {
           : this.messages,
       headers,
       body,
-      data,
     });
   };
 
@@ -169,32 +152,25 @@ export class Chat {
     options: ChatRequestOptions & { files?: FileList } = {},
   ) => {
     event?.preventDefault?.();
-    if (!this.input && !options.allowEmptySubmit) return;
 
     const fileParts = Array.isArray(options?.files)
       ? options.files
       : await convertFileListToFileUIParts(options?.files);
 
+    if (!this.input && fileParts.length === 0) return;
+
     const messages = this.messages.concat({
       id: this.#generateId(),
-      createdAt: this.currentDate(),
       role: 'user',
       parts: [...fileParts, { type: 'text', text: this.input }],
     });
 
-    const chatRequest: {
-      headers?: Record<string, string> | Headers;
-      body?: object;
-      messages: UIMessage[];
-      data?: JSONValue;
-    } = {
+    const request = this.#triggerRequest({
       messages,
       headers: options.headers,
       body: options.body,
-      data: options.data,
-    };
+    });
 
-    const request = this.#triggerRequest(chatRequest);
     this.input = '';
     await request;
   };
@@ -226,12 +202,11 @@ export class Chat {
     }
   };
 
-  #triggerRequest = async (chatRequest: {
-    headers?: Record<string, string> | Headers;
-    body?: object;
-    messages: UIMessage[];
-    data?: JSONValue;
-  }) => {
+  #triggerRequest = async (
+    chatRequest: ChatRequestOptions & {
+      messages: UIMessage<MESSAGE_METADATA>[];
+    },
+  ) => {
     this.#store.status = 'submitted';
     this.#store.error = undefined;
 
@@ -248,13 +223,11 @@ export class Chat {
       // Optimistically update messages
       this.messages = messages;
 
-      const existingData = this.data ?? [];
       await callChatApi({
         api: this.#api,
         body: {
           id: this.id,
           messages,
-          data: chatRequest.data,
           ...$state.snapshot(this.#options.body),
           ...chatRequest.body,
         },
@@ -265,9 +238,11 @@ export class Chat {
           ...chatRequest.headers,
         },
         abortController: () => abortController,
-        onResponse: this.#options.onResponse,
-        onUpdate: ({ message, data, replaceLastMessage }) => {
+        onUpdate: ({ message }) => {
           this.#store.status = 'streaming';
+
+          const replaceLastMessage =
+            message.id === messages[messages.length - 1].id;
 
           this.messages = messages;
           if (replaceLastMessage) {
@@ -275,19 +250,16 @@ export class Chat {
           } else {
             this.messages.push(message);
           }
-
-          if (data?.length) {
-            this.data = existingData;
-            this.data.push(...data);
-          }
         },
         onToolCall: this.#options.onToolCall,
         onFinish: this.#options.onFinish,
         generateId: this.#generateId,
-        getCurrentDate: this.currentDate,
         fetch: this.#options.fetch,
         // callChatApi calls structuredClone on the message
-        lastMessage: $state.snapshot(this.messages[this.messages.length - 1]),
+        lastMessage: $state.snapshot(
+          this.messages[this.messages.length - 1],
+        ) as UIMessage<MESSAGE_METADATA>,
+        messageMetadataSchema: this.#messageMetadataSchema,
       });
 
       this.#abortController = undefined;

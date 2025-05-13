@@ -7,25 +7,23 @@ import { toResponseMessages } from './to-response-messages';
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
     const result = toResponseMessages({
-      text: 'Hello, world!',
-      files: [],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'Hello, world!',
+        },
+      ],
       tools: {
         testTool: {
           description: 'A test tool',
           parameters: z.object({}),
         },
       },
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [{ type: 'text', text: 'Hello, world!' }],
       },
     ]);
@@ -33,16 +31,11 @@ describe('toResponseMessages', () => {
 
   it('should include tool calls in the assistant message', () => {
     const result = toResponseMessages({
-      text: 'Using a tool',
-      files: [],
-      reasoning: [],
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
+      content: [
+        {
+          type: 'text',
+          text: 'Using a tool',
         },
-      },
-      toolCalls: [
         {
           type: 'tool-call',
           toolCallId: '123',
@@ -50,15 +43,17 @@ describe('toResponseMessages', () => {
           args: {},
         },
       ],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+        },
+      },
     });
 
     expect(result).toEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
           { type: 'text', text: 'Using a tool' },
           {
@@ -74,25 +69,17 @@ describe('toResponseMessages', () => {
 
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
-      text: 'Tool used',
-      files: [],
-      reasoning: [],
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
-          execute: async () => 'Tool result',
+      content: [
+        {
+          type: 'text',
+          text: 'Tool used',
         },
-      },
-      toolCalls: [
         {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
           args: {},
         },
-      ],
-      toolResults: [
         {
           type: 'tool-result',
           toolCallId: '123',
@@ -101,14 +88,18 @@ describe('toResponseMessages', () => {
           args: {},
         },
       ],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+          execute: async () => 'Tool result',
+        },
+      },
     });
 
     expect(result).toEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
           { type: 'text', text: 'Tool used' },
           {
@@ -121,7 +112,6 @@ describe('toResponseMessages', () => {
       },
       {
         role: 'tool',
-        id: 'msg-345',
         content: [
           {
             type: 'tool-result',
@@ -136,13 +126,11 @@ describe('toResponseMessages', () => {
 
   it('should handle undefined text', () => {
     const result = toResponseMessages({
-      text: undefined,
-      files: [],
-      reasoning: [
+      content: [
         {
           type: 'reasoning',
           text: 'Thinking text',
-          providerOptions: {
+          providerMetadata: {
             testProvider: {
               signature: 'sig',
             },
@@ -150,10 +138,6 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -170,7 +154,6 @@ describe('toResponseMessages', () => {
               "type": "reasoning",
             },
           ],
-          "id": "msg-123",
           "role": "assistant",
         },
       ]
@@ -179,29 +162,27 @@ describe('toResponseMessages', () => {
 
   it('should include reasoning array with redacted reasoning in the assistant message', () => {
     const result = toResponseMessages({
-      text: 'Final text',
-      files: [],
-      reasoning: [
+      content: [
         {
           type: 'reasoning',
           text: 'redacted-data',
-          providerOptions: {
+          providerMetadata: {
             testProvider: { isRedacted: true },
           },
         },
         {
           type: 'reasoning',
           text: 'Thinking text',
-          providerOptions: {
+          providerMetadata: {
             testProvider: { signature: 'sig' },
           },
         },
+        {
+          type: 'text',
+          text: 'Final text',
+        },
       ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -231,7 +212,6 @@ describe('toResponseMessages', () => {
               "type": "text",
             },
           ],
-          "id": "msg-123",
           "role": "assistant",
         },
       ]
@@ -240,9 +220,25 @@ describe('toResponseMessages', () => {
 
   it('should handle multipart tool results', () => {
     const result = toResponseMessages({
-      text: 'multipart tool result',
-      files: [],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'multipart tool result',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          args: {},
+        },
+        {
+          type: 'tool-result',
+          toolCallId: '123',
+          toolName: 'testTool',
+          result: 'image-base64',
+          args: {},
+        },
+      ],
       tools: {
         testTool: tool({
           description: 'A test tool',
@@ -253,59 +249,51 @@ describe('toResponseMessages', () => {
           },
         }),
       },
-      toolCalls: [
-        {
-          type: 'tool-call',
-          toolCallId: '123',
-          toolName: 'testTool',
-          args: {},
-        },
-      ],
-      toolResults: [
-        {
-          type: 'tool-result',
-          toolCallId: '123',
-          toolName: 'testTool',
-          args: {},
-          result: 'image-base64',
-        },
-      ],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          { type: 'text', text: 'multipart tool result' },
-          {
-            type: 'tool-call',
-            toolCallId: '123',
-            toolName: 'testTool',
-            args: {},
-          },
-        ],
-        id: 'msg-123',
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: '123',
-            toolName: 'testTool',
-            result: [
-              { type: 'image', data: 'image-base64', mediaType: 'image/png' },
-            ],
-            experimental_content: [
-              { type: 'image', data: 'image-base64', mediaType: 'image/png' },
-            ],
-          },
-        ],
-        id: 'msg-345',
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "multipart tool result",
+              "type": "text",
+            },
+            {
+              "args": {},
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "experimental_content": [
+                {
+                  "data": "image-base64",
+                  "mediaType": "image/png",
+                  "type": "image",
+                },
+              ],
+              "result": [
+                {
+                  "data": "image-base64",
+                  "mediaType": "image/png",
+                  "type": "image",
+                },
+              ],
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 
   it('should include images in the assistant message', () => {
@@ -315,23 +303,22 @@ describe('toResponseMessages', () => {
     });
 
     const result = toResponseMessages({
-      text: 'Here is an image',
-      files: [pngFile],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'Here is an image',
+        },
+        { type: 'file', file: pngFile },
+      ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
+    expect(result).toStrictEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
           { type: 'text', text: 'Here is an image' },
+          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
         ],
       },
     ]);
@@ -348,28 +335,28 @@ describe('toResponseMessages', () => {
     });
 
     const result = toResponseMessages({
-      text: 'Here are multiple images',
-      files: [pngFile, jpegFile],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'Here are multiple images',
+        },
+        { type: 'file', file: pngFile },
+        { type: 'file', file: jpegFile },
+      ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
+    expect(result).toStrictEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
+          { type: 'text', text: 'Here are multiple images' },
           { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
           {
             type: 'file',
             data: jpegFile.base64,
             mediaType: jpegFile.mediaType,
           },
-          { type: 'text', text: 'Here are multiple images' },
         ],
       },
     ]);
@@ -382,23 +369,22 @@ describe('toResponseMessages', () => {
     });
 
     const result = toResponseMessages({
-      text: 'Here is a binary image',
-      files: [pngFile],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'Here is a binary image',
+        },
+        { type: 'file', file: pngFile },
+      ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
+    expect(result).toStrictEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
           { type: 'text', text: 'Here is a binary image' },
+          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
         ],
       },
     ]);
@@ -411,13 +397,22 @@ describe('toResponseMessages', () => {
     });
 
     const result = toResponseMessages({
-      text: 'Combined response',
-      files: [pngFile],
-      reasoning: [
+      content: [
         {
           type: 'reasoning',
           text: 'Thinking text',
-          providerOptions: { testProvider: { signature: 'sig' } },
+          providerMetadata: { testProvider: { signature: 'sig' } },
+        },
+        { type: 'file', file: pngFile },
+        {
+          type: 'text',
+          text: 'Combined response',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          args: {},
         },
       ],
       tools: {
@@ -426,17 +421,6 @@ describe('toResponseMessages', () => {
           parameters: z.object({}),
         },
       },
-      toolCalls: [
-        {
-          type: 'tool-call',
-          toolCallId: '123',
-          toolName: 'testTool',
-          args: {},
-        },
-      ],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -468,7 +452,6 @@ describe('toResponseMessages', () => {
               "type": "tool-call",
             },
           ],
-          "id": "msg-123",
           "role": "assistant",
         },
       ]
@@ -477,16 +460,11 @@ describe('toResponseMessages', () => {
 
   it('should not append text parts if text is empty string', () => {
     const result = toResponseMessages({
-      text: '',
-      files: [],
-      reasoning: [],
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
+      content: [
+        {
+          type: 'text',
+          text: '',
         },
-      },
-      toolCalls: [
         {
           type: 'tool-call',
           toolCallId: '123',
@@ -494,37 +472,35 @@ describe('toResponseMessages', () => {
           args: {},
         },
       ],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+        },
+      },
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        id: 'msg-123',
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: '123',
-            toolName: 'testTool',
-            args: {},
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "args": {},
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should not append assistant message if there is no content', () => {
     const result = toResponseMessages({
-      text: '',
-      files: [],
-      reasoning: [],
+      content: [],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toEqual([]);

@@ -18,13 +18,13 @@ import {
 } from 'ai';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
-import { computed, ref, unref } from 'vue';
+import { ref, unref } from 'vue';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
-export type UseChatHelpers = {
+export type UseChatHelpers<MESSAGE_METADATA> = {
   /** Current messages in the chat */
-  messages: Ref<UIMessage[]>;
+  messages: Ref<UIMessage<MESSAGE_METADATA>[]>;
   /** The error object of the API request */
   error: Ref<undefined | Error>;
   /**
@@ -32,7 +32,7 @@ export type UseChatHelpers = {
    * the assistant's response.
    */
   append: (
-    message: UIMessage | CreateUIMessage,
+    message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
@@ -53,7 +53,11 @@ export type UseChatHelpers = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
+    messages:
+      | UIMessage<MESSAGE_METADATA>[]
+      | ((
+          messages: UIMessage<MESSAGE_METADATA>[],
+        ) => UIMessage<MESSAGE_METADATA>[]),
   ) => void;
   /** The current value of the input */
   input: Ref<string>;
@@ -66,13 +70,6 @@ export type UseChatHelpers = {
   ) => void;
 
   /**
-   * Whether the API request is in progress
-   *
-   * @deprecated use `status` instead
-   */
-  isLoading: Ref<boolean>;
-
-  /**
    * Hook status:
    *
    * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
@@ -81,16 +78,6 @@ export type UseChatHelpers = {
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
   status: Ref<'submitted' | 'streaming' | 'ready' | 'error'>;
-
-  /** Additional data added on the server via StreamData. */
-  data: Ref<JSONValue[] | undefined>;
-  /** Set the data of the chat. You can use this to transform or clear the chat data. */
-  setData: (
-    data:
-      | JSONValue[]
-      | undefined
-      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-  ) => void;
 
   addToolResult: ({
     toolCallId,
@@ -106,16 +93,19 @@ export type UseChatHelpers = {
 
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
-const store: Record<string, UIMessage[] | undefined> = {};
+const store: Record<string, UIMessage<any>[] | undefined> = {};
+const statusStore: Record<
+  string,
+  Ref<'submitted' | 'streaming' | 'ready' | 'error'>
+> = {};
 
-export function useChat(
+export function useChat<MESSAGE_METADATA = unknown>(
   {
     api = '/api/chat',
     id,
     initialMessages = [],
     initialInput = '',
-    streamProtocol = 'data',
-    onResponse,
+    streamProtocol = 'ui-message',
     onFinish,
     onError,
     credentials,
@@ -126,8 +116,8 @@ export function useChat(
     fetch,
     maxSteps = 1,
     experimental_prepareRequestBody,
-    ...options
-  }: UseChatOptions & {
+    messageMetadataSchema,
+  }: UseChatOptions<MESSAGE_METADATA> & {
     /**
      * Experimental (Vue only). When a function is provided, it will be used
      * to prepare the request body for the chat API. This can be useful for
@@ -140,60 +130,49 @@ export function useChat(
      */
     experimental_prepareRequestBody?: (options: {
       id: string;
-      messages: UIMessage[];
+      messages: UIMessage<MESSAGE_METADATA>[];
       requestData?: JSONValue;
       requestBody?: object;
     }) => unknown;
-
-    '~internal'?: {
-      currentDate?: () => Date;
-    };
   } = {
     maxSteps: 1,
   },
-): UseChatHelpers {
-  // allow overriding the current date for testing purposes:
-  const getCurrentDate = () =>
-    options['~internal']?.currentDate?.() ?? new Date();
-
+): UseChatHelpers<MESSAGE_METADATA> {
   // Generate a unique ID for the chat if not provided.
   const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
-  const { data: messagesData, mutate: originalMutate } = useSWRV<UIMessage[]>(
-    key,
-    () => store[key] ?? initialMessages,
-  );
+  const { data: messagesData, mutate: originalMutate } = useSWRV<
+    UIMessage<MESSAGE_METADATA>[]
+  >(key, () => store[key] ?? initialMessages);
 
-  const { data: status, mutate: mutateStatus } = useSWRV<
-    'submitted' | 'streaming' | 'ready' | 'error'
-  >(`${chatId}-status`, null);
-
-  status.value ??= 'ready';
+  const status =
+    statusStore[chatId] ??
+    (statusStore[chatId] = ref<'submitted' | 'streaming' | 'ready' | 'error'>(
+      'ready',
+    ));
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   messagesData.value ??= initialMessages;
 
-  const mutate = (data?: UIMessage[]) => {
+  const mutate = (data?: UIMessage<MESSAGE_METADATA>[]) => {
     store[key] = data;
     return originalMutate();
   };
 
   // Because of the `initialData` option, the `data` will never be `undefined`.
-  const messages = messagesData as Ref<UIMessage[]>;
+  const messages = messagesData as Ref<UIMessage<MESSAGE_METADATA>[]>;
 
   const error = ref<undefined | Error>(undefined);
-  // cannot use JSONValue[] in ref because of infinite Typescript recursion:
-  const streamData = ref<undefined | unknown[]>(undefined);
 
   let abortController: AbortController | null = null;
 
   async function triggerRequest(
-    messagesSnapshot: UIMessage[],
-    { data, headers, body }: ChatRequestOptions = {},
+    messagesSnapshot: UIMessage<MESSAGE_METADATA>[],
+    { headers, body }: ChatRequestOptions = {},
   ) {
     error.value = undefined;
-    mutateStatus(() => 'submitted');
+    status.value = 'submitted';
 
     const messageCount = messages.value.length;
     const lastMessage = messages.value.at(-1);
@@ -208,19 +187,15 @@ export function useChat(
       // Do an optimistic update to show the updated messages immediately:
       mutate(messagesSnapshot);
 
-      const existingData = (streamData.value ?? []) as JSONValue[];
-
       await callChatApi({
         api,
         body: experimental_prepareRequestBody?.({
           id: chatId,
           messages: messagesSnapshot,
-          requestData: data,
           requestBody: body,
         }) ?? {
           id: chatId,
           messages: messagesSnapshot,
-          data,
           ...unref(metadataBody), // Use unref to unwrap the ref value
           ...body,
         },
@@ -231,9 +206,11 @@ export function useChat(
         },
         abortController: () => abortController,
         credentials,
-        onResponse,
-        onUpdate({ message, data, replaceLastMessage }) {
-          mutateStatus(() => 'streaming');
+        onUpdate({ message }) {
+          status.value = 'streaming';
+
+          const replaceLastMessage =
+            message.id === messagesSnapshot[messagesSnapshot.length - 1].id;
 
           mutate([
             ...(replaceLastMessage
@@ -241,9 +218,6 @@ export function useChat(
               : messagesSnapshot),
             message,
           ]);
-          if (data?.length) {
-            streamData.value = [...existingData, ...data];
-          }
         },
         onFinish,
         generateId,
@@ -253,15 +227,15 @@ export function useChat(
         lastMessage: recursiveToRaw(
           messagesSnapshot[messagesSnapshot.length - 1],
         ),
-        getCurrentDate,
+        messageMetadataSchema,
       });
 
-      mutateStatus(() => 'ready');
+      status.value = 'ready';
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
         abortController = null;
-        mutateStatus(() => 'ready');
+        status.value = 'ready';
         return null;
       }
 
@@ -270,7 +244,7 @@ export function useChat(
       }
 
       error.value = err as Error;
-      mutateStatus(() => 'error');
+      status.value = 'error';
     } finally {
       abortController = null;
     }
@@ -288,19 +262,21 @@ export function useChat(
     }
   }
 
-  const append: UseChatHelpers['append'] = async (message, options) => {
+  const append: UseChatHelpers<MESSAGE_METADATA>['append'] = async (
+    message,
+    options,
+  ) => {
     return triggerRequest(
       messages.value.concat({
         ...message,
         id: message.id ?? generateId(),
-        createdAt: message.createdAt ?? getCurrentDate(),
         parts: message.parts,
       }),
       options,
     );
   };
 
-  const reload: UseChatHelpers['reload'] = async options => {
+  const reload: UseChatHelpers<MESSAGE_METADATA>['reload'] = async options => {
     const messagesSnapshot = messages.value;
     if (messagesSnapshot.length === 0) return null;
 
@@ -320,26 +296,17 @@ export function useChat(
   };
 
   const setMessages = (
-    messagesArg: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
+    messagesArg:
+      | UIMessage<MESSAGE_METADATA>[]
+      | ((
+          messages: UIMessage<MESSAGE_METADATA>[],
+        ) => UIMessage<MESSAGE_METADATA>[]),
   ) => {
     if (typeof messagesArg === 'function') {
       messagesArg = messagesArg(messages.value);
     }
 
     mutate(messagesArg);
-  };
-
-  const setData = (
-    dataArg:
-      | JSONValue[]
-      | undefined
-      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-  ) => {
-    if (typeof dataArg === 'function') {
-      dataArg = dataArg(streamData.value as JSONValue[] | undefined);
-    }
-
-    streamData.value = dataArg;
   };
 
   const input = ref(initialInput);
@@ -352,16 +319,15 @@ export function useChat(
 
     const inputValue = input.value;
 
-    if (!inputValue && !options.allowEmptySubmit) return;
-
     const fileParts = Array.isArray(options?.files)
       ? options.files
       : await convertFileListToFileUIParts(options?.files);
 
+    if (!inputValue && fileParts.length === 0) return;
+
     triggerRequest(
       messages.value.concat({
         id: generateId(),
-        createdAt: getCurrentDate(),
         role: 'user',
         parts: [...fileParts, { type: 'text', text: inputValue }],
       }),
@@ -410,12 +376,7 @@ export function useChat(
     setMessages,
     input,
     handleSubmit,
-    isLoading: computed(
-      () => status.value === 'submitted' || status.value === 'streaming',
-    ),
     status: status as Ref<'submitted' | 'streaming' | 'ready' | 'error'>,
-    data: streamData as Ref<undefined | JSONValue[]>,
-    setData,
     addToolResult,
   };
 }

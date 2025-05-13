@@ -6,9 +6,6 @@ import { useChat } from './use-chat';
 const { messages, append, reload } = useChat({
   id: generateId(),
   generateId: mockId(),
-  '~internal': {
-    currentDate: mockValues(new Date('2025-01-01')),
-  },
 });
 </script>
 
@@ -39,7 +36,6 @@ const { messages, append, reload } = useChat({
       data-testid="do-reload"
       @click="
         reload({
-          data: { 'test-data-key': 'test-data-value' },
           body: { 'request-body-key': 'request-body-value' },
           headers: { 'header-key': 'header-value' },
         })

@@ -1,11 +1,16 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
+<<<<<<< HEAD
 import { StandardSchemaV1 } from '@standard-schema/spec';
 import {
   createEventSourceParserStream,
   EventSourceChunk,
 } from './event-source-parser-stream';
+=======
+import { ZodSchema } from 'zod';
+>>>>>>> @{-1}
 import { extractResponseHeaders } from './extract-response-headers';
 import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
+import { parseJsonEventStream } from './parse-json-event-stream';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -87,37 +92,21 @@ export const createEventSourceResponseHandler =
   <T>(
     chunkSchema: ZodSchema<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
-    async ({ response }: { response: Response }) => {
-      const responseHeaders = extractResponseHeaders(response);
+  async ({ response }: { response: Response }) => {
+    const responseHeaders = extractResponseHeaders(response);
 
-      if (response.body == null) {
-        throw new EmptyResponseBodyError({});
-      }
+    if (response.body == null) {
+      throw new EmptyResponseBodyError({});
+    }
 
-      return {
-        responseHeaders,
-        value: response.body
-          .pipeThrough(new TextDecoderStream())
-          .pipeThrough(createEventSourceParserStream())
-          .pipeThrough(
-            new TransformStream<EventSourceChunk, ParseResult<T>>({
-              async transform({ data }, controller) {
-                // ignore the 'DONE' event that e.g. OpenAI sends:
-                if (data === '[DONE]') {
-                  return;
-                }
-
-                controller.enqueue(
-                  await safeParseJSON({
-                    text: data,
-                    schema: chunkSchema,
-                  }),
-                );
-              },
-            }),
-          ),
-      };
+    return {
+      responseHeaders,
+      value: parseJsonEventStream({
+        stream: response.body,
+        schema: chunkSchema,
+      }),
     };
+  };
 
 export const createJsonStreamResponseHandler =
   <T>(

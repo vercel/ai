@@ -45,7 +45,7 @@ async function main() {
         break;
       }
 
-      case 'step-finish': {
+      case 'finish-step': {
         console.log();
         console.log();
         console.log('STEP FINISH');
@@ -58,7 +58,7 @@ async function main() {
       case 'finish': {
         console.log('FINISH');
         console.log('Finish reason:', chunk.finishReason);
-        console.log('Usage:', chunk.usage);
+        console.log('Total Usage:', chunk.totalUsage);
         break;
       }
 

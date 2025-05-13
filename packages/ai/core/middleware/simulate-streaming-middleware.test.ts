@@ -166,9 +166,11 @@ describe('simulateStreamingMiddleware', () => {
       .toMatchInlineSnapshot(`
         [
           {
-            "messageId": "msg-3",
+            "type": "start",
+          },
+          {
             "request": {},
-            "type": "step-start",
+            "type": "start-step",
             "warnings": [],
           },
           {
@@ -190,17 +192,14 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
-            "isContinued": false,
-            "messageId": "msg-3",
             "providerMetadata": undefined,
-            "request": {},
             "response": {
               "headers": undefined,
-              "id": "id-7",
+              "id": "id-3",
               "modelId": "mock-model-id",
               "timestamp": 2025-01-01T00:00:00.000Z,
             },
-            "type": "step-finish",
+            "type": "finish-step",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokens": 5,
@@ -208,25 +207,17 @@ describe('simulateStreamingMiddleware', () => {
               "reasoningTokens": 3,
               "totalTokens": 18,
             },
-            "warnings": [],
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-7",
-              "modelId": "mock-model-id",
-              "timestamp": 2025-01-01T00:00:00.000Z,
-            },
-            "type": "finish",
-            "usage": {
+            "totalUsage": {
               "cachedInputTokens": undefined,
               "inputTokens": 5,
               "outputTokens": 10,
               "reasoningTokens": 3,
               "totalTokens": 18,
             },
+            "type": "finish",
           },
         ]
       `);

@@ -162,32 +162,6 @@ describe('defaultSettingsMiddleware', () => {
       expect(result.temperature).toBe(0);
     });
 
-    it("should reset the temperature to undefined if it's null", async () => {
-      const middleware = defaultSettingsMiddleware({
-        settings: { temperature: null },
-      });
-
-      const result = await middleware.transformParams!({
-        type: 'generate',
-        params: { ...BASE_PARAMS, temperature: 0.5 },
-      });
-
-      expect(result.temperature).toBe(undefined);
-    });
-
-    it('should use default temperature if param temperature is null', async () => {
-      const middleware = defaultSettingsMiddleware({
-        settings: { temperature: 0.7 },
-      });
-
-      const result = await middleware.transformParams!({
-        type: 'generate',
-        params: { ...BASE_PARAMS, temperature: undefined },
-      });
-
-      expect(result.temperature).toBe(0.7);
-    });
-
     it('should use default temperature if param temperature is undefined', async () => {
       const middleware = defaultSettingsMiddleware({
         settings: { temperature: 0.7 },
@@ -201,9 +175,22 @@ describe('defaultSettingsMiddleware', () => {
       expect(result.temperature).toBe(0.7);
     });
 
-    it('should use param temperature if default temperature is 0', async () => {
+    it('should not use default temperature if param temperature is null', async () => {
       const middleware = defaultSettingsMiddleware({
-        settings: { temperature: 0 },
+        settings: { temperature: 0.7 },
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: { ...BASE_PARAMS, temperature: null as any },
+      });
+
+      expect(result.temperature).toBe(null);
+    });
+
+    it('should use param temperature by default', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: { temperature: 0.7 },
       });
 
       const result = await middleware.transformParams!({
@@ -238,17 +225,6 @@ describe('defaultSettingsMiddleware', () => {
       expect(result.maxOutputTokens).toBe(50);
     });
 
-    it('should set maxOutputTokens to undefined if default is null', async () => {
-      const middleware = defaultSettingsMiddleware({
-        settings: { maxOutputTokens: null },
-      });
-      const result = await middleware.transformParams!({
-        type: 'generate',
-        params: { ...BASE_PARAMS, maxOutputTokens: 50 },
-      });
-      expect(result.maxOutputTokens).toBeUndefined();
-    });
-
     it('should apply default stopSequences', async () => {
       const middleware = defaultSettingsMiddleware({
         settings: { stopSequences: ['stop'] },
@@ -271,17 +247,6 @@ describe('defaultSettingsMiddleware', () => {
       expect(result.stopSequences).toEqual(['end']);
     });
 
-    it('should set stopSequences to undefined if default is null', async () => {
-      const middleware = defaultSettingsMiddleware({
-        settings: { stopSequences: null },
-      });
-      const result = await middleware.transformParams!({
-        type: 'generate',
-        params: { ...BASE_PARAMS, stopSequences: ['end'] },
-      });
-      expect(result.stopSequences).toBeUndefined();
-    });
-
     it('should apply default topP', async () => {
       const middleware = defaultSettingsMiddleware({ settings: { topP: 0.9 } });
       const result = await middleware.transformParams!({
@@ -298,17 +263,6 @@ describe('defaultSettingsMiddleware', () => {
         params: { ...BASE_PARAMS, topP: 0.5 },
       });
       expect(result.topP).toBe(0.5);
-    });
-
-    it('should set topP to undefined if default is null', async () => {
-      const middleware = defaultSettingsMiddleware({
-        settings: { topP: null },
-      });
-      const result = await middleware.transformParams!({
-        type: 'generate',
-        params: { ...BASE_PARAMS, topP: 0.5 },
-      });
-      expect(result.topP).toBeUndefined();
     });
   });
 

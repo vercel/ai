@@ -1,7 +1,6 @@
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
-  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
@@ -218,16 +217,14 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -251,17 +248,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -269,25 +263,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
@@ -324,16 +310,14 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -362,17 +346,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -380,25 +361,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
@@ -435,16 +408,14 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -461,17 +432,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -479,25 +447,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
@@ -537,7 +497,6 @@ describe('extractReasoningMiddleware', () => {
           }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       const resultFalse = streamText({
@@ -546,16 +505,14 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(await convertAsyncIterableToArray(resultTrue.fullStream))
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -576,17 +533,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -594,25 +548,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
@@ -621,9 +567,8 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -645,17 +590,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -663,25 +605,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);

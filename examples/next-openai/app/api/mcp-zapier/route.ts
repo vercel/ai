@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       maxSteps: 10,
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     return new Response('Internal Server Error', { status: 500 });
   }

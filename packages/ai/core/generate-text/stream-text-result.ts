@@ -1,5 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
+import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { ReasoningPart } from '../prompt/content-part';
 import {
@@ -13,25 +13,56 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
-import { ResponseMessage, StepResult } from './step-result';
+import { ResponseMessage } from './response-message';
+import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { UIMessage } from '../../src/ui/ui-messages';
 
-export type DataStreamOptions = {
+export type UIMessageStreamOptions = {
   /**
-   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   * Message ID that is sent to the client if a new message is created.
+   * This is intended to be used for the UI message,
+   * if the last original message is not an assistant message
+   * (in which case that message ID is used).
+   */
+  newMessageId?: string;
+
+  /**
+   * The original messages.
+   */
+  originalMessages?: UIMessage[];
+
+  onFinish?: (options: {
+    /**
+     * The updates list of UI messages.
+     */
+    messages: UIMessage[];
+
+    /**
+     * Indicates whether the response message is a continuation of the last original message,
+     * or if a new message was created.
+     */
+    isContinuation: boolean;
+
+    /**
+     * The message that was sent to the client as a response
+     * (including the original message if it was extended).
+     */
+    responseMessage: UIMessage;
+  }) => void;
+
+  /**
+   * Extracts message metadata that will be send to the client.
    *
-   * @return error message to include in the data stream.
+   * Called on `start` and `finish` events.
    */
-  onError?: (error: unknown) => string;
-
-  /**
-   * Send usage parts to the client.
-   * Default to true.
-   */
-  // TODO change default to false in v5: secure by default
-  sendUsage?: boolean;
+  messageMetadata?: (options: {
+    part: TextStreamPart<ToolSet> & {
+      type: 'start' | 'finish' | 'start-step' | 'finish-step';
+    };
+  }) => unknown;
 
   /**
    * Send reasoning parts to the client.
@@ -65,6 +96,13 @@ export type DataStreamOptions = {
    * the message start event from being sent multiple times.
    */
   experimental_sendStart?: boolean;
+
+  /**
+   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   *
+   * @return error message to include in the data stream.
+   */
+  onError?: (error: unknown) => string;
 };
 
 export type ConsumeStreamOptions = {
@@ -111,8 +149,7 @@ Resolved when the response is finished.
   readonly files: Promise<GeneratedFile[]>;
 
   /**
-Sources that have been used as input to generate the response.
-For multi-step generation, the sources are accumulated from all steps.
+Sources that have been used as references in the last step.
 
 Resolved when the response is finished.
    */
@@ -140,12 +177,19 @@ Resolved when the response is finished.
   readonly finishReason: Promise<FinishReason>;
 
   /**
+The token usage of the last step.
+
+Resolved when the response is finished.
+   */
+  readonly usage: Promise<LanguageModelUsage>;
+
+  /**
 The total token usage of the generated response.
 When there are multiple steps, the usage is the sum of all step usages.
 
 Resolved when the response is finished.
      */
-  readonly usage: Promise<LanguageModelUsage>;
+  readonly totalUsage: Promise<LanguageModelUsage>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
@@ -219,7 +263,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   consumeStream(options?: ConsumeStreamOptions): Promise<void>;
 
   /**
-  Converts the result to a data stream.
+  Converts the result to a UI message stream.
 
   @param options.getErrorMessage an optional function that converts an error to an error message.
   @param options.sendUsage whether to send the usage information to the client. Defaults to true.
@@ -228,12 +272,14 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.experimental_sendFinish whether to send the finish information to the client. Defaults to true.
   @param options.experimental_sendStart whether to send the start information to the client. Defaults to true.
 
-  @return A data stream.
+  @return A UI message stream.
      */
-  toDataStream(options?: DataStreamOptions): ReadableStream<DataStreamPart>;
+  toUIMessageStream(
+    options?: UIMessageStreamOptions,
+  ): ReadableStream<UIMessageStreamPart>;
 
   /**
-  Writes data stream output to a Node.js response-like object.
+  Writes UI message stream output to a Node.js response-like object.
   @param response A Node.js response-like object (ServerResponse).
   @param options.status The status code.
   @param options.statusText The status text.
@@ -242,9 +288,9 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
      */
-  pipeDataStreamToResponse(
+  pipeUIMessageStreamToResponse(
     response: ServerResponse,
-    options?: ResponseInit & DataStreamOptions,
+    options?: ResponseInit & UIMessageStreamOptions,
   ): void;
 
   /**
@@ -258,17 +304,18 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   /**
   Converts the result to a streamed response object with a stream data part stream.
-  It can be used with the `useChat` and `useCompletion` hooks.
+
   @param options.status The status code.
   @param options.statusText The status text.
   @param options.headers The headers.
-  @param options.data The stream data.
   @param options.getErrorMessage An optional function that converts an error to an error message.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
   @return A response object.
      */
-  toDataStreamResponse(options?: ResponseInit & DataStreamOptions): Response;
+  toUIMessageStreamResponse(
+    options?: ResponseInit & UIMessageStreamOptions,
+  ): Response;
 
   /**
   Creates a simple text stream response.
@@ -294,37 +341,24 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       argsTextDelta: string;
     }
   | {
-      type: 'step-start';
-      messageId: string;
+      type: 'start-step';
       request: LanguageModelRequestMetadata;
       warnings: CallWarning[];
     }
   | {
-      type: 'step-finish';
-      messageId: string;
-
-      // TODO 5.0 breaking change: remove request (on start instead)
-      request: LanguageModelRequestMetadata;
-      // TODO 5.0 breaking change: remove warnings (on start instead)
-      warnings: CallWarning[] | undefined;
-
+      type: 'finish-step';
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
       providerMetadata: ProviderMetadata | undefined;
-      isContinued: boolean;
+    }
+  | {
+      type: 'start';
     }
   | {
       type: 'finish';
       finishReason: FinishReason;
-      usage: LanguageModelUsage;
-      providerMetadata: ProviderMetadata | undefined;
-
-      /**
-       * @deprecated use response on step-finish instead
-       */
-      // TODO 5.0 breaking change: remove response (on step instead)
-      response: LanguageModelResponseMetadata;
+      totalUsage: LanguageModelUsage;
     }
   | {
       type: 'error';

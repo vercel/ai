@@ -1,27 +1,14 @@
 import { openai } from '@ai-sdk/openai';
 import { saveChat } from '@util/chat-store';
-import { appendResponseMessages, createIdGenerator, streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages, id } = await req.json();
+  const { messages, id }: { messages: UIMessage[]; id: string } =
+    await req.json();
 
   const result = streamText({
     model: openai('gpt-4o-mini'),
-    messages,
-    // id format for server-side messages:
-    experimental_generateMessageId: createIdGenerator({
-      prefix: 'msgs',
-      size: 16,
-    }),
-    async onFinish({ response }) {
-      await saveChat({
-        id,
-        messages: appendResponseMessages({
-          messages,
-          responseMessages: response.messages,
-        }),
-      });
-    },
+    messages: convertToModelMessages(messages),
   });
 
   // consume the stream to ensure it runs to completion and triggers onFinish
@@ -33,5 +20,10 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    onFinish: ({ messages }) => {
+      saveChat({ id, messages });
+    },
+  });
 }

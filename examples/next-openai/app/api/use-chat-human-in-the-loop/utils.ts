@@ -1,10 +1,10 @@
 import {
   convertToModelMessages,
-  DataStreamWriter,
   Tool,
   ToolExecutionOptions,
   ToolSet,
   UIMessage,
+  UIMessageStreamWriter,
 } from 'ai';
 
 // Approval string to be shared across frontend and backend
@@ -43,7 +43,7 @@ export async function processToolCalls<
     messages,
   }: {
     tools: Tools; // used for type inference
-    dataStream: DataStreamWriter;
+    dataStream: UIMessageStreamWriter;
     messages: UIMessage[];
   },
   executeFunctions: {

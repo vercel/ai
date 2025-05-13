@@ -4,13 +4,16 @@ import {
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
 import { render } from '@testing-library/svelte';
-import { getToolInvocations, type DataStreamPart, type UIMessage } from 'ai';
-import { mockValues } from 'ai/test';
+import {
+  getToolInvocations,
+  type UIMessage,
+  type UIMessageStreamPart,
+} from 'ai';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
 
-function formatDataStreamPart(part: DataStreamPart) {
+function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
@@ -38,9 +41,6 @@ describe('data protocol stream', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -48,10 +48,10 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        formatDataStreamPart({ type: 'text', value: ',' }),
-        formatDataStreamPart({ type: 'text', value: ' world' }),
-        formatDataStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', value: 'Hello' }),
+        formatStreamPart({ type: 'text', value: ',' }),
+        formatStreamPart({ type: 'text', value: ' world' }),
+        formatStreamPart({ type: 'text', value: '.' }),
       ],
     };
 
@@ -74,47 +74,6 @@ describe('data protocol stream', () => {
     );
   });
 
-  it('should correctly manage streamed response in data', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatDataStreamPart({ type: 'data', value: [{ t1: 'v1' }] }),
-        formatDataStreamPart({ type: 'data', value: [{ t1: 'v2' }] }),
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-      ],
-    };
-
-    await chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-    expect(chat.data).toStrictEqual([{ t1: 'v1' }, { t1: 'v2' }]);
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-      }),
-    );
-  });
-
-  it('should clear data', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatDataStreamPart({ type: 'data', value: [{ t1: 'v1' }] }),
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-      ],
-    };
-
-    await chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-    expect(chat.data).toStrictEqual([{ t1: 'v1' }]);
-    chat.data = undefined;
-    expect(chat.data).toBeUndefined();
-  });
-
   it('should show error response when there is a server error', async () => {
     server.urls['/api/chat'].response = {
       type: 'error',
@@ -134,7 +93,7 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'error',
           value: 'custom error message',
         }),
@@ -162,7 +121,7 @@ describe('data protocol stream', () => {
         parts: [{ text: 'hi', type: 'text' }],
       });
       await vi.waitFor(() => expect(chat.status).toBe('submitted'));
-      controller.write(formatDataStreamPart({ type: 'text', value: 'Hello' }));
+      controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
       await vi.waitFor(() => expect(chat.status).toBe('streaming'));
       controller.close();
       await appendOperation;
@@ -188,18 +147,15 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        formatDataStreamPart({ type: 'text', value: ',' }),
-        formatDataStreamPart({ type: 'text', value: ' world' }),
-        formatDataStreamPart({ type: 'text', value: '.' }),
-        formatDataStreamPart({
-          type: 'finish-message',
+        formatStreamPart({ type: 'text', value: 'Hello' }),
+        formatStreamPart({ type: 'text', value: ',' }),
+        formatStreamPart({ type: 'text', value: ' world' }),
+        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({
+          type: 'finish',
           value: {
-            finishReason: 'stop',
-            usage: {
-              inputTokens: 1,
-              outputTokens: 3,
-              totalTokens: 4,
+            metadata: {
+              example: 'metadata',
             },
           },
         }),
@@ -210,31 +166,27 @@ describe('data protocol stream', () => {
     const chatWithOnFinish = new Chat({
       onFinish,
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
     await chatWithOnFinish.append({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(onFinish).toHaveBeenCalledExactlyOnceWith(
-      {
-        id: expect.any(String),
-        createdAt: expect.any(Date),
-        role: 'assistant',
-        parts: [{ text: 'Hello, world.', type: 'text' }],
-      },
-      {
-        finishReason: 'stop',
-        usage: {
-          inputTokens: 1,
-          outputTokens: 3,
-          totalTokens: 4,
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      message: {
+        id: 'id-2',
+        metadata: {
+          example: 'metadata',
         },
+        parts: [
+          {
+            text: 'Hello, world.',
+            type: 'text',
+          },
+        ],
+        role: 'assistant',
       },
-    );
+    });
   });
 
   describe('id', () => {
@@ -254,7 +206,6 @@ describe('data protocol stream', () => {
           "id": "id-0",
           "messages": [
             {
-              "createdAt": "2025-01-01T00:00:00.000Z",
               "id": "id-1",
               "parts": [
                 {
@@ -273,10 +224,10 @@ describe('data protocol stream', () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatDataStreamPart({ type: 'text', value: 'Hello' }),
-          formatDataStreamPart({ type: 'text', value: ',' }),
-          formatDataStreamPart({ type: 'text', value: ' world' }),
-          formatDataStreamPart({ type: 'text', value: '.' }),
+          formatStreamPart({ type: 'text', value: 'Hello' }),
+          formatStreamPart({ type: 'text', value: ',' }),
+          formatStreamPart({ type: 'text', value: ' world' }),
+          formatStreamPart({ type: 'text', value: '.' }),
         ],
       };
 
@@ -307,10 +258,10 @@ describe('data protocol stream', () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatDataStreamPart({ type: 'text', value: 'Hello' }),
-          formatDataStreamPart({ type: 'text', value: ',' }),
-          formatDataStreamPart({ type: 'text', value: ' world' }),
-          formatDataStreamPart({ type: 'text', value: '.' }),
+          formatStreamPart({ type: 'text', value: 'Hello' }),
+          formatStreamPart({ type: 'text', value: ',' }),
+          formatStreamPart({ type: 'text', value: ' world' }),
+          formatStreamPart({ type: 'text', value: '.' }),
         ],
       };
 
@@ -353,9 +304,6 @@ describe('text stream', () => {
     chat = new Chat({
       streamProtocol: 'text',
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -373,7 +321,6 @@ describe('text stream', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -384,7 +331,6 @@ describe('text stream', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
             {
@@ -451,18 +397,13 @@ describe('text stream', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(onFinish).toHaveBeenCalledExactlyOnceWith(
-      {
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      message: {
         id: expect.any(String),
-        createdAt: expect.any(Date),
         role: 'assistant',
         parts: [{ text: 'Hello, world.', type: 'text' }],
       },
-      {
-        finishReason: 'unknown',
-        usage: {},
-      },
-    );
+    });
   });
 });
 
@@ -473,9 +414,6 @@ describe('form actions', () => {
     chat = new Chat({
       streamProtocol: 'text',
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -498,7 +436,6 @@ describe('form actions', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -509,7 +446,6 @@ describe('form actions', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
             {
@@ -524,184 +460,6 @@ describe('form actions', () => {
 
     await chat.handleSubmit();
     expect(chat.messages.at(2)).toBeUndefined();
-  });
-
-  it('should allow empty submit', async () => {
-    server.urls['/api/chat'].response = [
-      {
-        type: 'stream-chunks',
-        chunks: ['Hello', ',', ' world', '.'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['How', ' can', ' I', ' help', ' you', '?'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['The', ' sky', ' is', ' blue', '.'],
-      },
-    ];
-
-    chat.input = 'hi';
-    await chat.handleSubmit();
-    expect(chat.input).toBe('');
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-      }),
-    );
-
-    expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-1",
-          "parts": [
-            {
-              "text": "hi",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-2",
-          "parts": [
-            {
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
-
-    await chat.handleSubmit(undefined, { allowEmptySubmit: true });
-
-    expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-1",
-          "parts": [
-            {
-              "text": "hi",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-2",
-          "parts": [
-            {
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-3",
-          "parts": [
-            {
-              "text": "",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-4",
-          "parts": [
-            {
-              "text": "How can I help you?",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
-
-    chat.input = 'What color is the sky?';
-    await chat.handleSubmit();
-
-    expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-1",
-          "parts": [
-            {
-              "text": "hi",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-2",
-          "parts": [
-            {
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-3",
-          "parts": [
-            {
-              "text": "",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-4",
-          "parts": [
-            {
-              "text": "How can I help you?",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-5",
-          "parts": [
-            {
-              "text": "What color is the sky?",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "createdAt": 2025-01-01T00:00:00.000Z,
-          "id": "id-6",
-          "parts": [
-            {
-              "text": "The sky is blue.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
   });
 });
 
@@ -727,7 +485,7 @@ describe('onToolCall', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'tool-call',
           value: {
             toolCallId: 'tool-call-0',
@@ -795,7 +553,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call-streaming-start',
         value: {
           toolCallId: 'tool-call-0',
@@ -819,7 +577,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call-delta',
         value: {
           toolCallId: 'tool-call-0',
@@ -843,7 +601,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call-delta',
         value: {
           toolCallId: 'tool-call-0',
@@ -867,7 +625,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call',
         value: {
           toolCallId: 'tool-call-0',
@@ -892,7 +650,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-result',
         value: {
           toolCallId: 'tool-call-0',
@@ -928,7 +686,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call',
         value: {
           toolCallId: 'tool-call-0',
@@ -953,7 +711,7 @@ describe('tool invocations', () => {
     });
 
     controller.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-result',
         value: {
           toolCallId: 'tool-call-0',
@@ -980,7 +738,7 @@ describe('tool invocations', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'tool-call',
           value: {
             toolCallId: 'tool-call-0',
@@ -1046,18 +804,12 @@ describe('tool invocations', () => {
     });
 
     // start stream
-    controller1.write(
-      formatDataStreamPart({
-        type: 'start-step',
-        value: {
-          messageId: '1234',
-        },
-      }),
-    );
+    controller1.write(formatStreamPart({ type: 'start', value: {} }));
+    controller1.write(formatStreamPart({ type: 'start-step', value: {} }));
 
     // tool call
     controller1.write(
-      formatDataStreamPart({
+      formatStreamPart({
         type: 'tool-call',
         value: {
           toolCallId: 'tool-call-0',
@@ -1107,24 +859,8 @@ describe('tool invocations', () => {
     expect(server.calls.length).toBe(1);
 
     // finish stream
-    controller1.write(
-      formatDataStreamPart({
-        type: 'finish-step',
-        value: {
-          isContinued: false,
-          finishReason: 'tool-calls',
-        },
-      }),
-    );
-
-    controller1.write(
-      formatDataStreamPart({
-        type: 'finish-message',
-        value: {
-          finishReason: 'tool-calls',
-        },
-      }),
-    );
+    controller1.write(formatStreamPart({ type: 'finish-step', value: {} }));
+    controller1.write(formatStreamPart({ type: 'finish', value: {} }));
 
     await controller1.close();
 
@@ -1151,9 +887,6 @@ describe('maxSteps', () => {
         maxSteps: 5,
         id: 'test-id',
         generateId: mockId(),
-        '~internal': {
-          currentDate: mockValues(new Date('2025-01-01')),
-        },
       });
       onToolCallInvoked = false;
     });
@@ -1163,7 +896,7 @@ describe('maxSteps', () => {
         {
           type: 'stream-chunks',
           chunks: [
-            formatDataStreamPart({
+            formatStreamPart({
               type: 'tool-call',
               value: {
                 toolCallId: 'tool-call-0',
@@ -1175,9 +908,7 @@ describe('maxSteps', () => {
         },
         {
           type: 'stream-chunks',
-          chunks: [
-            formatDataStreamPart({ type: 'text', value: 'final result' }),
-          ],
+          chunks: [formatStreamPart({ type: 'text', value: 'final result' })],
         },
       ];
 
@@ -1191,7 +922,6 @@ describe('maxSteps', () => {
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
-            "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-0",
             "parts": [
               {
@@ -1202,8 +932,8 @@ describe('maxSteps', () => {
             "role": "user",
           },
           {
-            "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-1",
+            "metadata": {},
             "parts": [
               {
                 "toolInvocation": {
@@ -1223,7 +953,7 @@ describe('maxSteps', () => {
                 "type": "text",
               },
             ],
-            "revisionId": "id-4",
+            "revisionId": "id-5",
             "role": "assistant",
           },
         ]
@@ -1253,7 +983,7 @@ describe('maxSteps', () => {
         {
           type: 'stream-chunks',
           chunks: [
-            formatDataStreamPart({
+            formatStreamPart({
               type: 'tool-call',
               value: {
                 toolCallId: 'tool-call-0',
@@ -1288,9 +1018,6 @@ describe('file attachments with data url', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1298,7 +1025,7 @@ describe('file attachments with data url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'text',
           value: 'Response to message with text attachment',
         }),
@@ -1318,7 +1045,6 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -1335,8 +1061,8 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
+          "metadata": {},
           "parts": [
             {
               "text": "Response to message with text attachment",
@@ -1354,7 +1080,6 @@ describe('file attachments with data url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1379,7 +1104,7 @@ describe('file attachments with data url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'text',
           value: 'Response to message with image attachment',
         }),
@@ -1399,7 +1124,6 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -1416,8 +1140,8 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
+          "metadata": {},
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1435,7 +1159,6 @@ describe('file attachments with data url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1463,9 +1186,6 @@ describe('file attachments with url', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1473,7 +1193,7 @@ describe('file attachments with url', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'text',
           value: 'Response to message with image attachment',
         }),
@@ -1493,7 +1213,6 @@ describe('file attachments with url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -1510,8 +1229,8 @@ describe('file attachments with url', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
+          "metadata": {},
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1529,7 +1248,6 @@ describe('file attachments with url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1557,9 +1275,6 @@ describe('file attachments with empty text content', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1567,7 +1282,7 @@ describe('file attachments with empty text content', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({
+        formatStreamPart({
           type: 'text',
           value: 'Response to message with image attachment',
         }),
@@ -1575,7 +1290,6 @@ describe('file attachments with empty text content', () => {
     };
 
     await chat.handleSubmit(undefined, {
-      allowEmptySubmit: true,
       files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
@@ -1586,7 +1300,6 @@ describe('file attachments with empty text content', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
@@ -1603,8 +1316,8 @@ describe('file attachments with empty text content', () => {
           "role": "user",
         },
         {
-          "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
+          "metadata": {},
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1622,7 +1335,6 @@ describe('file attachments with empty text content', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1650,9 +1362,6 @@ describe('reload', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
@@ -1660,15 +1369,11 @@ describe('reload', () => {
     server.urls['/api/chat'].response = [
       {
         type: 'stream-chunks',
-        chunks: [
-          formatDataStreamPart({ type: 'text', value: 'first response' }),
-        ],
+        chunks: [formatStreamPart({ type: 'text', value: 'first response' })],
       },
       {
         type: 'stream-chunks',
-        chunks: [
-          formatDataStreamPart({ type: 'text', value: 'second response' }),
-        ],
+        chunks: [formatStreamPart({ type: 'text', value: 'second response' })],
       },
     ];
 
@@ -1692,20 +1397,15 @@ describe('reload', () => {
 
     // Setup done, call reload:
     await chat.reload({
-      data: { 'test-data-key': 'test-data-value' },
       body: { 'request-body-key': 'request-body-value' },
       headers: { 'header-key': 'header-value' },
     });
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "data": {
-          "test-data-key": "test-data-value",
-        },
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1740,13 +1440,10 @@ describe('test sending additional fields during message submission', () => {
   beforeEach(() => {
     chat = new Chat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
   });
 
-  it('should send annotations with the message', async () => {
+  it('should send metadata with the message', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: ['0:"first response"\n'],
@@ -1754,7 +1451,7 @@ describe('test sending additional fields during message submission', () => {
 
     await chat.append({
       role: 'user',
-      annotations: ['this is an annotation'],
+      metadata: { test: 'example' },
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -1769,11 +1466,10 @@ describe('test sending additional fields during message submission', () => {
         "id": "id-0",
         "messages": [
           {
-            "annotations": [
-              "this is an annotation",
-            ],
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
+            "metadata": {
+              "test": "example",
+            },
             "parts": [
               {
                 "text": "hi",
@@ -1838,10 +1534,10 @@ describe('synchronization', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        formatDataStreamPart({ type: 'text', value: ',' }),
-        formatDataStreamPart({ type: 'text', value: ' world' }),
-        formatDataStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', value: 'Hello' }),
+        formatStreamPart({ type: 'text', value: ',' }),
+        formatStreamPart({ type: 'text', value: ' world' }),
+        formatStreamPart({ type: 'text', value: '.' }),
       ],
     };
 
@@ -1891,7 +1587,7 @@ describe('synchronization', () => {
       expect(chat2.status).toBe('submitted');
     });
 
-    controller.write(formatDataStreamPart({ type: 'text', value: 'Hello' }));
+    controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
     await vi.waitFor(() => {
       expect(chat1.status).toBe('streaming');
       expect(chat2.status).toBe('streaming');
@@ -1914,16 +1610,16 @@ describe('generateId function', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        formatDataStreamPart({ type: 'text', value: ',' }),
-        formatDataStreamPart({ type: 'text', value: ' world' }),
-        formatDataStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'start', value: { messageId: '123' } }),
+        formatStreamPart({ type: 'text', value: 'Hello' }),
+        formatStreamPart({ type: 'text', value: ',' }),
+        formatStreamPart({ type: 'text', value: ' world' }),
+        formatStreamPart({ type: 'text', value: '.' }),
       ],
     };
 
-    const mockGenerateId = vi.fn().mockReturnValue('custom-id');
     const chatWithCustomId = new Chat({
-      generateId: mockGenerateId,
+      generateId: mockId({ prefix: 'testid' }),
     });
 
     await chatWithCustomId.append({
@@ -1931,20 +1627,32 @@ describe('generateId function', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chatWithCustomId.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        id: 'custom-id',
-        role: 'user',
-      }),
-    );
-
-    expect(chatWithCustomId.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        id: 'custom-id',
-        role: 'assistant',
-        parts: [{ text: 'Hello, world.', type: 'text' }],
-      }),
-    );
+    expect(chatWithCustomId.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "testid-1",
+          "parts": [
+            {
+              "text": "hi",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "id": "123",
+          "metadata": {},
+          "parts": [
+            {
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "revisionId": "testid-7",
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });
 

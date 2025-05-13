@@ -12,12 +12,7 @@ export default function Chat() {
     messages,
     reload,
     stop,
-  } = useChat({
-    onFinish(message, { usage, finishReason }) {
-      console.log('Usage', usage);
-      console.log('FinishReason', finishReason);
-    },
-  });
+  } = useChat();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

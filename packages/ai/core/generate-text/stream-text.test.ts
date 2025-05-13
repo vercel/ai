@@ -322,7 +322,6 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -394,7 +393,6 @@ describe('streamText', () => {
           currentDate: mockValues(new Date(2000)),
           generateId: mockValues('id-2000'),
         },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -462,7 +460,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -579,7 +576,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -668,7 +664,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -713,7 +708,6 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -755,7 +749,6 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -788,7 +781,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -817,17 +809,16 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.pipeDataStreamToResponse', async () => {
+  describe('result.pipeUIMessageStreamToResponse', async () => {
     it('should write data stream parts to a Node.js response-like object', async () => {
       const mockResponse = createMockServerResponse();
 
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -838,12 +829,15 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start","value":{}}
+
+        ",
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"text","value":"Hello"}
@@ -855,10 +849,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":"world!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -874,10 +868,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         status: 201,
         statusText: 'foo',
         headers: {
@@ -897,13 +890,16 @@ describe('streamText', () => {
           "content-type": "text/event-stream",
           "custom-header": "custom-value",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
 
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start","value":{}}
+
+        ",
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"text","value":"Hello"}
@@ -915,10 +911,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":"world!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -938,10 +934,9 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -958,37 +953,11 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         onError: error => `custom error message: ${error}`,
       });
-
-      await mockResponse.waitForEnd();
-
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
-    });
-
-    it('should suppress usage information when sendUsage is false', async () => {
-      const mockResponse = createMockServerResponse();
-
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, World!' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      result.pipeDataStreamToResponse(mockResponse, { sendUsage: false });
 
       await mockResponse.waitForEnd();
 
@@ -1012,7 +981,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         experimental_sendFinish: false,
       });
 
@@ -1029,7 +998,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         sendReasoning: true,
       });
 
@@ -1042,12 +1011,12 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"reasoning","value":{"type":"reasoning","text":"I will open the conversation"}}
@@ -1086,10 +1055,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":" there!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -1107,7 +1076,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse, {
+      result.pipeUIMessageStreamToResponse(mockResponse, {
         sendSources: true,
       });
 
@@ -1120,12 +1089,12 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}}
@@ -1137,10 +1106,10 @@ describe('streamText', () => {
           "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -1158,7 +1127,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeDataStreamToResponse(mockResponse);
+      result.pipeUIMessageStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -1169,12 +1138,12 @@ describe('streamText', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
+          "x-vercel-ai-ui-message-stream": "v1",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"file","value":{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}}
@@ -1186,10 +1155,10 @@ describe('streamText', () => {
           "data: {"type":"file","value":{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -1233,14 +1202,14 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.toDataStream', () => {
+  describe('result.toUIMessageStream', () => {
     it('should create a data stream', async () => {
       const result = streamText({
         model: createTestModel(),
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1287,7 +1256,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(result.toDataStream()),
+        await convertReadableStreamToArray(result.toUIMessageStream()),
       ).toMatchSnapshot();
     });
 
@@ -1334,8 +1303,75 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(result.toDataStream()),
+        await convertReadableStreamToArray(result.toUIMessageStream()),
       ).toMatchSnapshot();
+    });
+
+    it('should send metadata as defined in the metadata function', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toUIMessageStream({
+        messageMetadata: mockValues(
+          { key1: 'value1' },
+          { key2: 'value2' },
+          { key3: 'value3' },
+          { key4: 'value4' },
+        ),
+      });
+
+      expect(await convertReadableStreamToArray(dataStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+              "value": {
+                "messageId": undefined,
+                "metadata": {
+                  "key1": "value1",
+                },
+              },
+            },
+            {
+              "type": "start-step",
+              "value": {
+                "metadata": {
+                  "key2": "value2",
+                },
+              },
+            },
+            {
+              "type": "text",
+              "value": "Hello",
+            },
+            {
+              "type": "text",
+              "value": ", ",
+            },
+            {
+              "type": "text",
+              "value": "world!",
+            },
+            {
+              "type": "finish-step",
+              "value": {
+                "metadata": {
+                  "key3": "value3",
+                },
+              },
+            },
+            {
+              "type": "finish",
+              "value": {
+                "metadata": {
+                  "key4": "value4",
+                },
+              },
+            },
+          ]
+        `);
     });
 
     it('should mask error messages by default', async () => {
@@ -1348,7 +1384,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1363,29 +1399,9 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({
+      const dataStream = result.toUIMessageStream({
         onError: error => `custom error message: ${error}`,
       });
-
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
-    });
-
-    it('should suppress usage information when sendUsage is false', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, World!' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        ...defaultSettings(),
-      });
-
-      const dataStream = result.toDataStream({ sendUsage: false });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1405,7 +1421,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({
+      const dataStream = result.toUIMessageStream({
         experimental_sendFinish: false,
       });
 
@@ -1418,7 +1434,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({ sendReasoning: true });
+      const dataStream = result.toUIMessageStream({ sendReasoning: true });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1429,7 +1445,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream({ sendSources: true });
+      const dataStream = result.toUIMessageStream({ sendSources: true });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1440,70 +1456,71 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toDataStream();
+      const dataStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
   });
 
-  describe('result.toDataStreamResponse', () => {
+  describe('result.toUIMessageStreamResponse', () => {
     it('should create a Response with a data stream', async () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      const response = result.toDataStreamResponse();
+      const response = result.toUIMessageStreamResponse();
 
       expect(response.status).toStrictEqual(200);
       expect(Object.fromEntries(response.headers.entries()))
         .toMatchInlineSnapshot(`
-        {
-          "cache-control": "no-cache",
-          "connection": "keep-alive",
-          "content-type": "text/event-stream",
-          "x-accel-buffering": "no",
-          "x-vercel-ai-data-stream": "v2",
-        }
-      `);
+          {
+            "cache-control": "no-cache",
+            "connection": "keep-alive",
+            "content-type": "text/event-stream",
+            "x-accel-buffering": "no",
+            "x-vercel-ai-ui-message-stream": "v1",
+          }
+        `);
 
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
-        [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          [
+            "data: {"type":"start","value":{}}
 
-        ",
-          "data: {"type":"text","value":"Hello"}
+          ",
+            "data: {"type":"start-step","value":{}}
 
-        ",
-          "data: {"type":"text","value":", "}
+          ",
+            "data: {"type":"text","value":"Hello"}
 
-        ",
-          "data: {"type":"text","value":"world!"}
+          ",
+            "data: {"type":"text","value":", "}
 
-        ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          ",
+            "data: {"type":"text","value":"world!"}
 
-        ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          ",
+            "data: {"type":"finish-step","value":{}}
 
-        ",
-          "data: [DONE]
+          ",
+            "data: {"type":"finish","value":{}}
 
-        ",
-        ]
-      `);
+          ",
+            "data: [DONE]
+
+          ",
+          ]
+        `);
     });
 
     it('should create a Response with a data stream and custom headers', async () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      const response = result.toDataStreamResponse({
+      const response = result.toUIMessageStreamResponse({
         status: 201,
         statusText: 'foo',
         headers: {
@@ -1521,35 +1538,38 @@ describe('streamText', () => {
             "content-type": "text/event-stream",
             "custom-header": "custom-value",
             "x-accel-buffering": "no",
-            "x-vercel-ai-data-stream": "v2",
+            "x-vercel-ai-ui-message-stream": "v1",
           }
         `);
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
-        [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          [
+            "data: {"type":"start","value":{}}
 
-        ",
-          "data: {"type":"text","value":"Hello"}
+          ",
+            "data: {"type":"start-step","value":{}}
 
-        ",
-          "data: {"type":"text","value":", "}
+          ",
+            "data: {"type":"text","value":"Hello"}
 
-        ",
-          "data: {"type":"text","value":"world!"}
+          ",
+            "data: {"type":"text","value":", "}
 
-        ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          ",
+            "data: {"type":"text","value":"world!"}
 
-        ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          ",
+            "data: {"type":"finish-step","value":{}}
 
-        ",
-          "data: [DONE]
+          ",
+            "data: {"type":"finish","value":{}}
 
-        ",
-        ]
-      `);
+          ",
+            "data: [DONE]
+
+          ",
+          ]
+        `);
     });
 
     it('should mask error messages by default', async () => {
@@ -1560,10 +1580,9 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      const response = result.toDataStreamResponse();
+      const response = result.toUIMessageStreamResponse();
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
@@ -1576,33 +1595,11 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      const response = result.toDataStreamResponse({
+      const response = result.toUIMessageStreamResponse({
         onError: error => `custom error message: ${error}`,
       });
-
-      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
-    });
-
-    it('should suppress usage information when sendUsage is false', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, World!' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      const response = result.toDataStreamResponse({ sendUsage: false });
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
@@ -1737,13 +1734,14 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect({
         textStream: await convertAsyncIterableToArray(result.textStream),
         fullStream: await convertAsyncIterableToArray(result.fullStream),
-        dataStream: await convertReadableStreamToArray(result.toDataStream()),
+        dataStream: await convertReadableStreamToArray(
+          result.toUIMessageStream(),
+        ),
       }).toMatchSnapshot();
     });
   });
@@ -1889,7 +1887,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
         ]
@@ -2381,7 +2378,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.consumeStream();
@@ -2416,7 +2412,6 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.consumeStream();
@@ -2607,7 +2602,6 @@ describe('streamText', () => {
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
           },
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
       });
 
@@ -2636,8 +2630,8 @@ describe('streamText', () => {
           await result.consumeStream();
         });
 
-        it('result.usage should contain total token usage', async () => {
-          expect(await result.usage).toMatchInlineSnapshot(`
+        it('result.totalUsage should contain total token usage', async () => {
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
               "cachedInputTokens": 3,
               "inputTokens": 6,
@@ -2646,6 +2640,18 @@ describe('streamText', () => {
               "totalTokens": 36,
             }
           `);
+        });
+
+        it('result.usage should contain token usage from final step', async () => {
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 3,
+            "inputTokens": 6,
+            "outputTokens": 20,
+            "reasoningTokens": 10,
+            "totalTokens": 36,
+          }
+        `);
         });
 
         it('result.finishReason should contain finish reason from final step', async () => {
@@ -2668,337 +2674,6 @@ describe('streamText', () => {
       it('should record telemetry data for each step', async () => {
         await result.consumeStream();
         expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-    });
-
-    describe('4 steps: initial, continue, continue, continue', () => {
-      beforeEach(async () => {
-        result = undefined as any;
-        onFinishResult = undefined as any;
-        onStepFinishResults = [];
-
-        let responseCount = 0;
-        result = streamText({
-          model: new MockLanguageModelV2({
-            doStream: async ({ prompt }) => {
-              switch (responseCount++) {
-                case 0: {
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-0',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(0),
-                      },
-                      // trailing text is to be discarded, trailing whitespace is to be kept:
-                      { type: 'text', text: 'pa' },
-                      { type: 'text', text: 'rt ' },
-                      { type: 'text', text: '1 \n' },
-                      { type: 'text', text: ' to-be' },
-                      { type: 'text', text: '-discar' },
-                      { type: 'text', text: 'ded' },
-                      {
-                        type: 'finish',
-                        finishReason: 'length',
-                        usage: testUsage,
-                      },
-                    ]),
-                  };
-                }
-                case 1: {
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'text',
-                          text: 'part 1 \n ',
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-1',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(1000),
-                      },
-                      // case where there is no leading nor trailing whitespace:
-                      { type: 'text', text: 'no-' },
-                      {
-                        type: 'source',
-                        sourceType: 'url' as const,
-                        id: '123',
-                        url: 'https://example.com',
-                        title: 'Example',
-                        providerMetadata: { provider: { custom: 'value' } },
-                      },
-                      { type: 'text', text: 'whitespace' },
-                      {
-                        type: 'finish',
-                        finishReason: 'length',
-                        usage: testUsage2,
-                      },
-                    ]),
-                  };
-                }
-                case 2: {
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'text',
-                          text: 'part 1 \n ',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'text',
-                          text: 'no-whitespace',
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-2',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(1000),
-                      },
-                      {
-                        type: 'source',
-                        sourceType: 'url' as const,
-                        id: '456',
-                        url: 'https://example.com/2',
-                        title: 'Example 2',
-                        providerMetadata: { provider: { custom: 'value2' } },
-                      },
-                      // set up trailing whitespace for next step:
-                      { type: 'text', text: 'immediatefollow  ' },
-                      {
-                        type: 'source',
-                        sourceType: 'url' as const,
-                        id: '789',
-                        url: 'https://example.com/3',
-                        title: 'Example 3',
-                        providerMetadata: { provider: { custom: 'value3' } },
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: 'length',
-                        usage: {
-                          inputTokens: 3,
-                          outputTokens: 2,
-                          totalTokens: 5,
-                          reasoningTokens: undefined,
-                          cachedInputTokens: undefined,
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '3' } },
-                  };
-                }
-                case 3: {
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'text',
-                          text: 'part 1 \n ',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'text',
-                          text: 'no-whitespace',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'text',
-                          text: 'immediatefollow  ',
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-3',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(1000),
-                      },
-                      // leading whitespace is to be discarded when there is whitespace from previous step
-                      // (for models such as Anthropic that trim trailing whitespace in their inputs):
-                      { type: 'text', text: ' ' }, // split into 2 chunks for test coverage
-                      { type: 'text', text: '  final' },
-                      { type: 'text', text: ' va' },
-                      { type: 'text', text: 'lue keep all w' },
-                      { type: 'text', text: 'hitespace' },
-                      { type: 'text', text: '\n ' },
-                      { type: 'text', text: 'en' },
-                      { type: 'text', text: 'd' },
-                      {
-                        type: 'finish',
-                        finishReason: 'stop',
-                        usage: {
-                          inputTokens: 3,
-                          outputTokens: 2,
-                          totalTokens: 5,
-                          reasoningTokens: undefined,
-                          cachedInputTokens: undefined,
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '3' } },
-                  };
-                }
-                default:
-                  throw new Error(
-                    `Unexpected response count: ${responseCount}`,
-                  );
-              }
-            },
-          }),
-          prompt: 'test-input',
-          maxSteps: 5,
-          experimental_continueSteps: true,
-          onFinish: async event => {
-            expect(onFinishResult).to.be.undefined;
-            onFinishResult = event as unknown as typeof onFinishResult;
-          },
-          onStepFinish: async event => {
-            onStepFinishResults.push(event);
-          },
-          experimental_telemetry: { isEnabled: true, tracer },
-          _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
-          },
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
-        });
-      });
-
-      it('should contain text deltas from all steps', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.fullStream),
-        ).toMatchSnapshot();
-      });
-
-      describe('callbacks', () => {
-        beforeEach(async () => {
-          await result.consumeStream();
-        });
-
-        it('onFinish should send correct information', async () => {
-          expect(onFinishResult).toMatchSnapshot();
-        });
-
-        it('onStepFinish should send correct information', async () => {
-          expect(onStepFinishResults).toMatchSnapshot();
-        });
-      });
-
-      describe('value promises', () => {
-        beforeEach(async () => {
-          await result.consumeStream();
-        });
-
-        it('result.usage should contain total token usage', async () => {
-          expect(await result.usage).toMatchInlineSnapshot(`
-            {
-              "cachedInputTokens": 3,
-              "inputTokens": 12,
-              "outputTokens": 24,
-              "reasoningTokens": 10,
-              "totalTokens": 46,
-            }
-          `);
-        });
-
-        it('result.finishReason should contain finish reason from final step', async () => {
-          assert.strictEqual(await result.finishReason, 'stop');
-        });
-
-        it('result.text should contain combined text from all steps', async () => {
-          assert.strictEqual(
-            await result.text,
-            'part 1 \n no-whitespaceimmediatefollow  final value keep all whitespace\n end',
-          );
-        });
-
-        it('result.steps should contain all steps', async () => {
-          expect(await result.steps).toMatchSnapshot();
-        });
-
-        it('result.response.messages should contain an assistant message with the combined text', async () => {
-          expect((await result.response).messages).toStrictEqual([
-            {
-              role: 'assistant',
-              id: expect.any(String),
-              content: [
-                {
-                  type: 'text',
-                  text: 'part 1 \n no-whitespaceimmediatefollow  final value keep all whitespace\n end',
-                },
-              ],
-            },
-          ]);
-        });
-      });
-
-      it('should record telemetry data for each step', async () => {
-        await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-
-      it('should generate correct data stream', async () => {
-        const dataStream = result.toDataStream();
-
-        expect(
-          await convertReadableStreamToArray(dataStream),
-        ).toMatchSnapshot();
-      });
-
-      it('result.sources should contain sources from all steps', async () => {
-        result.consumeStream();
-        expect(await result.sources).toMatchSnapshot();
       });
     });
   });
@@ -3320,7 +2995,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
         _internal: {
           now: mockValues(0, 100, 500),
         },
@@ -3415,67 +3089,55 @@ describe('streamText', () => {
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
-          [
-            {
-              "messageId": "msg-0",
-              "request": {},
-              "type": "step-start",
-              "warnings": [],
+        [
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "args": {
+              "value": "value",
             },
-            {
-              "args": {
-                "value": "value",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+          {
+            "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
+            "type": "error",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
             },
-            {
-              "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
-              "type": "error",
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
-            {
-              "finishReason": "stop",
-              "isContinued": false,
-              "messageId": "msg-0",
-              "providerMetadata": undefined,
-              "request": {},
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "step-finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
-              "warnings": undefined,
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
-            },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
   });
 
@@ -3511,7 +3173,7 @@ describe('streamText', () => {
               };
             }
 
-            if (chunk.type === 'step-finish') {
+            if (chunk.type === 'start-step') {
               if (chunk.request.body != null) {
                 chunk.request.body = (
                   chunk.request.body as string
@@ -3519,7 +3181,7 @@ describe('streamText', () => {
               }
             }
 
-            if (chunk.type === 'finish') {
+            if (chunk.type === 'finish-step') {
               if (chunk.providerMetadata?.testProvider != null) {
                 chunk.providerMetadata.testProvider = {
                   testKey: 'TEST VALUE',
@@ -3572,7 +3234,6 @@ describe('streamText', () => {
           messages: [
             {
               role: 'assistant',
-              id: expect.any(String),
               content: [
                 {
                   text: 'HELLO, WORLD!',
@@ -3584,7 +3245,7 @@ describe('streamText', () => {
         });
       });
 
-      it('result.usage should be transformed', async () => {
+      it('result.totalUsage should be transformed', async () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
@@ -3600,7 +3261,7 @@ describe('streamText', () => {
             new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
               transform(chunk, controller) {
                 if (chunk.type === 'finish') {
-                  chunk.usage = {
+                  chunk.totalUsage = {
                     inputTokens: 200,
                     outputTokens: 300,
                     totalTokens: undefined,
@@ -3616,7 +3277,7 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(await result.usage).toStrictEqual({
+        expect(await result.totalUsage).toStrictEqual({
           inputTokens: 200,
           outputTokens: 300,
           totalTokens: undefined,
@@ -3773,7 +3434,6 @@ describe('streamText', () => {
           },
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
         result.consumeStream();
@@ -3896,7 +3556,6 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
         await resultObject.consumeStream();
@@ -3950,7 +3609,6 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
         await resultObject.consumeStream();
@@ -4215,8 +3873,7 @@ describe('streamText', () => {
                 stopStream();
 
                 controller.enqueue({
-                  type: 'step-finish',
-                  messageId: 'msg-transformed-123',
+                  type: 'finish-step',
                   finishReason: 'stop',
                   providerMetadata: undefined,
                   usage: {
@@ -4226,31 +3883,22 @@ describe('streamText', () => {
                     reasoningTokens: undefined,
                     cachedInputTokens: undefined,
                   },
-                  request: {},
                   response: {
                     id: 'response-id',
                     modelId: 'mock-model-id',
                     timestamp: new Date(0),
                   },
-                  warnings: [],
-                  isContinued: false,
                 });
 
                 controller.enqueue({
                   type: 'finish',
                   finishReason: 'stop',
-                  providerMetadata: undefined,
-                  usage: {
+                  totalUsage: {
                     inputTokens: undefined,
                     outputTokens: undefined,
                     totalTokens: undefined,
                     reasoningTokens: undefined,
                     cachedInputTokens: undefined,
-                  },
-                  response: {
-                    id: 'response-id',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
                   },
                 });
 
@@ -4283,62 +3931,50 @@ describe('streamText', () => {
           }),
           prompt: 'test-input',
           experimental_transform: stopWordTransform(),
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "messageId": "msg-0",
-                "request": {},
-                "type": "step-start",
-                "warnings": [],
+          [
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "text": "Hello, ",
+              "type": "text",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "id": "response-id",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              {
-                "text": "Hello, ",
-                "type": "text",
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
               },
-              {
-                "finishReason": "stop",
-                "isContinued": false,
-                "messageId": "msg-transformed-123",
-                "providerMetadata": undefined,
-                "request": {},
-                "response": {
-                  "id": "response-id",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "step-finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "reasoningTokens": undefined,
-                  "totalTokens": undefined,
-                },
-                "warnings": [],
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
               },
-              {
-                "finishReason": "stop",
-                "providerMetadata": undefined,
-                "response": {
-                  "id": "response-id",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "reasoningTokens": undefined,
-                  "totalTokens": undefined,
-                },
-              },
-            ]
-          `);
+              "type": "finish",
+            },
+          ]
+        `);
       });
 
       it('options.onStepFinish should be called', async () => {
@@ -4363,7 +3999,6 @@ describe('streamText', () => {
           onStepFinish: async event => {
             result = event as unknown as typeof result;
           },
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
           experimental_transform: stopWordTransform(),
         });
 
@@ -4502,7 +4137,7 @@ describe('streamText', () => {
             },
             "seed": undefined,
             "stopSequences": undefined,
-            "temperature": 0,
+            "temperature": undefined,
             "toolChoice": undefined,
             "tools": undefined,
             "topK": undefined,
@@ -4663,7 +4298,6 @@ describe('streamText', () => {
           onFinish: async event => {
             result = event as unknown as typeof result;
           },
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             currentDate: () => new Date(0),

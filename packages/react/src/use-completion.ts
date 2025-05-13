@@ -1,6 +1,5 @@
 import {
   CompletionRequestOptions,
-  JSONValue,
   UseCompletionOptions,
   callCompletionApi,
 } from 'ai';
@@ -60,8 +59,6 @@ export type UseCompletionHelpers = {
 
   /** Whether the API request is in progress */
   isLoading: boolean;
-  /** Additional data added on the server via StreamData */
-  data?: JSONValue[];
 };
 
 export function useCompletion({
@@ -74,7 +71,6 @@ export function useCompletion({
   body,
   streamProtocol = 'data',
   fetch,
-  onResponse,
   onFinish,
   onError,
   experimental_throttle: throttleWaitMs,
@@ -98,10 +94,6 @@ export function useCompletion({
     [completionId, 'loading'],
     null,
   );
-
-  const { data: streamData, mutate: mutateStreamData } = useSWR<
-    JSONValue[] | undefined
-  >([completionId, 'streamData'], null);
 
   const [error, setError] = useState<undefined | Error>(undefined);
   const completion = data!;
@@ -142,15 +134,9 @@ export function useCompletion({
           (completion: string) => mutate(completion, false),
           throttleWaitMs,
         ),
-        onData: throttle(
-          (data: JSONValue[]) =>
-            mutateStreamData([...(streamData ?? []), ...(data ?? [])], false),
-          throttleWaitMs,
-        ),
         setLoading: mutateLoading,
         setError,
         setAbortController,
-        onResponse,
         onFinish,
         onError,
       }),
@@ -160,14 +146,11 @@ export function useCompletion({
       api,
       extraMetadataRef,
       setAbortController,
-      onResponse,
       onFinish,
       onError,
       setError,
-      streamData,
       streamProtocol,
       fetch,
-      mutateStreamData,
       throttleWaitMs,
     ],
   );
@@ -221,6 +204,5 @@ export function useCompletion({
     handleInputChange,
     handleSubmit,
     isLoading,
-    data: streamData,
   };
 }

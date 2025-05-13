@@ -3,24 +3,23 @@
 exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
 [
   {
-    "messageId": "msg-6",
+    "type": "start",
+  },
+  {
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-6",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-13",
+      "id": "id-6",
       "modelId": "mock-model-id",
       "timestamp": 2025-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
@@ -28,25 +27,17 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
-    "warnings": [],
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-13",
-      "modelId": "mock-model-id",
-      "timestamp": 2025-01-01T00:00:00.000Z,
+    "totalUsage": {
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": 3,
+      "totalTokens": 18,
     },
     "type": "finish",
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 5,
-      "outputTokens": 10,
-      "reasoningTokens": 3,
-      "totalTokens": 18,
-    },
   },
 ]
 `;
@@ -64,9 +55,11 @@ exports[`simulateStreamingMiddleware > should pass through warnings from the mod
 exports[`simulateStreamingMiddleware > should preserve additional metadata in the response 1`] = `
 [
   {
-    "messageId": "msg-5",
+    "type": "start",
+  },
+  {
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -75,21 +68,18 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-5",
     "providerMetadata": {
       "custom": {
         "key": "value",
       },
     },
-    "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-11",
+      "id": "id-5",
       "modelId": "mock-model-id",
       "timestamp": 2025-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
@@ -97,29 +87,17 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
-    "warnings": [],
   },
   {
     "finishReason": "stop",
-    "providerMetadata": {
-      "custom": {
-        "key": "value",
-      },
-    },
-    "response": {
-      "headers": undefined,
-      "id": "id-11",
-      "modelId": "mock-model-id",
-      "timestamp": 2025-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
       "outputTokens": 10,
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -127,9 +105,11 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
 exports[`simulateStreamingMiddleware > should simulate streaming with reasoning as array of text objects 1`] = `
 [
   {
-    "messageId": "msg-2",
+    "type": "start",
+  },
+  {
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -155,17 +135,14 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-2",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-5",
+      "id": "id-2",
       "modelId": "mock-model-id",
       "timestamp": 2025-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
@@ -173,25 +150,17 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
-    "warnings": [],
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-5",
-      "modelId": "mock-model-id",
-      "timestamp": 2025-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
       "outputTokens": 10,
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -199,9 +168,11 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
 exports[`simulateStreamingMiddleware > should simulate streaming with reasoning as string 1`] = `
 [
   {
-    "messageId": "msg-1",
+    "type": "start",
+  },
+  {
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -215,17 +186,14 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-1",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-3",
+      "id": "id-1",
       "modelId": "mock-model-id",
       "timestamp": 2025-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
@@ -233,25 +201,17 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
-    "warnings": [],
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-3",
-      "modelId": "mock-model-id",
-      "timestamp": 2025-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
       "outputTokens": 10,
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -259,9 +219,11 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
 exports[`simulateStreamingMiddleware > should simulate streaming with text response 1`] = `
 [
   {
-    "messageId": "msg-0",
+    "type": "start",
+  },
+  {
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -270,17 +232,14 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 2025-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
@@ -288,25 +247,17 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
-    "warnings": [],
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-1",
-      "modelId": "mock-model-id",
-      "timestamp": 2025-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
       "outputTokens": 10,
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -314,9 +265,11 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
 exports[`simulateStreamingMiddleware > should simulate streaming with tool calls 1`] = `
 [
   {
-    "messageId": "msg-4",
+    "type": "start",
+  },
+  {
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -333,17 +286,14 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
   },
   {
     "finishReason": "tool-calls",
-    "isContinued": false,
-    "messageId": "msg-4",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-9",
+      "id": "id-4",
       "modelId": "mock-model-id",
       "timestamp": 2025-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
@@ -351,25 +301,17 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
-    "warnings": [],
   },
   {
     "finishReason": "tool-calls",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-9",
-      "modelId": "mock-model-id",
-      "timestamp": 2025-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 5,
       "outputTokens": 10,
       "reasoningTokens": 3,
       "totalTokens": 18,
     },
+    "type": "finish",
   },
 ]
 `;

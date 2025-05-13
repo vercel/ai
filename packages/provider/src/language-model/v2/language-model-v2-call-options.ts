@@ -22,9 +22,7 @@ Maximum number of tokens to generate.
   maxOutputTokens?: number;
 
   /**
-Temperature setting.
-
-It is recommended to set either `temperature` or `topP`, but not both.
+Temperature setting. The range depends on the provider and model.
  */
   temperature?: number;
 
@@ -37,8 +35,6 @@ Providers may have limits on the number of stop sequences.
 
   /**
 Nucleus sampling.
-
-It is recommended to set either `temperature` or `topP`, but not both.
  */
   topP?: number;
 

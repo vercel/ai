@@ -54,6 +54,6 @@ export default defineLazyEventHandler(async () => {
       },
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   });
 });

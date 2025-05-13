@@ -163,7 +163,7 @@ describe('result.content', () => {
         },
         {
           "file": DefaultGeneratedFile {
-            "base64Data": undefined,
+            "base64Data": "AQID",
             "mediaType": "image/png",
             "uint8ArrayData": Uint8Array [
               1,
@@ -260,9 +260,6 @@ describe('result.steps', () => {
     const result = await generateText({
       model: modelWithReasoning,
       prompt: 'prompt',
-      experimental_generateMessageId: mockId({
-        prefix: 'msg',
-      }),
       _internal: {
         generateId: mockId({ prefix: 'id' }),
         currentDate: () => new Date(0),
@@ -276,7 +273,6 @@ describe('result.steps', () => {
     const result = await generateText({
       model: modelWithSources,
       prompt: 'prompt',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
       _internal: {
         generateId: mockId({ prefix: 'id' }),
         currentDate: () => new Date(0),
@@ -290,7 +286,6 @@ describe('result.steps', () => {
     const result = await generateText({
       model: modelWithFiles,
       prompt: 'prompt',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
       _internal: {
         generateId: mockId({ prefix: 'id' }),
         currentDate: () => new Date(0),
@@ -496,7 +491,6 @@ describe('result.response.messages', () => {
         }),
       }),
       prompt: 'test-input',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -532,7 +526,6 @@ describe('result.response.messages', () => {
         },
       },
       prompt: 'test-input',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -542,7 +535,6 @@ describe('result.response.messages', () => {
     const result = await generateText({
       model: modelWithReasoning,
       prompt: 'test-input',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -589,7 +581,6 @@ describe('result.response', () => {
         }),
       }),
       prompt: 'prompt',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.steps[0].response).toMatchSnapshot();
@@ -748,7 +739,6 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -768,14 +758,26 @@ describe('options.maxSteps', () => {
       expect(result.response.messages).toMatchSnapshot();
     });
 
-    it('result.usage should sum token usage', () => {
-      expect(result.usage).toMatchInlineSnapshot(`
+    it('result.totalUsage should sum token usage', () => {
+      expect(result.totalUsage).toMatchInlineSnapshot(`
         {
           "cachedInputTokens": undefined,
           "inputTokens": 13,
           "outputTokens": 15,
           "reasoningTokens": undefined,
           "totalTokens": 28,
+        }
+      `);
+    });
+
+    it('result.usage should contain token usage from final step', async () => {
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
         }
       `);
     });
@@ -957,7 +959,6 @@ describe('options.maxSteps', () => {
             return { model: trueModel, experimental_activeTools: [] };
           }
         },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -977,14 +978,26 @@ describe('options.maxSteps', () => {
       expect(result.response.messages).toMatchSnapshot();
     });
 
-    it('result.usage should sum token usage', () => {
-      expect(result.usage).toMatchInlineSnapshot(`
+    it('result.totalUsage should sum token usage', () => {
+      expect(result.totalUsage).toMatchInlineSnapshot(`
         {
           "cachedInputTokens": undefined,
           "inputTokens": 13,
           "outputTokens": 15,
           "reasoningTokens": undefined,
           "totalTokens": 28,
+        }
+      `);
+    });
+
+    it('result.usage should contain token usage from final step', async () => {
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
         }
       `);
     });
@@ -1006,307 +1019,6 @@ describe('options.maxSteps', () => {
           },
         ]
       `);
-    });
-  });
-
-  describe('4 steps: initial, continue, continue, continue', () => {
-    let result: GenerateTextResult<any, any>;
-    let onStepFinishResults: StepResult<any>[];
-
-    beforeEach(async () => {
-      onStepFinishResults = [];
-
-      let responseCount = 0;
-      result = await generateText({
-        model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt }) => {
-            switch (responseCount++) {
-              case 0: {
-                expect(prompt).toStrictEqual([
-                  {
-                    role: 'user',
-                    content: [{ type: 'text', text: 'test-input' }],
-                    providerOptions: undefined,
-                  },
-                ]);
-
-                return {
-                  ...dummyResponseValues,
-                  // trailing text is to be discarded, trailing whitespace is to be kept:
-                  content: [
-                    { type: 'text', text: 'part 1 \n to-be-discarded' },
-                  ],
-                  finishReason: 'length', // trigger continue
-                  usage: {
-                    inputTokens: 10,
-                    outputTokens: 20,
-                    totalTokens: 30,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
-                  },
-                  response: {
-                    id: 'test-id-1-from-model',
-                    timestamp: new Date(0),
-                    modelId: 'test-response-model-id',
-                  },
-                };
-              }
-              case 1: {
-                expect(prompt).toStrictEqual([
-                  {
-                    role: 'user',
-                    content: [{ type: 'text', text: 'test-input' }],
-                    providerOptions: undefined,
-                  },
-                  {
-                    role: 'assistant',
-                    content: [
-                      {
-                        type: 'text',
-                        text: 'part 1 \n ',
-                        providerOptions: undefined,
-                      },
-                    ],
-                    providerOptions: undefined,
-                  },
-                ]);
-
-                return {
-                  ...dummyResponseValues,
-                  // case where there is no leading nor trailing whitespace:
-                  content: [
-                    { type: 'text', text: 'no-whitespace' },
-                    {
-                      type: 'file',
-                      data: new Uint8Array([1, 2, 3]),
-                      mediaType: 'image/png',
-                      filename: 'test.png',
-                    },
-                    {
-                      type: 'source',
-                      sourceType: 'url',
-                      id: '123',
-                      url: 'https://example.com',
-                      title: 'Example',
-                      providerMetadata: { provider: { custom: 'value' } },
-                    },
-                  ],
-                  finishReason: 'length',
-                  response: {
-                    id: 'test-id-2-from-model',
-                    timestamp: new Date(10000),
-                    modelId: 'test-response-model-id',
-                    // test handling of custom response headers:
-                    headers: {
-                      'custom-response-header': 'response-header-value',
-                    },
-                  },
-                  usage: {
-                    inputTokens: 30,
-                    outputTokens: 5,
-                    totalTokens: 35,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
-                  },
-                };
-              }
-              case 2: {
-                expect(prompt).toStrictEqual([
-                  {
-                    role: 'user',
-                    content: [{ type: 'text', text: 'test-input' }],
-                    providerOptions: undefined,
-                  },
-                  {
-                    role: 'assistant',
-                    content: [
-                      {
-                        type: 'text',
-                        text: 'part 1 \n ',
-                        providerOptions: undefined,
-                      },
-                      {
-                        type: 'text',
-                        text: 'no-whitespace',
-                        providerOptions: undefined,
-                      },
-                    ],
-                    providerOptions: undefined,
-                  },
-                ]);
-
-                return {
-                  ...dummyResponseValues,
-                  // set up trailing whitespace for next step:
-                  content: [
-                    { type: 'text', text: 'immediatefollow  ' },
-                    {
-                      type: 'source',
-                      sourceType: 'url',
-                      id: '456',
-                      url: 'https://example.com/2',
-                      title: 'Example 2',
-                      providerMetadata: { provider: { custom: 'value2' } },
-                    },
-                    {
-                      type: 'source',
-                      sourceType: 'url',
-                      id: '789',
-                      url: 'https://example.com/3',
-                      title: 'Example 3',
-                      providerMetadata: { provider: { custom: 'value3' } },
-                    },
-                  ],
-                  finishReason: 'length',
-                  response: {
-                    id: 'test-id-3-from-model',
-                    timestamp: new Date(20000),
-                    modelId: 'test-response-model-id',
-                  },
-                  usage: {
-                    inputTokens: 3,
-                    outputTokens: 2,
-                    totalTokens: 5,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
-                  },
-                };
-              }
-              case 3: {
-                expect(prompt).toStrictEqual([
-                  {
-                    role: 'user',
-                    content: [{ type: 'text', text: 'test-input' }],
-                    providerOptions: undefined,
-                  },
-                  {
-                    role: 'assistant',
-                    content: [
-                      {
-                        type: 'text',
-                        text: 'part 1 \n ',
-                        providerOptions: undefined,
-                      },
-                      {
-                        type: 'text',
-                        text: 'no-whitespace',
-                        providerOptions: undefined,
-                      },
-                      {
-                        type: 'text',
-                        text: 'immediatefollow  ',
-                        providerOptions: undefined,
-                      },
-                    ],
-                    providerOptions: undefined,
-                  },
-                ]);
-
-                return {
-                  ...dummyResponseValues,
-                  // leading whitespace is to be discarded when there is whitespace from previous step
-                  // (for models such as Anthropic that trim trailing whitespace in their inputs):
-                  content: [
-                    {
-                      type: 'text',
-                      text: '  final value keep all whitespace\n end',
-                    },
-                    {
-                      type: 'file',
-                      data: 'QkFVRw==',
-                      mediaType: 'image/jpeg',
-                      filename: 'test.jpeg',
-                    },
-                  ],
-                  finishReason: 'stop',
-                  response: {
-                    id: 'test-id-4-from-model',
-                    timestamp: new Date(20000),
-                    modelId: 'test-response-model-id',
-                  },
-                  usage: {
-                    inputTokens: 3,
-                    outputTokens: 2,
-                    totalTokens: 5,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
-                  },
-                };
-              }
-              default:
-                throw new Error(`Unexpected response count: ${responseCount}`);
-            }
-          },
-        }),
-        prompt: 'test-input',
-        maxSteps: 5,
-        experimental_continueSteps: true,
-        onStepFinish: async event => {
-          onStepFinishResults.push(event);
-        },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-    });
-
-    it('result.text should return text from both steps separated by space', async () => {
-      expect(result.text).toStrictEqual(
-        'part 1 \n no-whitespaceimmediatefollow  final value keep all whitespace\n end',
-      );
-    });
-
-    it('result.response.messages should contain an assistant message with the combined text', () => {
-      expect(result.response.messages).toStrictEqual([
-        {
-          role: 'assistant',
-          id: 'msg-0',
-          content: [
-            {
-              text: 'part 1 \n ',
-              type: 'text',
-            },
-            {
-              text: 'no-whitespace',
-              type: 'text',
-            },
-            {
-              text: 'immediatefollow  ',
-              type: 'text',
-            },
-            {
-              text: 'final value keep all whitespace\n end',
-              type: 'text',
-            },
-          ],
-        },
-      ]);
-    });
-
-    it('result.usage should sum token usage', () => {
-      expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 46,
-          "outputTokens": 29,
-          "reasoningTokens": undefined,
-          "totalTokens": 75,
-        }
-      `);
-    });
-
-    it('result.steps should contain all steps', () => {
-      expect(result.steps).toMatchSnapshot();
-    });
-
-    it('onStepFinish should be called for each step', () => {
-      expect(onStepFinishResults).toMatchSnapshot();
-    });
-
-    it('result.sources should contain sources from all steps', () => {
-      expect(result.sources).toMatchSnapshot();
-    });
-
-    it('result.files should contain files from last step', () => {
-      expect(result.files).toMatchSnapshot();
     });
   });
 });
@@ -1727,17 +1439,38 @@ describe('options.output', () => {
         experimental_output: Output.text(),
       });
 
-      expect(callOptions!).toEqual({
-        temperature: 0,
-        responseFormat: { type: 'text' },
-        prompt: [
-          {
-            content: [{ text: 'prompt', type: 'text' }],
-            providerOptions: undefined,
-            role: 'user',
+      expect(callOptions!).toMatchInlineSnapshot(`
+        {
+          "abortSignal": undefined,
+          "frequencyPenalty": undefined,
+          "headers": undefined,
+          "maxOutputTokens": undefined,
+          "presencePenalty": undefined,
+          "prompt": [
+            {
+              "content": [
+                {
+                  "text": "prompt",
+                  "type": "text",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ],
+          "providerOptions": undefined,
+          "responseFormat": {
+            "type": "text",
           },
-        ],
-      });
+          "seed": undefined,
+          "stopSequences": undefined,
+          "temperature": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        }
+      `);
     });
   });
 
@@ -1778,26 +1511,51 @@ describe('options.output', () => {
         }),
       });
 
-      expect(callOptions!).toEqual({
-        temperature: 0,
-        responseFormat: {
-          type: 'json',
-          schema: {
-            $schema: 'http://json-schema.org/draft-07/schema#',
-            additionalProperties: false,
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            type: 'object',
+      expect(callOptions!).toMatchInlineSnapshot(`
+        {
+          "abortSignal": undefined,
+          "frequencyPenalty": undefined,
+          "headers": undefined,
+          "maxOutputTokens": undefined,
+          "presencePenalty": undefined,
+          "prompt": [
+            {
+              "content": [
+                {
+                  "text": "prompt",
+                  "type": "text",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ],
+          "providerOptions": undefined,
+          "responseFormat": {
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "type": "json",
           },
-        },
-        prompt: [
-          {
-            content: [{ text: 'prompt', type: 'text' }],
-            providerOptions: undefined,
-            role: 'user',
-          },
-        ],
-      });
+          "seed": undefined,
+          "stopSequences": undefined,
+          "temperature": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        }
+      `);
     });
   });
 });

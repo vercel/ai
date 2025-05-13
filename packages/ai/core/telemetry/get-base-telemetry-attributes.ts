@@ -9,9 +9,7 @@ export function getBaseTelemetryAttributes({
   headers,
 }: {
   model: { modelId: string; provider: string };
-  settings: Omit<CallSettings, 'abortSignal' | 'headers' | 'temperature'> & {
-    temperature?: number;
-  };
+  settings: Omit<CallSettings, 'abortSignal' | 'headers' | 'temperature'>;
   telemetry: TelemetrySettings | undefined;
   headers: Record<string, string | undefined> | undefined;
 }): Attributes {

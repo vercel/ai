@@ -1,5 +1,9 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { processDataStream } from '../../src/data-stream/process-data-stream';
+import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
+import {
+  UIMessageStreamPart,
+  uiMessageStreamPartSchema,
+} from '../ui-message-stream/ui-message-stream-parts';
+import { consumeStream } from '../util/consume-stream';
 import { processTextStream } from './process-text-stream';
 
 // use function to allow for mocking in tests:
@@ -16,10 +20,8 @@ export async function callCompletionApi({
   setLoading,
   setError,
   setAbortController,
-  onResponse,
   onFinish,
   onError,
-  onData,
   fetch = getOriginalFetch(),
 }: {
   api: string;
@@ -32,10 +34,8 @@ export async function callCompletionApi({
   setLoading: (loading: boolean) => void;
   setError: (error: Error | undefined) => void;
   setAbortController: (abortController: AbortController | null) => void;
-  onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onFinish: ((prompt: string, completion: string) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
-  onData: ((data: JSONValue[]) => void) | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
   try {
@@ -64,14 +64,6 @@ export async function callCompletionApi({
       throw err;
     });
 
-    if (onResponse) {
-      try {
-        await onResponse(response);
-      } catch (err) {
-        throw err;
-      }
-    }
-
     if (!response.ok) {
       throw new Error(
         (await response.text()) ?? 'Failed to fetch the chat response.',
@@ -96,17 +88,33 @@ export async function callCompletionApi({
         break;
       }
       case 'data': {
-        await processDataStream({
-          stream: response.body,
-          onTextPart(value) {
-            result += value;
-            setCompletion(result);
-          },
-          onDataPart(value) {
-            onData?.(value);
-          },
-          onErrorPart(value) {
-            throw new Error(value);
+        await consumeStream({
+          stream: parseJsonEventStream({
+            stream: response.body,
+            schema: uiMessageStreamPartSchema,
+          }).pipeThrough(
+            new TransformStream<
+              ParseResult<UIMessageStreamPart>,
+              UIMessageStreamPart
+            >({
+              async transform(part) {
+                if (!part.success) {
+                  throw part.error;
+                }
+
+                const { type, value } = part.value;
+
+                if (type === 'text') {
+                  result += value;
+                  setCompletion(result);
+                } else if (type === 'error') {
+                  throw new Error(value);
+                }
+              },
+            }),
+          ),
+          onError: error => {
+            throw error;
           },
         });
         break;

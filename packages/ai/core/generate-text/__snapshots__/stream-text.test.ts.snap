@@ -6,7 +6,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
     {
       "type": "start-step",
       "value": {
-        "messageId": "msg-0",
+        "metadata": undefined,
       },
     },
     {
@@ -24,36 +24,20 @@ exports[`streamText > multiple stream consumption > should support text stream, 
     {
       "type": "finish-step",
       "value": {
-        "finishReason": "stop",
-        "isContinued": false,
-        "usage": {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        },
+        "metadata": undefined,
       },
     },
     {
-      "type": "finish-message",
+      "type": "finish",
       "value": {
-        "finishReason": "stop",
-        "usage": {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        },
+        "metadata": undefined,
       },
     },
   ],
   "fullStream": [
     {
-      "messageId": "msg-0",
       "request": {},
-      "type": "step-start",
+      "type": "start-step",
       "warnings": [],
     },
     {
@@ -70,17 +54,14 @@ exports[`streamText > multiple stream consumption > should support text stream, 
     },
     {
       "finishReason": "stop",
-      "isContinued": false,
-      "messageId": "msg-0",
       "providerMetadata": undefined,
-      "request": {},
       "response": {
         "headers": undefined,
         "id": "id-0",
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "type": "step-finish",
+      "type": "finish-step",
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -88,25 +69,17 @@ exports[`streamText > multiple stream consumption > should support text stream, 
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
-      "warnings": undefined,
     },
     {
       "finishReason": "stop",
-      "providerMetadata": undefined,
-      "response": {
-        "headers": undefined,
-        "id": "id-0",
-        "modelId": "mock-model-id",
-        "timestamp": 1970-01-01T00:00:00.000Z,
-      },
-      "type": "finish",
-      "usage": {
+      "totalUsage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
         "outputTokens": 10,
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
+      "type": "finish",
     },
   ],
   "textStream": [
@@ -153,7 +126,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
             "type": "tool-call",
           },
         ],
-        "id": "msg-0",
         "role": "assistant",
       },
       {
@@ -165,7 +137,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
             "type": "tool-result",
           },
         ],
-        "id": "msg-3",
         "role": "tool",
       },
       {
@@ -175,7 +146,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
             "type": "text",
           },
         ],
-        "id": "msg-2",
         "role": "assistant",
       },
     ],
@@ -184,10 +154,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
-          "providerOptions": undefined,
+          "providerMetadata": undefined,
           "text": "thinking",
           "type": "reasoning",
         },
@@ -209,18 +179,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
           "type": "tool-result",
         },
       ],
-      "files": [],
       "finishReason": "tool-calls",
-      "isContinued": false,
       "providerMetadata": undefined,
-      "reasoning": [
-        {
-          "providerOptions": undefined,
-          "text": "thinking",
-          "type": "reasoning",
-        },
-      ],
-      "reasoningText": "thinking",
       "request": {},
       "response": {
         "headers": {
@@ -244,7 +204,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "tool-call",
               },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
           {
@@ -256,37 +215,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "tool-result",
               },
             ],
-            "id": "msg-3",
             "role": "tool",
           },
         ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "",
-      "toolCalls": [
-        {
-          "args": {
-            "value": "value",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-      ],
-      "toolResults": [
-        {
-          "args": {
-            "value": "value",
-          },
-          "result": "result1",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -294,21 +228,17 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
-      "warnings": undefined,
+      "warnings": [],
     },
-    {
+    DefaultStepResult {
       "content": [
         {
           "text": "Hello, world!",
           "type": "text",
         },
       ],
-      "files": [],
       "finishReason": "stop",
-      "isContinued": false,
       "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -332,7 +262,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "tool-call",
               },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
           {
@@ -344,7 +273,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "tool-result",
               },
             ],
-            "id": "msg-3",
             "role": "tool",
           },
           {
@@ -354,18 +282,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
                 "type": "text",
               },
             ],
-            "id": "msg-2",
             "role": "assistant",
           },
         ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
-      "sources": [],
-      "stepType": "tool-result",
-      "text": "Hello, world!",
-      "toolCalls": [],
-      "toolResults": [],
       "usage": {
         "cachedInputTokens": 3,
         "inputTokens": 3,
@@ -373,29 +295,36 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "reasoningTokens": 10,
         "totalTokens": 23,
       },
-      "warnings": undefined,
+      "warnings": [],
     },
   ],
   "text": "Hello, world!",
   "toolCalls": [],
   "toolResults": [],
-  "usage": {
+  "totalUsage": {
     "cachedInputTokens": 3,
     "inputTokens": 6,
     "outputTokens": 20,
     "reasoningTokens": 10,
     "totalTokens": 36,
   },
-  "warnings": undefined,
+  "usage": {
+    "cachedInputTokens": 3,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": 10,
+    "totalTokens": 23,
+  },
+  "warnings": [],
 }
 `;
 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
-        "providerOptions": undefined,
+        "providerMetadata": undefined,
         "text": "thinking",
         "type": "reasoning",
       },
@@ -417,18 +346,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "tool-calls",
-    "isContinued": false,
     "providerMetadata": undefined,
-    "reasoning": [
-      {
-        "providerOptions": undefined,
-        "text": "thinking",
-        "type": "reasoning",
-      },
-    ],
-    "reasoningText": "thinking",
     "request": {},
     "response": {
       "headers": {
@@ -452,7 +371,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -464,37 +382,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "tool-result",
             },
           ],
-          "id": "msg-3",
           "role": "tool",
         },
       ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -502,21 +395,17 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -540,7 +429,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -552,7 +440,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "tool-result",
             },
           ],
-          "id": "msg-3",
           "role": "tool",
         },
         {
@@ -562,18 +449,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "text",
             },
           ],
-          "id": "msg-2",
           "role": "assistant",
         },
       ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "sources": [],
-    "stepType": "tool-result",
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
@@ -581,7 +462,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "reasoningTokens": 10,
       "totalTokens": 23,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -589,9 +470,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -618,10 +498,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
   },
   {
     "finishReason": "tool-calls",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": {
         "call": "1",
@@ -630,7 +507,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -638,12 +515,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
-    "messageId": "msg-2",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -656,10 +531,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-2",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": {
         "call": "2",
@@ -668,7 +540,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
@@ -676,27 +548,17 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "reasoningTokens": 10,
       "totalTokens": 23,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": {
-        "call": "2",
-      },
-      "id": "id-1",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": 3,
       "inputTokens": 6,
       "outputTokens": 20,
       "reasoningTokens": 10,
       "totalTokens": 36,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -713,7 +575,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.response.text": "Hello, world!",
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 3,
-      "ai.settings.temperature": 0,
       "ai.usage.cachedInputTokens": 3,
       "ai.usage.inputTokens": 6,
       "ai.usage.outputTokens": 20,
@@ -744,12 +605,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
         "tool-calls",
       ],
@@ -805,14 +664,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
       "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
       "ai.usage.cachedInputTokens": 3,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.reasoningTokens": 10,
       "ai.usage.totalTokens": 23,
       "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
@@ -858,7 +715,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "tool-call",
       },
     ],
-    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -870,7 +726,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "tool-result",
       },
     ],
-    "id": "msg-3",
     "role": "tool",
   },
   {
@@ -880,7 +735,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "text",
       },
     ],
-    "id": "msg-2",
     "role": "assistant",
   },
 ]
@@ -888,10 +742,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
-        "providerOptions": undefined,
+        "providerMetadata": undefined,
         "text": "thinking",
         "type": "reasoning",
       },
@@ -913,18 +767,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "tool-calls",
-    "isContinued": false,
     "providerMetadata": undefined,
-    "reasoning": [
-      {
-        "providerOptions": undefined,
-        "text": "thinking",
-        "type": "reasoning",
-      },
-    ],
-    "reasoningText": "thinking",
     "request": {},
     "response": {
       "headers": {
@@ -948,7 +792,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -960,37 +803,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "tool-result",
             },
           ],
-          "id": "msg-3",
           "role": "tool",
         },
       ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -998,21 +816,17 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1036,7 +850,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -1048,7 +861,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "tool-result",
             },
           ],
-          "id": "msg-3",
           "role": "tool",
         },
         {
@@ -1058,18 +870,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
               "type": "text",
             },
           ],
-          "id": "msg-2",
           "role": "assistant",
         },
       ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "sources": [],
-    "stepType": "tool-result",
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
@@ -1077,1490 +883,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "reasoningTokens": 10,
       "totalTokens": 23,
     },
-    "warnings": undefined,
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onFinish should send correct information 1`] = `
-{
-  "content": [
-    {
-      "text": "final value keep all whitespace
- end",
-      "type": "text",
-    },
-  ],
-  "files": [],
-  "finishReason": "stop",
-  "providerMetadata": undefined,
-  "reasoning": [],
-  "reasoningText": undefined,
-  "request": {},
-  "response": {
-    "headers": {
-      "call": "3",
-    },
-    "id": "id-3",
-    "messages": [
-      {
-        "content": [
-          {
-            "text": "part 1 
- no-whitespaceimmediatefollow  final value keep all whitespace
- end",
-            "type": "text",
-          },
-        ],
-        "id": "msg-0",
-        "role": "assistant",
-      },
-    ],
-    "modelId": "mock-model-id",
-    "timestamp": 1970-01-01T00:00:01.000Z,
-  },
-  "sources": [],
-  "steps": [
-    {
-      "content": [
-        {
-          "text": "part 1 
- ",
-          "type": "text",
-        },
-      ],
-      "files": [],
-      "finishReason": "length",
-      "isContinued": true,
-      "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
-      "request": {},
-      "response": {
-        "headers": undefined,
-        "id": "id-0",
-        "messages": [
-          {
-            "content": [
-              {
-                "text": "part 1 
- ",
-                "type": "text",
-              },
-            ],
-            "id": "msg-0",
-            "role": "assistant",
-          },
-        ],
-        "modelId": "mock-model-id",
-        "timestamp": 1970-01-01T00:00:00.000Z,
-      },
-      "sources": [],
-      "stepType": "initial",
-      "text": "part 1 
- ",
-      "toolCalls": [],
-      "toolResults": [],
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
-      "warnings": undefined,
-    },
-    {
-      "content": [
-        {
-          "id": "123",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example",
-          "type": "source",
-          "url": "https://example.com",
-        },
-        {
-          "text": "no-whitespace",
-          "type": "text",
-        },
-      ],
-      "files": [],
-      "finishReason": "length",
-      "isContinued": true,
-      "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
-      "request": {},
-      "response": {
-        "headers": undefined,
-        "id": "id-1",
-        "messages": [
-          {
-            "content": [
-              {
-                "text": "part 1 
- no-whitespace",
-                "type": "text",
-              },
-            ],
-            "id": "msg-0",
-            "role": "assistant",
-          },
-        ],
-        "modelId": "mock-model-id",
-        "timestamp": 1970-01-01T00:00:01.000Z,
-      },
-      "sources": [
-        {
-          "id": "123",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example",
-          "type": "source",
-          "url": "https://example.com",
-        },
-      ],
-      "stepType": "continue",
-      "text": "no-whitespace",
-      "toolCalls": [],
-      "toolResults": [],
-      "usage": {
-        "cachedInputTokens": 3,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": 10,
-        "totalTokens": 23,
-      },
-      "warnings": undefined,
-    },
-    {
-      "content": [
-        {
-          "id": "456",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value2",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example 2",
-          "type": "source",
-          "url": "https://example.com/2",
-        },
-        {
-          "text": "immediatefollow  ",
-          "type": "text",
-        },
-        {
-          "id": "789",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value3",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example 3",
-          "type": "source",
-          "url": "https://example.com/3",
-        },
-      ],
-      "files": [],
-      "finishReason": "length",
-      "isContinued": true,
-      "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
-      "request": {},
-      "response": {
-        "headers": {
-          "call": "3",
-        },
-        "id": "id-2",
-        "messages": [
-          {
-            "content": [
-              {
-                "text": "part 1 
- no-whitespaceimmediatefollow  ",
-                "type": "text",
-              },
-            ],
-            "id": "msg-0",
-            "role": "assistant",
-          },
-        ],
-        "modelId": "mock-model-id",
-        "timestamp": 1970-01-01T00:00:01.000Z,
-      },
-      "sources": [
-        {
-          "id": "456",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value2",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example 2",
-          "type": "source",
-          "url": "https://example.com/2",
-        },
-        {
-          "id": "789",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value3",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example 3",
-          "type": "source",
-          "url": "https://example.com/3",
-        },
-      ],
-      "stepType": "continue",
-      "text": "immediatefollow  ",
-      "toolCalls": [],
-      "toolResults": [],
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 2,
-        "reasoningTokens": undefined,
-        "totalTokens": 5,
-      },
-      "warnings": undefined,
-    },
-    {
-      "content": [
-        {
-          "text": "final value keep all whitespace
- end",
-          "type": "text",
-        },
-      ],
-      "files": [],
-      "finishReason": "stop",
-      "isContinued": false,
-      "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
-      "request": {},
-      "response": {
-        "headers": {
-          "call": "3",
-        },
-        "id": "id-3",
-        "messages": [
-          {
-            "content": [
-              {
-                "text": "part 1 
- no-whitespaceimmediatefollow  final value keep all whitespace
- end",
-                "type": "text",
-              },
-            ],
-            "id": "msg-0",
-            "role": "assistant",
-          },
-        ],
-        "modelId": "mock-model-id",
-        "timestamp": 1970-01-01T00:00:01.000Z,
-      },
-      "sources": [],
-      "stepType": "continue",
-      "text": "final value keep all whitespace
- end",
-      "toolCalls": [],
-      "toolResults": [],
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 2,
-        "reasoningTokens": undefined,
-        "totalTokens": 5,
-      },
-      "warnings": undefined,
-    },
-  ],
-  "text": "part 1 
- no-whitespaceimmediatefollow  final value keep all whitespace
- end",
-  "toolCalls": [],
-  "toolResults": [],
-  "usage": {
-    "cachedInputTokens": 3,
-    "inputTokens": 12,
-    "outputTokens": 24,
-    "reasoningTokens": 10,
-    "totalTokens": 46,
-  },
-  "warnings": undefined,
-}
-`;
-
-exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onStepFinish should send correct information 1`] = `
-[
-  {
-    "content": [
-      {
-        "text": "part 1 
- ",
-        "type": "text",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "sources": [],
-    "stepType": "initial",
-    "text": "part 1 
- ",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": undefined,
-      "totalTokens": 13,
-    },
-    "warnings": undefined,
-  },
-  {
-    "content": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-      {
-        "text": "no-whitespace",
-        "type": "text",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "headers": undefined,
-      "id": "id-1",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- no-whitespace",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "sources": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-    ],
-    "stepType": "continue",
-    "text": "no-whitespace",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": 10,
-      "totalTokens": 23,
-    },
-    "warnings": undefined,
-  },
-  {
-    "content": [
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-      {
-        "text": "immediatefollow  ",
-        "type": "text",
-      },
-      {
-        "id": "789",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value3",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 3",
-        "type": "source",
-        "url": "https://example.com/3",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "3",
-      },
-      "id": "id-2",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- no-whitespaceimmediatefollow  ",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "sources": [
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-      {
-        "id": "789",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value3",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 3",
-        "type": "source",
-        "url": "https://example.com/3",
-      },
-    ],
-    "stepType": "continue",
-    "text": "immediatefollow  ",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": undefined,
-  },
-  {
-    "content": [
-      {
-        "text": "final value keep all whitespace
- end",
-        "type": "text",
-      },
-    ],
-    "files": [],
-    "finishReason": "stop",
-    "isContinued": false,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "3",
-      },
-      "id": "id-3",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- no-whitespaceimmediatefollow  final value keep all whitespace
- end",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "sources": [],
-    "stepType": "continue",
-    "text": "final value keep all whitespace
- end",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": undefined,
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > result.sources should contain sources from all steps 1`] = `
-[
-  {
-    "id": "123",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example",
-    "type": "source",
-    "url": "https://example.com",
-  },
-  {
-    "id": "456",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value2",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example 2",
-    "type": "source",
-    "url": "https://example.com/2",
-  },
-  {
-    "id": "789",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value3",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example 3",
-    "type": "source",
-    "url": "https://example.com/3",
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should contain text deltas from all steps 1`] = `
-[
-  {
-    "messageId": "msg-0",
-    "request": {},
-    "type": "step-start",
     "warnings": [],
-  },
-  {
-    "text": "part ",
-    "type": "text",
-  },
-  {
-    "text": "1 
-",
-    "type": "text",
-  },
-  {
-    "text": " ",
-    "type": "text",
-  },
-  {
-    "finishReason": "length",
-    "isContinued": true,
-    "messageId": "msg-0",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "step-finish",
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": undefined,
-      "totalTokens": 13,
-    },
-    "warnings": undefined,
-  },
-  {
-    "messageId": "msg-0",
-    "request": {},
-    "type": "step-start",
-    "warnings": [],
-  },
-  {
-    "id": "123",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example",
-    "type": "source",
-    "url": "https://example.com",
-  },
-  {
-    "text": "no-whitespace",
-    "type": "text",
-  },
-  {
-    "finishReason": "length",
-    "isContinued": true,
-    "messageId": "msg-0",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": undefined,
-      "id": "id-1",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "type": "step-finish",
-    "usage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": 10,
-      "totalTokens": 23,
-    },
-    "warnings": undefined,
-  },
-  {
-    "messageId": "msg-0",
-    "request": {},
-    "type": "step-start",
-    "warnings": [],
-  },
-  {
-    "id": "456",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value2",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example 2",
-    "type": "source",
-    "url": "https://example.com/2",
-  },
-  {
-    "text": "immediatefollow  ",
-    "type": "text",
-  },
-  {
-    "id": "789",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value3",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example 3",
-    "type": "source",
-    "url": "https://example.com/3",
-  },
-  {
-    "finishReason": "length",
-    "isContinued": true,
-    "messageId": "msg-0",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "3",
-      },
-      "id": "id-2",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "type": "step-finish",
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": undefined,
-  },
-  {
-    "messageId": "msg-0",
-    "request": {},
-    "type": "step-start",
-    "warnings": [],
-  },
-  {
-    "text": "final ",
-    "type": "text",
-  },
-  {
-    "text": "value keep all ",
-    "type": "text",
-  },
-  {
-    "text": "whitespace
- ",
-    "type": "text",
-  },
-  {
-    "text": "end",
-    "type": "text",
-  },
-  {
-    "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "3",
-      },
-      "id": "id-3",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "type": "step-finish",
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": undefined,
-  },
-  {
-    "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": {
-        "call": "3",
-      },
-      "id": "id-3",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "type": "finish",
-    "usage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 12,
-      "outputTokens": 24,
-      "reasoningTokens": 10,
-      "totalTokens": 46,
-    },
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should generate correct data stream 1`] = `
-[
-  {
-    "type": "start-step",
-    "value": {
-      "messageId": "msg-0",
-    },
-  },
-  {
-    "type": "text",
-    "value": "part ",
-  },
-  {
-    "type": "text",
-    "value": "1 
-",
-  },
-  {
-    "type": "text",
-    "value": " ",
-  },
-  {
-    "type": "finish-step",
-    "value": {
-      "finishReason": "length",
-      "isContinued": true,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
-    },
-  },
-  {
-    "type": "start-step",
-    "value": {
-      "messageId": "msg-0",
-    },
-  },
-  {
-    "type": "text",
-    "value": "no-whitespace",
-  },
-  {
-    "type": "finish-step",
-    "value": {
-      "finishReason": "length",
-      "isContinued": true,
-      "usage": {
-        "cachedInputTokens": 3,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": 10,
-        "totalTokens": 23,
-      },
-    },
-  },
-  {
-    "type": "start-step",
-    "value": {
-      "messageId": "msg-0",
-    },
-  },
-  {
-    "type": "text",
-    "value": "immediatefollow  ",
-  },
-  {
-    "type": "finish-step",
-    "value": {
-      "finishReason": "length",
-      "isContinued": true,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 2,
-        "reasoningTokens": undefined,
-        "totalTokens": 5,
-      },
-    },
-  },
-  {
-    "type": "start-step",
-    "value": {
-      "messageId": "msg-0",
-    },
-  },
-  {
-    "type": "text",
-    "value": "final ",
-  },
-  {
-    "type": "text",
-    "value": "value keep all ",
-  },
-  {
-    "type": "text",
-    "value": "whitespace
- ",
-  },
-  {
-    "type": "text",
-    "value": "end",
-  },
-  {
-    "type": "finish-step",
-    "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 2,
-        "reasoningTokens": undefined,
-        "totalTokens": 5,
-      },
-    },
-  },
-  {
-    "type": "finish-message",
-    "value": {
-      "finishReason": "stop",
-      "usage": {
-        "cachedInputTokens": 3,
-        "inputTokens": 12,
-        "outputTokens": 24,
-        "reasoningTokens": 10,
-        "totalTokens": 46,
-      },
-    },
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should record telemetry data for each step 1`] = `
-[
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.streamText",
-      "ai.prompt": "{"prompt":"test-input"}",
-      "ai.response.finishReason": "stop",
-      "ai.response.text": "part 1 
- no-whitespaceimmediatefollow  final value keep all whitespace
- end",
-      "ai.settings.maxRetries": 2,
-      "ai.settings.maxSteps": 5,
-      "ai.settings.temperature": 0,
-      "ai.usage.cachedInputTokens": 3,
-      "ai.usage.inputTokens": 12,
-      "ai.usage.outputTokens": 24,
-      "ai.usage.reasoningTokens": 10,
-      "ai.usage.totalTokens": 46,
-      "operation.name": "ai.streamText",
-    },
-    "events": [],
-    "name": "ai.streamText",
-  },
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.streamText.doStream",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-      "ai.response.avgOutputTokensPerSecond": 20,
-      "ai.response.finishReason": "length",
-      "ai.response.id": "id-0",
-      "ai.response.model": "mock-model-id",
-      "ai.response.msToFinish": 500,
-      "ai.response.msToFirstChunk": 100,
-      "ai.response.text": "part 1 
- ",
-      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
-      "ai.usage.inputTokens": 3,
-      "ai.usage.outputTokens": 10,
-      "ai.usage.totalTokens": 13,
-      "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
-      "gen_ai.response.finish_reasons": [
-        "length",
-      ],
-      "gen_ai.response.id": "id-0",
-      "gen_ai.response.model": "mock-model-id",
-      "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 3,
-      "gen_ai.usage.output_tokens": 10,
-      "operation.name": "ai.streamText.doStream",
-    },
-    "events": [
-      {
-        "attributes": {
-          "ai.response.msToFirstChunk": 100,
-        },
-        "name": "ai.stream.firstChunk",
-      },
-      {
-        "attributes": undefined,
-        "name": "ai.stream.finish",
-      },
-    ],
-    "name": "ai.streamText.doStream",
-  },
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.streamText.doStream",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part 1 \\n "}]}]",
-      "ai.response.avgOutputTokensPerSecond": 25,
-      "ai.response.finishReason": "length",
-      "ai.response.id": "id-1",
-      "ai.response.model": "mock-model-id",
-      "ai.response.msToFinish": 400,
-      "ai.response.msToFirstChunk": 400,
-      "ai.response.text": "no-whitespace",
-      "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-      "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
-      "ai.usage.cachedInputTokens": 3,
-      "ai.usage.inputTokens": 3,
-      "ai.usage.outputTokens": 10,
-      "ai.usage.reasoningTokens": 10,
-      "ai.usage.totalTokens": 23,
-      "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
-      "gen_ai.response.finish_reasons": [
-        "length",
-      ],
-      "gen_ai.response.id": "id-1",
-      "gen_ai.response.model": "mock-model-id",
-      "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 3,
-      "gen_ai.usage.output_tokens": 10,
-      "operation.name": "ai.streamText.doStream",
-    },
-    "events": [
-      {
-        "attributes": {
-          "ai.response.msToFirstChunk": 400,
-        },
-        "name": "ai.stream.firstChunk",
-      },
-      {
-        "attributes": undefined,
-        "name": "ai.stream.finish",
-      },
-    ],
-    "name": "ai.streamText.doStream",
-  },
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.streamText.doStream",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part 1 \\n "},{"type":"text","text":"no-whitespace"}]}]",
-      "ai.response.avgOutputTokensPerSecond": Infinity,
-      "ai.response.finishReason": "length",
-      "ai.response.id": "id-2",
-      "ai.response.model": "mock-model-id",
-      "ai.response.msToFinish": 0,
-      "ai.response.msToFirstChunk": 0,
-      "ai.response.text": "immediatefollow  ",
-      "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-      "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
-      "ai.usage.inputTokens": 3,
-      "ai.usage.outputTokens": 2,
-      "ai.usage.totalTokens": 5,
-      "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
-      "gen_ai.response.finish_reasons": [
-        "length",
-      ],
-      "gen_ai.response.id": "id-2",
-      "gen_ai.response.model": "mock-model-id",
-      "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 3,
-      "gen_ai.usage.output_tokens": 2,
-      "operation.name": "ai.streamText.doStream",
-    },
-    "events": [
-      {
-        "attributes": {
-          "ai.response.msToFirstChunk": 0,
-        },
-        "name": "ai.stream.firstChunk",
-      },
-      {
-        "attributes": undefined,
-        "name": "ai.stream.finish",
-      },
-    ],
-    "name": "ai.streamText.doStream",
-  },
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.streamText.doStream",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part 1 \\n "},{"type":"text","text":"no-whitespace"},{"type":"text","text":"immediatefollow  "}]}]",
-      "ai.response.avgOutputTokensPerSecond": Infinity,
-      "ai.response.finishReason": "stop",
-      "ai.response.id": "id-3",
-      "ai.response.model": "mock-model-id",
-      "ai.response.msToFinish": 0,
-      "ai.response.msToFirstChunk": 0,
-      "ai.response.text": "final value keep all whitespace
- end",
-      "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-      "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
-      "ai.usage.inputTokens": 3,
-      "ai.usage.outputTokens": 2,
-      "ai.usage.totalTokens": 5,
-      "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
-      "gen_ai.response.finish_reasons": [
-        "stop",
-      ],
-      "gen_ai.response.id": "id-3",
-      "gen_ai.response.model": "mock-model-id",
-      "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 3,
-      "gen_ai.usage.output_tokens": 2,
-      "operation.name": "ai.streamText.doStream",
-    },
-    "events": [
-      {
-        "attributes": {
-          "ai.response.msToFirstChunk": 0,
-        },
-        "name": "ai.stream.firstChunk",
-      },
-      {
-        "attributes": undefined,
-        "name": "ai.stream.finish",
-      },
-    ],
-    "name": "ai.streamText.doStream",
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > value promises > result.steps should contain all steps 1`] = `
-[
-  {
-    "content": [
-      {
-        "text": "part 1 
- ",
-        "type": "text",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "sources": [],
-    "stepType": "initial",
-    "text": "part 1 
- ",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": undefined,
-      "totalTokens": 13,
-    },
-    "warnings": undefined,
-  },
-  {
-    "content": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-      {
-        "text": "no-whitespace",
-        "type": "text",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "headers": undefined,
-      "id": "id-1",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- no-whitespace",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "sources": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-    ],
-    "stepType": "continue",
-    "text": "no-whitespace",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": 10,
-      "totalTokens": 23,
-    },
-    "warnings": undefined,
-  },
-  {
-    "content": [
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-      {
-        "text": "immediatefollow  ",
-        "type": "text",
-      },
-      {
-        "id": "789",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value3",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 3",
-        "type": "source",
-        "url": "https://example.com/3",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "3",
-      },
-      "id": "id-2",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- no-whitespaceimmediatefollow  ",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "sources": [
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-      {
-        "id": "789",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value3",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 3",
-        "type": "source",
-        "url": "https://example.com/3",
-      },
-    ],
-    "stepType": "continue",
-    "text": "immediatefollow  ",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": undefined,
-  },
-  {
-    "content": [
-      {
-        "text": "final value keep all whitespace
- end",
-        "type": "text",
-      },
-    ],
-    "files": [],
-    "finishReason": "stop",
-    "isContinued": false,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "3",
-      },
-      "id": "id-3",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- no-whitespaceimmediatefollow  final value keep all whitespace
- end",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "sources": [],
-    "stepType": "continue",
-    "text": "final value keep all whitespace
- end",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": undefined,
   },
 ]
 `;
@@ -2683,7 +1006,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       {
         "content": [
           {
-            "text": "Hello, world!",
+            "text": "Hello, ",
             "type": "text",
           },
           {
@@ -2694,8 +1017,11 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
             "toolName": "tool1",
             "type": "tool-call",
           },
+          {
+            "text": "world!",
+            "type": "text",
+          },
         ],
-        "id": "msg-0",
         "role": "assistant",
       },
       {
@@ -2707,7 +1033,6 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
             "type": "tool-result",
           },
         ],
-        "id": "msg-1",
         "role": "tool",
       },
     ],
@@ -2716,7 +1041,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "text": "Hello, ",
@@ -2744,16 +1069,12 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           "type": "text",
         },
       ],
-      "files": [],
       "finishReason": "stop",
-      "isContinued": false,
       "providerMetadata": {
         "testProvider": {
           "testKey": "testValue",
         },
       },
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -2764,7 +1085,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           {
             "content": [
               {
-                "text": "Hello, world!",
+                "text": "Hello, ",
                 "type": "text",
               },
               {
@@ -2775,8 +1096,11 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
                 "toolName": "tool1",
                 "type": "tool-call",
               },
+              {
+                "text": "world!",
+                "type": "text",
+              },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
           {
@@ -2788,37 +1112,12 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
                 "type": "tool-result",
               },
             ],
-            "id": "msg-1",
             "role": "tool",
           },
         ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "Hello, world!",
-      "toolCalls": [
-        {
-          "args": {
-            "value": "value",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-      ],
-      "toolResults": [
-        {
-          "args": {
-            "value": "value",
-          },
-          "result": "value-result",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -2826,7 +1125,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
-      "warnings": undefined,
+      "warnings": [],
     },
   ],
   "text": "Hello, world!",
@@ -2851,6 +1150,13 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "type": "tool-result",
     },
   ],
+  "totalUsage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
+    "totalTokens": 13,
+  },
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": 3,
@@ -2858,7 +1164,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
-  "warnings": undefined,
+  "warnings": [],
 }
 `;
 
@@ -2909,7 +1215,7 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   "request": {},
   "response": {
     "headers": undefined,
-    "id": "id-1",
+    "id": "id-0",
     "messages": [
       {
         "content": [
@@ -2919,16 +1225,15 @@ exports[`streamText > options.onFinish > should send files 1`] = `
             "type": "file",
           },
           {
+            "text": "Hello!",
+            "type": "text",
+          },
+          {
             "data": "QkFVRw==",
             "mediaType": "image/jpeg",
             "type": "file",
           },
-          {
-            "text": "Hello!",
-            "type": "text",
-          },
         ],
-        "id": "msg-0",
         "role": "assistant",
       },
     ],
@@ -2937,7 +1242,7 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "file": DefaultGeneratedFileWithType {
@@ -2962,29 +1267,12 @@ exports[`streamText > options.onFinish > should send files 1`] = `
           "type": "file",
         },
       ],
-      "files": [
-        DefaultGeneratedFileWithType {
-          "base64Data": "Hello World",
-          "mediaType": "text/plain",
-          "type": "file",
-          "uint8ArrayData": undefined,
-        },
-        DefaultGeneratedFileWithType {
-          "base64Data": "QkFVRw==",
-          "mediaType": "image/jpeg",
-          "type": "file",
-          "uint8ArrayData": undefined,
-        },
-      ],
       "finishReason": "stop",
-      "isContinued": false,
       "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
-        "id": "id-1",
+        "id": "id-0",
         "messages": [
           {
             "content": [
@@ -2994,27 +1282,21 @@ exports[`streamText > options.onFinish > should send files 1`] = `
                 "type": "file",
               },
               {
+                "text": "Hello!",
+                "type": "text",
+              },
+              {
                 "data": "QkFVRw==",
                 "mediaType": "image/jpeg",
                 "type": "file",
               },
-              {
-                "text": "Hello!",
-                "type": "text",
-              },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
         ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "Hello!",
-      "toolCalls": [],
-      "toolResults": [],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -3022,12 +1304,19 @@ exports[`streamText > options.onFinish > should send files 1`] = `
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
-      "warnings": undefined,
+      "warnings": [],
     },
   ],
   "text": "Hello!",
   "toolCalls": [],
   "toolResults": [],
+  "totalUsage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
+    "totalTokens": 13,
+  },
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": 3,
@@ -3035,7 +1324,7 @@ exports[`streamText > options.onFinish > should send files 1`] = `
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
-  "warnings": undefined,
+  "warnings": [],
 }
 `;
 
@@ -3079,7 +1368,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
   "request": {},
   "response": {
     "headers": undefined,
-    "id": "id-1",
+    "id": "id-0",
     "messages": [
       {
         "content": [
@@ -3088,7 +1377,6 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
             "type": "text",
           },
         ],
-        "id": "msg-0",
         "role": "assistant",
       },
     ],
@@ -3122,7 +1410,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
     },
   ],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "id": "123",
@@ -3153,16 +1441,12 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
           "url": "https://example.com/2",
         },
       ],
-      "files": [],
       "finishReason": "stop",
-      "isContinued": false,
       "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
-        "id": "id-1",
+        "id": "id-0",
         "messages": [
           {
             "content": [
@@ -3171,43 +1455,12 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
                 "type": "text",
               },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
         ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [
-        {
-          "id": "123",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example",
-          "type": "source",
-          "url": "https://example.com",
-        },
-        {
-          "id": "456",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value2",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example 2",
-          "type": "source",
-          "url": "https://example.com/2",
-        },
-      ],
-      "stepType": "initial",
-      "text": "Hello!",
-      "toolCalls": [],
-      "toolResults": [],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -3215,12 +1468,19 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
-      "warnings": undefined,
+      "warnings": [],
     },
   ],
   "text": "Hello!",
   "toolCalls": [],
   "toolResults": [],
+  "totalUsage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
+    "totalTokens": 13,
+  },
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": 3,
@@ -3228,7 +1488,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
-  "warnings": undefined,
+  "warnings": [],
 }
 `;
 
@@ -3248,7 +1508,7 @@ exports[`streamText > options.output > object output > should call onFinish with
   "request": {},
   "response": {
     "headers": undefined,
-    "id": "id-1",
+    "id": "id-0",
     "messages": [
       {
         "content": [
@@ -3257,7 +1517,6 @@ exports[`streamText > options.output > object output > should call onFinish with
             "type": "text",
           },
         ],
-        "id": "msg-0",
         "role": "assistant",
       },
     ],
@@ -3266,23 +1525,19 @@ exports[`streamText > options.output > object output > should call onFinish with
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "text": "{ "value": "Hello, world!" }",
           "type": "text",
         },
       ],
-      "files": [],
       "finishReason": "stop",
-      "isContinued": false,
       "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
-        "id": "id-1",
+        "id": "id-0",
         "messages": [
           {
             "content": [
@@ -3291,18 +1546,12 @@ exports[`streamText > options.output > object output > should call onFinish with
                 "type": "text",
               },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
         ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "{ "value": "Hello, world!" }",
-      "toolCalls": [],
-      "toolResults": [],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -3310,12 +1559,19 @@ exports[`streamText > options.output > object output > should call onFinish with
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
-      "warnings": undefined,
+      "warnings": [],
     },
   ],
   "text": "{ "value": "Hello, world!" }",
   "toolCalls": [],
   "toolResults": [],
+  "totalUsage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
+    "totalTokens": 13,
+  },
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": 3,
@@ -3323,7 +1579,7 @@ exports[`streamText > options.output > object output > should call onFinish with
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
-  "warnings": undefined,
+  "warnings": [],
 }
 `;
 
@@ -3375,7 +1631,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
       {
         "content": [
           {
-            "text": "HELLO, WORLD!",
+            "text": "HELLO, ",
             "type": "text",
           },
           {
@@ -3386,8 +1642,11 @@ exports[`streamText > options.transform > with base transformation > options.onF
             "toolName": "tool1",
             "type": "tool-call",
           },
+          {
+            "text": "WORLD!",
+            "type": "text",
+          },
         ],
-        "id": "msg-0",
         "role": "assistant",
       },
       {
@@ -3399,7 +1658,6 @@ exports[`streamText > options.transform > with base transformation > options.onF
             "type": "tool-result",
           },
         ],
-        "id": "msg-1",
         "role": "tool",
       },
     ],
@@ -3408,7 +1666,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "text": "HELLO, ",
@@ -3436,16 +1694,12 @@ exports[`streamText > options.transform > with base transformation > options.onF
           "type": "text",
         },
       ],
-      "files": [],
       "finishReason": "stop",
-      "isContinued": false,
       "providerMetadata": {
         "testProvider": {
           "testKey": "TEST VALUE",
         },
       },
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -3456,7 +1710,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
           {
             "content": [
               {
-                "text": "HELLO, WORLD!",
+                "text": "HELLO, ",
                 "type": "text",
               },
               {
@@ -3467,8 +1721,11 @@ exports[`streamText > options.transform > with base transformation > options.onF
                 "toolName": "tool1",
                 "type": "tool-call",
               },
+              {
+                "text": "WORLD!",
+                "type": "text",
+              },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
           {
@@ -3480,37 +1737,12 @@ exports[`streamText > options.transform > with base transformation > options.onF
                 "type": "tool-result",
               },
             ],
-            "id": "msg-1",
             "role": "tool",
           },
         ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "HELLO, WORLD!",
-      "toolCalls": [
-        {
-          "args": {
-            "value": "VALUE",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-      ],
-      "toolResults": [
-        {
-          "args": {
-            "value": "VALUE",
-          },
-          "result": "VALUE-RESULT",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -3518,7 +1750,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
-      "warnings": undefined,
+      "warnings": [],
     },
   ],
   "text": "HELLO, WORLD!",
@@ -3543,6 +1775,13 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "type": "tool-result",
     },
   ],
+  "totalUsage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
+    "totalTokens": 13,
+  },
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": 3,
@@ -3550,12 +1789,12 @@ exports[`streamText > options.transform > with base transformation > options.onF
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
-  "warnings": undefined,
+  "warnings": [],
 }
 `;
 
 exports[`streamText > options.transform > with base transformation > options.onStepFinish should receive transformed data 1`] = `
-{
+DefaultStepResult {
   "content": [
     {
       "text": "HELLO, ",
@@ -3583,16 +1822,12 @@ exports[`streamText > options.transform > with base transformation > options.onS
       "type": "text",
     },
   ],
-  "files": [],
   "finishReason": "stop",
-  "isContinued": false,
   "providerMetadata": {
     "testProvider": {
       "testKey": "TEST VALUE",
     },
   },
-  "reasoning": [],
-  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -3603,7 +1838,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
       {
         "content": [
           {
-            "text": "HELLO, WORLD!",
+            "text": "HELLO, ",
             "type": "text",
           },
           {
@@ -3614,8 +1849,11 @@ exports[`streamText > options.transform > with base transformation > options.onS
             "toolName": "tool1",
             "type": "tool-call",
           },
+          {
+            "text": "WORLD!",
+            "type": "text",
+          },
         ],
-        "id": "msg-0",
         "role": "assistant",
       },
       {
@@ -3627,37 +1865,12 @@ exports[`streamText > options.transform > with base transformation > options.onS
             "type": "tool-result",
           },
         ],
-        "id": "msg-1",
         "role": "tool",
       },
     ],
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
-  "sources": [],
-  "stepType": "initial",
-  "text": "HELLO, WORLD!",
-  "toolCalls": [
-    {
-      "args": {
-        "value": "VALUE",
-      },
-      "toolCallId": "call-1",
-      "toolName": "tool1",
-      "type": "tool-call",
-    },
-  ],
-  "toolResults": [
-    {
-      "args": {
-        "value": "VALUE",
-      },
-      "result": "VALUE-RESULT",
-      "toolCallId": "call-1",
-      "toolName": "tool1",
-      "type": "tool-result",
-    },
-  ],
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": 3,
@@ -3665,13 +1878,13 @@ exports[`streamText > options.transform > with base transformation > options.onS
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
-  "warnings": undefined,
+  "warnings": [],
 }
 `;
 
 exports[`streamText > options.transform > with base transformation > result.steps should be transformed 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "HELLO, WORLD!",
@@ -3695,12 +1908,8 @@ exports[`streamText > options.transform > with base transformation > result.step
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3721,7 +1930,6 @@ exports[`streamText > options.transform > with base transformation > result.step
               "type": "tool-call",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
         {
@@ -3733,37 +1941,12 @@ exports[`streamText > options.transform > with base transformation > result.step
               "type": "tool-result",
             },
           ],
-          "id": "msg-1",
           "role": "tool",
         },
       ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "HELLO, WORLD!",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "VALUE",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "VALUE",
-        },
-        "result": "RESULT1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -3771,7 +1954,7 @@ exports[`streamText > options.transform > with base transformation > result.step
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -3789,7 +1972,6 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
-      "ai.settings.temperature": 0,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
@@ -3818,12 +2000,10 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
@@ -3864,19 +2044,15 @@ exports[`streamText > options.transform > with base transformation > telemetry s
 `;
 
 exports[`streamText > options.transform > with transformation that aborts stream > options.onStepFinish should be called 1`] = `
-{
+DefaultStepResult {
   "content": [
     {
       "text": "Hello, ",
       "type": "text",
     },
   ],
-  "files": [],
   "finishReason": "stop",
-  "isContinued": false,
   "providerMetadata": undefined,
-  "reasoning": [],
-  "reasoningText": undefined,
   "request": {},
   "response": {
     "id": "response-id",
@@ -3888,18 +2064,12 @@ exports[`streamText > options.transform > with transformation that aborts stream
             "type": "text",
           },
         ],
-        "id": "msg-transformed-123",
         "role": "assistant",
       },
     ],
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
-  "sources": [],
-  "stepType": "initial",
-  "text": "Hello, ",
-  "toolCalls": [],
-  "toolResults": [],
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": undefined,
@@ -3931,9 +2101,8 @@ exports[`streamText > result.files > should contain files 1`] = `
 exports[`streamText > result.fullStream > should filter out empty text deltas 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -3950,17 +2119,14 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -3968,25 +2134,17 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -3994,9 +2152,8 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
 exports[`streamText > result.fullStream > should not send tool call deltas when toolCallStreaming is disabled 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4009,17 +2166,14 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
   },
   {
     "finishReason": "tool-calls",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
@@ -4027,25 +2181,17 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
       "reasoningTokens": 10,
       "totalTokens": 23,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "tool-calls",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": 10,
       "totalTokens": 23,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4053,9 +2199,8 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
 exports[`streamText > result.fullStream > should send delayed asynchronous tool results 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4077,17 +2222,14 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -4095,25 +2237,17 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4121,9 +2255,8 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
 exports[`streamText > result.fullStream > should send files 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4150,17 +2283,14 @@ exports[`streamText > result.fullStream > should send files 1`] = `
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -4168,25 +2298,17 @@ exports[`streamText > result.fullStream > should send files 1`] = `
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-1",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4194,9 +2316,8 @@ exports[`streamText > result.fullStream > should send files 1`] = `
 exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4261,17 +2382,14 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -4279,25 +2397,17 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4305,9 +2415,8 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
 exports[`streamText > result.fullStream > should send sources 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4340,17 +2449,14 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -4358,25 +2464,17 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-1",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4384,9 +2482,8 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
 exports[`streamText > result.fullStream > should send text deltas 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4403,17 +2500,14 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "response-id",
       "modelId": "response-model-id",
       "timestamp": 1970-01-01T00:00:05.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -4421,25 +2515,17 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "response-id",
-      "modelId": "response-model-id",
-      "timestamp": 1970-01-01T00:00:05.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4447,9 +2533,8 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
 exports[`streamText > result.fullStream > should send tool call deltas when toolCallStreaming is enabled 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4509,17 +2594,14 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
   },
   {
     "finishReason": "tool-calls",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
@@ -4527,25 +2609,17 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
       "reasoningTokens": 10,
       "totalTokens": 23,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "tool-calls",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": 10,
       "totalTokens": 23,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4553,9 +2627,8 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
 exports[`streamText > result.fullStream > should send tool calls 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4568,17 +2641,14 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -4586,25 +2656,17 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4612,9 +2674,8 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
 exports[`streamText > result.fullStream > should send tool results 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4636,17 +2697,14 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -4654,25 +2712,17 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
@@ -4680,9 +2730,8 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
 exports[`streamText > result.fullStream > should use fallback response metadata when response metadata is not provided 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -4699,17 +2748,14 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-2000",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:02.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -4717,41 +2763,33 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-2000",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:02.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;
 
-exports[`streamText > result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
+exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error messages by default 1`] = `
 [
-  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+  "data: {"type":"start-step","value":{}}
 
 ",
   "data: {"type":"error","value":"An error occurred."}
 
 ",
-  "data: {"type":"finish-step","value":{"finishReason":"error","usage":{},"isContinued":false}}
+  "data: {"type":"finish-step","value":{}}
 
 ",
-  "data: {"type":"finish-message","value":{"finishReason":"error","usage":{}}}
+  "data: {"type":"finish","value":{}}
 
 ",
   "data: [DONE]
@@ -4760,15 +2798,15 @@ exports[`streamText > result.pipeDataStreamToResponse > should mask error messag
 ]
 `;
 
-exports[`streamText > result.pipeDataStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
+exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
-  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+  "data: {"type":"start-step","value":{}}
 
 ",
   "data: {"type":"text","value":"Hello, World!"}
 
 ",
-  "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+  "data: {"type":"finish-step","value":{}}
 
 ",
   "data: [DONE]
@@ -4777,38 +2815,18 @@ exports[`streamText > result.pipeDataStreamToResponse > should omit message fini
 ]
 `;
 
-exports[`streamText > result.pipeDataStreamToResponse > should support custom error messages 1`] = `
+exports[`streamText > result.pipeUIMessageStreamToResponse > should support custom error messages 1`] = `
 [
-  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+  "data: {"type":"start-step","value":{}}
 
 ",
   "data: {"type":"error","value":"custom error message: error"}
 
 ",
-  "data: {"type":"finish-step","value":{"finishReason":"error","usage":{},"isContinued":false}}
+  "data: {"type":"finish-step","value":{}}
 
 ",
-  "data: {"type":"finish-message","value":{"finishReason":"error","usage":{}}}
-
-",
-  "data: [DONE]
-
-",
-]
-`;
-
-exports[`streamText > result.pipeDataStreamToResponse > should suppress usage information when sendUsage is false 1`] = `
-[
-  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
-
-",
-  "data: {"type":"text","value":"Hello, World!"}
-
-",
-  "data: {"type":"finish-step","value":{"finishReason":"stop","isContinued":false}}
-
-",
-  "data: {"type":"finish-message","value":{"finishReason":"stop"}}
+  "data: {"type":"finish","value":{}}
 
 ",
   "data: [DONE]
@@ -4820,7 +2838,7 @@ exports[`streamText > result.pipeDataStreamToResponse > should suppress usage in
 exports[`streamText > result.reasoning > should contain reasoning from model response 1`] = `
 [
   {
-    "providerOptions": {
+    "providerMetadata": {
       "testProvider": {
         "signature": "1234567890",
       },
@@ -4829,7 +2847,7 @@ exports[`streamText > result.reasoning > should contain reasoning from model res
     "type": "reasoning",
   },
   {
-    "providerOptions": {
+    "providerMetadata": {
       "testProvider": {
         "redactedData": "redacted-reasoning-data",
       },
@@ -4838,7 +2856,7 @@ exports[`streamText > result.reasoning > should contain reasoning from model res
     "type": "reasoning",
   },
   {
-    "providerOptions": {
+    "providerMetadata": {
       "testProvider": {
         "signature": "1234567890",
       },
@@ -4865,7 +2883,6 @@ exports[`streamText > result.response > should resolve with response information
           "type": "text",
         },
       ],
-      "id": "msg-0",
       "role": "assistant",
     },
   ],
@@ -4891,7 +2908,6 @@ exports[`streamText > result.responseMessages > should contain assistant respons
         "type": "tool-call",
       },
     ],
-    "id": "msg-0",
     "role": "assistant",
   },
   {
@@ -4903,7 +2919,6 @@ exports[`streamText > result.responseMessages > should contain assistant respons
         "type": "tool-result",
       },
     ],
-    "id": "msg-1",
     "role": "tool",
   },
 ]
@@ -4918,7 +2933,6 @@ exports[`streamText > result.responseMessages > should contain assistant respons
         "type": "text",
       },
     ],
-    "id": "msg-0",
     "role": "assistant",
   },
 ]
@@ -4955,7 +2969,7 @@ exports[`streamText > result.sources > should contain sources 1`] = `
 
 exports[`streamText > result.steps > should add the files from the model response to the step result 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "file": DefaultGeneratedFileWithType {
@@ -4980,29 +2994,12 @@ exports[`streamText > result.steps > should add the files from the model respons
         "type": "file",
       },
     ],
-    "files": [
-      DefaultGeneratedFileWithType {
-        "base64Data": "Hello World",
-        "mediaType": "text/plain",
-        "type": "file",
-        "uint8ArrayData": undefined,
-      },
-      DefaultGeneratedFileWithType {
-        "base64Data": "QkFVRw==",
-        "mediaType": "image/jpeg",
-        "type": "file",
-        "uint8ArrayData": undefined,
-      },
-    ],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "messages": [
         {
           "content": [
@@ -5012,27 +3009,21 @@ exports[`streamText > result.steps > should add the files from the model respons
               "type": "file",
             },
             {
+              "text": "Hello!",
+              "type": "text",
+            },
+            {
               "data": "QkFVRw==",
               "mediaType": "image/jpeg",
               "type": "file",
             },
-            {
-              "text": "Hello!",
-              "type": "text",
-            },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
       ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "Hello!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -5040,17 +3031,17 @@ exports[`streamText > result.steps > should add the files from the model respons
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
 
 exports[`streamText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
-        "providerOptions": {
+        "providerMetadata": {
           "testProvider": {
             "signature": "1234567890",
           },
@@ -5059,7 +3050,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
         "type": "reasoning",
       },
       {
-        "providerOptions": {
+        "providerMetadata": {
           "testProvider": {
             "redactedData": "redacted-reasoning-data",
           },
@@ -5068,7 +3059,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
         "type": "reasoning",
       },
       {
-        "providerOptions": {
+        "providerMetadata": {
           "testProvider": {
             "signature": "1234567890",
           },
@@ -5081,40 +3072,8 @@ exports[`streamText > result.steps > should add the reasoning from the model res
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
-    "reasoning": [
-      {
-        "providerOptions": {
-          "testProvider": {
-            "signature": "1234567890",
-          },
-        },
-        "text": "I will open the conversation with witty banter. ",
-        "type": "reasoning",
-      },
-      {
-        "providerOptions": {
-          "testProvider": {
-            "redactedData": "redacted-reasoning-data",
-          },
-        },
-        "text": "",
-        "type": "reasoning",
-      },
-      {
-        "providerOptions": {
-          "testProvider": {
-            "signature": "1234567890",
-          },
-        },
-        "text": "Once the user has relaxed, I will pry for valuable information.",
-        "type": "reasoning",
-      },
-    ],
-    "reasoningText": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
     "request": {},
     "response": {
       "headers": undefined,
@@ -5154,18 +3113,12 @@ exports[`streamText > result.steps > should add the reasoning from the model res
               "type": "text",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
       ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "Hi there!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -5173,14 +3126,14 @@ exports[`streamText > result.steps > should add the reasoning from the model res
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
 
 exports[`streamText > result.steps > should add the sources from the model response to the step result 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "id": "123",
@@ -5211,16 +3164,12 @@ exports[`streamText > result.steps > should add the sources from the model respo
         "url": "https://example.com/2",
       },
     ],
-    "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "messages": [
         {
           "content": [
@@ -5229,43 +3178,12 @@ exports[`streamText > result.steps > should add the sources from the model respo
               "type": "text",
             },
           ],
-          "id": "msg-0",
           "role": "assistant",
         },
       ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-    ],
-    "stepType": "initial",
-    "text": "Hello!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -5273,7 +3191,7 @@ exports[`streamText > result.steps > should add the sources from the model respo
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -5297,12 +3215,19 @@ exports[`streamText > result.textStream > should not include reasoning content i
 
 exports[`streamText > result.textStream > should swallow error to prevent server crash 1`] = `[]`;
 
-exports[`streamText > result.toDataStream > should create a data stream 1`] = `
+exports[`streamText > result.toUIMessageStream > should create a data stream 1`] = `
 [
+  {
+    "type": "start",
+    "value": {
+      "messageId": undefined,
+      "metadata": undefined,
+    },
+  },
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5320,39 +3245,24 @@ exports[`streamText > result.toDataStream > should create a data stream 1`] = `
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
   {
-    "type": "finish-message",
+    "type": "finish",
     "value": {
-      "finishReason": "stop",
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should mask error messages by default 1`] = `
+exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5362,37 +3272,24 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "error",
-      "isContinued": false,
-      "usage": {
-        "inputTokens": undefined,
-        "outputTokens": undefined,
-        "totalTokens": undefined,
-      },
+      "metadata": undefined,
     },
   },
   {
-    "type": "finish-message",
+    "type": "finish",
     "value": {
-      "finishReason": "error",
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": undefined,
-        "outputTokens": undefined,
-        "reasoningTokens": undefined,
-        "totalTokens": undefined,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should omit message finish event (d:) when sendFinish is false 1`] = `
+exports[`streamText > result.toUIMessageStream > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5402,26 +3299,18 @@ exports[`streamText > result.toDataStream > should omit message finish event (d:
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send file content 1`] = `
+exports[`streamText > result.toUIMessageStream > should send file content 1`] = `
 [
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5445,39 +3334,24 @@ exports[`streamText > result.toDataStream > should send file content 1`] = `
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
   {
-    "type": "finish-message",
+    "type": "finish",
     "value": {
-      "finishReason": "stop",
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send reasoning content when sendReasoning is true 1`] = `
+exports[`streamText > result.toUIMessageStream > should send reasoning content when sendReasoning is true 1`] = `
 [
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5567,39 +3441,24 @@ exports[`streamText > result.toDataStream > should send reasoning content when s
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
   {
-    "type": "finish-message",
+    "type": "finish",
     "value": {
-      "finishReason": "stop",
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send source content when sendSources is true 1`] = `
+exports[`streamText > result.toUIMessageStream > should send source content when sendSources is true 1`] = `
 [
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5639,39 +3498,24 @@ exports[`streamText > result.toDataStream > should send source content when send
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
   {
-    "type": "finish-message",
+    "type": "finish",
     "value": {
-      "finishReason": "stop",
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send tool call and tool result stream parts 1`] = `
+exports[`streamText > result.toUIMessageStream > should send tool call and tool result stream parts 1`] = `
 [
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5694,39 +3538,24 @@ exports[`streamText > result.toDataStream > should send tool call and tool resul
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
   {
-    "type": "finish-message",
+    "type": "finish",
     "value": {
-      "finishReason": "stop",
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
+exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
 [
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5770,39 +3599,24 @@ exports[`streamText > result.toDataStream > should send tool call, tool call str
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
   {
-    "type": "finish-message",
+    "type": "finish",
     "value": {
-      "finishReason": "stop",
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should support custom error messages 1`] = `
+exports[`streamText > result.toUIMessageStream > should support custom error messages 1`] = `
 [
   {
     "type": "start-step",
     "value": {
-      "messageId": "msg-0",
+      "metadata": undefined,
     },
   },
   {
@@ -5812,73 +3626,30 @@ exports[`streamText > result.toDataStream > should support custom error messages
   {
     "type": "finish-step",
     "value": {
-      "finishReason": "error",
-      "isContinued": false,
-      "usage": {
-        "inputTokens": undefined,
-        "outputTokens": undefined,
-        "totalTokens": undefined,
-      },
+      "metadata": undefined,
     },
   },
   {
-    "type": "finish-message",
+    "type": "finish",
     "value": {
-      "finishReason": "error",
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": undefined,
-        "outputTokens": undefined,
-        "reasoningTokens": undefined,
-        "totalTokens": undefined,
-      },
+      "metadata": undefined,
     },
   },
 ]
 `;
 
-exports[`streamText > result.toDataStream > should suppress usage information when sendUsage is false 1`] = `
+exports[`streamText > result.toUIMessageStreamResponse > should mask error messages by default 1`] = `
 [
-  {
-    "type": "start-step",
-    "value": {
-      "messageId": "msg-0",
-    },
-  },
-  {
-    "type": "text",
-    "value": "Hello, World!",
-  },
-  {
-    "type": "finish-step",
-    "value": {
-      "finishReason": "stop",
-      "isContinued": false,
-      "usage": undefined,
-    },
-  },
-  {
-    "type": "finish-message",
-    "value": {
-      "finishReason": "stop",
-      "usage": undefined,
-    },
-  },
-]
-`;
-
-exports[`streamText > result.toDataStreamResponse > should mask error messages by default 1`] = `
-[
-  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+  "data: {"type":"start-step","value":{}}
 
 ",
   "data: {"type":"error","value":"An error occurred."}
 
 ",
-  "data: {"type":"finish-step","value":{"finishReason":"error","usage":{},"isContinued":false}}
+  "data: {"type":"finish-step","value":{}}
 
 ",
-  "data: {"type":"finish-message","value":{"finishReason":"error","usage":{}}}
+  "data: {"type":"finish","value":{}}
 
 ",
   "data: [DONE]
@@ -5887,38 +3658,18 @@ exports[`streamText > result.toDataStreamResponse > should mask error messages b
 ]
 `;
 
-exports[`streamText > result.toDataStreamResponse > should support custom error messages 1`] = `
+exports[`streamText > result.toUIMessageStreamResponse > should support custom error messages 1`] = `
 [
-  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+  "data: {"type":"start-step","value":{}}
 
 ",
   "data: {"type":"error","value":"custom error message: error"}
 
 ",
-  "data: {"type":"finish-step","value":{"finishReason":"error","usage":{},"isContinued":false}}
+  "data: {"type":"finish-step","value":{}}
 
 ",
-  "data: {"type":"finish-message","value":{"finishReason":"error","usage":{}}}
-
-",
-  "data: [DONE]
-
-",
-]
-`;
-
-exports[`streamText > result.toDataStreamResponse > should suppress usage information when sendUsage is false 1`] = `
-[
-  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
-
-",
-  "data: {"type":"text","value":"Hello, World!"}
-
-",
-  "data: {"type":"finish-step","value":{"finishReason":"stop","isContinued":false}}
-
-",
-  "data: {"type":"finish-message","value":{"finishReason":"stop"}}
+  "data: {"type":"finish","value":{}}
 
 ",
   "data: [DONE]
@@ -5939,7 +3690,6 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.response.finishReason": "stop",
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
-      "ai.settings.temperature": 0,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
@@ -5961,12 +3711,10 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.response.msToFirstChunk": 100,
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
@@ -6017,7 +3765,6 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
-      "ai.settings.temperature": 0,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
@@ -6046,12 +3793,10 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
-      "ai.settings.temperature": 0,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
-      "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
         "stop",
       ],
@@ -6196,9 +3941,8 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
 exports[`streamText > tools with custom schema > should send tool calls 1`] = `
 [
   {
-    "messageId": "msg-0",
     "request": {},
-    "type": "step-start",
+    "type": "start-step",
     "warnings": [],
   },
   {
@@ -6211,17 +3955,14 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
-    "messageId": "msg-0",
     "providerMetadata": undefined,
-    "request": {},
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "type": "step-finish",
+    "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -6229,25 +3970,17 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
-    "warnings": undefined,
   },
   {
     "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
+    "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
+    "type": "finish",
   },
 ]
 `;

@@ -60,7 +60,7 @@ describe('safeValidateTypes', () => {
     it('should return validated object for valid input', async () => {
       const input = { name: 'John', age: 30 };
       const result = await safeValidateTypes({ value: input, schema });
-      expect(result).toEqual({ success: true, value: input });
+      expect(result).toEqual({ success: true, value: input, rawValue: input });
     });
 
     it('should return error object for invalid input', async () => {
@@ -70,6 +70,7 @@ describe('safeValidateTypes', () => {
       expect(result).toEqual({
         success: false,
         error: expect.any(TypeValidationError),
+        rawValue: input,
       });
 
       if (!result.success) {

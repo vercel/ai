@@ -1,5 +1,4 @@
 export { appendClientMessage } from './append-client-message';
-export { appendResponseMessages } from './append-response-messages';
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
