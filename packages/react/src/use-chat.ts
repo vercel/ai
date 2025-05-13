@@ -194,8 +194,6 @@ Default is undefined, which disables throttling.
       store: chatStore.current,
     });
 
-  // messages
-
   const messages = useSyncExternalStore(
     callback => {
       return subscribe({
@@ -207,6 +205,16 @@ Default is undefined, which disables throttling.
     () => getMessages(chatId),
   );
 
+  const status = useSyncExternalStore(
+    callback =>
+      subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-status-changed',
+      }),
+    () => getStatus(chatId),
+    () => getStatus(chatId),
+  );
+
   // Store the chat state in SWR, using the chatId as the key to share states.
   // const { data: messages, mutate } = useSWR<UIMessage<MESSAGE_METADATA>[]>(
   //   [chatKey, 'messages'],
@@ -214,9 +222,9 @@ Default is undefined, which disables throttling.
   //   { fallbackData: processedInitialMessages },
   // );
 
-  const { data: status = 'ready', mutate: mutateStatus } = useSWR<
-    'submitted' | 'streaming' | 'ready' | 'error'
-  >([chatKey, 'status'], null);
+  // const { data: status = 'ready', mutate: mutateStatus } = useSWR<
+  //   'submitted' | 'streaming' | 'ready' | 'error'
+  // >([chatKey, 'status'], null);
 
   const { data: error = undefined, mutate: setError } = useSWR<
     undefined | Error
@@ -246,7 +254,10 @@ Default is undefined, which disables throttling.
       },
       requestType: 'generate' | 'resume' = 'generate',
     ) => {
-      mutateStatus('submitted');
+      chatStore.current.setStatus({
+        id: chatId,
+        status: 'submitted',
+      });
       setError(undefined);
 
       const chatMessages = chatRequest.messages;
@@ -285,7 +296,10 @@ Default is undefined, which disables throttling.
           },
           abortController: () => abortControllerRef.current,
           onUpdate({ message }) {
-            mutateStatus('streaming');
+            chatStore.current.setStatus({
+              id: chatId,
+              status: 'streaming',
+            });
 
             const replaceLastMessage =
               message.id === chatMessages[chatMessages.length - 1].id;
@@ -313,12 +327,18 @@ Default is undefined, which disables throttling.
 
         abortControllerRef.current = null;
 
-        mutateStatus('ready');
+        chatStore.current.setStatus({
+          id: chatId,
+          status: 'ready',
+        });
       } catch (err) {
         // Ignore abort errors as they are expected.
         if ((err as any).name === 'AbortError') {
           abortControllerRef.current = null;
-          mutateStatus('ready');
+          chatStore.current.setStatus({
+            id: chatId,
+            status: 'ready',
+          });
           return null;
         }
 
@@ -327,7 +347,11 @@ Default is undefined, which disables throttling.
         }
 
         setError(err as Error);
-        mutateStatus('error');
+        chatStore.current.setStatus({
+          id: chatId,
+          status: 'error',
+          error: err as Error,
+        });
       }
 
       // auto-submit when all tool calls in the last assistant message have results
@@ -346,7 +370,6 @@ Default is undefined, which disables throttling.
     },
     [
       getMessages,
-      mutateStatus,
       api,
       extraMetadataRef,
       onFinish,
@@ -520,7 +543,10 @@ Default is undefined, which disables throttling.
       });
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
-      if (status === 'submitted' || status === 'streaming') {
+      if (
+        getStatus(chatId) === 'submitted' ||
+        getStatus(chatId) === 'streaming'
+      ) {
         return;
       }
 
@@ -530,7 +556,7 @@ Default is undefined, which disables throttling.
         triggerRequest({ messages: currentMessages });
       }
     },
-    [status, triggerRequest, generateId, chatId, getMessages],
+    [getStatus, triggerRequest, generateId, chatId, getMessages],
   );
 
   return {
