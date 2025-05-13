@@ -12,7 +12,7 @@ import {
   safeValidateTypes,
   Schema,
   ValidationResult,
-  type StandardSchemaV1
+  type StandardSchemaV1,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
@@ -81,15 +81,15 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   ): Promise<ValidationResult<JSONValue>> {
     return value === undefined
       ? {
-        success: false,
-        error: new NoObjectGeneratedError({
-          message: 'No object generated: response did not match schema.',
-          text: context.text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
-        }),
-      }
+          success: false,
+          error: new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+            text: context.text,
+            response: context.response,
+            usage: context.usage,
+            finishReason: context.finishReason,
+          }),
+        }
       : { success: true, value };
   },
 
@@ -102,7 +102,11 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
 
 const objectOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
   schema: Schema<T_SCHEMA>,
-): OutputStrategy<DeepPartial<StandardSchemaV1.InferOutput<T_SCHEMA>>, StandardSchemaV1.InferOutput<T_SCHEMA>, never> => ({
+): OutputStrategy<
+  DeepPartial<StandardSchemaV1.InferOutput<T_SCHEMA>>,
+  StandardSchemaV1.InferOutput<T_SCHEMA>,
+  never
+> => ({
   type: 'object',
   jsonSchema: schema.jsonSchema,
 
@@ -132,7 +136,11 @@ const objectOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
 
 const arrayOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
   schema: Schema<T_SCHEMA>,
-): OutputStrategy<StandardSchemaV1.InferOutput<T_SCHEMA>[], StandardSchemaV1.InferOutput<T_SCHEMA>[], AsyncIterableStream<StandardSchemaV1.InferOutput<T_SCHEMA>>> => {
+): OutputStrategy<
+  StandardSchemaV1.InferOutput<T_SCHEMA>[],
+  StandardSchemaV1.InferOutput<T_SCHEMA>[],
+  AsyncIterableStream<StandardSchemaV1.InferOutput<T_SCHEMA>>
+> => {
   // remove $schema from schema.jsonSchema:
   const { $schema, ...itemSchema } = schema.jsonSchema;
 
@@ -224,7 +232,9 @@ const arrayOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
 
     async validateFinalResult(
       value: JSONValue | undefined,
-    ): Promise<ValidationResult<Array<StandardSchemaV1.InferOutput<T_SCHEMA>>>> {
+    ): Promise<
+      ValidationResult<Array<StandardSchemaV1.InferOutput<T_SCHEMA>>>
+    > {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
         return {
@@ -246,17 +256,25 @@ const arrayOutputStrategy = <T_SCHEMA extends StandardSchemaV1>(
         }
       }
 
-      return { success: true, value: inputArray as Array<StandardSchemaV1.InferOutput<T_SCHEMA>> };
+      return {
+        success: true,
+        value: inputArray as Array<StandardSchemaV1.InferOutput<T_SCHEMA>>,
+      };
     },
 
     createElementStream(
-      originalStream: ReadableStream<ObjectStreamPart<StandardSchemaV1.InferOutput<T_SCHEMA>[]>>,
+      originalStream: ReadableStream<
+        ObjectStreamPart<StandardSchemaV1.InferOutput<T_SCHEMA>[]>
+      >,
     ) {
       let publishedElements = 0;
 
       return createAsyncIterableStream(
         originalStream.pipeThrough(
-          new TransformStream<ObjectStreamPart<StandardSchemaV1.InferOutput<T_SCHEMA>[]>, StandardSchemaV1.InferOutput<T_SCHEMA>>({
+          new TransformStream<
+            ObjectStreamPart<StandardSchemaV1.InferOutput<T_SCHEMA>[]>,
+            StandardSchemaV1.InferOutput<T_SCHEMA>
+          >({
             transform(chunk, controller) {
               switch (chunk.type) {
                 case 'object': {
@@ -333,12 +351,12 @@ const enumOutputStrategy = <ENUM extends string>(
       return enumValues.includes(result as ENUM)
         ? { success: true, value: result as ENUM }
         : {
-          success: false,
-          error: new TypeValidationError({
-            value,
-            cause: 'value must be a string in the enum',
-          }),
-        };
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: 'value must be a string in the enum',
+            }),
+          };
     },
 
     async validatePartialResult({ value, textDelta }) {

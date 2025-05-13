@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { safeValidateTypes } from './validate-types';
 
 export async function parseProviderOptions<T extends StandardSchemaV1>({

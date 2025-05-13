@@ -61,17 +61,11 @@ export function standardSchemaValidator<OBJECT>(
     return result.issues == null
       ? { success: true, value: result.value }
       : {
-        success: false,
-        error: new TypeValidationError({
-          value,
-          cause: result.issues,
-        }),
-      };
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause: result.issues,
+          }),
+        };
   });
 }
-
-
-
-
-
-

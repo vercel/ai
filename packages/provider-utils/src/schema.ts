@@ -1,5 +1,5 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { Validator, validatorSymbol } from './validator';
 
 /**
@@ -7,22 +7,23 @@ import { Validator, validatorSymbol } from './validator';
  */
 const schemaSymbol = Symbol.for('vercel.ai.schema');
 
-export type Schema<T extends StandardSchemaV1 = StandardSchemaV1> = Validator<T> & {
-  /**
-   * Used to mark schemas so we can support both Zod and custom schemas.
-   */
-  [schemaSymbol]: true;
+export type Schema<T extends StandardSchemaV1 = StandardSchemaV1> =
+  Validator<T> & {
+    /**
+     * Used to mark schemas so we can support both Zod and custom schemas.
+     */
+    [schemaSymbol]: true;
 
-  /**
-   * Schema type for inference.
-   */
-  _type: T;
+    /**
+     * Schema type for inference.
+     */
+    _type: T;
 
-  /**
-   * The JSON Schema for the schema. It is passed to the providers.
-   */
-  readonly jsonSchema: JSONSchema7;
-};
+    /**
+     * The JSON Schema for the schema. It is passed to the providers.
+     */
+    readonly jsonSchema: JSONSchema7;
+  };
 
 /**
  * Create a schema using a JSON Schema.
@@ -37,7 +38,9 @@ export function jsonSchema<T extends StandardSchemaV1 = StandardSchemaV1>(
   }: {
     validate?: (
       value: unknown,
-    ) => PromiseLike<{ success: true; value: T } | { success: false; error: Error }>;
+    ) => PromiseLike<
+      { success: true; value: T } | { success: false; error: Error }
+    >;
   } = {},
 ): Schema<T> {
   return {
@@ -77,5 +80,5 @@ export function asSchema<T extends StandardSchemaV1>(
     });
   }
 
-  throw new Error('TODO: implement standard schema to JSON Schema')
+  throw new Error('TODO: implement standard schema to JSON Schema');
 }

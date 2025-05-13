@@ -1,5 +1,5 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { Validator, asValidator } from './validator';
 
 /**
@@ -43,8 +43,16 @@ export async function safeValidateTypes<T extends StandardSchemaV1>({
   value: StandardSchemaV1.InferInput<T>;
   schema: T | Validator<StandardSchemaV1.InferInput<T>>;
 }): Promise<
-  | { success: true; value: StandardSchemaV1.InferOutput<T>; rawValue: StandardSchemaV1.InferInput<T> }
-  | { success: false; error: TypeValidationError; rawValue: StandardSchemaV1.InferInput<T> }
+  | {
+      success: true;
+      value: StandardSchemaV1.InferOutput<T>;
+      rawValue: StandardSchemaV1.InferInput<T>;
+    }
+  | {
+      success: false;
+      error: TypeValidationError;
+      rawValue: StandardSchemaV1.InferInput<T>;
+    }
 > {
   const validator = asValidator(schema);
 

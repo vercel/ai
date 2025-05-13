@@ -29,4 +29,4 @@ export * from './uint8-utils';
 export * from './validate-types';
 export * from './validator';
 export * from './without-trailing-slash';
-export * from '@standard-schema/spec'
+export * from '@standard-schema/spec';

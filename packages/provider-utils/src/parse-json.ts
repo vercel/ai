@@ -3,7 +3,7 @@ import {
   JSONValue,
   TypeValidationError,
 } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { secureJsonParse } from './secure-json-parse';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import { Validator } from './validator';
@@ -60,10 +60,10 @@ export async function parseJSON<T_SCHEMA extends StandardSchemaV1>({
 export type ParseResult<T> =
   | { success: true; value: T; rawValue: unknown }
   | {
-    success: false;
-    error: JSONParseError | TypeValidationError;
-    rawValue: unknown;
-  };
+      success: false;
+      error: JSONParseError | TypeValidationError;
+      rawValue: unknown;
+    };
 
 /**
  * Safely parses a JSON string and returns the result as an object of type `unknown`.

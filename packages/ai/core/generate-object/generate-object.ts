@@ -116,55 +116,55 @@ A result object that contains the generated object, the finish reason, the token
  */
 export async function generateObject<
   RESULT extends SCHEMA extends z.Schema
-  ? Output extends 'array'
-  ? Array<z.infer<SCHEMA>>
-  : z.infer<SCHEMA>
-  : SCHEMA extends Schema<infer T>
-  ? Output extends 'array'
-  ? Array<T>
-  : T
-  : never,
+    ? Output extends 'array'
+      ? Array<z.infer<SCHEMA>>
+      : z.infer<SCHEMA>
+    : SCHEMA extends Schema<infer T>
+      ? Output extends 'array'
+        ? Array<T>
+        : T
+      : never,
   SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
   Output extends
-  | 'object'
-  | 'array'
-  | 'enum'
-  | 'no-schema' = RESULT extends string ? 'enum' : 'object',
+    | 'object'
+    | 'array'
+    | 'enum'
+    | 'no-schema' = RESULT extends string ? 'enum' : 'object',
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
     (Output extends 'enum'
       ? {
-        /**
+          /**
 The enum values that the model should use.
       */
-        enum: Array<RESULT>;
-        mode?: 'json';
-        output: 'enum';
-      }
+          enum: Array<RESULT>;
+          mode?: 'json';
+          output: 'enum';
+        }
       : Output extends 'no-schema'
-      ? {}
-      : {
-        /**
+        ? {}
+        : {
+            /**
 The schema of the object that the model should generate.
     */
-        schema: SCHEMA;
+            schema: SCHEMA;
 
-        /**
+            /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
     */
-        schemaName?: string;
+            schemaName?: string;
 
-        /**
+            /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
     */
-        schemaDescription?: string;
+            schemaDescription?: string;
 
-        /**
+            /**
 The mode to use for object generation.
 
 The schema is converted into a JSON schema and used in one of the following ways
@@ -177,41 +177,41 @@ Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
     */
-        mode?: 'auto' | 'json' | 'tool';
-      }) & {
-        output?: Output;
+            mode?: 'auto' | 'json' | 'tool';
+          }) & {
+      output?: Output;
 
-        /**
+      /**
     The language model to use.
          */
-        model: LanguageModel;
-        /**
+      model: LanguageModel;
+      /**
     A function that attempts to repair the raw output of the mode
     to enable JSON parsing.
          */
-        experimental_repairText?: RepairTextFunction;
+      experimental_repairText?: RepairTextFunction;
 
-        /**
+      /**
     Optional telemetry configuration (experimental).
            */
 
-        experimental_telemetry?: TelemetrySettings;
+      experimental_telemetry?: TelemetrySettings;
 
-        /**
+      /**
     Additional provider-specific options. They are passed through
     to the provider from the AI SDK and enable provider-specific
     functionality that can be fully encapsulated in the provider.
      */
-        providerOptions?: ProviderOptions;
+      providerOptions?: ProviderOptions;
 
-        /**
-         * Internal. For test use only. May change without notice.
-         */
-        _internal?: {
-          generateId?: () => string;
-          currentDate?: () => Date;
-        };
-      },
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: () => string;
+        currentDate?: () => Date;
+      };
+    },
 ): Promise<GenerateObjectResult<RESULT>> {
   const {
     model,

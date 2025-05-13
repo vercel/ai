@@ -1,11 +1,11 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 
 import { validateTypes, safeValidateTypes } from './validate-types';
 import { validator } from './validator';
 
-const customSchema: StandardSchemaV1<{ name: string, age: number }> = {
-  "~standard": {
+const customSchema: StandardSchemaV1<{ name: string; age: number }> = {
+  '~standard': {
     version: 1,
     vendor: 'custom',
     validate: async (value: any) => {
@@ -17,16 +17,16 @@ const customSchema: StandardSchemaV1<{ name: string, age: number }> = {
         typeof value.age === 'number'
         ? { value }
         : { issues: [{ message: 'Invalid input' }] };
-    }
-  }
-}
+    },
+  },
+};
 const customValidator = validator<{ name: string; age: number }>(async value =>
   typeof value === 'object' &&
-    value !== null &&
-    'name' in value &&
-    typeof value.name === 'string' &&
-    'age' in value &&
-    typeof value.age === 'number'
+  value !== null &&
+  'name' in value &&
+  typeof value.name === 'string' &&
+  'age' in value &&
+  typeof value.age === 'number'
     ? { success: true, value: value as { name: string; age: number } }
     : { success: false, error: new Error('Invalid input') },
 );
@@ -84,7 +84,7 @@ describe('safeValidateTypes', () => {
       const result = await safeValidateTypes({
         // @ts-expect-error - age is expected to be a number
         value: input,
-        schema
+        schema,
       });
 
       expect(result).toEqual({
