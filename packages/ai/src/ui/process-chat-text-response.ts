@@ -13,8 +13,8 @@ export async function processChatTextResponse<MESSAGE_METADATA = unknown>({
   generateId = generateIdFunction,
 }: {
   stream: ReadableStream<Uint8Array>;
-  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
   update: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
   generateId?: () => string;
   store: ChatStore;
   chatId: string;

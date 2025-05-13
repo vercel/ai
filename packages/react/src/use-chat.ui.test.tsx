@@ -90,7 +90,7 @@ describe('data protocol stream', () => {
   afterEach(() => {
     store.clear();
   });
-
+  
   it('should show streamed response', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
