@@ -197,6 +197,7 @@ Default is undefined, which disables throttling.
     addToolResult,
     submitMessage,
     resubmitLastUserMessage,
+    resumeStream,
   } = useChatStore({
     store: chatStore.current,
     chatId,
@@ -218,37 +219,6 @@ Default is undefined, which disables throttling.
       body,
     };
   }, [credentials, headers, body]);
-
-  const triggerRequest = useCallback(
-    async (
-      chatRequest: ChatRequestOptions & {
-        messages: UIMessage<MESSAGE_METADATA>[];
-      },
-      requestType: 'generate' | 'resume' = 'generate',
-    ) =>
-      chatStore.current.triggerRequest({
-        chatId,
-        requestType,
-        body: chatRequest.body,
-        headers: chatRequest.headers,
-        messages: chatRequest.messages,
-        onFinish,
-        onError,
-        onToolCall,
-      }),
-    [
-      chatId,
-      extraMetadataRef,
-      experimental_prepareRequestBody,
-      onFinish,
-      onError,
-      streamProtocol,
-      onToolCall,
-      abortControllerRef,
-      // throttleWaitMs,
-      messageMetadataSchema,
-    ],
-  );
 
   const append = useCallback(
     (
@@ -279,9 +249,10 @@ Default is undefined, which disables throttling.
     }
   }, []);
 
-  const experimental_resume = useCallback(async () => {
-    triggerRequest({ messages }, 'resume');
-  }, [triggerRequest, messages]);
+  const experimental_resume = useCallback(
+    async () => resumeStream({ headers, body, onError, onToolCall, onFinish }),
+    [resumeStream, onError, onToolCall, onFinish],
+  );
 
   const setMessages = useCallback(
     (

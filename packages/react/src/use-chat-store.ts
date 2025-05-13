@@ -59,6 +59,16 @@ export function useChatStore<MESSAGE_METADATA>({
     [store, chatId],
   );
 
+  const resumeStream = useCallback(
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['resumeStream']>[0],
+        'chatId'
+      >,
+    ) => store.resumeStream({ chatId, ...options }),
+    [store, chatId],
+  );
+
   const error = useSyncExternalStore(
     callback =>
       subscribe({
@@ -98,5 +108,6 @@ export function useChatStore<MESSAGE_METADATA>({
     addToolResult,
     submitMessage,
     resubmitLastUserMessage,
+    resumeStream,
   };
 }

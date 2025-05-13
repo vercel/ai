@@ -13,8 +13,8 @@ import {
   shouldResubmitMessages,
 } from './should-resubmit-messages';
 import type { CreateUIMessage, UIMessage } from './ui-messages';
-import { ChatRequestOptions, UseChatOptions } from './use-chat';
 import { updateToolCallResult } from './update-tool-call-result';
+import { ChatRequestOptions, UseChatOptions } from './use-chat';
 
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
@@ -206,8 +206,146 @@ export class ChatStore<MESSAGE_METADATA> {
     this.setMessages({ id, messages: chat.messages.slice(0, -1) });
   }
 
-  // TODO this should not be exposed
-  async triggerRequest({
+  async submitMessage({
+    chatId,
+    message,
+    headers,
+    body,
+    onError,
+    onToolCall,
+    onFinish,
+  }: ExtendedCallOptions<MESSAGE_METADATA> & {
+    chatId: string;
+    message: CreateUIMessage<MESSAGE_METADATA>;
+  }) {
+    const chat = this.getChat(chatId);
+    const currentMessages = chat.messages;
+
+    await this.triggerRequest({
+      chatId,
+      messages: currentMessages.concat({
+        ...message,
+        id: message.id ?? this.generateId(),
+      }),
+      headers,
+      body,
+      requestType: 'generate',
+      onError,
+      onToolCall,
+      onFinish,
+    });
+  }
+
+  async resubmitLastUserMessage({
+    chatId,
+    headers,
+    body,
+    onError,
+    onToolCall,
+    onFinish,
+  }: ExtendedCallOptions<MESSAGE_METADATA> & {
+    chatId: string;
+  }) {
+    const messages = this.getChat(chatId).messages;
+
+    const messagesToSubmit =
+      messages[messages.length - 1].role === 'assistant'
+        ? messages.slice(0, -1)
+        : messages;
+
+    if (messagesToSubmit.length === 0) {
+      return;
+    }
+
+    return this.triggerRequest({
+      chatId,
+      requestType: 'generate',
+      messages: messagesToSubmit,
+      headers,
+      body,
+      onError,
+      onToolCall,
+      onFinish,
+    });
+  }
+
+  async resumeStream({
+    chatId,
+    headers,
+    body,
+    onError,
+    onToolCall,
+    onFinish,
+  }: ExtendedCallOptions<MESSAGE_METADATA> & {
+    chatId: string;
+  }) {
+    const chat = this.getChat(chatId);
+    const currentMessages = chat.messages;
+
+    return this.triggerRequest({
+      chatId,
+      messages: currentMessages,
+      requestType: 'resume',
+      headers,
+      body,
+      onError,
+      onToolCall,
+      onFinish,
+    });
+  }
+
+  async addToolResult({
+    chatId,
+    toolCallId,
+    result,
+  }: {
+    chatId: string;
+    toolCallId: string;
+    result: unknown;
+  }) {
+    const chat = this.getChat(chatId);
+    const currentMessages = chat.messages;
+
+    updateToolCallResult({
+      messages: currentMessages,
+      toolCallId,
+      toolResult: result,
+    });
+
+    // updated the messages array:
+    // TODO we need better immutability
+    this.setMessages({ id: chatId, messages: currentMessages });
+
+    // when the request is ongoing, the auto-submit will be triggered after the request is finished
+    if (chat.status === 'submitted' || chat.status === 'streaming') {
+      return;
+    }
+
+    // auto-submit when all tool calls in the last assistant message have results:
+    const lastMessage = currentMessages[currentMessages.length - 1];
+    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+      await this.triggerRequest({
+        messages: currentMessages,
+        requestType: 'generate',
+        chatId,
+      });
+    }
+  }
+
+  private emit(event: ChatStoreEvent) {
+    for (const subscriber of this.subscribers) {
+      subscriber.onChatChanged(event);
+    }
+  }
+
+  private getChat(id: string): Chat<MESSAGE_METADATA> {
+    if (!this.hasChat(id)) {
+      throw new Error(`chat '${id}' not found`); // TODO AI SDK error
+    }
+    return this.chats.get(id)!;
+  }
+
+  private async triggerRequest({
     chatId,
     messages: chatMessages,
     requestType,
@@ -317,119 +455,5 @@ export class ChatStore<MESSAGE_METADATA> {
         messages: currentMessages,
       });
     }
-  }
-
-  async submitMessage({
-    chatId,
-    message,
-    headers,
-    body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA> & {
-    chatId: string;
-    message: CreateUIMessage<MESSAGE_METADATA>;
-  }) {
-    const chat = this.getChat(chatId);
-    const currentMessages = chat.messages;
-
-    await this.triggerRequest({
-      chatId,
-      messages: currentMessages.concat({
-        ...message,
-        id: message.id ?? this.generateId(),
-      }),
-      headers,
-      body,
-      requestType: 'generate',
-      onError,
-      onToolCall,
-      onFinish,
-    });
-  }
-
-  async resubmitLastUserMessage({
-    chatId,
-    headers,
-    body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA> & {
-    chatId: string;
-  }) {
-    const messages = this.getChat(chatId).messages;
-
-    const messagesToSubmit =
-      messages[messages.length - 1].role === 'assistant'
-        ? messages.slice(0, -1)
-        : messages;
-
-    if (messagesToSubmit.length === 0) {
-      return;
-    }
-
-    return this.triggerRequest({
-      chatId,
-      requestType: 'generate',
-      messages: messagesToSubmit,
-      headers,
-      body,
-      onError,
-      onToolCall,
-      onFinish,
-    });
-  }
-
-  async addToolResult({
-    chatId,
-    toolCallId,
-    result,
-  }: {
-    chatId: string;
-    toolCallId: string;
-    result: unknown;
-  }) {
-    const chat = this.getChat(chatId);
-    const currentMessages = chat.messages;
-
-    updateToolCallResult({
-      messages: currentMessages,
-      toolCallId,
-      toolResult: result,
-    });
-
-    // updated the messages array:
-    // TODO we need better immutability
-    this.setMessages({ id: chatId, messages: currentMessages });
-
-    // when the request is ongoing, the auto-submit will be triggered after the request is finished
-    if (chat.status === 'submitted' || chat.status === 'streaming') {
-      return;
-    }
-
-    // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = currentMessages[currentMessages.length - 1];
-    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      await this.triggerRequest({
-        messages: currentMessages,
-        requestType: 'generate',
-        chatId,
-      });
-    }
-  }
-
-  private emit(event: ChatStoreEvent) {
-    for (const subscriber of this.subscribers) {
-      subscriber.onChatChanged(event);
-    }
-  }
-
-  private getChat(id: string): Chat<MESSAGE_METADATA> {
-    if (!this.hasChat(id)) {
-      throw new Error(`chat '${id}' not found`); // TODO AI SDK error
-    }
-    return this.chats.get(id)!;
   }
 }
