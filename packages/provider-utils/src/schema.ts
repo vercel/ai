@@ -63,9 +63,9 @@ function isSchema(value: unknown): value is Schema {
   );
 }
 
-export function asSchema<T extends StandardSchemaV1>(
-  schema: Schema<T> | undefined,
-): Schema<T> {
+export function asSchema<T_OBJECT>(
+  schema: Schema<StandardSchemaV1<T_OBJECT>> | undefined,
+): Schema<T_OBJECT> {
   if (schema == null) {
     return jsonSchema({
       properties: {},
