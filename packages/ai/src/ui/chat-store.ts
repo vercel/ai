@@ -175,8 +175,6 @@ export class ChatStore<MESSAGE_METADATA> {
   async triggerRequest({
     chatId,
     requestType,
-    experimental_prepareRequestBody,
-    credentials,
     maxSteps,
     onError,
     onToolCall,
@@ -186,24 +184,8 @@ export class ChatStore<MESSAGE_METADATA> {
     chatId: string;
     messages: UIMessage<MESSAGE_METADATA>[];
     requestType: 'generate' | 'resume';
-    credentials: RequestCredentials | undefined;
     maxSteps: number;
     onError?: (error: Error) => void;
-
-    /**
-     * Experimental (React only). When a function is provided, it will be used
-     * to prepare the request body for the chat API. This can be useful for
-     * customizing the request body based on the messages and data in the chat.
-     *
-     * @param id The id of the chat.
-     * @param messages The current messages in the chat.
-     * @param requestBody The request body object passed in the chat request.
-     */
-    experimental_prepareRequestBody?: (options: {
-      id: string;
-      messages: UIMessage<MESSAGE_METADATA>[];
-      requestBody?: object;
-    }) => unknown;
 
     /**
   Optional callback function that is invoked when a tool call is received.
@@ -317,8 +299,6 @@ export class ChatStore<MESSAGE_METADATA> {
       await self.triggerRequest({
         chatId,
         requestType,
-        experimental_prepareRequestBody,
-        credentials,
         maxSteps,
         onError,
         onToolCall,
