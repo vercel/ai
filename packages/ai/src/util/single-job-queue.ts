@@ -1,6 +1,6 @@
 type Job = () => Promise<void>;
 
-export class SingleJobQueue {
+export class SerialJobExecutor {
   queue: Array<Job>;
   isProcessing: boolean;
 
@@ -9,7 +9,7 @@ export class SingleJobQueue {
     this.isProcessing = false;
   }
 
-  async processQueue() {
+  private async processQueue() {
     if (this.isProcessing || this.queue.length === 0) return;
 
     this.isProcessing = true;
@@ -29,7 +29,7 @@ export class SingleJobQueue {
     this.isProcessing = false;
   }
 
-  async acquire(job: Job): Promise<void> {
+  async run(job: Job): Promise<void> {
     return new Promise(resolve => {
       const wrappedWorker = async () => {
         resolve();

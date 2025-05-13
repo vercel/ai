@@ -1,4 +1,5 @@
-import { SingleJobQueue } from '../util/single-job-queue';
+import { DelayedPromise } from '../util/delayed-promise';
+import { SerialJobExecutor } from '../util/single-job-queue';
 import type {
   ReasoningUIPart,
   TextUIPart,
@@ -25,11 +26,12 @@ export interface ChatStoreInitialization {
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
+// TODO rename ChatState to Chat
 export interface ChatState {
   status: ChatStatus;
   messages: UIMessage[];
   activeResponse?: {
-    message: UIMessage & { revisionId?: string };
+    message: UIMessage & { revisionId?: string }; // TODO revid needed?
     partialState: {
       textPart?: TextUIPart;
       reasoningPart?: ReasoningUIPart;
@@ -42,7 +44,7 @@ export interface ChatState {
     };
   };
   error?: Error;
-  queue?: SingleJobQueue;
+  executor: SerialJobExecutor;
 }
 
 export class ChatStore {
@@ -62,7 +64,7 @@ export class ChatStore {
           status: 'ready',
           activeResponse: undefined,
           error: undefined,
-          queue: new SingleJobQueue(),
+          queue: new SerialJobExecutor(),
         },
       ]),
     );
@@ -70,27 +72,53 @@ export class ChatStore {
     this.getCurrentDate = currentDate;
   }
 
-  async acquireMessageLock(id: string) {
+  // TODO rename to acquireCurrentMessageWriter
+  acquireMessageLock(id: string): Promise<{
+    state: {
+      // TODO rework types
+      message?: UIMessage;
+      currentTextPart?: TextUIPart;
+      currentReasoningPart?: ReasoningUIPart;
+      partialToolCalls?: any;
+    };
+    write: () => Promise<void>;
+    release: () => void;
+  }> {
     const chat = this.chats.get(id);
-    if (!chat) return;
+    if (!chat) throw new Error(`no chat with id ${id}`);
 
-    await chat.queue?.acquire(async () => {
-      // here is where we would want to do the mutations
+    // now we need to return the interface that enables the job to be run,
+    // however, we must not finish here yet.
+    const releasePromise = new DelayedPromise<void>();
+    const acquirePromise = new DelayedPromise<
+      Awaited<ReturnType<typeof ChatStore.prototype.acquireMessageLock>>
+    >();
+
+    chat.executor?.run(async () => {
+      // this function is called when the actual job can start
+      acquirePromise.resolve({
+        state: {
+          message: chat.activeResponse?.message,
+          currentTextPart: chat.activeResponse?.partialState?.textPart,
+          currentReasoningPart:
+            chat.activeResponse?.partialState?.reasoningPart,
+          partialToolCalls: chat.activeResponse?.partialState?.toolCalls,
+        },
+        // TODO distinguish write message from write status?
+        write: async () => {
+          this.emitEvent({ type: 'chat-status-changed', chatId: id }); // Do we need this then? If we remove, do we lose out of granular subscriptions?
+          this.emitEvent({ type: 'chat-messages-changed', chatId: id });
+        },
+        release: () => {
+          releasePromise.resolve();
+        },
+      });
+
+      // wait for the job to be finished
+      await releasePromise.value;
     });
 
-    return {
-      state: {
-        message: chat.activeResponse?.message,
-        currentTextPart: chat.activeResponse?.partialState?.textPart,
-        currentReasoningPart: chat.activeResponse?.partialState?.reasoningPart,
-        partialToolCalls: chat.activeResponse?.partialState?.toolCalls,
-      },
-      write: async () => {
-        this.emitEvent({ type: 'chat-status-changed', chatId: id }); // Do we need this then? If we remove, do we lose out of granular subscriptions?
-        this.emitEvent({ type: 'chat-messages-changed', chatId: id });
-      },
-      release: () => {},
-    };
+    return acquirePromise.value;
   }
 
   hasChat(id: string) {
@@ -102,7 +130,7 @@ export class ChatStore {
       messages,
       status: 'ready',
       activeResponse: undefined,
-      queue: new SingleJobQueue(),
+      executor: new SerialJobExecutor(),
     });
   }
 
