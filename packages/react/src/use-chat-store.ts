@@ -11,7 +11,6 @@ export function useChatStore<MESSAGE_METADATA>({
   messages: UIMessage<MESSAGE_METADATA>[];
   status: ChatStatus;
   error: Error | undefined;
-  getLatestMessages: () => UIMessage<MESSAGE_METADATA>[];
   setStatus: (options: { status: ChatStatus; error?: Error }) => void;
 } {
   const subscribe = useCallback(
@@ -35,10 +34,6 @@ export function useChatStore<MESSAGE_METADATA>({
     [store, chatId],
   );
 
-  const getLatestMessages = useCallback(() => {
-    return store.getMessages(chatId);
-  }, [store, chatId]);
-
   const error = useSyncExternalStore(
     callback =>
       subscribe({
@@ -47,13 +42,6 @@ export function useChatStore<MESSAGE_METADATA>({
       }),
     () => store.getError(chatId),
     () => store.getError(chatId),
-  );
-
-  const setStatus = useCallback(
-    ({ status, error }: { status: ChatStatus; error?: Error }) => {
-      store.setStatus({ id: chatId, status, error });
-    },
-    [store, chatId],
   );
 
   const status = useSyncExternalStore(
@@ -73,17 +61,21 @@ export function useChatStore<MESSAGE_METADATA>({
         eventType: 'chat-messages-changed',
       });
     },
-    () => getLatestMessages(),
-    () => getLatestMessages(),
+    () => store.getMessages(chatId),
+    () => store.getMessages(chatId),
+  );
+
+  const setStatus = useCallback(
+    ({ status, error }: { status: ChatStatus; error?: Error }) => {
+      store.setStatus({ id: chatId, status, error });
+    },
+    [store, chatId],
   );
 
   return {
     messages,
     status,
     error,
-
-    // TODO remove once pushed into chatstore
-    getLatestMessages,
 
     setStatus,
   };

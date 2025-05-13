@@ -6,14 +6,10 @@ import type {
   UseChatOptions,
 } from 'ai';
 import {
-  callChatApi,
   ChatStore,
   convertFileListToFileUIParts,
-  extractMaxToolInvocationStep,
   generateId as generateIdFunc,
-  getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
-  shouldResubmitMessages,
   updateToolCallResult,
 } from 'ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -180,11 +176,10 @@ Default is undefined, which disables throttling.
     chatStore.current.addChat(chatId, processedInitialMessages ?? []);
   }
 
-  const { messages, error, status, setStatus, getLatestMessages } =
-    useChatStore({
-      store: chatStore.current,
-      chatId,
-    });
+  const { messages, error, status, setStatus } = useChatStore({
+    store: chatStore.current,
+    chatId,
+  });
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -249,7 +244,6 @@ Default is undefined, which disables throttling.
       // throttleWaitMs,
       chatId,
       messageMetadataSchema,
-      getLatestMessages,
     ],
   );
 
