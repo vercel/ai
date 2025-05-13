@@ -1,6 +1,6 @@
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
-  callChatApi,
+  callChatApiLegacy as callChatApi,
   convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
   generateId,

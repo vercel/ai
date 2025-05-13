@@ -7,7 +7,7 @@ import type {
   UseChatOptions,
 } from 'ai';
 import {
-  callChatApi,
+  callChatApiLegacy as callChatApi,
   convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,

@@ -9,10 +9,10 @@ import {
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
-import { processUIMessageStream } from './process-ui-message-stream';
+import { ChatStore } from './chat-store';
 import { processChatTextResponse } from './process-chat-text-response';
-import { UIMessage } from './ui-messages';
-import { UseChatOptions } from './use-chat';
+import { processUIMessageStream } from './process-ui-message-stream';
+import { type UseChatOptions } from './use-chat';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -24,14 +24,14 @@ export async function callChatApi<MESSAGE_METADATA>({
   credentials,
   headers,
   abortController,
-  onUpdate,
   onFinish,
   onToolCall,
   generateId,
   fetch = getOriginalFetch(),
-  lastMessage,
   requestType = 'generate',
   messageMetadataSchema,
+  chatId,
+  store,
 }: {
   api: string;
   body: Record<string, any>;
@@ -39,18 +39,18 @@ export async function callChatApi<MESSAGE_METADATA>({
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
-  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
   onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
   onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   requestType?: 'generate' | 'resume';
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  chatId: string;
+  store: ChatStore;
 }) {
   const response =
     requestType === 'resume'
-      ? await fetch(`${api}?chatId=${body.id}`, {
+      ? await fetch(`${api}?chatId=${chatId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -84,9 +84,11 @@ export async function callChatApi<MESSAGE_METADATA>({
     case 'text': {
       await processChatTextResponse<MESSAGE_METADATA>({
         stream: response.body,
-        update: onUpdate,
         onFinish,
+        store,
+        chatId,
         generateId,
+        update: () => {}, // todo: fix
       });
       return;
     }
@@ -112,27 +114,10 @@ export async function callChatApi<MESSAGE_METADATA>({
               },
             }),
           ),
-          onUpdate({ message }) {
-            const copiedMessage = {
-              // deep copy the message to ensure that deep changes (msg attachments) are updated
-              // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
-              ...structuredClone(message),
-
-              // add a revision id to ensure that the message is updated with SWR. SWR uses a
-              // hashing approach by default to detect changes, but it only works for shallow
-              // changes. This is why we need to add a revision id to ensure that the message
-              // is updated with SWR (without it, the changes get stuck in SWR and are not
-              // forwarded to rendering):
-              revisionId: generateId(),
-            } as UIMessage<MESSAGE_METADATA>;
-
-            onUpdate({ message: copiedMessage });
-          },
-          lastMessage,
           onToolCall,
           onFinish,
-          newMessageId: generateId(),
           messageMetadataSchema,
+          acquireMessageLock: () => store.acquireMessageLock(chatId),
         }),
         onError: error => {
           throw error;

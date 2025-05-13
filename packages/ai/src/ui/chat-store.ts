@@ -1,0 +1,556 @@
+import { SingleJobQueue } from '../util/single-job-queue';
+import type {
+  ReasoningUIPart,
+  TextUIPart,
+  ToolInvocationUIPart,
+  UIMessage,
+} from './ui-messages';
+
+export interface ChatStoreSubscriber {
+  onChatChanged: (event: ChatStoreEvent) => void;
+}
+
+export interface ChatStoreEvent {
+  type: 'chat-messages-changed' | 'chat-status-changed';
+  chatId: number | string;
+  error?: Error;
+}
+
+export interface ChatStoreInitialization {
+  chats?: Record<string, Pick<ChatState, 'messages'>>;
+  '~internal'?: {
+    currentDate?: () => Date;
+  };
+}
+
+export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
+
+export interface ChatState {
+  status: ChatStatus;
+  messages: UIMessage[];
+  activeResponse?: {
+    message: UIMessage & { revisionId?: string };
+    partialState: {
+      textPart?: TextUIPart;
+      reasoningPart?: ReasoningUIPart;
+      toolCalls?: Record<
+        string,
+        { text: string; step: number; index: number; toolName: string }
+      >;
+      // Maintains accumulated string representation of tool invocation args:
+      // toolArgs?: Record<string, string>;
+    };
+  };
+  error?: Error;
+  queue?: SingleJobQueue;
+}
+
+export class ChatStore {
+  private chats: Map<string, ChatState>;
+  private subscribers: Set<ChatStoreSubscriber>;
+  private getCurrentDate: () => Date;
+
+  constructor({
+    chats = {},
+    '~internal': { currentDate = () => new Date() } = {},
+  }: ChatStoreInitialization = {}) {
+    this.chats = new Map(
+      Object.entries(chats).map(([id, state]) => [
+        id,
+        {
+          messages: [...state.messages],
+          status: 'ready',
+          activeResponse: undefined,
+          error: undefined,
+          queue: new SingleJobQueue(),
+        },
+      ]),
+    );
+    this.subscribers = new Set();
+    this.getCurrentDate = currentDate;
+  }
+
+  async acquireMessageLock(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    await chat.queue?.acquire(async () => {
+      // here is where we would want to do the mutations
+    });
+
+    return {
+      state: {
+        message: chat.activeResponse?.message,
+        currentTextPart: chat.activeResponse?.partialState?.textPart,
+        currentReasoningPart: chat.activeResponse?.partialState?.reasoningPart,
+        partialToolCalls: chat.activeResponse?.partialState?.toolCalls,
+      },
+      write: async () => {
+        this.emitEvent({ type: 'chat-status-changed', chatId: id }); // Do we need this then? If we remove, do we lose out of granular subscriptions?
+        this.emitEvent({ type: 'chat-messages-changed', chatId: id });
+      },
+      release: () => {},
+    };
+  }
+
+  hasChat(id: string) {
+    return this.chats.has(id);
+  }
+
+  addChat(id: string, messages: UIMessage[]) {
+    this.chats.set(id, {
+      messages,
+      status: 'ready',
+      activeResponse: undefined,
+      queue: new SingleJobQueue(),
+    });
+  }
+
+  getChats() {
+    return Array.from(this.chats.entries());
+  }
+
+  get chatCount() {
+    return this.chats.size;
+  }
+
+  getStatus(id: string): ChatStatus | undefined {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    return chat.status;
+  }
+
+  setStatus({
+    id,
+    status,
+    error,
+  }: {
+    id: string;
+    status: ChatState['status'];
+    error?: Error;
+  }) {
+    const chat = this.chats.get(id);
+    if (!chat || chat.status === status) return;
+    chat.status = status;
+    chat.error = error;
+    this.emitEvent({ type: 'chat-status-changed', chatId: id, error });
+  }
+
+  getError(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    return chat.error;
+  }
+
+  getMessages(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    return chat.messages;
+  }
+
+  getLastMessage(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    return chat.messages[chat.messages.length - 1];
+  }
+
+  subscribe(subscriber: ChatStoreSubscriber): () => void {
+    this.subscribers.add(subscriber);
+    return () => this.subscribers.delete(subscriber);
+  }
+
+  setMessages({ id, messages }: { id: string; messages: UIMessage[] }) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    chat.messages = [...messages];
+    this.emitEvent({ type: 'chat-messages-changed', chatId: id });
+  }
+
+  appendMessage({ id, message }: { id: string; message: UIMessage }) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    if (message.role === 'user') {
+      this.resetActiveResponse(id);
+    }
+
+    chat.messages = [...chat.messages, { ...message }];
+    this.emitEvent({ type: 'chat-messages-changed', chatId: id });
+  }
+
+  removeAssistantResponse(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    const lastMessage = chat.messages[chat.messages.length - 1];
+
+    if (!lastMessage) {
+      throw new Error('Cannot remove assistant response from empty chat');
+    }
+
+    if (lastMessage.role !== 'assistant') {
+      throw new Error('Last message is not an assistant message');
+    }
+
+    this.setMessages({ id, messages: chat.messages.slice(0, -1) });
+    this.resetActiveResponse(id);
+  }
+
+  private emitEvent(event: ChatStoreEvent) {
+    for (const subscriber of this.subscribers) {
+      subscriber.onChatChanged(event);
+    }
+  }
+
+  private calculateStep(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) {
+      throw new Error('Chat not found');
+    }
+
+    if (
+      !chat.activeResponse ||
+      chat.activeResponse.message.role !== 'assistant'
+    ) {
+      return 0;
+    }
+
+    const hasToolInvocation = chat.activeResponse.message.parts?.some(
+      part => part.type === 'tool-invocation',
+    );
+
+    if (!hasToolInvocation) {
+      return 0;
+    }
+
+    return (
+      (chat.activeResponse.message.parts?.reduce((max, part) => {
+        if (part.type === 'tool-invocation') {
+          return Math.max(max, part.toolInvocation.step ?? 0) ?? 0;
+        }
+        return max;
+      }, 0) ?? 0) + 1
+    );
+  }
+
+  private resetActiveResponse(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat || !chat.activeResponse) return;
+
+    chat.activeResponse = undefined;
+    chat.error = undefined;
+    chat.status = 'ready';
+    this.emitEvent({ type: 'chat-status-changed', chatId: id });
+  }
+
+  /**
+   * Initializes the active response for a chat.
+   * If the last message is an assistant message, it will be used to construct the active response state.
+   * Otherwise, a new message will be created.
+   */
+  private initializeActiveResponse({
+    chatId,
+    messageId,
+    generateId,
+  }: {
+    chatId: string;
+    messageId?: string;
+    generateId: () => string;
+  }) {
+    const chat = this.chats.get(chatId);
+    if (!chat) return;
+
+    const maybeLastAssistantMessage = this.getLastMessage(chatId);
+    const lastMessage =
+      maybeLastAssistantMessage?.role === 'assistant'
+        ? maybeLastAssistantMessage
+        : undefined;
+
+    if (!lastMessage && maybeLastAssistantMessage?.role !== 'user') {
+      throw new Error('Corresponding user message not found');
+    }
+
+    const id = messageId ?? lastMessage?.id ?? generateId();
+    const createdAt = lastMessage?.createdAt ?? this.getCurrentDate();
+    const parts = lastMessage?.parts ?? [];
+
+    chat.activeResponse = {
+      message: {
+        id,
+        createdAt,
+        role: 'assistant',
+        parts,
+      },
+      partialState: {
+        textPart: parts.find(part => part.type === 'text'),
+        reasoningPart: parts.find(part => part.type === 'reasoning'),
+        toolParts: parts
+          .filter(part => part.type === 'tool-invocation')
+          .reduce(
+            (acc, part) => {
+              acc[part.toolInvocation.toolCallId] = part;
+              return acc;
+            },
+            {} as Record<string, ToolInvocationUIPart>,
+          ),
+        toolArgs: parts
+          .filter(part => part.type === 'tool-invocation')
+          .reduce(
+            (acc, part) => {
+              acc[part.toolInvocation.toolCallId] = String(
+                part.toolInvocation.args,
+              );
+              return acc;
+            },
+            {} as Record<string, string>,
+          ),
+      },
+    };
+
+    chat.messages.push(chat.activeResponse!.message);
+  }
+
+  // async addOrUpdateAssistantMessageParts({
+  //   chatId,
+  //   partDelta,
+  //   messageId,
+  //   generateId,
+  // }: {
+  //   chatId: string;
+  //   partDelta: UIMessage['parts'][number];
+  //   messageId?: string;
+  //   generateId: () => string;
+  // }) {
+  //   const chat = this.chats.get(chatId);
+  //   if (!chat) return;
+
+  //   if (!chat.activeResponse) {
+  //     this.initializeActiveResponse({
+  //       chatId,
+  //       messageId,
+  //       generateId,
+  //     });
+  //   }
+
+  //   const activeResponse = chat.activeResponse!;
+
+  //   switch (partDelta.type) {
+  //     // Parts that are updated in place:
+  //     case 'text': {
+  //       if (activeResponse.partialState.textPart) {
+  //         activeResponse.partialState.textPart.text += partDelta.text;
+  //       } else {
+  //         activeResponse.partialState.textPart = { ...partDelta };
+  //         activeResponse.message.parts.push(
+  //           activeResponse.partialState.textPart,
+  //         );
+  //       }
+  //       break;
+  //     }
+  //     case 'reasoning': {
+  //       this.addOrUpdateReasoning({
+  //         reasoning: partDelta,
+  //         activeResponse,
+  //       });
+  //       break;
+  //     }
+  //     case 'tool-invocation': {
+  //       await this.addOrUpdateToolInvocation({
+  //         toolInvocation: partDelta.toolInvocation,
+  //         activeResponse,
+  //         chatId,
+  //       });
+  //       break;
+  //     }
+  //     // Parts that are just appended to parts array:
+  //     case 'step-start':
+  //     case 'source':
+  //     case 'file': {
+  //       activeResponse.message.parts.push(partDelta);
+  //       break;
+  //     }
+  //     default: {
+  //       throw new Error('Invalid message part type');
+  //     }
+  //   }
+
+  //   chat.activeResponse!.message.revisionId = generateId();
+  //   chat.messages = [...chat.messages];
+  //   this.emitEvent({ type: 'chat-messages-changed', chatId });
+  // }
+
+  updateActiveResponse({
+    chatId,
+    message,
+    generateId,
+  }: {
+    chatId: string;
+    message: Partial<UIMessage>;
+    generateId: () => string;
+  }) {
+    const chat = this.chats.get(chatId);
+    if (!chat) return;
+
+    if (!chat.activeResponse) {
+      this.initializeActiveResponse({
+        chatId,
+        messageId: message.id,
+        generateId,
+      });
+    }
+
+    chat.activeResponse!.message = {
+      ...chat.activeResponse!.message,
+      ...message,
+    };
+
+    this.setMessages({
+      id: chatId,
+      messages: [...chat.messages.slice(0, -1), chat.activeResponse!.message],
+    });
+  }
+
+  clearStepPartialState({ id }: { id: string }) {
+    const chat = this.chats.get(id);
+    if (!chat || !chat.activeResponse) return;
+
+    const partialState = {
+      toolParts: chat.activeResponse?.partialState?.toolParts,
+      toolArgs: chat.activeResponse?.partialState?.toolArgs,
+      reasoningPart: undefined,
+      textPart: undefined,
+    };
+
+    chat.activeResponse.partialState = partialState;
+  }
+
+  // private async addOrUpdateToolInvocation({
+  //   chatId,
+  //   toolInvocation,
+  //   activeResponse,
+  // }: {
+  //   chatId: string;
+  //   toolInvocation: ToolInvocation;
+  //   activeResponse: ChatState['activeResponse'];
+  // }) {
+  //   if (!activeResponse) return;
+
+  //   const { toolCallId } = toolInvocation;
+  //   const { message, partialState } = activeResponse;
+
+  //   if (!partialState.toolParts) partialState.toolParts = {};
+  //   if (!partialState.toolArgs) partialState.toolArgs = {};
+
+  //   const existingToolPart = partialState.toolParts[toolCallId] || {};
+  //   const existingToolInvocation = existingToolPart?.toolInvocation;
+
+  //   if (existingToolInvocation) {
+  //     existingToolInvocation.state = toolInvocation.state;
+
+  //     switch (existingToolInvocation.state) {
+  //       case 'partial-call': {
+  //         partialState.toolArgs[toolCallId] += toolInvocation.args;
+  //         const { value: partialArgs } = await parsePartialJson(
+  //           partialState.toolArgs[toolCallId],
+  //         );
+  //         existingToolInvocation.args = partialArgs;
+  //         break;
+  //       }
+  //       case 'call': {
+  //         existingToolInvocation.args = toolInvocation.args;
+  //         break;
+  //       }
+  //       case 'result': {
+  //         // @ts-expect-error - Due to the switch statement narrowing down the type of `existingToolInvocation`, TS is not aware that toolInvocation is also a result Tool Invocation even though both are the same type:
+  //         existingToolInvocation.result = toolInvocation.result;
+  //         break;
+  //       }
+  //       default: {
+  //         throw new Error('Invalid tool invocation state');
+  //       }
+  //     }
+  //   } else {
+  //     if (toolInvocation.state === 'result') {
+  //       throw new Error('tool_result must be preceded by a tool_call');
+  //     }
+
+  //     if (
+  //       toolInvocation.state !== 'partial-call' &&
+  //       toolInvocation.state !== 'call'
+  //     ) {
+  //       throw new Error('Invalid tool invocation state');
+  //     }
+
+  //     const partialToolPart: ToolInvocationUIPart = {
+  //       type: 'tool-invocation',
+  //       toolInvocation: {
+  //         args: toolInvocation.args ?? '',
+  //         step: this.calculateStep(chatId),
+  //         toolName: toolInvocation.toolName,
+  //         state: toolInvocation.state,
+  //         toolCallId,
+  //       } as ToolInvocation,
+  //     };
+
+  //     partialState.toolParts[toolCallId] = partialToolPart;
+  //     partialState.toolArgs[toolCallId] = toolInvocation.args ?? '';
+  //     message.parts.push(partialToolPart);
+  //   }
+  // }
+
+  // private addOrUpdateReasoning({
+  //   reasoning,
+  //   activeResponse,
+  // }: {
+  //   reasoning: ReasoningUIPart;
+  //   activeResponse: ChatState['activeResponse'];
+  // }) {
+  //   if (!activeResponse) return;
+
+  //   const partialReasoning = activeResponse.partialState.reasoningPart;
+
+  //   const { text: reasoningTextDelta, providerMetadata } = reasoning;
+
+  //   const isFinishedPart =
+  //     partialReasoning &&
+  //     reasoningTextDelta === '' &&
+  //     providerMetadata === undefined;
+
+  //   // Clear temporary state on `reasoning_part_finish`:
+  //   if (isFinishedPart) {
+  //     activeResponse.partialState.reasoningPart = undefined;
+  //     return;
+  //   }
+
+  //   if (partialReasoning) {
+  //     partialReasoning.text += reasoningTextDelta;
+  //   } else {
+  //     activeResponse.partialState.reasoningPart = {
+  //       type: 'reasoning',
+  //       text: reasoningTextDelta,
+  //     };
+  //     activeResponse.message.parts.push(
+  //       activeResponse.partialState.reasoningPart,
+  //     );
+  //   }
+
+  //   // Only update provider metadata if defined in the reasoning part:
+  //   if (providerMetadata) {
+  //     activeResponse.partialState.reasoningPart!.providerMetadata =
+  //       providerMetadata;
+  //   }
+  // }
+
+  clear(id?: string) {
+    if (id) {
+      this.setMessages({ id, messages: [] });
+      this.resetActiveResponse(id);
+    } else {
+      const ids = Array.from(this.chats.keys());
+      for (const id of ids) {
+        this.clear(id);
+      }
+    }
+  }
+}

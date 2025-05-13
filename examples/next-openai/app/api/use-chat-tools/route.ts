@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { convertToModelMessages, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     // model: anthropic('claude-3-5-sonnet-latest'),
-    messages,
+    messages: convertToModelMessages(messages),
     toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools
     tools: {

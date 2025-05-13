@@ -4,6 +4,7 @@ import {
   Schema,
   ToolCall,
 } from '@ai-sdk/provider-utils';
+import { ChatStore } from './chat-store';
 import { UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
@@ -40,8 +41,15 @@ export type UseChatOptions<MESSAGE_METADATA = unknown> = {
 
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
+   *
+   * Note: To be removed in v5; leaving it in for now to avoid breaking changes in example builds.
    */
   initialMessages?: UIMessage<NoInfer<MESSAGE_METADATA>>[];
+
+  /**
+   * Optional ChatStore instance.
+   */
+  store?: ChatStore;
 
   /**
    * Initial input of the chat.
