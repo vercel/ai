@@ -8,9 +8,13 @@ import { consumeUIMessageStream } from './call-chat-api';
 import { ChatTransport } from './chat-transport';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
-import { shouldResubmitMessages } from './should-resubmit-messages';
+import {
+  isAssistantMessageWithCompletedToolCalls,
+  shouldResubmitMessages,
+} from './should-resubmit-messages';
 import type { UIMessage } from './ui-messages';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
+import { updateToolCallResult } from './update-tool-call-result';
 
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
@@ -305,6 +309,57 @@ export class ChatStore<MESSAGE_METADATA> {
         onFinish,
         ...chatRequest,
         messages: messagesX,
+      });
+    }
+  }
+
+  addToolResult({
+    chatId,
+    toolCallId,
+    result,
+    maxSteps,
+  }: {
+    chatId: string;
+    toolCallId: string;
+    result: unknown;
+    maxSteps: number;
+  }) {
+    const chat = this.getChat(chatId);
+    const currentMessages = chat.messages;
+
+    updateToolCallResult({
+      messages: currentMessages,
+      toolCallId,
+      toolResult: result,
+    });
+
+    // array mutation is required to trigger a re-render
+    this.setMessages({
+      id: chatId,
+      messages: [
+        ...currentMessages.slice(0, currentMessages.length - 1),
+        {
+          ...currentMessages[currentMessages.length - 1],
+          // @ts-ignore
+          // update the revisionId to trigger a re-render
+          revisionId: this.generateId(),
+        },
+      ],
+    });
+
+    // when the request is ongoing, the auto-submit will be triggered after the request is finished
+    if (chat.status === 'submitted' || chat.status === 'streaming') {
+      return;
+    }
+
+    // auto-submit when all tool calls in the last assistant message have results:
+    const lastMessage = currentMessages[currentMessages.length - 1];
+    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+      this.triggerRequest({
+        messages: currentMessages,
+        maxSteps,
+        requestType: 'generate',
+        chatId,
       });
     }
   }

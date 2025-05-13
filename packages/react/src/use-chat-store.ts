@@ -11,6 +11,15 @@ export function useChatStore<MESSAGE_METADATA>({
   messages: UIMessage<MESSAGE_METADATA>[];
   status: ChatStatus;
   error: Error | undefined;
+  addToolResult: ({
+    toolCallId,
+    result,
+    maxSteps,
+  }: {
+    toolCallId: string;
+    result: unknown;
+    maxSteps: number;
+  }) => void;
 } {
   const subscribe = useCallback(
     ({
@@ -29,6 +38,21 @@ export function useChatStore<MESSAGE_METADATA>({
           onStoreChange();
         },
       });
+    },
+    [store, chatId],
+  );
+
+  const addToolResult = useCallback(
+    ({
+      toolCallId,
+      result,
+      maxSteps,
+    }: {
+      toolCallId: string;
+      result: unknown;
+      maxSteps: number;
+    }) => {
+      store.addToolResult({ chatId, toolCallId, result, maxSteps });
     },
     [store, chatId],
   );
@@ -68,5 +92,6 @@ export function useChatStore<MESSAGE_METADATA>({
     messages,
     status,
     error,
+    addToolResult,
   };
 }

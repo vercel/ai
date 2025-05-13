@@ -191,7 +191,12 @@ Default is undefined, which disables throttling.
     chatStore.current.addChat(chatId, processedInitialMessages ?? []);
   }
 
-  const { messages, error, status } = useChatStore({
+  const {
+    messages,
+    error,
+    status,
+    addToolResult: addToolResultFromStore,
+  } = useChatStore({
     store: chatStore.current,
     chatId,
   });
@@ -354,40 +359,9 @@ Default is undefined, which disables throttling.
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
-      const currentMessages = messages;
-
-      updateToolCallResult({
-        messages: currentMessages,
-        toolCallId,
-        toolResult: result,
-      });
-
-      // array mutation is required to trigger a re-render
-      chatStore.current.setMessages({
-        id: chatId,
-        messages: [
-          ...currentMessages.slice(0, currentMessages.length - 1),
-          {
-            ...currentMessages[currentMessages.length - 1],
-            // @ts-ignore
-            // update the revisionId to trigger a re-render
-            revisionId: generateId(),
-          },
-        ],
-      });
-
-      // when the request is ongoing, the auto-submit will be triggered after the request is finished
-      if (status === 'submitted' || status === 'streaming') {
-        return;
-      }
-
-      // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = currentMessages[currentMessages.length - 1];
-      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        triggerRequest({ messages: currentMessages });
-      }
+      addToolResultFromStore({ toolCallId, result, maxSteps });
     },
-    [status, triggerRequest, generateId, chatId, messages],
+    [addToolResultFromStore, maxSteps],
   );
 
   return {
