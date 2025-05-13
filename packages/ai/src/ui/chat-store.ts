@@ -1,4 +1,5 @@
 import { parsePartialJson } from '../util';
+import { SingleJobQueue } from '../util/single-job-queue';
 import type {
   ReasoningUIPart,
   TextUIPart,
@@ -40,6 +41,7 @@ export interface ChatState {
     };
   };
   error?: Error;
+  queue?: SingleJobQueue;
 }
 
 export class ChatStore {
@@ -59,6 +61,7 @@ export class ChatStore {
           status: 'ready',
           activeResponse: undefined,
           error: undefined,
+          queue: new SingleJobQueue(),
         },
       ]),
     );
@@ -75,6 +78,7 @@ export class ChatStore {
       messages,
       status: 'ready',
       activeResponse: undefined,
+      queue: new SingleJobQueue(),
     });
   }
 
