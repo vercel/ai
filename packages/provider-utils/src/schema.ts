@@ -7,8 +7,8 @@ import { Validator, validatorSymbol } from './validator';
  */
 const schemaSymbol = Symbol.for('vercel.ai.schema');
 
-export type Schema<T extends StandardSchemaV1 = StandardSchemaV1> =
-  Validator<T> & {
+export type Schema<OBJECT> =
+  Validator<OBJECT> & {
     /**
      * Used to mark schemas so we can support both Zod and custom schemas.
      */
@@ -17,7 +17,7 @@ export type Schema<T extends StandardSchemaV1 = StandardSchemaV1> =
     /**
      * Schema type for inference.
      */
-    _type: T;
+    _type: OBJECT;
 
     /**
      * The JSON Schema for the schema. It is passed to the providers.
