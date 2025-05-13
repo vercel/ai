@@ -1,4 +1,10 @@
+import { IdGenerator, Schema, ToolCall } from '@ai-sdk/provider-utils';
+import { callChatApi } from './call-chat-api';
+import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
+import { getToolInvocations } from './get-tool-invocations';
+import { shouldResubmitMessages } from './should-resubmit-messages';
 import type { UIMessage } from './ui-messages';
+import { ChatRequestOptions } from './use-chat';
 
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
@@ -145,6 +151,188 @@ export class ChatStore<MESSAGE_METADATA> {
     }
 
     this.setMessages({ id, messages: chat.messages.slice(0, -1) });
+  }
+
+  async triggerRequest({
+    chatId,
+    requestType,
+    api,
+    experimental_prepareRequestBody,
+    streamProtocol,
+    credentials,
+    maxSteps,
+    onError,
+    generateId,
+    onToolCall,
+    onFinish,
+    messageMetadataSchema,
+    ...chatRequest
+  }: ChatRequestOptions & {
+    chatId: string;
+    messages: UIMessage<MESSAGE_METADATA>[];
+    requestType: 'generate' | 'resume';
+    api: string;
+    streamProtocol: 'ui-message' | 'text';
+    credentials: RequestCredentials | undefined;
+    maxSteps: number;
+    onError?: (error: Error) => void;
+    generateId: IdGenerator;
+
+    /**
+     * Experimental (React only). When a function is provided, it will be used
+     * to prepare the request body for the chat API. This can be useful for
+     * customizing the request body based on the messages and data in the chat.
+     *
+     * @param id The id of the chat.
+     * @param messages The current messages in the chat.
+     * @param requestBody The request body object passed in the chat request.
+     */
+    experimental_prepareRequestBody?: (options: {
+      id: string;
+      messages: UIMessage<MESSAGE_METADATA>[];
+      requestBody?: object;
+    }) => unknown;
+
+    /**
+  Optional callback function that is invoked when a tool call is received.
+  Intended for automatic client-side tool execution.
+
+  You can optionally return a result for the tool call,
+  either synchronously or asynchronously.
+     */
+    onToolCall?: ({
+      toolCall,
+    }: {
+      toolCall: ToolCall<string, unknown>;
+    }) => void | Promise<unknown> | unknown;
+
+    /**
+     * Optional callback function that is called when the assistant message is finished streaming.
+     *
+     * @param message The message that was streamed.
+     */
+    onFinish?: (options: {
+      message: UIMessage<NoInfer<MESSAGE_METADATA>>;
+    }) => void;
+
+    /**
+     * Schema for the message metadata. Validates the message metadata.
+     * Message metadata can be undefined or must match the schema.
+     */
+    messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  }) {
+    const self = this;
+    this.setStatus({ id: chatId, status: 'submitted', error: undefined });
+
+    const chatMessages = chatRequest.messages;
+
+    const messageCount = chatMessages.length;
+    const maxStep = extractMaxToolInvocationStep(
+      getToolInvocations(chatMessages[chatMessages.length - 1]),
+    );
+
+    try {
+      const abortController = new AbortController();
+
+      // TODO expose abort controller
+      // abortControllerRef.current = abortController;
+
+      // const throttledMutate = throttle(mutate, throttleWaitMs);
+
+      // // Do an optimistic update to show the updated messages immediately:
+      // throttledMutate(chatMessages, false);
+
+      await callChatApi({
+        api,
+        body: experimental_prepareRequestBody?.({
+          id: chatId,
+          messages: chatMessages,
+          requestBody: chatRequest.body,
+        }) ?? {
+          id: chatId,
+          messages: chatMessages,
+          ...chatRequest.body,
+        },
+        streamProtocol,
+        credentials,
+        headers: {
+          ...chatRequest.headers,
+        },
+        abortController: () => abortController,
+        onUpdate({ message }) {
+          self.setStatus({ id: chatId, status: 'streaming' });
+
+          const replaceLastMessage =
+            message.id === chatMessages[chatMessages.length - 1].id;
+
+          const newMessages = [
+            ...(replaceLastMessage
+              ? chatMessages.slice(0, chatMessages.length - 1)
+              : chatMessages),
+            message,
+          ];
+
+          self.setMessages({
+            id: chatId,
+            messages: newMessages,
+          });
+        },
+        onToolCall,
+        onFinish,
+        generateId,
+        fetch,
+        lastMessage: chatMessages[chatMessages.length - 1],
+        requestType,
+        messageMetadataSchema,
+      });
+
+      // TODO clear
+      // abortControllerRef.current = null;
+
+      this.setStatus({ id: chatId, status: 'ready' });
+    } catch (err) {
+      // Ignore abort errors as they are expected.
+      if ((err as any).name === 'AbortError') {
+        // abortControllerRef.current = null;
+        this.setStatus({ id: chatId, status: 'ready' });
+        return null;
+      }
+
+      if (onError && err instanceof Error) {
+        onError(err);
+      }
+
+      this.setStatus({ id: chatId, status: 'error', error: err as Error });
+    }
+
+    // auto-submit when all tool calls in the last assistant message have results
+    // and assistant has not answered yet
+    const messagesX = self.getMessages(chatId);
+    if (
+      shouldResubmitMessages({
+        originalMaxToolInvocationStep: maxStep,
+        originalMessageCount: messageCount,
+        maxSteps,
+        messages: messagesX,
+      })
+    ) {
+      await self.triggerRequest({
+        chatId,
+        requestType,
+        api,
+        experimental_prepareRequestBody,
+        streamProtocol,
+        credentials,
+        maxSteps,
+        onError,
+        onToolCall,
+        onFinish,
+        messageMetadataSchema,
+        generateId,
+        ...chatRequest,
+        messages: messagesX,
+      });
+    }
   }
 
   private emitEvent(event: ChatStoreEvent) {

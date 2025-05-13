@@ -209,103 +209,30 @@ Default is undefined, which disables throttling.
         messages: UIMessage<MESSAGE_METADATA>[];
       },
       requestType: 'generate' | 'resume' = 'generate',
-    ) => {
-      setStatus({ status: 'submitted', error: undefined });
-
-      const chatMessages = chatRequest.messages;
-
-      const messageCount = chatMessages.length;
-      const maxStep = extractMaxToolInvocationStep(
-        getToolInvocations(chatMessages[chatMessages.length - 1]),
-      );
-
-      try {
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-
-        // const throttledMutate = throttle(mutate, throttleWaitMs);
-
-        // // Do an optimistic update to show the updated messages immediately:
-        // throttledMutate(chatMessages, false);
-
-        await callChatApi({
-          api,
-          body: experimental_prepareRequestBody?.({
-            id: chatId,
-            messages: chatMessages,
-            requestBody: chatRequest.body,
-          }) ?? {
-            id: chatId,
-            messages: chatMessages,
-            ...extraMetadataRef.current.body,
-            ...chatRequest.body,
-          },
-          streamProtocol,
-          credentials: extraMetadataRef.current.credentials,
-          headers: {
-            ...extraMetadataRef.current.headers,
-            ...chatRequest.headers,
-          },
-          abortController: () => abortControllerRef.current,
-          onUpdate({ message }) {
-            setStatus({ status: 'streaming' });
-
-            const replaceLastMessage =
-              message.id === chatMessages[chatMessages.length - 1].id;
-
-            const newMessages = [
-              ...(replaceLastMessage
-                ? chatMessages.slice(0, chatMessages.length - 1)
-                : chatMessages),
-              message,
-            ];
-
-            chatStore.current.setMessages({
-              id: chatId,
-              messages: newMessages,
-            });
-          },
-          onToolCall,
-          onFinish,
-          generateId,
-          fetch,
-          lastMessage: chatMessages[chatMessages.length - 1],
-          requestType,
-          messageMetadataSchema,
-        });
-
-        abortControllerRef.current = null;
-
-        setStatus({ status: 'ready' });
-      } catch (err) {
-        // Ignore abort errors as they are expected.
-        if ((err as any).name === 'AbortError') {
-          abortControllerRef.current = null;
-          setStatus({ status: 'ready' });
-          return null;
-        }
-
-        if (onError && err instanceof Error) {
-          onError(err);
-        }
-
-        setStatus({ status: 'error', error: err as Error });
-      }
-
-      // auto-submit when all tool calls in the last assistant message have results
-      // and assistant has not answered yet
-      const messagesX = getLatestMessages();
-      if (
-        shouldResubmitMessages({
-          originalMaxToolInvocationStep: maxStep,
-          originalMessageCount: messageCount,
-          maxSteps,
-          messages: messagesX,
-        })
-      ) {
-        await triggerRequest({ messages: messagesX });
-      }
-    },
+    ) =>
+      chatStore.current.triggerRequest({
+        chatId,
+        requestType,
+        api,
+        streamProtocol,
+        maxSteps,
+        generateId,
+        credentials: extraMetadataRef.current.credentials,
+        experimental_prepareRequestBody,
+        body: {
+          ...extraMetadataRef.current.body,
+          ...chatRequest.body,
+        },
+        headers: {
+          ...extraMetadataRef.current.headers,
+          ...chatRequest.headers,
+        },
+        messages: chatRequest.messages,
+        onFinish,
+        onError,
+        onToolCall,
+        messageMetadataSchema,
+      }),
     [
       setStatus,
       api,
