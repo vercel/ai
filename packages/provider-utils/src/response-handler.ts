@@ -81,7 +81,7 @@ export const createJsonErrorResponseHandler =
     };
 
 export const createEventSourceResponseHandler =
-  <T>(
+  <T extends StandardSchemaV1>(
     chunkSchema: StandardSchemaV1<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
     async ({ response }: { response: Response }) => {

@@ -85,15 +85,15 @@ export async function safeParseJSON(options: {
  */
 export async function safeParseJSON<T extends StandardSchemaV1>(options: {
   text: string;
-  schema: T | Validator<T>;
-}): Promise<ParseResult<T>>;
+  schema: T | Validator<StandardSchemaV1.InferInput<T>>;
+}): Promise<ParseResult<StandardSchemaV1.InferInput<T>>>;
 export async function safeParseJSON<T extends StandardSchemaV1>({
   text,
   schema,
 }: {
   text: string;
-  schema?: T | Validator<T>;
-}): Promise<ParseResult<T>> {
+  schema?: T | Validator<StandardSchemaV1.InferInput<T>>;
+}): Promise<ParseResult<StandardSchemaV1.InferInput<T>>> {
   try {
     const value = secureJsonParse(text);
 

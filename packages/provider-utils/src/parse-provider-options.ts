@@ -1,7 +1,6 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { safeValidateTypes } from './validate-types';
-import { z } from 'zod';
 
 export async function parseProviderOptions<T extends StandardSchemaV1>({
   provider,
@@ -11,7 +10,7 @@ export async function parseProviderOptions<T extends StandardSchemaV1>({
   provider: string;
   providerOptions: Record<string, unknown> | undefined;
   schema: T;
-}): Promise<T | undefined> {
+}): Promise<StandardSchemaV1.InferInput<T> | undefined> {
   if (providerOptions?.[provider] == null) {
     return undefined;
   }

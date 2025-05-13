@@ -1,7 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { Validator, validatorSymbol } from './validator';
-import { zodSchema } from './zod-schema';
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
@@ -64,12 +63,19 @@ function isSchema(value: unknown): value is Schema {
 export function asSchema<T extends StandardSchemaV1>(
   schema: Schema<T> | undefined,
 ): Schema<T> {
-  return schema == null
-    ? jsonSchema({
+  if (schema == null) {
+    return jsonSchema({
       properties: {},
       additionalProperties: false,
-    })
-    : isSchema(schema)
-      ? schema
-      : zodSchema(schema);
+    });
+  }
+
+  if (schema == null) {
+    return jsonSchema({
+      properties: {},
+      additionalProperties: false,
+    });
+  }
+
+  throw new Error('TODO: implement standard schema to JSON Schema')
 }

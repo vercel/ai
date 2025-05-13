@@ -4,12 +4,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { validateTypes, safeValidateTypes } from './validate-types';
 import { validator } from './validator';
 
-interface CustomSchema extends StandardSchemaV1<{ name: string, age: number }> {
-  name: string;
-  age: number;
-}
-
-const customSchema: CustomSchema = {
+const customSchema: StandardSchemaV1<{ name: string, age: number }> = {
   "~standard": {
     version: 1,
     vendor: 'custom',
@@ -38,8 +33,8 @@ const customValidator = validator<{ name: string; age: number }>(async value =>
 
 describe('validateTypes', () => {
   describe.each([
-    ['Custom schema', customSchema],
-    // ['Custom validator', customValidator],
+    // ['Custom schema', customSchema],
+    ['Custom validator', customValidator],
   ])('using %s', (_, schema) => {
     it('should return validated object for valid input', async () => {
       const input = { name: 'John', age: 30 };
@@ -65,7 +60,7 @@ describe('validateTypes', () => {
         }).toStrictEqual({
           name: 'AI_TypeValidationError',
           value: input,
-          cause: expect.any(Error),
+          cause: [{ message: 'Invalid input' }],
           message: expect.stringContaining('Type validation failed'),
         });
       }
@@ -75,7 +70,7 @@ describe('validateTypes', () => {
 
 describe('safeValidateTypes', () => {
   describe.each([
-    ['Custom schema', zodSchema],
+    ['Custom schema', customSchema],
     ['Custom validator', customValidator],
   ])('using %s', (_, schema) => {
     it('should return validated object for valid input', async () => {
@@ -86,7 +81,11 @@ describe('safeValidateTypes', () => {
 
     it('should return error object for invalid input', async () => {
       const input = { name: 'John', age: '30' };
-      const result = await safeValidateTypes({ value: input, schema });
+      const result = await safeValidateTypes({
+        // @ts-expect-error - age is expected to be a number
+        value: input,
+        schema
+      });
 
       expect(result).toEqual({
         success: false,
