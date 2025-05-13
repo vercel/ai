@@ -8,8 +8,8 @@ export interface ChatTransport<MESSAGE_METADATA> {
     chatId: string;
     messages: UIMessage<MESSAGE_METADATA>[];
     abortController: AbortController;
-    customRequestBody?: object;
-    customHeaders?: Record<string, string> | Headers;
+    body?: object;
+    headers?: Record<string, string> | Headers;
     requestType: 'generate' | 'resume'; // TODO have separate functions
   }) => Promise<ReadableStream<UIMessageStreamPart>>;
 }
@@ -105,26 +105,26 @@ export class DefaultChatTransport<MESSAGE_METADATA>
     chatId,
     messages,
     abortController,
-    customRequestBody,
-    customHeaders,
+    body,
+    headers,
     requestType,
   }: Parameters<ChatTransport<MESSAGE_METADATA>['submitMessages']>[0]) {
     return fetchUIMessageStream({
       api: this.api,
       headers: {
         ...this.headers,
-        ...customHeaders,
+        ...headers,
       },
       body: this.prepareRequestBody?.({
         id: chatId, // TODO change to chatId
         messages,
         ...this.body,
-        ...customRequestBody,
+        ...body,
       }) ?? {
         id: chatId, // TODO change to chatId
         messages,
         ...this.body,
-        ...customRequestBody,
+        ...body,
       },
       streamProtocol: this.streamProtocol,
       credentials: this.credentials,

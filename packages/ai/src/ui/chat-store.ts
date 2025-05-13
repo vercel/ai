@@ -35,9 +35,7 @@ export interface Chat<MESSAGE_METADATA> {
 }
 
 // TODO rename to something better
-type ExtendedCallOptions<MESSAGE_METADATA> = {
-  customHeaders?: ChatRequestOptions['headers'];
-  customBody?: ChatRequestOptions['body'];
+type ExtendedCallOptions<MESSAGE_METADATA> = ChatRequestOptions & {
   onError?: (error: Error) => void;
 
   /**
@@ -214,8 +212,8 @@ export class ChatStore<MESSAGE_METADATA> {
     chatId,
     messages: chatMessages,
     requestType,
-    customHeaders,
-    customBody,
+    headers,
+    body,
     onError,
     onToolCall,
     onFinish,
@@ -246,8 +244,8 @@ export class ChatStore<MESSAGE_METADATA> {
       const stream = await self.transport.submitMessages({
         chatId,
         messages: chatMessages,
-        customRequestBody: customBody,
-        customHeaders,
+        body,
+        headers,
         abortController,
         requestType,
       });
@@ -315,8 +313,8 @@ export class ChatStore<MESSAGE_METADATA> {
         onError,
         onToolCall,
         onFinish,
-        customHeaders,
-        customBody,
+        headers,
+        body,
         messages: messagesX,
       });
     }
@@ -325,8 +323,8 @@ export class ChatStore<MESSAGE_METADATA> {
   async submitMessage({
     chatId,
     message,
-    customHeaders,
-    customBody,
+    headers,
+    body,
     onError,
     onToolCall,
     onFinish,
@@ -343,8 +341,8 @@ export class ChatStore<MESSAGE_METADATA> {
         ...message,
         id: message.id ?? this.generateId(),
       }),
-      customHeaders,
-      customBody,
+      headers,
+      body,
       requestType: 'generate',
       onError,
       onToolCall,
