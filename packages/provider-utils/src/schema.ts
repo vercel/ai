@@ -1,7 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { Validator, validatorSymbol } from './validator';
-import { z } from 'zod';
 import { zodSchema } from './zod-schema';
 
 /**
@@ -39,7 +38,7 @@ export function jsonSchema<T extends StandardSchemaV1 = StandardSchemaV1>(
   }: {
     validate?: (
       value: unknown,
-    ) => { success: true; value: T } | { success: false; error: Error };
+    ) => PromiseLike<{ success: true; value: T } | { success: false; error: Error }>;
   } = {},
 ): Schema<T> {
   return {

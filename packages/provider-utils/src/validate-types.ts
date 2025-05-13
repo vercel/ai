@@ -2,6 +2,10 @@ import { TypeValidationError } from '@ai-sdk/provider';
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { Validator, asValidator } from './validator';
 
+type MyObject = { ok: boolean }
+type Schema = StandardSchemaV1<MyObject>;
+type Funk = StandardSchemaV1.InferOutput<Schema>
+
 /**
  * Validates the types of an unknown object using a schema and
  * return a strongly-typed object.
@@ -16,8 +20,8 @@ export async function validateTypes<T extends StandardSchemaV1>({
   schema,
 }: {
   value: unknown;
-  schema: T | Validator<T>;
-}): Promise<T> {
+  schema: StandardSchemaV1<T> | Validator<T>;
+}): Promise<StandardSchemaV1.InferOutput<T>> {
   const result = await safeValidateTypes({ value, schema: schema });
 
   if (!result.success) {
@@ -41,9 +45,9 @@ export async function safeValidateTypes<T extends StandardSchemaV1>({
   schema,
 }: {
   value: unknown;
-  schema: T | Validator<T>;
+  schema: StandardSchemaV1<T> | Validator<T>;
 }): Promise<
-  | { success: true; value: T; rawValue: unknown }
+  | { success: true; value: StandardSchemaV1.InferOutput<T>; rawValue: unknown }
   | { success: false; error: TypeValidationError; rawValue: unknown }
 > {
   const validator = asValidator(schema);
