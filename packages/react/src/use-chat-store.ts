@@ -14,11 +14,9 @@ export function useChatStore<MESSAGE_METADATA>({
   addToolResult: ({
     toolCallId,
     result,
-    maxSteps,
   }: {
     toolCallId: string;
     result: unknown;
-    maxSteps: number;
   }) => void;
 } {
   const subscribe = useCallback(
@@ -43,16 +41,8 @@ export function useChatStore<MESSAGE_METADATA>({
   );
 
   const addToolResult = useCallback(
-    ({
-      toolCallId,
-      result,
-      maxSteps,
-    }: {
-      toolCallId: string;
-      result: unknown;
-      maxSteps: number;
-    }) => {
-      store.addToolResult({ chatId, toolCallId, result, maxSteps });
+    ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
+      store.addToolResult({ chatId, toolCallId, result });
     },
     [store, chatId],
   );

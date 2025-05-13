@@ -40,12 +40,14 @@ export class ChatStore<MESSAGE_METADATA> {
   private generateId: IdGenerator;
   private messageMetadataSchema: Schema<MESSAGE_METADATA> | undefined;
   private transport: ChatTransport<MESSAGE_METADATA>;
+  private maxSteps: number;
 
   constructor({
     chats = {},
     generateId,
     messageMetadataSchema,
     transport,
+    maxSteps = 1,
   }: {
     chats?: {
       [id: string]: {
@@ -55,6 +57,7 @@ export class ChatStore<MESSAGE_METADATA> {
     generateId?: UseChatOptions['generateId'];
     messageMetadataSchema?: Schema<MESSAGE_METADATA>;
     transport: ChatTransport<MESSAGE_METADATA>;
+    maxSteps?: number;
   }) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
@@ -68,6 +71,7 @@ export class ChatStore<MESSAGE_METADATA> {
       ]),
     );
 
+    this.maxSteps = maxSteps;
     this.transport = transport;
     this.subscribers = new Set();
     this.generateId = generateId ?? generateIdFunc;
@@ -179,7 +183,6 @@ export class ChatStore<MESSAGE_METADATA> {
   async triggerRequest({
     chatId,
     requestType,
-    maxSteps,
     onError,
     onToolCall,
     onFinish,
@@ -188,7 +191,6 @@ export class ChatStore<MESSAGE_METADATA> {
     chatId: string;
     messages: UIMessage<MESSAGE_METADATA>[];
     requestType: 'generate' | 'resume';
-    maxSteps: number;
     onError?: (error: Error) => void;
 
     /**
@@ -296,14 +298,13 @@ export class ChatStore<MESSAGE_METADATA> {
       shouldResubmitMessages({
         originalMaxToolInvocationStep: maxStep,
         originalMessageCount: messageCount,
-        maxSteps,
+        maxSteps: self.maxSteps,
         messages: messagesX,
       })
     ) {
       await self.triggerRequest({
         chatId,
         requestType,
-        maxSteps,
         onError,
         onToolCall,
         onFinish,
@@ -317,12 +318,10 @@ export class ChatStore<MESSAGE_METADATA> {
     chatId,
     toolCallId,
     result,
-    maxSteps,
   }: {
     chatId: string;
     toolCallId: string;
     result: unknown;
-    maxSteps: number;
   }) {
     const chat = this.getChat(chatId);
     const currentMessages = chat.messages;
@@ -357,7 +356,6 @@ export class ChatStore<MESSAGE_METADATA> {
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
       this.triggerRequest({
         messages: currentMessages,
-        maxSteps,
         requestType: 'generate',
         chatId,
       });

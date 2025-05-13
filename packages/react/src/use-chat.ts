@@ -9,8 +9,6 @@ import {
   ChatStore,
   convertFileListToFileUIParts,
   generateId as generateIdFunc,
-  isAssistantMessageWithCompletedToolCalls,
-  updateToolCallResult,
 } from 'ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DefaultChatTransport } from '../../ai/src/ui/chat-transport';
@@ -183,6 +181,7 @@ Default is undefined, which disables throttling.
       }),
       generateId,
       messageMetadataSchema,
+      maxSteps,
     }),
   );
 
@@ -191,12 +190,7 @@ Default is undefined, which disables throttling.
     chatStore.current.addChat(chatId, processedInitialMessages ?? []);
   }
 
-  const {
-    messages,
-    error,
-    status,
-    addToolResult: addToolResultFromStore,
-  } = useChatStore({
+  const { messages, error, status, addToolResult } = useChatStore({
     store: chatStore.current,
     chatId,
   });
@@ -228,7 +222,6 @@ Default is undefined, which disables throttling.
       chatStore.current.triggerRequest({
         chatId,
         requestType,
-        maxSteps,
         body: chatRequest.body,
         headers: chatRequest.headers,
         messages: chatRequest.messages,
@@ -238,7 +231,6 @@ Default is undefined, which disables throttling.
       }),
     [
       chatId,
-      maxSteps,
       extraMetadataRef,
       experimental_prepareRequestBody,
       onFinish,
@@ -356,13 +348,6 @@ Default is undefined, which disables throttling.
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
   };
-
-  const addToolResult = useCallback(
-    ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
-      addToolResultFromStore({ toolCallId, result, maxSteps });
-    },
-    [addToolResultFromStore, maxSteps],
-  );
 
   return {
     messages,
