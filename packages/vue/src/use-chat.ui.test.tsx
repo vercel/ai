@@ -279,7 +279,11 @@ describe('text stream', () => {
         message: {
           id: expect.any(String),
           role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
+          metadata: {},
+          parts: [
+            { type: 'step-start' },
+            { text: 'Hello, world.', type: 'text' },
+          ],
         },
       },
     ]);

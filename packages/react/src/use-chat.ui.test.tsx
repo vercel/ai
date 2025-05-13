@@ -452,7 +452,11 @@ describe('text stream', () => {
         {
           "message": {
             "id": "id-2",
+            "metadata": {},
             "parts": [
+              {
+                "type": "step-start",
+              },
               {
                 "text": "Hello, world.",
                 "type": "text",
