@@ -8,10 +8,10 @@ import type {
 import {
   ChatStore,
   convertFileListToFileUIParts,
+  DefaultChatTransport,
   generateId as generateIdFunc,
 } from 'ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DefaultChatTransport } from '../../ai/src/ui/chat-transport';
 import { useChatStore } from './use-chat-store';
 import { useStableValue } from './util/use-stable-value';
 
