@@ -224,8 +224,6 @@ Default is undefined, which disables throttling.
         chatId,
         requestType,
         maxSteps,
-        credentials: extraMetadataRef.current.credentials,
-        experimental_prepareRequestBody,
         body: chatRequest.body,
         headers: chatRequest.headers,
         messages: chatRequest.messages,
