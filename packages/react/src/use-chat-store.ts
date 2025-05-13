@@ -49,6 +49,16 @@ export function useChatStore<MESSAGE_METADATA>({
     [store, chatId],
   );
 
+  const resubmitLastUserMessage = useCallback(
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['resubmitLastUserMessage']>[0],
+        'chatId'
+      >,
+    ) => store.resubmitLastUserMessage({ chatId, ...options }),
+    [store, chatId],
+  );
+
   const error = useSyncExternalStore(
     callback =>
       subscribe({
@@ -87,5 +97,6 @@ export function useChatStore<MESSAGE_METADATA>({
 
     addToolResult,
     submitMessage,
+    resubmitLastUserMessage,
   };
 }

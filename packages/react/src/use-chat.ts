@@ -190,11 +190,17 @@ Default is undefined, which disables throttling.
     chatStore.current.addChat(chatId, processedInitialMessages ?? []);
   }
 
-  const { messages, error, status, addToolResult, submitMessage } =
-    useChatStore({
-      store: chatStore.current,
-      chatId,
-    });
+  const {
+    messages,
+    error,
+    status,
+    addToolResult,
+    submitMessage,
+    resubmitLastUserMessage,
+  } = useChatStore({
+    store: chatStore.current,
+    chatId,
+  });
 
   // Abort controller to cancel the current API call.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -261,21 +267,9 @@ Default is undefined, which disables throttling.
   );
 
   const reload = useCallback(
-    async ({ headers, body }: ChatRequestOptions = {}) => {
-      if (messages.length === 0) {
-        return null;
-      }
-
-      // Remove last assistant message and retry last user message.
-      const lastMessage = messages[messages.length - 1];
-      return triggerRequest({
-        messages:
-          lastMessage.role === 'assistant' ? messages.slice(0, -1) : messages,
-        headers,
-        body,
-      });
-    },
-    [triggerRequest, messages],
+    async ({ headers, body }: ChatRequestOptions = {}) =>
+      resubmitLastUserMessage({ headers, body, onError, onToolCall, onFinish }),
+    [resubmitLastUserMessage, onError, onToolCall, onFinish],
   );
 
   const stop = useCallback(() => {

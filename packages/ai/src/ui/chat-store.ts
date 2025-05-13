@@ -349,7 +349,40 @@ export class ChatStore<MESSAGE_METADATA> {
     });
   }
 
-  addToolResult({
+  async resubmitLastUserMessage({
+    chatId,
+    headers,
+    body,
+    onError,
+    onToolCall,
+    onFinish,
+  }: ExtendedCallOptions<MESSAGE_METADATA> & {
+    chatId: string;
+  }) {
+    const messages = this.getChat(chatId).messages;
+
+    const messagesToSubmit =
+      messages[messages.length - 1].role === 'assistant'
+        ? messages.slice(0, -1)
+        : messages;
+
+    if (messagesToSubmit.length === 0) {
+      return;
+    }
+
+    return this.triggerRequest({
+      chatId,
+      requestType: 'generate',
+      messages: messagesToSubmit,
+      headers,
+      body,
+      onError,
+      onToolCall,
+      onFinish,
+    });
+  }
+
+  async addToolResult({
     chatId,
     toolCallId,
     result,
@@ -379,7 +412,7 @@ export class ChatStore<MESSAGE_METADATA> {
     // auto-submit when all tool calls in the last assistant message have results:
     const lastMessage = currentMessages[currentMessages.length - 1];
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      this.triggerRequest({
+      await this.triggerRequest({
         messages: currentMessages,
         requestType: 'generate',
         chatId,
