@@ -45,7 +45,6 @@ export interface Chat<MESSAGE_METADATA> {
   jobExecutor: SerialJobExecutor;
 }
 
-// TODO rename to something better
 type ExtendedCallOptions<MESSAGE_METADATA> = ChatRequestOptions & {
   onError?: (error: Error) => void;
 
@@ -366,7 +365,7 @@ export class ChatStore<MESSAGE_METADATA> {
 
   private getChat(id: string): Chat<MESSAGE_METADATA> {
     if (!this.hasChat(id)) {
-      throw new Error(`chat '${id}' not found`); // TODO AI SDK error
+      throw new Error(`chat '${id}' not found`);
     }
     return this.chats.get(id)!;
   }
@@ -405,11 +404,6 @@ export class ChatStore<MESSAGE_METADATA> {
       };
 
       chat.activeResponse = activeResponse;
-
-      // const throttledMutate = throttle(mutate, throttleWaitMs);
-
-      // // Do an optimistic update to show the updated messages immediately:
-      // throttledMutate(chatMessages, false);
 
       const stream = await self.transport.submitMessages({
         chatId,
