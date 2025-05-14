@@ -122,6 +122,33 @@ describe('data protocol stream', () => {
     });
   });
 
+  it('should show user message immediately', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          id: 'id-1',
+        },
+      ]);
+    });
+  });
+
   it('should show error response when there is a server error', async () => {
     server.urls['/api/chat'].response = {
       type: 'error',

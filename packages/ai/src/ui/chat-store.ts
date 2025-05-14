@@ -189,19 +189,6 @@ export class ChatStore<MESSAGE_METADATA> {
     this.emit({ type: 'chat-messages-changed', chatId: id });
   }
 
-  appendMessage({
-    id,
-    message,
-  }: {
-    id: string;
-    message: UIMessage<MESSAGE_METADATA>;
-  }) {
-    const chat = this.getChat(id);
-
-    chat.messages = [...chat.messages, { ...message }];
-    this.emit({ type: 'chat-messages-changed', chatId: id });
-  }
-
   removeAssistantResponse(id: string) {
     const chat = this.getChat(id);
 
@@ -386,6 +373,9 @@ export class ChatStore<MESSAGE_METADATA> {
   }) {
     const self = this;
     const chat = this.getChat(chatId);
+
+    // update the messages array with the new message:
+    this.setMessages({ id: chatId, messages: chatMessages });
 
     this.setStatus({ id: chatId, status: 'submitted', error: undefined });
 
