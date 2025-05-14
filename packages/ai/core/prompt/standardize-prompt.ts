@@ -71,7 +71,9 @@ export async function standardizePrompt(
   if (!validationResult.success) {
     throw new InvalidPromptError({
       prompt,
-      message: 'messages must be an array of ModelMessage',
+      message:
+        'The messages must be a ModelMessage[]. ' +
+        'If you have passed a UIMessage[], you can use convertToModelMessages to convert them.',
       cause: validationResult.error,
     });
   }
