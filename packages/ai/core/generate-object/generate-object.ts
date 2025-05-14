@@ -536,6 +536,10 @@ export async function generateObject<SCHEMA, RESULT>({
                     name: schemaName,
                     description: schemaDescription,
                   },
+                  responseFormat: {
+                    ...outputStrategy.jsonSchema,
+                    type: 'json',
+                  },
                   ...prepareCallSettings(settings),
                   inputFormat: standardizedPrompt.type,
                   prompt: promptMessages,
