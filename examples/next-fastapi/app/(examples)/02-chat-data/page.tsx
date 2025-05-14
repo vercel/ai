@@ -5,9 +5,8 @@ import { useChat } from '@ai-sdk/react';
 import { GeistMono } from 'geist/font/mono';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    maxSteps: 3,
-  });
+  const { messages, input, handleSubmit, handleInputChange, status } =
+    useChat();
 
   return (
     <div className="flex flex-col gap-2">

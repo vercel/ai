@@ -2,12 +2,14 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useChat } from '@ai-sdk/react';
-import { convertFileListToFileUIParts } from 'ai';
+import { convertFileListToFileUIParts, defaultChatStore } from 'ai';
 import { useRef, useState } from 'react';
 
 export default function Page() {
   const { messages, input, setInput, append, status } = useChat({
-    api: '/api/chat',
+    chatStore: defaultChatStore({
+      api: '/api/chat',
+    }),
   });
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);

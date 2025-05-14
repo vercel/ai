@@ -332,7 +332,11 @@ describe('text stream', () => {
         },
         {
           "id": "id-2",
+          "metadata": {},
           "parts": [
+            {
+              "type": "step-start",
+            },
             {
               "text": "Hello, world.",
               "type": "text",
@@ -362,7 +366,8 @@ describe('text stream', () => {
         expect.objectContaining({
           id: expect.any(String),
           role: 'assistant',
-          parts: [{ text: 'He', type: 'text' }],
+          metadata: {},
+          parts: [{ type: 'step-start' }, { text: 'He', type: 'text' }],
         }),
       ),
     );
@@ -401,7 +406,11 @@ describe('text stream', () => {
       message: {
         id: expect.any(String),
         role: 'assistant',
-        parts: [{ text: 'Hello, world.', type: 'text' }],
+        metadata: {},
+        parts: [
+          { type: 'step-start' },
+          { text: 'Hello, world.', type: 'text' },
+        ],
       },
     });
   });
@@ -447,7 +456,11 @@ describe('form actions', () => {
         },
         {
           "id": "id-2",
+          "metadata": {},
           "parts": [
+            {
+              "type": "step-start",
+            },
             {
               "text": "Hello, world.",
               "type": "text",
@@ -953,7 +966,6 @@ describe('maxSteps', () => {
                 "type": "text",
               },
             ],
-            "revisionId": "id-5",
             "role": "assistant",
           },
         ]
@@ -1069,7 +1081,6 @@ describe('file attachments with data url', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-3",
           "role": "assistant",
         },
       ]
@@ -1148,7 +1159,6 @@ describe('file attachments with data url', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-3",
           "role": "assistant",
         },
       ]
@@ -1237,7 +1247,6 @@ describe('file attachments with url', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-3",
           "role": "assistant",
         },
       ]
@@ -1324,7 +1333,6 @@ describe('file attachments with empty text content', () => {
               "type": "text",
             },
           ],
-          "revisionId": "id-3",
           "role": "assistant",
         },
       ]
@@ -1648,7 +1656,6 @@ describe('generateId function', () => {
               "type": "text",
             },
           ],
-          "revisionId": "testid-7",
           "role": "assistant",
         },
       ]

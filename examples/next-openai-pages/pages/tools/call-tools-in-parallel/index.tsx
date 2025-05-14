@@ -1,9 +1,12 @@
 import { useChat } from '@ai-sdk/react';
+import { defaultChatStore } from 'ai';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/call-tools-in-parallel',
-    maxSteps: 2,
+    chatStore: defaultChatStore({
+      api: '/api/call-tools-in-parallel',
+      maxSteps: 2,
+    }),
   });
 
   return (

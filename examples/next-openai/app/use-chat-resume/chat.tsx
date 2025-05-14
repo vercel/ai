@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { UIMessage } from 'ai';
+import { defaultChatStore, UIMessage } from 'ai';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
@@ -26,8 +26,14 @@ export function Chat({
     experimental_resume,
   } = useChat({
     id: chatId,
-    api: '/api/use-chat-resume',
-    initialMessages,
+    chatStore: defaultChatStore({
+      api: '/api/use-chat-resume',
+      chats: {
+        [chatId]: {
+          messages: initialMessages,
+        },
+      },
+    }),
     onError: error => {
       console.error('Error streaming text:', error);
     },

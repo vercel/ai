@@ -279,7 +279,11 @@ describe('text stream', () => {
         message: {
           id: expect.any(String),
           role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
+          metadata: {},
+          parts: [
+            { type: 'step-start' },
+            { text: 'Hello, world.', type: 'text' },
+          ],
         },
       },
     ]);
@@ -807,7 +811,6 @@ describe('file attachments with data url', () => {
             },
           ],
           role: 'assistant',
-          revisionId: 'id-2',
         },
       ]);
     });
@@ -867,7 +870,6 @@ describe('file attachments with data url', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: expect.any(String),
         },
       ]);
     });
@@ -923,7 +925,6 @@ describe('file attachments with url', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: expect.any(String),
         },
       ]);
     });
@@ -984,7 +985,6 @@ describe('attachments with empty submit', () => {
               text: 'Response to empty message with attachment',
             },
           ],
-          revisionId: 'id-2',
         },
       ]);
     });
@@ -1036,7 +1036,6 @@ describe('should append message with attachments', () => {
               type: 'text',
             },
           ],
-          revisionId: 'id-2',
           role: 'assistant',
         },
       ]);

@@ -1,12 +1,19 @@
 'use client';
 
-import { getToolInvocations, ToolInvocation, UIMessage } from 'ai';
+import {
+  defaultChatStore,
+  getToolInvocations,
+  ToolInvocation,
+  UIMessage,
+} from 'ai';
 import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/use-chat-streaming-tool-calls',
-    maxSteps: 5,
+    chatStore: defaultChatStore({
+      api: '/api/use-chat-streaming-tool-calls',
+      maxSteps: 5,
+    }),
 
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {

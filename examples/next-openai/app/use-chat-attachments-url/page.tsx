@@ -4,11 +4,13 @@
 import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { FileUIPart } from 'ai';
+import { defaultChatStore, FileUIPart } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    api: '/api/chat',
+    chatStore: defaultChatStore({
+      api: '/api/chat',
+    }),
   });
 
   const [files, setFiles] = useState<FileUIPart[]>([]);

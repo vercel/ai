@@ -9,29 +9,27 @@ import {
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
-import { processUIMessageStream } from './process-ui-message-stream';
-import { processChatTextResponse } from './process-chat-text-response';
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+  StreamingUIMessageState,
+} from './process-ui-message-stream';
+import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
 import { UIMessage } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export async function callChatApi<MESSAGE_METADATA>({
+export async function fetchUIMessageStream({
   api,
   body,
   streamProtocol = 'ui-message',
   credentials,
   headers,
   abortController,
-  onUpdate,
-  onFinish,
-  onToolCall,
-  generateId,
   fetch = getOriginalFetch(),
-  lastMessage,
   requestType = 'generate',
-  messageMetadataSchema,
 }: {
   api: string;
   body: Record<string, any>;
@@ -39,15 +37,9 @@ export async function callChatApi<MESSAGE_METADATA>({
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
-  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
-  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
-  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
-  generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   requestType?: 'generate' | 'resume';
-  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
-}) {
+}): Promise<ReadableStream<UIMessageStreamPart>> {
   const response =
     requestType === 'resume'
       ? await fetch(`${api}?chatId=${body.id}`, {
@@ -80,70 +72,128 @@ export async function callChatApi<MESSAGE_METADATA>({
     throw new Error('The response body is empty.');
   }
 
-  switch (streamProtocol) {
-    case 'text': {
-      await processChatTextResponse<MESSAGE_METADATA>({
+  return streamProtocol === 'text'
+    ? transformTextToUiMessageStream({
+        stream: response.body.pipeThrough(new TextDecoderStream()),
+      })
+    : parseJsonEventStream({
         stream: response.body,
-        update: onUpdate,
-        onFinish,
-        generateId,
-      });
-      return;
-    }
-
-    case 'ui-message': {
-      // TODO check protocol version header
-
-      await consumeStream({
-        stream: processUIMessageStream({
-          stream: parseJsonEventStream({
-            stream: response.body,
-            schema: uiMessageStreamPartSchema,
-          }).pipeThrough(
-            new TransformStream<
-              ParseResult<UIMessageStreamPart>,
-              UIMessageStreamPart
-            >({
-              async transform(part, controller) {
-                if (!part.success) {
-                  throw part.error;
-                }
-                controller.enqueue(part.value);
-              },
-            }),
-          ),
-          onUpdate({ message }) {
-            const copiedMessage = {
-              // deep copy the message to ensure that deep changes (msg attachments) are updated
-              // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
-              ...structuredClone(message),
-
-              // add a revision id to ensure that the message is updated with SWR. SWR uses a
-              // hashing approach by default to detect changes, but it only works for shallow
-              // changes. This is why we need to add a revision id to ensure that the message
-              // is updated with SWR (without it, the changes get stuck in SWR and are not
-              // forwarded to rendering):
-              revisionId: generateId(),
-            } as UIMessage<MESSAGE_METADATA>;
-
-            onUpdate({ message: copiedMessage });
+        schema: uiMessageStreamPartSchema,
+      }).pipeThrough(
+        new TransformStream<
+          ParseResult<UIMessageStreamPart>,
+          UIMessageStreamPart
+        >({
+          async transform(part, controller) {
+            if (!part.success) {
+              throw part.error;
+            }
+            controller.enqueue(part.value);
           },
-          lastMessage,
-          onToolCall,
-          onFinish,
-          newMessageId: generateId(),
-          messageMetadataSchema,
         }),
-        onError: error => {
-          throw error;
-        },
-      });
-      return;
-    }
+      );
+}
 
-    default: {
-      const exhaustiveCheck: never = streamProtocol;
-      throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
-    }
-  }
+export async function consumeUIMessageStream<MESSAGE_METADATA>({
+  stream,
+  onUpdate,
+  onFinish,
+  onToolCall,
+  generateId,
+  lastMessage,
+  messageMetadataSchema,
+}: {
+  stream: ReadableStream<UIMessageStreamPart>;
+  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
+  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
+  generateId: IdGenerator;
+  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+}) {
+  const state = createStreamingUIMessageState({
+    lastMessage,
+    newMessageId: generateId(),
+  });
+
+  const runUpdateMessageJob = async (
+    job: (options: {
+      state: StreamingUIMessageState<MESSAGE_METADATA>;
+      write: () => void;
+    }) => Promise<void>,
+  ) => {
+    await job({
+      state,
+      write: () => {
+        onUpdate({ message: state.message });
+      },
+    });
+  };
+
+  await consumeStream({
+    stream: processUIMessageStream({
+      stream,
+      onToolCall,
+      messageMetadataSchema,
+      runUpdateMessageJob,
+    }),
+    onError: error => {
+      throw error;
+    },
+  });
+
+  onFinish?.({ message: state.message });
+}
+
+export async function callChatApi<MESSAGE_METADATA>({
+  api,
+  body,
+  streamProtocol = 'ui-message',
+  credentials,
+  headers,
+  abortController,
+  onUpdate,
+  onFinish,
+  onToolCall,
+  generateId,
+  fetch = getOriginalFetch(),
+  lastMessage,
+  requestType = 'generate',
+  messageMetadataSchema,
+}: {
+  api: string;
+  body: Record<string, any>;
+  streamProtocol: 'ui-message' | 'text' | undefined;
+  credentials: RequestCredentials | undefined;
+  headers: HeadersInit | undefined;
+  abortController: (() => AbortController | null) | undefined;
+  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
+  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
+  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
+  generateId: IdGenerator;
+  fetch: ReturnType<typeof getOriginalFetch> | undefined;
+  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
+  requestType?: 'generate' | 'resume';
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+}) {
+  const stream = await fetchUIMessageStream({
+    api,
+    body,
+    streamProtocol,
+    credentials,
+    headers,
+    abortController,
+    fetch,
+    requestType,
+  });
+
+  await consumeUIMessageStream({
+    stream,
+    onUpdate,
+    onFinish,
+    onToolCall,
+    generateId,
+    lastMessage,
+    messageMetadataSchema,
+  });
 }

@@ -167,6 +167,14 @@ export function createTestServer<
             );
 
           case 'controlled-stream': {
+            if (request.signal) {
+              request.signal.addEventListener('abort', () => {
+                response.controller.error(
+                  new DOMException('Aborted', 'AbortError'),
+                );
+              });
+            }
+
             return new HttpResponse(
               response.controller.stream.pipeThrough(new TextEncoderStream()),
               {

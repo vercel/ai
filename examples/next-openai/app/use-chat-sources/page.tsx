@@ -1,6 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { defaultChatStore } from 'ai';
 
 export default function Chat() {
   const {
@@ -13,7 +14,9 @@ export default function Chat() {
     reload,
     stop,
   } = useChat({
-    api: '/api/use-chat-sources',
+    chatStore: defaultChatStore({
+      api: '/api/use-chat-sources',
+    }),
   });
 
   return (

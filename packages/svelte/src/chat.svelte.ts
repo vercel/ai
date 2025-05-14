@@ -10,8 +10,8 @@ import {
   updateToolCallResult,
   type ChatRequestOptions,
   type CreateUIMessage,
+  type OriginalUseChatOptions,
   type UIMessage,
-  type UseChatOptions,
 } from 'ai';
 import { untrack } from 'svelte';
 import {
@@ -21,7 +21,7 @@ import {
 } from './chat-context.svelte.js';
 
 export type ChatOptions<MESSAGE_METADATA = unknown> = Readonly<
-  UseChatOptions<MESSAGE_METADATA>
+  OriginalUseChatOptions<MESSAGE_METADATA>
 >;
 
 export type { CreateUIMessage, UIMessage };
