@@ -8,20 +8,16 @@ export async function POST(req: Request) {
       chunks: [
         {
           type: 'start',
-          value: {},
         },
         {
           type: 'start-step',
-          value: {},
         },
         ...Array(5000).fill({ type: 'text', value: 'T\n' }),
         {
           type: 'finish-step',
-          value: {},
         },
         {
           type: 'finish',
-          value: {},
         },
       ],
     }),
