@@ -2803,9 +2803,6 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
-
-",
   "data: [DONE]
 
 ",
@@ -3266,7 +3263,28 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
 ]
 `;
 
-exports[`streamText > result.toUIMessageStream > should omit message finish event (d:) when sendFinish is false 1`] = `
+exports[`streamText > result.toUIMessageStream > should omit message finish event when sendFinish is false 1`] = `
+[
+  {
+    "type": "start",
+    "value": undefined,
+  },
+  {
+    "type": "start-step",
+    "value": undefined,
+  },
+  {
+    "type": "text",
+    "value": "Hello, World!",
+  },
+  {
+    "type": "finish-step",
+    "value": undefined,
+  },
+]
+`;
+
+exports[`streamText > result.toUIMessageStream > should omit message start event when sendStart is false 1`] = `
 [
   {
     "type": "start-step",

@@ -1406,10 +1406,11 @@ describe('streamText', () => {
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
-    it('should omit message finish event (d:) when sendFinish is false', async () => {
+    it('should omit message finish event when sendFinish is false', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
             { type: 'text', text: 'Hello, World!' },
             {
               type: 'finish',
@@ -1423,6 +1424,29 @@ describe('streamText', () => {
 
       const dataStream = result.toUIMessageStream({
         experimental_sendFinish: false,
+      });
+
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+    });
+
+    it('should omit message start event when sendStart is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text', text: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toUIMessageStream({
+        experimental_sendStart: false,
       });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();

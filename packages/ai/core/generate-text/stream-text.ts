@@ -1478,23 +1478,27 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'start': {
-              const metadata = messageMetadata?.({ part });
-              controller.enqueue({
-                type: 'start',
-                value:
-                  messageId != null || metadata != null
-                    ? { messageId, metadata }
-                    : undefined,
-              });
+              if (experimental_sendStart) {
+                const metadata = messageMetadata?.({ part });
+                controller.enqueue({
+                  type: 'start',
+                  value:
+                    messageId != null || metadata != null
+                      ? { messageId, metadata }
+                      : undefined,
+                });
+              }
               break;
             }
 
             case 'finish': {
-              const metadata = messageMetadata?.({ part });
-              controller.enqueue({
-                type: 'finish',
-                value: metadata != null ? { metadata } : undefined,
-              });
+              if (experimental_sendFinish) {
+                const metadata = messageMetadata?.({ part });
+                controller.enqueue({
+                  type: 'finish',
+                  value: metadata != null ? { metadata } : undefined,
+                });
+              }
               break;
             }
 
