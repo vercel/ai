@@ -231,10 +231,6 @@ Default is undefined, which disables throttling.
     chatStore.current.stopStream({ chatId });
   }, [chatStore, chatId]);
 
-  const stopStream = useCallback(() => {
-    chatStore.current.stopStream({ chatId });
-  }, [chatStore, chatId]);
-
   const error = useSyncExternalStore(
     callback =>
       subscribe({
