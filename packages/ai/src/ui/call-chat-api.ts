@@ -74,7 +74,7 @@ export async function fetchUIMessageStream({
 
   return streamProtocol === 'text'
     ? transformTextToUiMessageStream({
-        stream: response.body,
+        stream: response.body.pipeThrough(new TextDecoderStream()),
       })
     : parseJsonEventStream({
         stream: response.body,

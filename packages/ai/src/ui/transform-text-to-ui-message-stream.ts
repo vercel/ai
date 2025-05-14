@@ -3,9 +3,9 @@ import { UIMessageStreamPart } from '../ui-message-stream';
 export function transformTextToUiMessageStream({
   stream,
 }: {
-  stream: ReadableStream<Uint8Array>;
+  stream: ReadableStream<string>;
 }) {
-  return stream.pipeThrough(new TextDecoderStream()).pipeThrough(
+  return stream.pipeThrough(
     new TransformStream<string, UIMessageStreamPart>({
       start(controller) {
         controller.enqueue({ type: 'start', value: {} });
