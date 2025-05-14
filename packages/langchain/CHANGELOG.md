@@ -1,5 +1,12 @@
 # @ai-sdk/langchain
 
+## 1.0.0-canary.11
+
+### Patch Changes
+
+- Updated dependencies [40acf9b]
+  - ai@5.0.0-canary.23
+
 ## 1.0.0-canary.10
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/fireworks
 
+## 1.0.0-canary.18
+
+### Patch Changes
+
+- Updated dependencies [40acf9b]
+  - @ai-sdk/provider-utils@3.0.0-canary.18
+  - @ai-sdk/openai-compatible@1.0.0-canary.18
+
 ## 1.0.0-canary.17
 
 ### Major Changes

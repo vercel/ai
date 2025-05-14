@@ -1,5 +1,12 @@
 # @ai-sdk/assemblyai
 
+## 0.0.1-canary.6
+
+### Patch Changes
+
+- Updated dependencies [40acf9b]
+  - @ai-sdk/provider-utils@3.0.0-canary.18
+
 ## 0.0.1-canary.5
 
 ### Patch Changes
