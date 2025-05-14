@@ -1,5 +1,10 @@
 import { fireworks } from '@ai-sdk/fireworks';
-import { convertToModelMessages, extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
+import {
+  convertToModelMessages,
+  extractReasoningMiddleware,
+  streamText,
+  wrapLanguageModel,
+} from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
