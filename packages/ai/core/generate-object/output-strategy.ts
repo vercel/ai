@@ -134,12 +134,12 @@ const objectOutputStrategy = <OBJECT>(
   },
 });
 
-const arrayOutputStrategy = <OBJECT>(
-  schema: Schema<OBJECT>,
+const arrayOutputStrategy = <ELEMENT>(
+  schema: Schema<ELEMENT>,
 ): OutputStrategy<
-  OBJECT[],
-  OBJECT[],
-  AsyncIterableStream<OBJECT>
+  ELEMENT[],
+  ELEMENT[],
+  AsyncIterableStream<ELEMENT>
 > => {
   // remove $schema from schema.jsonSchema:
   const { $schema, ...itemSchema } = schema.jsonSchema;
@@ -178,7 +178,7 @@ const arrayOutputStrategy = <OBJECT>(
       }
 
       const inputArray = value.elements as Array<JSONObject>;
-      const resultArray: Array<OBJECT> = [];
+      const resultArray: Array<ELEMENT> = [];
 
       for (let i = 0; i < inputArray.length; i++) {
         const element = inputArray[i];
@@ -233,7 +233,7 @@ const arrayOutputStrategy = <OBJECT>(
     async validateFinalResult(
       value: JSONValue | undefined,
     ): Promise<
-      ValidationResult<Array<OBJECT>>
+      ValidationResult<Array<ELEMENT>>
     > {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
@@ -258,13 +258,13 @@ const arrayOutputStrategy = <OBJECT>(
 
       return {
         success: true,
-        value: inputArray as Array<OBJECT>,
+        value: inputArray as Array<ELEMENT>,
       };
     },
 
     createElementStream(
       originalStream: ReadableStream<
-        ObjectStreamPart<OBJECT[]>
+        ObjectStreamPart<ELEMENT[]>
       >,
     ) {
       let publishedElements = 0;
@@ -272,8 +272,8 @@ const arrayOutputStrategy = <OBJECT>(
       return createAsyncIterableStream(
         originalStream.pipeThrough(
           new TransformStream<
-            ObjectStreamPart<OBJECT[]>,
-            OBJECT
+            ObjectStreamPart<ELEMENT[]>,
+            ELEMENT
           >({
             transform(chunk, controller) {
               switch (chunk.type) {
