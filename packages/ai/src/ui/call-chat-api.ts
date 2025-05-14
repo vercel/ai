@@ -9,7 +9,11 @@ import {
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
-import { processUIMessageStream } from './process-ui-message-stream';
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+  StreamingUIMessageState,
+} from './process-ui-message-stream';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
 import { UIMessage } from './ui-messages';
 import { UseChatOptions } from './use-chat';
@@ -107,20 +111,38 @@ export async function consumeUIMessageStream<MESSAGE_METADATA>({
   lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 }) {
+  const state = createStreamingUIMessageState({
+    lastMessage,
+    newMessageId: generateId(),
+  });
+
+  const runUpdateMessageJob = async (
+    job: (options: {
+      state: StreamingUIMessageState<MESSAGE_METADATA>;
+      write: () => void;
+    }) => Promise<void>,
+  ) => {
+    await job({
+      state,
+      write: () => {
+        onUpdate({ message: state.message });
+      },
+    });
+  };
+
   await consumeStream({
     stream: processUIMessageStream({
       stream,
-      onUpdate,
-      lastMessage,
       onToolCall,
-      onFinish,
-      newMessageId: generateId(),
       messageMetadataSchema,
+      runUpdateMessageJob,
     }),
     onError: error => {
       throw error;
     },
   });
+
+  onFinish?.({ message: state.message });
 }
 
 export async function callChatApi<MESSAGE_METADATA>({

@@ -901,7 +901,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
       );
     });
 
