@@ -2060,3 +2060,71 @@ describe('resume ongoing stream and return assistant message', () => {
     });
   });
 });
+
+describe('stop', () => {
+  setupTestComponent(() => {
+    const { messages, append, stop, status } = useChat({
+      generateId: mockId(),
+    });
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({
+              role: 'user',
+              parts: [{ text: 'hi', type: 'text' }],
+            });
+          }}
+        />
+
+        <button data-testid="do-stop" onClick={stop} />
+
+        <p data-testid="status">{status}</p>
+      </div>
+    );
+  });
+
+  it('should show stop response', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+    });
+
+    await userEvent.click(screen.getByTestId('do-stop'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+    });
+
+    await expect(
+      controller.write(formatStreamPart({ type: 'text', value: ', world!' })),
+    ).rejects.toThrow();
+
+    await expect(controller.close()).rejects.toThrow();
+
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    expect(screen.getByTestId('status')).toHaveTextContent('ready');
+  });
+});

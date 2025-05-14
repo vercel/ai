@@ -258,6 +258,10 @@ Default is undefined, which disables throttling.
     [chatStore, chatId],
   );
 
+  const stopStream = useCallback(() => {
+    chatStore.current.stopStream({ chatId });
+  }, [chatStore, chatId]);
+
   const error = useSyncExternalStore(
     callback =>
       subscribe({
@@ -288,9 +292,6 @@ Default is undefined, which disables throttling.
     () => chatStore.current.getMessages(chatId),
     () => chatStore.current.getMessages(chatId),
   );
-
-  // Abort controller to cancel the current API call.
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const extraMetadataRef = useRef({
     credentials,
@@ -328,16 +329,11 @@ Default is undefined, which disables throttling.
     [resubmitLastUserMessage, onError, onToolCall, onFinish],
   );
 
-  const stop = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-  }, []);
+  const stop = useCallback(() => stopStream(), [stopStream]);
 
   const experimental_resume = useCallback(
     async () => resumeStream({ headers, body, onError, onToolCall, onFinish }),
-    [resumeStream, onError, onToolCall, onFinish],
+    [resumeStream, headers, body, onError, onToolCall, onFinish],
   );
 
   const setMessages = useCallback(

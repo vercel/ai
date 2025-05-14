@@ -32,6 +32,7 @@ export interface Chat<MESSAGE_METADATA> {
   status: ChatStatus;
   messages: UIMessage<MESSAGE_METADATA>[];
   error?: Error;
+  abortController?: AbortController;
 }
 
 // TODO rename to something better
@@ -94,6 +95,7 @@ export class ChatStore<MESSAGE_METADATA> {
           status: 'ready',
           activeResponse: undefined,
           error: undefined,
+          abortController: undefined,
         },
       ]),
     );
@@ -332,6 +334,16 @@ export class ChatStore<MESSAGE_METADATA> {
     }
   }
 
+  async stopStream({ chatId }: { chatId: string }) {
+    const chat = this.getChat(chatId);
+    if (chat.status !== 'streaming') return;
+
+    if (chat.abortController) {
+      chat.abortController.abort();
+      chat.abortController = undefined;
+    }
+  }
+
   private emit(event: ChatStoreEvent) {
     for (const subscriber of this.subscribers) {
       subscriber.onChatChanged(event);
@@ -369,9 +381,7 @@ export class ChatStore<MESSAGE_METADATA> {
 
     try {
       const abortController = new AbortController();
-
-      // TODO expose abort controller
-      // abortControllerRef.current = abortController;
+      this.getChat(chatId).abortController = abortController;
 
       // const throttledMutate = throttle(mutate, throttleWaitMs);
 
@@ -414,14 +424,12 @@ export class ChatStore<MESSAGE_METADATA> {
         messageMetadataSchema: self.messageMetadataSchema,
       });
 
-      // TODO clear
-      // abortControllerRef.current = null;
-
+      this.getChat(chatId).abortController = undefined;
       this.setStatus({ id: chatId, status: 'ready' });
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
-        // abortControllerRef.current = null;
+        this.getChat(chatId).abortController = undefined;
         this.setStatus({ id: chatId, status: 'ready' });
         return null;
       }
