@@ -5,19 +5,17 @@ description: Monitor, evaluate and debug your AI SDK application with Patronus
 
 ## Patronus Observability
 
-[Patronus AI](https://patronus.ai) is the leading tool to score and optimize Generative AI applications.
+[Patronus AI](https://patronus.ai) provides an end-to-end system to evaluate, monitor and improve performance of an LLM system, enabling developers to ship AI products safely and confidently. Learn more [here](https://docs.patronus.ai/docs).
 
-Patronus provides an end-to-end system to evaluate, monitor and improve performance of an LLM system, enabling developers to ship AI products safely and confidently. Learn more [here](https://docs.patronus.ai/docs).
-When you build with the **Vercel AI SDK**, you can stream OpenTelemetry (OTEL) traces straight into Patronus and pair every generation with rich automatic evaluations.
+When you build with the **AI SDK**, you can stream OpenTelemetry (OTEL) traces straight into Patronus and pair every generation with rich automatic evaluations.
 
----
+## Setup
 
-\## Setup
+### 1. OpenTelemetry
 
-\### 1. OpenTelemetry
-Patronus exposes a fully‑managed OTEL endpoint.  Configure an **OTLP exporter** to point at it, pass your API key, and you’re done—Patronus will automatically convert LLM spans into prompt/response records you can explore and evaluate.
+Patronus exposes a fully‑managed OTEL endpoint. Configure an **OTLP exporter** to point at it, pass your API key, and you’re done—Patronus will automatically convert LLM spans into prompt/response records you can explore and evaluate.
 
-\#### Environment variables (recommended)
+#### Environment variables (recommended)
 
 ```bash
 # .env.local
@@ -25,7 +23,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.patronus.ai/v1/traces
 OTEL_EXPORTER_OTLP_HEADERS="x-api-key:<PATRONUS_API_KEY>"
 ```
 
-\#### With `@vercel/otel`
+#### With `@vercel/otel`
 
 ```ts title="instrumentation.ts"
 import { registerOTel } from '@vercel/otel';
@@ -42,17 +40,18 @@ export function register() {
           headers: {
             'x-api-key': process.env.PATRONUS_API_KEY!,
           },
-        })
+        }),
       ),
     ],
   });
 }
 ```
 
-*If you need gRPC instead of HTTP, swap the exporter for `@opentelemetry/exporter-trace-otlp-grpc` and use `https://otel.patronus.ai:4317`.*
+_If you need gRPC instead of HTTP, swap the exporter for `@opentelemetry/exporter-trace-otlp-grpc` and use `https://otel.patronus.ai:4317`._
 
-\### 2. Enable telemetry on individual calls
-The AI SDK emits a span only when you opt in with `experimental_telemetry`:
+### 2. Enable telemetry on individual calls
+
+The AI SDK emits a span only when you opt in with `experimental_telemetry`:
 
 ```ts
 import { generateText } from 'ai';
@@ -63,9 +62,9 @@ const result = await generateText({
   prompt: 'Write a haiku about spring.',
   experimental_telemetry: {
     isEnabled: true,
-    functionId: 'spring-haiku',   // span name
+    functionId: 'spring-haiku', // span name
     metadata: {
-      userId: 'user-123',         // custom attrs surface in Patronus UI
+      userId: 'user-123', // custom attrs surface in Patronus UI
     },
   },
 });
@@ -73,9 +72,7 @@ const result = await generateText({
 
 Every attribute inside `metadata` becomes an OTEL attribute and is indexed by Patronus for filtering.
 
----
-
-\## Example — tracing and automated evaluation
+## Example — tracing and automated evaluation
 
 ```ts title="app/api/chat/route.ts"
 import { trace } from '@opentelemetry/api';
@@ -86,7 +83,7 @@ export async function POST(req: Request) {
   const body = await req.json();
   const tracer = trace.getTracer('next-app');
 
-  return await tracer.startActiveSpan('chat-evaluate', async (span) => {
+  return await tracer.startActiveSpan('chat-evaluate', async span => {
     try {
       /* 1️⃣ generate answer */
       const answer = await generateText({
@@ -103,7 +100,9 @@ export async function POST(req: Request) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          evaluators: [{ evaluator: 'lynx', criteria: 'patronus:hallucination' }],
+          evaluators: [
+            { evaluator: 'lynx', criteria: 'patronus:hallucination' },
+          ],
           evaluated_model_input: body.prompt,
           evaluated_model_output: answer.text,
           trace_id: span.spanContext().traceId,
@@ -121,15 +120,12 @@ export async function POST(req: Request) {
 
 ####Result: a single trace containing the root HTTP request, the LLM generation span, and your evaluation span—**all visible in Patronus** with the hallucination score attached.
 
-\## Once you've traced
+## Once you've traced
 
-* If you're tracing an agent, Patronus's AI assistant Percival will assist with error analysis and prompt optimization. Learn more [here](https://docs.patronus.ai/docs/percival/percival)
-* Get set up on production monitoring and alerting by viewing logs and traces on Patronus and configuring webhooks for alerting. Learn more [here](https://docs.patronus.ai/docs/real_time_monitoring/webhooks)
+- If you're tracing an agent, Patronus's AI assistant Percival will assist with error analysis and prompt optimization. Learn more [here](https://docs.patronus.ai/docs/percival/percival)
+- Get set up on production monitoring and alerting by viewing logs and traces on Patronus and configuring webhooks for alerting. Learn more [here](https://docs.patronus.ai/docs/real_time_monitoring/webhooks)
 
----
+## Resources
 
-\## Resources
-
-* **Patronus docs:** [https://docs.patronus.ai](https://docs.patronus.ai)
-* **OpenTelemetry SDK (JS):** [https://opentelemetry.io/docs/instrumentation/js/](https://opentelemetry.io/docs/instrumentation/js/)
-* **Vercel AI SDK:** [https://sdk.vercel.ai](https://sdk.vercel.ai)
+- **Patronus docs:** [https://docs.patronus.ai](https://docs.patronus.ai)
+- **OpenTelemetry SDK (JS):** [https://opentelemetry.io/docs/instrumentation/js/](https://opentelemetry.io/docs/instrumentation/js/)
