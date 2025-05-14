@@ -8,6 +8,7 @@ import type {
 import {
   ChatStore,
   convertFileListToFileUIParts,
+  defaultChatStore,
   DefaultChatTransport,
   generateId as generateIdFunc,
   type ChatStoreEvent,
@@ -175,16 +176,14 @@ Default is undefined, which disables throttling.
   // chat store setup
   // TODO enable as arg
   const chatStore = useRef(
-    new ChatStore<MESSAGE_METADATA>({
-      transport: new DefaultChatTransport<MESSAGE_METADATA>({
-        api,
-        fetch,
-        streamProtocol,
-        credentials,
-        headers,
-        body,
-        prepareRequestBody: experimental_prepareRequestBody,
-      }),
+    defaultChatStore({
+      api,
+      fetch,
+      streamProtocol,
+      credentials,
+      headers,
+      body,
+      prepareRequestBody: experimental_prepareRequestBody,
       generateId,
       messageMetadataSchema,
       maxSteps,
