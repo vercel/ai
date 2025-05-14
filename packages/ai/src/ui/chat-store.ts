@@ -15,6 +15,12 @@ import {
 import type { CreateUIMessage, UIMessage } from './ui-messages';
 import { updateToolCallResult } from './update-tool-call-result';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+  StreamingUIMessageState,
+} from './process-ui-message-stream';
+import { consumeStream } from '../util/consume-stream';
 
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
@@ -399,32 +405,53 @@ export class ChatStore<MESSAGE_METADATA> {
         requestType,
       });
 
-      await consumeUIMessageStream({
-        stream,
-        onUpdate({ message }) {
-          self.setStatus({ id: chatId, status: 'streaming' });
-
-          const replaceLastMessage =
-            message.id === chatMessages[chatMessages.length - 1].id;
-
-          const newMessages = [
-            ...(replaceLastMessage
-              ? chatMessages.slice(0, chatMessages.length - 1)
-              : chatMessages),
-            message,
-          ];
-
-          self.setMessages({
-            id: chatId,
-            messages: newMessages,
-          });
-        },
-        onToolCall,
-        onFinish,
-        generateId: self.generateId,
+      const state = createStreamingUIMessageState({
         lastMessage: chatMessages[chatMessages.length - 1],
-        messageMetadataSchema: self.messageMetadataSchema,
+        newMessageId: self.generateId(),
       });
+
+      const runUpdateMessageJob = async (
+        job: (options: {
+          state: StreamingUIMessageState<MESSAGE_METADATA>;
+          write: () => void;
+        }) => Promise<void>,
+      ) => {
+        await job({
+          state,
+          write: () => {
+            self.setStatus({ id: chatId, status: 'streaming' });
+
+            const replaceLastMessage =
+              state.message.id === chatMessages[chatMessages.length - 1].id;
+
+            const newMessages = [
+              ...(replaceLastMessage
+                ? chatMessages.slice(0, chatMessages.length - 1)
+                : chatMessages),
+              state.message,
+            ];
+
+            self.setMessages({
+              id: chatId,
+              messages: newMessages,
+            });
+          },
+        });
+      };
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          onToolCall,
+          messageMetadataSchema: self.messageMetadataSchema,
+          runUpdateMessageJob,
+        }),
+        onError: error => {
+          throw error;
+        },
+      });
+
+      onFinish?.({ message: state.message });
 
       chat.abortController = undefined;
       this.setStatus({ id: chatId, status: 'ready' });
