@@ -1,5 +1,17 @@
 # @ai-sdk/react
 
+## 2.0.0-canary.22
+
+### Major Changes
+
+- 40acf9b: feat (ui): introduce ChatStore and ChatTransport
+
+### Patch Changes
+
+- Updated dependencies [40acf9b]
+  - @ai-sdk/provider-utils@3.0.0-canary.18
+  - ai@5.0.0-canary.23
+
 ## 2.0.0-canary.21
 
 ### Patch Changes

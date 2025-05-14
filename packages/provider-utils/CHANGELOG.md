@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-canary.18
+
+### Major Changes
+
+- 40acf9b: feat (ui): introduce ChatStore and ChatTransport
+
 ## 3.0.0-canary.17
 
 ### Major Changes
