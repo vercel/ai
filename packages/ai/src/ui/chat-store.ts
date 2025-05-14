@@ -113,6 +113,7 @@ export class ChatStore<MESSAGE_METADATA> {
           status: 'ready',
           activeResponse: undefined,
           error: undefined,
+          abortController: undefined,
         },
       ]),
     );
@@ -353,7 +354,7 @@ export class ChatStore<MESSAGE_METADATA> {
 
   async stopStream({ chatId }: { chatId: string }) {
     const chat = this.getChat(chatId);
-    if (chat.status !== 'streaming') return;
+    if (chat.status !== 'streaming' && chat.status !== 'submitted') return;
 
     if (chat.abortController) {
       chat.abortController.abort();

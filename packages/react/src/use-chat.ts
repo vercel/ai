@@ -14,7 +14,6 @@ import {
 } from 'ai';
 import {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -228,35 +227,9 @@ Default is undefined, which disables throttling.
     [chatStore, chatId],
   );
 
-  const submitMessage = useCallback(
-    (
-      options: Omit<
-        Parameters<ChatStore<MESSAGE_METADATA>['submitMessage']>[0],
-        'chatId'
-      >,
-    ) => chatStore.current.submitMessage({ chatId, ...options }),
-    [chatStore, chatId],
-  );
-
-  const resubmitLastUserMessage = useCallback(
-    (
-      options: Omit<
-        Parameters<ChatStore<MESSAGE_METADATA>['resubmitLastUserMessage']>[0],
-        'chatId'
-      >,
-    ) => chatStore.current.resubmitLastUserMessage({ chatId, ...options }),
-    [chatStore, chatId],
-  );
-
-  const resumeStream = useCallback(
-    (
-      options: Omit<
-        Parameters<ChatStore<MESSAGE_METADATA>['resumeStream']>[0],
-        'chatId'
-      >,
-    ) => chatStore.current.resumeStream({ chatId, ...options }),
-    [chatStore, chatId],
-  );
+  const stopStream = useCallback(() => {
+    chatStore.current.stopStream({ chatId });
+  }, [chatStore, chatId]);
 
   const stopStream = useCallback(() => {
     chatStore.current.stopStream({ chatId });
@@ -293,26 +266,13 @@ Default is undefined, which disables throttling.
     () => chatStore.current.getMessages(chatId),
   );
 
-  const extraMetadataRef = useRef({
-    credentials,
-    headers,
-    body,
-  });
-
-  useEffect(() => {
-    extraMetadataRef.current = {
-      credentials,
-      headers,
-      body,
-    };
-  }, [credentials, headers, body]);
-
   const append = useCallback(
     (
       message: CreateUIMessage<MESSAGE_METADATA>,
       { headers, body }: ChatRequestOptions = {},
     ) =>
-      submitMessage({
+      chatStore.current.submitMessage({
+        chatId,
         message,
         headers,
         body,
@@ -320,20 +280,35 @@ Default is undefined, which disables throttling.
         onToolCall,
         onFinish,
       }),
-    [submitMessage, onError, onToolCall, onFinish],
+    [chatStore, chatId, onError, onToolCall, onFinish],
   );
 
   const reload = useCallback(
     async ({ headers, body }: ChatRequestOptions = {}) =>
-      resubmitLastUserMessage({ headers, body, onError, onToolCall, onFinish }),
-    [resubmitLastUserMessage, onError, onToolCall, onFinish],
+      chatStore.current.resubmitLastUserMessage({
+        chatId,
+        headers,
+        body,
+        onError,
+        onToolCall,
+        onFinish,
+      }),
+    [chatStore, chatId, onError, onToolCall, onFinish],
   );
 
   const stop = useCallback(() => stopStream(), [stopStream]);
 
   const experimental_resume = useCallback(
-    async () => resumeStream({ headers, body, onError, onToolCall, onFinish }),
-    [resumeStream, headers, body, onError, onToolCall, onFinish],
+    async () =>
+      chatStore.current.resumeStream({
+        chatId,
+        headers,
+        body,
+        onError,
+        onToolCall,
+        onFinish,
+      }),
+    [chatStore, chatId, headers, body, onError, onToolCall, onFinish],
   );
 
   const setMessages = useCallback(
