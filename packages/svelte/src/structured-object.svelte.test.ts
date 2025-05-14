@@ -90,8 +90,8 @@ describe('text stream', () => {
         expect(structuredObject.loading).toBe(false);
       });
 
-      controller.write('ello, world!"}');
-      controller.close();
+      await expect(controller.write('ello, world!"}')).rejects.toThrow();
+      await expect(controller.close()).rejects.toThrow();
       await submitOperation;
 
       expect(structuredObject.loading).toBe(false);
