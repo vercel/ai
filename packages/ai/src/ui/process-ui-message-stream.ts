@@ -289,7 +289,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
 
-              await updateMessageMetadata(value.metadata);
+              await updateMessageMetadata(value?.metadata);
               write();
               break;
             }
@@ -301,29 +301,29 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
               state.activeTextPart = undefined;
               state.activeReasoningPart = undefined;
 
-              await updateMessageMetadata(value.metadata);
-              if (value.metadata != null) {
+              await updateMessageMetadata(value?.metadata);
+              if (value?.metadata != null) {
                 write();
               }
               break;
             }
 
             case 'start': {
-              if (value.messageId != null) {
+              if (value?.messageId != null) {
                 state.message.id = value.messageId;
               }
 
-              await updateMessageMetadata(value.metadata);
+              await updateMessageMetadata(value?.metadata);
 
-              if (value.messageId != null || value.metadata != null) {
+              if (value?.messageId != null || value?.metadata != null) {
                 write();
               }
               break;
             }
 
             case 'finish': {
-              await updateMessageMetadata(value.metadata);
-              if (value.metadata != null) {
+              await updateMessageMetadata(value?.metadata);
+              if (value?.metadata != null) {
                 write();
               }
               break;

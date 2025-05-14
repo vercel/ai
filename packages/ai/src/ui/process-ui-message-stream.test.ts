@@ -44,11 +44,11 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         { type: 'text', value: 'Hello, ' },
         { type: 'text', value: 'world!' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -144,7 +144,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         {
           type: 'tool-call',
           value: {
@@ -160,11 +160,11 @@ describe('processUIMessageStream', () => {
             result: { weather: 'sunny' },
           },
         },
-        { type: 'finish-step', value: {} },
-        { type: 'start-step', value: {} },
+        { type: 'finish-step' },
+        { type: 'start-step' },
         { type: 'text', value: 'The weather in London is sunny.' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -361,7 +361,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         {
           type: 'tool-call',
           value: {
@@ -377,11 +377,11 @@ describe('processUIMessageStream', () => {
             result: { weather: 'sunny' },
           },
         },
-        { type: 'finish-step', value: {} },
-        { type: 'start-step', value: {} },
+        { type: 'finish-step' },
+        { type: 'start-step' },
         { type: 'text', value: 'The weather in London is sunny.' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -689,7 +689,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         { type: 'text', value: 'I will ' },
         { type: 'text', value: 'use a tool to get the weather in London.' },
         {
@@ -707,12 +707,12 @@ describe('processUIMessageStream', () => {
             result: { weather: 'sunny' },
           },
         },
-        { type: 'finish-step', value: {} },
-        { type: 'start-step', value: {} },
+        { type: 'finish-step' },
+        { type: 'start-step' },
         { type: 'text', value: 'The weather in London ' },
         { type: 'text', value: 'is sunny.' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -999,7 +999,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         { type: 'reasoning', value: { text: 'I will ' } },
         {
           type: 'reasoning',
@@ -1010,7 +1010,7 @@ describe('processUIMessageStream', () => {
             },
           },
         },
-        { type: 'reasoning-part-finish', value: null },
+        { type: 'reasoning-part-finish' },
         {
           type: 'tool-call',
           value: {
@@ -1026,8 +1026,8 @@ describe('processUIMessageStream', () => {
             result: { weather: 'sunny' },
           },
         },
-        { type: 'finish-step', value: {} },
-        { type: 'start-step', value: {} },
+        { type: 'finish-step' },
+        { type: 'start-step' },
         {
           type: 'reasoning',
           value: {
@@ -1037,10 +1037,10 @@ describe('processUIMessageStream', () => {
             },
           },
         },
-        { type: 'reasoning-part-finish', value: null },
+        { type: 'reasoning-part-finish' },
         { type: 'text', value: 'The weather in London is sunny.' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -1673,10 +1673,10 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         { type: 'text', value: 't1' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
         {
           type: 'metadata',
           value: {
@@ -1794,8 +1794,8 @@ describe('processUIMessageStream', () => {
           },
         },
         { type: 'text', value: 't1' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -1900,7 +1900,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         {
           type: 'tool-call-streaming-start',
           value: {
@@ -1937,8 +1937,8 @@ describe('processUIMessageStream', () => {
             result: 'test-result',
           },
         },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -2130,11 +2130,11 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         { type: 'text', value: 'Hello, ' },
         { type: 'text', value: 'world!' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -2230,7 +2230,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         {
           type: 'reasoning',
           value: {
@@ -2270,10 +2270,10 @@ describe('processUIMessageStream', () => {
             },
           },
         },
-        { type: 'reasoning-part-finish', value: null },
+        { type: 'reasoning-part-finish' },
         { type: 'text', value: 'Hi there!' },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -2468,7 +2468,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         {
           type: 'tool-call',
           value: {
@@ -2477,8 +2477,8 @@ describe('processUIMessageStream', () => {
             args: { city: 'London' },
           },
         },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -2601,7 +2601,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         { type: 'text', value: 'The weather in London is sunny.' },
         {
           type: 'source',
@@ -2613,8 +2613,8 @@ describe('processUIMessageStream', () => {
             title: 'Example',
           },
         },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
@@ -2730,7 +2730,7 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
-        { type: 'start-step', value: {} },
+        { type: 'start-step' },
         { type: 'text', value: 'Here is a file:' },
         {
           type: 'file',
@@ -2747,8 +2747,8 @@ describe('processUIMessageStream', () => {
             mediaType: 'application/json',
           },
         },
-        { type: 'finish-step', value: {} },
-        { type: 'finish', value: {} },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState();
