@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import {
+  convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
 
       const result = streamText({
         model: openai('gpt-4o'),
-        messages,
+        messages: convertToModelMessages(messages),
       });
 
       writer.merge(result.toUIMessageStream());
