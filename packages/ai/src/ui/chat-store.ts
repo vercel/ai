@@ -424,6 +424,7 @@ export class ChatStore<MESSAGE_METADATA> {
         await job({
           state: activeResponse.state,
           write: () => {
+            // streaming is set on first write (before it should be "submitted")
             self.setStatus({ id: chatId, status: 'streaming' });
 
             const replaceLastMessage =
