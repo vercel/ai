@@ -1,13 +1,18 @@
 import {
+  generateId as generateIdFunc,
   IdGenerator,
   Schema,
   ToolCall,
-  generateId as generateIdFunc,
 } from '@ai-sdk/provider-utils';
-import { consumeUIMessageStream } from './call-chat-api';
+import { consumeStream } from '../util/consume-stream';
 import { ChatTransport } from './chat-transport';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+  StreamingUIMessageState,
+} from './process-ui-message-stream';
 import {
   isAssistantMessageWithCompletedToolCalls,
   shouldResubmitMessages,
@@ -15,12 +20,6 @@ import {
 import type { CreateUIMessage, UIMessage } from './ui-messages';
 import { updateToolCallResult } from './update-tool-call-result';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
-import {
-  createStreamingUIMessageState,
-  processUIMessageStream,
-  StreamingUIMessageState,
-} from './process-ui-message-stream';
-import { consumeStream } from '../util/consume-stream';
 
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
@@ -38,7 +37,10 @@ export interface Chat<MESSAGE_METADATA> {
   status: ChatStatus;
   messages: UIMessage<MESSAGE_METADATA>[];
   error?: Error;
-  abortController?: AbortController;
+  activeResponse?: {
+    state: StreamingUIMessageState<MESSAGE_METADATA>;
+    abortController?: AbortController;
+  };
 }
 
 // TODO rename to something better
@@ -345,9 +347,9 @@ export class ChatStore<MESSAGE_METADATA> {
 
     if (chat.status !== 'streaming' && chat.status !== 'submitted') return;
 
-    if (chat.abortController) {
-      chat.abortController.abort();
-      chat.abortController = undefined;
+    if (chat.activeResponse?.abortController) {
+      chat.activeResponse.abortController.abort();
+      chat.activeResponse.abortController = undefined;
     }
   }
 
@@ -389,7 +391,15 @@ export class ChatStore<MESSAGE_METADATA> {
     );
 
     try {
-      chat.abortController = new AbortController();
+      const activeResponse = {
+        state: createStreamingUIMessageState({
+          lastMessage: chatMessages[chatMessages.length - 1],
+          newMessageId: self.generateId(),
+        }),
+        abortController: new AbortController(),
+      };
+
+      chat.activeResponse = activeResponse;
 
       // const throttledMutate = throttle(mutate, throttleWaitMs);
 
@@ -401,13 +411,8 @@ export class ChatStore<MESSAGE_METADATA> {
         messages: chatMessages,
         body,
         headers,
-        abortController: chat.abortController,
+        abortController: activeResponse.abortController,
         requestType,
-      });
-
-      const state = createStreamingUIMessageState({
-        lastMessage: chatMessages[chatMessages.length - 1],
-        newMessageId: self.generateId(),
       });
 
       const runUpdateMessageJob = async (
@@ -417,18 +422,19 @@ export class ChatStore<MESSAGE_METADATA> {
         }) => Promise<void>,
       ) => {
         await job({
-          state,
+          state: activeResponse.state,
           write: () => {
             self.setStatus({ id: chatId, status: 'streaming' });
 
             const replaceLastMessage =
-              state.message.id === chatMessages[chatMessages.length - 1].id;
+              activeResponse.state.message.id ===
+              chatMessages[chatMessages.length - 1].id;
 
             const newMessages = [
               ...(replaceLastMessage
                 ? chatMessages.slice(0, chatMessages.length - 1)
                 : chatMessages),
-              state.message,
+              activeResponse.state.message,
             ];
 
             self.setMessages({
@@ -451,14 +457,12 @@ export class ChatStore<MESSAGE_METADATA> {
         },
       });
 
-      onFinish?.({ message: state.message });
+      onFinish?.({ message: activeResponse.state.message });
 
-      chat.abortController = undefined;
       this.setStatus({ id: chatId, status: 'ready' });
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
-        chat.abortController = undefined;
         this.setStatus({ id: chatId, status: 'ready' });
         return null;
       }
@@ -468,6 +472,8 @@ export class ChatStore<MESSAGE_METADATA> {
       }
 
       this.setStatus({ id: chatId, status: 'error', error: err as Error });
+    } finally {
+      chat.activeResponse = undefined;
     }
 
     // auto-submit when all tool calls in the last assistant message have results
