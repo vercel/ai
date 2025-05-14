@@ -373,6 +373,8 @@ export class ChatStore<MESSAGE_METADATA> {
     requestType: 'generate' | 'resume';
   }) {
     const self = this;
+    const chat = this.getChat(chatId);
+
     this.setStatus({ id: chatId, status: 'submitted', error: undefined });
 
     const messageCount = chatMessages.length;
@@ -381,8 +383,7 @@ export class ChatStore<MESSAGE_METADATA> {
     );
 
     try {
-      const abortController = new AbortController();
-      this.getChat(chatId).abortController = abortController;
+      chat.abortController = new AbortController();
 
       // const throttledMutate = throttle(mutate, throttleWaitMs);
 
@@ -394,7 +395,7 @@ export class ChatStore<MESSAGE_METADATA> {
         messages: chatMessages,
         body,
         headers,
-        abortController,
+        abortController: chat.abortController,
         requestType,
       });
 
@@ -425,12 +426,12 @@ export class ChatStore<MESSAGE_METADATA> {
         messageMetadataSchema: self.messageMetadataSchema,
       });
 
-      this.getChat(chatId).abortController = undefined;
+      chat.abortController = undefined;
       this.setStatus({ id: chatId, status: 'ready' });
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
-        this.getChat(chatId).abortController = undefined;
+        chat.abortController = undefined;
         this.setStatus({ id: chatId, status: 'ready' });
         return null;
       }
