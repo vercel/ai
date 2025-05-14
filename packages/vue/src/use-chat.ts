@@ -3,6 +3,7 @@ import type {
   CreateUIMessage,
   FileUIPart,
   JSONValue,
+  OriginalUseChatOptions,
   UIMessage,
   UseChatOptions,
 } from 'ai';
@@ -117,7 +118,7 @@ export function useChat<MESSAGE_METADATA = unknown>(
     maxSteps = 1,
     experimental_prepareRequestBody,
     messageMetadataSchema,
-  }: UseChatOptions<MESSAGE_METADATA> & {
+  }: OriginalUseChatOptions<MESSAGE_METADATA> & {
     /**
      * Experimental (Vue only). When a function is provided, it will be used
      * to prepare the request body for the chat API. This can be useful for

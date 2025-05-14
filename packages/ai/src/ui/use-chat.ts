@@ -5,6 +5,7 @@ import {
   ToolCall,
 } from '@ai-sdk/provider-utils';
 import { UIMessage } from './ui-messages';
+import { ChatStore } from './chat-store';
 
 export type ChatRequestOptions = {
   /**
@@ -19,6 +20,58 @@ export type ChatRequestOptions = {
 };
 
 export type UseChatOptions<MESSAGE_METADATA = unknown> = {
+  /**
+   * A unique identifier for the chat. If not provided, a random one will be
+   * generated. When provided, the `useChat` hook with the same `id` will
+   * have shared states across components.
+   */
+  id?: string;
+
+  /**
+   * Initial input of the chat.
+   */
+  initialInput?: string;
+
+  /**
+  Optional callback function that is invoked when a tool call is received.
+  Intended for automatic client-side tool execution.
+
+  You can optionally return a result for the tool call,
+  either synchronously or asynchronously.
+     */
+  onToolCall?: ({
+    toolCall,
+  }: {
+    toolCall: ToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
+
+  /**
+   * Optional callback function that is called when the assistant message is finished streaming.
+   *
+   * @param message The message that was streamed.
+   */
+  onFinish?: (options: {
+    message: UIMessage<NoInfer<MESSAGE_METADATA>>;
+  }) => void;
+
+  /**
+   * Callback function to be called when an error is encountered.
+   */
+  onError?: (error: Error) => void;
+
+  /**
+   * A way to provide a function that is going to be used for ids for messages and the chat.
+   * If not provided the default AI SDK `generateId` is used.
+   */
+  generateId?: IdGenerator;
+
+  /**
+   * Optional chat store. Default is used when not provided.
+   */
+  chatStore?: ChatStore<MESSAGE_METADATA>;
+};
+
+export type OriginalUseChatOptions<MESSAGE_METADATA = unknown> = {
   /**
    * Schema for the message metadata. Validates the message metadata.
    * Message metadata can be undefined or must match the schema.

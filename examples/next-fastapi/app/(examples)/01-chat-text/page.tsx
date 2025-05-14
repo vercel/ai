@@ -2,11 +2,14 @@
 
 import { Card } from '@/app/components';
 import { useChat } from '@ai-sdk/react';
+import { defaultChatStore } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    api: '/api/chat?protocol=text',
-    streamProtocol: 'text',
+    chatStore: defaultChatStore({
+      api: '/api/chat?protocol=text',
+      streamProtocol: 'text',
+    }),
   });
 
   return (

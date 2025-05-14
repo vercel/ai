@@ -8,7 +8,12 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { getToolInvocations, UIMessage, UIMessageStreamPart } from 'ai';
+import {
+  defaultChatStore,
+  getToolInvocations,
+  UIMessage,
+  UIMessageStreamPart,
+} from 'ai';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -352,11 +357,15 @@ describe('text stream', () => {
 
   setupTestComponent(() => {
     const { messages, append } = useChat({
-      streamProtocol: 'text',
       onFinish: options => {
         onFinishCalls.push(options);
       },
       generateId: mockId(),
+      chatStore: defaultChatStore({
+        api: '/api/chat',
+        streamProtocol: 'text',
+        generateId: mockId(),
+      }),
     });
 
     return (
@@ -448,7 +457,7 @@ describe('text stream', () => {
       [
         {
           "message": {
-            "id": "id-2",
+            "id": "id-1",
             "metadata": {},
             "parts": [
               {
@@ -470,7 +479,13 @@ describe('text stream', () => {
 describe('form actions', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat({ streamProtocol: 'text' });
+      useChat({
+        chatStore: defaultChatStore({
+          streamProtocol: 'text',
+          api: '/api/chat',
+          generateId: mockId(),
+        }),
+      });
 
     return (
       <div>
@@ -532,10 +547,14 @@ describe('prepareRequestBody', () => {
 
   setupTestComponent(() => {
     const { messages, append, status } = useChat({
-      experimental_prepareRequestBody(options) {
-        bodyOptions = options;
-        return 'test-request-body';
-      },
+      chatStore: defaultChatStore({
+        api: '/api/chat',
+        generateId: mockId({ prefix: 'msg' }),
+        prepareRequestBody(options) {
+          bodyOptions = options;
+          return 'test-request-body';
+        },
+      }),
       generateId: mockId(),
     });
 
@@ -594,7 +613,7 @@ describe('prepareRequestBody', () => {
         "id": "id-0",
         "messages": [
           {
-            "id": "id-1",
+            "id": "msg-0",
             "parts": [
               {
                 "text": "hi",
@@ -697,7 +716,11 @@ describe('onToolCall', () => {
 describe('tool invocations', () => {
   setupTestComponent(() => {
     const { messages, append, addToolResult } = useChat({
-      maxSteps: 5,
+      chatStore: defaultChatStore({
+        api: '/api/chat',
+        maxSteps: 5,
+        generateId: mockId(),
+      }),
       generateId: mockId(),
     });
 
@@ -929,7 +952,7 @@ describe('tool invocations', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          id: 'id-1',
+          id: 'id-0',
           parts: [
             {
               text: 'hi',
@@ -939,7 +962,7 @@ describe('tool invocations', () => {
           role: 'user',
         },
         {
-          id: 'id-2',
+          id: 'id-1',
           metadata: {},
           parts: [
             {
@@ -1041,7 +1064,11 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxSteps: 5,
+        chatStore: defaultChatStore({
+          api: '/api/chat',
+          generateId: mockId(),
+          maxSteps: 5,
+        }),
       });
 
       return (
@@ -1112,7 +1139,11 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxSteps: 5,
+        chatStore: defaultChatStore({
+          api: '/api/chat',
+          generateId: mockId(),
+          maxSteps: 5,
+        }),
       });
 
       return (
@@ -1889,159 +1920,27 @@ describe('test sending additional fields during message submission', () => {
   });
 });
 
-describe('initialMessages', () => {
-  describe('stability', () => {
-    let renderCount = 0;
-
-    setupTestComponent(() => {
-      renderCount++;
-      const [derivedState, setDerivedState] = useState<string[]>([]);
-
-      const { messages } = useChat({
-        initialMessages: [
-          {
-            id: 'test-msg-1',
-            role: 'user',
-            parts: [{ text: 'Test message', type: 'text' }],
-          },
-          {
-            id: 'test-msg-2',
-            role: 'assistant',
-            parts: [{ text: 'Test response', type: 'text' }],
-          },
-        ],
-      });
-
-      useEffect(() => {
-        setDerivedState(
-          messages.map(m =>
-            m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join(''),
-          ),
-        );
-      }, [messages]);
-
-      if (renderCount > 10) {
-        throw new Error('Excessive renders detected; likely an infinite loop!');
-      }
-
-      return (
-        <div>
-          <div data-testid="render-count">{renderCount}</div>
-          <div data-testid="derived-state">{derivedState.join(', ')}</div>
-          {messages.map(m => (
-            <div key={m.id} data-testid={`message-${m.role}`}>
-              {m.parts
-                .map(part => (part.type === 'text' ? part.text : ''))
-                .join('')}
-            </div>
-          ))}
-        </div>
-      );
-    });
-
-    beforeEach(() => {
-      renderCount = 0;
-    });
-
-    it('should not cause infinite rerenders when initialMessages is defined and messages is a dependency of useEffect', async () => {
-      // wait for initial render to complete
-      await waitFor(() => {
-        expect(screen.getByTestId('message-user')).toHaveTextContent(
-          'Test message',
-        );
-      });
-
-      // confirm useEffect ran
-      await waitFor(() => {
-        expect(screen.getByTestId('derived-state')).toHaveTextContent(
-          'Test message, Test response',
-        );
-      });
-
-      const renderCount = parseInt(
-        screen.getByTestId('render-count').textContent!,
-      );
-
-      expect(renderCount).toBe(2);
-    });
-  });
-
-  describe('changing initial messages', () => {
-    setupTestComponent(() => {
-      const [initialMessages, setInitialMessages] = useState<UIMessage[]>([
-        {
-          id: 'test-msg-1',
-          role: 'user',
-          parts: [{ text: 'Test message 1', type: 'text' }],
-        },
-      ]);
-
-      const { messages } = useChat({
-        initialMessages,
-      });
-
-      return (
-        <div>
-          <div data-testid="messages">
-            {messages
-              .map(m =>
-                m.parts
-                  .map(part => (part.type === 'text' ? part.text : ''))
-                  .join(''),
-              )
-              .join(', ')}
-          </div>
-
-          <button
-            data-testid="do-update-initial-messages"
-            onClick={() => {
-              setInitialMessages([
-                {
-                  id: 'test-msg-2',
-                  role: 'user',
-                  parts: [{ text: 'Test message 2', type: 'text' }],
-                },
-              ]);
-            }}
-          />
-        </div>
-      );
-    });
-
-    it.skip('should update messages when initialMessages changes', async () => {
-      await waitFor(() => {
-        expect(screen.getByTestId('messages')).toHaveTextContent(
-          'Test message 1',
-        );
-      });
-
-      await userEvent.click(screen.getByTestId('do-update-initial-messages'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('messages')).toHaveTextContent(
-          'Test message 2',
-        );
-      });
-    });
-  });
-});
-
 describe('resume ongoing stream and return assistant message', () => {
   const controller = new TestResponseController();
 
   setupTestComponent(
     () => {
+      const chatStore = defaultChatStore({
+        api: '/api/chat',
+        generateId: mockId(),
+      });
+
+      chatStore.addChat('123', [
+        {
+          id: 'msg_123',
+          role: 'user',
+          parts: [{ type: 'text', text: 'hi' }],
+        },
+      ]);
+
       const { messages, status, experimental_resume } = useChat({
         id: '123',
-        initialMessages: [
-          {
-            id: 'msg_123',
-            role: 'user',
-            parts: [{ type: 'text', text: 'hi' }],
-          },
-        ],
+        chatStore,
       });
 
       useEffect(() => {

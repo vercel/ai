@@ -1,4 +1,9 @@
-import { FetchFunction, IdGenerator, Schema } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  generateId as generateIdFunc,
+  IdGenerator,
+  Schema,
+} from '@ai-sdk/provider-utils';
 import { ChatStore } from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
@@ -6,14 +11,15 @@ import { UIMessage } from './ui-messages';
 export function defaultChatStore<MESSAGE_METADATA>({
   api,
   fetch,
-  streamProtocol,
+  streamProtocol = 'ui-message',
   credentials,
   headers,
   body,
   prepareRequestBody,
-  generateId,
+  generateId = generateIdFunc,
   messageMetadataSchema,
-  maxSteps,
+  maxSteps = 1,
+  chats,
 }: {
   /**
    * Schema for the message metadata. Validates the message metadata.
@@ -94,6 +100,12 @@ export function defaultChatStore<MESSAGE_METADATA>({
     messages: UIMessage<MESSAGE_METADATA>[];
     requestBody?: object;
   }) => unknown;
+
+  chats?: {
+    [id: string]: {
+      messages: UIMessage<MESSAGE_METADATA>[];
+    };
+  };
 }): ChatStore<MESSAGE_METADATA> {
   return new ChatStore<MESSAGE_METADATA>({
     transport: new DefaultChatTransport<MESSAGE_METADATA>({
@@ -108,5 +120,6 @@ export function defaultChatStore<MESSAGE_METADATA>({
     generateId,
     messageMetadataSchema,
     maxSteps,
+    chats,
   });
 }

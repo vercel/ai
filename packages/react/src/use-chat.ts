@@ -9,18 +9,10 @@ import {
   ChatStore,
   convertFileListToFileUIParts,
   defaultChatStore,
-  DefaultChatTransport,
   generateId as generateIdFunc,
   type ChatStoreEvent,
 } from 'ai';
-import {
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
-import { useStableValue } from './util/use-stable-value';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
@@ -121,39 +113,15 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
 };
 
 export function useChat<MESSAGE_METADATA>({
-  api = '/api/chat',
   id,
-  initialMessages,
   initialInput = '',
   onToolCall,
-  experimental_prepareRequestBody,
-  maxSteps = 1,
-  streamProtocol = 'ui-message',
   onFinish,
   onError,
-  credentials,
-  headers,
-  body,
   generateId = generateIdFunc,
-  fetch,
   experimental_throttle: throttleWaitMs,
-  messageMetadataSchema,
+  chatStore: chatStoreArg,
 }: UseChatOptions<MESSAGE_METADATA> & {
-  /**
-   * Experimental (React only). When a function is provided, it will be used
-   * to prepare the request body for the chat API. This can be useful for
-   * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
-   */
-  experimental_prepareRequestBody?: (options: {
-    id: string;
-    messages: UIMessage<MESSAGE_METADATA>[];
-    requestBody?: object;
-  }) => unknown;
-
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
@@ -166,33 +134,19 @@ Default is undefined, which disables throttling.
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
   const chatId = id ?? hookId;
 
-  // Store array of the processed initial messages to avoid re-renders:
-  const stableInitialMessages = useStableValue(initialMessages ?? []);
-  const processedInitialMessages = useMemo(
-    () => stableInitialMessages,
-    [stableInitialMessages],
-  );
-
   // chat store setup
   // TODO enable as arg
   const chatStore = useRef(
-    defaultChatStore({
-      api,
-      fetch,
-      streamProtocol,
-      credentials,
-      headers,
-      body,
-      prepareRequestBody: experimental_prepareRequestBody,
-      generateId,
-      messageMetadataSchema,
-      maxSteps,
-    }),
+    chatStoreArg ??
+      defaultChatStore<MESSAGE_METADATA>({
+        api: '/api/chat',
+        generateId,
+      }),
   );
 
   // ensure the chat is in the store
   if (!chatStore.current.hasChat(chatId)) {
-    chatStore.current.addChat(chatId, processedInitialMessages ?? []);
+    chatStore.current.addChat(chatId, []);
   }
 
   const subscribe = useCallback(
@@ -296,13 +250,11 @@ Default is undefined, which disables throttling.
     async () =>
       chatStore.current.resumeStream({
         chatId,
-        headers,
-        body,
         onError,
         onToolCall,
         onFinish,
       }),
-    [chatStore, chatId, headers, body, onError, onToolCall, onFinish],
+    [chatStore, chatId, onError, onToolCall, onFinish],
   );
 
   const setMessages = useCallback(
