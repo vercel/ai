@@ -4,6 +4,7 @@ import {
   ToolCall,
   generateId as generateIdFunc,
 } from '@ai-sdk/provider-utils';
+import { SerialJobExecutor } from '../util/serial-job-executor';
 import { consumeUIMessageStream } from './call-chat-api';
 import { ChatTransport } from './chat-transport';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
@@ -12,10 +13,16 @@ import {
   isAssistantMessageWithCompletedToolCalls,
   shouldResubmitMessages,
 } from './should-resubmit-messages';
-import type { CreateUIMessage, UIMessage } from './ui-messages';
+import type {
+  CreateUIMessage,
+  ReasoningUIPart,
+  TextUIPart,
+  UIMessage,
+} from './ui-messages';
 import { updateToolCallResult } from './update-tool-call-result';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
 
+import { Job } from '../util/job';
 export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
 }
@@ -32,7 +39,18 @@ export interface Chat<MESSAGE_METADATA> {
   status: ChatStatus;
   messages: UIMessage<MESSAGE_METADATA>[];
   error?: Error;
+
+  // Active response:
+  activeResponse?: {
+    message: UIMessage<MESSAGE_METADATA>;
+    currentTextPart?: TextUIPart;
+    setCurrentTextPart: (currentTextPart?: TextUIPart) => void;
+    currentReasoningPart?: ReasoningUIPart;
+    setCurrentReasoningPart: (currentReasoningPart?: ReasoningUIPart) => void;
+    toolCalls?: Record<string, { textArgs: string; toolName: string }>;
+  };
   abortController?: AbortController;
+  jobExecutor?: SerialJobExecutor;
 }
 
 // TODO rename to something better
@@ -95,7 +113,6 @@ export class ChatStore<MESSAGE_METADATA> {
           status: 'ready',
           activeResponse: undefined,
           error: undefined,
-          abortController: undefined,
         },
       ]),
     );
@@ -400,28 +417,27 @@ export class ChatStore<MESSAGE_METADATA> {
       await consumeUIMessageStream({
         stream,
         onUpdate({ message }) {
-          self.setStatus({ id: chatId, status: 'streaming' });
-
-          const replaceLastMessage =
-            message.id === chatMessages[chatMessages.length - 1].id;
-
-          const newMessages = [
-            ...(replaceLastMessage
-              ? chatMessages.slice(0, chatMessages.length - 1)
-              : chatMessages),
-            message,
-          ];
-
-          self.setMessages({
-            id: chatId,
-            messages: newMessages,
-          });
+          // self.setStatus({ id: chatId, status: 'streaming' });
+          // const replaceLastMessage =
+          //   message.id === chatMessages[chatMessages.length - 1].id;
+          // const newMessages = [
+          //   ...(replaceLastMessage
+          //     ? chatMessages.slice(0, chatMessages.length - 1)
+          //     : chatMessages),
+          //   message,
+          // ];
+          // self.setMessages({
+          //   id: chatId,
+          //   messages: newMessages,
+          // });
         },
         onToolCall,
         onFinish,
+        onStart: () => self.setStatus({ id: chatId, status: 'streaming' }),
         generateId: self.generateId,
         lastMessage: chatMessages[chatMessages.length - 1],
         messageMetadataSchema: self.messageMetadataSchema,
+        acquireLock: () => self.acquireLock(chatId),
       });
 
       this.getChat(chatId).abortController = undefined;
@@ -463,5 +479,101 @@ export class ChatStore<MESSAGE_METADATA> {
         messages: currentMessages,
       });
     }
+  }
+
+  acquireLock(chatId: string) {
+    const self = this;
+    const chat = this.getChat(chatId);
+
+    if (chat.status === 'streaming' || chat.status === 'submitted') {
+      throw new Error(
+        'Cannot acquire lock for chat in streaming or submitted state',
+      );
+    }
+
+    if (chat.jobExecutor == null) {
+      chat.jobExecutor = new SerialJobExecutor();
+    }
+
+    return {
+      write: (job: Job) => chat.jobExecutor!.run(job),
+      release: () => self.emit({ type: 'chat-messages-changed', chatId }),
+      activeResponse: self.initializeOrGetActiveResponse(chatId),
+    };
+  }
+
+  private initializeOrGetActiveResponse(chatId: string) {
+    const self = this;
+    const chat = this.getChat(chatId);
+
+    if (!chat) {
+      throw new Error('Chat not found');
+    }
+
+    // return existing active response if it exists:
+    if (chat.activeResponse) {
+      return chat.activeResponse;
+    }
+
+    const lastMessage = this.getLastMessage(chatId);
+    const lastAssistantMessage =
+      lastMessage?.role === 'assistant' ? lastMessage : undefined;
+
+    if (!lastAssistantMessage && lastMessage?.role !== 'user') {
+      throw new Error('Corresponding user message not found');
+    }
+
+    const id = lastAssistantMessage?.id ?? this.generateId();
+    const parts = lastAssistantMessage?.parts ?? [];
+
+    // construct active response from last assistant message if exists or initialize base active response:
+    chat.activeResponse = {
+      message: {
+        id,
+        role: 'assistant',
+        parts,
+        metadata: lastAssistantMessage?.metadata ?? ({} as MESSAGE_METADATA),
+      },
+      currentTextPart: parts.find(part => part.type === 'text'),
+      setCurrentTextPart: (currentTextPart?: TextUIPart) =>
+        self.setCurrentTextPart(chatId, currentTextPart),
+      currentReasoningPart: parts.find(part => part.type === 'reasoning'),
+      setCurrentReasoningPart: (currentReasoningPart?: ReasoningUIPart) =>
+        self.setCurrentReasoningPart(chatId, currentReasoningPart),
+      toolCalls: parts
+        .filter(part => part.type === 'tool-invocation')
+        .reduce(
+          (acc, part) => {
+            acc[part.toolInvocation.toolCallId] = {
+              textArgs: String(part.toolInvocation.args),
+              toolName: part.toolInvocation.toolName,
+            };
+            return acc;
+          },
+          {} as Record<string, { textArgs: string; toolName: string }>,
+        ),
+    };
+
+    chat.messages = [...chat.messages, chat.activeResponse.message];
+    return chat.activeResponse;
+  }
+
+  private setCurrentTextPart(chatId: string, currentTextPart?: TextUIPart) {
+    const chat = this.getChat(chatId);
+    if (!chat.activeResponse) {
+      throw new Error('Active response not found');
+    }
+    chat.activeResponse.currentTextPart = currentTextPart;
+  }
+
+  private setCurrentReasoningPart(
+    chatId: string,
+    currentReasoningPart?: ReasoningUIPart,
+  ) {
+    const chat = this.getChat(chatId);
+    if (!chat.activeResponse) {
+      throw new Error('Active response not found');
+    }
+    chat.activeResponse.currentReasoningPart = currentReasoningPart;
   }
 }

@@ -9,9 +9,10 @@ import {
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
+import { Job } from '../util/job';
 import { processUIMessageStream } from './process-ui-message-stream';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
-import { UIMessage } from './ui-messages';
+import { ReasoningUIPart, TextUIPart, UIMessage } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
 // use function to allow for mocking in tests:
@@ -95,17 +96,38 @@ export async function consumeUIMessageStream<MESSAGE_METADATA>({
   onUpdate,
   onFinish,
   onToolCall,
+  onStart,
   generateId,
   lastMessage,
   messageMetadataSchema,
+  acquireLock,
 }: {
   stream: ReadableStream<UIMessageStreamPart>;
   onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
   onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
+  onStart?: () => void;
   onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
   generateId: IdGenerator;
   lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  acquireLock?: () => {
+    write: (job: Job) => Promise<void>;
+    release: () => void;
+    activeResponse: {
+      message: UIMessage<MESSAGE_METADATA>;
+      currentTextPart?: TextUIPart;
+      setCurrentTextPart: (currentTextPart?: TextUIPart) => void;
+      currentReasoningPart?: ReasoningUIPart;
+      setCurrentReasoningPart: (currentReasoningPart?: ReasoningUIPart) => void;
+      toolCalls?: Record<
+        string,
+        {
+          textArgs: string;
+          toolName: string;
+        }
+      >;
+    };
+  };
 }) {
   await consumeStream({
     stream: processUIMessageStream({
@@ -113,9 +135,11 @@ export async function consumeUIMessageStream<MESSAGE_METADATA>({
       onUpdate,
       lastMessage,
       onToolCall,
+      onStart,
       onFinish,
       newMessageId: generateId(),
       messageMetadataSchema,
+      acquireLock,
     }),
     onError: error => {
       throw error;

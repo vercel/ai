@@ -1,0 +1,73 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`processUIMessageStream > scenario: message metadata > should should update metadata in active response 1`] = `
+[
+  {
+    "id": "msg-id",
+    "parts": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "id": "msg-123",
+    "metadata": {
+      "finish": "finish-1",
+      "finishStep": "finish-step-1",
+      "metadata": "metadata-1",
+      "shared": {
+        "key1": "value-1e",
+        "key2": "value-2a",
+        "key3": "value-3b",
+        "key4": "value-4c",
+        "key5": "value-5d",
+        "key6": "value-6e",
+      },
+      "start": "start-1",
+      "startStep": "start-step-1",
+    },
+    "parts": [
+      {
+        "type": "step-start",
+      },
+      {
+        "text": "t1t2",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`processUIMessageStream > scenario: simple text response > processes text chunks and updates active message 1`] = `
+[
+  {
+    "id": "msg-id",
+    "parts": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "id": "msg-123",
+    "metadata": {},
+    "parts": [
+      {
+        "type": "step-start",
+      },
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
