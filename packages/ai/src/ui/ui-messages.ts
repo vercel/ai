@@ -1,5 +1,6 @@
 import { LanguageModelV2Source } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import { ValueOf } from '../util/value-of';
 
 /**
 Tool invocations are either tool calls or tool results. For each assistant tool call,
@@ -18,7 +19,10 @@ export type ToolInvocation =
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
-export interface UIMessage<METADATA = unknown> {
+export interface UIMessage<
+  METADATA = unknown,
+  DATA_PARTS extends Record<string, unknown> = Record<string, unknown>,
+> {
   /**
 A unique identifier for the message.
    */
@@ -44,16 +48,25 @@ User messages can have text parts and file parts.
 
 Assistant messages can have text, reasoning, tool invocation, and file parts.
    */
-  parts: Array<UIMessagePart>;
+  parts: Array<UIMessagePart<DATA_PARTS>>;
 }
 
-export type UIMessagePart =
+export type UIMessagePart<DATA_TYPES extends Record<string, unknown>> =
   | TextUIPart
   | ReasoningUIPart
   | ToolInvocationUIPart
   | SourceUIPart
   | FileUIPart
+  | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
+
+export type DataUIPart<DATA_TYPES extends Record<string, unknown>> = ValueOf<{
+  [NAME in keyof DATA_TYPES & string]: {
+    type: `data-${NAME}`;
+    id: string;
+    value: DATA_TYPES[NAME];
+  };
+}>;
 
 /**
  * A text part of a message.
