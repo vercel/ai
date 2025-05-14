@@ -6,19 +6,13 @@ import type {
   UseChatOptions,
 } from 'ai';
 import {
-  callChatApi,
+  ChatStore,
   convertFileListToFileUIParts,
-  extractMaxToolInvocationStep,
+  defaultChatStore,
   generateId as generateIdFunc,
-  getToolInvocations,
-  isAssistantMessageWithCompletedToolCalls,
-  shouldResubmitMessages,
-  updateToolCallResult,
+  type ChatStoreEvent,
 } from 'ai';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
-import { throttle } from './throttle';
-import { useStableValue } from './util/use-stable-value';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
@@ -119,39 +113,15 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
 };
 
 export function useChat<MESSAGE_METADATA>({
-  api = '/api/chat',
   id,
-  initialMessages,
   initialInput = '',
   onToolCall,
-  experimental_prepareRequestBody,
-  maxSteps = 1,
-  streamProtocol = 'ui-message',
   onFinish,
   onError,
-  credentials,
-  headers,
-  body,
   generateId = generateIdFunc,
-  fetch,
   experimental_throttle: throttleWaitMs,
-  messageMetadataSchema,
+  chatStore: chatStoreArg,
 }: UseChatOptions<MESSAGE_METADATA> & {
-  /**
-   * Experimental (React only). When a function is provided, it will be used
-   * to prepare the request body for the chat API. This can be useful for
-   * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
-   */
-  experimental_prepareRequestBody?: (options: {
-    id: string;
-    messages: UIMessage<MESSAGE_METADATA>[];
-    requestBody?: object;
-  }) => unknown;
-
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
@@ -163,244 +133,148 @@ Default is undefined, which disables throttling.
 
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
   const chatId = id ?? hookId;
-  const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
 
-  // Store array of the processed initial messages to avoid re-renders:
-  const stableInitialMessages = useStableValue(initialMessages ?? []);
-  const processedInitialMessages = useMemo(
-    () => stableInitialMessages,
-    [stableInitialMessages],
+  // chat store setup
+  // TODO enable as arg
+  const chatStore = useRef(
+    chatStoreArg ??
+      defaultChatStore<MESSAGE_METADATA>({
+        api: '/api/chat',
+        generateId,
+      }),
   );
 
-  // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data: messages, mutate } = useSWR<UIMessage<MESSAGE_METADATA>[]>(
-    [chatKey, 'messages'],
-    null,
-    { fallbackData: processedInitialMessages },
-  );
+  // ensure the chat is in the store
+  if (!chatStore.current.hasChat(chatId)) {
+    chatStore.current.addChat(chatId, []);
+  }
 
-  // Keep the latest messages in a ref.
-  const messagesRef = useRef<UIMessage<MESSAGE_METADATA>[]>(messages || []);
-  useEffect(() => {
-    messagesRef.current = messages || [];
-  }, [messages]);
+  const subscribe = useCallback(
+    ({
+      onStoreChange,
+      eventType,
+    }: {
+      onStoreChange: () => void;
+      eventType: ChatStoreEvent['type'];
+    }) => {
+      return chatStore.current.subscribe({
+        onChatChanged: event => {
+          if (event.chatId !== chatId || event.type !== eventType) {
+            return;
+          }
 
-  const { data: status = 'ready', mutate: mutateStatus } = useSWR<
-    'submitted' | 'streaming' | 'ready' | 'error'
-  >([chatKey, 'status'], null);
-
-  const { data: error = undefined, mutate: setError } = useSWR<
-    undefined | Error
-  >([chatKey, 'error'], null);
-
-  // Abort controller to cancel the current API call.
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const extraMetadataRef = useRef({
-    credentials,
-    headers,
-    body,
-  });
-
-  useEffect(() => {
-    extraMetadataRef.current = {
-      credentials,
-      headers,
-      body,
-    };
-  }, [credentials, headers, body]);
-
-  const triggerRequest = useCallback(
-    async (
-      chatRequest: ChatRequestOptions & {
-        messages: UIMessage<MESSAGE_METADATA>[];
-      },
-      requestType: 'generate' | 'resume' = 'generate',
-    ) => {
-      mutateStatus('submitted');
-      setError(undefined);
-
-      const chatMessages = chatRequest.messages;
-
-      const messageCount = chatMessages.length;
-      const maxStep = extractMaxToolInvocationStep(
-        getToolInvocations(chatMessages[chatMessages.length - 1]),
-      );
-
-      try {
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-
-        const throttledMutate = throttle(mutate, throttleWaitMs);
-
-        // Do an optimistic update to show the updated messages immediately:
-        throttledMutate(chatMessages, false);
-
-        await callChatApi({
-          api,
-          body: experimental_prepareRequestBody?.({
-            id: chatId,
-            messages: chatMessages,
-            requestBody: chatRequest.body,
-          }) ?? {
-            id: chatId,
-            messages: chatMessages,
-            ...extraMetadataRef.current.body,
-            ...chatRequest.body,
-          },
-          streamProtocol,
-          credentials: extraMetadataRef.current.credentials,
-          headers: {
-            ...extraMetadataRef.current.headers,
-            ...chatRequest.headers,
-          },
-          abortController: () => abortControllerRef.current,
-          onUpdate({ message }) {
-            mutateStatus('streaming');
-
-            const replaceLastMessage =
-              message.id === chatMessages[chatMessages.length - 1].id;
-
-            throttledMutate(
-              [
-                ...(replaceLastMessage
-                  ? chatMessages.slice(0, chatMessages.length - 1)
-                  : chatMessages),
-                message,
-              ],
-              false,
-            );
-          },
-          onToolCall,
-          onFinish,
-          generateId,
-          fetch,
-          lastMessage: chatMessages[chatMessages.length - 1],
-          requestType,
-          messageMetadataSchema,
-        });
-
-        abortControllerRef.current = null;
-
-        mutateStatus('ready');
-      } catch (err) {
-        // Ignore abort errors as they are expected.
-        if ((err as any).name === 'AbortError') {
-          abortControllerRef.current = null;
-          mutateStatus('ready');
-          return null;
-        }
-
-        if (onError && err instanceof Error) {
-          onError(err);
-        }
-
-        setError(err as Error);
-        mutateStatus('error');
-      }
-
-      // auto-submit when all tool calls in the last assistant message have results
-      // and assistant has not answered yet
-      const messages = messagesRef.current;
-      if (
-        shouldResubmitMessages({
-          originalMaxToolInvocationStep: maxStep,
-          originalMessageCount: messageCount,
-          maxSteps,
-          messages,
-        })
-      ) {
-        await triggerRequest({ messages });
-      }
+          onStoreChange();
+        },
+      });
     },
-    [
-      mutate,
-      mutateStatus,
-      api,
-      extraMetadataRef,
-      onFinish,
-      onError,
-      setError,
-      streamProtocol,
-      experimental_prepareRequestBody,
-      onToolCall,
-      maxSteps,
-      messagesRef,
-      abortControllerRef,
-      generateId,
-      fetch,
-      throttleWaitMs,
-      chatId,
-      messageMetadataSchema,
-    ],
+    [chatStore, chatId],
+  );
+
+  const addToolResult = useCallback(
+    (
+      options: Omit<
+        Parameters<ChatStore<MESSAGE_METADATA>['addToolResult']>[0],
+        'chatId'
+      >,
+    ) => chatStore.current.addToolResult({ chatId, ...options }),
+    [chatStore, chatId],
+  );
+
+  const stopStream = useCallback(() => {
+    chatStore.current.stopStream({ chatId });
+  }, [chatStore, chatId]);
+
+  const error = useSyncExternalStore(
+    callback =>
+      subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-status-changed',
+      }),
+    () => chatStore.current.getError(chatId),
+    () => chatStore.current.getError(chatId),
+  );
+
+  const status = useSyncExternalStore(
+    callback =>
+      subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-status-changed',
+      }),
+    () => chatStore.current.getStatus(chatId),
+    () => chatStore.current.getStatus(chatId),
+  );
+
+  const messages = useSyncExternalStore(
+    callback => {
+      return subscribe({
+        onStoreChange: callback,
+        eventType: 'chat-messages-changed',
+      });
+    },
+    () => chatStore.current.getMessages(chatId),
+    () => chatStore.current.getMessages(chatId),
   );
 
   const append = useCallback(
-    async (
+    (
       message: CreateUIMessage<MESSAGE_METADATA>,
       { headers, body }: ChatRequestOptions = {},
-    ) => {
-      await triggerRequest({
-        messages: messagesRef.current.concat({
-          ...message,
-          id: message.id ?? generateId(),
-        }),
+    ) =>
+      chatStore.current.submitMessage({
+        chatId,
+        message,
         headers,
         body,
-      });
-    },
-    [triggerRequest, generateId],
+        onError,
+        onToolCall,
+        onFinish,
+      }),
+    [chatStore, chatId, onError, onToolCall, onFinish],
   );
 
   const reload = useCallback(
-    async ({ headers, body }: ChatRequestOptions = {}) => {
-      const messages = messagesRef.current;
-
-      if (messages.length === 0) {
-        return null;
-      }
-
-      // Remove last assistant message and retry last user message.
-      const lastMessage = messages[messages.length - 1];
-      return triggerRequest({
-        messages:
-          lastMessage.role === 'assistant' ? messages.slice(0, -1) : messages,
+    async ({ headers, body }: ChatRequestOptions = {}) =>
+      chatStore.current.resubmitLastUserMessage({
+        chatId,
         headers,
         body,
-      });
-    },
-    [triggerRequest],
+        onError,
+        onToolCall,
+        onFinish,
+      }),
+    [chatStore, chatId, onError, onToolCall, onFinish],
   );
+  const stop = useCallback(() => stopStream(), [stopStream]);
 
-  const stop = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-  }, []);
-
-  const experimental_resume = useCallback(async () => {
-    const messages = messagesRef.current;
-
-    triggerRequest({ messages }, 'resume');
-  }, [triggerRequest]);
+  const experimental_resume = useCallback(
+    async () =>
+      chatStore.current.resumeStream({
+        chatId,
+        onError,
+        onToolCall,
+        onFinish,
+      }),
+    [chatStore, chatId, onError, onToolCall, onFinish],
+  );
 
   const setMessages = useCallback(
     (
-      messages:
+      messagesParam:
         | UIMessage<MESSAGE_METADATA>[]
         | ((
             messages: UIMessage<MESSAGE_METADATA>[],
           ) => UIMessage<MESSAGE_METADATA>[]),
     ) => {
-      if (typeof messages === 'function') {
-        messages = messages(messagesRef.current);
+      if (typeof messagesParam === 'function') {
+        messagesParam = messagesParam(messages);
       }
 
-      mutate(messages, false);
-      messagesRef.current = messages;
+      chatStore.current.setMessages({
+        id: chatId,
+        messages: messagesParam,
+      });
     },
-    [mutate],
+    [chatId, messages],
   );
 
   // Input state and handlers.
@@ -412,7 +286,6 @@ Default is undefined, which disables throttling.
       options: ChatRequestOptions & {
         files?: FileList | FileUIPart[];
       } = {},
-      metadata?: Object,
     ) => {
       event?.preventDefault?.();
 
@@ -422,73 +295,30 @@ Default is undefined, which disables throttling.
 
       if (!input && fileParts.length === 0) return;
 
-      if (metadata) {
-        extraMetadataRef.current = {
-          ...extraMetadataRef.current,
-          ...metadata,
-        };
-      }
-
-      triggerRequest({
-        messages: messagesRef.current.concat({
+      append(
+        {
           id: generateId(),
           role: 'user',
           metadata: undefined,
           parts: [...fileParts, { type: 'text', text: input }],
-        }),
-        headers: options.headers,
-        body: options.body,
-      });
+        },
+        {
+          headers: options.headers,
+          body: options.body,
+        },
+      );
 
       setInput('');
     },
-    [input, generateId, triggerRequest],
+    [input, generateId, append, messages],
   );
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
   };
 
-  const addToolResult = useCallback(
-    ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
-      const currentMessages = messagesRef.current;
-
-      updateToolCallResult({
-        messages: currentMessages,
-        toolCallId,
-        toolResult: result,
-      });
-
-      // array mutation is required to trigger a re-render
-      mutate(
-        [
-          ...currentMessages.slice(0, currentMessages.length - 1),
-          {
-            ...currentMessages[currentMessages.length - 1],
-            // @ts-ignore
-            // update the revisionId to trigger a re-render
-            revisionId: generateId(),
-          },
-        ],
-        false,
-      );
-
-      // when the request is ongoing, the auto-submit will be triggered after the request is finished
-      if (status === 'submitted' || status === 'streaming') {
-        return;
-      }
-
-      // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = currentMessages[currentMessages.length - 1];
-      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        triggerRequest({ messages: currentMessages });
-      }
-    },
-    [mutate, status, triggerRequest, generateId],
-  );
-
   return {
-    messages: messages ?? [],
+    messages,
     id: chatId,
     setMessages,
     error,

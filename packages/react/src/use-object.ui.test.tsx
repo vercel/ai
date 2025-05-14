@@ -156,8 +156,8 @@ describe('text stream', () => {
       });
 
       // this should not be consumed any more:
-      controller.write('ello, world!"}');
-      controller.close();
+      await expect(controller.write('ello, world!"}')).rejects.toThrow();
+      await expect(controller.close()).rejects.toThrow();
 
       // should only show start of object:
       await waitFor(() => {

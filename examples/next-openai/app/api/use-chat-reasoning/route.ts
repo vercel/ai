@@ -1,5 +1,10 @@
 import { fireworks } from '@ai-sdk/fireworks';
-import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
+import {
+  convertToModelMessages,
+  extractReasoningMiddleware,
+  streamText,
+  wrapLanguageModel,
+} from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -14,23 +19,8 @@ export async function POST(req: Request) {
       model: fireworks('accounts/fireworks/models/deepseek-r1'),
       middleware: extractReasoningMiddleware({ tagName: 'think' }),
     }),
-    messages,
+    messages: convertToModelMessages(messages),
   });
-
-  // const result = streamText({
-  //   model: deepseek('deepseek-reasoner'),
-  //   messages,
-  // });
-
-  // const result = streamText({
-  //   model: anthropic('research-claude-flannel'),
-  //   messages,
-  //   providerOptions: {
-  //     anthropic: {
-  //       thinking: { type: 'enabled', budgetTokens: 12000 },
-  //     } satisfies AnthropicProviderOptions,
-  //   },
-  // });
 
   return result.toUIMessageStreamResponse({
     sendReasoning: true,

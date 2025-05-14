@@ -1,20 +1,21 @@
 'use client';
 
 import { UIMessage, useChat } from '@ai-sdk/react';
+import { defaultChatStore } from 'ai';
 
 export default function Chat({
   id,
   initialMessages,
 }: { id?: string | undefined; initialMessages?: UIMessage[] } = {}) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat({
-    api: '/api/use-chat-persistence-single-message',
-    id, // use the provided chatId
-    initialMessages, // initial messages if provided
-
-    // only send the last message to the server:
-    experimental_prepareRequestBody({ messages, id }) {
-      return { message: messages[messages.length - 1], id };
-    },
+    chatStore: defaultChatStore({
+      api: '/api/use-chat-persistence-single-message',
+      chats: id ? { [id]: { messages: initialMessages ?? [] } } : undefined,
+      // only send the last message to the server:
+      prepareRequestBody({ messages, id }) {
+        return { message: messages[messages.length - 1], id };
+      },
+    }),
   });
 
   return (

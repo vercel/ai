@@ -9,7 +9,11 @@ import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { processUIMessageStream } from '../../src/ui/process-ui-message-stream';
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+  StreamingUIMessageState,
+} from '../../src/ui/process-ui-message-stream';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -1378,10 +1382,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'reasoning-part-finish': {
               if (sendReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-part-finish',
-                  value: null,
-                });
+                controller.enqueue({ type: 'reasoning-part-finish' });
               }
               break;
             }
@@ -1458,47 +1459,42 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'start-step': {
+              const metadata = messageMetadata?.({ part });
               controller.enqueue({
                 type: 'start-step',
-                value: {
-                  metadata: messageMetadata?.({ part }),
-                },
+                value: metadata != null ? { metadata } : undefined,
               });
               break;
             }
 
             case 'finish-step': {
+              const metadata = messageMetadata?.({ part });
               controller.enqueue({
                 type: 'finish-step',
-                value: {
-                  metadata: messageMetadata?.({ part }),
-                },
+                value: metadata != null ? { metadata } : undefined,
               });
+
               break;
             }
 
             case 'start': {
-              if (experimental_sendStart) {
-                controller.enqueue({
-                  type: 'start',
-                  value: {
-                    messageId,
-                    metadata: messageMetadata?.({ part }),
-                  },
-                });
-              }
+              const metadata = messageMetadata?.({ part });
+              controller.enqueue({
+                type: 'start',
+                value:
+                  messageId != null || metadata != null
+                    ? { messageId, metadata }
+                    : undefined,
+              });
               break;
             }
 
             case 'finish': {
-              if (experimental_sendFinish) {
-                controller.enqueue({
-                  type: 'finish',
-                  value: {
-                    metadata: messageMetadata?.({ part }),
-                  },
-                });
-              }
+              const metadata = messageMetadata?.({ part });
+              controller.enqueue({
+                type: 'finish',
+                value: metadata != null ? { metadata } : undefined,
+              });
               break;
             }
 
@@ -1511,26 +1507,48 @@ However, the LLM results are expected to be small enough to not cause issues.
       }),
     );
 
-    return onFinish == null
-      ? baseStream
-      : processUIMessageStream({
-          stream: baseStream,
-          lastMessage,
-          newMessageId: messageId ?? this.generateId(),
-          onFinish: ({ message }) => {
-            const isContinuation = message.id === lastMessage?.id;
-            onFinish({
-              isContinuation,
-              responseMessage: message,
-              messages: [
-                ...(isContinuation
-                  ? originalMessages.slice(0, -1)
-                  : originalMessages),
-                message,
-              ],
-            });
-          },
-        });
+    if (onFinish == null) {
+      return baseStream;
+    }
+
+    const state = createStreamingUIMessageState({
+      lastMessage,
+      newMessageId: messageId ?? this.generateId(),
+    });
+
+    const runUpdateMessageJob = async (
+      job: (options: {
+        state: StreamingUIMessageState;
+        write: () => void;
+      }) => Promise<void>,
+    ) => {
+      await job({ state, write: () => {} });
+    };
+
+    return processUIMessageStream({
+      stream: baseStream,
+      runUpdateMessageJob,
+    }).pipeThrough(
+      new TransformStream({
+        transform(chunk, controller) {
+          controller.enqueue(chunk);
+        },
+
+        flush() {
+          const isContinuation = state.message.id === lastMessage?.id;
+          onFinish({
+            isContinuation,
+            responseMessage: state.message,
+            messages: [
+              ...(isContinuation
+                ? originalMessages.slice(0, -1)
+                : originalMessages),
+              state.message,
+            ],
+          });
+        },
+      }),
+    );
   }
 
   pipeUIMessageStreamToResponse(

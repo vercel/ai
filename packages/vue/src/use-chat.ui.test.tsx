@@ -209,7 +209,7 @@ describe('data protocol stream', () => {
         formatStreamPart({ type: 'text', value: ',' }),
         formatStreamPart({ type: 'text', value: ' world' }),
         formatStreamPart({ type: 'text', value: '.' }),
-        formatStreamPart({ type: 'finish', value: {} }),
+        formatStreamPart({ type: 'finish' }),
       ],
     };
 
@@ -279,7 +279,11 @@ describe('text stream', () => {
         message: {
           id: expect.any(String),
           role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
+          metadata: {},
+          parts: [
+            { type: 'step-start' },
+            { text: 'Hello, world.', type: 'text' },
+          ],
         },
       },
     ]);
@@ -696,8 +700,8 @@ describe('tool invocations', () => {
     await userEvent.click(screen.getByTestId('do-append'));
 
     // start stream
-    controller1.write(formatStreamPart({ type: 'start', value: {} }));
-    controller1.write(formatStreamPart({ type: 'start-step', value: {} }));
+    controller1.write(formatStreamPart({ type: 'start' }));
+    controller1.write(formatStreamPart({ type: 'start-step' }));
 
     // tool call
     controller1.write(
@@ -731,8 +735,8 @@ describe('tool invocations', () => {
     expect(server.calls.length).toBe(1);
 
     // finish stream
-    controller1.write(formatStreamPart({ type: 'finish-step', value: {} }));
-    controller1.write(formatStreamPart({ type: 'finish', value: {} }));
+    controller1.write(formatStreamPart({ type: 'finish-step' }));
+    controller1.write(formatStreamPart({ type: 'finish' }));
 
     await controller1.close();
 
@@ -807,7 +811,6 @@ describe('file attachments with data url', () => {
             },
           ],
           role: 'assistant',
-          revisionId: 'id-2',
         },
       ]);
     });
@@ -867,7 +870,6 @@ describe('file attachments with data url', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: expect.any(String),
         },
       ]);
     });
@@ -923,7 +925,6 @@ describe('file attachments with url', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: expect.any(String),
         },
       ]);
     });
@@ -984,7 +985,6 @@ describe('attachments with empty submit', () => {
               text: 'Response to empty message with attachment',
             },
           ],
-          revisionId: 'id-2',
         },
       ]);
     });
@@ -1036,7 +1036,6 @@ describe('should append message with attachments', () => {
               type: 'text',
             },
           ],
-          revisionId: 'id-2',
           role: 'assistant',
         },
       ]);

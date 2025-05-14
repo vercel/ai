@@ -1,8 +1,11 @@
 import { useChat } from '@ai-sdk/react';
+import { defaultChatStore } from 'ai';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, status } = useChat({
-    api: '/api/chat-api-route',
+    chatStore: defaultChatStore({
+      api: '/api/chat-api-route',
+    }),
   });
 
   return (

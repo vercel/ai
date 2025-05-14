@@ -8,7 +8,12 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { getToolInvocations, UIMessage, UIMessageStreamPart } from 'ai';
+import {
+  defaultChatStore,
+  getToolInvocations,
+  UIMessage,
+  UIMessageStreamPart,
+} from 'ai';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -112,7 +117,33 @@ describe('data protocol stream', () => {
               text: 'Hello, world.',
             },
           ],
-          revisionId: 'id-6',
+        },
+      ]);
+    });
+  });
+
+  it('should show user message immediately', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          id: 'id-1',
         },
       ]);
     });
@@ -243,7 +274,6 @@ describe('data protocol stream', () => {
               text: 'Hello, world.',
             },
           ],
-          revisionId: 'id-7',
         },
       ]);
     });
@@ -339,7 +369,6 @@ describe('data protocol stream', () => {
               },
             ],
             role: 'assistant',
-            revisionId: 'id-6',
           },
         ]);
       });
@@ -355,11 +384,15 @@ describe('text stream', () => {
 
   setupTestComponent(() => {
     const { messages, append } = useChat({
-      streamProtocol: 'text',
       onFinish: options => {
         onFinishCalls.push(options);
       },
       generateId: mockId(),
+      chatStore: defaultChatStore({
+        api: '/api/chat',
+        streamProtocol: 'text',
+        generateId: mockId(),
+      }),
     });
 
     return (
@@ -451,8 +484,12 @@ describe('text stream', () => {
       [
         {
           "message": {
-            "id": "id-2",
+            "id": "id-1",
+            "metadata": {},
             "parts": [
+              {
+                "type": "step-start",
+              },
               {
                 "text": "Hello, world.",
                 "type": "text",
@@ -469,7 +506,13 @@ describe('text stream', () => {
 describe('form actions', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat({ streamProtocol: 'text' });
+      useChat({
+        chatStore: defaultChatStore({
+          streamProtocol: 'text',
+          api: '/api/chat',
+          generateId: mockId(),
+        }),
+      });
 
     return (
       <div>
@@ -531,10 +574,14 @@ describe('prepareRequestBody', () => {
 
   setupTestComponent(() => {
     const { messages, append, status } = useChat({
-      experimental_prepareRequestBody(options) {
-        bodyOptions = options;
-        return 'test-request-body';
-      },
+      chatStore: defaultChatStore({
+        api: '/api/chat',
+        generateId: mockId({ prefix: 'msg' }),
+        prepareRequestBody(options) {
+          bodyOptions = options;
+          return 'test-request-body';
+        },
+      }),
       generateId: mockId(),
     });
 
@@ -593,7 +640,7 @@ describe('prepareRequestBody', () => {
         "id": "id-0",
         "messages": [
           {
-            "id": "id-1",
+            "id": "msg-0",
             "parts": [
               {
                 "text": "hi",
@@ -603,9 +650,7 @@ describe('prepareRequestBody', () => {
             "role": "user",
           },
         ],
-        "requestBody": {
-          "request-body-key": "request-body-value",
-        },
+        "request-body-key": "request-body-value",
       }
     `);
 
@@ -698,7 +743,12 @@ describe('onToolCall', () => {
 describe('tool invocations', () => {
   setupTestComponent(() => {
     const { messages, append, addToolResult } = useChat({
-      maxSteps: 5,
+      chatStore: defaultChatStore({
+        api: '/api/chat',
+        maxSteps: 5,
+        generateId: mockId(),
+      }),
+      generateId: mockId(),
     });
 
     return (
@@ -727,6 +777,8 @@ describe('tool invocations', () => {
             })}
           </div>
         ))}
+
+        <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <button
           data-testid="do-append"
@@ -878,31 +930,31 @@ describe('tool invocations', () => {
     });
   });
 
-  // TODO re-enable when chat store is in place
-  it.skip('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolResult is called', async () => {
+    const controller = new TestResponseController();
     server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatStreamPart({
-          type: 'start-step',
-          value: {},
-        }),
-        formatStreamPart({
-          type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          },
-        }),
-      ],
+      type: 'controlled-stream',
+      controller,
     };
 
     await userEvent.click(screen.getByTestId('do-append'));
 
+    controller.write(formatStreamPart({ type: 'start' }));
+    controller.write(formatStreamPart({ type: 'start-step' }));
+    controller.write(
+      formatStreamPart({
+        type: 'tool-call',
+        value: {
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      }),
+    );
+
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
       );
     });
 
@@ -910,8 +962,60 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
       );
+    });
+
+    controller.write(
+      formatStreamPart({
+        type: 'text',
+        value: 'more text',
+      }),
+    );
+    controller.close();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: 'id-0',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          id: 'id-1',
+          metadata: {},
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              toolInvocation: {
+                args: {
+                  testArg: 'test-value',
+                },
+                result: 'test-result',
+                state: 'result',
+                step: 0,
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+              },
+              type: 'tool-invocation',
+            },
+            {
+              text: 'more text',
+              type: 'text',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
     });
   });
 
@@ -927,8 +1031,8 @@ describe('tool invocations', () => {
     await userEvent.click(screen.getByTestId('do-append'));
 
     // start stream
-    controller1.write(formatStreamPart({ type: 'start', value: {} }));
-    controller1.write(formatStreamPart({ type: 'start-step', value: {} }));
+    controller1.write(formatStreamPart({ type: 'start' }));
+    controller1.write(formatStreamPart({ type: 'start-step' }));
 
     // tool call
     controller1.write(
@@ -962,8 +1066,8 @@ describe('tool invocations', () => {
     expect(server.calls.length).toBe(1);
 
     // finish stream
-    controller1.write(formatStreamPart({ type: 'finish-step', value: {} }));
-    controller1.write(formatStreamPart({ type: 'finish', value: {} }));
+    controller1.write(formatStreamPart({ type: 'finish-step' }));
+    controller1.write(formatStreamPart({ type: 'finish' }));
 
     await controller1.close();
 
@@ -987,7 +1091,11 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxSteps: 5,
+        chatStore: defaultChatStore({
+          api: '/api/chat',
+          generateId: mockId(),
+          maxSteps: 5,
+        }),
       });
 
       return (
@@ -1058,7 +1166,11 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxSteps: 5,
+        chatStore: defaultChatStore({
+          api: '/api/chat',
+          generateId: mockId(),
+          maxSteps: 5,
+        }),
       });
 
       return (
@@ -1118,10 +1230,11 @@ describe('maxSteps', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('error');
-      expect(screen.getByTestId('error')).toHaveTextContent(
-        'Error: call failure',
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Error: call failure',
+        );
+      });
 
       expect(onToolCallCounter).toBe(1);
     });
@@ -1231,7 +1344,6 @@ describe('file attachments with data url', () => {
             },
           ],
           role: 'assistant',
-          revisionId: 'id-2',
         },
       ]);
     });
@@ -1315,7 +1427,6 @@ describe('file attachments with data url', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: expect.any(String),
         },
       ]);
     });
@@ -1431,7 +1542,6 @@ describe('file attachments with url', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: expect.any(String),
         },
       ]);
     });
@@ -1538,7 +1648,6 @@ describe('attachments with empty submit', () => {
               text: 'Response to message with image attachment',
             },
           ],
-          revisionId: 'id-3',
         },
       ]);
     });
@@ -1650,7 +1759,6 @@ describe('should append message with attachments', () => {
               type: 'text',
             },
           ],
-          revisionId: 'id-3',
           role: 'assistant',
         },
       ]);
@@ -1839,159 +1947,27 @@ describe('test sending additional fields during message submission', () => {
   });
 });
 
-describe('initialMessages', () => {
-  describe('stability', () => {
-    let renderCount = 0;
-
-    setupTestComponent(() => {
-      renderCount++;
-      const [derivedState, setDerivedState] = useState<string[]>([]);
-
-      const { messages } = useChat({
-        initialMessages: [
-          {
-            id: 'test-msg-1',
-            role: 'user',
-            parts: [{ text: 'Test message', type: 'text' }],
-          },
-          {
-            id: 'test-msg-2',
-            role: 'assistant',
-            parts: [{ text: 'Test response', type: 'text' }],
-          },
-        ],
-      });
-
-      useEffect(() => {
-        setDerivedState(
-          messages.map(m =>
-            m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join(''),
-          ),
-        );
-      }, [messages]);
-
-      if (renderCount > 10) {
-        throw new Error('Excessive renders detected; likely an infinite loop!');
-      }
-
-      return (
-        <div>
-          <div data-testid="render-count">{renderCount}</div>
-          <div data-testid="derived-state">{derivedState.join(', ')}</div>
-          {messages.map(m => (
-            <div key={m.id} data-testid={`message-${m.role}`}>
-              {m.parts
-                .map(part => (part.type === 'text' ? part.text : ''))
-                .join('')}
-            </div>
-          ))}
-        </div>
-      );
-    });
-
-    beforeEach(() => {
-      renderCount = 0;
-    });
-
-    it('should not cause infinite rerenders when initialMessages is defined and messages is a dependency of useEffect', async () => {
-      // wait for initial render to complete
-      await waitFor(() => {
-        expect(screen.getByTestId('message-user')).toHaveTextContent(
-          'Test message',
-        );
-      });
-
-      // confirm useEffect ran
-      await waitFor(() => {
-        expect(screen.getByTestId('derived-state')).toHaveTextContent(
-          'Test message, Test response',
-        );
-      });
-
-      const renderCount = parseInt(
-        screen.getByTestId('render-count').textContent!,
-      );
-
-      expect(renderCount).toBe(2);
-    });
-  });
-
-  describe('changing initial messages', () => {
-    setupTestComponent(() => {
-      const [initialMessages, setInitialMessages] = useState<UIMessage[]>([
-        {
-          id: 'test-msg-1',
-          role: 'user',
-          parts: [{ text: 'Test message 1', type: 'text' }],
-        },
-      ]);
-
-      const { messages } = useChat({
-        initialMessages,
-      });
-
-      return (
-        <div>
-          <div data-testid="messages">
-            {messages
-              .map(m =>
-                m.parts
-                  .map(part => (part.type === 'text' ? part.text : ''))
-                  .join(''),
-              )
-              .join(', ')}
-          </div>
-
-          <button
-            data-testid="do-update-initial-messages"
-            onClick={() => {
-              setInitialMessages([
-                {
-                  id: 'test-msg-2',
-                  role: 'user',
-                  parts: [{ text: 'Test message 2', type: 'text' }],
-                },
-              ]);
-            }}
-          />
-        </div>
-      );
-    });
-
-    it('should update messages when initialMessages changes', async () => {
-      await waitFor(() => {
-        expect(screen.getByTestId('messages')).toHaveTextContent(
-          'Test message 1',
-        );
-      });
-
-      await userEvent.click(screen.getByTestId('do-update-initial-messages'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('messages')).toHaveTextContent(
-          'Test message 2',
-        );
-      });
-    });
-  });
-});
-
 describe('resume ongoing stream and return assistant message', () => {
   const controller = new TestResponseController();
 
   setupTestComponent(
     () => {
+      const chatStore = defaultChatStore({
+        api: '/api/chat',
+        generateId: mockId(),
+      });
+
+      chatStore.addChat('123', [
+        {
+          id: 'msg_123',
+          role: 'user',
+          parts: [{ type: 'text', text: 'hi' }],
+        },
+      ]);
+
       const { messages, status, experimental_resume } = useChat({
         id: '123',
-        initialMessages: [
-          {
-            id: 'msg_123',
-            role: 'user',
-            parts: [{ type: 'text', text: 'hi' }],
-          },
-        ],
+        chatStore,
       });
 
       useEffect(() => {
@@ -2063,5 +2039,73 @@ describe('resume ongoing stream and return assistant message', () => {
       expect(requestMethod).toBe('GET');
       expect(requestUrl).toBe('http://localhost:3000/api/chat?chatId=123');
     });
+  });
+});
+
+describe('stop', () => {
+  setupTestComponent(() => {
+    const { messages, append, stop, status } = useChat({
+      generateId: mockId(),
+    });
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
+          </div>
+        ))}
+
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({
+              role: 'user',
+              parts: [{ text: 'hi', type: 'text' }],
+            });
+          }}
+        />
+
+        <button data-testid="do-stop" onClick={stop} />
+
+        <p data-testid="status">{status}</p>
+      </div>
+    );
+  });
+
+  it('should show stop response', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+    });
+
+    await userEvent.click(screen.getByTestId('do-stop'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+    });
+
+    await expect(
+      controller.write(formatStreamPart({ type: 'text', value: ', world!' })),
+    ).rejects.toThrow();
+
+    await expect(controller.close()).rejects.toThrow();
+
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    expect(screen.getByTestId('status')).toHaveTextContent('ready');
   });
 });
