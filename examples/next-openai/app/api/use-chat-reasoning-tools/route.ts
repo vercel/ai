@@ -1,5 +1,12 @@
 import { createAnthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { streamText, tool } from 'ai';
+import { fireworks } from '@ai-sdk/fireworks';
+import {
+  convertToModelMessages,
+  extractReasoningMiddleware,
+  streamText,
+  tool,
+  wrapLanguageModel,
+} from 'ai';
 import { z } from 'zod';
 
 const anthropic = createAnthropic({
@@ -23,8 +30,11 @@ export async function POST(req: Request) {
   console.log(JSON.stringify(messages, null, 2));
 
   const result = streamText({
-    model: anthropic('claude-3-7-sonnet-20250219'),
-    messages,
+    model: wrapLanguageModel({
+      model: fireworks('accounts/fireworks/models/qwen3-30b-a3b'),
+      middleware: extractReasoningMiddleware({ tagName: 'think' }),
+    }),
+    messages: convertToModelMessages(messages),
     toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools
     tools: {
@@ -55,11 +65,6 @@ export async function POST(req: Request) {
           'Get the user location. Always ask for confirmation before using this tool.',
         parameters: z.object({}),
       }),
-    },
-    providerOptions: {
-      anthropic: {
-        thinking: { type: 'enabled', budgetTokens: 12000 },
-      } satisfies AnthropicProviderOptions,
     },
   });
 
