@@ -3,11 +3,11 @@ title: Patronus
 description: Monitor, evaluate and debug your AI SDK application with Patronus
 ---
 
-## Patronus Observability
+# Patronus Observability
 
 [Patronus AI](https://patronus.ai) provides an end-to-end system to evaluate, monitor and improve performance of an LLM system, enabling developers to ship AI products safely and confidently. Learn more [here](https://docs.patronus.ai/docs).
 
-When you build with the **AI SDK**, you can stream OpenTelemetry (OTEL) traces straight into Patronus and pair every generation with rich automatic evaluations.
+When you build with the AI SDK, you can stream OpenTelemetry (OTEL) traces straight into Patronus and pair every generation with rich automatic evaluations.
 
 ## Setup
 
@@ -47,7 +47,11 @@ export function register() {
 }
 ```
 
-_If you need gRPC instead of HTTP, swap the exporter for `@opentelemetry/exporter-trace-otlp-grpc` and use `https://otel.patronus.ai:4317`._
+<Note>
+  If you need gRPC instead of HTTP, swap the exporter for
+  `@opentelemetry/exporter-trace-otlp-grpc` and use
+  `https://otel.patronus.ai:4317`.
+</Note>
 
 ### 2. Enable telemetry on individual calls
 
@@ -118,7 +122,7 @@ export async function POST(req: Request) {
 }
 ```
 
-####Result: a single trace containing the root HTTP request, the LLM generation span, and your evaluation span—**all visible in Patronus** with the hallucination score attached.
+Result: a single trace containing the root HTTP request, the LLM generation span, and your evaluation span—**all visible in Patronus** with the hallucination score attached.
 
 ## Once you've traced
 
@@ -127,5 +131,5 @@ export async function POST(req: Request) {
 
 ## Resources
 
-- **Patronus docs:** [https://docs.patronus.ai](https://docs.patronus.ai)
-- **OpenTelemetry SDK (JS):** [https://opentelemetry.io/docs/instrumentation/js/](https://opentelemetry.io/docs/instrumentation/js/)
+- [Patronus docs](https://docs.patronus.ai)
+- [OpenTelemetry SDK (JS)](https://opentelemetry.io/docs/instrumentation/js/)
