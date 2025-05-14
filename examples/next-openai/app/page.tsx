@@ -12,16 +12,48 @@ export default function Chat() {
     messages,
     reload,
     stop,
-  } = useChat();
+  } = useChat<
+    { metadataKey: string },
+    {
+      weather: {
+        city: string;
+        temperature: number;
+      };
+      activity: {
+        type: string;
+        description: string;
+      };
+    }
+  >();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.parts
-            .map(part => (part.type === 'text' ? part.text : ''))
-            .join('')}
+          {m.parts.map(part => {
+            switch (part.type) {
+              case 'text': {
+                return part.text;
+              }
+              case 'data-weather': {
+                return (
+                  <div>
+                    <div>{part.value.city}</div>
+                    <div>{part.value.temperature}</div>
+                  </div>
+                );
+              }
+              case 'data-activity': {
+                return (
+                  <div>
+                    <div>{part.value.type}</div>
+                    <div>{part.value.description}</div>
+                  </div>
+                );
+              }
+            }
+          })}
         </div>
       ))}
 

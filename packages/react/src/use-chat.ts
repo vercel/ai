@@ -16,7 +16,10 @@ import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
-export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
+export type UseChatHelpers<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends Record<string, unknown> = Record<string, unknown>,
+> = {
   /**
    * The id of the chat.
    */
@@ -33,7 +36,7 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   readonly status: 'submitted' | 'streaming' | 'ready' | 'error';
 
   /** Current messages in the chat */
-  readonly messages: UIMessage<MESSAGE_METADATA>[];
+  readonly messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
 
   /** The error object of the API request */
   readonly error: undefined | Error;
@@ -76,10 +79,10 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
    */
   setMessages: (
     messages:
-      | UIMessage<MESSAGE_METADATA>[]
+      | UIMessage<MESSAGE_METADATA, DATA_TYPES>[]
       | ((
-          messages: UIMessage<MESSAGE_METADATA>[],
-        ) => UIMessage<MESSAGE_METADATA>[]),
+          messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[],
+        ) => UIMessage<MESSAGE_METADATA, DATA_TYPES>[]),
   ) => void;
 
   /** The current value of the input */
@@ -112,7 +115,10 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   }) => void;
 };
 
-export function useChat<MESSAGE_METADATA>({
+export function useChat<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends Record<string, unknown> = Record<string, unknown>,
+>({
   id,
   initialInput = '',
   onToolCall,
@@ -127,7 +133,7 @@ Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-} = {}): UseChatHelpers<MESSAGE_METADATA> {
+} = {}): UseChatHelpers<MESSAGE_METADATA, DATA_TYPES> {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
