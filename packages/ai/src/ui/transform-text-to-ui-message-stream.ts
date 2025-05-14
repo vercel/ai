@@ -8,8 +8,8 @@ export function transformTextToUiMessageStream({
   return stream.pipeThrough(
     new TransformStream<string, UIMessageStreamPart>({
       start(controller) {
-        controller.enqueue({ type: 'start', value: {} });
-        controller.enqueue({ type: 'start-step', value: {} });
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
       },
 
       async transform(part, controller) {
@@ -17,8 +17,8 @@ export function transformTextToUiMessageStream({
       },
 
       async flush(controller) {
-        controller.enqueue({ type: 'finish-step', value: {} });
-        controller.enqueue({ type: 'finish', value: {} });
+        controller.enqueue({ type: 'finish-step' });
+        controller.enqueue({ type: 'finish' });
       },
     }),
   );

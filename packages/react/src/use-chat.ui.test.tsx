@@ -912,8 +912,8 @@ describe('tool invocations', () => {
 
     await userEvent.click(screen.getByTestId('do-append'));
 
-    controller.write(formatStreamPart({ type: 'start', value: {} }));
-    controller.write(formatStreamPart({ type: 'start-step', value: {} }));
+    controller.write(formatStreamPart({ type: 'start' }));
+    controller.write(formatStreamPart({ type: 'start-step' }));
     controller.write(
       formatStreamPart({
         type: 'tool-call',
@@ -1004,8 +1004,8 @@ describe('tool invocations', () => {
     await userEvent.click(screen.getByTestId('do-append'));
 
     // start stream
-    controller1.write(formatStreamPart({ type: 'start', value: {} }));
-    controller1.write(formatStreamPart({ type: 'start-step', value: {} }));
+    controller1.write(formatStreamPart({ type: 'start' }));
+    controller1.write(formatStreamPart({ type: 'start-step' }));
 
     // tool call
     controller1.write(
@@ -1039,8 +1039,8 @@ describe('tool invocations', () => {
     expect(server.calls.length).toBe(1);
 
     // finish stream
-    controller1.write(formatStreamPart({ type: 'finish-step', value: {} }));
-    controller1.write(formatStreamPart({ type: 'finish', value: {} }));
+    controller1.write(formatStreamPart({ type: 'finish-step' }));
+    controller1.write(formatStreamPart({ type: 'finish' }));
 
     await controller1.close();
 
