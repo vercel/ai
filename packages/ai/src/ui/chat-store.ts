@@ -317,32 +317,34 @@ export class ChatStore<MESSAGE_METADATA> {
     result: unknown;
   }) {
     const chat = this.getChat(chatId);
-    const currentMessages = chat.messages;
 
-    updateToolCallResult({
-      messages: currentMessages,
-      toolCallId,
-      toolResult: result,
-    });
+    chat.jobExecutor.run(async () => {
+      const currentMessages = chat.messages;
 
-    // updated the messages array:
-    // TODO we need better immutability
-    this.setMessages({ id: chatId, messages: currentMessages });
-
-    // when the request is ongoing, the auto-submit will be triggered after the request is finished
-    if (chat.status === 'submitted' || chat.status === 'streaming') {
-      return;
-    }
-
-    // auto-submit when all tool calls in the last assistant message have results:
-    const lastMessage = currentMessages[currentMessages.length - 1];
-    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      await this.triggerRequest({
+      updateToolCallResult({
         messages: currentMessages,
-        requestType: 'generate',
-        chatId,
+        toolCallId,
+        toolResult: result,
       });
-    }
+
+      // updated the messages array:
+      this.setMessages({ id: chatId, messages: currentMessages });
+
+      // when the request is ongoing, the auto-submit will be triggered after the request is finished
+      if (chat.status === 'submitted' || chat.status === 'streaming') {
+        return;
+      }
+
+      // auto-submit when all tool calls in the last assistant message have results:
+      const lastMessage = currentMessages[currentMessages.length - 1];
+      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+        await this.triggerRequest({
+          messages: currentMessages,
+          requestType: 'generate',
+          chatId,
+        });
+      }
+    });
   }
 
   async stopStream({ chatId }: { chatId: string }) {

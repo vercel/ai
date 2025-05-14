@@ -698,6 +698,7 @@ describe('tool invocations', () => {
   setupTestComponent(() => {
     const { messages, append, addToolResult } = useChat({
       maxSteps: 5,
+      generateId: mockId(),
     });
 
     return (
@@ -726,6 +727,8 @@ describe('tool invocations', () => {
             })}
           </div>
         ))}
+
+        <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <button
           data-testid="do-append"
@@ -877,27 +880,27 @@ describe('tool invocations', () => {
     });
   });
 
-  // TODO re-enable when chat store is in place
-  it.skip('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolResult is called', async () => {
+    const controller = new TestResponseController();
     server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatStreamPart({
-          type: 'start-step',
-          value: {},
-        }),
-        formatStreamPart({
-          type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          },
-        }),
-      ],
+      type: 'controlled-stream',
+      controller,
     };
 
     await userEvent.click(screen.getByTestId('do-append'));
+
+    controller.write(formatStreamPart({ type: 'start', value: {} }));
+    controller.write(formatStreamPart({ type: 'start-step', value: {} }));
+    controller.write(
+      formatStreamPart({
+        type: 'tool-call',
+        value: {
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -909,8 +912,60 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
       );
+    });
+
+    controller.write(
+      formatStreamPart({
+        type: 'text',
+        value: 'more text',
+      }),
+    );
+    controller.close();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: 'id-1',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          id: 'id-2',
+          metadata: {},
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              toolInvocation: {
+                args: {
+                  testArg: 'test-value',
+                },
+                result: 'test-result',
+                state: 'result',
+                step: 0,
+                toolCallId: 'tool-call-0',
+                toolName: 'test-tool',
+              },
+              type: 'tool-invocation',
+            },
+            {
+              text: 'more text',
+              type: 'text',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
     });
   });
 
