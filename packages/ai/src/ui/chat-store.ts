@@ -5,6 +5,7 @@ import {
   ToolCall,
 } from '@ai-sdk/provider-utils';
 import { consumeStream } from '../util/consume-stream';
+import { SerialJobExecutor } from '../util/serial-job-executor';
 import { ChatTransport } from './chat-transport';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
@@ -41,6 +42,7 @@ export interface Chat<MESSAGE_METADATA> {
     state: StreamingUIMessageState<MESSAGE_METADATA>;
     abortController?: AbortController;
   };
+  jobExecutor: SerialJobExecutor;
 }
 
 // TODO rename to something better
@@ -103,7 +105,7 @@ export class ChatStore<MESSAGE_METADATA> {
           status: 'ready',
           activeResponse: undefined,
           error: undefined,
-          abortController: undefined,
+          jobExecutor: new SerialJobExecutor(),
         },
       ]),
     );
@@ -123,6 +125,7 @@ export class ChatStore<MESSAGE_METADATA> {
     this.chats.set(id, {
       messages,
       status: 'ready',
+      jobExecutor: new SerialJobExecutor(),
     });
   }
 
@@ -415,36 +418,38 @@ export class ChatStore<MESSAGE_METADATA> {
         requestType,
       });
 
-      const runUpdateMessageJob = async (
+      const runUpdateMessageJob = (
         job: (options: {
           state: StreamingUIMessageState<MESSAGE_METADATA>;
           write: () => void;
         }) => Promise<void>,
-      ) => {
-        await job({
-          state: activeResponse.state,
-          write: () => {
-            // streaming is set on first write (before it should be "submitted")
-            self.setStatus({ id: chatId, status: 'streaming' });
+      ) =>
+        // serialize the job execution to avoid race conditions:
+        chat.jobExecutor.run(() =>
+          job({
+            state: activeResponse.state,
+            write: () => {
+              // streaming is set on first write (before it should be "submitted")
+              self.setStatus({ id: chatId, status: 'streaming' });
 
-            const replaceLastMessage =
-              activeResponse.state.message.id ===
-              chatMessages[chatMessages.length - 1].id;
+              const replaceLastMessage =
+                activeResponse.state.message.id ===
+                chatMessages[chatMessages.length - 1].id;
 
-            const newMessages = [
-              ...(replaceLastMessage
-                ? chatMessages.slice(0, chatMessages.length - 1)
-                : chatMessages),
-              activeResponse.state.message,
-            ];
+              const newMessages = [
+                ...(replaceLastMessage
+                  ? chatMessages.slice(0, chatMessages.length - 1)
+                  : chatMessages),
+                activeResponse.state.message,
+              ];
 
-            self.setMessages({
-              id: chatId,
-              messages: newMessages,
-            });
-          },
-        });
-      };
+              self.setMessages({
+                id: chatId,
+                messages: newMessages,
+              });
+            },
+          }),
+        );
 
       await consumeStream({
         stream: processUIMessageStream({
