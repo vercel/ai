@@ -8,7 +8,10 @@ import { ChatStore } from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
 import { UIDataTypes, UIMessage } from './ui-messages';
 
-export interface DefaultChatStoreOptions<MESSAGE_METADATA = unknown, DATA_TYPES extends UIDataTypes = UIDataTypes> {
+export interface DefaultChatStoreOptions<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> {
   /**
    * Schema for the message metadata. Validates the message metadata.
    * Message metadata can be undefined or must match the schema.
@@ -111,7 +114,10 @@ export function defaultChatStore<
   messageMetadataSchema,
   maxSteps = 1,
   chats,
-}: DefaultChatStoreOptions<MESSAGE_METADATA, DATA_TYPES>): ChatStore<MESSAGE_METADATA, DATA_TYPES> {
+}: DefaultChatStoreOptions<MESSAGE_METADATA, DATA_TYPES>): ChatStore<
+  MESSAGE_METADATA,
+  DATA_TYPES
+> {
   return new ChatStore<MESSAGE_METADATA, DATA_TYPES>({
     transport: new DefaultChatTransport<MESSAGE_METADATA, DATA_TYPES>({
       api,

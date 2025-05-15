@@ -74,7 +74,10 @@ either synchronously or asynchronously.
   }) => void;
 };
 
-export class ChatStore<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
+export class ChatStore<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> {
   private chats: Map<string, Chat<MESSAGE_METADATA, DATA_TYPES>>;
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
