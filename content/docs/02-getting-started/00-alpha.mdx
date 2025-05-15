@@ -1,0 +1,212 @@
+---
+title: AI SDK 5 Alpha
+description: Get started with the latest Alpha version of the AI SDK.
+---
+
+# AI SDK 5 - Alpha
+
+<Note>
+  This is an early preview — AI SDK 5 is under active development. APIs may
+  change without notice. Pin production to v4 (ai@^4).
+</Note>
+
+## Installation
+
+To install the AI SDK 5 - Alpha, run the following command:
+
+```bash
+# replace with your provider and framework
+npm install ai@canary @ai-sdk/[your-provider]@canary @ai-sdk/[your-framework]@canary
+```
+
+## What's new in AI SDK 5?
+
+AI SDK 5 represents a full redesign of the AI SDK's protocol and architecture, building a more robust platform that enables quick and reliable support for all new features from AI providers as they emerge.
+
+### Why AI SDK 5?
+
+When we originally designed the v1 protocol over a year ago, the standard interaction pattern with language models was simple: text in, text or tool call out. But today's LLMs go way beyond text and tool calls, generating reasoning, sources, images and more. Additionally, new use-cases like computer using agents introduce a fundamentally new approach to interacting with language models that made it near-impossible to support in a unified approach with our original architecture.
+
+We needed a protocol designed for this new reality. While this is a breaking change that we don't take lightly, it's provided an opportunity to rebuild the foundation and add powerful new features.
+
+While we've designed AI SDK 5 to be a substantial improvement over previous versions, we're still in active development. You might encounter bugs or unexpected behavior. We'd greatly appreciate your feedback and bug reports—they're essential to making this release better. Please share your experiences and suggestions with us through GitHub issues or GitHub discussions.
+
+### Feature Overview
+
+- **V2 Protocol** - redesigned from the ground up for modern AI capabilities
+- **Data Parts** - stream type-safe arbitrary data parts to the client
+- **Updated Stream Writer** - stream any part type (reasoning, sources, etc.) in order
+- **ChatStore and Transport** - improved `useChat` architecture
+- **Server-Sent Events (SSE)** - replacing proprietary protocol
+- **prepareStep Callback** - enables agentic behavior for `generateText`
+- **Message Overhaul** - new `UIMessage` and `ModelMessage` types
+- **Type-safe Message Metadata** - // TITLE TODO
+
+### Coming soon
+
+// TODO
+- OAI Computer use
+- streamText prepareStep
+- prepareStep improvements (update system prompt)
+
+## New Features
+
+### V2 Protocol
+
+The V2 Protocol represents a complete redesign of how the AI SDK communicates with language models, adapting to the increasingly complex outputs modern AI systems generate. This new protocol treats all AI outputs as typed content parts, enabling more consistent handling of text, images, reasoning, sources, and other response types. It now has:
+
+- **Content-First Design** - Rather than separating text, reasoning, and tool calls, everything is now represented as ordered content parts in a unified array
+- **Improved Type Safety** - The new protocol provides better TypeScript type guarantees, making it easier to work with different content types
+- **Simplified Extensibility** - Adding support for new model capabilities no longer requires changes to the core protocol structure
+
+### Data Parts
+
+Data parts provide a type-safe way to stream arbitrary data from the server to the client and display it in your UI.
+
+You can create and stream custom data parts on the server:
+
+```tsx
+// On the server
+const stream = createUIMessageStream({
+  execute: writer => {
+    // Initial update
+    writer.write({
+      type: 'data-weather', // Custom type
+      id: toolCallId, // ID for updates
+      data: { city, status: 'loading' }, // Your data
+    });
+
+    // Later, update the same part
+    writer.write({
+      type: 'data-weather',
+      id: toolCallId,
+      data: { city, weather, status: 'success' },
+    });
+  },
+});
+```
+
+On the client, you can render these parts with full type safety:
+
+```tsx
+{
+  message.parts
+    .filter(part => part.type === 'data-weather') // type-safe
+    .map((part, index) => (
+      <Weather
+        key={index}
+        city={part.value.city} // type-safe
+        weather={part.value.weather} // type-safe
+        status={part.value.status} // type-safe
+      />
+    ));
+}
+```
+
+Data parts appear in the `message.parts` array along with other content, maintaining the proper ordering of the conversation. You can update parts by referencing the same ID, enabling dynamic experiences like collaborative artifacts.
+
+### ChatStore and Transport
+
+AI SDK 5 introduces a new `useChat` architecture with ChatStore and ChatTransport components. These two core building blocks make state management and API integration more flexible, allowing you to compose reactive UI bindings, share chat state across multiple instances, and swap out your backend protocol without rewriting application logic.
+
+#### ChatStore
+
+The `ChatStore` is responsible for:
+
+- **Managing multiple chat sessions** – access and switch between conversations seamlessly.
+- **Caching and synchronizing** – share state (messages, status, errors) between `useChat` hooks.
+
+You can create a ChatStore with the helper function:
+
+```ts
+import { defaultChatStore } from 'ai';
+
+const chatStore = defaultChatStore({
+  api: '/api/chat', // your chat endpoint
+  maxSteps: 5, // optional: limit LLM calls in tool chains
+  chats: {}, // optional: preload previous chat sessions
+});
+
+// Connect to your UI in React:
+import { `useChat` } from '@ai-sdk/react';
+const { messages, input, handleSubmit } = `useChat`({ chatStore });
+```
+
+#### ChatTransport
+
+`ChatTransport` encapsulates all API communication concerns:
+
+- **submitMessages** – send messages to your API and receive a stream of responses
+
+The transport is pluggable, giving you control over request shape, streaming protocol, and error handling without changing your UI code.
+
+##### DefaultChatTransport
+
+AI SDK provides a `DefaultChatTransport` implementation that handles common communication patterns:
+
+```ts
+import { DefaultChatTransport } from 'ai';
+
+const transport = new DefaultChatTransport({
+  api: '/api/chat', // API endpoint
+  streamProtocol: 'ui-message', // streaming protocol ('ui-message' or 'text')
+  credentials: 'same-origin', // fetch credentials mode
+  headers: { 'x-custom': 'value' }, // custom headers
+  body: { extraData: true }, // additional request data
+
+  // Optional: customize the request body
+  prepareRequestBody: ({ id, messages, requestBody }) => ({
+    chatId: id,
+    messages,
+    ...requestBody,
+    customField: 'value',
+  }),
+});
+```
+
+##### Custom transport
+
+You can implement your own protocol by implementing the `ChatTransport` interface:
+
+```ts
+import { ChatTransport } from 'ai';
+
+class MyCustomTransport implements ChatTransport {
+  async submitMessages({
+    chatId,
+    messages,
+    abortController,
+    body,
+    headers,
+    requestType,
+  }) {
+    // Make API request and return a ReadableStream of UIMessageStreamPart
+    // ...
+  }
+}
+
+const chatStore = defaultChatStore({
+  // Use custom transport instead of api param
+  transport: new MyCustomTransport(),
+});
+```
+
+This separation of **state management** (`ChatStore`) and **communication layer** (`ChatTransport`) makes it easy to:
+
+- Share chats across multiple UI components
+- Choose between different API protocols
+- Create custom transport implementations for specific needs
+- Keep your application logic framework-independent
+
+
+### Server-Sent Events (SSE)
+
+AI SDK 5 replaces our proprietary streaming protocol with Server-Sent Events (SSE), a standardized web technology for streaming data from servers to clients. This change brings several benefits:
+
+- **Industry standard** - Uses a well-established protocol that works across browsers and environments
+- **Better debugging** - SSE streams can be inspected using standard network tools
+- **Simpler extensions** - Makes it easier to add new streaming capabilities
+- **Improved reliability** - Benefits from mature implementations and wide support
+
+[PLACEHOLDER IMAGE OF SSE IN BROWSER]
+
