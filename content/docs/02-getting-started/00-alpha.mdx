@@ -5,9 +5,32 @@ description: Get started with the latest Alpha version of the AI SDK.
 
 # AI SDK 5 - Alpha
 
-<Note>
+<Note type="warning">
   This is an early preview — AI SDK 5 is under active development. APIs may
-  change without notice. Pin production to v4 (ai@^4).
+  change without notice. Pin to specific versions as breaking changes may occur
+  even in patch releases.
+</Note>
+
+## Alpha Version Guidance
+
+The AI SDK 5 Alpha is intended for:
+
+- Exploration and early prototypes
+- Green-field projects where you can experiment freely
+- Development environments where you can tolerate breaking changes
+
+This Alpha release is **not recommended** for:
+
+- Production applications
+- Projects that require stable APIs
+- Existing applications that would need migration paths
+
+During this Alpha phase, we expect to make significant, potentially breaking changes to the API surface. We're sharing early to gather feedback and improve the SDK before stabilization. Your input is invaluable—please share your experiences through GitHub issues or discussions to help shape the final release.
+
+<Note type="warning">
+  We expect bugs in this Alpha release. To help us improve the SDK, please file
+  bug reports on GitHub. Your reports directly contribute to making the final
+  release more stable and reliable.
 </Note>
 
 ## Installation
@@ -16,12 +39,12 @@ To install the AI SDK 5 - Alpha, run the following command:
 
 ```bash
 # replace with your provider and framework
-npm install ai@canary @ai-sdk/[your-provider]@canary @ai-sdk/[your-framework]@canary
+npm install ai@alpha @ai-sdk/[your-provider]@alpha @ai-sdk/[your-framework]@alpha
 ```
 
 ## What's new in AI SDK 5?
 
-AI SDK 5 represents a full redesign of the AI SDK's protocol and architecture, building a more robust platform that enables quick and reliable support for all new features from AI providers as they emerge.
+AI SDK 5 represents a complete redesign of the AI SDK's protocol and architecture. Drawing on lessons from two years of real-world usage, we've rebuilt the foundation to accommodate the rapidly evolving LLM landscape. The new architecture prepares for future multi-modal capabilities, supporting both input and output beyond just text. We've also modernized the UI and protocols that have remained largely unchanged since AI SDK 2/3, creating a more robust platform that enables quick and reliable support for emerging AI provider features.
 
 ### Why AI SDK 5?
 
@@ -33,35 +56,186 @@ While we've designed AI SDK 5 to be a substantial improvement over previous vers
 
 ### Feature Overview
 
-- **V2 Protocol** - redesigned from the ground up for modern AI capabilities
-- **Data Parts** - stream type-safe arbitrary data parts to the client
-- **Updated Stream Writer** - stream any part type (reasoning, sources, etc.) in order
-- **ChatStore and Transport** - improved `useChat` architecture
-- **Server-Sent Events (SSE)** - replacing proprietary protocol
-- **prepareStep Callback** - enables agentic behavior for `generateText`
+- **LanguageModelV2** - new strong foundation
 - **Message Overhaul** - new `UIMessage` and `ModelMessage` types
-- **Type-safe Message Metadata** - // TITLE TODO
-
-### Coming soon
-
-// TODO
-- OAI Computer use
-- streamText prepareStep
-- prepareStep improvements (update system prompt)
+- **ChatStore** - new `useChat` architecture
+- **Server-Sent Events (SSE)** - new standardised protocol
+- **Agentic Control** - new primitives for building agentic systems
 
 ## New Features
 
-### V2 Protocol
+### LanguageModelV2
 
-The V2 Protocol represents a complete redesign of how the AI SDK communicates with language models, adapting to the increasingly complex outputs modern AI systems generate. This new protocol treats all AI outputs as typed content parts, enabling more consistent handling of text, images, reasoning, sources, and other response types. It now has:
+LanguageModelV2 represents a complete redesign of how the AI SDK communicates with language models, adapting to the increasingly complex outputs modern AI systems generate. The new LanguageModelV2 treats all LLM outputs as content parts, enabling more consistent handling of text, images, reasoning, sources, and other response types. It now has:
 
 - **Content-First Design** - Rather than separating text, reasoning, and tool calls, everything is now represented as ordered content parts in a unified array
-- **Improved Type Safety** - The new protocol provides better TypeScript type guarantees, making it easier to work with different content types
-- **Simplified Extensibility** - Adding support for new model capabilities no longer requires changes to the core protocol structure
+- **Improved Type Safety** - The new LanguageModelV2 provides better TypeScript type guarantees, making it easier to work with different content types
+- **Simplified Extensibility** - Adding support for new model capabilities no longer requires changes to the core structure
 
-### Data Parts
+### Message Overhaul
 
-Data parts provide a type-safe way to stream arbitrary data from the server to the client and display it in your UI.
+AI SDK 5 introduces a completely redesigned message system with two message types that address the dual needs of what you render in your UI and what you send to the model. Context is crucial for effective language model generations, and these two message types serve distinct purposes:
+
+- **UIMessage** represents the complete conversation history for your interface, preserving all message parts (text, images, data), metadata (creation timestamps, generation times), and UI state—regardless of length.
+
+- **ModelMessage** is optimized for sending to language models, considering token input constraints. It strips away UI-specific metadata and irrelevant content.
+
+WIth this change, you will be required to explicitly convert your `UIMessage`s to `ModelMessage`s before sending them to the model.
+
+```ts highlight="9"
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+<Note>
+    This separation is essential as you cannot use a single message format for both purposes. The state you save should always be the UIMessage format to prevent information loss, with explicit conversion to ModelMessage when communicating with language models.
+</Note
+
+The new message system has made possible several highly requested features:
+
+- **Type-safe Message Metadata** - add structured information per message
+- **New Stream Writer** - stream any part type (reasoning, sources, etc.) retaining proper order
+- **Data Parts** - stream type-safe arbitrary data parts for dynamic UI components
+
+#### Message metadata
+
+Metadata allows you to attach structured information to individual messages, making it easier to track important details like response time, token usage, or model specifications. This information can enhance your UI with contextual data without embedding it in the message content itself.
+
+To add metadata to a message, first define the metadata schema:
+
+```ts filename="app/api/chat/example-metadata-schema.ts"
+export const exampleMetadataSchema = z.object({
+  duration: z.number().optional(),
+  model: z.string().optional(),
+  totalTokens: z.number().optional(),
+});
+
+export type ExampleMetadata = z.infer<typeof exampleMetadataSchema>;
+```
+
+Then add the metadata using the `message.metadata` property on the `toUIMessageStreamResponse()` utility:
+
+```ts filename="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { ExampleMetadata } from './example-metadata-schema';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const startTime = Date.now();
+  const result = streamText({
+    model: openai('gpt-4o'),
+    prompt: convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse({
+    messageMetadata: ({ part }): ExampleMetadata | undefined => {
+      // send custom information to the client on start:
+      if (part.type === 'start') {
+        return {
+          model: 'gpt-4o', // initial model id
+        };
+      }
+
+      // send additional model information on finish-step:
+      if (part.type === 'finish-step') {
+        return {
+          model: part.response.modelId, // update with the actual model id
+          duration: Date.now() - startTime,
+        };
+      }
+
+      // when the message is finished, send additional information:
+      if (part.type === 'finish') {
+        return {
+          totalTokens: part.totalUsage.totalTokens,
+        };
+      }
+    },
+  });
+}
+```
+
+Finally, specify the message metadata schema on the client and then render the (type-safe) metadata in your UI:
+
+```tsx filename="app/page.tsx"
+import { zodSchema } from '@ai-sdk/provider-utils';
+import { useChat } from '@ai-sdk/react';
+import { defaultChatStore } from 'ai';
+import { exampleMetadataSchema } from '@/api/chat/example-metadata-schema';
+
+export default function Chat() {
+  const { messages } = useChat({
+    chatStore: defaultChatStore({
+      api: '/api/use-chat',
+      messageMetadataSchema: zodSchema(exampleMetadataSchema),
+    }),
+  });
+
+  return (
+    <div>
+      {messages.map(message => {
+        const { metadata } = message;
+        return (
+          <div key={message.id} className="whitespace-pre-wrap">
+            {metadata?.duration && <div>Duration: {metadata.duration}ms</div>}
+            {metadata?.model && <div>Model: {metadata.model}</div>}
+            {metadata?.totalTokens && (
+              <div>Total tokens: {metadata.totalTokens}</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+```
+
+#### New Stream Writer
+
+We've introduced a new stream writer for `createUIMessageStream` (previously known as `createDataStream`) that makes it simple to stream parts from the server to the client. This enables many use-cases like streaming custom sources form your RAG pipeline or sending custom reasoning summaries.
+
+```ts
+const stream = createUIMessageStream({
+  execute: writer => {
+    // stream custom sources
+    writer.write({
+      type: 'source',
+      value: {
+        type: 'source',
+        sourceType: 'url',
+        id: 'source-1',
+        url: 'https://example.com',
+        title: 'Example Source',
+      },
+    });
+
+    // stream custom reasoning
+    writer.write({
+      type: 'reasoning',
+      value: { text: 'This is a summary of the reasoning...' },
+    });
+  },
+});
+```
+
+On the client, these will be added to the ordered `message.parts` array.
+
+#### Data Parts
+
+The new stream writer also enables a type-safe way to stream arbitrary data from the server to the client and display it in your UI.
 
 You can create and stream custom data parts on the server:
 
@@ -105,18 +279,19 @@ On the client, you can render these parts with full type safety:
 
 Data parts appear in the `message.parts` array along with other content, maintaining the proper ordering of the conversation. You can update parts by referencing the same ID, enabling dynamic experiences like collaborative artifacts.
 
-### ChatStore and Transport
+### ChatStore
 
 AI SDK 5 introduces a new `useChat` architecture with ChatStore and ChatTransport components. These two core building blocks make state management and API integration more flexible, allowing you to compose reactive UI bindings, share chat state across multiple instances, and swap out your backend protocol without rewriting application logic.
 
-#### ChatStore
+[PLACEHOLDER ADD LARS XEET DIAGRAM]
 
 The `ChatStore` is responsible for:
 
-- **Managing multiple chat sessions** – access and switch between conversations seamlessly.
+- **Managing multiple chats** – access and switch between conversations seamlessly.
+- **Processing response streams** – handle streams from the server and synchronize state (e.g. when there are concurrent client-side tool results).
 - **Caching and synchronizing** – share state (messages, status, errors) between `useChat` hooks.
 
-You can create a ChatStore with the helper function:
+You can create a basic ChatStore with the helper function:
 
 ```ts
 import { defaultChatStore } from 'ai';
@@ -127,77 +302,9 @@ const chatStore = defaultChatStore({
   chats: {}, // optional: preload previous chat sessions
 });
 
-// Connect to your UI in React:
-import { `useChat` } from '@ai-sdk/react';
-const { messages, input, handleSubmit } = `useChat`({ chatStore });
+import { useChat } from '@ai-sdk/react';
+const { messages, input, handleSubmit } = useChat({ chatStore });
 ```
-
-#### ChatTransport
-
-`ChatTransport` encapsulates all API communication concerns:
-
-- **submitMessages** – send messages to your API and receive a stream of responses
-
-The transport is pluggable, giving you control over request shape, streaming protocol, and error handling without changing your UI code.
-
-##### DefaultChatTransport
-
-AI SDK provides a `DefaultChatTransport` implementation that handles common communication patterns:
-
-```ts
-import { DefaultChatTransport } from 'ai';
-
-const transport = new DefaultChatTransport({
-  api: '/api/chat', // API endpoint
-  streamProtocol: 'ui-message', // streaming protocol ('ui-message' or 'text')
-  credentials: 'same-origin', // fetch credentials mode
-  headers: { 'x-custom': 'value' }, // custom headers
-  body: { extraData: true }, // additional request data
-
-  // Optional: customize the request body
-  prepareRequestBody: ({ id, messages, requestBody }) => ({
-    chatId: id,
-    messages,
-    ...requestBody,
-    customField: 'value',
-  }),
-});
-```
-
-##### Custom transport
-
-You can implement your own protocol by implementing the `ChatTransport` interface:
-
-```ts
-import { ChatTransport } from 'ai';
-
-class MyCustomTransport implements ChatTransport {
-  async submitMessages({
-    chatId,
-    messages,
-    abortController,
-    body,
-    headers,
-    requestType,
-  }) {
-    // Make API request and return a ReadableStream of UIMessageStreamPart
-    // ...
-  }
-}
-
-const chatStore = defaultChatStore({
-  // Use custom transport instead of api param
-  transport: new MyCustomTransport(),
-});
-```
-
-This separation of **state management** (`ChatStore`) and **communication layer** (`ChatTransport`) makes it easy to:
-
-- Share chats across multiple UI components
-- Choose between different API protocols
-- Create custom transport implementations for specific needs
-- Keep your application logic framework-independent
-
 
 ### Server-Sent Events (SSE)
 
@@ -210,3 +317,9 @@ AI SDK 5 replaces our proprietary streaming protocol with Server-Sent Events (SS
 
 [PLACEHOLDER IMAGE OF SSE IN BROWSER]
 
+### Agentic Control
+
+TODO
+
+- `prepareStep`
+- `continueUntil`
