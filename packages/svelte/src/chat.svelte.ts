@@ -27,12 +27,12 @@ export type { CreateUIMessage, UIMessage };
 
 export class Chat<MESSAGE_METADATA = unknown> {
   readonly #options: ChatOptions<MESSAGE_METADATA> = {};
-  readonly #api = $derived(this.#options.api ?? '/api/chat');
+  // readonly #api = $derived(this.#options.api ?? '/api/chat');
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
-  readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
-  readonly #streamProtocol = $derived(
-    this.#options.streamProtocol ?? 'ui-message',
-  );
+  // readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
+  // readonly #streamProtocol = $derived(
+  //   this.#options.streamProtocol ?? 'ui-message',
+  // );
   readonly #keyedStore = $state<KeyedChatStore<MESSAGE_METADATA>>()!;
   readonly #chatStore = $state<ChatStore<MESSAGE_METADATA>>()!;
 
