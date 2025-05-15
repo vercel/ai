@@ -9,6 +9,10 @@ export type ImageModelV2ProviderMetadata = Record<
   } & JSONValue
 >;
 
+type GetMaxImagesPerCallFunction = (options: {
+  modelId: string;
+}) => PromiseLike<number | undefined> | number | undefined;
+
 /**
 Image generation model specification version 2.
  */
@@ -34,9 +38,11 @@ Provider-specific model ID for logging purposes.
 
   /**
 Limit of how many images can be generated in a single API call.
-If undefined, we will max generate one image per call.
+Can be set to a number for a fixed limit, to undefined to use
+the global limit, or a function that returns a number or undefined, 
+optionally as a promise. 
    */
-  readonly maxImagesPerCall: number | undefined;
+  readonly maxImagesPerCall: number | undefined | GetMaxImagesPerCallFunction;
 
   /**
 Generates an array of images.
