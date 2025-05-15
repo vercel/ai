@@ -16,7 +16,7 @@ const customSchema: StandardSchemaV1<{ name: string; age: number }> = {
         'age' in value &&
         typeof value.age === 'number'
         ? { value }
-        : { issues: [{ message: 'Invalid input' }] };
+        : { issues: [new Error('Invalid input')] };
     },
   },
 };
@@ -28,7 +28,7 @@ const customValidator = validator<{ name: string; age: number }>(async value =>
   'age' in value &&
   typeof value.age === 'number'
     ? { success: true, value: value as { name: string; age: number } }
-    : { success: false, error: new Error('Invalid input') },
+    : { success: false, error: new TypeValidationError({ value, cause: [new Error('Invalid input')]}) },
 );
 
 describe('validateTypes', () => {
@@ -64,7 +64,7 @@ describe('validateTypes', () => {
         }).toStrictEqual({
           name: 'AI_TypeValidationError',
           value: input,
-          cause: [{ message: 'Invalid input' }],
+          cause: [expect.any(Error)],
           message: expect.stringContaining('Type validation failed'),
         });
       }
