@@ -15,7 +15,6 @@ export async function POST(req: Request) {
       writer.write({
         type: 'source',
         value: {
-          type: 'source',
           sourceType: 'url',
           id: 'source-1',
           url: 'https://example.com',
