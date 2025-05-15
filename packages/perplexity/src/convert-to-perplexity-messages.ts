@@ -2,6 +2,7 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { PerplexityPrompt } from './perplexity-language-model-prompt';
 
 export function convertToPerplexityMessages(
@@ -28,12 +29,25 @@ export function convertToPerplexityMessages(
             .map(part => {
               switch (part.type) {
                 case 'text': {
-                  return part.text;
+                  return {
+                    type: 'text',
+                    text: part.text,
+                  };
                 }
                 case 'image': {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'Image content parts in user messages',
-                  });
+                  return part.image instanceof URL
+                    ? {
+                        type: 'image_url',
+                        image_url: {
+                          url: part.image.toString(),
+                        },
+                      }
+                    : {
+                        type: 'image_url',
+                        image_url: {
+                          url: `data:${part.mimeType ?? 'image/jpeg'};base64,${convertUint8ArrayToBase64(part.image)}`,
+                        },
+                      };
                 }
                 case 'file': {
                   throw new UnsupportedFunctionalityError({
@@ -50,8 +64,7 @@ export function convertToPerplexityMessages(
                   throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
                 }
               }
-            })
-            .join(''),
+            }),
         });
         break;
       }
