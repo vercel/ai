@@ -114,6 +114,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
           }
 
           const { type, value } = chunk;
+
           switch (type) {
             case 'text': {
               if (state.activeTextPart == null) {
@@ -221,13 +222,10 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
             }
 
             case 'tool-call': {
-              // workaround for Zod issue where unknown includes undefined
-              const call = { args: value.args!, ...value };
-
               updateToolInvocationPart(value.toolCallId, {
                 state: 'call',
                 step: state.step,
-                ...call,
+                ...value,
               } as const);
 
               write();
@@ -237,13 +235,13 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
               // requires additional state management for error handling etc.
               if (onToolCall) {
                 const result = await onToolCall({
-                  toolCall: call,
+                  toolCall: value,
                 });
                 if (result != null) {
                   updateToolInvocationPart(value.toolCallId, {
                     state: 'result',
                     step: state.step,
-                    ...call,
+                    ...value,
                     result,
                   } as const);
 
@@ -272,13 +270,10 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
                 );
               }
 
-              // workaround for Zod issue where unknown includes undefined
-              const result = { result: value.result!, ...value };
-
               updateToolInvocationPart(value.toolCallId, {
                 ...toolInvocations[toolInvocationIndex],
                 state: 'result' as const,
-                ...result,
+                ...value,
               } as const);
 
               write();
@@ -342,8 +337,9 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
             }
 
             default: {
-              const _exhaustiveCheck: never = type;
-              throw new Error(`Unhandled stream part: ${_exhaustiveCheck}`);
+              if (type.startsWith('data-')) {
+                // TODO: handle data events
+              }
             }
           }
 

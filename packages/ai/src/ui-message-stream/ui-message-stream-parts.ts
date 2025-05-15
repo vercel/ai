@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ProviderMetadata } from '../../core';
 
 export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   z.object({
@@ -59,6 +60,10 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
     }),
   }),
   z.object({
+    type: z.string().startsWith('data-'),
+    value: z.object({ warnings: z.array(z.string()) }),
+  }),
+  z.object({
     type: z.literal('metadata'),
     value: z.object({ metadata: z.unknown() }),
   }),
@@ -89,4 +94,91 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export type UIMessageStreamPart = z.infer<typeof uiMessageStreamPartSchema>;
+export type UIMessageStreamPart =
+  | {
+      type: 'text';
+      value: string;
+    }
+  | {
+      type: 'error';
+      value: string;
+    }
+  | {
+      type: 'tool-call';
+      value: {
+        toolCallId: string;
+        toolName: string;
+        args: unknown;
+      };
+    }
+  | {
+      type: 'tool-result';
+      value: {
+        toolCallId: string;
+        result: unknown;
+        providerMetadata?: ProviderMetadata;
+      };
+    }
+  | {
+      type: 'tool-call-streaming-start';
+      value: { toolCallId: string; toolName: string };
+    }
+  | {
+      type: 'tool-call-delta';
+      value: { toolCallId: string; argsTextDelta: string };
+    }
+  | {
+      type: 'reasoning';
+      value: {
+        text: string;
+        providerMetadata?: ProviderMetadata;
+      };
+    }
+  | {
+      type: 'source';
+      value: {
+        type: 'source';
+        sourceType: 'url';
+        id: string;
+        url: string;
+        title?: string;
+        providerMetadata?: ProviderMetadata;
+      };
+    }
+  | {
+      type: 'file';
+      value: {
+        url: string;
+        mediaType: string;
+      };
+    }
+  | {
+      type: `data-${string}`;
+      value: {
+        warnings: string[];
+      };
+    }
+  | {
+      type: 'metadata';
+      value: { metadata: unknown };
+    }
+  | {
+      type: 'start-step';
+      value?: { metadata: unknown };
+    }
+  | {
+      type: 'finish-step';
+      value?: { metadata: unknown };
+    }
+  | {
+      type: 'start';
+      value?: { messageId?: string; metadata?: unknown };
+    }
+  | {
+      type: 'finish';
+      value?: { metadata: unknown };
+    }
+  | {
+      type: 'reasoning-part-finish';
+      value?: null;
+    };
