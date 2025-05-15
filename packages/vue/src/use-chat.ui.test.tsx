@@ -34,10 +34,10 @@ describe('prepareRequestBody', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', value: 'Hello' }),
-        formatStreamPart({ type: 'text', value: ',' }),
-        formatStreamPart({ type: 'text', value: ' world' }),
-        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', text: 'Hello' }),
+        formatStreamPart({ type: 'text', text: ',' }),
+        formatStreamPart({ type: 'text', text: ' world' }),
+        formatStreamPart({ type: 'text', text: '.' }),
       ],
     };
 
@@ -82,10 +82,10 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', value: 'Hello' }),
-        formatStreamPart({ type: 'text', value: ',' }),
-        formatStreamPart({ type: 'text', value: ' world' }),
-        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', text: 'Hello' }),
+        formatStreamPart({ type: 'text', text: ',' }),
+        formatStreamPart({ type: 'text', text: ' world' }),
+        formatStreamPart({ type: 'text', text: '.' }),
       ],
     };
 
@@ -131,7 +131,7 @@ describe('data protocol stream', () => {
         expect(screen.getByTestId('status')).toHaveTextContent('submitted');
       });
 
-      controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
+      controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('streaming');
@@ -159,7 +159,7 @@ describe('data protocol stream', () => {
           expect(screen.getByTestId('status')).toHaveTextContent('submitted'),
         );
 
-        controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
+        controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
 
         await waitFor(() =>
           expect(screen.getByTestId('status')).toHaveTextContent('streaming'),
@@ -171,7 +171,7 @@ describe('data protocol stream', () => {
         });
         document.dispatchEvent(new Event('visibilitychange'));
 
-        controller.write(formatStreamPart({ type: 'text', value: ' world.' }));
+        controller.write(formatStreamPart({ type: 'text', text: ' world.' }));
         controller.close();
 
         await waitFor(() =>
@@ -205,10 +205,10 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', value: 'Hello' }),
-        formatStreamPart({ type: 'text', value: ',' }),
-        formatStreamPart({ type: 'text', value: ' world' }),
-        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', text: 'Hello' }),
+        formatStreamPart({ type: 'text', text: ',' }),
+        formatStreamPart({ type: 'text', text: ' world' }),
+        formatStreamPart({ type: 'text', text: '.' }),
         formatStreamPart({ type: 'finish' }),
       ],
     };
@@ -296,7 +296,7 @@ describe('custom metadata', () => {
   it('should should use custom headers', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
-      chunks: [formatStreamPart({ type: 'text', value: 'Hello, World.' })],
+      chunks: [formatStreamPart({ type: 'text', text: 'Hello, World.' })],
     };
 
     await userEvent.click(screen.getByTestId('do-append'));
@@ -313,7 +313,7 @@ describe('custom metadata', () => {
   it('should should use custom body', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
-      chunks: [formatStreamPart({ type: 'text', value: 'Hello, World.' })],
+      chunks: [formatStreamPart({ type: 'text', text: 'Hello, World.' })],
     };
 
     await userEvent.click(screen.getByTestId('do-append'));
@@ -348,13 +348,13 @@ describe('form actions', () => {
       {
         type: 'stream-chunks',
         chunks: ['Hello', ',', ' world', '.'].map(token =>
-          formatStreamPart({ type: 'text', value: token }),
+          formatStreamPart({ type: 'text', text: token }),
         ),
       },
       {
         type: 'stream-chunks',
         chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-          formatStreamPart({ type: 'text', value: token }),
+          formatStreamPart({ type: 'text', text: token }),
         ),
       },
     ];
@@ -386,13 +386,13 @@ describe('form actions (with options)', () => {
       {
         type: 'stream-chunks',
         chunks: ['Hello', ',', ' world', '.'].map(token =>
-          formatStreamPart({ type: 'text', value: token }),
+          formatStreamPart({ type: 'text', text: token }),
         ),
       },
       {
         type: 'stream-chunks',
         chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
-          formatStreamPart({ type: 'text', value: token }),
+          formatStreamPart({ type: 'text', text: token }),
         ),
       },
     ];
@@ -432,11 +432,11 @@ describe('reload', () => {
     server.urls['/api/chat'].response = [
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', value: 'first response' })],
+        chunks: [formatStreamPart({ type: 'text', text: 'first response' })],
       },
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', value: 'second response' })],
+        chunks: [formatStreamPart({ type: 'text', text: 'second response' })],
       },
     ];
 
@@ -488,11 +488,9 @@ describe('onToolCall', () => {
       chunks: [
         formatStreamPart({
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-0',
-            toolName: 'client-tool',
-            args: { testArg: 'test-value' },
-          },
+          toolCallId: 'tool-call-0',
+          toolName: 'client-tool',
+          args: { testArg: 'test-value' },
         }),
       ],
     };
@@ -517,7 +515,7 @@ describe('tool invocations', () => {
       { type: 'controlled-stream', controller },
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', value: 'test-result' })],
+        chunks: [formatStreamPart({ type: 'text', text: 'test-result' })],
       },
     ];
 
@@ -526,10 +524,8 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-call-streaming-start',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
       }),
     );
 
@@ -542,10 +538,8 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-call-delta',
-        value: {
-          toolCallId: 'tool-call-0',
-          argsTextDelta: '{"testArg":"t',
-        },
+        toolCallId: 'tool-call-0',
+        argsTextDelta: '{"testArg":"t',
       }),
     );
 
@@ -558,10 +552,8 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-call-delta',
-        value: {
-          toolCallId: 'tool-call-0',
-          argsTextDelta: 'est-value"}}',
-        },
+        toolCallId: 'tool-call-0',
+        argsTextDelta: 'est-value"}}',
       }),
     );
 
@@ -574,11 +566,9 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-call',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
       }),
     );
 
@@ -597,10 +587,8 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-result',
-        value: {
-          toolCallId: 'tool-call-0',
-          result: 'test-result',
-        },
+        toolCallId: 'tool-call-0',
+        result: 'test-result',
       }),
     );
     controller.close();
@@ -636,11 +624,9 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-call',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
       }),
     );
 
@@ -659,10 +645,8 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-result',
-        value: {
-          toolCallId: 'tool-call-0',
-          result: 'test-result',
-        },
+        toolCallId: 'tool-call-0',
+        result: 'test-result',
       }),
     );
     controller.close();
@@ -679,11 +663,9 @@ describe('tool invocations', () => {
       chunks: [
         formatStreamPart({
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          },
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
         }),
       ],
     };
@@ -726,11 +708,9 @@ describe('tool invocations', () => {
     controller1.write(
       formatStreamPart({
         type: 'tool-call',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
       }),
     );
 
@@ -782,7 +762,7 @@ describe('file attachments with data url', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with text attachment',
+          text: 'Response to message with text attachment',
         }),
       ],
     };
@@ -841,7 +821,7 @@ describe('file attachments with data url', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with image attachment',
+          text: 'Response to message with image attachment',
         }),
       ],
     };
@@ -904,7 +884,7 @@ describe('file attachments with url', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with image attachment',
+          text: 'Response to message with image attachment',
         }),
       ],
     };
@@ -959,7 +939,7 @@ describe('attachments with empty submit', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to empty message with attachment',
+          text: 'Response to empty message with attachment',
         }),
       ],
     };
@@ -1019,7 +999,7 @@ describe('should append message with attachments', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with image attachment',
+          text: 'Response to message with image attachment',
         }),
       ],
     };
