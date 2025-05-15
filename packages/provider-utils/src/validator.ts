@@ -20,7 +20,9 @@ export type Validator<OBJECT = unknown> = {
    * Optional. Validates that the structure of a value matches this schema,
    * and returns a typed version of the value if it does.
    */
-  readonly validate?: (value: unknown) => ValidationResult<OBJECT> | PromiseLike<ValidationResult<OBJECT>>;
+  readonly validate?: (
+    value: unknown,
+  ) => ValidationResult<OBJECT> | PromiseLike<ValidationResult<OBJECT>>;
 };
 
 /**
@@ -31,7 +33,9 @@ export type Validator<OBJECT = unknown> = {
 export function validator<OBJECT>(
   validate?:
     | undefined
-    | ((value: unknown) => ValidationResult<OBJECT> | PromiseLike<ValidationResult<OBJECT>>),
+    | ((
+        value: unknown,
+      ) => ValidationResult<OBJECT> | PromiseLike<ValidationResult<OBJECT>>),
 ): Validator<OBJECT> {
   return { [validatorSymbol]: true, validate };
 }
