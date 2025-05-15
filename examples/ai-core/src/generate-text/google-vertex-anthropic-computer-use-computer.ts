@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText } from 'ai';
+import { generateText, maxSteps } from 'ai';
 import fs from 'node:fs';
 
 async function main() {
@@ -42,7 +42,7 @@ async function main() {
     },
     prompt:
       'How can I switch to dark mode? Take a look at the screen and tell me.',
-    maxSteps: 5,
+    continueUntil: maxSteps(5),
   });
 
   console.log(result.text);

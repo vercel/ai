@@ -1,5 +1,5 @@
 import { createAnthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { ModelMessage, generateText } from 'ai';
+import { ModelMessage, generateText, maxSteps } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -33,7 +33,7 @@ async function main() {
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
-      maxSteps: 5,
+      continueUntil: maxSteps(5),
       providerOptions: {
         anthropic: {
           thinking: { type: 'enabled', budgetTokens: 12000 },

@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
+import { generateText, maxSteps } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -22,7 +22,7 @@ async function main() {
       }),
     },
     prompt: 'List the files in my home directory.',
-    maxSteps: 2,
+    continueUntil: maxSteps(2),
   });
 
   console.log(result.text);

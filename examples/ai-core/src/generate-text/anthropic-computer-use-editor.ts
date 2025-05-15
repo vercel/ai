@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
+import { generateText, maxSteps } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -35,7 +35,7 @@ This is a test file.
       }),
     },
     prompt: 'Update my README file to talk about AI.',
-    maxSteps: 5,
+    continueUntil: maxSteps(5),
   });
 
   console.log('TEXT', result.text);

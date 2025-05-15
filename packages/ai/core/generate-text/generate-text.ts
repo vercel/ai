@@ -4,7 +4,6 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { prepareRetries } from '../../src/util/prepare-retries';
@@ -30,6 +29,7 @@ import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
+import { maxSteps, StopCondition } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -89,7 +89,6 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
 @param experimental_generateMessageId - Generate a unique ID for each message.
 
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -111,7 +110,7 @@ export async function generateText<
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
-  maxSteps = 1,
+  continueUntil = maxSteps(1),
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
@@ -139,16 +138,9 @@ The tools that the model can call. The model needs to support calling tools.
     /**
 The tool choice strategy. Default: 'auto'.
      */
-    toolChoice?: ToolChoice<TOOLS>;
+    toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
-    /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
-
-A maximum number is required to prevent infinite loops in the case of misconfigured tools.
-
-By default, it's set to 1, which means that only a single LLM call is made.
-     */
-    maxSteps?: number;
+    continueUntil?: StopCondition<NoInfer<TOOLS>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -166,7 +158,7 @@ functionality that can be fully encapsulated in the provider.
 Limits the tools that are available for the model to call without
 changing the tool call and result types in the result.
      */
-    experimental_activeTools?: Array<keyof TOOLS>;
+    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
 Optional specification for parsing structured outputs from the LLM response.
@@ -179,22 +171,20 @@ Optional function that you can use to provide different settings for a step.
 @param options - The options for the step.
 @param options.steps - The steps that have been executed so far.
 @param options.stepNumber - The number of the step that is being executed.
-@param options.maxSteps - The maximum number of steps.
 @param options.model - The model that is being used.
 
 @returns An object that contains the settings for the step.
 If you return undefined (or for undefined settings), the settings from the outer level will be used.
     */
     experimental_prepareStep?: (options: {
-      steps: Array<StepResult<TOOLS>>;
+      steps: Array<StepResult<NoInfer<TOOLS>>>;
       stepNumber: number;
-      maxSteps: number;
       model: LanguageModel;
     }) => PromiseLike<
       | {
           model?: LanguageModel;
-          toolChoice?: ToolChoice<TOOLS>;
-          experimental_activeTools?: Array<keyof TOOLS>;
+          toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+          experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
         }
       | undefined
     >;
@@ -202,12 +192,12 @@ If you return undefined (or for undefined settings), the settings from the outer
     /**
 A function that attempts to repair a tool call that failed to parse.
      */
-    experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
+    experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
     /**
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
-    onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
+    onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -217,14 +207,6 @@ A function that attempts to repair a tool call that failed to parse.
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-  if (maxSteps < 1) {
-    throw new InvalidArgumentError({
-      parameter: 'maxSteps',
-      value: maxSteps,
-      message: 'maxSteps must be at least 1',
-    });
-  }
-
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const callSettings = prepareCallSettings(settings);
@@ -261,7 +243,6 @@ A function that attempts to repair a tool call that failed to parse.
         'ai.prompt': {
           input: () => JSON.stringify({ system, prompt, messages }),
         },
-        'ai.settings.maxSteps': maxSteps,
       },
     }),
     tracer,
@@ -273,7 +254,6 @@ A function that attempts to repair a tool call that failed to parse.
       > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToolCallArray<TOOLS> = [];
       let currentToolResults: ToolResultArray<TOOLS> = [];
-      let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
@@ -286,8 +266,7 @@ A function that attempts to repair a tool call that failed to parse.
         const prepareStepResult = await prepareStep?.({
           model,
           steps,
-          maxSteps,
-          stepNumber: stepCount,
+          stepNumber: steps.length,
         });
 
         const promptMessages = await convertToLanguageModelPrompt({
@@ -475,11 +454,12 @@ A function that attempts to repair a tool call that failed to parse.
         steps.push(currentStepResult);
         await onStepFinish?.(currentStepResult);
       } while (
-        ++stepCount < maxSteps &&
         // there are tool calls:
         currentToolCalls.length > 0 &&
         // all current tool calls have results:
-        currentToolResults.length === currentToolCalls.length
+        currentToolResults.length === currentToolCalls.length &&
+        // continue until the stop condition is met:
+        !(await continueUntil({ steps }))
       );
 
       // Add response information to the span:
