@@ -80,15 +80,15 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   ): Promise<ValidationResult<JSONValue>> {
     return value === undefined
       ? {
-        success: false,
-        error: new NoObjectGeneratedError({
-          message: 'No object generated: response did not match schema.',
-          text: context.text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
-        }),
-      }
+          success: false,
+          error: new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+            text: context.text,
+            response: context.response,
+            usage: context.usage,
+            finishReason: context.finishReason,
+          }),
+        }
       : { success: true, value };
   },
 
@@ -101,11 +101,7 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
 
 const objectOutputStrategy = <OBJECT>(
   schema: Schema<OBJECT>,
-): OutputStrategy<
-  DeepPartial<OBJECT>,
-  OBJECT,
-  never
-> => ({
+): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => ({
   type: 'object',
   jsonSchema: schema.jsonSchema,
 
@@ -136,11 +132,7 @@ const objectOutputStrategy = <OBJECT>(
 
 const arrayOutputStrategy = <ELEMENT>(
   schema: Schema<ELEMENT>,
-): OutputStrategy<
-  ELEMENT[],
-  ELEMENT[],
-  AsyncIterableStream<ELEMENT>
-> => {
+): OutputStrategy<ELEMENT[], ELEMENT[], AsyncIterableStream<ELEMENT>> => {
   // remove $schema from schema.jsonSchema:
   const { $schema, ...itemSchema } = schema.jsonSchema;
 
@@ -232,9 +224,7 @@ const arrayOutputStrategy = <ELEMENT>(
 
     async validateFinalResult(
       value: JSONValue | undefined,
-    ): Promise<
-      ValidationResult<Array<ELEMENT>>
-    > {
+    ): Promise<ValidationResult<Array<ELEMENT>>> {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
         return {
@@ -263,18 +253,13 @@ const arrayOutputStrategy = <ELEMENT>(
     },
 
     createElementStream(
-      originalStream: ReadableStream<
-        ObjectStreamPart<ELEMENT[]>
-      >,
+      originalStream: ReadableStream<ObjectStreamPart<ELEMENT[]>>,
     ) {
       let publishedElements = 0;
 
       return createAsyncIterableStream(
         originalStream.pipeThrough(
-          new TransformStream<
-            ObjectStreamPart<ELEMENT[]>,
-            ELEMENT
-          >({
+          new TransformStream<ObjectStreamPart<ELEMENT[]>, ELEMENT>({
             transform(chunk, controller) {
               switch (chunk.type) {
                 case 'object': {
@@ -351,12 +336,12 @@ const enumOutputStrategy = <ENUM extends string>(
       return enumValues.includes(result as ENUM)
         ? { success: true, value: result as ENUM }
         : {
-          success: false,
-          error: new TypeValidationError({
-            value,
-            cause: 'value must be a string in the enum',
-          }),
-        };
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: 'value must be a string in the enum',
+            }),
+          };
     },
 
     async validatePartialResult({ value, textDelta }) {

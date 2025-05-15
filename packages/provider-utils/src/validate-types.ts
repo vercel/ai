@@ -44,15 +44,15 @@ export async function safeValidateTypes<OBJECT>({
   schema: StandardSchemaV1<OBJECT> | Validator<OBJECT>;
 }): Promise<
   | {
-    success: true;
-    value: OBJECT;
-    rawValue: unknown;
-  }
+      success: true;
+      value: OBJECT;
+      rawValue: unknown;
+    }
   | {
-    success: false;
-    error: TypeValidationError;
-    rawValue: unknown;
-  }
+      success: false;
+      error: TypeValidationError;
+      rawValue: unknown;
+    }
 > {
   const validator = asValidator(schema);
 
