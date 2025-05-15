@@ -119,7 +119,6 @@ const objectOutputStrategy = <OBJECT>(
   async validateFinalResult(
     value: JSONValue | undefined,
   ): Promise<ValidationResult<OBJECT>> {
-    // @gr2m TODO: `schema` should matche the Validator type.
     return safeValidateTypes({ value, schema });
   },
 

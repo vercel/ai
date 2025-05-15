@@ -40,7 +40,7 @@ export async function safeValidateTypes<OBJECT>({
   value,
   schema,
 }: {
-  value: OBJECT;
+  value: unknown;
   schema: StandardSchemaV1<OBJECT> | Validator<OBJECT>;
 }): Promise<
   | {
