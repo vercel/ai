@@ -840,13 +840,13 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"text","value":"Hello"}
+          "data: {"type":"text","text":"Hello"}
 
         ",
-          "data: {"type":"text","value":", "}
+          "data: {"type":"text","text":", "}
 
         ",
-          "data: {"type":"text","value":"world!"}
+          "data: {"type":"text","text":"world!"}
 
         ",
           "data: {"type":"finish-step"}
@@ -902,13 +902,13 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"text","value":"Hello"}
+          "data: {"type":"text","text":"Hello"}
 
         ",
-          "data: {"type":"text","value":", "}
+          "data: {"type":"text","text":", "}
 
         ",
-          "data: {"type":"text","value":"world!"}
+          "data: {"type":"text","text":"world!"}
 
         ",
           "data: {"type":"finish-step"}
@@ -1019,40 +1019,40 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"I will open the conversation"}}
+          "data: {"type":"reasoning","text":"I will open the conversation"}
 
         ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":" with witty banter. "}}
+          "data: {"type":"reasoning","text":" with witty banter. "}
 
         ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}}
-
-        ",
-          "data: {"type":"reasoning-part-finish"}
-
-        ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}}
+          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 
         ",
           "data: {"type":"reasoning-part-finish"}
 
         ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"Once the user has relaxed,"}}
-
-        ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":" I will pry for valuable information."}}
-
-        ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}}
+          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
 
         ",
           "data: {"type":"reasoning-part-finish"}
 
         ",
-          "data: {"type":"text","value":"Hi"}
+          "data: {"type":"reasoning","text":"Once the user has relaxed,"}
 
         ",
-          "data: {"type":"text","value":" there!"}
+          "data: {"type":"reasoning","text":" I will pry for valuable information."}
+
+        ",
+          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+
+        ",
+          "data: {"type":"reasoning-part-finish"}
+
+        ",
+          "data: {"type":"text","text":"Hi"}
+
+        ",
+          "data: {"type":"text","text":" there!"}
 
         ",
           "data: {"type":"finish-step"}
@@ -1097,13 +1097,13 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}}
+          "data: {"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
 
         ",
-          "data: {"type":"text","value":"Hello!"}
+          "data: {"type":"text","text":"Hello!"}
 
         ",
-          "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}}
+          "data: {"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
 
         ",
           "data: {"type":"finish-step"}
@@ -1146,13 +1146,13 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"file","value":{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}}
+          "data: {"type":"file","mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}
 
         ",
-          "data: {"type":"text","value":"Hello!"}
+          "data: {"type":"text","text":"Hello!"}
 
         ",
-          "data: {"type":"file","value":{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}}
+          "data: {"type":"file","mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
 
         ",
           "data: {"type":"finish-step"}
@@ -1326,49 +1326,41 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
+              "messageId": undefined,
+              "metadata": {
+                "key1": "value1",
+              },
               "type": "start",
-              "value": {
-                "messageId": undefined,
-                "metadata": {
-                  "key1": "value1",
-                },
-              },
             },
             {
+              "metadata": {
+                "key2": "value2",
+              },
               "type": "start-step",
-              "value": {
-                "metadata": {
-                  "key2": "value2",
-                },
+            },
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "text": ", ",
+              "type": "text",
+            },
+            {
+              "text": "world!",
+              "type": "text",
+            },
+            {
+              "metadata": {
+                "key3": "value3",
               },
-            },
-            {
-              "type": "text",
-              "value": "Hello",
-            },
-            {
-              "type": "text",
-              "value": ", ",
-            },
-            {
-              "type": "text",
-              "value": "world!",
-            },
-            {
               "type": "finish-step",
-              "value": {
-                "metadata": {
-                  "key3": "value3",
-                },
-              },
             },
             {
-              "type": "finish",
-              "value": {
-                "metadata": {
-                  "key4": "value4",
-                },
+              "metadata": {
+                "key4": "value4",
               },
+              "type": "finish",
             },
           ]
         `);
@@ -1516,13 +1508,13 @@ describe('streamText', () => {
             "data: {"type":"start-step"}
 
           ",
-            "data: {"type":"text","value":"Hello"}
+            "data: {"type":"text","text":"Hello"}
 
           ",
-            "data: {"type":"text","value":", "}
+            "data: {"type":"text","text":", "}
 
           ",
-            "data: {"type":"text","value":"world!"}
+            "data: {"type":"text","text":"world!"}
 
           ",
             "data: {"type":"finish-step"}
@@ -1574,13 +1566,13 @@ describe('streamText', () => {
             "data: {"type":"start-step"}
 
           ",
-            "data: {"type":"text","value":"Hello"}
+            "data: {"type":"text","text":"Hello"}
 
           ",
-            "data: {"type":"text","value":", "}
+            "data: {"type":"text","text":", "}
 
           ",
-            "data: {"type":"text","value":"world!"}
+            "data: {"type":"text","text":"world!"}
 
           ",
             "data: {"type":"finish-step"}

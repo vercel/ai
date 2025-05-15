@@ -43,10 +43,10 @@ describe('processUIMessageStream', () => {
   describe('text', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', value: 'Hello, ' },
-        { type: 'text', value: 'world!' },
+        { type: 'text', text: 'Hello, ' },
+        { type: 'text', text: 'world!' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -143,26 +143,22 @@ describe('processUIMessageStream', () => {
   describe('server-side tool roundtrip', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-id',
-            toolName: 'tool-name',
-            args: { city: 'London' },
-          },
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          args: { city: 'London' },
         },
         {
           type: 'tool-result',
-          value: {
-            toolCallId: 'tool-call-id',
-            result: { weather: 'sunny' },
-          },
+          toolCallId: 'tool-call-id',
+          result: { weather: 'sunny' },
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', value: 'The weather in London is sunny.' },
+        { type: 'text', text: 'The weather in London is sunny.' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -217,6 +213,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-call",
                   },
                   "type": "tool-invocation",
                 },
@@ -244,6 +241,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -271,6 +269,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -301,6 +300,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -340,6 +340,7 @@ describe('processUIMessageStream', () => {
                 "step": 0,
                 "toolCallId": "tool-call-id",
                 "toolName": "tool-name",
+                "type": "tool-result",
               },
               "type": "tool-invocation",
             },
@@ -360,26 +361,22 @@ describe('processUIMessageStream', () => {
   describe('server-side tool roundtrip with existing assistant message', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-id',
-            toolName: 'tool-name',
-            args: { city: 'London' },
-          },
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          args: { city: 'London' },
         },
         {
           type: 'tool-result',
-          value: {
-            toolCallId: 'tool-call-id',
-            result: { weather: 'sunny' },
-          },
+          toolCallId: 'tool-call-id',
+          result: { weather: 'sunny' },
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', value: 'The weather in London is sunny.' },
+        { type: 'text', text: 'The weather in London is sunny.' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -493,6 +490,7 @@ describe('processUIMessageStream', () => {
                     "step": 1,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-call",
                   },
                   "type": "tool-invocation",
                 },
@@ -533,6 +531,7 @@ describe('processUIMessageStream', () => {
                     "step": 1,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -573,6 +572,7 @@ describe('processUIMessageStream', () => {
                     "step": 1,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -616,6 +616,7 @@ describe('processUIMessageStream', () => {
                     "step": 1,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -668,6 +669,7 @@ describe('processUIMessageStream', () => {
                 "step": 1,
                 "toolCallId": "tool-call-id",
                 "toolName": "tool-name",
+                "type": "tool-result",
               },
               "type": "tool-invocation",
             },
@@ -688,29 +690,25 @@ describe('processUIMessageStream', () => {
   describe('server-side tool roundtrip with multiple assistant texts', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', value: 'I will ' },
-        { type: 'text', value: 'use a tool to get the weather in London.' },
+        { type: 'text', text: 'I will ' },
+        { type: 'text', text: 'use a tool to get the weather in London.' },
         {
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-id',
-            toolName: 'tool-name',
-            args: { city: 'London' },
-          },
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          args: { city: 'London' },
         },
         {
           type: 'tool-result',
-          value: {
-            toolCallId: 'tool-call-id',
-            result: { weather: 'sunny' },
-          },
+          toolCallId: 'tool-call-id',
+          result: { weather: 'sunny' },
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', value: 'The weather in London ' },
-        { type: 'text', value: 'is sunny.' },
+        { type: 'text', text: 'The weather in London ' },
+        { type: 'text', text: 'is sunny.' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -801,6 +799,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-call",
                   },
                   "type": "tool-invocation",
                 },
@@ -832,6 +831,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -863,6 +863,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -897,6 +898,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -935,6 +937,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -978,6 +981,7 @@ describe('processUIMessageStream', () => {
                 "step": 0,
                 "toolCallId": "tool-call-id",
                 "toolName": "tool-name",
+                "type": "tool-result",
               },
               "type": "tool-invocation",
             },
@@ -998,47 +1002,39 @@ describe('processUIMessageStream', () => {
   describe('server-side tool roundtrip with multiple assistant reasoning', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'reasoning', value: { text: 'I will ' } },
+        { type: 'reasoning', text: 'I will ' },
         {
           type: 'reasoning',
-          value: {
-            text: 'use a tool to get the weather in London.',
-            providerMetadata: {
-              testProvider: { signature: '1234567890' },
-            },
+          text: 'use a tool to get the weather in London.',
+          providerMetadata: {
+            testProvider: { signature: '1234567890' },
           },
         },
         { type: 'reasoning-part-finish' },
         {
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-id',
-            toolName: 'tool-name',
-            args: { city: 'London' },
-          },
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          args: { city: 'London' },
         },
         {
           type: 'tool-result',
-          value: {
-            toolCallId: 'tool-call-id',
-            result: { weather: 'sunny' },
-          },
+          toolCallId: 'tool-call-id',
+          result: { weather: 'sunny' },
         },
         { type: 'finish-step' },
         { type: 'start-step' },
         {
           type: 'reasoning',
-          value: {
-            text: 'I know know the weather in London.',
-            providerMetadata: {
-              testProvider: { signature: 'abc123' },
-            },
+          text: 'I know know the weather in London.',
+          providerMetadata: {
+            testProvider: { signature: 'abc123' },
           },
         },
         { type: 'reasoning-part-finish' },
-        { type: 'text', value: 'The weather in London is sunny.' },
+        { type: 'text', text: 'The weather in London is sunny.' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1140,6 +1136,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-call",
                   },
                   "type": "tool-invocation",
                 },
@@ -1176,6 +1173,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -1212,6 +1210,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -1251,6 +1250,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -1299,6 +1299,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -1356,6 +1357,7 @@ describe('processUIMessageStream', () => {
                 "step": 0,
                 "toolCallId": "tool-call-id",
                 "toolName": "tool-name",
+                "type": "tool-result",
               },
               "type": "tool-invocation",
             },
@@ -1387,64 +1389,54 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         {
           type: 'start',
-          value: {
-            messageId: 'msg-123',
-            metadata: {
-              start: 'start-1',
-              shared: {
-                key1: 'value-1a',
-                key2: 'value-2a',
-              },
+          messageId: 'msg-123',
+          metadata: {
+            start: 'start-1',
+            shared: {
+              key1: 'value-1a',
+              key2: 'value-2a',
             },
           },
         },
         {
           type: 'start-step',
-          value: {
-            metadata: {
-              startStep: 'start-step-1',
-              shared: {
-                key1: 'value-1b',
-                key3: 'value-3b',
-              },
+          metadata: {
+            startStep: 'start-step-1',
+            shared: {
+              key1: 'value-1b',
+              key3: 'value-3b',
             },
           },
         },
-        { type: 'text', value: 't1' },
+        { type: 'text', text: 't1' },
         {
           type: 'metadata',
-          value: {
-            metadata: {
-              metadata: 'metadata-1',
-              shared: {
-                key1: 'value-1c',
-                key4: 'value-4c',
-              },
+          metadata: {
+            metadata: 'metadata-1',
+            shared: {
+              key1: 'value-1c',
+              key4: 'value-4c',
             },
           },
         },
-        { type: 'text', value: 't2' },
+        { type: 'text', text: 't2' },
         {
           type: 'finish-step',
-          value: {
-            metadata: {
-              finishStep: 'finish-step-1',
-              shared: {
-                key1: 'value-1d',
-                key5: 'value-5d',
-              },
+          metadata: {
+            finishStep: 'finish-step-1',
+            shared: {
+              key1: 'value-1d',
+              key5: 'value-5d',
             },
           },
         },
         {
           type: 'finish',
-          value: {
-            metadata: {
-              finish: 'finish-1',
-              shared: {
-                key1: 'value-1e',
-                key6: 'value-6e',
-              },
+          metadata: {
+            finish: 'finish-1',
+            shared: {
+              key1: 'value-1e',
+              key6: 'value-6e',
             },
           },
         },
@@ -1672,17 +1664,15 @@ describe('processUIMessageStream', () => {
   describe('message metadata delayed after finish', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', value: 't1' },
+        { type: 'text', text: 't1' },
         { type: 'finish-step' },
         { type: 'finish' },
         {
           type: 'metadata',
-          value: {
-            metadata: {
-              key1: 'value-1',
-            },
+          metadata: {
+            key1: 'value-1',
           },
         },
       ]);
@@ -1783,17 +1773,15 @@ describe('processUIMessageStream', () => {
   describe('message metadata with existing assistant lastMessage', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         {
           type: 'start-step',
-          value: {
-            metadata: {
-              key1: 'value-1b',
-              key2: 'value-2b',
-            },
+          metadata: {
+            key1: 'value-1b',
+            key2: 'value-2b',
           },
         },
-        { type: 'text', value: 't1' },
+        { type: 'text', text: 't1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1899,43 +1887,33 @@ describe('processUIMessageStream', () => {
   describe('tool call streaming', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
           type: 'tool-call-streaming-start',
-          value: {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-          },
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
         },
         {
           type: 'tool-call-delta',
-          value: {
-            toolCallId: 'tool-call-0',
-            argsTextDelta: '{"testArg":"t',
-          },
+          toolCallId: 'tool-call-0',
+          argsTextDelta: '{"testArg":"t',
         },
         {
           type: 'tool-call-delta',
-          value: {
-            toolCallId: 'tool-call-0',
-            argsTextDelta: 'est-value"}}',
-          },
+          toolCallId: 'tool-call-0',
+          argsTextDelta: 'est-value"}}',
         },
         {
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          },
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
         },
         {
           type: 'tool-result',
-          value: {
-            toolCallId: 'tool-call-0',
-            result: 'test-result',
-          },
+          toolCallId: 'tool-call-0',
+          result: 'test-result',
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -2061,6 +2039,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-0",
                     "toolName": "test-tool",
+                    "type": "tool-call",
                   },
                   "type": "tool-invocation",
                 },
@@ -2086,6 +2065,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-0",
                     "toolName": "test-tool",
+                    "type": "tool-result",
                   },
                   "type": "tool-invocation",
                 },
@@ -2116,6 +2096,7 @@ describe('processUIMessageStream', () => {
                 "step": 0,
                 "toolCallId": "tool-call-0",
                 "toolName": "test-tool",
+                "type": "tool-result",
               },
               "type": "tool-invocation",
             },
@@ -2129,10 +2110,10 @@ describe('processUIMessageStream', () => {
   describe('start with message id', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', value: 'Hello, ' },
-        { type: 'text', value: 'world!' },
+        { type: 'text', text: 'Hello, ' },
+        { type: 'text', text: 'world!' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -2229,49 +2210,39 @@ describe('processUIMessageStream', () => {
   describe('reasoning', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
           type: 'reasoning',
-          value: {
-            text: 'I will open the conversation',
+          text: 'I will open the conversation',
+        },
+        {
+          type: 'reasoning',
+          text: ' with witty banter. ',
+          providerMetadata: {
+            testProvider: { signature: '1234567890' },
           },
         },
         {
           type: 'reasoning',
-          value: {
-            text: ' with witty banter. ',
-            providerMetadata: {
-              testProvider: { signature: '1234567890' },
-            },
+          text: 'redacted-data',
+          providerMetadata: {
+            testProvider: { isRedacted: true },
           },
         },
         {
           type: 'reasoning',
-          value: {
-            text: 'redacted-data',
-            providerMetadata: {
-              testProvider: { isRedacted: true },
-            },
-          },
+          text: 'Once the user has relaxed,',
         },
         {
           type: 'reasoning',
-          value: {
-            text: 'Once the user has relaxed,',
-          },
-        },
-        {
-          type: 'reasoning',
-          value: {
-            text: ' I will pry for valuable information.',
-            providerMetadata: {
-              testProvider: { signature: 'abc123' },
-            },
+          text: ' I will pry for valuable information.',
+          providerMetadata: {
+            testProvider: { signature: 'abc123' },
           },
         },
         { type: 'reasoning-part-finish' },
-        { type: 'text', value: 'Hi there!' },
+        { type: 'text', text: 'Hi there!' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -2467,15 +2438,13 @@ describe('processUIMessageStream', () => {
   describe('onToolCall is executed', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-id',
-            toolName: 'tool-name',
-            args: { city: 'London' },
-          },
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          args: { city: 'London' },
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -2532,6 +2501,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-call",
                   },
                   "type": "tool-invocation",
                 },
@@ -2557,6 +2527,7 @@ describe('processUIMessageStream', () => {
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
+                    "type": "tool-call",
                   },
                   "type": "tool-invocation",
                 },
@@ -2587,6 +2558,7 @@ describe('processUIMessageStream', () => {
                 "step": 0,
                 "toolCallId": "tool-call-id",
                 "toolName": "tool-name",
+                "type": "tool-call",
               },
               "type": "tool-invocation",
             },
@@ -2600,17 +2572,15 @@ describe('processUIMessageStream', () => {
   describe('sources', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', value: 'The weather in London is sunny.' },
+        { type: 'text', text: 'The weather in London is sunny.' },
         {
           type: 'source',
-          value: {
-            sourceType: 'url',
-            id: 'source-id',
-            url: 'https://example.com',
-            title: 'Example',
-          },
+          sourceType: 'url',
+          id: 'source-id',
+          url: 'https://example.com',
+          title: 'Example',
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -2728,23 +2698,19 @@ describe('processUIMessageStream', () => {
   describe('file parts', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', value: 'Here is a file:' },
+        { type: 'text', text: 'Here is a file:' },
         {
           type: 'file',
-          value: {
-            url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
-            mediaType: 'text/plain',
-          },
+          url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
+          mediaType: 'text/plain',
         },
-        { type: 'text', value: 'And another one:' },
+        { type: 'text', text: 'And another one:' },
         {
           type: 'file',
-          value: {
-            url: 'data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9',
-            mediaType: 'application/json',
-          },
+          url: 'data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9',
+          mediaType: 'application/json',
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -2904,7 +2870,7 @@ describe('processUIMessageStream', () => {
   describe('data ui parts (single part)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
           type: 'data-test',
@@ -2992,7 +2958,7 @@ describe('processUIMessageStream', () => {
   describe('data ui parts (single part with id and updates)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
           type: 'data-test',

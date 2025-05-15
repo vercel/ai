@@ -84,7 +84,7 @@ export function processUIMessageStream<
 }): ReadableStream<UIMessageStreamPart> {
   return stream.pipeThrough(
     new TransformStream<UIMessageStreamPart, UIMessageStreamPart>({
-      async transform(chunk, controller) {
+      async transform(part, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function updateToolInvocationPart(
             toolCallId: string,
@@ -124,16 +124,16 @@ export function processUIMessageStream<
             }
           }
 
-          switch (chunk.type) {
+          switch (part.type) {
             case 'text': {
               if (state.activeTextPart == null) {
                 state.activeTextPart = {
                   type: 'text',
-                  text: chunk.value,
+                  text: part.text,
                 };
                 state.message.parts.push(state.activeTextPart);
               } else {
-                state.activeTextPart.text += chunk.value;
+                state.activeTextPart.text += part.text;
               }
 
               write();
@@ -144,14 +144,14 @@ export function processUIMessageStream<
               if (state.activeReasoningPart == null) {
                 state.activeReasoningPart = {
                   type: 'reasoning',
-                  text: chunk.value.text,
-                  providerMetadata: chunk.value.providerMetadata,
+                  text: part.text,
+                  providerMetadata: part.providerMetadata,
                 };
                 state.message.parts.push(state.activeReasoningPart);
               } else {
-                state.activeReasoningPart.text += chunk.value.text;
+                state.activeReasoningPart.text += part.text;
                 state.activeReasoningPart.providerMetadata =
-                  chunk.value.providerMetadata;
+                  part.providerMetadata;
               }
 
               write();
@@ -168,8 +168,8 @@ export function processUIMessageStream<
             case 'file': {
               state.message.parts.push({
                 type: 'file',
-                mediaType: chunk.value.mediaType,
-                url: chunk.value.url,
+                mediaType: part.mediaType,
+                url: part.url,
               });
 
               write();
@@ -181,10 +181,10 @@ export function processUIMessageStream<
                 type: 'source',
                 source: {
                   sourceType: 'url' as const,
-                  id: chunk.value.id,
-                  url: chunk.value.url,
-                  title: chunk.value.title,
-                  providerMetadata: chunk.value.providerMetadata,
+                  id: part.id,
+                  url: part.url,
+                  title: part.title,
+                  providerMetadata: part.providerMetadata,
                 },
               });
 
@@ -196,18 +196,18 @@ export function processUIMessageStream<
               const toolInvocations = getToolInvocations(state.message);
 
               // add the partial tool call to the map
-              state.partialToolCalls[chunk.value.toolCallId] = {
+              state.partialToolCalls[part.toolCallId] = {
                 text: '',
                 step: state.step,
-                toolName: chunk.value.toolName,
+                toolName: part.toolName,
                 index: toolInvocations.length,
               };
 
-              updateToolInvocationPart(chunk.value.toolCallId, {
+              updateToolInvocationPart(part.toolCallId, {
                 state: 'partial-call',
                 step: state.step,
-                toolCallId: chunk.value.toolCallId,
-                toolName: chunk.value.toolName,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
                 args: undefined,
               } as const);
 
@@ -216,19 +216,18 @@ export function processUIMessageStream<
             }
 
             case 'tool-call-delta': {
-              const partialToolCall =
-                state.partialToolCalls[chunk.value.toolCallId];
+              const partialToolCall = state.partialToolCalls[part.toolCallId];
 
-              partialToolCall.text += chunk.value.argsTextDelta;
+              partialToolCall.text += part.argsTextDelta;
 
               const { value: partialArgs } = await parsePartialJson(
                 partialToolCall.text,
               );
 
-              updateToolInvocationPart(chunk.value.toolCallId, {
+              updateToolInvocationPart(part.toolCallId, {
                 state: 'partial-call',
                 step: partialToolCall.step,
-                toolCallId: chunk.value.toolCallId,
+                toolCallId: part.toolCallId,
                 toolName: partialToolCall.toolName,
                 args: partialArgs,
               } as const);
@@ -238,10 +237,10 @@ export function processUIMessageStream<
             }
 
             case 'tool-call': {
-              updateToolInvocationPart(chunk.value.toolCallId, {
+              updateToolInvocationPart(part.toolCallId, {
                 state: 'call',
                 step: state.step,
-                ...chunk.value,
+                ...part,
               } as const);
 
               write();
@@ -251,13 +250,13 @@ export function processUIMessageStream<
               // requires additional state management for error handling etc.
               if (onToolCall) {
                 const result = await onToolCall({
-                  toolCall: chunk.value,
+                  toolCall: part,
                 });
                 if (result != null) {
-                  updateToolInvocationPart(chunk.value.toolCallId, {
+                  updateToolInvocationPart(part.toolCallId, {
                     state: 'result',
                     step: state.step,
-                    ...chunk.value,
+                    ...part,
                     result,
                   } as const);
 
@@ -277,7 +276,7 @@ export function processUIMessageStream<
               // find if there is any tool invocation with the same toolCallId
               // and replace it with the result
               const toolInvocationIndex = toolInvocations.findIndex(
-                invocation => invocation.toolCallId === chunk.value.toolCallId,
+                invocation => invocation.toolCallId === part.toolCallId,
               );
 
               if (toolInvocationIndex === -1) {
@@ -286,10 +285,10 @@ export function processUIMessageStream<
                 );
               }
 
-              updateToolInvocationPart(chunk.value.toolCallId, {
+              updateToolInvocationPart(part.toolCallId, {
                 ...toolInvocations[toolInvocationIndex],
                 state: 'result' as const,
-                ...chunk.value,
+                ...part,
               } as const);
 
               write();
@@ -300,7 +299,7 @@ export function processUIMessageStream<
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
 
-              await updateMessageMetadata(chunk.value?.metadata);
+              await updateMessageMetadata(part.metadata);
               write();
               break;
             }
@@ -312,56 +311,53 @@ export function processUIMessageStream<
               state.activeTextPart = undefined;
               state.activeReasoningPart = undefined;
 
-              await updateMessageMetadata(chunk.value?.metadata);
-              if (chunk.value?.metadata != null) {
+              await updateMessageMetadata(part.metadata);
+              if (part.metadata != null) {
                 write();
               }
               break;
             }
 
             case 'start': {
-              if (chunk.value?.messageId != null) {
-                state.message.id = chunk.value.messageId;
+              if (part.messageId != null) {
+                state.message.id = part.messageId;
               }
 
-              await updateMessageMetadata(chunk.value?.metadata);
+              await updateMessageMetadata(part.metadata);
 
-              if (
-                chunk.value?.messageId != null ||
-                chunk.value?.metadata != null
-              ) {
+              if (part.messageId != null || part.metadata != null) {
                 write();
               }
               break;
             }
 
             case 'finish': {
-              await updateMessageMetadata(chunk.value?.metadata);
-              if (chunk.value?.metadata != null) {
+              await updateMessageMetadata(part.metadata);
+              if (part.metadata != null) {
                 write();
               }
               break;
             }
 
             case 'metadata': {
-              await updateMessageMetadata(chunk.value?.metadata);
-              if (chunk.value?.metadata != null) {
+              await updateMessageMetadata(part.metadata);
+              if (part.metadata != null) {
                 write();
               }
               break;
             }
 
             case 'error': {
-              throw new Error(chunk.value);
+              throw new Error(part.errorText);
             }
 
             default: {
-              if (chunk.type.startsWith('data-')) {
+              if (part.type.startsWith('data-')) {
                 const existingPart =
-                  chunk.id != null
+                  part.id != null
                     ? state.message.parts.find(
-                        part =>
-                          part.type === chunk.type && part.id === chunk.id,
+                        partArg =>
+                          part.type === partArg.type && part.id === partArg.id,
                       )
                     : undefined;
 
@@ -369,15 +365,14 @@ export function processUIMessageStream<
                   // TODO improve type safety
                   (existingPart as any).value = mergeObjects(
                     (existingPart as any).data,
-                    chunk.data as any,
+                    part.data as any,
                   );
                 } else {
                   // TODO improve type safety
                   state.message.parts.push({
-                    type: chunk.type,
-                    id: chunk.id,
-                    value:
-                      chunk.data as unknown as DATA_TYPES[keyof DATA_TYPES],
+                    type: part.type,
+                    id: part.id,
+                    value: part.data as unknown as DATA_TYPES[keyof DATA_TYPES],
                   });
                 }
                 write();
@@ -385,7 +380,7 @@ export function processUIMessageStream<
             }
           }
 
-          controller.enqueue(chunk);
+          controller.enqueue(part);
         });
       },
     }),
