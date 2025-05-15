@@ -719,7 +719,7 @@ async function executeTools<TOOLS extends ToolSet>({
               // if the result is not serializable.
             }
 
-            return result;
+            return result || {};
           } catch (error) {
             throw new ToolExecutionError({
               toolCallId,
