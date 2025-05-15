@@ -1,5 +1,5 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
-import { StandardSchemaV1 } from '@standard-schema/spec';
+import { ZodSchema } from 'zod';
 import { extractResponseHeaders } from './extract-response-headers';
 import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
@@ -15,14 +15,14 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
 }>;
 
 export const createJsonErrorResponseHandler =
-  <ERROR>({
+  <T>({
     errorSchema,
     errorToMessage,
     isRetryable,
   }: {
-    errorSchema: StandardSchemaV1<ERROR>;
-    errorToMessage: (error: ERROR) => string;
-    isRetryable?: (response: Response, error?: ERROR) => boolean;
+    errorSchema: ZodSchema<T>;
+    errorToMessage: (error: T) => string;
+    isRetryable?: (response: Response, error?: T) => boolean;
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
@@ -82,7 +82,7 @@ export const createJsonErrorResponseHandler =
 
 export const createEventSourceResponseHandler =
   <T>(
-    chunkSchema: StandardSchemaV1<T>,
+    chunkSchema: ZodSchema<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -102,7 +102,7 @@ export const createEventSourceResponseHandler =
 
 export const createJsonStreamResponseHandler =
   <T>(
-    chunkSchema: StandardSchemaV1<T>,
+    chunkSchema: ZodSchema<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -136,7 +136,7 @@ export const createJsonStreamResponseHandler =
   };
 
 export const createJsonResponseHandler =
-  <T>(responseSchema: StandardSchemaV1<T>): ResponseHandler<T> =>
+  <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
 
