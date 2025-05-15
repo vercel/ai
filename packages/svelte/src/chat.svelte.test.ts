@@ -251,6 +251,11 @@ describe('data protocol stream', () => {
 
       id = crypto.randomUUID();
 
+      // Wait for the Svelte reactivity cycle to complete after the id change.
+      // This allows the $effect.pre inside the Chat class to run and update messages.
+      // Confirm this:
+      await Promise.resolve();
+
       expect(chatWithId.messages).toHaveLength(0);
     });
 
@@ -285,8 +290,12 @@ describe('data protocol stream', () => {
       );
 
       id = crypto.randomUUID();
+      await Promise.resolve();
+
       expect(chatWithId.messages).toHaveLength(0);
       id = originalId;
+      await Promise.resolve();
+
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
           role: 'assistant',

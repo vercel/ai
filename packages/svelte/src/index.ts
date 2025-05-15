@@ -12,4 +12,4 @@ export {
 
 export { Completion, type CompletionOptions } from './completion.svelte.js';
 
-export { createAIContext } from './context-provider.js';
+export { createAIContext, createChatStoreContext } from './context-provider.js';

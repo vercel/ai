@@ -4,16 +4,11 @@ import {
   defaultChatStore,
   generateId,
   type ChatRequestOptions,
+  type ChatStatus,
   type CreateUIMessage,
   type OriginalUseChatOptions,
   type UIMessage,
 } from 'ai';
-import { untrack } from 'svelte';
-import {
-  getChatContext,
-  hasChatContext,
-  KeyedChatStore,
-} from './chat-context.svelte.js';
 import {
   getChatStoreContext,
   hasChatStoreContext,
@@ -27,13 +22,7 @@ export type { CreateUIMessage, UIMessage };
 
 export class Chat<MESSAGE_METADATA = unknown> {
   readonly #options: ChatOptions<MESSAGE_METADATA> = {};
-  // readonly #api = $derived(this.#options.api ?? '/api/chat');
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
-  // readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
-  // readonly #streamProtocol = $derived(
-  //   this.#options.streamProtocol ?? 'ui-message',
-  // );
-  readonly #keyedStore = $state<KeyedChatStore<MESSAGE_METADATA>>()!;
   readonly #chatStore = $state<ChatStore<MESSAGE_METADATA>>()!;
 
   /**
@@ -41,16 +30,8 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * using the provided `generateId` function, or a built-in function if not provided.
    */
   readonly id = $derived(this.#options.id ?? this.#generateId());
-  readonly #store = $derived(this.#keyedStore.get(this.id));
 
-  cleanup: () => void | undefined;
-
-  // readonly #messageMetadataSchema = $derived(
-  //   this.#options.messageMetadataSchema,
-  // );
-
-  // #abortController: AbortController | undefined;
-
+  #messages = $state<UIMessage<MESSAGE_METADATA>[]>([]);
   /**
    * Hook status:
    *
@@ -59,14 +40,12 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * - `ready`: The full response has been received and processed; a new user message can be submitted.
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
-  get status() {
-    return this.#chatStore.getStatus(this.id);
-  }
-
+  #status = $state<ChatStatus>('ready');
   /** The error object of the API request */
-  get error() {
-    return this.#chatStore.getError(this.id);
-  }
+  #error = $state<Error | undefined>(undefined);
+
+  #cleanup: (() => void) | undefined;
+  #unsubscribeFromStore: (() => void) | undefined;
 
   /** The current value of the input. Writable, so it can be bound to form inputs. */
   input = $state<string>()!;
@@ -78,27 +57,29 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * trigger {@link reload} to regenerate the AI response.
    */
   get messages(): UIMessage<MESSAGE_METADATA>[] {
-    // temp workaround:
-    if (!this.#chatStore.hasChat(this.id)) {
-      this.#chatStore.addChat(this.id, []);
-    }
-
-    return this.#chatStore.getMessages(this.id);
+    return this.#messages;
   }
   set messages(value: UIMessage<MESSAGE_METADATA>[]) {
-    untrack(() => (this.#store.messages = value));
+    this.#chatStore.setMessages({ id: this.id, messages: value });
+  }
+
+  get status(): ChatStatus {
+    return this.#status;
+  }
+  set status(value: ChatStatus) {
+    this.#chatStore.setStatus({ id: this.id, status: value });
+  }
+
+  get error(): Error | undefined {
+    return this.#error;
+  }
+  set error(value: Error | undefined) {
+    this.#chatStore.setStatus({ id: this.id, status: 'error', error: value });
   }
 
   constructor(options: ChatOptions<MESSAGE_METADATA> = {}) {
-    this.#options = options; // Assign options early so this.id can be derived
+    this.#options = options;
 
-    if (hasChatContext()) {
-      this.#keyedStore = getChatContext() as KeyedChatStore<MESSAGE_METADATA>;
-    } else {
-      this.#keyedStore = new KeyedChatStore<MESSAGE_METADATA>();
-    }
-
-    // q: do we want to support chatStore as an option?
     if (hasChatStoreContext()) {
       this.#chatStore = getChatStoreContext() as ChatStore<MESSAGE_METADATA>;
     } else {
@@ -112,23 +93,52 @@ export class Chat<MESSAGE_METADATA = unknown> {
 
     this.input = this.#options.initialInput ?? '';
 
-    // Ensure the chat for the *current* this.id exists in #chatStore.
-    // This handles the initial ID.
-    // Note: this.id is derived, so its value is available here.
-    // if (!this.#chatStore.hasChat(this.id)) {
-    //   this.#chatStore.addChat(this.id, []);
-    // }
+    this.#unsubscribeFromStore = this.#chatStore.subscribe({
+      onChatChanged: event => {
+        if (
+          event.chatId === this.id &&
+          event.type === 'chat-messages-changed'
+        ) {
+          this.#syncMessages();
+        }
 
-    // todo: cleanup, alternative: force use of chatstorecontext?
-    this.cleanup = $effect.root(() => {
+        if (event.chatId === this.id && event.type === 'chat-status-changed') {
+          this.#syncStatus();
+        }
+      },
+    });
+
+    this.#cleanup = $effect.root(() => {
       $effect.pre(() => {
         const currentChatId = this.id;
+
         if (!this.#chatStore.hasChat(currentChatId)) {
           this.#chatStore.addChat(currentChatId, []);
         }
+
+        this.#syncMessages();
       });
     });
   }
+
+  #syncMessages = () => {
+    if (this.#chatStore.hasChat(this.id)) {
+      this.#messages = [...this.#chatStore.getMessages(this.id)];
+    } else {
+      this.#chatStore.addChat(this.id, []);
+      this.#messages = [];
+    }
+  };
+
+  #syncStatus = () => {
+    if (this.#chatStore.hasChat(this.id)) {
+      this.#status = this.#chatStore.getStatus(this.id);
+      this.#error = this.#chatStore.getError(this.id);
+    } else {
+      this.#status = 'ready';
+      this.#error = undefined;
+    }
+  };
 
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
@@ -219,6 +229,8 @@ export class Chat<MESSAGE_METADATA = unknown> {
 
   // maybe?
   destroy() {
-    this.cleanup?.();
+    this.#cleanup?.();
+    this.#unsubscribeFromStore?.();
   }
 }
+
