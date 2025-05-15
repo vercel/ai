@@ -1,26 +1,5 @@
 import { z } from 'zod';
 
-const toolCallSchema = z.object({
-  toolCallId: z.string(),
-  toolName: z.string(),
-  args: z.unknown(),
-});
-
-const toolResultValueSchema = z.object({
-  toolCallId: z.string(),
-  result: z.unknown(),
-  providerMetadata: z.any().optional(),
-});
-
-const sourceSchema = z.object({
-  type: z.literal('source'),
-  sourceType: z.literal('url'),
-  id: z.string(),
-  url: z.string(),
-  title: z.string().optional(),
-  providerMetadata: z.any().optional(), // Use z.any() for generic metadata
-});
-
 export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('text'),
@@ -32,11 +11,19 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('tool-call'),
-    value: toolCallSchema,
+    value: z.object({
+      toolCallId: z.string(),
+      toolName: z.string(),
+      args: z.unknown(),
+    }),
   }),
   z.object({
     type: z.literal('tool-result'),
-    value: toolResultValueSchema,
+    value: z.object({
+      toolCallId: z.string(),
+      result: z.unknown(),
+      providerMetadata: z.any().optional(),
+    }),
   }),
   z.object({
     type: z.literal('tool-call-streaming-start'),
@@ -55,7 +42,14 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('source'),
-    value: sourceSchema,
+    value: z.object({
+      type: z.literal('source'),
+      sourceType: z.literal('url'),
+      id: z.string(),
+      url: z.string(),
+      title: z.string().optional(),
+      providerMetadata: z.any().optional(), // Use z.any() for generic metadata
+    }),
   }),
   z.object({
     type: z.literal('file'),
