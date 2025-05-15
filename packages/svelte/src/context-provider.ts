@@ -22,7 +22,9 @@ export function createAIContext() {
 }
 
 export function createChatStoreContext<MESSAGE_METADATA = unknown>(
-  options: DefaultChatStoreOptions<MESSAGE_METADATA>,
+  options: DefaultChatStoreOptions<MESSAGE_METADATA> = {
+    api: '/api/chat',
+  },
 ) {
   const chatStore = defaultChatStore<MESSAGE_METADATA>(options);
   setChatStoreContext(chatStore as ChatStore<unknown>);

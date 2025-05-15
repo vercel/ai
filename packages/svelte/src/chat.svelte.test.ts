@@ -189,7 +189,7 @@ describe('data protocol stream', () => {
     });
   });
 
-  describe.only('id', () => {
+  describe('id', () => {
     it('should send the id to the server', async () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',
