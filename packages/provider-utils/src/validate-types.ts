@@ -58,7 +58,7 @@ export async function safeValidateTypes<OBJECT>({
 
   try {
     if (validator.validate == null) {
-      return { success: true, value, rawValue: value };
+      return { success: true, value: value as OBJECT, rawValue: value };
     }
 
     const result = await validator.validate(value);
