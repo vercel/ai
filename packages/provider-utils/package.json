@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
+    "@standard-schema/spec": "^1.0.0",
     "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
@@ -48,7 +49,7 @@
     "msw": "2.7.0",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "zod": "3.23.8"
+    "zod": "3.24.4"
   },
   "peerDependencies": {
     "zod": "^3.23.8"

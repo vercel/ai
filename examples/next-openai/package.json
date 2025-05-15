@@ -28,7 +28,7 @@
     "react-markdown": "9.0.1",
     "redis": "^4.7.0",
     "resumable-stream": "^2.0.0",
-    "zod": "3.23.8"
+    "zod": "3.24.4"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

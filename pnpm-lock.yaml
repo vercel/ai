@@ -183,11 +183,11 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(typescript@5.8.3)
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
       zod-to-json-schema:
         specifier: 3.23.5
-        version: 3.23.5(zod@3.23.8)
+        version: 3.23.5(zod@3.24.4)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -310,8 +310,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
     devDependencies:
       '@types/express':
         specifier: 5.0.0
@@ -642,8 +642,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -755,8 +755,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -822,8 +822,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -892,8 +892,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -999,11 +999,11 @@ importers:
         specifier: 16.4.5
         version: 16.4.5
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
       zod-to-json-schema:
         specifier: 3.23.5
-        version: 3.23.5(zod@3.23.8)
+        version: 3.23.5(zod@3.24.4)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1030,8 +1030,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ai
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
     devDependencies:
       '@nuxt/devtools':
         specifier: 1.6.3
@@ -1157,8 +1157,8 @@ importers:
         specifier: ^6.0.0
         version: 6.0.3(@types/node@22.7.4)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0)
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/ai:
     dependencies:
@@ -1197,8 +1197,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/amazon-bedrock:
     dependencies:
@@ -1231,8 +1231,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/anthropic:
     dependencies:
@@ -1256,8 +1256,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/assemblyai:
     dependencies:
@@ -1281,8 +1281,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/azure:
     dependencies:
@@ -1309,8 +1309,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/cerebras:
     dependencies:
@@ -1337,8 +1337,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/codemod:
     dependencies:
@@ -1414,8 +1414,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/deepgram:
     dependencies:
@@ -1439,8 +1439,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/deepinfra:
     dependencies:
@@ -1467,8 +1467,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/deepseek:
     dependencies:
@@ -1495,8 +1495,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/elevenlabs:
     dependencies:
@@ -1520,8 +1520,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/fal:
     dependencies:
@@ -1545,8 +1545,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/fireworks:
     dependencies:
@@ -1573,8 +1573,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/gladia:
     dependencies:
@@ -1598,8 +1598,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/google:
     dependencies:
@@ -1623,8 +1623,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/google-vertex:
     dependencies:
@@ -1657,8 +1657,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/groq:
     dependencies:
@@ -1682,8 +1682,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/hume:
     dependencies:
@@ -1707,8 +1707,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/langchain:
     dependencies:
@@ -1770,8 +1770,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/luma:
     dependencies:
@@ -1795,8 +1795,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/mistral:
     dependencies:
@@ -1820,8 +1820,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/openai:
     dependencies:
@@ -1845,8 +1845,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/openai-compatible:
     dependencies:
@@ -1870,8 +1870,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/perplexity:
     dependencies:
@@ -1895,8 +1895,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/provider:
     dependencies:
@@ -1925,9 +1925,12 @@ importers:
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
+      '@standard-schema/spec':
+        specifier: ^1.0.0
+        version: 1.0.0
       zod-to-json-schema:
         specifier: ^3.24.1
-        version: 3.24.1(zod@3.23.8)
+        version: 3.24.1(zod@3.24.4)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1945,8 +1948,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/react:
     dependencies:
@@ -2009,8 +2012,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/replicate:
     dependencies:
@@ -2034,8 +2037,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/revai:
     dependencies:
@@ -2059,8 +2062,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/rsc:
     dependencies:
@@ -2129,8 +2132,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/rsc/tests/e2e/next-server:
     dependencies:
@@ -2214,8 +2217,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.7(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@20.17.24)(jiti@2.4.0)(jsdom@26.0.0)(msw@2.7.0(@types/node@20.17.24)(typescript@5.6.3))(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0)
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/togetherai:
     dependencies:
@@ -2242,8 +2245,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/valibot:
     dependencies:
@@ -2350,8 +2353,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.23.8
-        version: 3.23.8
+        specifier: 3.24.4
+        version: 3.24.4
 
   tools/analyze-downloads:
     devDependencies:
@@ -7147,6 +7150,9 @@ packages:
   '@smithy/util-utf8@4.0.0':
     resolution: {integrity: sha512-b+zebfKCfRdgNJDknHCob3O7FpeYQN6ZG6YLExMcasDHsCXlsXCEuiPZeLnJLpwa5dvPetGlnGCiMHuLwGvFow==}
     engines: {node: '>=18.0.0'}
+
+  '@standard-schema/spec@1.0.0':
+    resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
   '@sveltejs/acorn-typescript@1.0.5':
     resolution: {integrity: sha512-IwQk4yfwLdibDlrXVE04jTZYlLnwsTT2PIOQQGNLWfjavGifnk1JD1LcZjZaBTRcxZu2FfPfNLOE04DSu9lqtQ==}
@@ -15139,8 +15145,8 @@ packages:
     peerDependencies:
       zod: ^3.24.1
 
-  zod@3.23.8:
-    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
+  zod@3.24.4:
+    resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -17938,8 +17944,8 @@ snapshots:
       flat: 5.0.2
       langsmith: 0.1.23(openai@4.52.6)
       uuid: 9.0.1
-      zod: 3.23.8
-      zod-to-json-schema: 3.24.1(zod@3.23.8)
+      zod: 3.24.4
+      zod-to-json-schema: 3.24.1(zod@3.24.4)
     optionalDependencies:
       '@aws-crypto/sha256-js': 5.2.0
       '@aws-sdk/client-bedrock-runtime': 3.663.0
@@ -17968,8 +17974,8 @@ snapshots:
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 9.0.1
-      zod: 3.23.8
-      zod-to-json-schema: 3.23.5(zod@3.23.8)
+      zod: 3.24.4
+      zod-to-json-schema: 3.23.5(zod@3.24.4)
     transitivePeerDependencies:
       - openai
 
@@ -17978,8 +17984,8 @@ snapshots:
       '@langchain/core': 0.1.63(openai@4.52.6)
       js-tiktoken: 1.0.12
       openai: 4.52.6
-      zod: 3.23.8
-      zod-to-json-schema: 3.23.5(zod@3.23.8)
+      zod: 3.24.4
+      zod-to-json-schema: 3.23.5(zod@3.24.4)
     transitivePeerDependencies:
       - encoding
 
@@ -18050,8 +18056,8 @@ snapshots:
       express-rate-limit: 7.5.0(express@5.0.1)
       pkce-challenge: 5.0.0
       raw-body: 3.0.0
-      zod: 3.23.8
-      zod-to-json-schema: 3.24.1(zod@3.23.8)
+      zod: 3.24.4
+      zod-to-json-schema: 3.24.1(zod@3.24.4)
     transitivePeerDependencies:
       - supports-color
 
@@ -20691,6 +20697,8 @@ snapshots:
     dependencies:
       '@smithy/util-buffer-from': 4.0.0
       tslib: 2.8.1
+
+  '@standard-schema/spec@1.0.0': {}
 
   '@sveltejs/acorn-typescript@1.0.5(acorn@8.14.1)':
     dependencies:
@@ -26374,8 +26382,8 @@ snapshots:
       p-retry: 4.6.2
       uuid: 9.0.1
       yaml: 2.4.2
-      zod: 3.23.8
-      zod-to-json-schema: 3.23.5(zod@3.23.8)
+      zod: 3.24.4
+      zod-to-json-schema: 3.23.5(zod@3.24.4)
     optionalDependencies:
       '@aws-sdk/credential-provider-node': 3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0)
       '@vercel/kv': 0.2.4
@@ -31322,14 +31330,14 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.5.2
 
-  zod-to-json-schema@3.23.5(zod@3.23.8):
+  zod-to-json-schema@3.23.5(zod@3.24.4):
     dependencies:
-      zod: 3.23.8
+      zod: 3.24.4
 
-  zod-to-json-schema@3.24.1(zod@3.23.8):
+  zod-to-json-schema@3.24.1(zod@3.24.4):
     dependencies:
-      zod: 3.23.8
+      zod: 3.24.4
 
-  zod@3.23.8: {}
+  zod@3.24.4: {}
 
   zwitch@2.0.4: {}
