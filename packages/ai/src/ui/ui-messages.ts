@@ -17,11 +17,16 @@ export type ToolInvocation =
   | ({ state: 'result'; step?: number } & ToolResult<string, any, any>);
 
 /**
- * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
+The data types that can be used in the UI message for the UI message data parts.
+ */
+export type UIDataTypes = Record<string, unknown>;
+
+/**
+AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
 export interface UIMessage<
   METADATA = unknown,
-  DATA_PARTS extends Record<string, unknown> = Record<string, unknown>,
+  DATA_PARTS extends UIDataTypes = UIDataTypes,
 > {
   /**
 A unique identifier for the message.
@@ -51,7 +56,7 @@ Assistant messages can have text, reasoning, tool invocation, and file parts.
   parts: Array<UIMessagePart<DATA_PARTS>>;
 }
 
-export type UIMessagePart<DATA_TYPES extends Record<string, unknown>> =
+export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
   | TextUIPart
   | ReasoningUIPart
   | ToolInvocationUIPart
@@ -60,7 +65,7 @@ export type UIMessagePart<DATA_TYPES extends Record<string, unknown>> =
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
 
-export type DataUIPart<DATA_TYPES extends Record<string, unknown>> = ValueOf<{
+export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   [NAME in keyof DATA_TYPES & string]: {
     type: `data-${NAME}`;
     id: string;
@@ -153,9 +158,9 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateUIMessage<METADATA = unknown> = Omit<
-  UIMessage<METADATA>,
-  'id'
-> & {
-  id?: UIMessage<METADATA>['id'];
+export type CreateUIMessage<
+  METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> = Omit<UIMessage<METADATA, DATA_TYPES>, 'id'> & {
+  id?: UIMessage<METADATA, DATA_TYPES>['id'];
 };

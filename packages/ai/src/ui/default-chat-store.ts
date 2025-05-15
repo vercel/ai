@@ -6,9 +6,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ChatStore } from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
-import { UIMessage } from './ui-messages';
+import { UIDataTypes, UIMessage } from './ui-messages';
 
-export function defaultChatStore<MESSAGE_METADATA>({
+export function defaultChatStore<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+>({
   api,
   fetch,
   streamProtocol = 'ui-message',
@@ -97,18 +100,18 @@ export function defaultChatStore<MESSAGE_METADATA>({
    */
   prepareRequestBody?: (options: {
     id: string;
-    messages: UIMessage<MESSAGE_METADATA>[];
+    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     requestBody?: object;
   }) => unknown;
 
   chats?: {
     [id: string]: {
-      messages: UIMessage<MESSAGE_METADATA>[];
+      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     };
   };
-}): ChatStore<MESSAGE_METADATA> {
-  return new ChatStore<MESSAGE_METADATA>({
-    transport: new DefaultChatTransport<MESSAGE_METADATA>({
+}): ChatStore<MESSAGE_METADATA, DATA_TYPES> {
+  return new ChatStore<MESSAGE_METADATA, DATA_TYPES>({
+    transport: new DefaultChatTransport<MESSAGE_METADATA, DATA_TYPES>({
       api,
       fetch,
       streamProtocol,

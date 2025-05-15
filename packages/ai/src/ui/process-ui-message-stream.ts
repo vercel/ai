@@ -9,12 +9,16 @@ import type {
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
+  UIDataTypes,
   UIMessage,
 } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
-export type StreamingUIMessageState<MESSAGE_METADATA = unknown> = {
-  message: UIMessage<MESSAGE_METADATA>;
+export type StreamingUIMessageState<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> = {
+  message: UIMessage<MESSAGE_METADATA, DATA_TYPES>;
   activeTextPart: TextUIPart | undefined;
   activeReasoningPart: ReasoningUIPart | undefined;
   partialToolCalls: Record<
@@ -24,20 +28,23 @@ export type StreamingUIMessageState<MESSAGE_METADATA = unknown> = {
   step: number;
 };
 
-export function createStreamingUIMessageState<MESSAGE_METADATA = unknown>({
+export function createStreamingUIMessageState<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+>({
   lastMessage,
   newMessageId = 'no-id',
 }: {
-  lastMessage?: UIMessage<MESSAGE_METADATA>;
+  lastMessage?: UIMessage<MESSAGE_METADATA, DATA_TYPES>;
   newMessageId?: string;
-} = {}): StreamingUIMessageState<MESSAGE_METADATA> {
+} = {}): StreamingUIMessageState<MESSAGE_METADATA, DATA_TYPES> {
   const isContinuation = lastMessage?.role === 'assistant';
 
   const step = isContinuation
     ? 1 + (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0)
     : 0;
 
-  const message: UIMessage<MESSAGE_METADATA> = isContinuation
+  const message: UIMessage<MESSAGE_METADATA, DATA_TYPES> = isContinuation
     ? structuredClone(lastMessage)
     : {
         id: newMessageId,
@@ -55,7 +62,10 @@ export function createStreamingUIMessageState<MESSAGE_METADATA = unknown>({
   };
 }
 
-export function processUIMessageStream<MESSAGE_METADATA = unknown>({
+export function processUIMessageStream<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+>({
   stream,
   onToolCall,
   messageMetadataSchema,

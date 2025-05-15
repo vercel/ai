@@ -18,7 +18,7 @@ import {
   isAssistantMessageWithCompletedToolCalls,
   shouldResubmitMessages,
 } from './should-resubmit-messages';
-import type { CreateUIMessage, UIMessage } from './ui-messages';
+import type { CreateUIMessage, UIDataTypes, UIMessage } from './ui-messages';
 import { updateToolCallResult } from './update-tool-call-result';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
 
@@ -34,9 +34,9 @@ export interface ChatStoreEvent {
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
-export interface Chat<MESSAGE_METADATA> {
+export interface Chat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
   status: ChatStatus;
-  messages: UIMessage<MESSAGE_METADATA>[];
+  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
   error?: Error;
   activeResponse?: {
     state: StreamingUIMessageState<MESSAGE_METADATA>;
@@ -45,7 +45,10 @@ export interface Chat<MESSAGE_METADATA> {
   jobExecutor: SerialJobExecutor;
 }
 
-type ExtendedCallOptions<MESSAGE_METADATA> = ChatRequestOptions & {
+type ExtendedCallOptions<
+  MESSAGE_METADATA,
+  DATA_TYPES extends UIDataTypes,
+> = ChatRequestOptions & {
   onError?: (error: Error) => void;
 
   /**
@@ -67,16 +70,16 @@ either synchronously or asynchronously.
    * @param message The message that was streamed.
    */
   onFinish?: (options: {
-    message: UIMessage<NoInfer<MESSAGE_METADATA>>;
+    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>;
   }) => void;
 };
 
-export class ChatStore<MESSAGE_METADATA> {
-  private chats: Map<string, Chat<MESSAGE_METADATA>>;
+export class ChatStore<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
+  private chats: Map<string, Chat<MESSAGE_METADATA, DATA_TYPES>>;
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
   private messageMetadataSchema: Schema<MESSAGE_METADATA> | undefined;
-  private transport: ChatTransport<MESSAGE_METADATA>;
+  private transport: ChatTransport<MESSAGE_METADATA, DATA_TYPES>;
   private maxSteps: number;
 
   constructor({
@@ -88,12 +91,12 @@ export class ChatStore<MESSAGE_METADATA> {
   }: {
     chats?: {
       [id: string]: {
-        messages: UIMessage<MESSAGE_METADATA>[];
+        messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
       };
     };
     generateId?: UseChatOptions['generateId'];
     messageMetadataSchema?: Schema<MESSAGE_METADATA>;
-    transport: ChatTransport<MESSAGE_METADATA>;
+    transport: ChatTransport<MESSAGE_METADATA, DATA_TYPES>;
     maxSteps?: number;
   }) {
     this.chats = new Map(
@@ -120,7 +123,7 @@ export class ChatStore<MESSAGE_METADATA> {
     return this.chats.has(id);
   }
 
-  addChat(id: string, messages: UIMessage<MESSAGE_METADATA>[]) {
+  addChat(id: string, messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
     this.chats.set(id, {
       messages,
       status: 'ready',
@@ -146,7 +149,7 @@ export class ChatStore<MESSAGE_METADATA> {
     error,
   }: {
     id: string;
-    status: Chat<MESSAGE_METADATA>['status'];
+    status: Chat<MESSAGE_METADATA, DATA_TYPES>['status'];
     error?: Error;
   }) {
     const chat = this.getChat(id);
@@ -182,7 +185,7 @@ export class ChatStore<MESSAGE_METADATA> {
     messages,
   }: {
     id: string;
-    messages: UIMessage<MESSAGE_METADATA>[];
+    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
   }) {
     // mutate the messages array directly:
     this.getChat(id).messages = [...messages];
@@ -213,9 +216,9 @@ export class ChatStore<MESSAGE_METADATA> {
     onError,
     onToolCall,
     onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA> & {
+  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_TYPES> & {
     chatId: string;
-    message: CreateUIMessage<MESSAGE_METADATA>;
+    message: CreateUIMessage<MESSAGE_METADATA, DATA_TYPES>;
   }) {
     const chat = this.getChat(chatId);
     const currentMessages = chat.messages;
@@ -242,7 +245,7 @@ export class ChatStore<MESSAGE_METADATA> {
     onError,
     onToolCall,
     onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA> & {
+  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_TYPES> & {
     chatId: string;
   }) {
     const messages = this.getChat(chatId).messages;
@@ -275,7 +278,7 @@ export class ChatStore<MESSAGE_METADATA> {
     onError,
     onToolCall,
     onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA> & {
+  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_TYPES> & {
     chatId: string;
   }) {
     const chat = this.getChat(chatId);
@@ -350,7 +353,7 @@ export class ChatStore<MESSAGE_METADATA> {
     }
   }
 
-  private getChat(id: string): Chat<MESSAGE_METADATA> {
+  private getChat(id: string): Chat<MESSAGE_METADATA, DATA_TYPES> {
     if (!this.hasChat(id)) {
       throw new Error(`chat '${id}' not found`);
     }
@@ -366,9 +369,9 @@ export class ChatStore<MESSAGE_METADATA> {
     onError,
     onToolCall,
     onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA> & {
+  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_TYPES> & {
     chatId: string;
-    messages: UIMessage<MESSAGE_METADATA>[];
+    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     requestType: 'generate' | 'resume';
   }) {
     const self = this;
