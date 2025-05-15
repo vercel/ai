@@ -24,7 +24,7 @@ export function zodSchema<OBJECT>(
       target: 'jsonSchema7', // note: openai mode breaks various gemini conversions
     }) as JSONSchema7,
     {
-      validate: async value => {
+      validate: value => {
         const result = zodSchema.safeParse(value);
         return result.success
           ? { success: true, value: result.data }

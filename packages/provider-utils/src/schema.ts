@@ -38,9 +38,7 @@ export function jsonSchema<OBJECT = unknown>(
   }: {
     validate?: (
       value: unknown,
-    ) => PromiseLike<
-      { success: true; value: OBJECT } | { success: false; error: Error }
-    >;
+    ) => { success: true; value: OBJECT } | { success: false; error: Error };
   } = {},
 ): Schema<OBJECT> {
   return {

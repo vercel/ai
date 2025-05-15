@@ -6,7 +6,7 @@ export function valibotSchema<OBJECT>(
   valibotSchema: v.GenericSchema<unknown, OBJECT>,
 ): Schema<OBJECT> {
   return jsonSchema(valibotToJsonSchema(valibotSchema), {
-    validate: async value => {
+    validate: value => {
       const result = v.safeParse(valibotSchema, value);
       return result.success
         ? { success: true, value: result.output }
