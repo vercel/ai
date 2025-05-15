@@ -44,7 +44,6 @@ export const uiMessageStreamPartSchema = z.union([
   z.object({
     type: z.literal('source'),
     value: z.object({
-      type: z.literal('source'),
       sourceType: z.literal('url'),
       id: z.string(),
       url: z.string(),
@@ -135,9 +134,9 @@ export type UIMessageStreamPart =
       };
     }
   | {
+      // TODO evaluate flattening sources similar to data ui parts
       type: 'source';
       value: {
-        type: 'source';
         sourceType: 'url';
         id: string;
         url: string;
@@ -155,6 +154,7 @@ export type UIMessageStreamPart =
   | {
       type: `data-${string}`;
       value: {
+        id?: string;
         data: unknown;
       };
     }

@@ -1,4 +1,3 @@
-import { LanguageModelV2Source } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { ValueOf } from '../util/value-of';
 
@@ -68,6 +67,7 @@ export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
 export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   [NAME in keyof DATA_TYPES & string]: {
     type: `data-${NAME}`;
+    id?: string;
     value: DATA_TYPES[NAME];
   };
 }>;
@@ -122,7 +122,13 @@ export type SourceUIPart = {
   /**
    * The source.
    */
-  source: LanguageModelV2Source;
+  source: {
+    sourceType: 'url';
+    id: string;
+    url: string;
+    title?: string;
+    providerMetadata?: Record<string, any>;
+  };
 };
 
 /**

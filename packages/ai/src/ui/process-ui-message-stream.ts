@@ -5,6 +5,7 @@ import { parsePartialJson } from '../util/parse-partial-json';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
+  DataUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
@@ -180,7 +181,13 @@ export function processUIMessageStream<
             case 'source': {
               state.message.parts.push({
                 type: 'source',
-                source: value,
+                source: {
+                  sourceType: 'url' as const,
+                  id: value.id,
+                  url: value.url,
+                  title: value.title,
+                  providerMetadata: value.providerMetadata,
+                },
               });
 
               write();
@@ -348,10 +355,28 @@ export function processUIMessageStream<
 
             default: {
               if (type.startsWith('data-')) {
-                state.message.parts.push({
-                  type,
-                  value: value.data as unknown as DATA_TYPES[keyof DATA_TYPES],
-                });
+                const existingPart =
+                  value.id != null
+                    ? state.message.parts.find(
+                        part => part.type === type && part.id === value.id,
+                      )
+                    : undefined;
+
+                if (existingPart != null) {
+                  // TODO improve type safety
+                  (existingPart as any).value = mergeObjects(
+                    (existingPart as any).data,
+                    value.data as any,
+                  );
+                } else {
+                  // TODO improve type safety
+                  state.message.parts.push({
+                    type,
+                    id: value.id,
+                    value:
+                      value.data as unknown as DATA_TYPES[keyof DATA_TYPES],
+                  });
+                }
                 write();
               }
             }
