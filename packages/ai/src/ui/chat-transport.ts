@@ -1,12 +1,15 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { UIMessageStreamPart } from '../ui-message-stream';
 import { fetchUIMessageStream } from './call-chat-api';
-import { UIMessage } from './ui-messages';
+import { UIDataTypes, UIMessage } from './ui-messages';
 
-export interface ChatTransport<MESSAGE_METADATA> {
+export interface ChatTransport<
+  MESSAGE_METADATA,
+  DATA_TYPES extends UIDataTypes,
+> {
   submitMessages: (options: {
     chatId: string;
-    messages: UIMessage<MESSAGE_METADATA>[];
+    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     abortController: AbortController;
     body?: object;
     headers?: Record<string, string> | Headers;
@@ -14,8 +17,10 @@ export interface ChatTransport<MESSAGE_METADATA> {
   }) => Promise<ReadableStream<UIMessageStreamPart>>;
 }
 
-export class DefaultChatTransport<MESSAGE_METADATA>
-  implements ChatTransport<MESSAGE_METADATA>
+export class DefaultChatTransport<
+  MESSAGE_METADATA,
+  DATA_TYPES extends UIDataTypes,
+> implements ChatTransport<MESSAGE_METADATA, DATA_TYPES>
 {
   private api: string;
   private credentials?: RequestCredentials;
@@ -25,7 +30,7 @@ export class DefaultChatTransport<MESSAGE_METADATA>
   private fetch?: FetchFunction;
   private prepareRequestBody?: (options: {
     id: string;
-    messages: UIMessage<MESSAGE_METADATA>[];
+    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     requestBody?: object;
   }) => unknown;
 
@@ -88,7 +93,7 @@ export class DefaultChatTransport<MESSAGE_METADATA>
      */
     prepareRequestBody?: (options: {
       id: string;
-      messages: UIMessage<MESSAGE_METADATA>[];
+      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
       requestBody?: object;
     }) => unknown;
   }) {
@@ -108,7 +113,9 @@ export class DefaultChatTransport<MESSAGE_METADATA>
     body,
     headers,
     requestType,
-  }: Parameters<ChatTransport<MESSAGE_METADATA>['submitMessages']>[0]) {
+  }: Parameters<
+    ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
+  >[0]) {
     return fetchUIMessageStream({
       api: this.api,
       headers: {

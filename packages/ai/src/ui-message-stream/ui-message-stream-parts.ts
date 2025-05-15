@@ -1,27 +1,7 @@
 import { z } from 'zod';
+import { ProviderMetadata } from '../../core';
 
-const toolCallSchema = z.object({
-  toolCallId: z.string(),
-  toolName: z.string(),
-  args: z.unknown(),
-});
-
-const toolResultValueSchema = z.object({
-  toolCallId: z.string(),
-  result: z.unknown(),
-  providerMetadata: z.any().optional(),
-});
-
-const sourceSchema = z.object({
-  type: z.literal('source'),
-  sourceType: z.literal('url'),
-  id: z.string(),
-  url: z.string(),
-  title: z.string().optional(),
-  providerMetadata: z.any().optional(), // Use z.any() for generic metadata
-});
-
-export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
+export const uiMessageStreamPartSchema = z.union([
   z.object({
     type: z.literal('text'),
     value: z.string(),
@@ -32,11 +12,19 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('tool-call'),
-    value: toolCallSchema,
+    value: z.object({
+      toolCallId: z.string(),
+      toolName: z.string(),
+      args: z.unknown(),
+    }),
   }),
   z.object({
     type: z.literal('tool-result'),
-    value: toolResultValueSchema,
+    value: z.object({
+      toolCallId: z.string(),
+      result: z.unknown(),
+      providerMetadata: z.any().optional(),
+    }),
   }),
   z.object({
     type: z.literal('tool-call-streaming-start'),
@@ -55,7 +43,13 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('source'),
-    value: sourceSchema,
+    value: z.object({
+      sourceType: z.literal('url'),
+      id: z.string(),
+      url: z.string(),
+      title: z.string().optional(),
+      providerMetadata: z.any().optional(), // Use z.any() for generic metadata
+    }),
   }),
   z.object({
     type: z.literal('file'),
@@ -63,6 +57,11 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
       url: z.string(),
       mediaType: z.string(),
     }),
+  }),
+  z.object({
+    type: z.string().startsWith('data-'),
+    id: z.string().optional(),
+    data: z.unknown(),
   }),
   z.object({
     type: z.literal('metadata'),
@@ -95,4 +94,89 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export type UIMessageStreamPart = z.infer<typeof uiMessageStreamPartSchema>;
+export type UIMessageStreamPart =
+  | {
+      type: 'text';
+      value: string;
+    }
+  | {
+      type: 'error';
+      value: string;
+    }
+  | {
+      type: 'tool-call';
+      value: {
+        toolCallId: string;
+        toolName: string;
+        args: unknown;
+      };
+    }
+  | {
+      type: 'tool-result';
+      value: {
+        toolCallId: string;
+        result: unknown;
+        providerMetadata?: ProviderMetadata;
+      };
+    }
+  | {
+      type: 'tool-call-streaming-start';
+      value: { toolCallId: string; toolName: string };
+    }
+  | {
+      type: 'tool-call-delta';
+      value: { toolCallId: string; argsTextDelta: string };
+    }
+  | {
+      type: 'reasoning';
+      value: {
+        text: string;
+        providerMetadata?: ProviderMetadata;
+      };
+    }
+  | {
+      // TODO evaluate flattening sources similar to data ui parts
+      type: 'source';
+      value: {
+        sourceType: 'url';
+        id: string;
+        url: string;
+        title?: string;
+        providerMetadata?: ProviderMetadata;
+      };
+    }
+  | {
+      type: 'file';
+      value: {
+        url: string;
+        mediaType: string;
+      };
+    }
+  | {
+      type: `data-${string}`;
+      id?: string;
+      data: unknown;
+    }
+  | {
+      type: 'metadata';
+      value: { metadata: unknown };
+    }
+  | {
+      type: 'start-step';
+      value?: { metadata: unknown };
+    }
+  | {
+      type: 'finish-step';
+      value?: { metadata: unknown };
+    }
+  | {
+      type: 'start';
+      value?: { messageId?: string; metadata?: unknown };
+    }
+  | {
+      type: 'finish';
+      value?: { metadata: unknown };
+    }
+  | {
+      type: 'reasoning-part-finish';
+    };

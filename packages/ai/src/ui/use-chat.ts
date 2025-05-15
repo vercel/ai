@@ -4,8 +4,8 @@ import {
   Schema,
   ToolCall,
 } from '@ai-sdk/provider-utils';
-import { UIMessage } from './ui-messages';
 import { ChatStore } from './chat-store';
+import { UIDataTypes, UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
   /**
@@ -19,7 +19,10 @@ export type ChatRequestOptions = {
   body?: object;
 };
 
-export type UseChatOptions<MESSAGE_METADATA = unknown> = {
+export type UseChatOptions<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> = {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
    * generated. When provided, the `useChat` hook with the same `id` will
@@ -51,7 +54,7 @@ export type UseChatOptions<MESSAGE_METADATA = unknown> = {
    * @param message The message that was streamed.
    */
   onFinish?: (options: {
-    message: UIMessage<NoInfer<MESSAGE_METADATA>>;
+    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>;
   }) => void;
 
   /**
@@ -68,7 +71,7 @@ export type UseChatOptions<MESSAGE_METADATA = unknown> = {
   /**
    * Optional chat store. Default is used when not provided.
    */
-  chatStore?: ChatStore<MESSAGE_METADATA>;
+  chatStore?: ChatStore<MESSAGE_METADATA, DATA_TYPES>;
 };
 
 export type OriginalUseChatOptions<MESSAGE_METADATA = unknown> = {

@@ -726,16 +726,30 @@ describe('onToolCall', () => {
     await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      `{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}`,
-    );
+    expect(
+      JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+    ).toStrictEqual({
+      state: 'call',
+      step: 0,
+      args: { testArg: 'test-value' },
+      toolCallId: 'tool-call-0',
+      toolName: 'test-tool',
+    });
 
     resolve();
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        `{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-tool-response: test-tool tool-call-0 {\\"testArg\\":\\"test-value\\"}"}`,
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result:
+          'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+      });
     });
   });
 });
@@ -814,9 +828,14 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'partial-call',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     controller.write(
@@ -830,9 +849,15 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'partial-call',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 't' },
+      });
     });
 
     controller.write(
@@ -846,9 +871,15 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'partial-call',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      });
     });
 
     controller.write(
@@ -863,9 +894,15 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     controller.write(
@@ -880,9 +917,16 @@ describe('tool invocations', () => {
     controller.close();
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        `{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}`,
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
   });
 
@@ -907,9 +951,15 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     controller.write(
@@ -924,9 +974,16 @@ describe('tool invocations', () => {
     controller.close();
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
   });
 
@@ -953,17 +1010,30 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     await userEvent.click(screen.getByTestId('add-result-0'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
 
     controller.write(
@@ -1047,9 +1117,15 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     // user submits the tool result
@@ -1057,9 +1133,16 @@ describe('tool invocations', () => {
 
     // UI should show the tool result
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
 
     // should not have called the API yet

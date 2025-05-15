@@ -40,7 +40,7 @@ describe('processUIMessageStream', () => {
     });
   };
 
-  describe('scenario: simple text response', () => {
+  describe('text', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -140,7 +140,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: server-side tool roundtrip', () => {
+  describe('server-side tool roundtrip', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -357,7 +357,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: server-side tool roundtrip with existing assistant message', () => {
+  describe('server-side tool roundtrip with existing assistant message', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -685,7 +685,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: server-side tool roundtrip with multiple assistant texts', () => {
+  describe('server-side tool roundtrip with multiple assistant texts', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -995,7 +995,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: server-side tool roundtrip with multiple assistant reasoning', () => {
+  describe('server-side tool roundtrip with multiple assistant reasoning', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -1382,7 +1382,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: message metadata', () => {
+  describe('message metadata', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         {
@@ -1669,7 +1669,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: delayed message metadata after finish', () => {
+  describe('message metadata delayed after finish', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -1780,7 +1780,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: message metadata with existing assistant lastMessage', () => {
+  describe('message metadata with existing assistant lastMessage', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -1896,7 +1896,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: tool call streaming', () => {
+  describe('tool call streaming', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -2126,7 +2126,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: server provides message ids', () => {
+  describe('start with message id', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -2226,7 +2226,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: server provides reasoning', () => {
+  describe('reasoning', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -2464,7 +2464,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: onToolCall is executed', () => {
+  describe('onToolCall is executed', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -2597,7 +2597,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: server provides sources', () => {
+  describe('sources', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -2606,7 +2606,6 @@ describe('processUIMessageStream', () => {
         {
           type: 'source',
           value: {
-            type: 'source',
             sourceType: 'url',
             id: 'source-id',
             url: 'https://example.com',
@@ -2681,9 +2680,9 @@ describe('processUIMessageStream', () => {
                 {
                   "source": {
                     "id": "source-id",
+                    "providerMetadata": undefined,
                     "sourceType": "url",
                     "title": "Example",
-                    "type": "source",
                     "url": "https://example.com",
                   },
                   "type": "source",
@@ -2712,9 +2711,9 @@ describe('processUIMessageStream', () => {
             {
               "source": {
                 "id": "source-id",
+                "providerMetadata": undefined,
                 "sourceType": "url",
                 "title": "Example",
-                "type": "source",
                 "url": "https://example.com",
               },
               "type": "source",
@@ -2726,7 +2725,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('scenario: server provides file parts', () => {
+  describe('file parts', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
@@ -2894,6 +2893,205 @@ describe('processUIMessageStream', () => {
               "mediaType": "application/json",
               "type": "file",
               "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
+            },
+          ],
+          "role": "assistant",
+        }
+      `);
+    });
+  });
+
+  describe('data ui parts (single part)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start-step' },
+        {
+          type: 'data-test',
+          data: 'example-data-can-be-anything',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState();
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "id": undefined,
+                  "type": "data-test",
+                  "value": "example-data-can-be-anything",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message).toMatchInlineSnapshot(`
+        {
+          "id": "msg-123",
+          "metadata": {},
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "id": undefined,
+              "type": "data-test",
+              "value": "example-data-can-be-anything",
+            },
+          ],
+          "role": "assistant",
+        }
+      `);
+    });
+  });
+
+  describe('data ui parts (single part with id and updates)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start-step' },
+        {
+          type: 'data-test',
+          id: 'data-part-id',
+          data: 'example-data-can-be-anything',
+        },
+        {
+          type: 'data-test',
+          id: 'data-part-id',
+          data: 'or-something-else',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState();
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "id": "data-part-id",
+                  "type": "data-test",
+                  "value": "example-data-can-be-anything",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "id": "data-part-id",
+                  "type": "data-test",
+                  "value": "or-something-else",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message).toMatchInlineSnapshot(`
+        {
+          "id": "msg-123",
+          "metadata": {},
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "id": "data-part-id",
+              "type": "data-test",
+              "value": "or-something-else",
             },
           ],
           "role": "assistant",
