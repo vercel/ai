@@ -21,22 +21,19 @@ describe('convertToPerplexityMessages', () => {
         convertToPerplexityMessages([
           {
             role: 'user',
-            content: [
-              { type: 'text', text: 'Hello ' },
-              { type: 'text', text: 'World' },
-            ],
+            content: [{ type: 'text', text: 'Hello World' }],
           },
         ]),
       ).toMatchSnapshot();
     });
 
-    it('should throw an error for user messages with image parts', () => {
-      expect(() => {
+    it('should convert a user message with image parts', () => {
+      expect(
         convertToPerplexityMessages([
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Hello ' },
+              { type: 'text', text: 'Hello World' },
               {
                 type: 'image',
                 image: new Uint8Array([0, 1, 2, 3]),
@@ -44,8 +41,8 @@ describe('convertToPerplexityMessages', () => {
               },
             ],
           },
-        ]);
-      }).toThrow(UnsupportedFunctionalityError);
+        ]),
+      ).toMatchSnapshot();
     });
 
     it('should throw an error for user messages with file parts', () => {
