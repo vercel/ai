@@ -99,7 +99,10 @@ export async function POST(req: Request) {
 ```
 
 <Note>
-    This separation is essential as you cannot use a single message format for both purposes. The state you save should always be the UIMessage format to prevent information loss, with explicit conversion to ModelMessage when communicating with language models.
+  This separation is essential as you cannot use a single message format for
+  both purposes. The state you save should always be the UIMessage format to
+  prevent information loss, with explicit conversion to ModelMessage when
+  communicating with language models.
 </Note>
 
 The new message system has made possible several highly requested features:
@@ -319,7 +322,69 @@ AI SDK 5 replaces our proprietary streaming protocol with Server-Sent Events (SS
 
 ### Agentic Control
 
-TODO
+AI SDK 5 introduces new features for building agents that help you control model behavior more precisely.
 
-- `prepareStep`
-- `continueUntil`
+#### prepareStep
+
+The `prepareStep` function gives you fine-grained control over each step in a multi-step agent. It's called before a step starts and allows you to:
+
+- Dynamically change the model used for specific steps
+- Force specific tool selections for particular steps
+- Limit which tools are available during specific steps
+- Examine the context of previous steps before proceeding
+
+For example:
+
+```ts
+const result = await generateText({
+  // ...
+  prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
+    if (stepNumber === 0) {
+      return {
+        // use a different model for this step:
+        model: modelForThisParticularStep,
+        // force a tool choice for this step:
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+        // limit the tools that are available for this step:
+        activeTools: ['tool1'],
+      };
+    }
+    // when nothing is returned, the default settings are used
+  },
+});
+```
+
+This makes it easier to build AI systems that adapt their capabilities based on the current context and task requirements.
+
+#### continueUntil
+
+The `continueUntil` parameter lets you define stopping conditions for your agent. Instead of running indefinitely, you can specify exactly when the agent should terminate based on various conditions:
+
+- Reaching a maximum number of steps
+- Calling a specific tool
+- Hitting a token usage threshold
+- Satisfying any custom condition you define
+
+For example:
+
+```ts
+const result = streamText({
+  // ...
+  // stop loop at 5 steps
+  continueUntil: maxSteps(5),
+});
+
+const result = streamText({
+  // ...
+  // stop loop at 10 steps or when weather tool called
+  continueUntil: [maxSteps(5), hasToolCall({ toolName: 'weather' })],
+});
+
+const result = streamText({
+  // ...
+  // stop loop at 20000 tokens or your own custom condition
+  continueUntil: [maxTotalTokens(20000), yourOwnCondition],
+});
+```
+
+These agentic controls form the foundation for building more reliable, controllable AI systems that can tackle complex problems while remaining within well-defined constraints.
