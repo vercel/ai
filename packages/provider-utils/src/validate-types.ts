@@ -15,7 +15,7 @@ export async function validateTypes<OBJECT>({
   value,
   schema,
 }: {
-  value: OBJECT;
+  value: unknown;
   schema: StandardSchemaV1<OBJECT> | Validator<OBJECT>;
 }): Promise<OBJECT> {
   const result = await safeValidateTypes({ value, schema });
