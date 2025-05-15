@@ -7,6 +7,7 @@ import {
   type ChatStatus,
   type CreateUIMessage,
   type OriginalUseChatOptions,
+  type UIDataTypes,
   type UIMessage,
 } from 'ai';
 import {
@@ -20,10 +21,13 @@ export type ChatOptions<MESSAGE_METADATA = unknown> = Readonly<
 
 export type { CreateUIMessage, UIMessage };
 
-export class Chat<MESSAGE_METADATA = unknown> {
+export class Chat<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> {
   readonly #options: ChatOptions<MESSAGE_METADATA> = {};
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
-  readonly #chatStore = $state<ChatStore<MESSAGE_METADATA>>()!;
+  readonly #chatStore = $state<ChatStore<MESSAGE_METADATA, DATA_TYPES>>()!;
 
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
@@ -31,7 +35,7 @@ export class Chat<MESSAGE_METADATA = unknown> {
    */
   readonly id = $derived(this.#options.id ?? this.#generateId());
 
-  #messages = $state<UIMessage<MESSAGE_METADATA>[]>([]);
+  #messages = $state<UIMessage<MESSAGE_METADATA, DATA_TYPES>[]>([]);
   /**
    * Hook status:
    *
@@ -56,10 +60,10 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * This is writable, which is useful when you want to edit the messages on the client, and then
    * trigger {@link reload} to regenerate the AI response.
    */
-  get messages(): UIMessage<MESSAGE_METADATA>[] {
+  get messages(): UIMessage<MESSAGE_METADATA, DATA_TYPES>[] {
     return this.#messages;
   }
-  set messages(value: UIMessage<MESSAGE_METADATA>[]) {
+  set messages(value: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
     this.#chatStore.setMessages({ id: this.id, messages: value });
   }
 
@@ -81,9 +85,12 @@ export class Chat<MESSAGE_METADATA = unknown> {
     this.#options = options;
 
     if (hasChatStoreContext()) {
-      this.#chatStore = getChatStoreContext() as ChatStore<MESSAGE_METADATA>;
+      this.#chatStore = getChatStoreContext() as ChatStore<
+        MESSAGE_METADATA,
+        DATA_TYPES
+      >;
     } else {
-      this.#chatStore = defaultChatStore<MESSAGE_METADATA>({
+      this.#chatStore = defaultChatStore<MESSAGE_METADATA, DATA_TYPES>({
         api: this.#options.api || '/api/chat',
         generateId: this.#options.generateId || generateId,
         maxSteps: this.#options.maxSteps,
@@ -147,7 +154,9 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * @param options Additional options to pass to the API call
    */
   append = async (
-    message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
+    message:
+      | UIMessage<MESSAGE_METADATA, DATA_TYPES>
+      | CreateUIMessage<MESSAGE_METADATA, DATA_TYPES>,
     { headers, body }: ChatRequestOptions = {},
   ) => {
     await this.#chatStore.submitMessage({
@@ -233,4 +242,3 @@ export class Chat<MESSAGE_METADATA = unknown> {
     this.#unsubscribeFromStore?.();
   }
 }
-
