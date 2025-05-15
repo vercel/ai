@@ -1,28 +1,54 @@
 import { openai } from '@ai-sdk/openai';
+import { delay } from '@ai-sdk/provider-utils';
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
 } from 'ai';
+import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const stream = createUIMessageStream({
     execute: writer => {
-      // TODO: message start is a problem;
-      writer.write({
-        type: 'data-hello-world',
-        value: {
-          data: {
-            name: 'World',
-          },
-        },
-      });
-
       const result = streamText({
         model: openai('gpt-4o'),
+        maxSteps: 2,
+        tools: {
+          'weather-tool': {
+            description: 'Get the weather in a city',
+            parameters: z.object({
+              city: z.string(),
+            }),
+            execute: async ({ city }, { toolCallId }) => {
+              // update display
+              writer.write({
+                type: 'data-weather',
+                value: {
+                  id: toolCallId,
+                  data: { city, status: 'loading' },
+                },
+              });
+
+              await delay(2000); // fake delay
+              const weather = 'sunny';
+
+              // update display
+              writer.write({
+                type: 'data-weather',
+                value: {
+                  id: toolCallId,
+                  data: { city, weather, status: 'success' },
+                },
+              });
+
+              // for LLM roundtrip
+              return { city, weather };
+            },
+          },
+        },
         messages: convertToModelMessages(messages),
       });
 

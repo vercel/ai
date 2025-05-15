@@ -60,7 +60,10 @@ export const uiMessageStreamPartSchema = z.union([
   }),
   z.object({
     type: z.string().startsWith('data-'),
-    value: z.object({ data: z.unknown() }),
+    value: z.object({
+      id: z.string().optional(),
+      data: z.unknown(),
+    }),
   }),
   z.object({
     type: z.literal('metadata'),

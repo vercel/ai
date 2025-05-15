@@ -362,7 +362,11 @@ export function processUIMessageStream<
                       )
                     : undefined;
 
+                console.log(JSON.stringify(state.message.parts, null, 2));
+
                 if (existingPart != null) {
+                  console.log('existingPart', existingPart);
+
                   // TODO improve type safety
                   (existingPart as any).value = mergeObjects(
                     (existingPart as any).data,

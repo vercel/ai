@@ -16,8 +16,10 @@ export default function Chat() {
   } = useChat<
     unknown,
     {
-      'hello-world': {
-        name: string;
+      weather: {
+        city: string;
+        weather: string;
+        status: 'loading' | 'success';
       };
     }
   >({
@@ -32,21 +34,34 @@ export default function Chat() {
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}{' '}
           {message.parts
-            .filter(part => part.type === 'data-hello-world')
-            .map(part => (
+            .filter(part => part.type === 'data-weather')
+            .map((part, index) => (
               <span
-                key={part.type}
+                key={index}
                 style={{
                   border: '2px solid red',
                   padding: '2px',
                   borderRadius: '4px',
+                  display: 'inline-block',
+                  minWidth: '180px',
                 }}
               >
-                Hello, {part.value.name}!
+                {part.value.status === 'loading' ? (
+                  <>
+                    Getting weather for <b>{part.value.city}</b>...
+                  </>
+                ) : part.value.status === 'success' ? (
+                  <>
+                    Weather in <b>{part.value.city}</b>:{' '}
+                    <b>{part.value.weather}</b>
+                  </>
+                ) : (
+                  <>Unknown weather state</>
+                )}
               </span>
             ))}
           {message.parts
-            .filter(part => part.type !== 'data-hello-world')
+            .filter(part => part.type !== 'data-weather')
             .map((part, index) => {
               if (part.type === 'text') {
                 return <div key={index}>{part.text}</div>;
