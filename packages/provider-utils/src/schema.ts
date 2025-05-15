@@ -1,28 +1,29 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
 import { Validator, validatorSymbol } from './validator';
+import { JSONSchema7 } from '@ai-sdk/provider';
+import { z } from 'zod';
+import { zodSchema } from './zod-schema';
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
  */
 const schemaSymbol = Symbol.for('vercel.ai.schema');
 
-export type Schema<OBJECT = unknown> =
-  Validator<OBJECT> & {
-    /**
-     * Used to mark schemas so we can support both Zod and custom schemas.
-     */
-    [schemaSymbol]: true;
+export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
+  /**
+   * Used to mark schemas so we can support both Zod and custom schemas.
+   */
+  [schemaSymbol]: true;
 
-    /**
-     * Schema type for inference.
-     */
-    _type: OBJECT;
+  /**
+   * Schema type for inference.
+   */
+  _type: OBJECT;
 
-    /**
-     * The JSON Schema for the schema. It is passed to the providers.
-     */
-    readonly jsonSchema: JSONSchema7;
-  };
+  /**
+   * The JSON Schema for the schema. It is passed to the providers.
+   */
+  readonly jsonSchema: JSONSchema7;
+};
 
 /**
  * Create a schema using a JSON Schema.
@@ -37,14 +38,12 @@ export function jsonSchema<OBJECT = unknown>(
   }: {
     validate?: (
       value: unknown,
-    ) => PromiseLike<
-      { success: true; value: OBJECT } | { success: false; error: Error }
-    >;
+    ) => { success: true; value: OBJECT } | { success: false; error: Error };
   } = {},
-): Schema<T> {
+): Schema<OBJECT> {
   return {
     [schemaSymbol]: true,
-    _type: undefined as unknown as OBJECT, // should never be used directly
+    _type: undefined as OBJECT, // should never be used directly
     [validatorSymbol]: true,
     jsonSchema,
     validate,
@@ -62,22 +61,15 @@ function isSchema(value: unknown): value is Schema {
   );
 }
 
-export function asSchema<T_OBJECT>(
-  schema: Schema<T_OBJECT> | undefined,
-): Schema<T_OBJECT> {
-  if (schema == null) {
-    return jsonSchema({
-      properties: {},
-      additionalProperties: false,
-    });
-  }
-
-  if (isSchema(schema)) {
-    return jsonSchema({
-      properties: {},
-      additionalProperties: false,
-    });
-  }
-
-  throw new Error('TODO: implement standard schema to JSON Schema');
+export function asSchema<OBJECT>(
+  schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT> | undefined,
+): Schema<OBJECT> {
+  return schema == null
+    ? jsonSchema({
+        properties: {},
+        additionalProperties: false,
+      })
+    : isSchema(schema)
+      ? schema
+      : zodSchema(schema);
 }
