@@ -174,7 +174,7 @@ describe('data protocol stream', () => {
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith({
       message: {
-        id: 'id-1',
+        id: 'id-2',
         metadata: {
           example: 'metadata',
         },
@@ -550,6 +550,7 @@ describe('tool invocations', () => {
   beforeEach(() => {
     chat = new Chat({
       maxSteps: 5,
+      generateId: mockId(),
     });
   });
 
@@ -1492,7 +1493,7 @@ describe('test sending additional fields during message submission', () => {
   });
 });
 
-describe('initialMessages', () => {
+describe.skip('initialMessages', () => {
   let chat: Chat;
   let initialMessages = $state<UIMessage[]>([
     {

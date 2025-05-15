@@ -1,15 +1,8 @@
-import { isAbortError } from '@ai-sdk/provider-utils';
 import {
-  callChatApi,
   ChatStore,
   convertFileListToFileUIParts,
   defaultChatStore,
-  extractMaxToolInvocationStep,
   generateId,
-  getToolInvocations,
-  isAssistantMessageWithCompletedToolCalls,
-  shouldResubmitMessages,
-  updateToolCallResult,
   type ChatRequestOptions,
   type CreateUIMessage,
   type OriginalUseChatOptions,
@@ -110,6 +103,8 @@ export class Chat<MESSAGE_METADATA = unknown> {
       this.#chatStore = defaultChatStore<MESSAGE_METADATA>({
         api: this.#options.api || '/api/chat',
         generateId: this.#options.generateId || generateId,
+        maxSteps: this.#options.maxSteps,
+        streamProtocol: this.#options.streamProtocol,
       });
     }
 
@@ -160,18 +155,13 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * new response.
    */
   reload = async ({ headers, body }: ChatRequestOptions = {}) => {
-    if (this.messages.length === 0) {
-      return;
-    }
-
-    const lastMessage = this.messages[this.messages.length - 1];
-    await this.#triggerRequest({
-      messages:
-        lastMessage.role === 'assistant'
-          ? this.messages.slice(0, -1)
-          : this.messages,
+    await this.#chatStore.resubmitLastUserMessage({
+      chatId: this.id,
       headers,
       body,
+      onError: this.#options.onError,
+      onToolCall: this.#options.onToolCall,
+      onFinish: this.#options.onFinish,
     });
   };
 
@@ -179,14 +169,7 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = () => {
-    try {
-      this.#abortController?.abort();
-    } catch {
-      // ignore
-    } finally {
-      this.#store.status = 'ready';
-      this.#abortController = undefined;
-    }
+    this.#chatStore.stopStream({ chatId: this.id });
   };
 
   /** Form submission handler to automatically reset input and append a user message */
@@ -202,17 +185,17 @@ export class Chat<MESSAGE_METADATA = unknown> {
 
     if (!this.input && fileParts.length === 0) return;
 
-    const messages = this.messages.concat({
-      id: this.#generateId(),
-      role: 'user',
-      parts: [...fileParts, { type: 'text', text: this.input }],
-    });
-
-    const request = this.#triggerRequest({
-      messages,
-      headers: options.headers,
-      body: options.body,
-    });
+    const request = this.append(
+      {
+        id: this.#generateId(),
+        role: 'user',
+        parts: [...fileParts, { type: 'text', text: this.input }],
+      },
+      {
+        headers: options.headers,
+        body: options.body,
+      },
+    );
 
     this.input = '';
     await request;
@@ -225,114 +208,10 @@ export class Chat<MESSAGE_METADATA = unknown> {
     toolCallId: string;
     result: unknown;
   }) => {
-    updateToolCallResult({
-      messages: this.messages,
+    await this.#chatStore.addToolResult({
+      chatId: this.id,
       toolCallId,
-      toolResult: result,
+      result,
     });
-
-    // when the request is ongoing, the auto-submit will be triggered after the request is finished
-    if (
-      this.#store.status === 'submitted' ||
-      this.#store.status === 'streaming'
-    ) {
-      return;
-    }
-
-    const lastMessage = this.messages[this.messages.length - 1];
-    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      await this.#triggerRequest({ messages: this.messages });
-    }
-  };
-
-  #triggerRequest = async (
-    chatRequest: ChatRequestOptions & {
-      messages: UIMessage<MESSAGE_METADATA>[];
-    },
-  ) => {
-    this.#store.status = 'submitted';
-    this.#store.error = undefined;
-
-    const messages = chatRequest.messages;
-    const messageCount = messages.length;
-    const maxStep = extractMaxToolInvocationStep(
-      getToolInvocations(messages[messages.length - 1]),
-    );
-
-    try {
-      const abortController = new AbortController();
-      this.#abortController = abortController;
-
-      // Optimistically update messages
-      this.messages = messages;
-
-      await callChatApi({
-        api: this.#api,
-        body: {
-          id: this.id,
-          messages,
-          ...$state.snapshot(this.#options.body),
-          ...chatRequest.body,
-        },
-        streamProtocol: this.#streamProtocol,
-        credentials: this.#options.credentials,
-        headers: {
-          ...this.#options.headers,
-          ...chatRequest.headers,
-        },
-        abortController: () => abortController,
-        onUpdate: ({ message }) => {
-          this.#store.status = 'streaming';
-
-          const replaceLastMessage =
-            message.id === messages[messages.length - 1].id;
-
-          this.messages = messages;
-          if (replaceLastMessage) {
-            this.messages[this.messages.length - 1] = message;
-          } else {
-            this.messages.push(message);
-          }
-        },
-        onToolCall: this.#options.onToolCall,
-        onFinish: this.#options.onFinish,
-        generateId: this.#generateId,
-        fetch: this.#options.fetch,
-        // callChatApi calls structuredClone on the message
-        lastMessage: $state.snapshot(
-          this.messages[this.messages.length - 1],
-        ) as UIMessage<MESSAGE_METADATA>,
-        messageMetadataSchema: this.#messageMetadataSchema,
-      });
-
-      this.#abortController = undefined;
-      this.#store.status = 'ready';
-    } catch (error) {
-      if (isAbortError(error)) {
-        return;
-      }
-
-      const coalescedError =
-        error instanceof Error ? error : new Error(String(error));
-      if (this.#options.onError) {
-        this.#options.onError(coalescedError);
-      }
-
-      this.#store.status = 'error';
-      this.#store.error = coalescedError;
-    }
-
-    // auto-submit when all tool calls in the last assistant message have results
-    // and assistant has not answered yet
-    if (
-      shouldResubmitMessages({
-        originalMaxToolInvocationStep: maxStep,
-        originalMessageCount: messageCount,
-        maxSteps: this.#maxSteps,
-        messages: this.messages,
-      })
-    ) {
-      await this.#triggerRequest({ messages: this.messages });
-    }
   };
 }
