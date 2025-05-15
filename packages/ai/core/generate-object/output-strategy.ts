@@ -245,10 +245,7 @@ const arrayOutputStrategy = <ELEMENT>(
         }
       }
 
-      return {
-        success: true,
-        value: inputArray as Array<ELEMENT>,
-      };
+      return { success: true, value: inputArray as Array<ELEMENT> };
     },
 
     createElementStream(
@@ -389,14 +386,14 @@ const enumOutputStrategy = <ENUM extends string>(
   };
 };
 
-export function getOutputStrategy<OBJECT>({
+export function getOutputStrategy<SCHEMA>({
   output,
   schema,
   enumValues,
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
-  schema?: Schema<OBJECT>;
-  enumValues?: Array<OBJECT>;
+  schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
+  enumValues?: Array<SCHEMA>;
 }): OutputStrategy<any, any, any> {
   switch (output) {
     case 'object':
