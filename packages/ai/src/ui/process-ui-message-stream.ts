@@ -105,6 +105,7 @@ export function processUIMessageStream<MESSAGE_METADATA = unknown>({
               if (messageMetadataSchema != null) {
                 await validateTypes({
                   value: mergedMetadata,
+                  // @ts-ignore TODO: Couldn't figure this one out yet ~@gr2m
                   schema: messageMetadataSchema,
                 });
               }
