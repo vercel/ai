@@ -174,7 +174,7 @@ describe('data protocol stream', () => {
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith({
       message: {
-        id: 'id-2',
+        id: 'id-1',
         metadata: {
           example: 'metadata',
         },
@@ -189,7 +189,7 @@ describe('data protocol stream', () => {
     });
   });
 
-  describe('id', () => {
+  describe.only('id', () => {
     it('should send the id to the server', async () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',

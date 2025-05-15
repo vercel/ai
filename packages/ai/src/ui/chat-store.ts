@@ -27,7 +27,7 @@ export interface ChatStoreSubscriber {
 }
 
 export interface ChatStoreEvent {
-  type: 'chat-messages-changed' | 'chat-status-changed';
+  type: 'chat-messages-changed' | 'chat-status-changed' | 'chat-added';
   chatId: number | string;
   error?: Error;
 }
@@ -71,7 +71,7 @@ either synchronously or asynchronously.
   }) => void;
 };
 
-export class ChatStore<MESSAGE_METADATA> {
+export class ChatStore<MESSAGE_METADATA = unknown> {
   private chats: Map<string, Chat<MESSAGE_METADATA>>;
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
@@ -126,6 +126,7 @@ export class ChatStore<MESSAGE_METADATA> {
       status: 'ready',
       jobExecutor: new SerialJobExecutor(),
     });
+    this.emit({ type: 'chat-added', chatId: id });
   }
 
   getChats() {
@@ -219,7 +220,6 @@ export class ChatStore<MESSAGE_METADATA> {
   }) {
     const chat = this.getChat(chatId);
     const currentMessages = chat.messages;
-
     await this.triggerRequest({
       chatId,
       messages: currentMessages.concat({

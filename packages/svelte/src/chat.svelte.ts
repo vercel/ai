@@ -1,7 +1,9 @@
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   callChatApi,
+  ChatStore,
   convertFileListToFileUIParts,
+  defaultChatStore,
   extractMaxToolInvocationStep,
   generateId,
   getToolInvocations,
@@ -15,10 +17,14 @@ import {
 } from 'ai';
 import { untrack } from 'svelte';
 import {
-  KeyedChatStore,
   getChatContext,
   hasChatContext,
+  KeyedChatStore,
 } from './chat-context.svelte.js';
+import {
+  getChatStoreContext,
+  hasChatStoreContext,
+} from './chat-store-context.svelte.js';
 
 export type ChatOptions<MESSAGE_METADATA = unknown> = Readonly<
   OriginalUseChatOptions<MESSAGE_METADATA>
@@ -35,6 +41,8 @@ export class Chat<MESSAGE_METADATA = unknown> {
     this.#options.streamProtocol ?? 'ui-message',
   );
   readonly #keyedStore = $state<KeyedChatStore<MESSAGE_METADATA>>()!;
+  readonly #chatStore = $state<ChatStore<MESSAGE_METADATA>>()!;
+
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
@@ -57,12 +65,12 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
   get status() {
-    return this.#store.status;
+    return this.#chatStore.getStatus(this.id);
   }
 
   /** The error object of the API request */
   get error() {
-    return this.#store.error;
+    return this.#chatStore.getError(this.id);
   }
 
   /** The current value of the input. Writable, so it can be bound to form inputs. */
@@ -75,22 +83,54 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * trigger {@link reload} to regenerate the AI response.
    */
   get messages(): UIMessage<MESSAGE_METADATA>[] {
-    return this.#store.messages;
+    // temp workaround:
+    if (!this.#chatStore.hasChat(this.id)) {
+      this.#chatStore.addChat(this.id, []);
+    }
+
+    return this.#chatStore.getMessages(this.id);
   }
   set messages(value: UIMessage<MESSAGE_METADATA>[]) {
     untrack(() => (this.#store.messages = value));
   }
 
   constructor(options: ChatOptions<MESSAGE_METADATA> = {}) {
+    this.#options = options; // Assign options early so this.id can be derived
+
     if (hasChatContext()) {
       this.#keyedStore = getChatContext() as KeyedChatStore<MESSAGE_METADATA>;
     } else {
       this.#keyedStore = new KeyedChatStore<MESSAGE_METADATA>();
     }
 
-    this.#options = options;
-    this.messages = options.initialMessages ?? [];
-    this.input = options.initialInput ?? '';
+    // q: do we want to support chatStore as an option?
+    if (hasChatStoreContext()) {
+      this.#chatStore = getChatStoreContext() as ChatStore<MESSAGE_METADATA>;
+    } else {
+      this.#chatStore = defaultChatStore<MESSAGE_METADATA>({
+        api: this.#options.api || '/api/chat',
+        generateId: this.#options.generateId || generateId,
+      });
+    }
+
+    this.input = this.#options.initialInput ?? '';
+
+    // Ensure the chat for the *current* this.id exists in #chatStore.
+    // This handles the initial ID.
+    // Note: this.id is derived, so its value is available here.
+    // if (!this.#chatStore.hasChat(this.id)) {
+    //   this.#chatStore.addChat(this.id, []);
+    // }
+
+    // todo: cleanup, alternative: force use of chatstorecontext?
+    const cleanup = $effect.root(() => {
+      $effect.pre(() => {
+        const currentChatId = this.id;
+        if (!this.#chatStore.hasChat(currentChatId)) {
+          this.#chatStore.addChat(currentChatId, []);
+        }
+      });
+    });
   }
 
   /**
@@ -103,12 +143,15 @@ export class Chat<MESSAGE_METADATA = unknown> {
     message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
     { headers, body }: ChatRequestOptions = {},
   ) => {
-    const messages = this.messages.concat({
-      ...message,
-      id: message.id ?? this.#generateId(),
+    await this.#chatStore.submitMessage({
+      chatId: this.id,
+      message,
+      headers,
+      body,
+      onError: this.#options.onError,
+      onToolCall: this.#options.onToolCall,
+      onFinish: this.#options.onFinish,
     });
-
-    return this.#triggerRequest({ messages, headers, body });
   };
 
   /**

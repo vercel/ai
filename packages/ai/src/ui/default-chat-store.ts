@@ -8,19 +8,7 @@ import { ChatStore } from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
 
-export function defaultChatStore<MESSAGE_METADATA>({
-  api,
-  fetch,
-  streamProtocol = 'ui-message',
-  credentials,
-  headers,
-  body,
-  prepareRequestBody,
-  generateId = generateIdFunc,
-  messageMetadataSchema,
-  maxSteps = 1,
-  chats,
-}: {
+export interface DefaultChatStoreOptions<MESSAGE_METADATA> {
   /**
    * Schema for the message metadata. Validates the message metadata.
    * Message metadata can be undefined or must match the schema.
@@ -106,7 +94,21 @@ export function defaultChatStore<MESSAGE_METADATA>({
       messages: UIMessage<MESSAGE_METADATA>[];
     };
   };
-}): ChatStore<MESSAGE_METADATA> {
+}
+
+export function defaultChatStore<MESSAGE_METADATA = unknown>({
+  api,
+  fetch,
+  streamProtocol = 'ui-message',
+  credentials,
+  headers,
+  body,
+  prepareRequestBody,
+  generateId = generateIdFunc,
+  messageMetadataSchema,
+  maxSteps = 1,
+  chats,
+}: DefaultChatStoreOptions<MESSAGE_METADATA>): ChatStore<MESSAGE_METADATA> {
   return new ChatStore<MESSAGE_METADATA>({
     transport: new DefaultChatTransport<MESSAGE_METADATA>({
       api,

@@ -8,7 +8,10 @@ export {
   convertToCoreMessages,
   convertToModelMessages,
 } from './convert-to-model-messages';
-export { defaultChatStore } from './default-chat-store';
+export {
+  defaultChatStore,
+  type DefaultChatStoreOptions,
+} from './default-chat-store';
 export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 export { getToolInvocations } from './get-tool-invocations';
 export {
@@ -26,3 +29,4 @@ export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
+
