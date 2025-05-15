@@ -49,6 +49,15 @@ export function prepareTools(
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
 
+  // Throw error if both search grounding and user tools are present
+  if (useSearchGrounding && tools) {
+    throw new UnsupportedFunctionalityError({
+      functionality:
+        "Search grounding (useSearchGrounding: true) cannot be used in combination with user-defined tools. Please disable useSearchGrounding or remove your custom tools.",
+    });
+  }
+
+  // Search Grounding Only (no user tools)
   if (useSearchGrounding) {
     return {
       tools: isGemini2
@@ -64,6 +73,7 @@ export function prepareTools(
     };
   }
 
+  // No tools passed
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
   }
