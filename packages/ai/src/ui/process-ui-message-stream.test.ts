@@ -2906,7 +2906,10 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', value: { messageId: 'msg-123' } },
         { type: 'start-step' },
-        { type: 'data-test', value: { data: 'example-data-can-be-anything' } },
+        {
+          type: 'data-test',
+          data: 'example-data-can-be-anything',
+        },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -2993,17 +2996,13 @@ describe('processUIMessageStream', () => {
         { type: 'start-step' },
         {
           type: 'data-test',
-          value: {
-            id: 'data-part-id',
-            data: 'example-data-can-be-anything',
-          },
+          id: 'data-part-id',
+          data: 'example-data-can-be-anything',
         },
         {
           type: 'data-test',
-          value: {
-            id: 'data-part-id',
-            data: 'or-something-else',
-          },
+          id: 'data-part-id',
+          data: 'or-something-else',
         },
         { type: 'finish-step' },
         { type: 'finish' },

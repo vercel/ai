@@ -26,10 +26,8 @@ export async function POST(req: Request) {
               // update display
               writer.write({
                 type: 'data-weather',
-                value: {
-                  id: toolCallId,
-                  data: { city, status: 'loading' },
-                },
+                id: toolCallId,
+                data: { city, status: 'loading' },
               });
 
               await delay(2000); // fake delay
@@ -38,10 +36,8 @@ export async function POST(req: Request) {
               // update display
               writer.write({
                 type: 'data-weather',
-                value: {
-                  id: toolCallId,
-                  data: { city, weather, status: 'success' },
-                },
+                id: toolCallId,
+                data: { city, weather, status: 'success' },
               });
 
               // for LLM roundtrip

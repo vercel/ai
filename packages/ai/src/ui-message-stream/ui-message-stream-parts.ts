@@ -60,10 +60,8 @@ export const uiMessageStreamPartSchema = z.union([
   }),
   z.object({
     type: z.string().startsWith('data-'),
-    value: z.object({
-      id: z.string().optional(),
-      data: z.unknown(),
-    }),
+    id: z.string().optional(),
+    data: z.unknown(),
   }),
   z.object({
     type: z.literal('metadata'),
@@ -156,10 +154,8 @@ export type UIMessageStreamPart =
     }
   | {
       type: `data-${string}`;
-      value: {
-        id?: string;
-        data: unknown;
-      };
+      id?: string;
+      data: unknown;
     }
   | {
       type: 'metadata';
@@ -183,5 +179,4 @@ export type UIMessageStreamPart =
     }
   | {
       type: 'reasoning-part-finish';
-      value?: null;
     };
