@@ -1,9 +1,9 @@
 ---
 title: AI SDK 5 Alpha
-description: Get started with the latest Alpha version of the AI SDK.
+description: Get started with the Alpha version of AI SDK 5.
 ---
 
-# AI SDK 5 - Alpha
+# Announcing AI SDK 5 Alpha
 
 <Note type="warning">
   This is an early preview — AI SDK 5 is under active development. APIs may
@@ -28,9 +28,10 @@ This Alpha release is **not recommended** for:
 During this Alpha phase, we expect to make significant, potentially breaking changes to the API surface. We're sharing early to gather feedback and improve the SDK before stabilization. Your input is invaluable—please share your experiences through GitHub issues or discussions to help shape the final release.
 
 <Note type="warning">
-  We expect bugs in this Alpha release. To help us improve the SDK, please file
-  bug reports on GitHub. Your reports directly contribute to making the final
-  release more stable and reliable.
+  We expect bugs in this Alpha release. To help us improve the SDK, please [file
+  bug reports on GitHub](https://github.com/vercel/ai/issues/new/choose). Your
+  reports directly contribute to making the final release more stable and
+  reliable.
 </Note>
 
 ## Installation
@@ -42,9 +43,14 @@ To install the AI SDK 5 - Alpha, run the following command:
 npm install ai@alpha @ai-sdk/[your-provider]@alpha @ai-sdk/[your-framework]@alpha
 ```
 
+<Note type="warning">
+  APIs may change without notice. Pin to specific versions as breaking changes
+  may occur even in patch releases.
+</Note>
+
 ## What's new in AI SDK 5?
 
-AI SDK 5 represents a complete redesign of the AI SDK's protocol and architecture. Drawing on lessons from two years of real-world usage, we've rebuilt the foundation to accommodate the rapidly evolving LLM landscape. The new architecture prepares for future multi-modal capabilities, supporting both input and output beyond just text. We've also modernized the UI and protocols that have remained largely unchanged since AI SDK 2/3, creating a more robust platform that enables quick and reliable support for emerging AI provider features.
+AI SDK 5 is a complete redesign of the AI SDK's protocol and architecture based on everything we've learned over the last two years of real-world usage. We've also modernized the UI and protocols that have remained largely unchanged since AI SDK v2/3, creating a strong foundation for the future.
 
 ### Why AI SDK 5?
 
@@ -52,14 +58,14 @@ When we originally designed the v1 protocol over a year ago, the standard intera
 
 We needed a protocol designed for this new reality. While this is a breaking change that we don't take lightly, it's provided an opportunity to rebuild the foundation and add powerful new features.
 
-While we've designed AI SDK 5 to be a substantial improvement over previous versions, we're still in active development. You might encounter bugs or unexpected behavior. We'd greatly appreciate your feedback and bug reports—they're essential to making this release better. Please share your experiences and suggestions with us through GitHub issues or GitHub discussions.
+While we've designed AI SDK 5 to be a substantial improvement over previous versions, we're still in active development. You might encounter bugs or unexpected behavior. We'd greatly appreciate your feedback and bug reports—they're essential to making this release better. Please share your experiences and suggestions with us through [GitHub issues](https://github.com/vercel/ai/issues/new/choose) or [GitHub discussions](https://github.com/vercel/ai/discussions).
 
 ### Feature Overview
 
 - **LanguageModelV2** - new strong foundation
 - **Message Overhaul** - new `UIMessage` and `ModelMessage` types
 - **ChatStore** - new `useChat` architecture
-- **Server-Sent Events (SSE)** - new standardised protocol
+- **Server-Sent Events (SSE)** - new standardised protocol for sending UI messages to the client
 - **Agentic Control** - new primitives for building agentic systems
 
 ## New Features
@@ -206,9 +212,9 @@ export default function Chat() {
 }
 ```
 
-#### New Stream Writer
+#### UI Message Stream
 
-We've introduced a new stream writer for `createUIMessageStream` (previously known as `createDataStream`) that makes it simple to stream parts from the server to the client. This enables many use-cases like streaming custom sources form your RAG pipeline or sending custom reasoning summaries.
+The UI Message Stream enables streaming any content parts from the server to the client. With this stream, you can send structured data like custom sources from your RAG pipeline directly to your UI. The stream writer is simply a utility that makes it easy to write to this message stream.
 
 ```ts
 const stream = createUIMessageStream({
@@ -223,12 +229,6 @@ const stream = createUIMessageStream({
         url: 'https://example.com',
         title: 'Example Source',
       },
-    });
-
-    // stream custom reasoning
-    writer.write({
-      type: 'reasoning',
-      value: { text: 'This is a summary of the reasoning...' },
     });
   },
 });
@@ -338,7 +338,7 @@ For example:
 ```ts
 const result = await generateText({
   // ...
-  prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
+  experimental_prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
     if (stepNumber === 0) {
       return {
         // use a different model for this step:
@@ -346,7 +346,7 @@ const result = await generateText({
         // force a tool choice for this step:
         toolChoice: { type: 'tool', toolName: 'tool1' },
         // limit the tools that are available for this step:
-        activeTools: ['tool1'],
+        experimental_activeTools: ['tool1'],
       };
     }
     // when nothing is returned, the default settings are used
@@ -362,28 +362,27 @@ The `continueUntil` parameter lets you define stopping conditions for your agent
 
 - Reaching a maximum number of steps
 - Calling a specific tool
-- Hitting a token usage threshold
 - Satisfying any custom condition you define
 
 For example:
 
 ```ts
-const result = streamText({
+const result = generateText({
   // ...
   // stop loop at 5 steps
   continueUntil: maxSteps(5),
 });
 
-const result = streamText({
+const result = generateText({
   // ...
   // stop loop at 10 steps or when weather tool called
   continueUntil: [maxSteps(5), hasToolCall({ toolName: 'weather' })],
 });
 
-const result = streamText({
+const result = generateText({
   // ...
-  // stop loop at 20000 tokens or your own custom condition
-  continueUntil: [maxTotalTokens(20000), yourOwnCondition],
+  // stop loop at your own custom condition
+  continueUntil: [maxTotalTokens(20000)],
 });
 ```
 
