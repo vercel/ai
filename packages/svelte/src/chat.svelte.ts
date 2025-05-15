@@ -43,11 +43,11 @@ export class Chat<MESSAGE_METADATA = unknown> {
   readonly id = $derived(this.#options.id ?? this.#generateId());
   readonly #store = $derived(this.#keyedStore.get(this.id));
 
-  readonly #messageMetadataSchema = $derived(
-    this.#options.messageMetadataSchema,
-  );
+  // readonly #messageMetadataSchema = $derived(
+  //   this.#options.messageMetadataSchema,
+  // );
 
-  #abortController: AbortController | undefined;
+  // #abortController: AbortController | undefined;
 
   /**
    * Hook status:
