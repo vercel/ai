@@ -240,7 +240,9 @@ export function processUIMessageStream<
               updateToolInvocationPart(part.toolCallId, {
                 state: 'call',
                 step: state.step,
-                ...part,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                args: part.args,
               } as const);
 
               write();
@@ -256,7 +258,9 @@ export function processUIMessageStream<
                   updateToolInvocationPart(part.toolCallId, {
                     state: 'result',
                     step: state.step,
-                    ...part,
+                    toolCallId: part.toolCallId,
+                    toolName: part.toolName,
+                    args: part.args,
                     result,
                   } as const);
 
@@ -288,7 +292,7 @@ export function processUIMessageStream<
               updateToolInvocationPart(part.toolCallId, {
                 ...toolInvocations[toolInvocationIndex],
                 state: 'result' as const,
-                ...part,
+                result: part.result,
               } as const);
 
               write();
