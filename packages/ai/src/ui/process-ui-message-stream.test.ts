@@ -2901,4 +2901,87 @@ describe('processUIMessageStream', () => {
       `);
     });
   });
+
+  describe('data ui parts (single part)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start-step' },
+        { type: 'data-test', value: { data: 'example-data-can-be-anything' } },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState();
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "type": "data-test",
+                  "value": "example-data-can-be-anything",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message).toMatchInlineSnapshot(`
+        {
+          "id": "msg-123",
+          "metadata": {},
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "type": "data-test",
+              "value": "example-data-can-be-anything",
+            },
+          ],
+          "role": "assistant",
+        }
+      `);
+    });
+  });
 });

@@ -348,7 +348,11 @@ export function processUIMessageStream<
 
             default: {
               if (type.startsWith('data-')) {
-                // TODO: handle data events
+                state.message.parts.push({
+                  type,
+                  value: value.data as unknown as DATA_TYPES[keyof DATA_TYPES],
+                });
+                write();
               }
             }
           }

@@ -61,7 +61,7 @@ export const uiMessageStreamPartSchema = z.union([
   }),
   z.object({
     type: z.string().startsWith('data-'),
-    value: z.object({ warnings: z.array(z.string()) }),
+    value: z.object({ data: z.unknown() }),
   }),
   z.object({
     type: z.literal('metadata'),
@@ -155,7 +155,7 @@ export type UIMessageStreamPart =
   | {
       type: `data-${string}`;
       value: {
-        warnings: string[];
+        data: unknown;
       };
     }
   | {

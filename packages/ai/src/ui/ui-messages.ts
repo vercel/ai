@@ -68,7 +68,6 @@ export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
 export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   [NAME in keyof DATA_TYPES & string]: {
     type: `data-${NAME}`;
-    id: string;
     value: DATA_TYPES[NAME];
   };
 }>;
