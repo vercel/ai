@@ -15,14 +15,14 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
 }>;
 
 export const createJsonErrorResponseHandler =
-  <T_ERROR>({
+  <ERROR>({
     errorSchema,
     errorToMessage,
     isRetryable,
   }: {
-    errorSchema: StandardSchemaV1<T_ERROR>;
-    errorToMessage: (error: T_ERROR) => string;
-    isRetryable?: (response: Response, error?: T_ERROR) => boolean;
+    errorSchema: StandardSchemaV1<ERROR>;
+    errorToMessage: (error: ERROR) => string;
+    isRetryable?: (response: Response, error?: ERROR) => boolean;
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();

@@ -11,14 +11,14 @@ import { Validator, asValidator } from './validator';
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
  * @returns {Promise<T>} - The typed object.
  */
-export async function validateTypes<T_OBJECT>({
+export async function validateTypes<OBJECT>({
   value,
   schema,
 }: {
-  value: T_OBJECT;
-  schema: StandardSchemaV1<T_OBJECT> | Validator<T_OBJECT>;
-}): Promise<T_OBJECT> {
-  const result = await safeValidateTypes({ value, schema: schema });
+  value: OBJECT;
+  schema: StandardSchemaV1<OBJECT> | Validator<OBJECT>;
+}): Promise<OBJECT> {
+  const result = await safeValidateTypes({ value, schema });
 
   if (!result.success) {
     throw TypeValidationError.wrap({ value, cause: result.error });
@@ -36,17 +36,16 @@ export async function validateTypes<T_OBJECT>({
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export async function safeValidateTypes<T_OBJECT>({
+export async function safeValidateTypes<OBJECT>({
   value,
   schema,
 }: {
-  value: T_OBJECT;
-  // schema: StandardSchemaV1<T_OBJECT> | Validator<T_OBJECT>;
-  schema: Validator<T_OBJECT>;
+  value: OBJECT;
+  schema: StandardSchemaV1<OBJECT> | Validator<OBJECT>;
 }): Promise<
   | {
     success: true;
-    value: T_OBJECT;
+    value: OBJECT;
     rawValue: unknown;
   }
   | {
