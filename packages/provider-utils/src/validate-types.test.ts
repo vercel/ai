@@ -53,7 +53,7 @@ describe('validateTypes', () => {
       try {
         await validateTypes({
           value: input,
-          // @ts-ignore - age is expected to be a number. `type-check` complaints when using `@ts-expect-error`.
+          // @ts-expect-error: age is expected to be a number
           schema,
         });
         expect.fail('Expected TypeValidationError to be thrown');
