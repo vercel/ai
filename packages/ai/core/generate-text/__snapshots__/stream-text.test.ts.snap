@@ -5,9 +5,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
   "dataStream": [
     {
       "type": "start-step",
-      "value": {
-        "metadata": undefined,
-      },
+      "value": undefined,
     },
     {
       "type": "text",
@@ -23,15 +21,11 @@ exports[`streamText > multiple stream consumption > should support text stream, 
     },
     {
       "type": "finish-step",
-      "value": {
-        "metadata": undefined,
-      },
+      "value": undefined,
     },
     {
       "type": "finish",
-      "value": {
-        "metadata": undefined,
-      },
+      "value": undefined,
     },
   ],
   "fullStream": [
@@ -2780,16 +2774,16 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error messages by default 1`] = `
 [
-  "data: {"type":"start-step","value":{}}
+  "data: {"type":"start-step"}
 
 ",
   "data: {"type":"error","value":"An error occurred."}
 
 ",
-  "data: {"type":"finish-step","value":{}}
+  "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish","value":{}}
+  "data: {"type":"finish"}
 
 ",
   "data: [DONE]
@@ -2800,13 +2794,13 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
-  "data: {"type":"start-step","value":{}}
+  "data: {"type":"start-step"}
 
 ",
   "data: {"type":"text","value":"Hello, World!"}
 
 ",
-  "data: {"type":"finish-step","value":{}}
+  "data: {"type":"finish-step"}
 
 ",
   "data: [DONE]
@@ -2817,16 +2811,16 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should support custom error messages 1`] = `
 [
-  "data: {"type":"start-step","value":{}}
+  "data: {"type":"start-step"}
 
 ",
   "data: {"type":"error","value":"custom error message: error"}
 
 ",
-  "data: {"type":"finish-step","value":{}}
+  "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish","value":{}}
+  "data: {"type":"finish"}
 
 ",
   "data: [DONE]
@@ -3219,16 +3213,11 @@ exports[`streamText > result.toUIMessageStream > should create a data stream 1`]
 [
   {
     "type": "start",
-    "value": {
-      "messageId": undefined,
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "text",
@@ -3244,15 +3233,11 @@ exports[`streamText > result.toUIMessageStream > should create a data stream 1`]
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "finish",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
 ]
 `;
@@ -3261,9 +3246,7 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
 [
   {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "error",
@@ -3271,26 +3254,24 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "finish",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
 ]
 `;
 
-exports[`streamText > result.toUIMessageStream > should omit message finish event (d:) when sendFinish is false 1`] = `
+exports[`streamText > result.toUIMessageStream > should omit message finish event when sendFinish is false 1`] = `
 [
   {
+    "type": "start",
+    "value": undefined,
+  },
+  {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "text",
@@ -3298,9 +3279,28 @@ exports[`streamText > result.toUIMessageStream > should omit message finish even
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
+  },
+]
+`;
+
+exports[`streamText > result.toUIMessageStream > should omit message start event when sendStart is false 1`] = `
+[
+  {
+    "type": "start-step",
+    "value": undefined,
+  },
+  {
+    "type": "text",
+    "value": "Hello, World!",
+  },
+  {
+    "type": "finish-step",
+    "value": undefined,
+  },
+  {
+    "type": "finish",
+    "value": undefined,
   },
 ]
 `;
@@ -3309,9 +3309,7 @@ exports[`streamText > result.toUIMessageStream > should send file content 1`] = 
 [
   {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "file",
@@ -3333,15 +3331,11 @@ exports[`streamText > result.toUIMessageStream > should send file content 1`] = 
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "finish",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
 ]
 `;
@@ -3350,9 +3344,7 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
 [
   {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "reasoning",
@@ -3382,7 +3374,6 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
   },
   {
     "type": "reasoning-part-finish",
-    "value": null,
   },
   {
     "type": "reasoning",
@@ -3398,7 +3389,6 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
   },
   {
     "type": "reasoning-part-finish",
-    "value": null,
   },
   {
     "type": "reasoning",
@@ -3428,7 +3418,6 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
   },
   {
     "type": "reasoning-part-finish",
-    "value": null,
   },
   {
     "type": "text",
@@ -3440,15 +3429,11 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "finish",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
 ]
 `;
@@ -3457,9 +3442,7 @@ exports[`streamText > result.toUIMessageStream > should send source content when
 [
   {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "source",
@@ -3497,15 +3480,11 @@ exports[`streamText > result.toUIMessageStream > should send source content when
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "finish",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
 ]
 `;
@@ -3514,9 +3493,7 @@ exports[`streamText > result.toUIMessageStream > should send tool call and tool 
 [
   {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "tool-call",
@@ -3537,15 +3514,11 @@ exports[`streamText > result.toUIMessageStream > should send tool call and tool 
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "finish",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
 ]
 `;
@@ -3554,9 +3527,7 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
 [
   {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "tool-call-streaming-start",
@@ -3598,15 +3569,11 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "finish",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
 ]
 `;
@@ -3615,9 +3582,7 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
 [
   {
     "type": "start-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "error",
@@ -3625,31 +3590,27 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
   },
   {
     "type": "finish-step",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
   {
     "type": "finish",
-    "value": {
-      "metadata": undefined,
-    },
+    "value": undefined,
   },
 ]
 `;
 
 exports[`streamText > result.toUIMessageStreamResponse > should mask error messages by default 1`] = `
 [
-  "data: {"type":"start-step","value":{}}
+  "data: {"type":"start-step"}
 
 ",
   "data: {"type":"error","value":"An error occurred."}
 
 ",
-  "data: {"type":"finish-step","value":{}}
+  "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish","value":{}}
+  "data: {"type":"finish"}
 
 ",
   "data: [DONE]
@@ -3660,16 +3621,16 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
 
 exports[`streamText > result.toUIMessageStreamResponse > should support custom error messages 1`] = `
 [
-  "data: {"type":"start-step","value":{}}
+  "data: {"type":"start-step"}
 
 ",
   "data: {"type":"error","value":"custom error message: error"}
 
 ",
-  "data: {"type":"finish-step","value":{}}
+  "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish","value":{}}
+  "data: {"type":"finish"}
 
 ",
   "data: [DONE]

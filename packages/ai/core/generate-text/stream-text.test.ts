@@ -834,10 +834,10 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start","value":{}}
+          "data: {"type":"start"}
 
         ",
-          "data: {"type":"start-step","value":{}}
+          "data: {"type":"start-step"}
 
         ",
           "data: {"type":"text","value":"Hello"}
@@ -849,10 +849,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":"world!"}
 
         ",
-          "data: {"type":"finish-step","value":{}}
+          "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","value":{}}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -896,10 +896,10 @@ describe('streamText', () => {
 
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start","value":{}}
+          "data: {"type":"start"}
 
         ",
-          "data: {"type":"start-step","value":{}}
+          "data: {"type":"start-step"}
 
         ",
           "data: {"type":"text","value":"Hello"}
@@ -911,10 +911,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":"world!"}
 
         ",
-          "data: {"type":"finish-step","value":{}}
+          "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","value":{}}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -1016,7 +1016,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{}}
+          "data: {"type":"start-step"}
 
         ",
           "data: {"type":"reasoning","value":{"type":"reasoning","text":"I will open the conversation"}}
@@ -1028,13 +1028,13 @@ describe('streamText', () => {
           "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}}
 
         ",
-          "data: {"type":"reasoning-part-finish","value":null}
+          "data: {"type":"reasoning-part-finish"}
 
         ",
           "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}}
 
         ",
-          "data: {"type":"reasoning-part-finish","value":null}
+          "data: {"type":"reasoning-part-finish"}
 
         ",
           "data: {"type":"reasoning","value":{"type":"reasoning","text":"Once the user has relaxed,"}}
@@ -1046,7 +1046,7 @@ describe('streamText', () => {
           "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}}
 
         ",
-          "data: {"type":"reasoning-part-finish","value":null}
+          "data: {"type":"reasoning-part-finish"}
 
         ",
           "data: {"type":"text","value":"Hi"}
@@ -1055,10 +1055,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":" there!"}
 
         ",
-          "data: {"type":"finish-step","value":{}}
+          "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","value":{}}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -1094,7 +1094,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{}}
+          "data: {"type":"start-step"}
 
         ",
           "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}}
@@ -1106,10 +1106,10 @@ describe('streamText', () => {
           "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}}
 
         ",
-          "data: {"type":"finish-step","value":{}}
+          "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","value":{}}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -1143,7 +1143,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{}}
+          "data: {"type":"start-step"}
 
         ",
           "data: {"type":"file","value":{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}}
@@ -1155,10 +1155,10 @@ describe('streamText', () => {
           "data: {"type":"file","value":{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}}
 
         ",
-          "data: {"type":"finish-step","value":{}}
+          "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","value":{}}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -1406,10 +1406,11 @@ describe('streamText', () => {
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
-    it('should omit message finish event (d:) when sendFinish is false', async () => {
+    it('should omit message finish event when sendFinish is false', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
             { type: 'text', text: 'Hello, World!' },
             {
               type: 'finish',
@@ -1423,6 +1424,29 @@ describe('streamText', () => {
 
       const dataStream = result.toUIMessageStream({
         experimental_sendFinish: false,
+      });
+
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+    });
+
+    it('should omit message start event when sendStart is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text', text: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toUIMessageStream({
+        experimental_sendStart: false,
       });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
@@ -1486,10 +1510,10 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
           [
-            "data: {"type":"start","value":{}}
+            "data: {"type":"start"}
 
           ",
-            "data: {"type":"start-step","value":{}}
+            "data: {"type":"start-step"}
 
           ",
             "data: {"type":"text","value":"Hello"}
@@ -1501,10 +1525,10 @@ describe('streamText', () => {
             "data: {"type":"text","value":"world!"}
 
           ",
-            "data: {"type":"finish-step","value":{}}
+            "data: {"type":"finish-step"}
 
           ",
-            "data: {"type":"finish","value":{}}
+            "data: {"type":"finish"}
 
           ",
             "data: [DONE]
@@ -1544,10 +1568,10 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
           [
-            "data: {"type":"start","value":{}}
+            "data: {"type":"start"}
 
           ",
-            "data: {"type":"start-step","value":{}}
+            "data: {"type":"start-step"}
 
           ",
             "data: {"type":"text","value":"Hello"}
@@ -1559,10 +1583,10 @@ describe('streamText', () => {
             "data: {"type":"text","value":"world!"}
 
           ",
-            "data: {"type":"finish-step","value":{}}
+            "data: {"type":"finish-step"}
 
           ",
-            "data: {"type":"finish","value":{}}
+            "data: {"type":"finish"}
 
           ",
             "data: [DONE]

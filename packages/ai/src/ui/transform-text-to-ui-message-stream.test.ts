@@ -12,37 +12,33 @@ describe('transformTextToUiMessageStream', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-          "value": {},
-        },
-        {
-          "type": "start-step",
-          "value": {},
-        },
-        {
-          "type": "text",
-          "value": "Hello",
-        },
-        {
-          "type": "text",
-          "value": " ",
-        },
-        {
-          "type": "text",
-          "value": "World",
-        },
-        {
-          "type": "finish-step",
-          "value": {},
-        },
-        {
-          "type": "finish",
-          "value": {},
-        },
-      ]
-    `);
+        [
+          {
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "type": "text",
+            "value": "Hello",
+          },
+          {
+            "type": "text",
+            "value": " ",
+          },
+          {
+            "type": "text",
+            "value": "World",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `);
   });
 
   it('should handle empty streams correctly', async () => {
@@ -52,25 +48,21 @@ describe('transformTextToUiMessageStream', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-          "value": {},
-        },
-        {
-          "type": "start-step",
-          "value": {},
-        },
-        {
-          "type": "finish-step",
-          "value": {},
-        },
-        {
-          "type": "finish",
-          "value": {},
-        },
-      ]
-    `);
+        [
+          {
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `);
   });
 
   it('should handle single chunk streams', async () => {
@@ -80,28 +72,24 @@ describe('transformTextToUiMessageStream', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-          "value": {},
-        },
-        {
-          "type": "start-step",
-          "value": {},
-        },
-        {
-          "type": "text",
-          "value": "Complete message",
-        },
-        {
-          "type": "finish-step",
-          "value": {},
-        },
-        {
-          "type": "finish",
-          "value": {},
-        },
-      ]
-    `);
+        [
+          {
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "type": "text",
+            "value": "Complete message",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `);
   });
 });

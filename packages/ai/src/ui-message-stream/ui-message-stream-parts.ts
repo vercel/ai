@@ -66,38 +66,32 @@ export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('metadata'),
-    value: z.object({
-      metadata: z.unknown(),
-    }),
+    value: z.object({ metadata: z.unknown() }),
   }),
   z.object({
     type: z.literal('start-step'),
-    value: z.object({
-      metadata: z.unknown(),
-    }),
+    value: z.object({ metadata: z.unknown() }).optional(),
   }),
   z.object({
     type: z.literal('finish-step'),
-    value: z.object({
-      metadata: z.unknown(),
-    }),
+    value: z.object({ metadata: z.unknown() }).optional(),
   }),
   z.object({
     type: z.literal('start'),
-    value: z.object({
-      messageId: z.string().optional(),
-      metadata: z.unknown(),
-    }),
+    value: z
+      .object({
+        messageId: z.string().optional(),
+        metadata: z.unknown(),
+      })
+      .optional(),
   }),
   z.object({
     type: z.literal('finish'),
-    value: z.object({
-      metadata: z.unknown(),
-    }),
+    value: z.object({ metadata: z.unknown() }).optional(),
   }),
   z.object({
     type: z.literal('reasoning-part-finish'),
-    value: z.null(),
+    value: z.null().optional(),
   }),
 ]);
 

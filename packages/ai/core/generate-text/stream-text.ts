@@ -1382,10 +1382,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'reasoning-part-finish': {
               if (sendReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-part-finish',
-                  value: null,
-                });
+                controller.enqueue({ type: 'reasoning-part-finish' });
               }
               break;
             }
@@ -1462,33 +1459,33 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'start-step': {
+              const metadata = messageMetadata?.({ part });
               controller.enqueue({
                 type: 'start-step',
-                value: {
-                  metadata: messageMetadata?.({ part }),
-                },
+                value: metadata != null ? { metadata } : undefined,
               });
               break;
             }
 
             case 'finish-step': {
+              const metadata = messageMetadata?.({ part });
               controller.enqueue({
                 type: 'finish-step',
-                value: {
-                  metadata: messageMetadata?.({ part }),
-                },
+                value: metadata != null ? { metadata } : undefined,
               });
+
               break;
             }
 
             case 'start': {
               if (experimental_sendStart) {
+                const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'start',
-                  value: {
-                    messageId,
-                    metadata: messageMetadata?.({ part }),
-                  },
+                  value:
+                    messageId != null || metadata != null
+                      ? { messageId, metadata }
+                      : undefined,
                 });
               }
               break;
@@ -1496,11 +1493,10 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'finish': {
               if (experimental_sendFinish) {
+                const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'finish',
-                  value: {
-                    metadata: messageMetadata?.({ part }),
-                  },
+                  value: metadata != null ? { metadata } : undefined,
                 });
               }
               break;
