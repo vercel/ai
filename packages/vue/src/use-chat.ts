@@ -130,7 +130,7 @@ export function useChat<MESSAGE_METADATA = unknown>(
      * @param requestBody The request body object passed in the chat request
      */
     experimental_prepareRequestBody?: (options: {
-      id: string;
+      chatId: string;
       messages: UIMessage<MESSAGE_METADATA>[];
       requestData?: JSONValue;
       requestBody?: object;
@@ -191,11 +191,11 @@ export function useChat<MESSAGE_METADATA = unknown>(
       await callChatApi({
         api,
         body: experimental_prepareRequestBody?.({
-          id: chatId,
+          chatId,
           messages: messagesSnapshot,
           requestBody: body,
         }) ?? {
-          id: chatId,
+          chatId,
           messages: messagesSnapshot,
           ...unref(metadataBody), // Use unref to unwrap the ref value
           ...body,

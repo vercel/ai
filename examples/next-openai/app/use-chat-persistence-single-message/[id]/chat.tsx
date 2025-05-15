@@ -12,8 +12,8 @@ export default function Chat({
       api: '/api/use-chat-persistence-single-message',
       chats: id ? { [id]: { messages: initialMessages ?? [] } } : undefined,
       // only send the last message to the server:
-      prepareRequestBody({ messages, id }) {
-        return { message: messages[messages.length - 1], id };
+      prepareRequestBody({ messages, chatId }) {
+        return { message: messages[messages.length - 1], id: chatId };
       },
     }),
   });

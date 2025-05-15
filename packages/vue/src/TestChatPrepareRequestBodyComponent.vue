@@ -4,9 +4,8 @@ import { computed, ref } from 'vue';
 import { UIMessage, useChat } from './use-chat';
 
 const bodyOptions = ref<{
-  id: string;
+  chatId: string;
   messages: UIMessage[];
-  requestData?: JSONValue;
   requestBody?: object;
 }>();
 
