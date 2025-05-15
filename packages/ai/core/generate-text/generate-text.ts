@@ -6,6 +6,7 @@ import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { ToolExecutionError } from '../../src/error/tool-execution-error';
+import { asArray } from '../../src/util/as-array';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
@@ -140,7 +141,9 @@ The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
-    continueUntil?: StopCondition<NoInfer<TOOLS>>;
+    continueUntil?:
+      | StopCondition<NoInfer<TOOLS>>
+      | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -207,6 +210,7 @@ A function that attempts to repair a tool call that failed to parse.
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  const stopConditions = asArray(continueUntil);
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const callSettings = prepareCallSettings(settings);
@@ -458,8 +462,12 @@ A function that attempts to repair a tool call that failed to parse.
         currentToolCalls.length > 0 &&
         // all current tool calls have results:
         currentToolResults.length === currentToolCalls.length &&
-        // continue until the stop condition is met:
-        !(await continueUntil({ steps }))
+        // continue until a stop condition is met:
+        !(
+          await Promise.all(
+            stopConditions.map(condition => condition({ steps })),
+          )
+        ).some(result => result)
       );
 
       // Add response information to the span:
