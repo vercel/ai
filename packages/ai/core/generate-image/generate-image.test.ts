@@ -256,7 +256,7 @@ describe('generateImage', () => {
         base64Images,
       );
     });
-    
+
     it('should work for a sync maxImagesPerCall() method', async () => {
       const base64Images = [pngBase64, jpegBase64, gifBase64];
 
@@ -320,7 +320,7 @@ describe('generateImage', () => {
         modelId: 'mock-model-id',
       });
     });
-    
+
     it('should work for an async maxImagesPerCall() method', async () => {
       const base64Images = [pngBase64, jpegBase64, gifBase64];
 
