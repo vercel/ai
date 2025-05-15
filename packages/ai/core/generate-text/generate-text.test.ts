@@ -3,7 +3,7 @@ import { jsonSchema } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { Output } from '.';
+import { maxSteps, Output } from '.';
 import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
@@ -735,7 +735,7 @@ describe('options.maxSteps', () => {
           }),
         },
         prompt: 'test-input',
-        maxSteps: 3,
+        continueUntil: maxSteps(3),
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
@@ -936,7 +936,7 @@ describe('options.maxSteps', () => {
           }),
         },
         prompt: 'test-input',
-        maxSteps: 3,
+        continueUntil: maxSteps(3),
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },

@@ -14,7 +14,7 @@ describe('pipeUIMessageStreamToResponse', () => {
         'Custom-Header': 'test',
       },
       stream: convertArrayToReadableStream([
-        { type: 'text', value: 'test-data' },
+        { type: 'text', text: 'test-data' },
       ]),
     });
 
@@ -41,7 +41,7 @@ describe('pipeUIMessageStreamToResponse', () => {
     const decodedChunks = mockResponse.getDecodedChunks();
     expect(decodedChunks).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","value":"test-data"}
+        "data: {"type":"text","text":"test-data"}
 
       ",
         "data: [DONE]
@@ -58,7 +58,7 @@ describe('pipeUIMessageStreamToResponse', () => {
       response: mockResponse,
       status: 200,
       stream: convertArrayToReadableStream([
-        { type: 'error', value: 'Custom error message' },
+        { type: 'error', errorText: 'Custom error message' },
       ]),
     });
 
@@ -69,7 +69,7 @@ describe('pipeUIMessageStreamToResponse', () => {
     const decodedChunks = mockResponse.getDecodedChunks();
     expect(decodedChunks).toMatchInlineSnapshot(`
       [
-        "data: {"type":"error","value":"Custom error message"}
+        "data: {"type":"error","errorText":"Custom error message"}
 
       ",
         "data: [DONE]

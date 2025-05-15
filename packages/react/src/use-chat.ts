@@ -1,22 +1,24 @@
-import type {
-  ChatRequestOptions,
-  CreateUIMessage,
-  FileUIPart,
-  UIMessage,
-  UseChatOptions,
-} from 'ai';
 import {
   ChatStore,
   convertFileListToFileUIParts,
   defaultChatStore,
   generateId as generateIdFunc,
+  type ChatRequestOptions,
   type ChatStoreEvent,
+  type CreateUIMessage,
+  type FileUIPart,
+  type UIDataTypes,
+  type UIMessage,
+  type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
-export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
+export type UseChatHelpers<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> = {
   /**
    * The id of the chat.
    */
@@ -33,7 +35,7 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   readonly status: 'submitted' | 'streaming' | 'ready' | 'error';
 
   /** Current messages in the chat */
-  readonly messages: UIMessage<MESSAGE_METADATA>[];
+  readonly messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
 
   /** The error object of the API request */
   readonly error: undefined | Error;
@@ -46,7 +48,7 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: CreateUIMessage<MESSAGE_METADATA>,
+    message: CreateUIMessage<MESSAGE_METADATA, DATA_TYPES>,
     options?: ChatRequestOptions,
   ) => Promise<void>;
 
@@ -76,10 +78,10 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
    */
   setMessages: (
     messages:
-      | UIMessage<MESSAGE_METADATA>[]
+      | UIMessage<MESSAGE_METADATA, DATA_TYPES>[]
       | ((
-          messages: UIMessage<MESSAGE_METADATA>[],
-        ) => UIMessage<MESSAGE_METADATA>[]),
+          messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[],
+        ) => UIMessage<MESSAGE_METADATA, DATA_TYPES>[]),
   ) => void;
 
   /** The current value of the input */
@@ -112,7 +114,10 @@ export type UseChatHelpers<MESSAGE_METADATA = unknown> = {
   }) => void;
 };
 
-export function useChat<MESSAGE_METADATA>({
+export function useChat<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends Record<string, unknown> = Record<string, unknown>,
+>({
   id,
   initialInput = '',
   onToolCall,
@@ -121,13 +126,13 @@ export function useChat<MESSAGE_METADATA>({
   generateId = generateIdFunc,
   experimental_throttle: throttleWaitMs,
   chatStore: chatStoreArg,
-}: UseChatOptions<MESSAGE_METADATA> & {
+}: UseChatOptions<MESSAGE_METADATA, DATA_TYPES> & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-} = {}): UseChatHelpers<MESSAGE_METADATA> {
+} = {}): UseChatHelpers<MESSAGE_METADATA, DATA_TYPES> {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -138,7 +143,7 @@ Default is undefined, which disables throttling.
   // TODO enable as arg
   const chatStore = useRef(
     chatStoreArg ??
-      defaultChatStore<MESSAGE_METADATA>({
+      defaultChatStore<MESSAGE_METADATA, DATA_TYPES>({
         api: '/api/chat',
         generateId,
       }),
@@ -173,7 +178,7 @@ Default is undefined, which disables throttling.
   const addToolResult = useCallback(
     (
       options: Omit<
-        Parameters<ChatStore<MESSAGE_METADATA>['addToolResult']>[0],
+        Parameters<ChatStore<MESSAGE_METADATA, DATA_TYPES>['addToolResult']>[0],
         'chatId'
       >,
     ) => chatStore.current.addToolResult({ chatId, ...options }),
@@ -217,7 +222,7 @@ Default is undefined, which disables throttling.
 
   const append = useCallback(
     (
-      message: CreateUIMessage<MESSAGE_METADATA>,
+      message: CreateUIMessage<MESSAGE_METADATA, DATA_TYPES>,
       { headers, body }: ChatRequestOptions = {},
     ) =>
       chatStore.current.submitMessage({
@@ -260,10 +265,10 @@ Default is undefined, which disables throttling.
   const setMessages = useCallback(
     (
       messagesParam:
-        | UIMessage<MESSAGE_METADATA>[]
+        | UIMessage<MESSAGE_METADATA, DATA_TYPES>[]
         | ((
-            messages: UIMessage<MESSAGE_METADATA>[],
-          ) => UIMessage<MESSAGE_METADATA>[]),
+            messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[],
+          ) => UIMessage<MESSAGE_METADATA, DATA_TYPES>[]),
     ) => {
       if (typeof messagesParam === 'function') {
         messagesParam = messagesParam(messages);
@@ -310,7 +315,7 @@ Default is undefined, which disables throttling.
 
       setInput('');
     },
-    [input, generateId, append, messages],
+    [input, generateId, append],
   );
 
   const handleInputChange = (e: any) => {

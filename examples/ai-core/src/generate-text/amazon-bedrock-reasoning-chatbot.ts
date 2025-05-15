@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { ModelMessage, generateText } from 'ai';
+import { ModelMessage, generateText, maxSteps } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -21,7 +21,7 @@ async function main() {
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
-      maxSteps: 5,
+      continueUntil: maxSteps(5),
       providerOptions: {
         bedrock: {
           reasoningConfig: { type: 'enabled', budgetTokens: 2048 },

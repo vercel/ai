@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText } from 'ai';
+import { generateText, maxSteps } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -13,7 +13,7 @@ async function main() {
       },
     },
     maxRetries: 0,
-    maxSteps: 5,
+    continueUntil: maxSteps(5),
   });
 
   console.log('Reasoning:');

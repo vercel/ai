@@ -41,7 +41,7 @@ export function createUIMessageStream({
               safeEnqueue(value);
             }
           })().catch(error => {
-            safeEnqueue({ type: 'error', value: onError(error) });
+            safeEnqueue({ type: 'error', errorText: onError(error) });
           }),
         );
       },
@@ -51,12 +51,12 @@ export function createUIMessageStream({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
-          safeEnqueue({ type: 'error', value: onError(error) });
+          safeEnqueue({ type: 'error', errorText: onError(error) });
         }),
       );
     }
   } catch (error) {
-    safeEnqueue({ type: 'error', value: onError(error) });
+    safeEnqueue({ type: 'error', errorText: onError(error) });
   }
 
   // Wait until all ongoing streams are done. This approach enables merging

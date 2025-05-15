@@ -6,9 +6,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ChatStore } from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
-import { UIMessage } from './ui-messages';
+import { UIDataTypes, UIMessage } from './ui-messages';
 
-export interface DefaultChatStoreOptions<MESSAGE_METADATA> {
+export interface DefaultChatStoreOptions<MESSAGE_METADATA = unknown, DATA_TYPES extends UIDataTypes = UIDataTypes> {
   /**
    * Schema for the message metadata. Validates the message metadata.
    * Message metadata can be undefined or must match the schema.
@@ -85,18 +85,21 @@ export interface DefaultChatStoreOptions<MESSAGE_METADATA> {
    */
   prepareRequestBody?: (options: {
     id: string;
-    messages: UIMessage<MESSAGE_METADATA>[];
+    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     requestBody?: object;
   }) => unknown;
 
   chats?: {
     [id: string]: {
-      messages: UIMessage<MESSAGE_METADATA>[];
+      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     };
   };
 }
 
-export function defaultChatStore<MESSAGE_METADATA = unknown>({
+export function defaultChatStore<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+>({
   api,
   fetch,
   streamProtocol = 'ui-message',
@@ -108,9 +111,9 @@ export function defaultChatStore<MESSAGE_METADATA = unknown>({
   messageMetadataSchema,
   maxSteps = 1,
   chats,
-}: DefaultChatStoreOptions<MESSAGE_METADATA>): ChatStore<MESSAGE_METADATA> {
-  return new ChatStore<MESSAGE_METADATA>({
-    transport: new DefaultChatTransport<MESSAGE_METADATA>({
+}: DefaultChatStoreOptions<MESSAGE_METADATA, DATA_TYPES>): ChatStore<MESSAGE_METADATA, DATA_TYPES> {
+  return new ChatStore<MESSAGE_METADATA, DATA_TYPES>({
+    transport: new DefaultChatTransport<MESSAGE_METADATA, DATA_TYPES>({
       api,
       fetch,
       streamProtocol,

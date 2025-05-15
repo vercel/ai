@@ -802,6 +802,9 @@ describe('streamText', () => {
         await convertAsyncIterableToArray(result.fullStream),
       ).toStrictEqual([
         {
+          type: 'start',
+        },
+        {
           type: 'error',
           error: new Error('test error'),
         },
@@ -840,13 +843,13 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"text","value":"Hello"}
+          "data: {"type":"text","text":"Hello"}
 
         ",
-          "data: {"type":"text","value":", "}
+          "data: {"type":"text","text":", "}
 
         ",
-          "data: {"type":"text","value":"world!"}
+          "data: {"type":"text","text":"world!"}
 
         ",
           "data: {"type":"finish-step"}
@@ -902,13 +905,13 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"text","value":"Hello"}
+          "data: {"type":"text","text":"Hello"}
 
         ",
-          "data: {"type":"text","value":", "}
+          "data: {"type":"text","text":", "}
 
         ",
-          "data: {"type":"text","value":"world!"}
+          "data: {"type":"text","text":"world!"}
 
         ",
           "data: {"type":"finish-step"}
@@ -1016,43 +1019,46 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
+          "data: {"type":"start"}
+
+        ",
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"I will open the conversation"}}
+          "data: {"type":"reasoning","text":"I will open the conversation"}
 
         ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":" with witty banter. "}}
+          "data: {"type":"reasoning","text":" with witty banter. "}
 
         ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}}
-
-        ",
-          "data: {"type":"reasoning-part-finish"}
-
-        ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}}
+          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 
         ",
           "data: {"type":"reasoning-part-finish"}
 
         ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"Once the user has relaxed,"}}
-
-        ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":" I will pry for valuable information."}}
-
-        ",
-          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}}
+          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
 
         ",
           "data: {"type":"reasoning-part-finish"}
 
         ",
-          "data: {"type":"text","value":"Hi"}
+          "data: {"type":"reasoning","text":"Once the user has relaxed,"}
 
         ",
-          "data: {"type":"text","value":" there!"}
+          "data: {"type":"reasoning","text":" I will pry for valuable information."}
+
+        ",
+          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+
+        ",
+          "data: {"type":"reasoning-part-finish"}
+
+        ",
+          "data: {"type":"text","text":"Hi"}
+
+        ",
+          "data: {"type":"text","text":" there!"}
 
         ",
           "data: {"type":"finish-step"}
@@ -1094,16 +1100,19 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
+          "data: {"type":"start"}
+
+        ",
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}}
+          "data: {"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
 
         ",
-          "data: {"type":"text","value":"Hello!"}
+          "data: {"type":"text","text":"Hello!"}
 
         ",
-          "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}}
+          "data: {"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
 
         ",
           "data: {"type":"finish-step"}
@@ -1143,16 +1152,19 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
+          "data: {"type":"start"}
+
+        ",
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"file","value":{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}}
+          "data: {"type":"file","mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}
 
         ",
-          "data: {"type":"text","value":"Hello!"}
+          "data: {"type":"text","text":"Hello!"}
 
         ",
-          "data: {"type":"file","value":{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}}
+          "data: {"type":"file","mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
 
         ",
           "data: {"type":"finish-step"}
@@ -1209,9 +1221,11 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream();
+      const uiMessageStream = result.toUIMessageStream();
 
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
     });
 
     it('should send tool call and tool result stream parts', async () => {
@@ -1313,7 +1327,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({
+      const uiMessageStream = result.toUIMessageStream({
         messageMetadata: mockValues(
           { key1: 'value1' },
           { key2: 'value2' },
@@ -1322,53 +1336,45 @@ describe('streamText', () => {
         ),
       });
 
-      expect(await convertReadableStreamToArray(dataStream))
+      expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
           [
             {
+              "messageId": undefined,
+              "metadata": {
+                "key1": "value1",
+              },
               "type": "start",
-              "value": {
-                "messageId": undefined,
-                "metadata": {
-                  "key1": "value1",
-                },
-              },
             },
             {
+              "metadata": {
+                "key2": "value2",
+              },
               "type": "start-step",
-              "value": {
-                "metadata": {
-                  "key2": "value2",
-                },
+            },
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "text": ", ",
+              "type": "text",
+            },
+            {
+              "text": "world!",
+              "type": "text",
+            },
+            {
+              "metadata": {
+                "key3": "value3",
               },
-            },
-            {
-              "type": "text",
-              "value": "Hello",
-            },
-            {
-              "type": "text",
-              "value": ", ",
-            },
-            {
-              "type": "text",
-              "value": "world!",
-            },
-            {
               "type": "finish-step",
-              "value": {
-                "metadata": {
-                  "key3": "value3",
-                },
-              },
             },
             {
-              "type": "finish",
-              "value": {
-                "metadata": {
-                  "key4": "value4",
-                },
+              "metadata": {
+                "key4": "value4",
               },
+              "type": "finish",
             },
           ]
         `);
@@ -1384,9 +1390,11 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream();
+      const uiMessageStream = result.toUIMessageStream();
 
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
     });
 
     it('should support custom error messages', async () => {
@@ -1399,11 +1407,13 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({
+      const uiMessageStream = result.toUIMessageStream({
         onError: error => `custom error message: ${error}`,
       });
 
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
     });
 
     it('should omit message finish event when sendFinish is false', async () => {
@@ -1422,11 +1432,13 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({
+      const uiMessageStream = result.toUIMessageStream({
         experimental_sendFinish: false,
       });
 
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
     });
 
     it('should omit message start event when sendStart is false', async () => {
@@ -1445,11 +1457,13 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({
+      const uiMessageStream = result.toUIMessageStream({
         experimental_sendStart: false,
       });
 
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
     });
 
     it('should send reasoning content when sendReasoning is true', async () => {
@@ -1458,9 +1472,11 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({ sendReasoning: true });
+      const uiMessageStream = result.toUIMessageStream({ sendReasoning: true });
 
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
     });
 
     it('should send source content when sendSources is true', async () => {
@@ -1469,9 +1485,11 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({ sendSources: true });
+      const uiMessageStream = result.toUIMessageStream({ sendSources: true });
 
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
     });
 
     it('should send file content', async () => {
@@ -1480,9 +1498,11 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream();
+      const uiMessageStream = result.toUIMessageStream();
 
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
     });
   });
 
@@ -1516,13 +1536,13 @@ describe('streamText', () => {
             "data: {"type":"start-step"}
 
           ",
-            "data: {"type":"text","value":"Hello"}
+            "data: {"type":"text","text":"Hello"}
 
           ",
-            "data: {"type":"text","value":", "}
+            "data: {"type":"text","text":", "}
 
           ",
-            "data: {"type":"text","value":"world!"}
+            "data: {"type":"text","text":"world!"}
 
           ",
             "data: {"type":"finish-step"}
@@ -1574,13 +1594,13 @@ describe('streamText', () => {
             "data: {"type":"start-step"}
 
           ",
-            "data: {"type":"text","value":"Hello"}
+            "data: {"type":"text","text":"Hello"}
 
           ",
-            "data: {"type":"text","value":", "}
+            "data: {"type":"text","text":", "}
 
           ",
-            "data: {"type":"text","value":"world!"}
+            "data: {"type":"text","text":"world!"}
 
           ",
             "data: {"type":"finish-step"}
@@ -1763,7 +1783,7 @@ describe('streamText', () => {
       expect({
         textStream: await convertAsyncIterableToArray(result.textStream),
         fullStream: await convertAsyncIterableToArray(result.fullStream),
-        dataStream: await convertReadableStreamToArray(
+        uiMessageStream: await convertReadableStreamToArray(
           result.toUIMessageStream(),
         ),
       }).toMatchSnapshot();
@@ -2380,6 +2400,9 @@ describe('streamText', () => {
         await convertAsyncIterableToArray(result.fullStream),
       ).toStrictEqual([
         {
+          type: 'start',
+        },
+        {
           type: 'error',
           error: new Error('test error'),
         },
@@ -2698,6 +2721,60 @@ describe('streamText', () => {
       it('should record telemetry data for each step', async () => {
         await result.consumeStream();
         expect(tracer.jsonSpans).toMatchSnapshot();
+      });
+
+      it('should have correct ui message stream', async () => {
+        expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "messageId": undefined,
+              "metadata": undefined,
+              "type": "start",
+            },
+            {
+              "metadata": undefined,
+              "type": "start-step",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "type": "tool-result",
+            },
+            {
+              "metadata": undefined,
+              "type": "finish-step",
+            },
+            {
+              "metadata": undefined,
+              "type": "start-step",
+            },
+            {
+              "text": "Hello, ",
+              "type": "text",
+            },
+            {
+              "text": "world!",
+              "type": "text",
+            },
+            {
+              "metadata": undefined,
+              "type": "finish-step",
+            },
+            {
+              "metadata": undefined,
+              "type": "finish",
+            },
+          ]
+        `);
       });
     });
   });
@@ -3113,55 +3190,58 @@ describe('streamText', () => {
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "request": {},
-            "type": "start-step",
-            "warnings": [],
-          },
-          {
-            "args": {
-              "value": "value",
+          [
+            {
+              "type": "start",
             },
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-call",
-          },
-          {
-            "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
-            "type": "error",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
             },
-            "type": "finish-step",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 3,
-              "outputTokens": 10,
-              "reasoningTokens": undefined,
-              "totalTokens": 13,
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
             },
-          },
-          {
-            "finishReason": "stop",
-            "totalUsage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 3,
-              "outputTokens": 10,
-              "reasoningTokens": undefined,
-              "totalTokens": 13,
+            {
+              "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
+              "type": "error",
             },
-            "type": "finish",
-          },
-        ]
-      `);
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
     });
   });
 
@@ -3959,46 +4039,49 @@ describe('streamText', () => {
 
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "text": "Hello, ",
-              "type": "text",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "id": "response-id",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+            [
+              {
+                "type": "start",
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": undefined,
-                "outputTokens": undefined,
-                "reasoningTokens": undefined,
-                "totalTokens": undefined,
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
               },
-            },
-            {
-              "finishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": undefined,
-                "outputTokens": undefined,
-                "reasoningTokens": undefined,
-                "totalTokens": undefined,
+              {
+                "text": "Hello, ",
+                "type": "text",
               },
-              "type": "finish",
-            },
-          ]
-        `);
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "response": {
+                  "id": "response-id",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": undefined,
+                  "outputTokens": undefined,
+                  "reasoningTokens": undefined,
+                  "totalTokens": undefined,
+                },
+              },
+              {
+                "finishReason": "stop",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": undefined,
+                  "outputTokens": undefined,
+                  "reasoningTokens": undefined,
+                  "totalTokens": undefined,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
       });
 
       it('options.onStepFinish should be called', async () => {

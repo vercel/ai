@@ -738,6 +738,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     let stream = stitchableStream.stream;
 
+    // add a stream that emits a start event:
+    stream = stream.pipeThrough(
+      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+        start(controller) {
+          controller.enqueue({ type: 'start' });
+        },
+      }),
+    );
+
     // transform the stream before output parsing
     // to enable replacement of stream segments:
     for (const transform of transforms) {
@@ -947,7 +956,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 async transform(chunk, controller): Promise<void> {
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
-                    controller.enqueue({ type: 'start' });
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }
 
@@ -1369,13 +1377,20 @@ However, the LLM results are expected to be small enough to not cause issues.
           const partType = part.type;
           switch (partType) {
             case 'text': {
-              controller.enqueue({ type: 'text', value: part.text });
+              controller.enqueue({
+                type: 'text',
+                text: part.text,
+              });
               break;
             }
 
             case 'reasoning': {
               if (sendReasoning) {
-                controller.enqueue({ type: 'reasoning', value: part });
+                controller.enqueue({
+                  type: 'reasoning',
+                  text: part.text,
+                  providerMetadata: part.providerMetadata,
+                });
               }
               break;
             }
@@ -1390,17 +1405,22 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'file': {
               controller.enqueue({
                 type: 'file',
-                value: {
-                  mediaType: part.file.mediaType,
-                  url: `data:${part.file.mediaType};base64,${part.file.base64}`,
-                },
+                mediaType: part.file.mediaType,
+                url: `data:${part.file.mediaType};base64,${part.file.base64}`,
               });
               break;
             }
 
             case 'source': {
               if (sendSources) {
-                controller.enqueue({ type: 'source', value: part });
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: part.sourceType,
+                  id: part.id,
+                  url: part.url,
+                  title: part.title,
+                  providerMetadata: part.providerMetadata,
+                });
               }
               break;
             }
@@ -1408,10 +1428,8 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'tool-call-streaming-start': {
               controller.enqueue({
                 type: 'tool-call-streaming-start',
-                value: {
-                  toolCallId: part.toolCallId,
-                  toolName: part.toolName,
-                },
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
               });
               break;
             }
@@ -1419,10 +1437,8 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'tool-call-delta': {
               controller.enqueue({
                 type: 'tool-call-delta',
-                value: {
-                  toolCallId: part.toolCallId,
-                  argsTextDelta: part.argsTextDelta,
-                },
+                toolCallId: part.toolCallId,
+                argsTextDelta: part.argsTextDelta,
               });
               break;
             }
@@ -1430,11 +1446,9 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'tool-call': {
               controller.enqueue({
                 type: 'tool-call',
-                value: {
-                  toolCallId: part.toolCallId,
-                  toolName: part.toolName,
-                  args: part.args,
-                },
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                args: part.args,
               });
               break;
             }
@@ -1442,10 +1456,8 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'tool-result': {
               controller.enqueue({
                 type: 'tool-result',
-                value: {
-                  toolCallId: part.toolCallId,
-                  result: part.result,
-                },
+                toolCallId: part.toolCallId,
+                result: part.result,
               });
               break;
             }
@@ -1453,7 +1465,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'error': {
               controller.enqueue({
                 type: 'error',
-                value: onError(part.error),
+                errorText: onError(part.error),
               });
               break;
             }
@@ -1462,7 +1474,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               const metadata = messageMetadata?.({ part });
               controller.enqueue({
                 type: 'start-step',
-                value: metadata != null ? { metadata } : undefined,
+                metadata,
               });
               break;
             }
@@ -1471,7 +1483,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               const metadata = messageMetadata?.({ part });
               controller.enqueue({
                 type: 'finish-step',
-                value: metadata != null ? { metadata } : undefined,
+                metadata,
               });
 
               break;
@@ -1482,10 +1494,8 @@ However, the LLM results are expected to be small enough to not cause issues.
                 const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'start',
-                  value:
-                    messageId != null || metadata != null
-                      ? { messageId, metadata }
-                      : undefined,
+                  messageId,
+                  metadata,
                 });
               }
               break;
@@ -1496,7 +1506,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'finish',
-                  value: metadata != null ? { metadata } : undefined,
+                  metadata,
                 });
               }
               break;

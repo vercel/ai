@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/xai",
-  "version": "2.0.0-canary.18",
+  "version": "2.0.0-canary.19",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -41,10 +41,10 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "zod": "3.23.8"
+    "zod": "3.24.4"
   },
   "peerDependencies": {
-    "zod": "^3.0.0"
+    "zod": "^3.24.0"
   },
   "engines": {
     "node": ">=18"

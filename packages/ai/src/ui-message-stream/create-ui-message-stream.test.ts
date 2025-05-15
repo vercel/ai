@@ -9,15 +9,15 @@ describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
     const stream = createUIMessageStream({
       execute: stream => {
-        stream.write({ type: 'text', value: '1a' });
+        stream.write({ type: 'text', text: '1a' });
       },
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "text": "1a",
           "type": "text",
-          "value": "1a",
         },
       ]
     `);
@@ -29,8 +29,8 @@ describe('createUIMessageStream', () => {
         stream.merge(
           new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', value: '1a' });
-              controller.enqueue({ type: 'text', value: '1b' });
+              controller.enqueue({ type: 'text', text: '1a' });
+              controller.enqueue({ type: 'text', text: '1b' });
               controller.close();
             },
           }),
@@ -41,12 +41,12 @@ describe('createUIMessageStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "text": "1a",
           "type": "text",
-          "value": "1a",
         },
         {
+          "text": "1b",
           "type": "text",
-          "value": "1b",
         },
       ]
     `);
@@ -58,7 +58,7 @@ describe('createUIMessageStream', () => {
     const stream = createUIMessageStream({
       execute: async stream => {
         await waitPromise.value;
-        stream.write({ type: 'text', value: '1a' });
+        stream.write({ type: 'text', text: '1a' });
       },
     });
 
@@ -67,8 +67,8 @@ describe('createUIMessageStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "text": "1a",
           "type": "text",
-          "value": "1a",
         },
       ]
     `);
@@ -80,7 +80,7 @@ describe('createUIMessageStream', () => {
 
     const stream = createUIMessageStream({
       execute: stream => {
-        stream.write({ type: 'text', value: 'data-part-1' });
+        stream.write({ type: 'text', text: 'data-part-1' });
 
         stream.merge(
           new ReadableStream({
@@ -90,9 +90,9 @@ describe('createUIMessageStream', () => {
           }),
         );
 
-        controller1!.enqueue({ type: 'text', value: '1a' });
-        stream.write({ type: 'text', value: 'data-part-2' });
-        controller1!.enqueue({ type: 'text', value: '1b' });
+        controller1!.enqueue({ type: 'text', text: '1a' });
+        stream.write({ type: 'text', text: 'data-part-2' });
+        controller1!.enqueue({ type: 'text', text: '1b' });
 
         stream.merge(
           new ReadableStream({
@@ -102,59 +102,59 @@ describe('createUIMessageStream', () => {
           }),
         );
 
-        stream.write({ type: 'text', value: 'data-part-3' });
+        stream.write({ type: 'text', text: 'data-part-3' });
       },
     });
 
-    controller2!.enqueue({ type: 'text', value: '2a' });
-    controller1!.enqueue({ type: 'text', value: '1c' });
-    controller2!.enqueue({ type: 'text', value: '2b' });
+    controller2!.enqueue({ type: 'text', text: '2a' });
+    controller1!.enqueue({ type: 'text', text: '1c' });
+    controller2!.enqueue({ type: 'text', text: '2b' });
     controller2!.close();
-    controller1!.enqueue({ type: 'text', value: '1d' });
-    controller1!.enqueue({ type: 'text', value: '1e' });
+    controller1!.enqueue({ type: 'text', text: '1d' });
+    controller1!.enqueue({ type: 'text', text: '1e' });
     controller1!.close();
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "text": "data-part-1",
           "type": "text",
-          "value": "data-part-1",
         },
         {
+          "text": "data-part-2",
           "type": "text",
-          "value": "data-part-2",
         },
         {
+          "text": "data-part-3",
           "type": "text",
-          "value": "data-part-3",
         },
         {
+          "text": "1a",
           "type": "text",
-          "value": "1a",
         },
         {
+          "text": "2a",
           "type": "text",
-          "value": "2a",
         },
         {
+          "text": "1b",
           "type": "text",
-          "value": "1b",
         },
         {
+          "text": "2b",
           "type": "text",
-          "value": "2b",
         },
         {
+          "text": "1c",
           "type": "text",
-          "value": "1c",
         },
         {
+          "text": "1d",
           "type": "text",
-          "value": "1d",
         },
         {
+          "text": "1e",
           "type": "text",
-          "value": "1e",
         },
       ]
     `);
@@ -184,18 +184,32 @@ describe('createUIMessageStream', () => {
       onError: () => 'error-message',
     });
 
-    controller1!.enqueue({ type: 'text', value: '1a' });
+    controller1!.enqueue({ type: 'text', text: '1a' });
     controller1!.error(new Error('1-error'));
-    controller2!.enqueue({ type: 'text', value: '2a' });
-    controller2!.enqueue({ type: 'text', value: '2b' });
+    controller2!.enqueue({ type: 'text', text: '2a' });
+    controller2!.enqueue({ type: 'text', text: '2b' });
     controller2!.close();
 
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      { type: 'text', value: '1a' },
-      { type: 'text', value: '2a' },
-      { type: 'text', value: '2b' },
-      { type: 'error', value: 'error-message' },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "1a",
+          "type": "text",
+        },
+        {
+          "text": "2a",
+          "type": "text",
+        },
+        {
+          "text": "2b",
+          "type": "text",
+        },
+        {
+          "errorText": "error-message",
+          "type": "error",
+        },
+      ]
+    `);
   });
 
   it('should add error parts when execute throws', async () => {
@@ -206,9 +220,14 @@ describe('createUIMessageStream', () => {
       onError: () => 'error-message',
     });
 
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      { type: 'error', value: 'error-message' },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "errorText": "error-message",
+          "type": "error",
+        },
+      ]
+    `);
   });
 
   it('should add error parts when execute throws with promise', async () => {
@@ -219,9 +238,14 @@ describe('createUIMessageStream', () => {
       onError: () => 'error-message',
     });
 
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      { type: 'error', value: 'error-message' },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "errorText": "error-message",
+          "type": "error",
+        },
+      ]
+    `);
   });
 
   it('should suppress error when writing to closed stream', async () => {
@@ -229,17 +253,17 @@ describe('createUIMessageStream', () => {
 
     const stream = createUIMessageStream({
       execute: uiMessageStreamArg => {
-        uiMessageStreamArg.write({ type: 'text', value: '1a' });
+        uiMessageStreamArg.write({ type: 'text', text: '1a' });
         uiMessageStream = uiMessageStreamArg;
       },
     });
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
-      { type: 'text', value: '1a' },
+      { type: 'text', text: '1a' },
     ]);
 
     expect(() =>
-      uiMessageStream!.write({ type: 'text', value: '1b' }),
+      uiMessageStream!.write({ type: 'text', text: '1b' }),
     ).not.toThrow();
   });
 
@@ -274,7 +298,7 @@ describe('createUIMessageStream', () => {
     // function is finished
     expect(done).toBe(true);
 
-    controller1!.enqueue({ type: 'text', value: '1a' });
+    controller1!.enqueue({ type: 'text', text: '1a' });
     await pull();
 
     // controller1 is still open, create 2nd stream
@@ -292,14 +316,14 @@ describe('createUIMessageStream', () => {
     await delay(); // relinquish control
 
     // it should still be able to write to controller2
-    controller2!.enqueue({ type: 'text', value: '2a' });
+    controller2!.enqueue({ type: 'text', text: '2a' });
     controller2!.close();
 
     await pull();
 
     expect(result).toEqual([
-      { type: 'text', value: '1a' },
-      { type: 'text', value: '2a' },
+      { type: 'text', text: '1a' },
+      { type: 'text', text: '2a' },
     ]);
   });
 });

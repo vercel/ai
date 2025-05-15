@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool } from 'ai';
+import { generateText, maxSteps, tool } from 'ai';
 import 'dotenv/config';
 import * as mathjs from 'mathjs';
 import { z } from 'zod';
@@ -16,7 +16,7 @@ async function main() {
         execute: async ({ expression }) => mathjs.evaluate(expression),
       }),
     },
-    maxSteps: 10,
+    continueUntil: maxSteps(10),
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
     },

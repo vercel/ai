@@ -13,7 +13,7 @@ export function transformTextToUiMessageStream({
       },
 
       async transform(part, controller) {
-        controller.enqueue({ type: 'text', value: part });
+        controller.enqueue({ type: 'text', text: part });
       },
 
       async flush(controller) {

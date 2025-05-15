@@ -2,33 +2,10 @@
 
 exports[`streamText > multiple stream consumption > should support text stream, ai stream, full stream on single result object 1`] = `
 {
-  "dataStream": [
-    {
-      "type": "start-step",
-      "value": undefined,
-    },
-    {
-      "type": "text",
-      "value": "Hello",
-    },
-    {
-      "type": "text",
-      "value": ", ",
-    },
-    {
-      "type": "text",
-      "value": "world!",
-    },
-    {
-      "type": "finish-step",
-      "value": undefined,
-    },
-    {
-      "type": "finish",
-      "value": undefined,
-    },
-  ],
   "fullStream": [
+    {
+      "type": "start",
+    },
     {
       "request": {},
       "type": "start-step",
@@ -80,6 +57,37 @@ exports[`streamText > multiple stream consumption > should support text stream, 
     "Hello",
     ", ",
     "world!",
+  ],
+  "uiMessageStream": [
+    {
+      "messageId": undefined,
+      "metadata": undefined,
+      "type": "start",
+    },
+    {
+      "metadata": undefined,
+      "type": "start-step",
+    },
+    {
+      "text": "Hello",
+      "type": "text",
+    },
+    {
+      "text": ", ",
+      "type": "text",
+    },
+    {
+      "text": "world!",
+      "type": "text",
+    },
+    {
+      "metadata": undefined,
+      "type": "finish-step",
+    },
+    {
+      "metadata": undefined,
+      "type": "finish",
+    },
   ],
 }
 `;
@@ -463,6 +471,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2095,6 +2106,9 @@ exports[`streamText > result.files > should contain files 1`] = `
 exports[`streamText > result.fullStream > should filter out empty text deltas 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2146,6 +2160,9 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
 exports[`streamText > result.fullStream > should not send tool call deltas when toolCallStreaming is disabled 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2192,6 +2209,9 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
 
 exports[`streamText > result.fullStream > should send delayed asynchronous tool results 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2248,6 +2268,9 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
 
 exports[`streamText > result.fullStream > should send files 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2309,6 +2332,9 @@ exports[`streamText > result.fullStream > should send files 1`] = `
 
 exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2409,6 +2435,9 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
 exports[`streamText > result.fullStream > should send sources 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2476,6 +2505,9 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
 exports[`streamText > result.fullStream > should send text deltas 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2526,6 +2558,9 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
 
 exports[`streamText > result.fullStream > should send tool call deltas when toolCallStreaming is enabled 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2621,6 +2656,9 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
 exports[`streamText > result.fullStream > should send tool calls 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2667,6 +2705,9 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
 
 exports[`streamText > result.fullStream > should send tool results 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2724,6 +2765,9 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
 exports[`streamText > result.fullStream > should use fallback response metadata when response metadata is not provided 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2774,10 +2818,13 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error messages by default 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"error","value":"An error occurred."}
+  "data: {"type":"error","errorText":"An error occurred."}
 
 ",
   "data: {"type":"finish-step"}
@@ -2794,10 +2841,13 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"text","value":"Hello, World!"}
+  "data: {"type":"text","text":"Hello, World!"}
 
 ",
   "data: {"type":"finish-step"}
@@ -2811,10 +2861,13 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should support custom error messages 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"error","value":"custom error message: error"}
+  "data: {"type":"error","errorText":"custom error message: error"}
 
 ",
   "data: {"type":"finish-step"}
@@ -3212,32 +3265,33 @@ exports[`streamText > result.textStream > should swallow error to prevent server
 exports[`streamText > result.toUIMessageStream > should create a data stream 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
     "type": "start",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "text": "Hello",
     "type": "text",
-    "value": "Hello",
   },
   {
+    "text": ", ",
     "type": "text",
-    "value": ", ",
   },
   {
+    "text": "world!",
     "type": "text",
-    "value": "world!",
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
@@ -3245,20 +3299,25 @@ exports[`streamText > result.toUIMessageStream > should create a data stream 1`]
 exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "errorText": "An error occurred.",
     "type": "error",
-    "value": "An error occurred.",
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
@@ -3266,20 +3325,21 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
 exports[`streamText > result.toUIMessageStream > should omit message finish event when sendFinish is false 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
     "type": "start",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "text": "Hello, World!",
     "type": "text",
-    "value": "Hello, World!",
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
 ]
 `;
@@ -3287,20 +3347,20 @@ exports[`streamText > result.toUIMessageStream > should omit message finish even
 exports[`streamText > result.toUIMessageStream > should omit message start event when sendStart is false 1`] = `
 [
   {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "text": "Hello, World!",
     "type": "text",
-    "value": "Hello, World!",
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
@@ -3308,34 +3368,35 @@ exports[`streamText > result.toUIMessageStream > should omit message start event
 exports[`streamText > result.toUIMessageStream > should send file content 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "mediaType": "text/plain",
     "type": "file",
-    "value": {
-      "mediaType": "text/plain",
-      "url": "data:text/plain;base64,Hello World",
-    },
+    "url": "data:text/plain;base64,Hello World",
   },
   {
+    "text": "Hello!",
     "type": "text",
-    "value": "Hello!",
   },
   {
+    "mediaType": "image/jpeg",
     "type": "file",
-    "value": {
-      "mediaType": "image/jpeg",
-      "url": "data:image/jpeg;base64,QkFVRw==",
-    },
+    "url": "data:image/jpeg;base64,QkFVRw==",
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
@@ -3343,97 +3404,85 @@ exports[`streamText > result.toUIMessageStream > should send file content 1`] = 
 exports[`streamText > result.toUIMessageStream > should send reasoning content when sendReasoning is true 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "providerMetadata": undefined,
+    "text": "I will open the conversation",
     "type": "reasoning",
-    "value": {
-      "text": "I will open the conversation",
-      "type": "reasoning",
-    },
   },
   {
+    "providerMetadata": undefined,
+    "text": " with witty banter. ",
     "type": "reasoning",
-    "value": {
-      "text": " with witty banter. ",
-      "type": "reasoning",
-    },
   },
   {
-    "type": "reasoning",
-    "value": {
-      "providerMetadata": {
-        "testProvider": {
-          "signature": "1234567890",
-        },
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "1234567890",
       },
-      "text": "",
-      "type": "reasoning",
     },
+    "text": "",
+    "type": "reasoning",
   },
   {
     "type": "reasoning-part-finish",
   },
   {
-    "type": "reasoning",
-    "value": {
-      "providerMetadata": {
-        "testProvider": {
-          "redactedData": "redacted-reasoning-data",
-        },
+    "providerMetadata": {
+      "testProvider": {
+        "redactedData": "redacted-reasoning-data",
       },
-      "text": "",
-      "type": "reasoning",
     },
+    "text": "",
+    "type": "reasoning",
   },
   {
     "type": "reasoning-part-finish",
   },
   {
+    "providerMetadata": undefined,
+    "text": "Once the user has relaxed,",
     "type": "reasoning",
-    "value": {
-      "text": "Once the user has relaxed,",
-      "type": "reasoning",
-    },
   },
   {
+    "providerMetadata": undefined,
+    "text": " I will pry for valuable information.",
     "type": "reasoning",
-    "value": {
-      "text": " I will pry for valuable information.",
-      "type": "reasoning",
-    },
   },
   {
-    "type": "reasoning",
-    "value": {
-      "providerMetadata": {
-        "testProvider": {
-          "signature": "1234567890",
-        },
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "1234567890",
       },
-      "text": "",
-      "type": "reasoning",
     },
+    "text": "",
+    "type": "reasoning",
   },
   {
     "type": "reasoning-part-finish",
   },
   {
+    "text": "Hi",
     "type": "text",
-    "value": "Hi",
   },
   {
+    "text": " there!",
     "type": "text",
-    "value": " there!",
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
@@ -3441,50 +3490,49 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
 exports[`streamText > result.toUIMessageStream > should send source content when sendSources is true 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
-    "type": "source",
-    "value": {
-      "id": "123",
-      "providerMetadata": {
-        "provider": {
-          "custom": "value",
-        },
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
       },
-      "sourceType": "url",
-      "title": "Example",
-      "type": "source",
-      "url": "https://example.com",
     },
+    "sourceType": "url",
+    "title": "Example",
+    "type": "source",
+    "url": "https://example.com",
   },
   {
+    "text": "Hello!",
     "type": "text",
-    "value": "Hello!",
   },
   {
-    "type": "source",
-    "value": {
-      "id": "456",
-      "providerMetadata": {
-        "provider": {
-          "custom": "value2",
-        },
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
       },
-      "sourceType": "url",
-      "title": "Example 2",
-      "type": "source",
-      "url": "https://example.com/2",
     },
+    "sourceType": "url",
+    "title": "Example 2",
+    "type": "source",
+    "url": "https://example.com/2",
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
@@ -3492,33 +3540,34 @@ exports[`streamText > result.toUIMessageStream > should send source content when
 exports[`streamText > result.toUIMessageStream > should send tool call and tool result stream parts 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
     "type": "tool-call",
-    "value": {
-      "args": {
-        "value": "value",
-      },
-      "toolCallId": "call-1",
-      "toolName": "tool1",
-    },
   },
   {
+    "result": "value-result",
+    "toolCallId": "call-1",
     "type": "tool-result",
-    "value": {
-      "result": "value-result",
-      "toolCallId": "call-1",
-    },
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
@@ -3526,54 +3575,49 @@ exports[`streamText > result.toUIMessageStream > should send tool call and tool 
 exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "toolCallId": "call-1",
+    "toolName": "tool1",
     "type": "tool-call-streaming-start",
-    "value": {
-      "toolCallId": "call-1",
-      "toolName": "tool1",
-    },
   },
   {
+    "argsTextDelta": "{ "value":",
+    "toolCallId": "call-1",
     "type": "tool-call-delta",
-    "value": {
-      "argsTextDelta": "{ "value":",
-      "toolCallId": "call-1",
-    },
   },
   {
+    "argsTextDelta": " "value" }",
+    "toolCallId": "call-1",
     "type": "tool-call-delta",
-    "value": {
-      "argsTextDelta": " "value" }",
-      "toolCallId": "call-1",
-    },
   },
   {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
     "type": "tool-call",
-    "value": {
-      "args": {
-        "value": "value",
-      },
-      "toolCallId": "call-1",
-      "toolName": "tool1",
-    },
   },
   {
+    "result": "value-result",
+    "toolCallId": "call-1",
     "type": "tool-result",
-    "value": {
-      "result": "value-result",
-      "toolCallId": "call-1",
-    },
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
@@ -3581,30 +3625,38 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
 exports[`streamText > result.toUIMessageStream > should support custom error messages 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
+    "metadata": undefined,
     "type": "start-step",
-    "value": undefined,
   },
   {
+    "errorText": "custom error message: error",
     "type": "error",
-    "value": "custom error message: error",
   },
   {
+    "metadata": undefined,
     "type": "finish-step",
-    "value": undefined,
   },
   {
+    "metadata": undefined,
     "type": "finish",
-    "value": undefined,
   },
 ]
 `;
 
 exports[`streamText > result.toUIMessageStreamResponse > should mask error messages by default 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"error","value":"An error occurred."}
+  "data: {"type":"error","errorText":"An error occurred."}
 
 ",
   "data: {"type":"finish-step"}
@@ -3621,10 +3673,13 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
 
 exports[`streamText > result.toUIMessageStreamResponse > should support custom error messages 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"error","value":"custom error message: error"}
+  "data: {"type":"error","errorText":"custom error message: error"}
 
 ",
   "data: {"type":"finish-step"}
@@ -3901,6 +3956,9 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
 
 exports[`streamText > tools with custom schema > should send tool calls 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",

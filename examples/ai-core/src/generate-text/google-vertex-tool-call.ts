@@ -1,5 +1,5 @@
 import { vertex } from '@ai-sdk/google-vertex';
-import { generateText, tool } from 'ai';
+import { generateText, maxSteps, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -22,7 +22,7 @@ async function main() {
         },
       }),
     },
-    maxSteps: 5,
+    continueUntil: maxSteps(5),
   });
 
   console.log(text);

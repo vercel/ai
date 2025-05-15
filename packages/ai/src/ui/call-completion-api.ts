@@ -102,13 +102,12 @@ export async function callCompletionApi({
                   throw part.error;
                 }
 
-                const { type, value } = part.value;
-
-                if (type === 'text') {
-                  result += value;
+                const streamPart = part.value;
+                if (streamPart.type === 'text') {
+                  result += streamPart.text;
                   setCompletion(result);
-                } else if (type === 'error') {
-                  throw new Error(value);
+                } else if (streamPart.type === 'error') {
+                  throw new Error(streamPart.errorText);
                 }
               },
             }),

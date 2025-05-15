@@ -84,10 +84,10 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', value: 'Hello' }),
-        formatStreamPart({ type: 'text', value: ',' }),
-        formatStreamPart({ type: 'text', value: ' world' }),
-        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', text: 'Hello' }),
+        formatStreamPart({ type: 'text', text: ',' }),
+        formatStreamPart({ type: 'text', text: ' world' }),
+        formatStreamPart({ type: 'text', text: '.' }),
       ],
     };
 
@@ -166,7 +166,7 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'error', value: 'custom error message' }),
+        formatStreamPart({ type: 'error', errorText: 'custom error message' }),
       ],
     };
 
@@ -193,7 +193,7 @@ describe('data protocol stream', () => {
         expect(screen.getByTestId('status')).toHaveTextContent('submitted');
       });
 
-      controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
+      controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('streaming');
@@ -231,17 +231,15 @@ describe('data protocol stream', () => {
 
     await userEvent.click(screen.getByTestId('do-append'));
 
-    controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
-    controller.write(formatStreamPart({ type: 'text', value: ',' }));
-    controller.write(formatStreamPart({ type: 'text', value: ' world' }));
-    controller.write(formatStreamPart({ type: 'text', value: '.' }));
+    controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
+    controller.write(formatStreamPart({ type: 'text', text: ',' }));
+    controller.write(formatStreamPart({ type: 'text', text: ' world' }));
+    controller.write(formatStreamPart({ type: 'text', text: '.' }));
     controller.write(
       formatStreamPart({
         type: 'finish',
-        value: {
-          metadata: {
-            example: 'metadata',
-          },
+        metadata: {
+          example: 'metadata',
         },
       }),
     );
@@ -304,10 +302,10 @@ describe('data protocol stream', () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text', value: 'Hello' }),
-          formatStreamPart({ type: 'text', value: ',' }),
-          formatStreamPart({ type: 'text', value: ' world' }),
-          formatStreamPart({ type: 'text', value: '.' }),
+          formatStreamPart({ type: 'text', text: 'Hello' }),
+          formatStreamPart({ type: 'text', text: ',' }),
+          formatStreamPart({ type: 'text', text: ' world' }),
+          formatStreamPart({ type: 'text', text: '.' }),
         ],
       };
 
@@ -336,10 +334,10 @@ describe('data protocol stream', () => {
       server.urls['/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text', value: 'Hello' }),
-          formatStreamPart({ type: 'text', value: ',' }),
-          formatStreamPart({ type: 'text', value: ' world' }),
-          formatStreamPart({ type: 'text', value: '.' }),
+          formatStreamPart({ type: 'text', text: 'Hello' }),
+          formatStreamPart({ type: 'text', text: ',' }),
+          formatStreamPart({ type: 'text', text: ' world' }),
+          formatStreamPart({ type: 'text', text: '.' }),
         ],
       };
 
@@ -623,10 +621,10 @@ describe('prepareRequestBody', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', value: 'Hello' }),
-        formatStreamPart({ type: 'text', value: ',' }),
-        formatStreamPart({ type: 'text', value: ' world' }),
-        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', text: 'Hello' }),
+        formatStreamPart({ type: 'text', text: ',' }),
+        formatStreamPart({ type: 'text', text: ' world' }),
+        formatStreamPart({ type: 'text', text: '.' }),
       ],
     };
 
@@ -714,11 +712,9 @@ describe('onToolCall', () => {
       chunks: [
         formatStreamPart({
           type: 'tool-call',
-          value: {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          },
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
         }),
       ],
     };
@@ -726,16 +722,30 @@ describe('onToolCall', () => {
     await userEvent.click(screen.getByTestId('do-append'));
 
     await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      `{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}`,
-    );
+    expect(
+      JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+    ).toStrictEqual({
+      state: 'call',
+      step: 0,
+      args: { testArg: 'test-value' },
+      toolCallId: 'tool-call-0',
+      toolName: 'test-tool',
+    });
 
     resolve();
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        `{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-tool-response: test-tool tool-call-0 {\\"testArg\\":\\"test-value\\"}"}`,
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result:
+          'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+      });
     });
   });
 });
@@ -806,83 +816,103 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-call-streaming-start',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
       }),
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'partial-call',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     controller.write(
       formatStreamPart({
         type: 'tool-call-delta',
-        value: {
-          toolCallId: 'tool-call-0',
-          argsTextDelta: '{"testArg":"t',
-        },
+        toolCallId: 'tool-call-0',
+        argsTextDelta: '{"testArg":"t',
       }),
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'partial-call',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 't' },
+      });
     });
 
     controller.write(
       formatStreamPart({
         type: 'tool-call-delta',
-        value: {
-          toolCallId: 'tool-call-0',
-          argsTextDelta: 'est-value"}}',
-        },
+        toolCallId: 'tool-call-0',
+        argsTextDelta: 'est-value"}}',
       }),
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'partial-call',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      });
     });
 
     controller.write(
       formatStreamPart({
         type: 'tool-call',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
       }),
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     controller.write(
       formatStreamPart({
         type: 'tool-result',
-        value: {
-          toolCallId: 'tool-call-0',
-          result: 'test-result',
-        },
+        toolCallId: 'tool-call-0',
+        result: 'test-result',
       }),
     );
     controller.close();
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        `{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}`,
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
   });
 
@@ -898,35 +928,44 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-call',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
       }),
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     controller.write(
       formatStreamPart({
         type: 'tool-result',
-        value: {
-          toolCallId: 'tool-call-0',
-          result: 'test-result',
-        },
+        toolCallId: 'tool-call-0',
+        result: 'test-result',
       }),
     );
     controller.close();
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
   });
 
@@ -944,32 +983,43 @@ describe('tool invocations', () => {
     controller.write(
       formatStreamPart({
         type: 'tool-call',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
       }),
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     await userEvent.click(screen.getByTestId('add-result-0'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
 
     controller.write(
       formatStreamPart({
         type: 'text',
-        value: 'more text',
+        text: 'more text',
       }),
     );
     controller.close();
@@ -1038,18 +1088,22 @@ describe('tool invocations', () => {
     controller1.write(
       formatStreamPart({
         type: 'tool-call',
-        value: {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
       }),
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     // user submits the tool result
@@ -1057,9 +1111,16 @@ describe('tool invocations', () => {
 
     // UI should show the tool result
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
 
     // should not have called the API yet
@@ -1132,17 +1193,15 @@ describe('maxSteps', () => {
           chunks: [
             formatStreamPart({
               type: 'tool-call',
-              value: {
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
-                args: { testArg: 'test-value' },
-              },
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
             }),
           ],
         },
         {
           type: 'stream-chunks',
-          chunks: [formatStreamPart({ type: 'text', value: 'final result' })],
+          chunks: [formatStreamPart({ type: 'text', text: 'final result' })],
         },
       ];
 
@@ -1213,11 +1272,9 @@ describe('maxSteps', () => {
           chunks: [
             formatStreamPart({
               type: 'tool-call',
-              value: {
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
-                args: { testArg: 'test-value' },
-              },
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
             }),
           ],
         },
@@ -1296,7 +1353,7 @@ describe('file attachments with data url', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with text attachment',
+          text: 'Response to message with text attachment',
         }),
       ],
     };
@@ -1379,7 +1436,7 @@ describe('file attachments with data url', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with image attachment',
+          text: 'Response to message with image attachment',
         }),
       ],
     };
@@ -1502,7 +1559,7 @@ describe('file attachments with url', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with image attachment',
+          text: 'Response to message with image attachment',
         }),
       ],
     };
@@ -1610,7 +1667,7 @@ describe('attachments with empty submit', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with image attachment',
+          text: 'Response to message with image attachment',
         }),
       ],
     };
@@ -1723,7 +1780,7 @@ describe('should append message with attachments', () => {
       chunks: [
         formatStreamPart({
           type: 'text',
-          value: 'Response to message with image attachment',
+          text: 'Response to message with image attachment',
         }),
       ],
     };
@@ -1833,11 +1890,11 @@ describe('reload', () => {
     server.urls['/api/chat'].response = [
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', value: 'first response' })],
+        chunks: [formatStreamPart({ type: 'text', text: 'first response' })],
       },
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', value: 'second response' })],
+        chunks: [formatStreamPart({ type: 'text', text: 'second response' })],
       },
     ];
 
@@ -1916,7 +1973,7 @@ describe('test sending additional fields during message submission', () => {
   it('should send metadata with the message', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
-      chunks: [formatStreamPart({ type: 'text', value: 'first response' })],
+      chunks: [formatStreamPart({ type: 'text', text: 'first response' })],
     };
 
     await userEvent.click(screen.getByTestId('do-append'));
@@ -2012,15 +2069,15 @@ describe('resume ongoing stream and return assistant message', () => {
       expect(screen.getByTestId('status')).toHaveTextContent('submitted');
     });
 
-    controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
+    controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('status')).toHaveTextContent('streaming');
     });
 
-    controller.write(formatStreamPart({ type: 'text', value: ',' }));
-    controller.write(formatStreamPart({ type: 'text', value: ' world' }));
-    controller.write(formatStreamPart({ type: 'text', value: '.' }));
+    controller.write(formatStreamPart({ type: 'text', text: ',' }));
+    controller.write(formatStreamPart({ type: 'text', text: ' world' }));
+    controller.write(formatStreamPart({ type: 'text', text: '.' }));
 
     controller.close();
 
@@ -2086,7 +2143,7 @@ describe('stop', () => {
 
     await userEvent.click(screen.getByTestId('do-append'));
 
-    controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
+    controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
@@ -2100,7 +2157,7 @@ describe('stop', () => {
     });
 
     await expect(
-      controller.write(formatStreamPart({ type: 'text', value: ', world!' })),
+      controller.write(formatStreamPart({ type: 'text', text: ', world!' })),
     ).rejects.toThrow();
 
     await expect(controller.close()).rejects.toThrow();

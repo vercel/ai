@@ -223,6 +223,9 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
+              "type": "start",
+            },
+            {
               "request": {},
               "type": "start-step",
               "warnings": [],
@@ -315,6 +318,9 @@ describe('extractReasoningMiddleware', () => {
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
           [
+            {
+              "type": "start",
+            },
             {
               "request": {},
               "type": "start-step",
@@ -414,6 +420,9 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
+              "type": "start",
+            },
+            {
               "request": {},
               "type": "start-step",
               "warnings": [],
@@ -511,6 +520,9 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
+              "type": "start",
+            },
+            {
               "request": {},
               "type": "start-step",
               "warnings": [],
@@ -566,6 +578,9 @@ describe('extractReasoningMiddleware', () => {
       expect(await convertAsyncIterableToArray(resultFalse.fullStream))
         .toMatchInlineSnapshot(`
           [
+            {
+              "type": "start",
+            },
             {
               "request": {},
               "type": "start-step",
