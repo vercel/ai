@@ -20,16 +20,16 @@ describe('transformTextToUiMessageStream', () => {
             "type": "start-step",
           },
           {
+            "text": "Hello",
             "type": "text",
-            "value": "Hello",
           },
           {
+            "text": " ",
             "type": "text",
-            "value": " ",
           },
           {
+            "text": "World",
             "type": "text",
-            "value": "World",
           },
           {
             "type": "finish-step",
@@ -80,8 +80,8 @@ describe('transformTextToUiMessageStream', () => {
             "type": "start-step",
           },
           {
+            "text": "Complete message",
             "type": "text",
-            "value": "Complete message",
           },
           {
             "type": "finish-step",

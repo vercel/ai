@@ -27,7 +27,7 @@ export function toUIMessageStream(
     .pipeThrough(
       new TransformStream<string, UIMessageStreamPart>({
         transform: async (chunk, controller) => {
-          controller.enqueue({ type: 'text', value: chunk });
+          controller.enqueue({ type: 'text', text: chunk });
         },
       }),
     );

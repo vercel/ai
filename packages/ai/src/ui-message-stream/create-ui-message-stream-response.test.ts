@@ -13,7 +13,7 @@ describe('createUIMessageStreamResponse', () => {
         'Custom-Header': 'test',
       },
       stream: convertArrayToReadableStream([
-        { type: 'text', value: 'test-data' },
+        { type: 'text', text: 'test-data' },
       ]),
     });
 
@@ -41,7 +41,7 @@ describe('createUIMessageStreamResponse', () => {
       ),
     ).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","value":"test-data"}
+        "data: {"type":"text","text":"test-data"}
 
       ",
         "data: [DONE]
@@ -55,7 +55,7 @@ describe('createUIMessageStreamResponse', () => {
     const response = createUIMessageStreamResponse({
       status: 200,
       stream: convertArrayToReadableStream([
-        { type: 'error', value: 'Custom error message' },
+        { type: 'error', errorText: 'Custom error message' },
       ]),
     });
 
@@ -65,7 +65,7 @@ describe('createUIMessageStreamResponse', () => {
       ),
     ).toMatchInlineSnapshot(`
       [
-        "data: {"type":"error","value":"Custom error message"}
+        "data: {"type":"error","errorText":"Custom error message"}
 
       ",
         "data: [DONE]

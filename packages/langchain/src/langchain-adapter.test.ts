@@ -15,12 +15,12 @@ describe('toUIMessageStream', () => {
       .toMatchInlineSnapshot(`
         [
           {
+            "text": "Hello",
             "type": "text",
-            "value": "Hello",
           },
           {
+            "text": "World",
             "type": "text",
-            "value": "World",
           },
         ]
       `);
@@ -33,12 +33,12 @@ describe('toUIMessageStream', () => {
       .toMatchInlineSnapshot(`
         [
           {
+            "text": "Hello",
             "type": "text",
-            "value": "Hello",
           },
           {
+            "text": "World",
             "type": "text",
-            "value": "World",
           },
         ]
       `);
@@ -54,12 +54,12 @@ describe('toUIMessageStream', () => {
       .toMatchInlineSnapshot(`
         [
           {
+            "text": "Hello",
             "type": "text",
-            "value": "Hello",
           },
           {
+            "text": "World",
             "type": "text",
-            "value": "World",
           },
         ]
       `);
