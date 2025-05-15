@@ -20,10 +20,10 @@ describe('Completion', () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', value: 'Hello' }),
-        formatStreamPart({ type: 'text', value: ',' }),
-        formatStreamPart({ type: 'text', value: ' world' }),
-        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', text: 'Hello' }),
+        formatStreamPart({ type: 'text', text: ',' }),
+        formatStreamPart({ type: 'text', text: ' world' }),
+        formatStreamPart({ type: 'text', text: '.' }),
       ],
     };
 
@@ -47,10 +47,10 @@ describe('Completion', () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', value: 'Hello' }),
-        formatStreamPart({ type: 'text', value: ',' }),
-        formatStreamPart({ type: 'text', value: ' world' }),
-        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', text: 'Hello' }),
+        formatStreamPart({ type: 'text', text: ',' }),
+        formatStreamPart({ type: 'text', text: ' world' }),
+        formatStreamPart({ type: 'text', text: '.' }),
       ],
     };
 
@@ -99,10 +99,10 @@ describe('Completion', () => {
       {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text', value: 'Hello' }),
-          formatStreamPart({ type: 'text', value: ',' }),
-          formatStreamPart({ type: 'text', value: ' world' }),
-          formatStreamPart({ type: 'text', value: '.' }),
+          formatStreamPart({ type: 'text', text: 'Hello' }),
+          formatStreamPart({ type: 'text', text: ',' }),
+          formatStreamPart({ type: 'text', text: ' world' }),
+          formatStreamPart({ type: 'text', text: '.' }),
         ],
       },
     ];
@@ -122,10 +122,10 @@ describe('synchronization', () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', value: 'Hello' }),
-        formatStreamPart({ type: 'text', value: ',' }),
-        formatStreamPart({ type: 'text', value: ' world' }),
-        formatStreamPart({ type: 'text', value: '.' }),
+        formatStreamPart({ type: 'text', text: 'Hello' }),
+        formatStreamPart({ type: 'text', text: ',' }),
+        formatStreamPart({ type: 'text', text: ' world' }),
+        formatStreamPart({ type: 'text', text: '.' }),
       ],
     };
 
@@ -157,7 +157,7 @@ describe('synchronization', () => {
       expect(completion2.loading).toBe(true);
     });
 
-    controller.write(formatStreamPart({ type: 'text', value: 'Hello' }));
+    controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
     await vi.waitFor(() => {
       expect(completion1.completion).toBe('Hello');
       expect(completion2.completion).toBe('Hello');
