@@ -33,7 +33,7 @@ const customValidator = validator<{ name: string; age: number }>(async value =>
 
 describe('validateTypes', () => {
   describe.each([
-    // ['Custom schema', customSchema],
+    ['Custom schema', customSchema],
     ['Custom validator', customValidator],
   ])('using %s', (_, schema) => {
     it('should return validated object for valid input', async () => {
@@ -45,7 +45,11 @@ describe('validateTypes', () => {
       const input = { name: 'John', age: '30' };
 
       try {
-        await validateTypes({ value: input, schema });
+        await validateTypes({
+          value: input,
+          // @ts-ignore - age is expected to be a number. `type-check` complaints when using `@ts-expect-error`.
+          schema,
+        });
         expect.fail('Expected TypeValidationError to be thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(TypeValidationError);
@@ -82,7 +86,6 @@ describe('safeValidateTypes', () => {
     it('should return error object for invalid input', async () => {
       const input = { name: 'John', age: '30' };
       const result = await safeValidateTypes({
-        // @ts-expect-error - age is expected to be a number
         value: input,
         schema,
       });
