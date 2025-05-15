@@ -3,8 +3,8 @@ import {
   JSONValue,
   TypeValidationError,
 } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { secureJsonParse } from './secure-json-parse';
+import { ZodSchema } from 'zod';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import { Validator } from './validator';
 
@@ -21,22 +21,22 @@ export async function parseJSON(options: {
 /**
  * Parses a JSON string into a strongly-typed object using the provided schema.
  *
- * @template SCHEMA - The type of the object to parse the JSON into.
+ * @template T - The type of the object to parse the JSON into.
  * @param {string} text - The JSON string to parse.
- * @param {Validator<SCHEMA>} schema - The schema to use for parsing the JSON.
- * @returns {Promise<SCHEMA>} - The parsed object.
+ * @param {Validator<T>} schema - The schema to use for parsing the JSON.
+ * @returns {Promise<T>} - The parsed object.
  */
-export async function parseJSON<SCHEMA extends StandardSchemaV1>(options: {
+export async function parseJSON<T>(options: {
   text: string;
-  schema: SCHEMA | Validator<SCHEMA>;
-}): Promise<StandardSchemaV1.InferOutput<SCHEMA>>;
-export async function parseJSON<SCHEMA extends StandardSchemaV1>({
+  schema: ZodSchema<T> | Validator<T>;
+}): Promise<T>;
+export async function parseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: SCHEMA | Validator<SCHEMA>;
-}): Promise<StandardSchemaV1.InferOutput<SCHEMA>> {
+  schema?: ZodSchema<T> | Validator<T>;
+}): Promise<T> {
   try {
     const value = secureJsonParse(text);
 
@@ -83,17 +83,17 @@ export async function safeParseJSON(options: {
  * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export async function safeParseJSON<T extends StandardSchemaV1>(options: {
+export async function safeParseJSON<T>(options: {
   text: string;
-  schema: T | Validator<StandardSchemaV1.InferInput<T>>;
-}): Promise<ParseResult<StandardSchemaV1.InferInput<T>>>;
-export async function safeParseJSON<T extends StandardSchemaV1>({
+  schema: ZodSchema<T> | Validator<T>;
+}): Promise<ParseResult<T>>;
+export async function safeParseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: T | Validator<StandardSchemaV1.InferInput<T>>;
-}): Promise<ParseResult<StandardSchemaV1.InferInput<T>>> {
+  schema?: ZodSchema<T> | Validator<T>;
+}): Promise<ParseResult<T>> {
   try {
     const value = secureJsonParse(text);
 
