@@ -12,6 +12,7 @@ import {
   type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import { throttle } from './throttle';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
@@ -124,7 +125,7 @@ export function useChat<
   onFinish,
   onError,
   generateId = generateIdFunc,
-  experimental_throttle: throttleWaitMs,
+  experimental_throttle: throttleWaitMs = 0,
   chatStore: chatStoreArg,
 }: UseChatOptions<MESSAGE_METADATA, DATA_TYPES> & {
   /**
@@ -164,10 +165,7 @@ Default is undefined, which disables throttling.
     }) => {
       return chatStore.current.subscribe({
         onChatChanged: event => {
-          if (event.chatId !== chatId || event.type !== eventType) {
-            return;
-          }
-
+          if (event.chatId !== chatId || event.type !== eventType) return;
           onStoreChange();
         },
       });
@@ -209,13 +207,18 @@ Default is undefined, which disables throttling.
     () => chatStore.current.getStatus(chatId),
   );
 
-  const messages = useSyncExternalStore(
-    callback => {
+  const subscribeToChatStoreForMessages = useCallback(
+    (callback: () => void) => {
       return subscribe({
-        onStoreChange: callback,
+        onStoreChange: throttle(callback, throttleWaitMs),
         eventType: 'chat-messages-changed',
       });
     },
+    [subscribe, throttleWaitMs],
+  );
+
+  const messages = useSyncExternalStore(
+    subscribeToChatStoreForMessages,
     () => chatStore.current.getMessages(chatId),
     () => chatStore.current.getMessages(chatId),
   );
