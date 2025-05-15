@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { experimental_createMCPClient, generateText } from 'ai';
+import { experimental_createMCPClient, generateText, maxSteps } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -31,7 +31,7 @@ async function main() {
           },
         },
       }),
-      maxSteps: 10,
+      continueUntil: maxSteps(10),
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },

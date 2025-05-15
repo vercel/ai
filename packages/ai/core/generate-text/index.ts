@@ -8,6 +8,7 @@ export type {
 export * as Output from './output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
+export { hasToolCall, maxSteps, type StopCondition } from './stop-condition';
 export { streamText } from './stream-text';
 export type {
   StreamTextOnChunkCallback,
@@ -17,9 +18,9 @@ export type {
   StreamTextTransform,
 } from './stream-text';
 export type {
-  UIMessageStreamOptions,
   StreamTextResult,
   TextStreamPart,
+  UIMessageStreamOptions,
 } from './stream-text-result';
 export type { ToolCall, ToolCallUnion } from './tool-call';
 export type { ToolCallRepairFunction } from './tool-call-repair';

@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, Output, tool } from 'ai';
+import { generateText, maxSteps, Output, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -25,7 +25,7 @@ async function main() {
         temperature: z.number(),
       }),
     }),
-    maxSteps: 2,
+    continueUntil: maxSteps(2),
     prompt: 'What is the weather in San Francisco?',
   });
 

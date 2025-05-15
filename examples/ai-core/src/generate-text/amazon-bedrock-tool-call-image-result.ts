@@ -1,7 +1,7 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText, tool } from 'ai';
-import { z } from 'zod';
+import { generateText, maxSteps, tool } from 'ai';
 import 'dotenv/config';
+import { z } from 'zod';
 
 async function main() {
   const result = await generateText({
@@ -40,7 +40,7 @@ async function main() {
         },
       }),
     },
-    maxSteps: 5,
+    continueUntil: maxSteps(5),
   });
 
   console.log(result.text);

@@ -11,6 +11,7 @@ import {
   experimental_generateImage as generateImage,
   generateObject,
   generateText,
+  maxSteps,
   streamObject,
   streamText,
 } from 'ai';
@@ -707,7 +708,7 @@ export function createFeatureTestSuite({
                       },
                     },
                   },
-                  maxSteps: 10,
+                  continueUntil: maxSteps(10),
                 });
 
                 expect(weatherCalls).toBe(1);
