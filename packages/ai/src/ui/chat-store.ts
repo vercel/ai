@@ -27,7 +27,7 @@ export interface ChatStoreSubscriber {
 }
 
 export interface ChatStoreEvent {
-  type: 'chat-messages-changed' | 'chat-status-changed' | 'chat-added';
+  type: 'chat-messages-changed' | 'chat-status-changed';
   chatId: number | string;
   error?: Error;
 }
@@ -126,7 +126,6 @@ export class ChatStore<MESSAGE_METADATA = unknown> {
       status: 'ready',
       jobExecutor: new SerialJobExecutor(),
     });
-    this.emit({ type: 'chat-added', chatId: id });
   }
 
   getChats() {
