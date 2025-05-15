@@ -2,33 +2,10 @@
 
 exports[`streamText > multiple stream consumption > should support text stream, ai stream, full stream on single result object 1`] = `
 {
-  "dataStream": [
-    {
-      "metadata": undefined,
-      "type": "start-step",
-    },
-    {
-      "text": "Hello",
-      "type": "text",
-    },
-    {
-      "text": ", ",
-      "type": "text",
-    },
-    {
-      "text": "world!",
-      "type": "text",
-    },
-    {
-      "metadata": undefined,
-      "type": "finish-step",
-    },
-    {
-      "metadata": undefined,
-      "type": "finish",
-    },
-  ],
   "fullStream": [
+    {
+      "type": "start",
+    },
     {
       "request": {},
       "type": "start-step",
@@ -80,6 +57,37 @@ exports[`streamText > multiple stream consumption > should support text stream, 
     "Hello",
     ", ",
     "world!",
+  ],
+  "uiMessageStream": [
+    {
+      "messageId": undefined,
+      "metadata": undefined,
+      "type": "start",
+    },
+    {
+      "metadata": undefined,
+      "type": "start-step",
+    },
+    {
+      "text": "Hello",
+      "type": "text",
+    },
+    {
+      "text": ", ",
+      "type": "text",
+    },
+    {
+      "text": "world!",
+      "type": "text",
+    },
+    {
+      "metadata": undefined,
+      "type": "finish-step",
+    },
+    {
+      "metadata": undefined,
+      "type": "finish",
+    },
   ],
 }
 `;
@@ -463,6 +471,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2095,6 +2106,9 @@ exports[`streamText > result.files > should contain files 1`] = `
 exports[`streamText > result.fullStream > should filter out empty text deltas 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2146,6 +2160,9 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
 exports[`streamText > result.fullStream > should not send tool call deltas when toolCallStreaming is disabled 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2192,6 +2209,9 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
 
 exports[`streamText > result.fullStream > should send delayed asynchronous tool results 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2248,6 +2268,9 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
 
 exports[`streamText > result.fullStream > should send files 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2309,6 +2332,9 @@ exports[`streamText > result.fullStream > should send files 1`] = `
 
 exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2409,6 +2435,9 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
 exports[`streamText > result.fullStream > should send sources 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2476,6 +2505,9 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
 exports[`streamText > result.fullStream > should send text deltas 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2526,6 +2558,9 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
 
 exports[`streamText > result.fullStream > should send tool call deltas when toolCallStreaming is enabled 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2621,6 +2656,9 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
 exports[`streamText > result.fullStream > should send tool calls 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2667,6 +2705,9 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
 
 exports[`streamText > result.fullStream > should send tool results 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",
@@ -2724,6 +2765,9 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
 exports[`streamText > result.fullStream > should use fallback response metadata when response metadata is not provided 1`] = `
 [
   {
+    "type": "start",
+  },
+  {
     "request": {},
     "type": "start-step",
     "warnings": [],
@@ -2774,6 +2818,9 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error messages by default 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
@@ -2794,6 +2841,9 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
@@ -2811,6 +2861,9 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should support custom error messages 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
@@ -3246,6 +3299,11 @@ exports[`streamText > result.toUIMessageStream > should create a data stream 1`]
 exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
     "metadata": undefined,
     "type": "start-step",
   },
@@ -3310,6 +3368,11 @@ exports[`streamText > result.toUIMessageStream > should omit message start event
 exports[`streamText > result.toUIMessageStream > should send file content 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
     "metadata": undefined,
     "type": "start-step",
   },
@@ -3340,6 +3403,11 @@ exports[`streamText > result.toUIMessageStream > should send file content 1`] = 
 
 exports[`streamText > result.toUIMessageStream > should send reasoning content when sendReasoning is true 1`] = `
 [
+  {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
   {
     "metadata": undefined,
     "type": "start-step",
@@ -3422,6 +3490,11 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
 exports[`streamText > result.toUIMessageStream > should send source content when sendSources is true 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
     "metadata": undefined,
     "type": "start-step",
   },
@@ -3467,6 +3540,11 @@ exports[`streamText > result.toUIMessageStream > should send source content when
 exports[`streamText > result.toUIMessageStream > should send tool call and tool result stream parts 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
     "metadata": undefined,
     "type": "start-step",
   },
@@ -3496,6 +3574,11 @@ exports[`streamText > result.toUIMessageStream > should send tool call and tool 
 
 exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
 [
+  {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
   {
     "metadata": undefined,
     "type": "start-step",
@@ -3542,6 +3625,11 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
 exports[`streamText > result.toUIMessageStream > should support custom error messages 1`] = `
 [
   {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
     "metadata": undefined,
     "type": "start-step",
   },
@@ -3562,6 +3650,9 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
 
 exports[`streamText > result.toUIMessageStreamResponse > should mask error messages by default 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
@@ -3582,6 +3673,9 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
 
 exports[`streamText > result.toUIMessageStreamResponse > should support custom error messages 1`] = `
 [
+  "data: {"type":"start"}
+
+",
   "data: {"type":"start-step"}
 
 ",
@@ -3862,6 +3956,9 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
 
 exports[`streamText > tools with custom schema > should send tool calls 1`] = `
 [
+  {
+    "type": "start",
+  },
   {
     "request": {},
     "type": "start-step",

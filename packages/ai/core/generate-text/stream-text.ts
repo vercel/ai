@@ -738,6 +738,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     let stream = stitchableStream.stream;
 
+    // add a stream that emits a start event:
+    stream = stream.pipeThrough(
+      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+        start(controller) {
+          controller.enqueue({ type: 'start' });
+        },
+      }),
+    );
+
     // transform the stream before output parsing
     // to enable replacement of stream segments:
     for (const transform of transforms) {
@@ -947,7 +956,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 async transform(chunk, controller): Promise<void> {
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
-                    controller.enqueue({ type: 'start' });
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }
 
