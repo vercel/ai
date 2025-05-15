@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProviderMetadata } from '../../core';
 
-export const uiMessageStreamPartSchema = z.discriminatedUnion('type', [
+export const uiMessageStreamPartSchema = z.union([
   z.object({
     type: z.literal('text'),
     value: z.string(),

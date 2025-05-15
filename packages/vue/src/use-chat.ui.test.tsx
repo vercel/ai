@@ -583,9 +583,15 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     controller.write(
@@ -600,9 +606,16 @@ describe('tool invocations', () => {
     controller.close();
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'result',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        result: 'test-result',
+      });
     });
 
     // wait for final text to ensure test does not have side-effects
@@ -632,9 +645,15 @@ describe('tool invocations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
-      );
+      expect(
+        JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+      ).toStrictEqual({
+        state: 'call',
+        step: 0,
+        args: { testArg: 'test-value' },
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      });
     });
 
     controller.write(
