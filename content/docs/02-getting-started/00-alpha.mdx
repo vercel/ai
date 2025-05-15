@@ -60,17 +60,15 @@ We needed a protocol designed for this new reality. While this is a breaking cha
 
 While we've designed AI SDK 5 to be a substantial improvement over previous versions, we're still in active development. You might encounter bugs or unexpected behavior. We'd greatly appreciate your feedback and bug reports—they're essential to making this release better. Please share your experiences and suggestions with us through [GitHub issues](https://github.com/vercel/ai/issues/new/choose) or [GitHub discussions](https://github.com/vercel/ai/discussions).
 
-### Feature Overview
-
-- **LanguageModelV2** - new redesigned architecture
-- **Message Overhaul** - new `UIMessage` and `ModelMessage` types
-- **ChatStore** - new `useChat` architecture
-- **Server-Sent Events (SSE)** - new standardised protocol for sending UI messages to the client
-- **Agentic Control** - new primitives for building agentic systems
-
 ## New Features
 
-### LanguageModelV2
+- [**LanguageModelV2**](#languagemodelv2) - new redesigned architecture
+- [**Message Overhaul**](#message-overhaul) - new `UIMessage` and `ModelMessage` types
+- [**ChatStore**](#chatstore) - new `useChat` architecture
+- [**Server-Sent Events (SSE)**](#server-sent-events-sse) - new standardised protocol for sending UI messages to the client
+- [**Agentic Control**](#agentic-control) - new primitives for building agentic systems
+
+## LanguageModelV2
 
 LanguageModelV2 represents a complete redesign of how the AI SDK communicates with language models, adapting to the increasingly complex outputs modern AI systems generate. The new LanguageModelV2 treats all LLM outputs as content parts, enabling more consistent handling of text, images, reasoning, sources, and other response types. It now has:
 
@@ -78,7 +76,7 @@ LanguageModelV2 represents a complete redesign of how the AI SDK communicates wi
 - **Improved Type Safety** - The new LanguageModelV2 provides better TypeScript type guarantees, making it easier to work with different content types
 - **Simplified Extensibility** - Adding support for new model capabilities no longer requires changes to the core structure
 
-### Message Overhaul
+## Message Overhaul
 
 AI SDK 5 introduces a completely redesigned message system with two message types that address the dual needs of what you render in your UI and what you send to the model. Context is crucial for effective language model generations, and these two message types serve distinct purposes:
 
@@ -117,7 +115,7 @@ The new message system has made possible several highly requested features:
 - **New Stream Writer** - stream any part type (reasoning, sources, etc.) retaining proper order
 - **Data Parts** - stream type-safe arbitrary data parts for dynamic UI components
 
-#### Message metadata
+### Message metadata
 
 Metadata allows you to attach structured information to individual messages, making it easier to track important details like response time, token usage, or model specifications. This information can enhance your UI with contextual data without embedding it in the message content itself.
 
@@ -212,7 +210,7 @@ export default function Chat() {
 }
 ```
 
-#### UI Message Stream
+### UI Message Stream
 
 The UI Message Stream enables streaming any content parts from the server to the client. With this stream, you can send structured data like custom sources from your RAG pipeline directly to your UI. The stream writer is simply a utility that makes it easy to write to this message stream.
 
@@ -236,7 +234,7 @@ const stream = createUIMessageStream({
 
 On the client, these will be added to the ordered `message.parts` array.
 
-#### Data Parts
+### Data Parts
 
 The new stream writer also enables a type-safe way to stream arbitrary data from the server to the client and display it in your UI.
 
@@ -282,7 +280,7 @@ On the client, you can render these parts with full type safety:
 
 Data parts appear in the `message.parts` array along with other content, maintaining the proper ordering of the conversation. You can update parts by referencing the same ID, enabling dynamic experiences like collaborative artifacts.
 
-### ChatStore
+## ChatStore
 
 AI SDK 5 introduces a new `useChat` architecture with ChatStore and ChatTransport components. These two core building blocks make state management and API integration more flexible, allowing you to compose reactive UI bindings, share chat state across multiple instances, and swap out your backend protocol without rewriting application logic.
 
@@ -309,7 +307,7 @@ import { useChat } from '@ai-sdk/react';
 const { messages, input, handleSubmit } = useChat({ chatStore });
 ```
 
-### Server-Sent Events (SSE)
+## Server-Sent Events (SSE)
 
 AI SDK 5 replaces our proprietary streaming protocol with Server-Sent Events (SSE), a standardized web technology for streaming data from servers to clients. This change brings several benefits:
 
@@ -320,11 +318,11 @@ AI SDK 5 replaces our proprietary streaming protocol with Server-Sent Events (SS
 
 [PLACEHOLDER IMAGE OF SSE IN BROWSER]
 
-### Agentic Control
+## Agentic Control
 
 AI SDK 5 introduces new features for building agents that help you control model behavior more precisely.
 
-#### prepareStep
+### prepareStep
 
 The `prepareStep` function gives you fine-grained control over each step in a multi-step agent. It's called before a step starts and allows you to:
 
@@ -332,8 +330,6 @@ The `prepareStep` function gives you fine-grained control over each step in a mu
 - Force specific tool selections for particular steps
 - Limit which tools are available during specific steps
 - Examine the context of previous steps before proceeding
-
-For example:
 
 ```ts
 const result = await generateText({
@@ -356,15 +352,13 @@ const result = await generateText({
 
 This makes it easier to build AI systems that adapt their capabilities based on the current context and task requirements.
 
-#### continueUntil
+### continueUntil
 
 The `continueUntil` parameter lets you define stopping conditions for your agent. Instead of running indefinitely, you can specify exactly when the agent should terminate based on various conditions:
 
 - Reaching a maximum number of steps
 - Calling a specific tool
 - Satisfying any custom condition you define
-
-For example:
 
 ```ts
 const result = generateText({
