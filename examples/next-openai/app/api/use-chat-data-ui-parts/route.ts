@@ -17,7 +17,7 @@ export async function POST(req: Request) {
         model: openai('gpt-4o'),
         maxSteps: 2,
         tools: {
-          'weather-tool': {
+          weather: {
             description: 'Get the weather in a city',
             parameters: z.object({
               city: z.string(),
