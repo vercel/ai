@@ -256,6 +256,129 @@ describe('generateImage', () => {
         base64Images,
       );
     });
+    
+    it('should work for a sync maxImagesPerCall() method', async () => {
+      const base64Images = [pngBase64, jpegBase64, gifBase64];
+
+      let callCount = 0;
+      const maxImagesPerCallMock = vitest.fn(() => 2);
+
+      const result = await generateImage({
+        model: new MockImageModelV2({
+          maxImagesPerCall: maxImagesPerCallMock,
+          doGenerate: async options => {
+            switch (callCount++) {
+              case 0:
+                expect(options).toStrictEqual({
+                  prompt,
+                  n: 2,
+                  seed: 12345,
+                  size: '1024x1024',
+                  aspectRatio: '16:9',
+                  providerOptions: {
+                    'mock-provider': { style: 'vivid' },
+                  },
+                  headers: { 'custom-request-header': 'request-header-value' },
+                  abortSignal: undefined,
+                });
+                return createMockResponse({
+                  images: base64Images.slice(0, 2),
+                });
+              case 1:
+                expect(options).toStrictEqual({
+                  prompt,
+                  n: 1,
+                  seed: 12345,
+                  size: '1024x1024',
+                  aspectRatio: '16:9',
+                  providerOptions: { 'mock-provider': { style: 'vivid' } },
+                  headers: { 'custom-request-header': 'request-header-value' },
+                  abortSignal: undefined,
+                });
+                return createMockResponse({
+                  images: base64Images.slice(2),
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 3,
+        size: '1024x1024',
+        aspectRatio: '16:9',
+        seed: 12345,
+        providerOptions: { 'mock-provider': { style: 'vivid' } },
+        headers: { 'custom-request-header': 'request-header-value' },
+      });
+
+      expect(result.images.map(image => image.base64)).toStrictEqual(
+        base64Images,
+      );
+      expect(maxImagesPerCallMock).toHaveBeenCalledTimes(1);
+      expect(maxImagesPerCallMock).toHaveBeenCalledWith({
+        modelId: 'mock-model-id',
+      });
+    });
+    
+    it('should work for an async maxImagesPerCall() method', async () => {
+      const base64Images = [pngBase64, jpegBase64, gifBase64];
+
+      let callCount = 0;
+
+      const result = await generateImage({
+        model: new MockImageModelV2({
+          maxImagesPerCall: async () => 2,
+          doGenerate: async options => {
+            switch (callCount++) {
+              case 0:
+                expect(options).toStrictEqual({
+                  prompt,
+                  n: 2,
+                  seed: 12345,
+                  size: '1024x1024',
+                  aspectRatio: '16:9',
+                  providerOptions: {
+                    'mock-provider': { style: 'vivid' },
+                  },
+                  headers: { 'custom-request-header': 'request-header-value' },
+                  abortSignal: undefined,
+                });
+                return createMockResponse({
+                  images: base64Images.slice(0, 2),
+                });
+              case 1:
+                expect(options).toStrictEqual({
+                  prompt,
+                  n: 1,
+                  seed: 12345,
+                  size: '1024x1024',
+                  aspectRatio: '16:9',
+                  providerOptions: { 'mock-provider': { style: 'vivid' } },
+                  headers: { 'custom-request-header': 'request-header-value' },
+                  abortSignal: undefined,
+                });
+                return createMockResponse({
+                  images: base64Images.slice(2),
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 3,
+        size: '1024x1024',
+        aspectRatio: '16:9',
+        seed: 12345,
+        providerOptions: { 'mock-provider': { style: 'vivid' } },
+        headers: { 'custom-request-header': 'request-header-value' },
+      });
+
+      expect(result.images.map(image => image.base64)).toStrictEqual(
+        base64Images,
+      );
+    });
 
     it('should aggregate warnings', async () => {
       const base64Images = [pngBase64, jpegBase64, gifBase64];
