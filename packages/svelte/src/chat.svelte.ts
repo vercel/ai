@@ -43,6 +43,8 @@ export class Chat<MESSAGE_METADATA = unknown> {
   readonly id = $derived(this.#options.id ?? this.#generateId());
   readonly #store = $derived(this.#keyedStore.get(this.id));
 
+  cleanup: () => void | undefined;
+
   // readonly #messageMetadataSchema = $derived(
   //   this.#options.messageMetadataSchema,
   // );
@@ -118,7 +120,7 @@ export class Chat<MESSAGE_METADATA = unknown> {
     // }
 
     // todo: cleanup, alternative: force use of chatstorecontext?
-    const cleanup = $effect.root(() => {
+    this.cleanup = $effect.root(() => {
       $effect.pre(() => {
         const currentChatId = this.id;
         if (!this.#chatStore.hasChat(currentChatId)) {
@@ -214,4 +216,9 @@ export class Chat<MESSAGE_METADATA = unknown> {
       result,
     });
   };
+
+  // maybe?
+  destroy() {
+    this.cleanup?.();
+  }
 }
