@@ -28,7 +28,13 @@ const customValidator = validator<{ name: string; age: number }>(async value =>
   'age' in value &&
   typeof value.age === 'number'
     ? { success: true, value: value as { name: string; age: number } }
-    : { success: false, error: new TypeValidationError({ value, cause: [new Error('Invalid input')]}) },
+    : {
+        success: false,
+        error: new TypeValidationError({
+          value,
+          cause: [new Error('Invalid input')],
+        }),
+      },
 );
 
 describe('validateTypes', () => {
