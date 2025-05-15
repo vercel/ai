@@ -1,5 +1,23 @@
 # ai
 
+## 5.0.0-canary.24
+
+### Major Changes
+
+- f7e8bf4: chore (ai): flatten ui message stream parts
+- ed675de: feat (ai): add ui data parts
+- 64f6d64: feat (ai): replace maxSteps with continueUntil (generateText)
+
+### Patch Changes
+
+- bedb239: chore (ai): make ui stream parts value optional when it's not required
+- 507ac1d: fix (ui/react): update messages immediately with the submitted user message
+- 2b9bbcd: feat (ai): improve prompt validation error message
+- cda32ba: fix (ai): send `start` part in correct position in stream (streamText)
+- 50f0362: fix (ai): fix experimental sendStart/sendFinish options in streamText
+- Updated dependencies [faf8446]
+  - @ai-sdk/provider-utils@3.0.0-canary.19
+
 ## 5.0.0-canary.23
 
 ### Major Changes
