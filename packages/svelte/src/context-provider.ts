@@ -1,4 +1,9 @@
-import { ChatStore, defaultChatStore, type DefaultChatStoreOptions } from 'ai';
+import {
+  ChatStore,
+  defaultChatStore,
+  type DefaultChatStoreOptions,
+  type UIDataTypes,
+} from 'ai';
 import { KeyedChatStore, setChatContext } from './chat-context.svelte.js';
 import { setChatStoreContext } from './chat-store-context.svelte.js';
 import {
@@ -21,11 +26,14 @@ export function createAIContext() {
   setStructuredObjectContext(objectStore);
 }
 
-export function createChatStoreContext<MESSAGE_METADATA = unknown>(
-  options: DefaultChatStoreOptions<MESSAGE_METADATA> = {
+export function createChatStoreContext<
+  MESSAGE_METADATA,
+  DATA_TYPES extends UIDataTypes,
+>(
+  options: DefaultChatStoreOptions<MESSAGE_METADATA, DATA_TYPES> = {
     api: '/api/chat',
   },
 ) {
-  const chatStore = defaultChatStore<MESSAGE_METADATA>(options);
-  setChatStoreContext(chatStore as ChatStore<unknown>);
+  const chatStore = defaultChatStore<MESSAGE_METADATA, DATA_TYPES>(options);
+  setChatStoreContext(chatStore as ChatStore);
 }
