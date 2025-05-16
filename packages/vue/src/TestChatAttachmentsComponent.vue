@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { generateId } from 'ai';
-import { mockId, mockValues } from 'ai/test';
+import { mockId } from 'ai/test';
 import { computed, ref } from 'vue';
 import { useChat } from './use-chat';
 
 const { messages, handleSubmit, status, input } = useChat({
-  id: generateId(),
+  chatId: generateId(),
   generateId: mockId(),
 });
 const files = ref<FileList>();
@@ -20,10 +20,7 @@ const isLoading = computed(() => status.value !== 'ready');
     <form
       @submit="
         event => {
-          handleSubmit(event, {
-            allowEmptySubmit: true,
-            files,
-          });
+          handleSubmit(event, { files });
           files = undefined;
           if (fileInputRef) {
             fileInputRef.value = '';

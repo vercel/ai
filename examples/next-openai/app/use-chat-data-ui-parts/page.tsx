@@ -2,6 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { defaultChatStore } from 'ai';
+import { z } from 'zod';
 
 export default function Chat() {
   const {
@@ -13,18 +14,16 @@ export default function Chat() {
     messages,
     reload,
     stop,
-  } = useChat<
-    unknown,
-    {
-      weather: {
-        city: string;
-        weather: string;
-        status: 'loading' | 'success';
-      };
-    }
-  >({
+  } = useChat({
     chatStore: defaultChatStore({
       api: '/api/use-chat-data-ui-parts',
+      dataPartSchemas: {
+        weather: z.object({
+          city: z.string(),
+          weather: z.string(),
+          status: z.enum(['loading', 'success']),
+        }),
+      },
     }),
   });
 
@@ -46,14 +45,14 @@ export default function Chat() {
                   minWidth: '180px',
                 }}
               >
-                {part.value.status === 'loading' ? (
+                {part.data.status === 'loading' ? (
                   <>
-                    Getting weather for <b>{part.value.city}</b>...
+                    Getting weather for <b>{part.data.city}</b>...
                   </>
-                ) : part.value.status === 'success' ? (
+                ) : part.data.status === 'success' ? (
                   <>
-                    Weather in <b>{part.value.city}</b>:{' '}
-                    <b>{part.value.weather}</b>
+                    Weather in <b>{part.data.city}</b>:{' '}
+                    <b>{part.data.weather}</b>
                   </>
                 ) : (
                   <>Unknown weather state</>

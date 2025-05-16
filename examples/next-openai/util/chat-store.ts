@@ -14,13 +14,13 @@ export async function createChat(): Promise<string> {
 }
 
 export async function saveChat({
-  id,
+  chatId,
   messages,
 }: {
-  id: string;
+  chatId: string;
   messages: UIMessage[];
 }): Promise<void> {
-  await writeFile(getChatFile(id), JSON.stringify(messages, null, 2));
+  await writeFile(getChatFile(chatId), JSON.stringify(messages, null, 2));
 }
 
 export async function appendMessageToChat({

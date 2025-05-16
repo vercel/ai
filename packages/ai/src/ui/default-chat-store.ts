@@ -2,15 +2,20 @@ import {
   FetchFunction,
   generateId as generateIdFunc,
   IdGenerator,
-  Schema,
+  StandardSchemaV1,
+  Validator,
 } from '@ai-sdk/provider-utils';
-import { ChatStore } from './chat-store';
+import {
+  ChatStore,
+  InferUIDataParts,
+  type UIDataPartSchemas,
+} from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
-import { UIDataTypes, UIMessage } from './ui-messages';
+import { UIMessage } from './ui-messages';
 
 export function defaultChatStore<
-  MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  MESSAGE_METADATA,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
 >({
   api,
   fetch,
@@ -20,6 +25,7 @@ export function defaultChatStore<
   body,
   prepareRequestBody,
   generateId = generateIdFunc,
+  dataPartSchemas,
   messageMetadataSchema,
   maxSteps = 1,
   chats,
@@ -28,7 +34,14 @@ export function defaultChatStore<
    * Schema for the message metadata. Validates the message metadata.
    * Message metadata can be undefined or must match the schema.
    */
-  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
+
+  /**
+   * Schema for the data types. Validates the data types.
+   */
+  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
 
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
@@ -94,24 +107,33 @@ export function defaultChatStore<
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
    *
-   * @param id The id of the chat.
+   * @param chatId The id of the chat.
    * @param messages The current messages in the chat.
    * @param requestBody The request body object passed in the chat request.
    */
   prepareRequestBody?: (options: {
-    id: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+    chatId: string;
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >[];
     requestBody?: object;
   }) => unknown;
 
   chats?: {
     [id: string]: {
-      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+      messages: UIMessage<
+        MESSAGE_METADATA,
+        InferUIDataParts<UI_DATA_PART_SCHEMAS>
+      >[];
     };
   };
-}): ChatStore<MESSAGE_METADATA, DATA_TYPES> {
-  return new ChatStore<MESSAGE_METADATA, DATA_TYPES>({
-    transport: new DefaultChatTransport<MESSAGE_METADATA, DATA_TYPES>({
+}): ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+  return new ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+    transport: new DefaultChatTransport<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >({
       api,
       fetch,
       streamProtocol,
@@ -122,6 +144,7 @@ export function defaultChatStore<
     }),
     generateId,
     messageMetadataSchema,
+    dataPartSchemas,
     maxSteps,
     chats,
   });

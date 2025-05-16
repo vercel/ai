@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { mockId, mockValues } from 'ai/test';
-import { useChat } from './use-chat';
 import { generateId } from 'ai';
+import { mockId } from 'ai/test';
+import { useChat } from './use-chat';
 
 const { messages, append } = useChat({
-  id: generateId(),
+  chatId: generateId(),
   generateId: mockId(),
 });
 </script>

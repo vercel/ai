@@ -239,8 +239,8 @@ const {
 } = useChat({
   // ...
   // only send the last message to the server:
-  experimental_prepareRequestBody({ messages, id }) {
-    return { message: messages[messages.length - 1], id };
+  experimental_prepareRequestBody({ messages, chatId }) {
+    return { message: messages[messages.length - 1], chatId };
   },
 });
 ```
@@ -252,10 +252,10 @@ import { appendClientMessage } from 'ai';
 
 export async function POST(req: Request) {
   // get the last message from the client:
-  const { message, id } = await req.json();
+  const { message, chatId } = await req.json();
 
   // load the previous messages from the server:
-  const previousMessages = await loadChat(id);
+  const previousMessages = await loadChat(chatId);
 
   // append the new message to the previous messages:
   const messages = appendClientMessage({

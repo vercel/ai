@@ -3,7 +3,7 @@ import { saveChat } from '@util/chat-store';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages, id }: { messages: UIMessage[]; id: string } =
+  const { messages, chatId }: { messages: UIMessage[]; chatId: string } =
     await req.json();
 
   const result = streamText({
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     onFinish: ({ messages }) => {
-      saveChat({ id, messages });
+      saveChat({ chatId, messages });
     },
   });
 }

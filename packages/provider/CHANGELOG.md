@@ -1,5 +1,13 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.1
+
+### Patch Changes
+
+- 3f2f00c: feat: `ImageModelV2#maxImagesPerCall` can be set to a function that returns a `number` or `undefined`, optionally as a promise
+
+  pull request: https://github.com/vercel/ai/pull/6343
+
 ## 2.0.0-canary.14
 
 ### Major Changes
