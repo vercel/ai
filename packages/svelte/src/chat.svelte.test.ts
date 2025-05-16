@@ -229,10 +229,10 @@ describe('data protocol stream', () => {
         ],
       };
 
-      let id = $state(crypto.randomUUID());
+      let chatId = $state(crypto.randomUUID());
       const chatWithId = new Chat({
-        get id() {
-          return id;
+        get chatId() {
+          return chatId;
         },
       });
       await chatWithId.append({
@@ -247,7 +247,7 @@ describe('data protocol stream', () => {
         }),
       );
 
-      id = crypto.randomUUID();
+      chatId = crypto.randomUUID();
 
       expect(chatWithId.messages).toHaveLength(0);
     });
@@ -263,11 +263,11 @@ describe('data protocol stream', () => {
         ],
       };
 
-      let id = $state(crypto.randomUUID());
-      const originalId = id;
+      let chatId = $state(crypto.randomUUID());
+      const originalId = chatId;
       const chatWithId = new Chat({
-        get id() {
-          return id;
+        get chatId() {
+          return chatId;
         },
       });
       await chatWithId.append({
@@ -282,9 +282,9 @@ describe('data protocol stream', () => {
         }),
       );
 
-      id = crypto.randomUUID();
+      chatId = crypto.randomUUID();
       expect(chatWithId.messages).toHaveLength(0);
-      id = originalId;
+      chatId = originalId;
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
           role: 'assistant',
@@ -876,7 +876,7 @@ describe('maxSteps', () => {
           } ${JSON.stringify(toolCall.args)}`;
         },
         maxSteps: 5,
-        id: 'test-id',
+        chatId: 'test-id',
         generateId: mockId(),
       });
       onToolCallInvoked = false;
@@ -1525,7 +1525,7 @@ describe('synchronization', () => {
 
     const {
       component: { chat1, chat2 },
-    } = render(ChatSynchronization, { id: crypto.randomUUID() });
+    } = render(ChatSynchronization, { chatId: crypto.randomUUID() });
 
     await chat1.append({
       role: 'user',
@@ -1557,7 +1557,7 @@ describe('synchronization', () => {
 
     const {
       component: { chat1, chat2 },
-    } = render(ChatSynchronization, { id: crypto.randomUUID() });
+    } = render(ChatSynchronization, { chatId: crypto.randomUUID() });
 
     const appendOperation = chat1.append({
       role: 'user',

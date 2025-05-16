@@ -94,12 +94,12 @@ export function defaultChatStore<
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
    *
-   * @param id The id of the chat.
+   * @param chatId The id of the chat.
    * @param messages The current messages in the chat.
    * @param requestBody The request body object passed in the chat request.
    */
   prepareRequestBody?: (options: {
-    id: string;
+    chatId: string;
     messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     requestBody?: object;
   }) => unknown;

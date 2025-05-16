@@ -22,7 +22,7 @@ export type UseChatHelpers<
   /**
    * The id of the chat.
    */
-  readonly id: string;
+  readonly chatId: string;
 
   /**
    * Hook status:
@@ -118,7 +118,7 @@ export function useChat<
   MESSAGE_METADATA = unknown,
   DATA_TYPES extends Record<string, unknown> = Record<string, unknown>,
 >({
-  id,
+  chatId,
   initialInput = '',
   onToolCall,
   onFinish,
@@ -137,7 +137,7 @@ Default is undefined, which disables throttling.
   const [hookId] = useState(generateId);
 
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
-  const chatId = id ?? hookId;
+  const stableChatId = chatId ?? hookId;
 
   // chat store setup
   // TODO enable as arg
@@ -150,8 +150,8 @@ Default is undefined, which disables throttling.
   );
 
   // ensure the chat is in the store
-  if (!chatStore.current.hasChat(chatId)) {
-    chatStore.current.addChat(chatId, []);
+  if (!chatStore.current.hasChat(stableChatId)) {
+    chatStore.current.addChat(stableChatId, []);
   }
 
   const subscribe = useCallback(
@@ -164,7 +164,7 @@ Default is undefined, which disables throttling.
     }) => {
       return chatStore.current.subscribe({
         onChatChanged: event => {
-          if (event.chatId !== chatId || event.type !== eventType) {
+          if (event.chatId !== stableChatId || event.type !== eventType) {
             return;
           }
 
@@ -172,7 +172,7 @@ Default is undefined, which disables throttling.
         },
       });
     },
-    [chatStore, chatId],
+    [chatStore, stableChatId],
   );
 
   const addToolResult = useCallback(
@@ -181,13 +181,13 @@ Default is undefined, which disables throttling.
         Parameters<ChatStore<MESSAGE_METADATA, DATA_TYPES>['addToolResult']>[0],
         'chatId'
       >,
-    ) => chatStore.current.addToolResult({ chatId, ...options }),
-    [chatStore, chatId],
+    ) => chatStore.current.addToolResult({ chatId: stableChatId, ...options }),
+    [chatStore, stableChatId],
   );
 
   const stopStream = useCallback(() => {
-    chatStore.current.stopStream({ chatId });
-  }, [chatStore, chatId]);
+    chatStore.current.stopStream({ chatId: stableChatId });
+  }, [chatStore, stableChatId]);
 
   const error = useSyncExternalStore(
     callback =>
@@ -195,8 +195,8 @@ Default is undefined, which disables throttling.
         onStoreChange: callback,
         eventType: 'chat-status-changed',
       }),
-    () => chatStore.current.getError(chatId),
-    () => chatStore.current.getError(chatId),
+    () => chatStore.current.getError(stableChatId),
+    () => chatStore.current.getError(stableChatId),
   );
 
   const status = useSyncExternalStore(
@@ -205,8 +205,8 @@ Default is undefined, which disables throttling.
         onStoreChange: callback,
         eventType: 'chat-status-changed',
       }),
-    () => chatStore.current.getStatus(chatId),
-    () => chatStore.current.getStatus(chatId),
+    () => chatStore.current.getStatus(stableChatId),
+    () => chatStore.current.getStatus(stableChatId),
   );
 
   const messages = useSyncExternalStore(
@@ -216,8 +216,8 @@ Default is undefined, which disables throttling.
         eventType: 'chat-messages-changed',
       });
     },
-    () => chatStore.current.getMessages(chatId),
-    () => chatStore.current.getMessages(chatId),
+    () => chatStore.current.getMessages(stableChatId),
+    () => chatStore.current.getMessages(stableChatId),
   );
 
   const append = useCallback(
@@ -226,7 +226,7 @@ Default is undefined, which disables throttling.
       { headers, body }: ChatRequestOptions = {},
     ) =>
       chatStore.current.submitMessage({
-        chatId,
+        chatId: stableChatId,
         message,
         headers,
         body,
@@ -234,32 +234,32 @@ Default is undefined, which disables throttling.
         onToolCall,
         onFinish,
       }),
-    [chatStore, chatId, onError, onToolCall, onFinish],
+    [chatStore, stableChatId, onError, onToolCall, onFinish],
   );
 
   const reload = useCallback(
     async ({ headers, body }: ChatRequestOptions = {}) =>
       chatStore.current.resubmitLastUserMessage({
-        chatId,
+        chatId: stableChatId,
         headers,
         body,
         onError,
         onToolCall,
         onFinish,
       }),
-    [chatStore, chatId, onError, onToolCall, onFinish],
+    [chatStore, stableChatId, onError, onToolCall, onFinish],
   );
   const stop = useCallback(() => stopStream(), [stopStream]);
 
   const experimental_resume = useCallback(
     async () =>
       chatStore.current.resumeStream({
-        chatId,
+        chatId: stableChatId,
         onError,
         onToolCall,
         onFinish,
       }),
-    [chatStore, chatId, onError, onToolCall, onFinish],
+    [chatStore, stableChatId, onError, onToolCall, onFinish],
   );
 
   const setMessages = useCallback(
@@ -275,11 +275,11 @@ Default is undefined, which disables throttling.
       }
 
       chatStore.current.setMessages({
-        id: chatId,
+        id: stableChatId,
         messages: messagesParam,
       });
     },
-    [chatId, messages],
+    [stableChatId, messages],
   );
 
   // Input state and handlers.
@@ -324,7 +324,7 @@ Default is undefined, which disables throttling.
 
   return {
     messages,
-    id: chatId,
+    chatId: stableChatId,
     setMessages,
     error,
     append,

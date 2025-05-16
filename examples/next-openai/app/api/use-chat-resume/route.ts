@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     waitUntil: after,
   });
 
-  const { id, messages }: { id: string; messages: UIMessage[] } =
+  const { chatId, messages }: { chatId: string; messages: UIMessage[] } =
     await req.json();
 
   const streamId = generateId();
@@ -37,9 +37,9 @@ export async function POST(req: Request) {
     throw new Error('No recent user message found');
   }
 
-  await appendMessageToChat({ chatId: id, message: recentUserMessage });
+  await appendMessageToChat({ chatId: chatId, message: recentUserMessage });
 
-  await appendStreamId({ chatId: id, streamId });
+  await appendStreamId({ chatId: chatId, streamId });
 
   const stream = createUIMessageStream({
     execute: writer => {
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       writer.merge(
         result.toUIMessageStream({
           onFinish: ({ messages }) => {
-            saveChat({ id, messages });
+            saveChat({ chatId, messages });
           },
         }),
       );

@@ -55,7 +55,7 @@ describe('prepareRequestBody', () => {
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
     expect(value).toStrictEqual({
-      id: expect.any(String),
+      chatId: expect.any(String),
       messages: [
         {
           role: 'user',
@@ -323,7 +323,7 @@ describe('custom metadata', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       body1: 'value1',
       body2: 'value2',
-      id: expect.any(String),
+      chatId: expect.any(String),
       messages: [
         {
           id: 'id-0',
@@ -451,7 +451,7 @@ describe('reload', () => {
     await userEvent.click(screen.getByTestId('do-reload'));
 
     expect(await server.calls[1].requestBodyJson).toStrictEqual({
-      id: expect.any(String),
+      chatId: expect.any(String),
       messages: [
         {
           id: 'id-0',

@@ -6,13 +6,14 @@ import { defaultChatStore } from 'ai';
 import { z } from 'zod';
 
 export default function Chat({
-  id,
+  chatId,
   initialMessages,
 }: {
-  id?: string | undefined;
+  chatId?: string | undefined;
   initialMessages?: UIMessage<{ createdAt: string }>[];
 } = {}) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat({
+    chatId, // use the provided chatId
     chatStore: defaultChatStore({
       api: '/api/use-chat-persistence-metadata',
       messageMetadataSchema: zodSchema(
@@ -21,11 +22,10 @@ export default function Chat({
         }),
       ),
       chats:
-        initialMessages && id
-          ? { [id]: { messages: initialMessages } }
+        initialMessages && chatId
+          ? { [chatId]: { messages: initialMessages } }
           : undefined,
     }),
-    id, // use the provided chatId
   });
 
   return (
