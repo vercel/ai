@@ -234,7 +234,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       } else if ('codeExecutionResult' in part && part.codeExecutionResult != null && part.codeExecutionResult.outcome.length > 0) {
         content.push({
           type: 'text' as const,
-          text: `Code Execution Result (Outcome: ${part.codeExecutionResult.outcome}):\n ${part.codeExecutionResult.output}`,
+          text: `Execution Result (Outcome: ${part.codeExecutionResult.outcome}):\n ${part.codeExecutionResult.output}`,
         })
         // function calls
       } else if ('functionCall' in part) {
