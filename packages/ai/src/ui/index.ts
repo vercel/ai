@@ -1,7 +1,13 @@
 export { appendClientMessage } from './append-client-message';
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
-export { ChatStore, type ChatStatus, type ChatStoreEvent } from './chat-store';
+export {
+  ChatStore,
+  type ChatStatus,
+  type ChatStoreEvent,
+  type InferUIDataTypes,
+  type UIDataTypesSchemas,
+} from './chat-store';
 export { DefaultChatTransport, type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {

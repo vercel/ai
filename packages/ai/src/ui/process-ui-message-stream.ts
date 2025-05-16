@@ -1,11 +1,10 @@
-import { Schema, validateTypes } from '@ai-sdk/provider-utils';
+import { validateTypes, Validator } from '@ai-sdk/provider-utils';
 import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
-  DataUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
@@ -73,7 +72,11 @@ export function processUIMessageStream<
   runUpdateMessageJob,
 }: {
   stream: ReadableStream<UIMessageStreamPart>;
-  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  messageMetadataSchema?: Validator<MESSAGE_METADATA>;
+  dataTypesSchemas?: Record<
+    keyof DATA_TYPES,
+    Validator<DATA_TYPES[keyof DATA_TYPES]>
+  >;
   onToolCall?: UseChatOptions['onToolCall'];
   runUpdateMessageJob: (
     job: (options: {

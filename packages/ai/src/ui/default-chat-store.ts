@@ -4,13 +4,17 @@ import {
   IdGenerator,
   Schema,
 } from '@ai-sdk/provider-utils';
-import { ChatStore } from './chat-store';
+import {
+  ChatStore,
+  InferUIDataTypes,
+  type UIDataTypesSchemas,
+} from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
-import { UIDataTypes, UIMessage } from './ui-messages';
+import { UIMessage } from './ui-messages';
 
 export function defaultChatStore<
-  MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  MESSAGE_METADATA,
+  UI_DATA_TYPE_SCHEMAS extends UIDataTypesSchemas,
 >({
   api,
   fetch,
@@ -20,6 +24,7 @@ export function defaultChatStore<
   body,
   prepareRequestBody,
   generateId = generateIdFunc,
+  dataTypeSchemas,
   messageMetadataSchema,
   maxSteps = 1,
   chats,
@@ -29,6 +34,11 @@ export function defaultChatStore<
    * Message metadata can be undefined or must match the schema.
    */
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+
+  /**
+   * Schema for the data types. Validates the data types.
+   */
+  dataTypeSchemas?: UI_DATA_TYPE_SCHEMAS;
 
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
@@ -100,18 +110,27 @@ export function defaultChatStore<
    */
   prepareRequestBody?: (options: {
     chatId: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+    >[];
     requestBody?: object;
   }) => unknown;
 
   chats?: {
     [id: string]: {
-      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+      messages: UIMessage<
+        MESSAGE_METADATA,
+        InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      >[];
     };
   };
-}): ChatStore<MESSAGE_METADATA, DATA_TYPES> {
-  return new ChatStore<MESSAGE_METADATA, DATA_TYPES>({
-    transport: new DefaultChatTransport<MESSAGE_METADATA, DATA_TYPES>({
+}): ChatStore<MESSAGE_METADATA, UI_DATA_TYPE_SCHEMAS> {
+  return new ChatStore<MESSAGE_METADATA, UI_DATA_TYPE_SCHEMAS>({
+    transport: new DefaultChatTransport<
+      MESSAGE_METADATA,
+      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+    >({
       api,
       fetch,
       streamProtocol,
@@ -122,6 +141,7 @@ export function defaultChatStore<
     }),
     generateId,
     messageMetadataSchema,
+    dataTypeSchemas,
     maxSteps,
     chats,
   });
