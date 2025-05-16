@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { JSONValue } from 'ai';
 import { computed, ref } from 'vue';
 import { UIMessage, useChat } from './use-chat';
 

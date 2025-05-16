@@ -89,7 +89,7 @@ export type UseChatHelpers<MESSAGE_METADATA> = {
   }) => void;
 
   /** The id of the chat */
-  id: string;
+  chatId: string;
 };
 
 // @ts-expect-error - some issues with the default export of useSWRV
@@ -103,7 +103,7 @@ const statusStore: Record<
 export function useChat<MESSAGE_METADATA = unknown>(
   {
     api = '/api/chat',
-    id,
+    chatId,
     initialMessages = [],
     initialInput = '',
     streamProtocol = 'ui-message',
@@ -140,18 +140,18 @@ export function useChat<MESSAGE_METADATA = unknown>(
   },
 ): UseChatHelpers<MESSAGE_METADATA> {
   // Generate a unique ID for the chat if not provided.
-  const chatId = id ?? generateId();
+  const stableChatId = chatId ?? generateId();
 
-  const key = `${api}|${chatId}`;
+  const key = `${api}|${stableChatId}`;
   const { data: messagesData, mutate: originalMutate } = useSWRV<
     UIMessage<MESSAGE_METADATA>[]
   >(key, () => store[key] ?? initialMessages);
 
   const status =
-    statusStore[chatId] ??
-    (statusStore[chatId] = ref<'submitted' | 'streaming' | 'ready' | 'error'>(
-      'ready',
-    ));
+    statusStore[stableChatId] ??
+    (statusStore[stableChatId] = ref<
+      'submitted' | 'streaming' | 'ready' | 'error'
+    >('ready'));
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   messagesData.value ??= initialMessages;
@@ -191,11 +191,11 @@ export function useChat<MESSAGE_METADATA = unknown>(
       await callChatApi({
         api,
         body: experimental_prepareRequestBody?.({
-          chatId,
+          chatId: stableChatId,
           messages: messagesSnapshot,
           requestBody: body,
         }) ?? {
-          chatId,
+          chatId: stableChatId,
           messages: messagesSnapshot,
           ...unref(metadataBody), // Use unref to unwrap the ref value
           ...body,
@@ -368,7 +368,7 @@ export function useChat<MESSAGE_METADATA = unknown>(
   };
 
   return {
-    id: chatId,
+    chatId: stableChatId,
     messages,
     append,
     error,

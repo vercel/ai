@@ -28,7 +28,7 @@ export type UseChatOptions<
    * generated. When provided, the `useChat` hook with the same `id` will
    * have shared states across components.
    */
-  id?: string;
+  chatId?: string;
 
   /**
    * Initial input of the chat.
@@ -92,7 +92,7 @@ export type OriginalUseChatOptions<MESSAGE_METADATA = unknown> = {
    * generated. When provided, the `useChat` hook with the same `id` will
    * have shared states across components.
    */
-  id?: string;
+  chatId?: string;
 
   /**
    * Initial messages of the chat. Useful to load an existing chat history.

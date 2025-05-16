@@ -39,8 +39,8 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
    */
-  readonly id = $derived(this.#options.id ?? this.#generateId());
-  readonly #store = $derived(this.#keyedStore.get(this.id));
+  readonly chatId = $derived(this.#options.chatId ?? this.#generateId());
+  readonly #store = $derived(this.#keyedStore.get(this.chatId));
 
   readonly #messageMetadataSchema = $derived(
     this.#options.messageMetadataSchema,
@@ -226,7 +226,7 @@ export class Chat<MESSAGE_METADATA = unknown> {
       await callChatApi({
         api: this.#api,
         body: {
-          id: this.id,
+          id: this.chatId,
           messages,
           ...$state.snapshot(this.#options.body),
           ...chatRequest.body,
