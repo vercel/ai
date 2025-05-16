@@ -1,20 +1,30 @@
 'use client';
 
+import { zodSchema } from '@ai-sdk/provider-utils';
 import { UIMessage, useChat } from '@ai-sdk/react';
 import { defaultChatStore } from 'ai';
+import { z } from 'zod';
 
 export default function Chat({
-  id,
+  chatId,
   initialMessages,
-}: { id?: string | undefined; initialMessages?: UIMessage[] } = {}) {
+}: {
+  chatId?: string | undefined;
+  initialMessages?: UIMessage<{ createdAt: string }>[];
+} = {}) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat({
+    chatId, // use the provided chatId
     chatStore: defaultChatStore({
-      api: '/api/use-chat-persistence-single-message',
-      chats: id ? { [id]: { messages: initialMessages ?? [] } } : undefined,
-      // only send the last message to the server:
-      prepareRequestBody({ messages, chatId }) {
-        return { message: messages[messages.length - 1], id: chatId };
-      },
+      api: '/api/use-chat-persistence-metadata',
+      messageMetadataSchema: zodSchema(
+        z.object({
+          createdAt: z.string().datetime(),
+        }),
+      ),
+      chats:
+        initialMessages && chatId
+          ? { [chatId]: { messages: initialMessages } }
+          : undefined,
     }),
   });
 
@@ -23,9 +33,16 @@ export default function Chat({
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.parts
-            .map(part => (part.type === 'text' ? part.text : ''))
-            .join('')}
+          {m.metadata?.createdAt && (
+            <div>
+              Created at: {new Date(m.metadata.createdAt).toLocaleString()}
+            </div>
+          )}
+          {m.parts.map((part, index) => {
+            if (part.type === 'text') {
+              return <div key={index}>{part.text}</div>;
+            }
+          })}
         </div>
       ))}
 
