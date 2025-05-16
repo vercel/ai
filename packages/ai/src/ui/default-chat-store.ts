@@ -15,7 +15,7 @@ import { UIMessage } from './ui-messages';
 
 export interface DefaultChatStoreOptions<
   MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
   /**
    * Schema for the message metadata. Validates the message metadata.
@@ -119,7 +119,7 @@ export interface DefaultChatStoreOptions<
 
 export function defaultChatStore<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
   api,
   fetch,
@@ -131,6 +131,7 @@ export function defaultChatStore<
   generateId = generateIdFunc,
   messageMetadataSchema,
   maxSteps = 1,
+  dataPartSchemas,
   chats,
 }: DefaultChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>): ChatStore<
   MESSAGE_METADATA,

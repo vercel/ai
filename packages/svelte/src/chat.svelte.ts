@@ -6,8 +6,9 @@ import {
   type ChatRequestOptions,
   type ChatStatus,
   type CreateUIMessage,
+  type InferUIDataTypes,
   type OriginalUseChatOptions,
-  type UIDataTypes,
+  type UIDataTypesSchemas,
   type UIMessage,
 } from 'ai';
 import {
@@ -23,19 +24,22 @@ export type { CreateUIMessage, UIMessage };
 
 export class Chat<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  UI_DATA_PART_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
 > {
   readonly #options: ChatOptions<MESSAGE_METADATA> = {};
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
-  readonly #chatStore = $state<ChatStore<MESSAGE_METADATA, DATA_TYPES>>()!;
+  readonly #chatStore =
+    $state<ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>>()!;
 
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
    */
-  readonly id = $derived(this.#options.id ?? this.#generateId());
+  readonly id = $derived(this.#options.chatId ?? this.#generateId());
 
-  #messages = $state<UIMessage<MESSAGE_METADATA, DATA_TYPES>[]>([]);
+  #messages = $state<
+    UIMessage<MESSAGE_METADATA, InferUIDataTypes<UI_DATA_PART_SCHEMAS>>[]
+  >([]);
   /**
    * Hook status:
    *
@@ -60,10 +64,18 @@ export class Chat<
    * This is writable, which is useful when you want to edit the messages on the client, and then
    * trigger {@link reload} to regenerate the AI response.
    */
-  get messages(): UIMessage<MESSAGE_METADATA, DATA_TYPES>[] {
+  get messages(): UIMessage<
+    MESSAGE_METADATA,
+    InferUIDataTypes<UI_DATA_PART_SCHEMAS>
+  >[] {
     return this.#messages;
   }
-  set messages(value: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
+  set messages(
+    value: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataTypes<UI_DATA_PART_SCHEMAS>
+    >[],
+  ) {
     this.#chatStore.setMessages({ id: this.id, messages: value });
   }
 
@@ -87,10 +99,13 @@ export class Chat<
     if (hasChatStoreContext()) {
       this.#chatStore = getChatStoreContext() as ChatStore<
         MESSAGE_METADATA,
-        DATA_TYPES
+        UI_DATA_PART_SCHEMAS
       >;
     } else {
-      this.#chatStore = defaultChatStore<MESSAGE_METADATA, DATA_TYPES>({
+      this.#chatStore = defaultChatStore<
+        MESSAGE_METADATA,
+        UI_DATA_PART_SCHEMAS
+      >({
         api: this.#options.api || '/api/chat',
         generateId: this.#options.generateId || generateId,
         maxSteps: this.#options.maxSteps,
@@ -155,8 +170,11 @@ export class Chat<
    */
   append = async (
     message:
-      | UIMessage<MESSAGE_METADATA, DATA_TYPES>
-      | CreateUIMessage<MESSAGE_METADATA, DATA_TYPES>,
+      | UIMessage<MESSAGE_METADATA, InferUIDataTypes<UI_DATA_PART_SCHEMAS>>
+      | CreateUIMessage<
+          MESSAGE_METADATA,
+          InferUIDataTypes<UI_DATA_PART_SCHEMAS>
+        >,
     { headers, body }: ChatRequestOptions = {},
   ) => {
     await this.#chatStore.submitMessage({

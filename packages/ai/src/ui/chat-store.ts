@@ -90,7 +90,7 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
 
 export class ChatStore<
   MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
   private chats: Map<
     string,

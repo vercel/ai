@@ -287,11 +287,11 @@ describe('data protocol stream', () => {
         }),
       );
 
-      id = crypto.randomUUID();
+      chatId = crypto.randomUUID();
       await Promise.resolve();
 
       expect(chatWithId.messages).toHaveLength(0);
-      id = originalId;
+      chatId = originalId;
       await Promise.resolve();
 
       expect(chatWithId.messages.at(1)).toStrictEqual(
