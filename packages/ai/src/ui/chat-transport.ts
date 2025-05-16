@@ -17,8 +17,10 @@ export interface ChatTransport<
   }) => Promise<ReadableStream<UIMessageStreamPart>>;
 }
 
-export class DefaultChatTransport<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
-  implements ChatTransport<MESSAGE_METADATA, DATA_TYPES>
+export class DefaultChatTransport<
+  MESSAGE_METADATA,
+  DATA_TYPES extends UIDataTypes,
+> implements ChatTransport<MESSAGE_METADATA, DATA_TYPES>
 {
   private api: string;
   private credentials?: RequestCredentials;
