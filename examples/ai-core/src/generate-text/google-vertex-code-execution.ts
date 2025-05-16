@@ -15,28 +15,29 @@ async function main() {
             'Calculate 20th fibonacci number. Then find the nearest palindrome to it.',
     });
 
-    const parts = (result.response?.body as any)?.candidates?.[0]?.content?.parts;
-
-    if (parts && Array.isArray(parts)) {
-        parts.forEach((part, index) => {
-            if ('text' in part) {
-                console.log('\nType: Text');
-                console.log('Content:', part.text);
-            } else if ('executableCode' in part && part.executableCode) {
-                console.log('\nType: Executable Code');
-                console.log('Language:', part.executableCode.language);
-                console.log('Code:\n', part.executableCode.code);
-            } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
-                console.log('\nType: Code Execution Result');
-                console.log('Outcome:', part.codeExecutionResult.outcome);
-                console.log('Output:\n', part.codeExecutionResult.output);
-            } else {
-                console.log('\nType: Unknown');
-                console.log(JSON.stringify(part, null, 2));
+    for (const part of result.content) {
+        switch (part.type) {
+            case 'file': {
+                if (part.type === 'file') {
+                    process.stdout.write(
+                        '\x1b[33m' +
+                        part.type +
+                        '\x1b[34m: ' +
+                        part.file.mediaType +
+                        '\x1b[0m'
+                    );
+                    console.log();
+                    console.log(atob(part.file.base64))
+                }
             }
-        });
-    } else {
-        console.warn('Could not find parts');
+            case 'text': {
+                if (part.type === 'text') {
+                    process.stdout.write('\x1b[34m' + part.type + '\x1b[0m');
+                    console.log();
+                    console.log(part.text)
+                }
+            }
+        }
     }
 }
 

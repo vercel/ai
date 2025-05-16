@@ -12,6 +12,7 @@ async function main() {
         },
       },
     },
+    maxOutputTokens: 2048,
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
