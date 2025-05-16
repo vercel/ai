@@ -104,7 +104,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       });
     }
 
-
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
 
@@ -141,11 +140,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             responseFormat?.type === 'json' ? 'application/json' : undefined,
           responseSchema:
             responseFormat?.type === 'json' &&
-              responseFormat.schema != null &&
-              // Google GenAI does not support all OpenAPI Schema features,
-              // so this is needed as an escape hatch:
-              // TODO convert into provider option
-              (googleOptions?.structuredOutputs ?? true)
+            responseFormat.schema != null &&
+            // Google GenAI does not support all OpenAPI Schema features,
+            // so this is needed as an escape hatch:
+            // TODO convert into provider option
+            (googleOptions?.structuredOutputs ?? true)
               ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
               : undefined,
           ...(googleOptions?.audioTimestamp && {
@@ -200,8 +199,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     // map ordered parts to content:
     const parts =
       candidate.content == null ||
-        typeof candidate.content !== 'object' ||
-        !('parts' in candidate.content)
+      typeof candidate.content !== 'object' ||
+      !('parts' in candidate.content)
         ? []
         : (candidate.content.parts ?? []);
 
@@ -220,7 +219,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       ) {
         content.push({ type: 'reasoning', text: part.text });
         // code exectuion: Executable code
-      } else if ('executableCode' in part && part.executableCode != null && part.executableCode.code.length > 0) {
+      } else if (
+        'executableCode' in part &&
+        part.executableCode != null &&
+        part.executableCode.code.length > 0
+      ) {
         /**
          * NOTE: The vertex api just returns a string, but the ai-sdk expects either a base64 string or uint8Arry.
          * So we just convert it to base64
@@ -228,14 +231,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         content.push({
           type: 'file',
           mediaType: 'text/x-python',
-          data: Buffer.from(part.executableCode.code, 'utf-8').toString('base64')
-        })
+          data: Buffer.from(part.executableCode.code, 'utf-8').toString(
+            'base64',
+          ),
+        });
         // code execution: Execution result
-      } else if ('codeExecutionResult' in part && part.codeExecutionResult != null && part.codeExecutionResult.outcome.length > 0) {
+      } else if (
+        'codeExecutionResult' in part &&
+        part.codeExecutionResult != null &&
+        part.codeExecutionResult.outcome.length > 0
+      ) {
         content.push({
           type: 'text' as const,
           text: `Execution Result (Outcome: ${part.codeExecutionResult.outcome}):\n ${part.codeExecutionResult.output}`,
-        })
+        });
         // function calls
       } else if ('functionCall' in part) {
         content.push({
@@ -373,17 +382,25 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
               const reasoningContent = getReasoningParts(content.parts);
-              if (reasoningContent?.type === 'reasoning' && reasoningContent.text.length > 0) {
-                controller.enqueue({ type: 'reasoning', text: reasoningContent.text });
+              if (
+                reasoningContent?.type === 'reasoning' &&
+                reasoningContent.text.length > 0
+              ) {
+                controller.enqueue({
+                  type: 'reasoning',
+                  text: reasoningContent.text,
+                });
               }
 
               // Process code execution parts prior to text parts
-              const executableCodeFilePart = getExecutableCodeFilePartFromStreamParts(content.parts);
+              const executableCodeFilePart =
+                getExecutableCodeFilePartFromStreamParts(content.parts);
               if (executableCodeFilePart != null) {
                 controller.enqueue(executableCodeFilePart);
               }
 
-              const codeExecutionResultTextParts = getCodeExecutionResultStreamParts(content.parts);
+              const codeExecutionResultTextParts =
+                getCodeExecutionResultStreamParts(content.parts);
               for (const textPart of codeExecutionResultTextParts) {
                 controller.enqueue(textPart);
               }
@@ -491,33 +508,43 @@ function getToolCallsFromParts({
   return functionCallParts == null || functionCallParts.length === 0
     ? undefined
     : functionCallParts.map(part => ({
-      type: 'tool-call' as const,
-      toolCallType: 'function' as const,
-      toolCallId: generateId(),
-      toolName: part.functionCall.name,
-      args: JSON.stringify(part.functionCall.args),
-    }));
+        type: 'tool-call' as const,
+        toolCallType: 'function' as const,
+        toolCallId: generateId(),
+        toolName: part.functionCall.name,
+        args: JSON.stringify(part.functionCall.args),
+      }));
 }
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
   // Only include plain text parts (not thoughts, not executable code, not code execution results)
-  const textParts = parts?.filter(part => 'text' in part && part.text != null && !(part as { thought?: boolean }).thought) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
+  const textParts = parts?.filter(
+    part =>
+      'text' in part &&
+      part.text != null &&
+      !(part as { thought?: boolean }).thought,
+  ) as Array<GoogleGenerativeAIContentPart & { text: string }>;
 
   return textParts == null || textParts.length === 0
     ? undefined
     : {
-      type: 'text' as const,
-      text: textParts.map(part => part.text).join(''),
-    };
+        type: 'text' as const,
+        text: textParts.map(part => part.text).join(''),
+      };
 }
 
 function getExecutableCodeFilePartFromStreamParts(
   parts: z.infer<typeof contentSchema>['parts'],
 ): LanguageModelV2StreamPart | undefined {
-  const part = parts?.find(p => 'executableCode' in p && p.executableCode != null);
-  if (part && 'executableCode' in part && part.executableCode && part.executableCode.code.length > 0) {
+  const part = parts?.find(
+    p => 'executableCode' in p && p.executableCode != null,
+  );
+  if (
+    part &&
+    'executableCode' in part &&
+    part.executableCode &&
+    part.executableCode.code.length > 0
+  ) {
     return {
       type: 'file',
       mediaType: 'text/x-python',
@@ -532,7 +559,11 @@ function getCodeExecutionResultStreamParts(
 ): LanguageModelV2StreamPart[] {
   const resultParts: LanguageModelV2StreamPart[] = [];
   parts?.forEach(part => {
-    if ('codeExecutionResult' in part && part.codeExecutionResult != null && part.codeExecutionResult.output != null) {
+    if (
+      'codeExecutionResult' in part &&
+      part.codeExecutionResult != null &&
+      part.codeExecutionResult.output != null
+    ) {
       // Ensure output might be empty but outcome is present
       const outputText = part.codeExecutionResult.output;
       // Only create a part if there's an outcome, even if output is empty.
@@ -566,7 +597,7 @@ function getReasoningParts(
       part.text != null &&
       part.text.length > 0
     ) {
-      reasoningContentParts.push(part.text)
+      reasoningContentParts.push(part.text);
     }
   });
   if (reasoningContentParts.length === 0) {
@@ -576,10 +607,9 @@ function getReasoningParts(
   // Join reasoning segments
   return {
     type: 'reasoning',
-    text: reasoningContentParts.join('')
-  }
+    text: reasoningContentParts.join(''),
+  };
 }
-
 
 function extractSources({
   groundingMetadata,

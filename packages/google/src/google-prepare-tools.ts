@@ -25,29 +25,29 @@ export function prepareTools({
   useCodeExecution: boolean;
 }): {
   tools:
-  | undefined
-  | {
-    functionDeclarations: Array<{
-      name: string;
-      description: string | undefined;
-      parameters: unknown;
-    }>;
-  }
-  | {
-    googleSearchRetrieval:
-    | Record<string, never>
-    | { dynamicRetrievalConfig: DynamicRetrievalConfig };
-  }
-  | { googleSearch: Record<string, never> }
-  | { codeExecution: Record<string, never> };
+    | undefined
+    | {
+        functionDeclarations: Array<{
+          name: string;
+          description: string | undefined;
+          parameters: unknown;
+        }>;
+      }
+    | {
+        googleSearchRetrieval:
+          | Record<string, never>
+          | { dynamicRetrievalConfig: DynamicRetrievalConfig };
+      }
+    | { googleSearch: Record<string, never> }
+    | { codeExecution: Record<string, never> };
   toolConfig:
-  | undefined
-  | {
-    functionCallingConfig: {
-      mode: 'AUTO' | 'NONE' | 'ANY';
-      allowedFunctionNames?: string[];
-    };
-  };
+    | undefined
+    | {
+        functionCallingConfig: {
+          mode: 'AUTO' | 'NONE' | 'ANY';
+          allowedFunctionNames?: string[];
+        };
+      };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -79,7 +79,8 @@ export function prepareTools({
   if (useCodeExecution) {
     // Add model compatibility check for code execution if necessary
     // For example, if only specific models support it:
-    if (!isGemini2) { // Replace with actual model check for code execution
+    if (!isGemini2) {
+      // Replace with actual model check for code execution
       throw new UnsupportedFunctionalityError({
         functionality: `Code Execution is not supported for model ${modelId}. It requires a Gemini 2 or compatible model.`,
       });
@@ -96,11 +97,11 @@ export function prepareTools({
       tools: isGemini2
         ? { googleSearch: {} }
         : {
-          googleSearchRetrieval:
-            !supportsDynamicRetrieval || !dynamicRetrievalConfig
-              ? {}
-              : { dynamicRetrievalConfig },
-        },
+            googleSearchRetrieval:
+              !supportsDynamicRetrieval || !dynamicRetrievalConfig
+                ? {}
+                : { dynamicRetrievalConfig },
+          },
       toolConfig: undefined,
       toolWarnings,
     };

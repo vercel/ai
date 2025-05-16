@@ -10,7 +10,7 @@ async function main() {
       google: {
         thinkingConfig: {
           thinkingBudget: 1024,
-          includeThoughts: true
+          includeThoughts: true,
         },
       },
     },
