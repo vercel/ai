@@ -86,7 +86,7 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
     ? U
     : T[K] extends StandardSchemaV1<infer U>
       ? U
-      : never;
+      : unknown;
 };
 
 export class ChatStore<
