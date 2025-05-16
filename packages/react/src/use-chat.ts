@@ -1,4 +1,3 @@
-import { Validator } from '@ai-sdk/provider-utils';
 import {
   ChatStore,
   convertFileListToFileUIParts,
@@ -179,7 +178,7 @@ Default is undefined, which disables throttling.
     }) => {
       return chatStore.current.subscribe({
         onChatChanged: event => {
-          if (event.chatId !== chatId || event.type !== eventType) return;
+          if (event.chatId !== stableChatId || event.type !== eventType) return;
           onStoreChange();
         },
       });
@@ -236,6 +235,7 @@ Default is undefined, which disables throttling.
   );
 
   const messages = useSyncExternalStore(
+    callback => subscribeToChatStoreForMessages(callback),
     () => chatStore.current.getMessages(stableChatId),
     () => chatStore.current.getMessages(stableChatId),
   );
