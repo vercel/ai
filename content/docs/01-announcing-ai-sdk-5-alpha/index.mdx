@@ -365,14 +365,14 @@ const result = generateText({
 
 const result = generateText({
   // ...
-  // stop loop at 10 steps or when weather tool called
-  continueUntil: [maxSteps(5), hasToolCall({ toolName: 'weather' })],
+  // stop loop when weather tool called
+  continueUntil: hasToolCall('weather'),
 });
 
 const result = generateText({
   // ...
   // stop loop at your own custom condition
-  continueUntil: [maxTotalTokens(20000)],
+  continueUntil: maxTotalTokens(20000),
 });
 ```
 
