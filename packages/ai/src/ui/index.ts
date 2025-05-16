@@ -5,8 +5,8 @@ export {
   ChatStore,
   type ChatStatus,
   type ChatStoreEvent,
-  type InferUIDataTypes,
-  type UIDataTypesSchemas,
+  type InferUIDataParts as InferUIDataTypes,
+  type UIDataPartSchemas as UIDataTypesSchemas,
 } from './chat-store';
 export { DefaultChatTransport, type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';

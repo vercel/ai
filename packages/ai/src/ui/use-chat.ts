@@ -4,7 +4,7 @@ import {
   Schema,
   ToolCall,
 } from '@ai-sdk/provider-utils';
-import { ChatStore, InferUIDataTypes, UIDataTypesSchemas } from './chat-store';
+import { ChatStore, InferUIDataParts, UIDataPartSchemas } from './chat-store';
 import { UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
@@ -21,7 +21,7 @@ export type ChatRequestOptions = {
 
 export type UseChatOptions<
   MESSAGE_METADATA = unknown,
-  DATA_TYPE_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
+  DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
@@ -54,7 +54,7 @@ export type UseChatOptions<
    * @param message The message that was streamed.
    */
   onFinish?: (options: {
-    message: UIMessage<MESSAGE_METADATA, InferUIDataTypes<DATA_TYPE_SCHEMAS>>;
+    message: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_TYPE_SCHEMAS>>;
   }) => void;
 
   /**

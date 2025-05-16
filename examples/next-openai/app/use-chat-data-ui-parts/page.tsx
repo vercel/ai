@@ -1,6 +1,5 @@
 'use client';
 
-import { zodSchema } from '@ai-sdk/provider-utils';
 import { useChat } from '@ai-sdk/react';
 import { defaultChatStore } from 'ai';
 import { z } from 'zod';
@@ -18,14 +17,12 @@ export default function Chat() {
   } = useChat({
     chatStore: defaultChatStore({
       api: '/api/use-chat-data-ui-parts',
-      dataTypeSchemas: {
-        weather: zodSchema(
-          z.object({
-            city: z.string(),
-            weather: z.string(),
-            status: z.enum(['loading', 'success']),
-          }),
-        ),
+      dataPartSchemas: {
+        weather: z.object({
+          city: z.string(),
+          weather: z.string(),
+          status: z.enum(['loading', 'success']),
+        }),
       },
     }),
   });

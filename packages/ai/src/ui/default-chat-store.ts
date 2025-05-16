@@ -6,15 +6,15 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   ChatStore,
-  InferUIDataTypes,
-  type UIDataTypesSchemas,
+  InferUIDataParts,
+  type UIDataPartSchemas,
 } from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
 
 export function defaultChatStore<
   MESSAGE_METADATA,
-  UI_DATA_TYPE_SCHEMAS extends UIDataTypesSchemas,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
 >({
   api,
   fetch,
@@ -24,7 +24,7 @@ export function defaultChatStore<
   body,
   prepareRequestBody,
   generateId = generateIdFunc,
-  dataTypeSchemas,
+  dataPartSchemas,
   messageMetadataSchema,
   maxSteps = 1,
   chats,
@@ -38,7 +38,7 @@ export function defaultChatStore<
   /**
    * Schema for the data types. Validates the data types.
    */
-  dataTypeSchemas?: UI_DATA_TYPE_SCHEMAS;
+  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
 
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
@@ -112,7 +112,7 @@ export function defaultChatStore<
     chatId: string;
     messages: UIMessage<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[];
     requestBody?: object;
   }) => unknown;
@@ -121,15 +121,15 @@ export function defaultChatStore<
     [id: string]: {
       messages: UIMessage<
         MESSAGE_METADATA,
-        InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+        InferUIDataParts<UI_DATA_PART_SCHEMAS>
       >[];
     };
   };
-}): ChatStore<MESSAGE_METADATA, UI_DATA_TYPE_SCHEMAS> {
-  return new ChatStore<MESSAGE_METADATA, UI_DATA_TYPE_SCHEMAS>({
+}): ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+  return new ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
     transport: new DefaultChatTransport<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >({
       api,
       fetch,
@@ -141,7 +141,7 @@ export function defaultChatStore<
     }),
     generateId,
     messageMetadataSchema,
-    dataTypeSchemas,
+    dataPartSchemas,
     maxSteps,
     chats,
   });

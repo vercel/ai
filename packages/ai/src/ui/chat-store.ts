@@ -2,6 +2,7 @@ import {
   generateId as generateIdFunc,
   IdGenerator,
   Schema,
+  StandardSchemaV1,
   ToolCall,
   Validator,
 } from '@ai-sdk/provider-utils';
@@ -75,27 +76,34 @@ either synchronously or asynchronously.
   }) => void;
 };
 
-export type UIDataTypesSchemas = Record<string, Validator<any>>;
+export type UIDataPartSchemas = Record<
+  string,
+  Validator<any> | StandardSchemaV1<any>
+>;
 
-export type InferUIDataTypes<T extends UIDataTypesSchemas> = {
-  [K in keyof T]: T[K] extends Validator<infer U> ? U : never;
+export type InferUIDataParts<T extends UIDataPartSchemas> = {
+  [K in keyof T]: T[K] extends Validator<infer U>
+    ? U
+    : T[K] extends StandardSchemaV1<infer U>
+      ? U
+      : never;
 };
 
 export class ChatStore<
   MESSAGE_METADATA,
-  UI_DATA_TYPE_SCHEMAS extends UIDataTypesSchemas,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
 > {
   private chats: Map<
     string,
-    Chat<MESSAGE_METADATA, InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>>
+    Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
   >;
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
   private messageMetadataSchema: Schema<MESSAGE_METADATA> | undefined;
-  private dataTypeSchemas: UI_DATA_TYPE_SCHEMAS | undefined;
+  private dataPartSchemas: UI_DATA_PART_SCHEMAS | undefined;
   private transport: ChatTransport<
     MESSAGE_METADATA,
-    InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
   private maxSteps: number;
 
@@ -105,24 +113,24 @@ export class ChatStore<
     transport,
     maxSteps = 1,
     messageMetadataSchema,
-    dataTypeSchemas,
+    dataPartSchemas,
   }: {
     chats?: {
       [id: string]: {
         messages: UIMessage<
           MESSAGE_METADATA,
-          InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+          InferUIDataParts<UI_DATA_PART_SCHEMAS>
         >[];
       };
     };
     generateId?: UseChatOptions['generateId'];
     transport: ChatTransport<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >;
     maxSteps?: number;
     messageMetadataSchema?: Schema<MESSAGE_METADATA>;
-    dataTypeSchemas?: UI_DATA_TYPE_SCHEMAS;
+    dataPartSchemas?: UI_DATA_PART_SCHEMAS;
   }) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
@@ -142,7 +150,7 @@ export class ChatStore<
     this.subscribers = new Set();
     this.generateId = generateId ?? generateIdFunc;
     this.messageMetadataSchema = messageMetadataSchema;
-    this.dataTypeSchemas = dataTypeSchemas;
+    this.dataPartSchemas = dataPartSchemas;
   }
 
   hasChat(id: string) {
@@ -153,7 +161,7 @@ export class ChatStore<
     id: string,
     messages: UIMessage<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[],
   ) {
     this.chats.set(id, {
@@ -183,7 +191,7 @@ export class ChatStore<
     id: string;
     status: Chat<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >['status'];
     error?: Error;
   }) {
@@ -222,7 +230,7 @@ export class ChatStore<
     id: string;
     messages: UIMessage<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[];
   }) {
     // mutate the messages array directly:
@@ -256,12 +264,12 @@ export class ChatStore<
     onFinish,
   }: ExtendedCallOptions<
     MESSAGE_METADATA,
-    InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
   > & {
     chatId: string;
     message: CreateUIMessage<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >;
   }) {
     const chat = this.getChat(chatId);
@@ -291,7 +299,7 @@ export class ChatStore<
     onFinish,
   }: ExtendedCallOptions<
     MESSAGE_METADATA,
-    InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
   > & {
     chatId: string;
   }) {
@@ -327,7 +335,7 @@ export class ChatStore<
     onFinish,
   }: ExtendedCallOptions<
     MESSAGE_METADATA,
-    InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
   > & {
     chatId: string;
   }) {
@@ -405,7 +413,7 @@ export class ChatStore<
 
   private getChat(
     id: string,
-  ): Chat<MESSAGE_METADATA, InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>> {
+  ): Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>> {
     if (!this.hasChat(id)) {
       throw new Error(`chat '${id}' not found`);
     }
@@ -423,12 +431,12 @@ export class ChatStore<
     onFinish,
   }: ExtendedCallOptions<
     MESSAGE_METADATA,
-    InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
   > & {
     chatId: string;
     messages: UIMessage<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_TYPE_SCHEMAS>
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[];
     requestType: 'generate' | 'resume';
   }) {
