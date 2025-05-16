@@ -1,20 +1,22 @@
-import { google } from '@ai-sdk/google';
+import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: google('gemini-2.5-pro-preview-03-25'),
+    model: vertex('gemini-2.5-flash-preview-04-17'),
     providerOptions: {
       google: {
         thinkingConfig: {
           thinkingBudget: 1024,
+          includeThoughts: true
         },
       },
     },
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
+  process.stdout.write('\x1b[34m' + result.reasoningText + '\x1b[0m');
   console.log(result.text);
   console.log();
   console.log('Token usage:', result.usage);
