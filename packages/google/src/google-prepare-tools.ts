@@ -16,6 +16,7 @@ export function prepareTools(
   useSearchGrounding: boolean,
   dynamicRetrievalConfig: DynamicRetrievalConfig | undefined,
   modelId: GoogleGenerativeAIModelId,
+  useCodeExecution: boolean,
 ): {
   tools:
     | undefined
@@ -31,7 +32,8 @@ export function prepareTools(
           | Record<string, never>
           | { dynamicRetrievalConfig: DynamicRetrievalConfig };
       }
-    | { googleSearch: Record<string, never> };
+    | { googleSearch: Record<string, never> }
+    | { codeExecution: Record<string, never> };
   toolConfig:
     | undefined
     | {
@@ -42,7 +44,7 @@ export function prepareTools(
       };
   toolWarnings: LanguageModelV1CallWarning[];
 } {
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  let tools = mode.tools?.length ? mode.tools : undefined;
   const toolWarnings: LanguageModelV1CallWarning[] = [];
 
   const isGemini2 = modelId.includes('gemini-2');
@@ -50,10 +52,18 @@ export function prepareTools(
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
 
   // Throw error if both search grounding and user tools are present
-  if (useSearchGrounding && tools) {
+  if ((useSearchGrounding || useCodeExecution) && tools) {
     throw new UnsupportedFunctionalityError({
       functionality:
-        "Search grounding (useSearchGrounding: true) cannot be used in combination with user-defined tools. Please disable useSearchGrounding or remove your custom tools.",
+        'Provider tools (e.g. useSearchGrounding) cannot be used in combination with user-defined tools. Please disable either the provider tools or your custom tools.',
+    });
+  }
+
+  // Throw error if multiple provider tools are present
+  if (useSearchGrounding && useCodeExecution) {
+    throw new UnsupportedFunctionalityError({
+      functionality:
+        'Search as a tool with code execution is not enabled for api version v1beta',
     });
   }
 
@@ -71,6 +81,23 @@ export function prepareTools(
       toolConfig: undefined,
       toolWarnings,
     };
+  }
+
+  // Code Execution
+  if (useCodeExecution) {
+    if (!isGemini2) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'Code Execution can only be used with Gemini >=2 models',
+      });
+    } else {
+      return {
+        tools: {
+          codeExecution: {},
+        },
+        toolConfig: undefined,
+        toolWarnings,
+      };
+    }
   }
 
   // No tools passed

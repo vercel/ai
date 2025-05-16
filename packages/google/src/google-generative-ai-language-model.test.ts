@@ -184,12 +184,16 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+  const TEST_URL_GEMINI_2_5_FLASH_EXP =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_2_5_FLASH_EXP]: {},
   });
 
   const prepareJsonResponse = ({
@@ -216,7 +220,8 @@ describe('doGenerate', () => {
       | typeof TEST_URL_GEMINI_2_0_PRO
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
       | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
+      | typeof TEST_URL_GEMINI_1_5_FLASH
+      | typeof TEST_URL_GEMINI_2_5_FLASH_EXP;
   }) => {
     server.urls[url].response = {
       type: 'json-value',
@@ -1489,6 +1494,220 @@ describe('doGenerate', () => {
             w.type === 'other' && w.message.startsWith(expectedWarningMessage),
         ),
       ).toBe(false);
+    });
+  });
+  describe('tests code execution tool option', () => {
+    const prepareJsonResponseWithParts = ({
+      parts,
+      usage = {
+        promptTokenCount: 1,
+        candidatesTokenCount: 2,
+        totalTokenCount: 3,
+      },
+      finishReason = 'STOP',
+      url = TEST_URL_GEMINI_2_5_FLASH_EXP,
+    }: {
+      parts: Array<any>;
+      usage?: {
+        promptTokenCount: number;
+        candidatesTokenCount: number;
+        totalTokenCount: number;
+      };
+      finishReason?: string;
+      url?: string;
+    }) => {
+      server.urls[TEST_URL_GEMINI_2_5_FLASH_EXP].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts,
+                role: 'model',
+              },
+              finishReason,
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: usage,
+        },
+      };
+    };
+
+    it('should correctly parse response with executableCode and codeExecutionResult parts', async () => {
+      prepareJsonResponseWithParts({
+        parts: [
+          { text: 'Initial text. ' },
+          {
+            executableCode: {
+              language: 'PYTHON',
+              code: 'print("Hello from Python!")',
+            },
+          },
+          {
+            codeExecutionResult: {
+              outcome: 'OUTCOME_OK',
+              output: 'Hello from Python!\n',
+            },
+          },
+          { text: 'Follow-up text.' },
+        ],
+      });
+
+      const { text, toolCalls, reasoning, files } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(text).toStrictEqual('Initial text. Follow-up text.');
+      expect(toolCalls).toBeUndefined();
+      expect(reasoning).toBeUndefined();
+      expect(files).toStrictEqual([]);
+    });
+
+    it('should produce undefined text if only code execution parts are present', async () => {
+      prepareJsonResponseWithParts({
+        parts: [
+          {
+            executableCode: {
+              language: 'PYTHON',
+              code: 'print(fib_20 = 6765)',
+            },
+          },
+          {
+            codeExecutionResult: {
+              outcome: 'OUTCOME_OK',
+              output: '', // No textual output from this specific execution
+            },
+          },
+        ],
+      });
+
+      const { text, toolCalls } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(text).toBeUndefined();
+      expect(toolCalls).toBeUndefined();
+    });
+
+    it('should not interfere with standard functionCall parts', async () => {
+      prepareJsonResponseWithParts({
+        parts: [
+          { text: 'Thinking about using a tool. ' },
+          {
+            executableCode: { language: 'PYTHON', code: 'a = 1 + 1' },
+          },
+          {
+            codeExecutionResult: { outcome: 'OUTCOME_OK', output: '2' },
+          },
+          {
+            functionCall: {
+              name: 'user_tool_1',
+              args: { param: 'value' },
+            },
+          },
+          { text: 'Tool called.' },
+        ],
+      });
+
+      const { text, toolCalls } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'regular',
+          tools: [
+            {
+              type: 'function',
+              name: 'user_tool_1',
+              parameters: { type: 'object', properties: {} },
+            },
+          ],
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(text).toStrictEqual('Thinking about using a tool. Tool called.');
+      expect(toolCalls).toEqual([
+        {
+          toolCallId: 'test-id',
+          toolCallType: 'function',
+          toolName: 'user_tool_1',
+          args: '{"param":"value"}',
+        },
+      ]);
+    });
+
+    it('should correctly extract reasoning parts alongside code execution parts', async () => {
+      prepareJsonResponseWithParts({
+        parts: [
+          { text: 'Initial text. ' },
+          { text: 'This is a thought.', thought: true },
+          {
+            executableCode: {
+              language: 'PYTHON',
+              code: 'print("Hello from Python!")',
+            },
+          },
+          { text: 'Another thought after code.', thought: true },
+          {
+            codeExecutionResult: {
+              outcome: 'OUTCOME_OK',
+              output: 'Hello from Python!\n',
+            },
+          },
+          { text: 'Follow-up text.' },
+        ],
+      });
+
+      const { text, reasoning } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(text).toStrictEqual('Initial text. Follow-up text.');
+      expect(reasoning).toEqual([
+        { type: 'text', text: 'This is a thought.' },
+        { type: 'text', text: 'Another thought after code.' },
+      ]);
+    });
+
+    // Test case for when content is an empty object (e.g. MALFORMED_FUNCTION_CALL) to ensure the schema changes for parts don't break this.
+    it('should handle empty content object after schema changes for parts', async () => {
+      server.urls[TEST_URL_GEMINI_2_5_FLASH_EXP].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {}, // Empty content object
+              finishReason: 'MALFORMED_FUNCTION_CALL',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 0,
+            totalTokenCount: 1,
+          },
+        },
+      };
+
+      const { text, finishReason, toolCalls } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(text).toBeUndefined();
+      expect(toolCalls).toBeUndefined();
+      expect(finishReason).toEqual('error'); // MALFORMED_FUNCTION_CALL should map to 'error'
     });
   });
 });

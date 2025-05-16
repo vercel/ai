@@ -101,6 +101,14 @@ Optional. Specifies the dynamic retrieval configuration.
 @see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval
    */
   dynamicRetrievalConfig?: DynamicRetrievalConfig;
+  /**
+Optional. When enabled, the model will make use of a code execution tool that enables the model to generate and run Python code.
+
+@note Multi-tool usage with the code execution tool is only compatible with Flash experimental models
+
+@see https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/code-execution-api
+   */
+  useCodeExecution?: boolean;
 }
 
 export interface InternalGoogleGenerativeAISettings

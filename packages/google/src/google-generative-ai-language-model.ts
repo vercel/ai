@@ -146,6 +146,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           this.settings.useSearchGrounding ?? false,
           this.settings.dynamicRetrievalConfig,
           this.modelId,
+          this.settings.useCodeExecution ?? false,
         );
 
         return {
@@ -424,6 +425,31 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                   hasToolCalls = true;
                 }
               }
+              // Executable code parts (as tool calls)
+              const executableCodeEvents = getExecutableCodeFromParts(
+                content.parts,
+                generateId,
+              );
+              if (executableCodeEvents != null) {
+                for (const execCodeCall of executableCodeEvents) {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    textDelta: execCodeCall,
+                  });
+                }
+              }
+
+              // Code execution results (as text deltas)
+              const codeExecutionResultDeltas =
+                getCodeExecutionResultsFromParts(content.parts);
+              if (codeExecutionResultDeltas != null) {
+                for (const resultText of codeExecutionResultDeltas) {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    textDelta: resultText,
+                  });
+                }
+              }
             }
 
             if (candidate.finishReason != null) {
@@ -518,6 +544,47 @@ function getReasoningDetailsFromParts(
     : reasoningParts.map(part => ({ type: 'text', text: part.text }));
 }
 
+function getExecutableCodeFromParts(
+  parts: z.infer<typeof contentSchema>['parts'],
+  generateId: () => string,
+): string[] | undefined {
+  const executableCodeParts = parts?.filter(
+    (part): part is z.infer<typeof executableCodePartSchema> =>
+      'executableCode' in part && part.executableCode != null,
+  );
+
+  if (!executableCodeParts || executableCodeParts.length === 0) {
+    return undefined;
+  }
+
+  return executableCodeParts.map(part => {
+    // Ensure part.executableCode is not null before accessing its properties
+    const language = part.executableCode!.language;
+    const code = part.executableCode!.code;
+    return `Executable Code (${language}):\n${code}`;
+  });
+}
+
+function getCodeExecutionResultsFromParts(
+  parts: z.infer<typeof contentSchema>['parts'],
+): string[] | undefined {
+  const resultParts = parts?.filter(
+    (part): part is z.infer<typeof codeExecutionResultPartSchema> =>
+      'codeExecutionResult' in part && part.codeExecutionResult != null,
+  );
+
+  if (!resultParts || resultParts.length === 0) {
+    return undefined;
+  }
+
+  return resultParts.map(part => {
+    return (
+      `Code Execution Result (Outcome: ${part.codeExecutionResult!.outcome}):\n` +
+      `${part.codeExecutionResult!.output}`
+    );
+  });
+}
+
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
   return parts?.filter(
     (
@@ -551,6 +618,24 @@ function extractSources({
     }));
 }
 
+const executableCodePartSchema = z.object({
+  executableCode: z
+    .object({
+      language: z.string(), // Consider z.enum if the set of languages is fixed (e.g., z.enum(['PYTHON']))
+      code: z.string(),
+    })
+    .nullish(),
+});
+
+const codeExecutionResultPartSchema = z.object({
+  codeExecutionResult: z
+    .object({
+      outcome: z.string(), // Consider z.enum for specific outcomes (e.g., z.enum(['OUTCOME_OK', 'OUTCOME_ERROR']))
+      output: z.string(),
+    })
+    .nullish(),
+});
+
 const contentSchema = z.object({
   role: z.string(),
   parts: z
@@ -572,6 +657,8 @@ const contentSchema = z.object({
             data: z.string(),
           }),
         }),
+        executableCodePartSchema,
+        codeExecutionResultPartSchema,
       ]),
     )
     .nullish(),
