@@ -125,7 +125,7 @@ export function useChat<
   onFinish,
   onError,
   generateId = generateIdFunc,
-  experimental_throttle: throttleWaitMs = 0,
+  experimental_throttle: throttleWaitMs,
   chatStore: chatStoreArg,
 }: UseChatOptions<MESSAGE_METADATA, DATA_TYPES> & {
   /**
@@ -210,7 +210,9 @@ Default is undefined, which disables throttling.
   const subscribeToChatStoreForMessages = useCallback(
     (callback: () => void) => {
       return subscribe({
-        onStoreChange: throttle(callback, throttleWaitMs),
+        onStoreChange: throttleWaitMs
+          ? throttle(callback, throttleWaitMs)
+          : callback,
         eventType: 'chat-messages-changed',
       });
     },
