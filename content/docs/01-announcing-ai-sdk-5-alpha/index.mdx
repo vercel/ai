@@ -270,9 +270,9 @@ On the client, you can render these parts with full type safety:
     .map((part, index) => (
       <Weather
         key={index}
-        city={part.value.city} // type-safe
-        weather={part.value.weather} // type-safe
-        status={part.value.status} // type-safe
+        city={part.data.city} // type-safe
+        weather={part.data.weather} // type-safe
+        status={part.data.status} // type-safe
       />
     ));
 }
