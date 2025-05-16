@@ -16,16 +16,22 @@ import {
   MCPTransportConfig,
 } from './mcp-transport';
 import {
+  CallPromptResult,
+  CallPromptResultSchema,
   CallToolResult,
   CallToolResultSchema,
   Configuration as ClientConfiguration,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
+  ListPromptsResult,
+  ListPromptsResultSchema,
   ListToolsResult,
   ListToolsResultSchema,
+  McpPromptSet,
   McpToolSet,
   Notification,
   PaginatedRequest,
+  PromptSchemas,
   Request,
   RequestOptions,
   ServerCapabilities,
@@ -176,6 +182,14 @@ class MCPClient {
         if (!this.serverCapabilities.tools) {
           throw new MCPClientError({
             message: `Server does not support tools`,
+          });
+        }
+        break;
+      case 'prompts/list':
+      case 'prompts/call':
+        if (!this.serverCapabilities.prompts) {
+          throw new MCPClientError({
+            message: `Server does not support prompts`,
           });
         }
         break;
@@ -351,6 +365,105 @@ class MCPClient {
       }
 
       return tools as McpToolSet<TOOL_SCHEMAS>;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async listPrompts({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListPromptsResult> {
+    try {
+      return this.request({
+        request: { method: 'prompts/list', params },
+        resultSchema: ListPromptsResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async callPrompt({
+    name,
+    args,
+    options,
+  }: {
+    name: string;
+    args: Record<string, unknown>;
+    options?: ToolExecutionOptions;
+  }): Promise<CallPromptResult> {
+    try {
+      return this.request({
+        request: { method: 'prompts/call', params: { name, arguments: args } },
+        resultSchema: CallPromptResultSchema,
+        options: {
+          signal: options?.abortSignal,
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Returns a set of AI SDK prompts from the MCP server
+   * @returns A record of prompt names to their implementations
+   */
+  async prompts<PROMPT_SCHEMAS extends PromptSchemas = 'automatic'>({
+    schemas = 'automatic',
+  }: {
+    schemas?: PROMPT_SCHEMAS;
+  } = {}): Promise<McpPromptSet<PROMPT_SCHEMAS>> {
+    const prompts: Record<string, Tool> = {};
+
+    try {
+      const listPromptsResult = await this.listPrompts();
+
+      for (const {
+        name,
+        description,
+        inputSchema,
+      } of listPromptsResult.prompts) {
+        if (schemas !== 'automatic' && !(name in schemas)) {
+          continue;
+        }
+
+        const parameters =
+          schemas === 'automatic'
+            ? jsonSchema({
+                type: 'object',
+                properties: inputSchema?.properties ?? {},
+                additionalProperties: false,
+              } as JSONSchema7)
+            : schemas[name].parameters;
+
+        const self = this;
+        const promptWithExecute = tool({
+          description,
+          parameters,
+          execute: async (
+            args?: inferParameters<typeof parameters>,
+            options?: ToolExecutionOptions,
+          ): Promise<CallPromptResult> => {
+            options?.abortSignal?.throwIfAborted();
+
+            return self.callPrompt({
+              name,
+              args: args ?? {},
+              options,
+            });
+          },
+        });
+
+        prompts[name] = promptWithExecute;
+      }
+
+      return prompts as McpPromptSet<PROMPT_SCHEMAS>;
     } catch (error) {
       throw error;
     }

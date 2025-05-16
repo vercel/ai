@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   inferParameters,
+  PromptParameters,
   Tool,
   ToolExecutionOptions,
   ToolParameters,
@@ -183,3 +184,59 @@ export const CallToolResultSchema = ResultSchema.extend({
   }),
 );
 export type CallToolResult = z.infer<typeof CallToolResultSchema>;
+
+export type PromptSchemas =
+  | Record<string, { parameters: PromptParameters }>
+  | 'automatic'
+  | undefined;
+
+export type McpPromptSet<PROMPT_SCHEMAS extends PromptSchemas = 'automatic'> =
+  PROMPT_SCHEMAS extends Record<string, { parameters: PromptParameters }>
+    ? {
+        [K in keyof PROMPT_SCHEMAS]: Tool<
+          PROMPT_SCHEMAS[K]['parameters'],
+          CallPromptResult
+        > & {
+          execute: (
+            args?: inferParameters<PROMPT_SCHEMAS[K]['parameters']>,
+            options?: ToolExecutionOptions,
+          ) => PromiseLike<CallPromptResult>;
+        };
+      }
+    : {
+        [k: string]: Tool<z.ZodUnknown, CallPromptResult> & {
+          execute: (
+            args?: unknown,
+            options?: ToolExecutionOptions,
+          ) => PromiseLike<CallPromptResult>;
+        };
+      };
+
+const PromptSchema = z
+  .object({
+    name: z.string(),
+    description: z.optional(z.string()),
+    inputSchema: z.optional(
+      z
+        .object({
+          type: z.literal('object'),
+          properties: z.optional(z.object({}).passthrough()),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+export type MCPPrompt = z.infer<typeof PromptSchema>;
+
+export const ListPromptsResultSchema = PaginatedResultSchema.extend({
+  prompts: z.array(PromptSchema),
+});
+export type ListPromptsResult = z.infer<typeof ListPromptsResultSchema>;
+
+export const CallPromptResultSchema = ResultSchema.extend({
+  content: z.array(
+    z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
+  ),
+  isError: z.boolean().default(false).optional(),
+});
+export type CallPromptResult = z.infer<typeof CallPromptResultSchema>;
