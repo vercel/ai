@@ -12,19 +12,7 @@ export default function Chat() {
     messages,
     reload,
     stop,
-  } = useChat<
-    { metadataKey: string },
-    {
-      weather: {
-        city: string;
-        temperature: number;
-      };
-      activity: {
-        type: string;
-        description: string;
-      };
-    }
-  >();
+  } = useChat();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -32,26 +20,8 @@ export default function Chat() {
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
           {m.parts.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return part.text;
-              }
-              case 'data-weather': {
-                return (
-                  <div>
-                    <div>{part.value.city}</div>
-                    <div>{part.value.temperature}</div>
-                  </div>
-                );
-              }
-              case 'data-activity': {
-                return (
-                  <div>
-                    <div>{part.value.type}</div>
-                    <div>{part.value.description}</div>
-                  </div>
-                );
-              }
+            if (part.type === 'text') {
+              return part.text;
             }
           })}
         </div>
