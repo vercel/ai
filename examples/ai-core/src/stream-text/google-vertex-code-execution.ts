@@ -1,47 +1,48 @@
 import { vertex } from '@ai-sdk/google-vertex';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-    const result = await generateText({
-        model: vertex('gemini-2.5-pro-preview-05-06'),
+    const result = streamText({
+        model: vertex('gemini-2.5-flash-preview-04-17'),
         providerOptions: {
             google: {
-                useCodeExecution: true,
+                useCodeExecution: true
             }
         },
-        maxOutputTokens: 2048,
+        maxOutputTokens: 10000,
         prompt:
             'Calculate 20th fibonacci number. Then find the nearest palindrome to it.',
     });
 
-    for (const part of result.content) {
-        switch (part.type) {
+    let fullResponse = '';
+
+    for await (const delta of result.fullStream) {
+        switch (delta.type) {
             case 'file': {
-                if (part.type === 'file') {
+                if (delta.type === 'file') {
                     process.stdout.write(
                         '\x1b[33m' +
-                        part.type +
+                        delta.type +
                         '\x1b[34m: ' +
-                        part.file.mediaType +
+                        delta.file.mediaType +
                         '\x1b[0m'
                     );
                     console.log();
-                    console.log(atob(part.file.base64))
+                    console.log(atob(delta.file.base64 as string));
                 }
             }
             case 'text': {
-                if (part.type === 'text') {
-                    process.stdout.write('\x1b[34m' + part.type + '\x1b[0m');
+                if (delta.type === 'text') {
+                    process.stdout.write('\x1b[34m' + delta.type + '\x1b[0m');
                     console.log();
-                    console.log(part.text)
+                    console.log(delta.text);
+                    fullResponse += delta.text;
                 }
+                break;
             }
         }
     }
-
-    process.stdout.write('\n\n');
-
     console.log();
     console.log('Warnings:', await result.warnings);
 
@@ -50,4 +51,4 @@ async function main() {
     console.log('Finish reason:', await result.finishReason);
 }
 
-main().catch(console.error);
+main().catch(console.log);
