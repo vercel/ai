@@ -1,6 +1,9 @@
-import { validateTypes, Validator } from '@ai-sdk/provider-utils';
 import {
-  DataUIMessageStreamPart,
+  StandardSchemaV1,
+  validateTypes,
+  Validator,
+} from '@ai-sdk/provider-utils';
+import {
   isDataUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../ui-message-stream/ui-message-stream-parts';
@@ -84,7 +87,9 @@ export function processUIMessageStream<
   runUpdateMessageJob,
 }: {
   stream: ReadableStream<UIMessageStreamPart>;
-  messageMetadataSchema?: Validator<MESSAGE_METADATA>;
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
   dataPartSchemas?: UI_DATA_PART_SCHEMAS;
   onToolCall?: UseChatOptions['onToolCall'];
   runUpdateMessageJob: (

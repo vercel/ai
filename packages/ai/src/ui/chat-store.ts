@@ -1,7 +1,6 @@
 import {
   generateId as generateIdFunc,
   IdGenerator,
-  Schema,
   StandardSchemaV1,
   ToolCall,
   Validator,
@@ -99,7 +98,10 @@ export class ChatStore<
   >;
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
-  private messageMetadataSchema: Schema<MESSAGE_METADATA> | undefined;
+  private messageMetadataSchema:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>
+    | undefined;
   private dataPartSchemas: UI_DATA_PART_SCHEMAS | undefined;
   private transport: ChatTransport<
     MESSAGE_METADATA,
@@ -129,7 +131,9 @@ export class ChatStore<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >;
     maxSteps?: number;
-    messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+    messageMetadataSchema?:
+      | Validator<MESSAGE_METADATA>
+      | StandardSchemaV1<MESSAGE_METADATA>;
     dataPartSchemas?: UI_DATA_PART_SCHEMAS;
   }) {
     this.chats = new Map(

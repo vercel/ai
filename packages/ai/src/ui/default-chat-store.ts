@@ -2,7 +2,8 @@ import {
   FetchFunction,
   generateId as generateIdFunc,
   IdGenerator,
-  Schema,
+  StandardSchemaV1,
+  Validator,
 } from '@ai-sdk/provider-utils';
 import {
   ChatStore,
@@ -33,7 +34,9 @@ export function defaultChatStore<
    * Schema for the message metadata. Validates the message metadata.
    * Message metadata can be undefined or must match the schema.
    */
-  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
 
   /**
    * Schema for the data types. Validates the data types.
