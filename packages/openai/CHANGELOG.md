@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 2.0.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [3f2f00c]
+  - @ai-sdk/provider@2.0.0-alpha.1
+  - @ai-sdk/provider-utils@3.0.0-alpha.1
+
 ## 2.0.0-canary.20
 
 ### Patch Changes
