@@ -118,7 +118,7 @@ Only applicable for HTTP-based providers.
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
   const maxImagesPerCallWithDefault =
-    maxImagesPerCall ?? model.maxImagesPerCall ?? 1;
+    maxImagesPerCall ?? (await invokeModelMaxImagesPerCall(model)) ?? 1;
 
   // parallelize calls to the model:
   const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
@@ -216,4 +216,16 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   get image() {
     return this.images[0];
   }
+}
+
+async function invokeModelMaxImagesPerCall(model: ImageModelV2) {
+  const isFunction = model.maxImagesPerCall instanceof Function;
+
+  if (!isFunction) {
+    return model.maxImagesPerCall;
+  }
+
+  return model.maxImagesPerCall({
+    modelId: model.modelId,
+  });
 }
