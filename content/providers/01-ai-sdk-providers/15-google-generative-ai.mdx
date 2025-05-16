@@ -132,6 +132,14 @@ The following optional settings are available for Google Generative AI models:
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
 
+- **useSearchGrounding** _boolean_
+
+  Optional. When enabled, the model will [use Google search to ground the response](https://ai.google.dev/gemini-api/docs/grounding).
+
+- **useCodeExecution** _boolean_
+
+  Optional. When enabled, the model will make use of a code execution tool that [enables the model to generate and run Python code](https://ai.google.dev/gemini-api/docs/code-execution).
+
 Further configuration can be done using Google Generative AI provider options. You can validate the provider options using the `GoogleGenerativeAIProviderOptions` type.
 
 ```ts
@@ -403,6 +411,116 @@ const { sources } = await generateText({
   prompt: 'List the top 5 San Francisco news from the past week.',
 });
 ```
+
+### Code Execution
+
+With [Code Execution](https://ai.google.dev/gemini-api/docs/code-execution), certain models can generate and execute Python code to perform calculations, solve problems, or provide more accurate information.
+
+To enable this feature, set `useCodeExecution: true` in the model settings:
+
+```ts highlight="4"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, providerMetadata, ...rest } = await generateText({
+  model: google('gemini-2.5-pro-preview-05-06', {
+    // Ensure model supports Code Execution
+    useCodeExecution: true,
+  }),
+  prompt:
+    'Calculate the 20th Fibonacci number. Then find the nearest palindrome to it.',
+});
+
+console.log('Final Text:', text);
+
+// For detailed execution steps (non-streaming):
+const rawBody = rest.response?.body as any; // Use appropriate type if available
+const parts = rawBody?.candidates?.[0]?.content?.parts;
+if (parts && Array.isArray(parts)) {
+  parts.forEach((part, index) => {
+    if ('executableCode' in part && part.executableCode) {
+      console.log(`\nPart ${index + 1}: Executable Code`);
+      console.log('Language:', part.executableCode.language);
+      console.log('Code:\n', part.executableCode.code);
+    } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
+      console.log(`\nPart ${index + 1}: Code Execution Result`);
+      console.log('Outcome:', part.codeExecutionResult.outcome);
+      console.log('Output:\n', part.codeExecutionResult.output);
+    } else if ('text' in part) {
+      // Regular text part
+      // console.log(`\nPart ${index + 1}: Text\n`, part.text);
+    }
+  });
+}
+```
+
+When Code Execution is enabled, the model's response might include sequences of `executableCode` and `codeExecutionResult` parts.
+
+- **`executableCode`**: Contains the `language` (e.g., "PYTHON") and the `code` that the model intends to run.
+- **`codeExecutionResult`**: Contains the `outcome` (e.g., "OUTCOME_OK") and the `output` from the executed code.
+
+#### Streaming Code Execution Details
+
+When using `streamText` with `useCodeExecution: true`, the steps of code generation and execution are surfaced as `text-delta` stream parts. You can identify them by their specific formatting:
+
+- An `executableCode` part from the API, indicating the code the model is about to run, is streamed as a `text-delta` event. The text will be formatted like:
+
+  ```
+  Executable Code (PYTHON):
+  # Python code to be executed
+  print(1 + 1)
+  ```
+
+- A `codeExecutionResult` part from the API, showing the outcome of the execution, is also streamed as a `text-delta` event. The text will be formatted like:
+  ```
+  Code Execution Result (Outcome: OUTCOME_OK):
+  # Output from the code execution
+  2
+  ```
+
+Here's an example of how you might process the stream:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { streamText } from 'ai';
+
+async function main() {
+  const result = await streamText({
+    model: google('gemini-2.5-flash-preview-04-17', {
+      useCodeExecution: true,
+    }),
+    prompt: 'What is the square root of 256 plus 7?',
+  });
+
+  for await (const part of result.fullStream) {
+    if (part.type === 'text-delta') {
+      // You can check the content of textDelta to identify
+      // executable code or results if needed for special handling.
+      if (part.textDelta.startsWith('Executable Code')) {
+        process.stdout.write(
+          `\n--- EXECUTABLE CODE ---\n${part.textDelta}\n-----------------------\n`,
+        );
+      } else if (part.textDelta.startsWith('Code Execution Result')) {
+        process.stdout.write(
+          `\n--- EXECUTION RESULT ---\n${part.textDelta}\n------------------------\n`,
+        );
+      } else {
+        process.stdout.write(part.textDelta);
+      }
+    }
+  }
+  console.log();
+}
+
+main();
+```
+
+<Note>
+  Code Execution capabilities and specific model support are subject to Google
+  Cloud's offerings. Always refer to the [official Google AI
+  documentation](https://ai.google.dev/gemini-api/docs/code-execution) for the
+  most current information on compatible models and features.
+</Note>
 
 ### Image Outputs
 

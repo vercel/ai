@@ -294,6 +294,10 @@ The following optional settings are available for Google Vertex models:
 
   Optional. When enabled, the model will [use Google search to ground the response](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview).
 
+- **useCodeExecution** _boolean_
+
+  Optional. When enabled, the model will make use of a code execution tool that enables the model to [generate and run Python code](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/code-execution).
+
 - **audioTimestamp** _boolean_
 
   Optional. Enables timestamp understanding for audio files. Defaults to false.
@@ -496,6 +500,112 @@ Example response excerpt:
 <Note>
   The Google Vertex provider does not yet support [dynamic retrieval mode and
   threshold](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#dynamic-retrieval).
+</Note>
+
+#### Code Execution
+
+With [Code Execution](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/code-execution), certain Gemini models on Vertex AI can generate and execute Python code. This allows the model to perform calculations, data manipulation, and other programmatic tasks to enhance its responses.
+
+To enable this feature, set `useCodeExecution: true` in the model settings when creating the Vertex model instance:
+
+```ts highlight="4"
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text, providerMetadata, ...rest } = await generateText({
+  model: vertex('gemini-1.5-pro', {
+    // Ensure model supports Code Execution on Vertex
+    useCodeExecution: true,
+  }),
+  prompt: 'What is the result of 7 factorial divided by 3 factorial?',
+});
+
+console.log('Final Text:', text);
+
+// For detailed execution steps (non-streaming):
+const rawBody = rest.response?.body as any; // Use appropriate type if available
+const parts = rawBody?.candidates?.[0]?.content?.parts;
+if (parts && Array.isArray(parts)) {
+  parts.forEach((part, index) => {
+    if ('executableCode' in part && part.executableCode) {
+      console.log(`\nPart ${index + 1}: Executable Code`);
+      console.log('Language:', part.executableCode.language);
+      console.log('Code:\n', part.executableCode.code);
+    } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
+      console.log(`\nPart ${index + 1}: Code Execution Result`);
+      console.log('Outcome:', part.codeExecutionResult.outcome);
+      console.log('Output:\n', part.codeExecutionResult.output);
+    }
+  });
+}
+```
+
+When Code Execution is active, the model's response (both in `generateText` and `streamText`) may include sequences of `executableCode` and `codeExecutionResult` parts within the raw content.
+
+- **`executableCode`**: Contains the `language` (typically "PYTHON") and the `code` the model generated and executed.
+- **`codeExecutionResult`**: Contains the `outcome` (e.g., "OUTCOME_OK") and the `output` from the code execution.
+
+##### Streaming Code Execution Details
+
+When using `streamText` with a Vertex model that has `useCodeExecution: true`, the code generation and execution steps are streamed as `text-delta` parts. You can identify them by their specific formatting:
+
+- An `executableCode` part from the API, indicating the code the model generated for execution, is streamed as a `text-delta` event. The text will be formatted like:
+
+  ```
+  Executable Code (PYTHON):
+  # Python code to be executed
+  print(5**3)
+  ```
+
+- A `codeExecutionResult` part from the API, showing the outcome of the execution, is also streamed as a `text-delta` event. The text will be formatted like:
+  ```
+  Code Execution Result (Outcome: OUTCOME_OK):
+  # Output from the code execution
+  125
+  ```
+
+Here's an example of how you might process the stream:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { streamText } from 'ai';
+
+async function main() {
+  const result = await streamText({
+    model: vertex('gemini-2.5-flash-preview-04-17', {
+      useCodeExecution: true,
+    }),
+    prompt: 'Calculate 5 to the power of 3.',
+  });
+
+  for await (const part of result.fullStream) {
+    if (part.type === 'text-delta') {
+      // You can check the content of textDelta to identify
+      // executable code or results if needed for special handling.
+      if (part.textDelta.startsWith('Executable Code')) {
+        process.stdout.write(
+          `\n--- EXECUTABLE CODE ---\n${part.textDelta}\n-----------------------\n`,
+        );
+      } else if (part.textDelta.startsWith('Code Execution Result')) {
+        process.stdout.write(
+          `\n--- EXECUTION RESULT ---\n${part.textDelta}\n------------------------\n`,
+        );
+      } else {
+        process.stdout.write(part.textDelta);
+      }
+    }
+  }
+  console.log();
+}
+
+main();
+```
+
+<Note>
+  Code Execution capabilities and specific model support on Vertex AI are
+  subject to Google Cloud's offerings. Always refer to the [official Vertex AI
+  documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/code-execution-api)
+  for the most current information on compatible models and features.
 </Note>
 
 ### Sources
