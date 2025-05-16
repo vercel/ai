@@ -2167,7 +2167,7 @@ describe('stop', () => {
   });
 });
 
-describe.only('experimental_throttle', () => {
+describe('experimental_throttle', () => {
   const throttleMs = 50;
 
   setupTestComponent(() => {
