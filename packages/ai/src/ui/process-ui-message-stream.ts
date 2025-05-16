@@ -373,7 +373,7 @@ export function processUIMessageStream<
             default: {
               if (isDataUIMessageStreamPart(part)) {
                 // TODO improve type safety
-                const existingPart =
+                const existingPart: any =
                   part.id != null
                     ? state.message.parts.find(
                         (partArg: any) =>
@@ -383,10 +383,14 @@ export function processUIMessageStream<
 
                 if (existingPart != null) {
                   // TODO improve type safety
-                  (existingPart as any).value = mergeObjects(
-                    (existingPart as any).data,
-                    part.data as any,
-                  );
+                  if (isObject(existingPart.data) && isObject(part.data)) {
+                    existingPart.value = mergeObjects(
+                      existingPart.data,
+                      part.data,
+                    );
+                  } else {
+                    existingPart.data = part.data;
+                  }
                 } else {
                   // TODO improve type safety
                   state.message.parts.push(part as any);
@@ -408,4 +412,8 @@ function isToolInvocationUIPart(
   part: UIMessagePart<any>,
 ): part is ToolInvocationUIPart {
   return part.type === 'tool-invocation';
+}
+
+function isObject(value: unknown): value is object {
+  return typeof value === 'object' && value !== null;
 }

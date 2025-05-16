@@ -45,14 +45,14 @@ export default function Chat() {
                   minWidth: '180px',
                 }}
               >
-                {part.value.status === 'loading' ? (
+                {part.data.status === 'loading' ? (
                   <>
-                    Getting weather for <b>{part.value.city}</b>...
+                    Getting weather for <b>{part.data.city}</b>...
                   </>
-                ) : part.value.status === 'success' ? (
+                ) : part.data.status === 'success' ? (
                   <>
-                    Weather in <b>{part.value.city}</b>:{' '}
-                    <b>{part.value.weather}</b>
+                    Weather in <b>{part.data.city}</b>:{' '}
+                    <b>{part.data.weather}</b>
                   </>
                 ) : (
                   <>Unknown weather state</>
