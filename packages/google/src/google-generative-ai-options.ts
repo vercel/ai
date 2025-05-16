@@ -51,6 +51,15 @@ export const googleGenerativeAIProviderOptions = z.object({
   thinkingConfig: z
     .object({
       thinkingBudget: z.number().optional(),
+      /**
+       * Optional. Set to true to include thinking process information in the response.
+       * This is primarily for use with Google Vertex AI, as behavior with other
+       * Google Generative AI endpoints might vary or not be fully supported.
+       *
+       * @see https://ai.google.dev/gemini-api/docs/thinking (for general concept)
+       * @see https://cloud.google.com/vertex-ai/generative-ai/docs/thinking (Vertex specific)
+       */
+      includeThoughts: z.boolean().optional(),
     })
     .optional(),
 
@@ -130,6 +139,17 @@ Optional. Specifies the dynamic retrieval configuration.
 @see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval
  */
   dynamicRetrievalConfig: dynamicRetrievalConfig.optional(),
+  /**
+Optional. When enabled, the model will make use of a code execution tool that
+enables the model to generate and run Python code.
+
+@note Ensure the selected model supports Code Execution.
+Multi-tool usage with the code execution tool is typically compatible with Flash experimental models.
+
+@see https://ai.google.dev/gemini-api/docs/code-execution (Google AI)
+@see https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/code-execution-api (Vertex AI)
+   */
+  useCodeExecution: z.boolean().optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<

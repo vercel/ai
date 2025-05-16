@@ -15,36 +15,39 @@ export function prepareTools({
   useSearchGrounding,
   dynamicRetrievalConfig,
   modelId,
+  useCodeExecution,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   useSearchGrounding: boolean;
   dynamicRetrievalConfig: DynamicRetrievalConfig | undefined;
   modelId: GoogleGenerativeAIModelId;
+  useCodeExecution: boolean;
 }): {
   tools:
-    | undefined
-    | {
-        functionDeclarations: Array<{
-          name: string;
-          description: string | undefined;
-          parameters: unknown;
-        }>;
-      }
-    | {
-        googleSearchRetrieval:
-          | Record<string, never>
-          | { dynamicRetrievalConfig: DynamicRetrievalConfig };
-      }
-    | { googleSearch: Record<string, never> };
+  | undefined
+  | {
+    functionDeclarations: Array<{
+      name: string;
+      description: string | undefined;
+      parameters: unknown;
+    }>;
+  }
+  | {
+    googleSearchRetrieval:
+    | Record<string, never>
+    | { dynamicRetrievalConfig: DynamicRetrievalConfig };
+  }
+  | { googleSearch: Record<string, never> }
+  | { codeExecution: Record<string, never> };
   toolConfig:
-    | undefined
-    | {
-        functionCallingConfig: {
-          mode: 'AUTO' | 'NONE' | 'ANY';
-          allowedFunctionNames?: string[];
-        };
-      };
+  | undefined
+  | {
+    functionCallingConfig: {
+      mode: 'AUTO' | 'NONE' | 'ANY';
+      allowedFunctionNames?: string[];
+    };
+  };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -56,16 +59,48 @@ export function prepareTools({
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
 
+  if ((useSearchGrounding || useCodeExecution) && tools) {
+    throw new UnsupportedFunctionalityError({
+      functionality:
+        'Provider-defined tools (useSearchGrounding or useCodeExecution) ' +
+        'cannot be used in combination with user-defined tools. ' +
+        'Please disable either the provider tools or your custom tools.',
+    });
+  }
+
+  // Ensure mutual exclusivity of provider-defined tools
+  if (useSearchGrounding && useCodeExecution) {
+    throw new UnsupportedFunctionalityError({
+      functionality:
+        'useSearchGrounding and useCodeExecution cannot be enabled simultaneously for this API version.',
+    });
+  }
+
+  if (useCodeExecution) {
+    // Add model compatibility check for code execution if necessary
+    // For example, if only specific models support it:
+    if (!isGemini2) { // Replace with actual model check for code execution
+      throw new UnsupportedFunctionalityError({
+        functionality: `Code Execution is not supported for model ${modelId}. It requires a Gemini 2 or compatible model.`,
+      });
+    }
+    return {
+      tools: { codeExecution: {} },
+      toolConfig: undefined,
+      toolWarnings,
+    };
+  }
+
   if (useSearchGrounding) {
     return {
       tools: isGemini2
         ? { googleSearch: {} }
         : {
-            googleSearchRetrieval:
-              !supportsDynamicRetrieval || !dynamicRetrievalConfig
-                ? {}
-                : { dynamicRetrievalConfig },
-          },
+          googleSearchRetrieval:
+            !supportsDynamicRetrieval || !dynamicRetrievalConfig
+              ? {}
+              : { dynamicRetrievalConfig },
+        },
       toolConfig: undefined,
       toolWarnings,
     };
