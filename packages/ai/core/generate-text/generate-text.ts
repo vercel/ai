@@ -35,6 +35,7 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
+import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -302,7 +303,7 @@ A function that attempts to repair a tool call that failed to parse.
                 'ai.model.id': stepModel.modelId,
                 // prompt:
                 'ai.prompt.messages': {
-                  input: () => JSON.stringify(promptMessages),
+                  input: () => stringifyForTelemetry(promptMessages),
                 },
                 'ai.prompt.tools': {
                   // convert the language model level tools:

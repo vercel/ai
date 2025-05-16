@@ -64,6 +64,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -848,7 +849,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   }),
                   ...baseTelemetryAttributes,
                   'ai.prompt.messages': {
-                    input: () => JSON.stringify(promptMessages),
+                    input: () => stringifyForTelemetry(promptMessages),
                   },
                   'ai.prompt.tools': {
                     // convert the language model level tools:
