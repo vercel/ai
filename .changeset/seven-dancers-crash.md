@@ -2,4 +2,4 @@
 'ai': major
 ---
 
-chore (ai): rename id in post request to chatId
+chore (ai): rename id to chatId (in post request, resume request, and useChat)
