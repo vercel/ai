@@ -475,7 +475,10 @@ export class ChatStore<
 
       const runUpdateMessageJob = (
         job: (options: {
-          state: StreamingUIMessageState<MESSAGE_METADATA>;
+          state: StreamingUIMessageState<
+            MESSAGE_METADATA,
+            UI_DATA_PART_SCHEMAS
+          >;
           write: () => void;
         }) => Promise<void>,
       ) =>
@@ -511,6 +514,7 @@ export class ChatStore<
           stream,
           onToolCall,
           messageMetadataSchema: self.messageMetadataSchema,
+          dataPartSchemas: self.dataPartSchemas,
           runUpdateMessageJob,
         }),
         onError: error => {
