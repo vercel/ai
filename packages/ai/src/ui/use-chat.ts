@@ -4,8 +4,8 @@ import {
   Schema,
   ToolCall,
 } from '@ai-sdk/provider-utils';
-import { ChatStore } from './chat-store';
-import { UIDataTypes, UIMessage } from './ui-messages';
+import { ChatStore, InferUIDataParts, UIDataPartSchemas } from './chat-store';
+import { UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
   /**
@@ -21,14 +21,14 @@ export type ChatRequestOptions = {
 
 export type UseChatOptions<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
    * generated. When provided, the `useChat` hook with the same `id` will
    * have shared states across components.
    */
-  id?: string;
+  chatId?: string;
 
   /**
    * Initial input of the chat.
@@ -54,7 +54,7 @@ export type UseChatOptions<
    * @param message The message that was streamed.
    */
   onFinish?: (options: {
-    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>;
+    message: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_TYPE_SCHEMAS>>;
   }) => void;
 
   /**
@@ -71,7 +71,7 @@ export type UseChatOptions<
   /**
    * Optional chat store. Default is used when not provided.
    */
-  chatStore?: ChatStore<MESSAGE_METADATA, DATA_TYPES>;
+  chatStore?: ChatStore<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>;
 };
 
 export type OriginalUseChatOptions<MESSAGE_METADATA = unknown> = {
@@ -92,7 +92,7 @@ export type OriginalUseChatOptions<MESSAGE_METADATA = unknown> = {
    * generated. When provided, the `useChat` hook with the same `id` will
    * have shared states across components.
    */
-  id?: string;
+  chatId?: string;
 
   /**
    * Initial messages of the chat. Useful to load an existing chat history.

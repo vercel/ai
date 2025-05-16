@@ -10,5 +10,5 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const messages = (await loadChat(id)) as UIMessage<{ createdAt: string }>[];
 
   // display the chat:
-  return <Chat id={id} initialMessages={messages} />;
+  return <Chat chatId={id} initialMessages={messages} />;
 }

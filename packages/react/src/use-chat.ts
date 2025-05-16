@@ -1,13 +1,15 @@
+import { Validator } from '@ai-sdk/provider-utils';
 import {
   ChatStore,
   convertFileListToFileUIParts,
   defaultChatStore,
   generateId as generateIdFunc,
+  InferUIDataTypes,
+  UIDataTypesSchemas,
   type ChatRequestOptions,
   type ChatStoreEvent,
   type CreateUIMessage,
   type FileUIPart,
-  type UIDataTypes,
   type UIMessage,
   type UseChatOptions,
 } from 'ai';
@@ -17,12 +19,12 @@ export type { CreateUIMessage, UIMessage, UseChatOptions };
 
 export type UseChatHelpers<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  DATA_TYPE_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
 > = {
   /**
    * The id of the chat.
    */
-  readonly id: string;
+  readonly chatId: string;
 
   /**
    * Hook status:
@@ -35,7 +37,10 @@ export type UseChatHelpers<
   readonly status: 'submitted' | 'streaming' | 'ready' | 'error';
 
   /** Current messages in the chat */
-  readonly messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  readonly messages: UIMessage<
+    MESSAGE_METADATA,
+    InferUIDataTypes<DATA_TYPE_SCHEMAS>
+  >[];
 
   /** The error object of the API request */
   readonly error: undefined | Error;
@@ -48,7 +53,10 @@ export type UseChatHelpers<
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: CreateUIMessage<MESSAGE_METADATA, DATA_TYPES>,
+    message: CreateUIMessage<
+      MESSAGE_METADATA,
+      InferUIDataTypes<DATA_TYPE_SCHEMAS>
+    >,
     options?: ChatRequestOptions,
   ) => Promise<void>;
 
@@ -78,10 +86,16 @@ export type UseChatHelpers<
    */
   setMessages: (
     messages:
-      | UIMessage<MESSAGE_METADATA, DATA_TYPES>[]
+      | UIMessage<MESSAGE_METADATA, InferUIDataTypes<DATA_TYPE_SCHEMAS>>[]
       | ((
-          messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[],
-        ) => UIMessage<MESSAGE_METADATA, DATA_TYPES>[]),
+          messages: UIMessage<
+            MESSAGE_METADATA,
+            InferUIDataTypes<DATA_TYPE_SCHEMAS>
+          >[],
+        ) => UIMessage<
+          MESSAGE_METADATA,
+          InferUIDataTypes<DATA_TYPE_SCHEMAS>
+        >[]),
   ) => void;
 
   /** The current value of the input */
@@ -116,9 +130,9 @@ export type UseChatHelpers<
 
 export function useChat<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends Record<string, unknown> = Record<string, unknown>,
+  DATA_TYPE_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
 >({
-  id,
+  chatId,
   initialInput = '',
   onToolCall,
   onFinish,
@@ -126,32 +140,32 @@ export function useChat<
   generateId = generateIdFunc,
   experimental_throttle: throttleWaitMs,
   chatStore: chatStoreArg,
-}: UseChatOptions<MESSAGE_METADATA, DATA_TYPES> & {
+}: UseChatOptions<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-} = {}): UseChatHelpers<MESSAGE_METADATA, DATA_TYPES> {
+} = {}): UseChatHelpers<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
-  const chatId = id ?? hookId;
+  const stableChatId = chatId ?? hookId;
 
   // chat store setup
   // TODO enable as arg
   const chatStore = useRef(
     chatStoreArg ??
-      defaultChatStore<MESSAGE_METADATA, DATA_TYPES>({
+      defaultChatStore<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>({
         api: '/api/chat',
         generateId,
       }),
   );
 
   // ensure the chat is in the store
-  if (!chatStore.current.hasChat(chatId)) {
-    chatStore.current.addChat(chatId, []);
+  if (!chatStore.current.hasChat(stableChatId)) {
+    chatStore.current.addChat(stableChatId, []);
   }
 
   const subscribe = useCallback(
@@ -164,7 +178,7 @@ Default is undefined, which disables throttling.
     }) => {
       return chatStore.current.subscribe({
         onChatChanged: event => {
-          if (event.chatId !== chatId || event.type !== eventType) {
+          if (event.chatId !== stableChatId || event.type !== eventType) {
             return;
           }
 
@@ -172,22 +186,24 @@ Default is undefined, which disables throttling.
         },
       });
     },
-    [chatStore, chatId],
+    [chatStore, stableChatId],
   );
 
   const addToolResult = useCallback(
     (
       options: Omit<
-        Parameters<ChatStore<MESSAGE_METADATA, DATA_TYPES>['addToolResult']>[0],
+        Parameters<
+          ChatStore<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>['addToolResult']
+        >[0],
         'chatId'
       >,
-    ) => chatStore.current.addToolResult({ chatId, ...options }),
-    [chatStore, chatId],
+    ) => chatStore.current.addToolResult({ chatId: stableChatId, ...options }),
+    [chatStore, stableChatId],
   );
 
   const stopStream = useCallback(() => {
-    chatStore.current.stopStream({ chatId });
-  }, [chatStore, chatId]);
+    chatStore.current.stopStream({ chatId: stableChatId });
+  }, [chatStore, stableChatId]);
 
   const error = useSyncExternalStore(
     callback =>
@@ -195,8 +211,8 @@ Default is undefined, which disables throttling.
         onStoreChange: callback,
         eventType: 'chat-status-changed',
       }),
-    () => chatStore.current.getError(chatId),
-    () => chatStore.current.getError(chatId),
+    () => chatStore.current.getError(stableChatId),
+    () => chatStore.current.getError(stableChatId),
   );
 
   const status = useSyncExternalStore(
@@ -205,8 +221,8 @@ Default is undefined, which disables throttling.
         onStoreChange: callback,
         eventType: 'chat-status-changed',
       }),
-    () => chatStore.current.getStatus(chatId),
-    () => chatStore.current.getStatus(chatId),
+    () => chatStore.current.getStatus(stableChatId),
+    () => chatStore.current.getStatus(stableChatId),
   );
 
   const messages = useSyncExternalStore(
@@ -216,17 +232,20 @@ Default is undefined, which disables throttling.
         eventType: 'chat-messages-changed',
       });
     },
-    () => chatStore.current.getMessages(chatId),
-    () => chatStore.current.getMessages(chatId),
+    () => chatStore.current.getMessages(stableChatId),
+    () => chatStore.current.getMessages(stableChatId),
   );
 
   const append = useCallback(
     (
-      message: CreateUIMessage<MESSAGE_METADATA, DATA_TYPES>,
+      message: CreateUIMessage<
+        MESSAGE_METADATA,
+        InferUIDataTypes<DATA_TYPE_SCHEMAS>
+      >,
       { headers, body }: ChatRequestOptions = {},
     ) =>
       chatStore.current.submitMessage({
-        chatId,
+        chatId: stableChatId,
         message,
         headers,
         body,
@@ -234,52 +253,58 @@ Default is undefined, which disables throttling.
         onToolCall,
         onFinish,
       }),
-    [chatStore, chatId, onError, onToolCall, onFinish],
+    [chatStore, stableChatId, onError, onToolCall, onFinish],
   );
 
   const reload = useCallback(
     async ({ headers, body }: ChatRequestOptions = {}) =>
       chatStore.current.resubmitLastUserMessage({
-        chatId,
+        chatId: stableChatId,
         headers,
         body,
         onError,
         onToolCall,
         onFinish,
       }),
-    [chatStore, chatId, onError, onToolCall, onFinish],
+    [chatStore, stableChatId, onError, onToolCall, onFinish],
   );
   const stop = useCallback(() => stopStream(), [stopStream]);
 
   const experimental_resume = useCallback(
     async () =>
       chatStore.current.resumeStream({
-        chatId,
+        chatId: stableChatId,
         onError,
         onToolCall,
         onFinish,
       }),
-    [chatStore, chatId, onError, onToolCall, onFinish],
+    [chatStore, stableChatId, onError, onToolCall, onFinish],
   );
 
   const setMessages = useCallback(
     (
       messagesParam:
-        | UIMessage<MESSAGE_METADATA, DATA_TYPES>[]
+        | UIMessage<MESSAGE_METADATA, InferUIDataTypes<DATA_TYPE_SCHEMAS>>[]
         | ((
-            messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[],
-          ) => UIMessage<MESSAGE_METADATA, DATA_TYPES>[]),
+            messages: UIMessage<
+              MESSAGE_METADATA,
+              InferUIDataTypes<DATA_TYPE_SCHEMAS>
+            >[],
+          ) => UIMessage<
+            MESSAGE_METADATA,
+            InferUIDataTypes<DATA_TYPE_SCHEMAS>
+          >[]),
     ) => {
       if (typeof messagesParam === 'function') {
         messagesParam = messagesParam(messages);
       }
 
       chatStore.current.setMessages({
-        id: chatId,
+        id: stableChatId,
         messages: messagesParam,
       });
     },
-    [chatId, messages],
+    [stableChatId, messages],
   );
 
   // Input state and handlers.
@@ -324,7 +349,7 @@ Default is undefined, which disables throttling.
 
   return {
     messages,
-    id: chatId,
+    chatId: stableChatId,
     setMessages,
     error,
     append,

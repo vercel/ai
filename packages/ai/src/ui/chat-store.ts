@@ -1,8 +1,9 @@
 import {
   generateId as generateIdFunc,
   IdGenerator,
-  Schema,
+  StandardSchemaV1,
   ToolCall,
+  Validator,
 } from '@ai-sdk/provider-utils';
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
@@ -74,33 +75,66 @@ either synchronously or asynchronously.
   }) => void;
 };
 
+export type UIDataPartSchemas = Record<
+  string,
+  Validator<any> | StandardSchemaV1<any>
+>;
+
+export type InferUIDataParts<T extends UIDataPartSchemas> = {
+  [K in keyof T]: T[K] extends Validator<infer U>
+    ? U
+    : T[K] extends StandardSchemaV1<infer U>
+      ? U
+      : unknown;
+};
+
 export class ChatStore<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
 > {
-  private chats: Map<string, Chat<MESSAGE_METADATA, DATA_TYPES>>;
+  private chats: Map<
+    string,
+    Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
+  >;
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
-  private messageMetadataSchema: Schema<MESSAGE_METADATA> | undefined;
-  private transport: ChatTransport<MESSAGE_METADATA, DATA_TYPES>;
+  private messageMetadataSchema:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>
+    | undefined;
+  private dataPartSchemas: UI_DATA_PART_SCHEMAS | undefined;
+  private transport: ChatTransport<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  >;
   private maxSteps: number;
 
   constructor({
     chats = {},
     generateId,
-    messageMetadataSchema,
     transport,
     maxSteps = 1,
+    messageMetadataSchema,
+    dataPartSchemas,
   }: {
     chats?: {
       [id: string]: {
-        messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+        messages: UIMessage<
+          MESSAGE_METADATA,
+          InferUIDataParts<UI_DATA_PART_SCHEMAS>
+        >[];
       };
     };
     generateId?: UseChatOptions['generateId'];
-    messageMetadataSchema?: Schema<MESSAGE_METADATA>;
-    transport: ChatTransport<MESSAGE_METADATA, DATA_TYPES>;
+    transport: ChatTransport<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >;
     maxSteps?: number;
+    messageMetadataSchema?:
+      | Validator<MESSAGE_METADATA>
+      | StandardSchemaV1<MESSAGE_METADATA>;
+    dataPartSchemas?: UI_DATA_PART_SCHEMAS;
   }) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
@@ -120,13 +154,20 @@ export class ChatStore<
     this.subscribers = new Set();
     this.generateId = generateId ?? generateIdFunc;
     this.messageMetadataSchema = messageMetadataSchema;
+    this.dataPartSchemas = dataPartSchemas;
   }
 
   hasChat(id: string) {
     return this.chats.has(id);
   }
 
-  addChat(id: string, messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
+  addChat(
+    id: string,
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >[],
+  ) {
     this.chats.set(id, {
       messages,
       status: 'ready',
@@ -152,7 +193,10 @@ export class ChatStore<
     error,
   }: {
     id: string;
-    status: Chat<MESSAGE_METADATA, DATA_TYPES>['status'];
+    status: Chat<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >['status'];
     error?: Error;
   }) {
     const chat = this.getChat(id);
@@ -188,7 +232,10 @@ export class ChatStore<
     messages,
   }: {
     id: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >[];
   }) {
     // mutate the messages array directly:
     this.getChat(id).messages = [...messages];
@@ -219,9 +266,15 @@ export class ChatStore<
     onError,
     onToolCall,
     onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_TYPES> & {
+  }: ExtendedCallOptions<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  > & {
     chatId: string;
-    message: CreateUIMessage<MESSAGE_METADATA, DATA_TYPES>;
+    message: CreateUIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >;
   }) {
     const chat = this.getChat(chatId);
     const currentMessages = chat.messages;
@@ -247,7 +300,10 @@ export class ChatStore<
     onError,
     onToolCall,
     onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_TYPES> & {
+  }: ExtendedCallOptions<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  > & {
     chatId: string;
   }) {
     const messages = this.getChat(chatId).messages;
@@ -280,7 +336,10 @@ export class ChatStore<
     onError,
     onToolCall,
     onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_TYPES> & {
+  }: ExtendedCallOptions<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  > & {
     chatId: string;
   }) {
     const chat = this.getChat(chatId);
@@ -355,7 +414,9 @@ export class ChatStore<
     }
   }
 
-  private getChat(id: string): Chat<MESSAGE_METADATA, DATA_TYPES> {
+  private getChat(
+    id: string,
+  ): Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>> {
     if (!this.hasChat(id)) {
       throw new Error(`chat '${id}' not found`);
     }
@@ -371,9 +432,15 @@ export class ChatStore<
     onError,
     onToolCall,
     onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_TYPES> & {
+  }: ExtendedCallOptions<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  > & {
     chatId: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >[];
     requestType: 'generate' | 'resume';
   }) {
     const self = this;
@@ -411,7 +478,10 @@ export class ChatStore<
 
       const runUpdateMessageJob = (
         job: (options: {
-          state: StreamingUIMessageState<MESSAGE_METADATA>;
+          state: StreamingUIMessageState<
+            MESSAGE_METADATA,
+            UI_DATA_PART_SCHEMAS
+          >;
           write: () => void;
         }) => Promise<void>,
       ) =>
@@ -447,6 +517,7 @@ export class ChatStore<
           stream,
           onToolCall,
           messageMetadataSchema: self.messageMetadataSchema,
+          dataPartSchemas: self.dataPartSchemas,
           runUpdateMessageJob,
         }),
         onError: error => {

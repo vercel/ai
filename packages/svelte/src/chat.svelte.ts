@@ -236,7 +236,6 @@ export class Chat<
     });
   };
 
-  // maybe?
   destroy() {
     this.#cleanup?.();
     this.#unsubscribeFromStore?.();

@@ -25,7 +25,7 @@ export function Chat({
     stop,
     experimental_resume,
   } = useChat({
-    id: chatId,
+    chatId,
     chatStore: defaultChatStore({
       api: '/api/use-chat-resume',
       chats: {

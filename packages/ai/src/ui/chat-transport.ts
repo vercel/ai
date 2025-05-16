@@ -29,7 +29,7 @@ export class DefaultChatTransport<
   private streamProtocol?: 'ui-message' | 'text';
   private fetch?: FetchFunction;
   private prepareRequestBody?: (options: {
-    id: string;
+    chatId: string;
     messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
     requestBody?: object;
   }) => unknown;
@@ -92,7 +92,7 @@ export class DefaultChatTransport<
      * @param requestBody The request body object passed in the chat request.
      */
     prepareRequestBody?: (options: {
-      id: string;
+      chatId: string;
       messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
       requestBody?: object;
     }) => unknown;
@@ -123,12 +123,12 @@ export class DefaultChatTransport<
         ...headers,
       },
       body: this.prepareRequestBody?.({
-        id: chatId, // TODO change to chatId
+        chatId,
         messages,
         ...this.body,
         ...body,
       }) ?? {
-        id: chatId, // TODO change to chatId
+        chatId,
         messages,
         ...this.body,
         ...body,
