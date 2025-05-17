@@ -3,12 +3,7 @@
 exports[`convertToPerplexityMessages > assistant messages > should convert an assistant message with text content 1`] = `
 [
   {
-    "content": [
-      {
-        "text": "Assistant reply",
-        "type": "text",
-      },
-    ],
+    "content": "Assistant reply",
     "role": "assistant",
   },
 ]
@@ -46,12 +41,7 @@ exports[`convertToPerplexityMessages > user messages > should convert a user mes
 exports[`convertToPerplexityMessages > user messages > should convert a user message with text parts 1`] = `
 [
   {
-    "content": [
-      {
-        "text": "Hello World",
-        "type": "text",
-      },
-    ],
+    "content": "Hello World",
     "role": "user",
   },
 ]

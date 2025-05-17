@@ -123,7 +123,7 @@ describe('PerplexityLanguageModel', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', text: 'Hello' }],
+            content: 'Hello',
           },
         ],
       });
@@ -149,7 +149,7 @@ describe('PerplexityLanguageModel', () => {
         messages: [
           {
             role: 'user',
-            content: [{ type: 'text', text: 'Hello' }],
+            content: 'Hello',
           },
         ],
         search_recency_filter: 'month',
@@ -499,12 +499,7 @@ describe('PerplexityLanguageModel', () => {
         messages: [
           {
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Hello',
-              },
-            ],
+            content: 'Hello',
           },
         ],
         stream: true,
