@@ -1,5 +1,13 @@
 # ai-core-e2e-next-server
 
+## 0.0.1-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [b346545]
+- Updated dependencies [109c0ac]
+  - ai@5.0.0-alpha.1
+
 ## 0.0.1-canary.0
 
 ### Patch Changes
