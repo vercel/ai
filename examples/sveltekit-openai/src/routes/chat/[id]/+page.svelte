@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import ArrowUp from '$lib/components/icons/arrow-up.svelte';
   import Button from '$lib/components/ui/button/button.svelte';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
@@ -7,6 +8,9 @@
 
   const chat = new Chat({
     maxSteps: 5,
+    get id() {
+      return page.params.id;
+    },
 
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
@@ -108,6 +112,11 @@
     </div>
     <form class="relative" onsubmit={chat.handleSubmit}>
       <p>{chat.status}</p>
+      <div>
+        <a href="/chat/1">chat 1</a>
+        <a href="/chat/2">chat 2</a>
+        <a href="/chat/3">chat 3</a>
+      </div>
       <Textarea
         bind:value={chat.input}
         placeholder="Send a message..."

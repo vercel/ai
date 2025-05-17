@@ -1,4 +1,3 @@
-import { Validator } from '@ai-sdk/provider-utils';
 import {
   ChatStore,
   convertFileListToFileUIParts,

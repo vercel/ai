@@ -89,8 +89,8 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
 };
 
 export class ChatStore<
-  MESSAGE_METADATA,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
   private chats: Map<
     string,
@@ -278,7 +278,6 @@ export class ChatStore<
   }) {
     const chat = this.getChat(chatId);
     const currentMessages = chat.messages;
-
     await this.triggerRequest({
       chatId,
       messages: currentMessages.concat({

@@ -3,7 +3,7 @@ import { createContext, KeyedStore } from './utils.svelte.js';
 
 class ChatStore<MESSAGE_METADATA = unknown> {
   messages = $state<UIMessage<MESSAGE_METADATA>[]>([]);
-  data = $state<JSONValue[]>();
+  data: JSONValue[] = $state<JSONValue[]>([]);
   status = $state<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
   error = $state<Error>();
 }
