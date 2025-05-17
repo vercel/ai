@@ -388,14 +388,10 @@ export function processUIMessageStream<
 
                 if (existingPart != null) {
                   // TODO improve type safety
-                  if (isObject(existingPart.data) && isObject(part.data)) {
-                    existingPart.value = mergeObjects(
-                      existingPart.data,
-                      part.data,
-                    );
-                  } else {
-                    existingPart.data = part.data;
-                  }
+                  existingPart.data =
+                    isObject(existingPart.data) && isObject(part.data)
+                      ? mergeObjects(existingPart.data, part.data)
+                      : part.data;
                 } else {
                   // TODO improve type safety
                   state.message.parts.push(part as any);
