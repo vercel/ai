@@ -16,6 +16,7 @@ export function prepareTools({
   dynamicRetrievalConfig,
   modelId,
   useCodeExecution,
+  provider,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
@@ -23,6 +24,7 @@ export function prepareTools({
   dynamicRetrievalConfig: DynamicRetrievalConfig | undefined;
   modelId: GoogleGenerativeAIModelId;
   useCodeExecution: boolean;
+  provider: string;
 }): {
   tools:
     | undefined
@@ -37,6 +39,10 @@ export function prepareTools({
         googleSearchRetrieval:
           | Record<string, never>
           | { dynamicRetrievalConfig: DynamicRetrievalConfig };
+      }
+    | {
+        googleSearch: Record<string, never>;
+        codeExecution: Record<string, never>;
       }
     | { googleSearch: Record<string, never> }
     | { codeExecution: Record<string, never> };
@@ -70,10 +76,23 @@ export function prepareTools({
 
   // Ensure mutual exclusivity of provider-defined tools
   if (useSearchGrounding && useCodeExecution) {
-    throw new UnsupportedFunctionalityError({
-      functionality:
-        'useSearchGrounding and useCodeExecution cannot be enabled simultaneously for this API version.',
-    });
+    if (provider !== 'google.generative-ai') {
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'useSearchGrounding and useCodeExecution only be enabled simultaneously with the Google Generative AI provider.',
+      });
+    }
+    if (!isGemini2) {
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'useSearchGrounding cannot be used with useCodeExecution in Gemini <2 models.',
+      });
+    }
+    return {
+      tools: { codeExecution: {}, googleSearch: {} },
+      toolConfig: undefined,
+      toolWarnings,
+    };
   }
 
   if (useCodeExecution) {

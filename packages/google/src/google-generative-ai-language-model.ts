@@ -118,6 +118,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       dynamicRetrievalConfig: googleOptions?.dynamicRetrievalConfig,
       modelId: this.modelId,
       useCodeExecution: googleOptions?.useCodeExecution ?? false,
+      provider: this.provider,
     });
 
     warnings.push(...toolWarnings);
@@ -238,8 +239,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         // code execution: Execution result
       } else if (
         'codeExecutionResult' in part &&
-        part.codeExecutionResult != null &&
-        part.codeExecutionResult.outcome.length > 0
+        part.codeExecutionResult != null
       ) {
         content.push({
           type: 'text' as const,
