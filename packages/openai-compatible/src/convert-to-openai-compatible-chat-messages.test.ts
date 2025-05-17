@@ -1,3 +1,4 @@
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 
 describe('user messages', () => {
@@ -66,6 +67,89 @@ describe('user messages', () => {
         ],
       },
     ]);
+  });
+
+  it('should convert messages with file parts (PDF)', async () => {
+    const base64Pdf = 'JVBERi0xLjQKJVRlc3QgUERGIENvbnRlbnQK'; // "%PDF-1.4\n%Test PDF Content\n"
+
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'file',
+            data: base64Pdf,
+            mimeType: 'application/pdf',
+            filename: 'test.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'file',
+            file: {
+              filename: 'test.pdf',
+              file_data: `data:application/pdf;base64,${base64Pdf}`,
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with file parts (MP3)', async () => {
+    const base64Audio = 'SUQzBAAAAAAA...';
+
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Here is the audio:' },
+          {
+            type: 'file',
+            data: base64Audio,
+            mimeType: 'audio/mp3',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Here is the audio:' },
+          {
+            type: 'input_audio',
+            input_audio: { data: base64Audio, format: 'mp3' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for unsupported file mimeType', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'dGVzdA==', // 'test' em base64
+              mimeType: 'application/zip', // MimeType não suportado
+            },
+          ],
+        },
+      ]),
+    ).toThrowError(UnsupportedFunctionalityError);
   });
 });
 

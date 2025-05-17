@@ -28,7 +28,9 @@ export interface OpenAICompatibleUserMessage
 
 export type OpenAICompatibleContentPart =
   | OpenAICompatibleContentPartText
-  | OpenAICompatibleContentPartImage;
+  | OpenAICompatibleContentPartImage
+  | ChatCompletionContentPartInputAudio
+  | ChatCompletionContentPartFile;
 
 export interface OpenAICompatibleContentPartImage extends JsonRecord {
   type: 'image_url';
@@ -38,6 +40,16 @@ export interface OpenAICompatibleContentPartImage extends JsonRecord {
 export interface OpenAICompatibleContentPartText extends JsonRecord {
   type: 'text';
   text: string;
+}
+
+export interface ChatCompletionContentPartInputAudio {
+  type: 'input_audio';
+  input_audio: { data: string; format: 'wav' | 'mp3' };
+}
+
+export interface ChatCompletionContentPartFile {
+  type: 'file';
+  file: { filename: string; file_data: string };
 }
 
 export interface OpenAICompatibleAssistantMessage
