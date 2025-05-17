@@ -36,6 +36,7 @@ import { LanguageModelUsage } from '../types/usage';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -322,7 +323,7 @@ Default and recommended: 'auto' (best mode for the model).
               }),
               ...baseTelemetryAttributes,
               'ai.prompt.messages': {
-                input: () => JSON.stringify(promptMessages),
+                input: () => stringifyForTelemetry(promptMessages),
               },
 
               // standardized gen-ai llm span attributes:
