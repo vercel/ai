@@ -120,12 +120,7 @@ describe('PerplexityLanguageModel', () => {
       const requestBody = await jsonServer.calls[0].requestBody;
       expect(requestBody).toEqual({
         model: modelId,
-        messages: [
-          {
-            role: 'user',
-            content: 'Hello',
-          },
-        ],
+        messages: [{ role: 'user', content: 'Hello' }],
       });
     });
 
@@ -146,12 +141,7 @@ describe('PerplexityLanguageModel', () => {
       const requestBody = await jsonServer.calls[0].requestBody;
       expect(requestBody).toEqual({
         model: modelId,
-        messages: [
-          {
-            role: 'user',
-            content: 'Hello',
-          },
-        ],
+        messages: [{ role: 'user', content: 'Hello' }],
         search_recency_filter: 'month',
         return_images: true,
       });
@@ -496,12 +486,7 @@ describe('PerplexityLanguageModel', () => {
       const requestBody = await streamServer.calls[0].requestBody;
       expect(requestBody).toEqual({
         model: modelId,
-        messages: [
-          {
-            role: 'user',
-            content: 'Hello',
-          },
-        ],
+        messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
       });
     });

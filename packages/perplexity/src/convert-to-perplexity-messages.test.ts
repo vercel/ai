@@ -21,7 +21,10 @@ describe('convertToPerplexityMessages', () => {
         convertToPerplexityMessages([
           {
             role: 'user',
-            content: [{ type: 'text', text: 'Hello World' }],
+            content: [
+              { type: 'text', text: 'Hello ' },
+              { type: 'text', text: 'World' },
+            ],
           },
         ]),
       ).toMatchSnapshot();
@@ -33,7 +36,7 @@ describe('convertToPerplexityMessages', () => {
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Hello World' },
+              { type: 'text', text: 'Hello ' },
               {
                 type: 'image',
                 image: new Uint8Array([0, 1, 2, 3]),

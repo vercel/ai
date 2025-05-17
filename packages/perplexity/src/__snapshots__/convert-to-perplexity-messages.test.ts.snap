@@ -23,7 +23,7 @@ exports[`convertToPerplexityMessages > user messages > should convert a user mes
   {
     "content": [
       {
-        "text": "Hello World",
+        "text": "Hello ",
         "type": "text",
       },
       {
