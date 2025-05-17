@@ -1,6 +1,7 @@
 import {
   groundingMetadataSchema,
   safetyRatingSchema,
+  tokensDetailsSchema,
 } from './google-generative-ai-language-model';
 import { z } from 'zod';
 
@@ -31,7 +32,17 @@ export type GoogleGenerativeAIGroundingMetadata = z.infer<
 
 export type GoogleGenerativeAISafetyRating = z.infer<typeof safetyRatingSchema>;
 
+export type GoogleGenerativeAITokensDetails = z.infer<
+  typeof tokensDetailsSchema
+>;
+
 export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
+  cachedContentTokenCount: number | null;
+  thoughtsTokenCount: number | null;
+  promptTokensDetails: GoogleGenerativeAITokensDetails[] | null;
+  cacheTokensDetails: GoogleGenerativeAITokensDetails[] | null;
+  candidatesTokensDetails: GoogleGenerativeAITokensDetails[] | null;
+  toolUsePromptTokensDetails: GoogleGenerativeAITokensDetails[] | null;
 }
