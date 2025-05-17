@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.0-alpha.2
+
+### Patch Changes
+
+- 82aa95d: fix (ai): merge data ui stream parts correctly
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+  - @ai-sdk/provider-utils@3.0.0-alpha.2
+
 ## 5.0.0-alpha.1
 
 ### Major Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- 26535e0: release alpha.2
+
 ## 2.0.0-alpha.1
 
 ### Patch Changes
