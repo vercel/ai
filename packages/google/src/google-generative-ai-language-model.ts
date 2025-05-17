@@ -243,7 +243,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       ) {
         content.push({
           type: 'text' as const,
-          text: `Execution Result (Outcome: ${part.codeExecutionResult.outcome}):\n ${part.codeExecutionResult.output}`,
+          text: `Execution Result (Outcome: ${part.codeExecutionResult.outcome}):\n${part.codeExecutionResult.output}`,
         });
         // function calls
       } else if ('functionCall' in part) {
@@ -567,7 +567,7 @@ function getCodeExecutionResultStreamParts(
       // Ensure output might be empty but outcome is present
       const outputText = part.codeExecutionResult.output;
       // Only create a part if there's an outcome, even if output is empty.
-      if (part.codeExecutionResult.outcome.length > 0) {
+      if (part.codeExecutionResult != null) {
         const formattedText = `Execution Result (Outcome: ${part.codeExecutionResult.outcome}):\n${outputText}`;
         resultParts.push({ type: 'text', text: formattedText });
       }
