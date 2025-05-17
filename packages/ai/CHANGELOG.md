@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.16
+
+### Patch Changes
+
+- ed0ebeb: Avoid JSON.strinfigy on UInt8Arrays for telemetry
+
 ## 4.3.15
 
 ### Patch Changes
