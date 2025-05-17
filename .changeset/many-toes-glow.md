@@ -12,3 +12,5 @@
 ---
 
 fix (image-model): `specificationVersion: v1` -> `v2`
+
+Commit: https://github.com/vercel/ai/pull/5975

@@ -6,3 +6,5 @@
 ---
 
 chore(providers/openai): enable structuredOutputs by default & switch to provider option
+
+Commit: https://github.com/vercel/ai/pull/5990

@@ -4,3 +4,5 @@
 ---
 
 chore(providers/openai): remove & enable strict compatibility by default
+
+Commit: https://github.com/vercel/ai/pull/6169

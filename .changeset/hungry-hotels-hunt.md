@@ -5,3 +5,5 @@
 ---
 
 feat(embed-many): respect supportsParallelCalls & concurrency
+
+Commit: https://github.com/vercel/ai/pull/6108

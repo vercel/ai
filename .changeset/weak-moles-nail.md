@@ -7,3 +7,5 @@
 ---
 
 fix(providers): always use optional instead of mix of nullish for providerOptions
+
+Commit: https://github.com/vercel/ai/pull/6122
