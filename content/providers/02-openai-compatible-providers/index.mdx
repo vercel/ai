@@ -84,6 +84,52 @@ The first argument is the model id, e.g. `model-id`.
 const model = provider('model-id');
 ```
 
+## Supported Content Parts
+
+The `@ai-sdk/openai-compatible` package now supports additional content types beyond plain text, allowing you to send files and audio inputs directly in chat messages.
+
+### Supported Content Types:
+
+- **Text** (default)
+- **Files (application/pdf)**  
+  Files are sent using Base64 encoding. Example use case: sending a PDF document for analysis.
+- **Audio (audio/mp3, audio/mpeg, audio/wav)**  
+  Audio files are handled via the `input_audio` content part.
+
+### Example: Sending a PDF file
+
+````ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('model-id'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Please analyze this document:' },
+        {
+          type: 'file',
+          data: '<base64-encoded-pdf>',
+          mimeType: 'application/pdf',
+          filename: 'document.pdf',
+        },
+      ],
+    },
+  ],
+});
+```
+
+If you try to use unsupported MIME types, the SDK will throw an UnsupportedFunctionalityError to ensure compatibility with the API.
+
+
 ### Example
 
 You can use provider language models to generate text with the `generateText` function:
@@ -287,3 +333,4 @@ console.log(providerMetadata.myProvider.customMetric);
 ```
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.
+````
