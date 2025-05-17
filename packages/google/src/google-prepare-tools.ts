@@ -15,12 +15,16 @@ export function prepareTools({
   useSearchGrounding,
   dynamicRetrievalConfig,
   modelId,
+  useCodeExecution,
+  provider,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   useSearchGrounding: boolean;
   dynamicRetrievalConfig: DynamicRetrievalConfig | undefined;
   modelId: GoogleGenerativeAIModelId;
+  useCodeExecution: boolean;
+  provider: string;
 }): {
   tools:
     | undefined
@@ -36,7 +40,12 @@ export function prepareTools({
           | Record<string, never>
           | { dynamicRetrievalConfig: DynamicRetrievalConfig };
       }
-    | { googleSearch: Record<string, never> };
+    | {
+        googleSearch: Record<string, never>;
+        codeExecution: Record<string, never>;
+      }
+    | { googleSearch: Record<string, never> }
+    | { codeExecution: Record<string, never> };
   toolConfig:
     | undefined
     | {
@@ -55,6 +64,52 @@ export function prepareTools({
   const isGemini2 = modelId.includes('gemini-2');
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
+
+  if ((useSearchGrounding || useCodeExecution) && tools) {
+    throw new UnsupportedFunctionalityError({
+      functionality:
+        'Provider-defined tools (useSearchGrounding or useCodeExecution) ' +
+        'cannot be used in combination with user-defined tools. ' +
+        'Please disable either the provider tools or your custom tools.',
+    });
+  }
+
+  // Ensure mutual exclusivity of provider-defined tools
+  if (useSearchGrounding && useCodeExecution) {
+    if (provider !== 'google.generative-ai') {
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'useSearchGrounding and useCodeExecution only be enabled simultaneously with the Google Generative AI provider.',
+      });
+    }
+    if (!isGemini2) {
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'useSearchGrounding cannot be used with useCodeExecution in Gemini <2 models.',
+      });
+    }
+    return {
+      tools: { codeExecution: {}, googleSearch: {} },
+      toolConfig: undefined,
+      toolWarnings,
+    };
+  }
+
+  if (useCodeExecution) {
+    // Add model compatibility check for code execution if necessary
+    // For example, if only specific models support it:
+    if (!isGemini2) {
+      // Replace with actual model check for code execution
+      throw new UnsupportedFunctionalityError({
+        functionality: `Code Execution is not supported for model ${modelId}. It requires a Gemini 2 or compatible model.`,
+      });
+    }
+    return {
+      tools: { codeExecution: {} },
+      toolConfig: undefined,
+      toolWarnings,
+    };
+  }
 
   if (useSearchGrounding) {
     return {
