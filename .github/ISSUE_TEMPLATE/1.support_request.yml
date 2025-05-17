@@ -25,3 +25,11 @@ body:
         - @ai-sdk/openai: 0.5.2
     validations:
       required: false
+  - type: checkboxes
+    attributes:
+      label: Are you using v5?
+      description: Please indicate if you are using version 5 of the AI SDK
+      options:
+        - label: Yes, I am using v5 of the AI SDK
+          required: false
+          id: v5
