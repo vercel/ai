@@ -1,0 +1,124 @@
+---
+title: Arize AX
+description: Monitor, debug, and evaluate your AI SDK application with Arize AX
+---
+
+# Arize Observability
+
+[Arize](https://docs.arize.com/arize) is an **enterprise-grade ML observability platform** purpose-built for large-language-model (LLM) performance, reliability, and evaluation.  
+By integrating **Arize** with the Vercel AI SDK you can:
+
+- Capture OpenInference-compliant traces for every generation
+- Inspect prompts, responses, metadata, and cost
+- Group multiple calls into a single end-to-end trace
+- Run evaluations and dashboards in the Arize UI
+
+## Install Dependencies
+
+```bash
+# OpenInference helper
+npm i @arizeai/openinference-vercel
+
+# Vercel + OpenTelemetry runtime
+npm i @opentelemetry/api @vercel/otel @opentelemetry/exporter-trace-otlp-grpc @grpc/grpc-js
+```
+
+## Configure OpenTelemetry
+
+Create instrumentation.ts (or update your existing file) in your project root
+
+```ts
+import { registerOTel } from '@vercel/otel';
+import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import {
+  isOpenInferenceSpan,
+  OpenInferenceSimpleSpanProcessor,
+} from '@arizeai/openinference-vercel';
+import { Metadata } from '@grpc/grpc-js';
+import { OTLPTraceExporter as GrpcOTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
+
+// Optional debug logs
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+
+export function register() {
+  // ---- Arize-specific headers ----
+  const metadata = new Metadata();
+  metadata.set('space_id', process.env.ARIZE_SPACE_ID!); // from Arize UI
+  metadata.set('api_key', process.env.ARIZE_API_KEY!); // from Arize UI
+
+  registerOTel({
+    serviceName: 'your-service-name',
+    attributes: {
+      model_id: 'vercel-ai-app',
+      model_version: '1.0.0',
+    },
+    spanProcessors: [
+      new OpenInferenceSimpleSpanProcessor({
+        exporter: new GrpcOTLPTraceExporter({
+          url: 'https://otlp.arize.com', // Arize OTLP endpoint
+          metadata,
+        }),
+        spanFilter: span => isOpenInferenceSpan(span), // export only LLM spans
+      }),
+    ],
+  });
+}
+```
+
+## Add gRPC fallbacks for Next.js
+
+Because the Arize endpoint uses gRPC, the Node.js gRPC exporter needs polyfills in the browser build.
+Update (or create) `next.config.ts`:
+
+```ts
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  webpack(config) {
+    config.resolve.fallback = {
+      stream: false,
+      fs: false,
+      tls: false,
+      net: false,
+      zlib: false,
+      http: false,
+      url: false,
+      http2: false,
+      dns: false,
+      os: false,
+      path: false,
+    };
+    return config;
+  },
+};
+
+export default nextConfig;
+```
+
+## Enable Telemetry in AI SDK Calls
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a haiku about debugging.',
+  experimental_telemetry: {
+    isEnabled: true,
+    functionId: 'haiku-debug',
+    metadata: { userId: 'user-42' },
+  },
+});
+```
+
+All OpenInference spans are now streamed to Arize.
+
+## Visualize in the Arize UI
+
+1. Sign in at https://app.arize.com and open your Space.
+
+2. Navigate to LLM Tracing → Spans to see real-time traces.
+
+3. Filter by serviceName or model_id to inspect prompts, responses, and token usage.
+
+4. Use LLM Evaluation or Dashboards to assess quality and cost over time.
+
+Arize now captures every Vercel AI SDK generation—ready for monitoring, replay, and evaluation.
