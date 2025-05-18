@@ -68,6 +68,11 @@ type RenderText = Renderer<
        * If `true`, the `content` will be the final output and this call will be the last.
        */
       done: boolean;
+
+       /**
+         * The provider metadata.
+         */
+       providerMetadata: ProviderMetadata;
     },
   ]
 >;
@@ -206,6 +211,7 @@ functionality that can be fully encapsulated in the provider.
     rawResponse?: {
       headers?: Record<string, string>;
     };
+    providerMetadata: ProviderMetadata;
   } | null = null;
 
   async function render({
@@ -370,6 +376,7 @@ functionality that can be fully encapsulated in the provider.
               usage: calculateLanguageModelUsage(value.usage),
               warnings: result.warnings,
               rawResponse: result.rawResponse,
+              providerMetadata: result.providerMetadata,
             };
             break;
           }
@@ -379,7 +386,7 @@ functionality that can be fully encapsulated in the provider.
       if (!hasToolCall) {
         render({
           renderer: textRender,
-          args: [{ content, done: true }],
+          args: [{ content, done: true, providerMetadata: finishEvent?.providerMetadata || {} }],
           streamableUI: ui,
           isLastCall: true,
         });
