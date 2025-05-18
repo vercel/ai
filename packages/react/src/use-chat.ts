@@ -550,9 +550,13 @@ By default, it's set to 1, which means that only a single LLM call is made.
     [input, generateId, triggerRequest],
   );
 
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value);
-  };
+  const handleInputChange = useCallback(
+    (e: any) => {
+      setInput(e.target.value);
+    },
+    [setInput]
+  );
+    
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
