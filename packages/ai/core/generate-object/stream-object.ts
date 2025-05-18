@@ -40,6 +40,7 @@ import { LanguageModelUsage } from '../types/usage';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -517,7 +518,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 }),
                 ...baseTelemetryAttributes,
                 'ai.prompt.messages': {
-                  input: () => JSON.stringify(callOptions.prompt),
+                  input: () => stringifyForTelemetry(callOptions.prompt),
                 },
 
                 // standardized gen-ai llm span attributes:
