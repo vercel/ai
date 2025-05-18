@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.18
+
+### Patch Changes
+
+- 4b2e1b0: Add reasoning token output support for gemini models via Vertex AI Provider
+
 ## 1.2.17
 
 ### Patch Changes

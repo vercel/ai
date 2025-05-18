@@ -757,9 +757,11 @@ const mcpClient = await experimental_createMCPClient({
   // ...
 });
 
+const tools = await mcpClient.tools();
+
 const result = await streamText({
   model: openai('gpt-4o'),
-  tools: mcpClient.tools(),
+  tools,
   prompt: 'What is the weather in Brooklyn, New York?',
   onFinish: async () => {
     await mcpClient.close();
