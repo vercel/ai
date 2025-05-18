@@ -18,10 +18,12 @@ export function getPotentialStartIndex(
   }
 
   // Otherwise, look for the largest suffix of "text" that matches
-  // a prefix of "searchedText". We go from the end of text inward.
-  for (let i = text.length - 1; i >= 0; i--) {
+  // a prefix of "searchedText". We go from the beginning of text.
+  for (let i = 0; i < text.length; i++) {
     const suffix = text.substring(i);
     if (searchedText.startsWith(suffix)) {
+      // This is the starting index of the longest suffix of 'text'
+      // that is also a prefix of 'searchedText'.
       return i;
     }
   }
