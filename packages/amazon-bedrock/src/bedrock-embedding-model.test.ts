@@ -7,6 +7,11 @@ const mockEmbeddings = [
   [-0.08, 0.06, -0.03, 0.02, 0.03],
 ];
 
+const mockBinaryEmbeddings = [
+  [0, 1, 0, 1, 0],
+  [1, 0, 1, 0, 1],
+];
+
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
@@ -157,5 +162,47 @@ describe('doEmbed', () => {
     expect(requestHeaders['model-header']).toBe('model-value');
     expect(requestHeaders['signed-header']).toBe('signed-value');
     expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+  });
+
+  it('should work with binary embeddings', async () => {
+    const modelWithBinaryEmbeddings = new BedrockEmbeddingModel(
+      'amazon.titan-embed-text-v2:0',
+      { embeddingType: 'binary' },
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+      },
+    );
+
+    server.urls[embedUrl].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: Buffer.from(
+        JSON.stringify({
+          embeddingsByType: {
+            binary: mockBinaryEmbeddings[0],
+          },
+          inputTextTokenCount: 8,
+        }),
+      ),
+    };
+
+    const { embeddings } = await modelWithBinaryEmbeddings.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toStrictEqual(mockBinaryEmbeddings[0]);
+
+    const body = await server.calls[0].requestBody;
+    expect(body).toEqual({
+      inputText: testValues[0],
+      dimensions: undefined,
+      normalize: undefined,
+      embeddingTypes: ['binary'],
+    });
   });
 });
