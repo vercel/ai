@@ -117,18 +117,11 @@ export type ToolInvocationUIPart = {
  * A source part of a message.
  */
 export type SourceUIPart = {
-  type: 'source';
-
-  /**
-   * The source.
-   */
-  source: {
-    sourceType: 'url';
-    id: string;
-    url: string;
-    title?: string;
-    providerMetadata?: Record<string, any>;
-  };
+  type: 'source-url';
+  id: string;
+  url: string;
+  title?: string;
+  providerMetadata?: Record<string, any>;
 };
 
 /**
