@@ -392,6 +392,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       api,
       extraMetadataRef,
       onResponse,
+      onParts,
       onFinish,
       onError,
       setError,
@@ -420,11 +421,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
         headers,
         body,
         experimental_attachments = message.experimental_attachments,
+        experimental_attachmentGenerator,
       }: ChatRequestOptions = {},
     ) => {
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        experimental_attachments,
-      );
+      const attachmentsForRequest = experimental_attachmentGenerator
+        ? await experimental_attachmentGenerator()
+        : await prepareAttachmentsForRequest(experimental_attachments);
 
       const messages = messagesRef.current.concat({
         ...message,
@@ -524,9 +526,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
         };
       }
 
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        options.experimental_attachments,
-      );
+      const attachmentsForRequest = options?.experimental_attachmentGenerator
+        ? await options.experimental_attachmentGenerator()
+        : await prepareAttachmentsForRequest(options.experimental_attachments);
 
       const messages = messagesRef.current.concat({
         id: generateId(),

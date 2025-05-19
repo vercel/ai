@@ -269,6 +269,8 @@ Additional data to be sent to the API endpoint.
    * Allow submitting an empty message. Defaults to `false`.
    */
   allowEmptySubmit?: boolean;
+
+  experimental_attachmentGenerator?: () => Promise<Attachment[]> | Attachment[];
 };
 
 export type UseChatOptions = {
