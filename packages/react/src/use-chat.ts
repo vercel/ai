@@ -127,6 +127,7 @@ export function useChat({
   streamProtocol = 'data',
   onResponse,
   onFinish,
+  onParts,
   onError,
   credentials,
   headers,
@@ -152,7 +153,7 @@ export function useChat({
     messages: UIMessage[];
     requestData?: JSONValue;
     requestBody?: object;
-  }) => unknown;
+  }) => Promise<unknown> | unknown;
 
   /**
 Custom throttle wait in ms for the chat messages and data updates.
@@ -298,12 +299,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
         await callChatApi({
           api,
-          body: experimental_prepareRequestBody?.({
+          body: (await experimental_prepareRequestBody?.({
             id: chatId,
             messages: chatMessages,
             requestData: chatRequest.data,
             requestBody: chatRequest.body,
-          }) ?? {
+          })) ?? {
             id: chatId,
             messages: constructedMessagesPayload,
             data: chatRequest.data,
@@ -322,6 +323,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
               throttledMutate(previousMessages, false);
             }
           },
+          onParts,
           onResponse,
           onUpdate({ message, data, replaceLastMessage }) {
             mutateStatus('streaming');

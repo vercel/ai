@@ -1,6 +1,12 @@
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
-import { IdGenerator, JSONValue, UIMessage, UseChatOptions } from './types';
+import {
+  IdGenerator,
+  JSONValue,
+  onParts,
+  UIMessage,
+  UseChatOptions,
+} from './types';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -13,6 +19,7 @@ export async function callChatApi({
   headers,
   abortController,
   restoreMessagesOnFailure,
+  onParts,
   onResponse,
   onUpdate,
   onFinish,
@@ -29,6 +36,7 @@ export async function callChatApi({
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
   restoreMessagesOnFailure: () => void;
+  onParts?: onParts;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (options: {
     message: UIMessage;
@@ -105,6 +113,7 @@ export async function callChatApi({
         update: onUpdate,
         lastMessage,
         onToolCall,
+        onParts,
         onFinish({ message, finishReason, usage }) {
           if (onFinish && message != null) {
             onFinish(message, { usage, finishReason });
