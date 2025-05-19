@@ -34,7 +34,7 @@ export default function Chat() {
           {message.parts
             .filter(part => part.type === 'source-url')
             .map(part => (
-              <span key={`source-${part.id}`}>
+              <span key={`source-${part.sourceId}`}>
                 [
                 <a
                   href={part.url}

@@ -118,7 +118,7 @@ export type ToolInvocationUIPart = {
  */
 export type SourceUIPart = {
   type: 'source-url';
-  id: string;
+  sourceId: string;
   url: string;
   title?: string;
   providerMetadata?: Record<string, any>;

@@ -2619,8 +2619,8 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "id": "source-id",
                   "providerMetadata": undefined,
+                  "sourceId": "source-id",
                   "title": "Example",
                   "type": "source-url",
                   "url": "https://example.com",
@@ -2647,8 +2647,8 @@ describe('processUIMessageStream', () => {
               "type": "text",
             },
             {
-              "id": "source-id",
               "providerMetadata": undefined,
+              "sourceId": "source-id",
               "title": "Example",
               "type": "source-url",
               "url": "https://example.com",
