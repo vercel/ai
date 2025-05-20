@@ -533,6 +533,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.output = output;
     this.generateId = generateId;
 
+    // promise to ensure that the step has been fully processed by the event processor
+    // before a new step is started. This is required because the continuation condition
+    // needs the updated steps to determine if another step is needed.
+    let stepFinish!: DelayedPromise<void>;
+
     let activeReasoningPart:
       | undefined
       | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
@@ -651,6 +656,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           activeReasoningPart = undefined;
 
           recordedResponseMessages.push(...stepMessages);
+
+          // resolve the promise to signal that the step has been fully processed
+          // by the event processor:
+          stepFinish.resolve();
         }
 
         if (part.type === 'finish') {
@@ -809,6 +818,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
         }) {
+          stepFinish = new DelayedPromise<void>();
+
           const initialPrompt = await standardizePrompt({
             system,
             prompt,
@@ -898,7 +909,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             }),
           );
 
-          const transformedStream = runToolsTransformation({
+          const streamWithToolResults = runToolsTransformation({
             tools,
             generatorStream: stream,
             toolCallStreaming,
@@ -948,7 +959,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           }
 
           self.addStream(
-            transformedStream.pipeThrough(
+            streamWithToolResults.pipeThrough(
               new TransformStream<
                 SingleRequestTextStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
@@ -1153,6 +1164,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   });
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
+
+                  // wait for the step to be fully processed by the event processor
+                  // to ensure that the recorded steps are complete:
+                  await stepFinish.value;
 
                   if (
                     currentStep + 1 < maxSteps && // there are tool calls:

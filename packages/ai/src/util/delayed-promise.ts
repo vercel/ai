@@ -12,6 +12,7 @@ export class DelayedPromise<T> {
   private _resolve: undefined | ((value: T) => void) = undefined;
   private _reject: undefined | ((error: unknown) => void) = undefined;
 
+  // TODO: rename to promise
   get value(): Promise<T> {
     if (this.promise) {
       return this.promise;
