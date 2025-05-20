@@ -1107,13 +1107,13 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"source-url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+          "data: {"type":"source-url","sourceId":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
 
         ",
           "data: {"type":"text","text":"Hello!"}
 
         ",
-          "data: {"type":"source-url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+          "data: {"type":"source-url","sourceId":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
 
         ",
           "data: {"type":"finish-step"}

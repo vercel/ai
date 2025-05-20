@@ -199,7 +199,7 @@ export function processUIMessageStream<
             case 'source-url': {
               state.message.parts.push({
                 type: 'source-url',
-                sourceId: part.id,
+                sourceId: part.sourceId,
                 url: part.url,
                 title: part.title,
                 providerMetadata: part.providerMetadata,

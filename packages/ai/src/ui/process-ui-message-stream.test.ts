@@ -2549,7 +2549,7 @@ describe('processUIMessageStream', () => {
         { type: 'text', text: 'The weather in London is sunny.' },
         {
           type: 'source-url',
-          id: 'source-id',
+          sourceId: 'source-id',
           url: 'https://example.com',
           title: 'Example',
         },
