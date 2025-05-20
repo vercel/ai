@@ -8,17 +8,16 @@ export class DelayedPromise<T> {
     | { type: 'pending' }
     | { type: 'resolved'; value: T }
     | { type: 'rejected'; error: unknown } = { type: 'pending' };
-  private promise: Promise<T> | undefined;
+  private _promise: Promise<T> | undefined;
   private _resolve: undefined | ((value: T) => void) = undefined;
   private _reject: undefined | ((error: unknown) => void) = undefined;
 
-  // TODO: rename to promise
-  get value(): Promise<T> {
-    if (this.promise) {
-      return this.promise;
+  get promise(): Promise<T> {
+    if (this._promise) {
+      return this._promise;
     }
 
-    this.promise = new Promise<T>((resolve, reject) => {
+    this._promise = new Promise<T>((resolve, reject) => {
       if (this.status.type === 'resolved') {
         resolve(this.status.value);
       } else if (this.status.type === 'rejected') {
@@ -29,13 +28,13 @@ export class DelayedPromise<T> {
       this._reject = reject;
     });
 
-    return this.promise;
+    return this._promise;
   }
 
   resolve(value: T): void {
     this.status = { type: 'resolved', value };
 
-    if (this.promise) {
+    if (this._promise) {
       this._resolve?.(value);
     }
   }
@@ -43,7 +42,7 @@ export class DelayedPromise<T> {
   reject(error: unknown): void {
     this.status = { type: 'rejected', error };
 
-    if (this.promise) {
+    if (this._promise) {
       this._reject?.(error);
     }
   }

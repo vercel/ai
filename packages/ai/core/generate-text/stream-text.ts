@@ -439,13 +439,13 @@ function createOutputTransformStream<
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
 {
-  private readonly totalUsagePromise = new DelayedPromise<
+  private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
   >();
-  private readonly finishReasonPromise = new DelayedPromise<
+  private readonly _finishReason = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
   >();
-  private readonly stepsPromise = new DelayedPromise<
+  private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
   >();
 
@@ -669,11 +669,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           };
 
           // from finish:
-          self.finishReasonPromise.resolve(finishReason);
-          self.totalUsagePromise.resolve(totalUsage);
+          self._finishReason.resolve(finishReason);
+          self._totalUsage.resolve(totalUsage);
 
           // aggregate results:
-          self.stepsPromise.resolve(recordedSteps);
+          self._steps.resolve(recordedSteps);
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
@@ -1152,7 +1152,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   // wait for the step to be fully processed by the event processor
                   // to ensure that the recorded steps are complete:
-                  await stepFinish.value;
+                  await stepFinish.promise;
 
                   if (
                     stepToolCalls.length > 0 &&
@@ -1214,7 +1214,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get steps() {
-    return this.stepsPromise.value;
+    return this._steps.promise;
   }
 
   private get finalStep() {
@@ -1274,11 +1274,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get totalUsage() {
-    return this.totalUsagePromise.value;
+    return this._totalUsage.promise;
   }
 
   get finishReason() {
-    return this.finishReasonPromise.value;
+    return this._finishReason.promise;
   }
 
   /**
