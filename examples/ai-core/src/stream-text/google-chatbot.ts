@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { ModelMessage, streamText, tool } from 'ai';
+import { maxSteps, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
@@ -31,7 +31,7 @@ async function main() {
           }),
         }),
       },
-      maxSteps: 5,
+      continueUntil: maxSteps(5),
       messages,
     });
 
