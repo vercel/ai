@@ -1,10 +1,4 @@
-import {
-  ChatStore,
-  defaultChatStore,
-  type DefaultChatStoreOptions,
-  type UIDataTypesSchemas,
-} from 'ai';
-import { KeyedChatStore, setChatContext } from './chat-context.svelte.js';
+import { ChatStore, defaultChatStore } from 'ai';
 import { setChatStoreContext } from './chat-store-context.svelte.js';
 import {
   KeyedCompletionStore,
@@ -15,9 +9,8 @@ import {
   setStructuredObjectContext,
 } from './structured-object-context.svelte.js';
 
-export function createAIContext() {
-  const chatStore = new KeyedChatStore();
-  setChatContext(chatStore);
+export function createAIContext(chatStore?: ChatStore) {
+  createChatStoreContext(chatStore);
 
   const completionStore = new KeyedCompletionStore();
   setCompletionContext(completionStore);
@@ -26,16 +19,11 @@ export function createAIContext() {
   setStructuredObjectContext(objectStore);
 }
 
-export function createChatStoreContext<
-  MESSAGE_METADATA,
-  UI_DATA_PART_SCHEMAS extends UIDataTypesSchemas,
->(
-  options: DefaultChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> = {
-    api: '/api/chat',
-  },
-) {
-  const chatStore = defaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>(
-    options,
+export function createChatStoreContext(chatStore?: ChatStore) {
+  setChatStoreContext(
+    chatStore ??
+      defaultChatStore({
+        api: '/api/chat',
+      }),
   );
-  setChatStoreContext(chatStore as ChatStore);
 }

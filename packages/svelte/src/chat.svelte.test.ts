@@ -5,14 +5,17 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { render } from '@testing-library/svelte';
 import {
+  ChatStore,
+  defaultChatStore,
   getToolInvocations,
+  TextStreamChatTransport,
   type UIMessage,
   type UIMessageStreamPart,
 } from 'ai';
+import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
-import { promiseWithResolvers, withEffectRoot } from './utils.svelte.js';
-import { flushSync } from 'svelte';
+import { promiseWithResolvers } from './utils.svelte.js';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -302,8 +305,16 @@ describe('text stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
+    const generateId = mockId();
+
     chat = new Chat(() => ({
-      generateId: mockId(),
+      generateId,
+      chatStore: new ChatStore({
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
+        }),
+        generateId,
+      }),
     }));
   });
 
@@ -395,6 +406,11 @@ describe('text stream', () => {
     const onFinish = vi.fn();
     const chatWithOnFinish = new Chat(() => ({
       onFinish,
+      chatStore: new ChatStore({
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
+        }),
+      }),
     }));
     await chatWithOnFinish.append({
       role: 'user',
@@ -419,8 +435,15 @@ describe('form actions', () => {
   let chat: Chat;
 
   beforeEach(() => {
+    const generateId = mockId();
     chat = new Chat(() => ({
-      generateId: mockId(),
+      generateId,
+      chatStore: new ChatStore({
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
+        }),
+        generateId,
+      }),
     }));
   });
 
@@ -544,9 +567,14 @@ describe('tool invocations', () => {
   let chat: Chat;
 
   beforeEach(() => {
+    const generateId = mockId();
     chat = new Chat(() => ({
-      maxSteps: 5,
-      generateId: mockId(),
+      generateId,
+      chatStore: defaultChatStore({
+        api: '/api/chat',
+        maxSteps: 5,
+        generateId,
+      }),
     }));
   });
 
@@ -876,9 +904,12 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxSteps: 5,
         chatId: 'test-id',
-        generateId: mockId(),
+        chatStore: defaultChatStore({
+          api: '/api/chat',
+          generateId: mockId(),
+          maxSteps: 5,
+        }),
       }));
       onToolCallInvoked = false;
     });
@@ -962,7 +993,11 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxSteps: 5,
+        chatStore: defaultChatStore({
+          api: '/api/chat',
+          generateId: mockId(),
+          maxSteps: 5,
+        }),
       }));
       onToolCallCounter = 0;
     });
@@ -1466,49 +1501,6 @@ describe('test sending additional fields during message submission', () => {
         ],
       }
     `);
-  });
-});
-
-describe.skip('initialMessages', () => {
-  let chat: Chat;
-  let initialMessages = $state<UIMessage[]>([
-    {
-      id: 'test-msg-1',
-      role: 'user',
-      parts: [{ text: 'Test message 1', type: 'text' }],
-    },
-  ]);
-
-  beforeEach(() => {
-    chat = new Chat(() => ({
-      initialMessages,
-    }));
-  });
-
-  it('should not update messages when initialMessages changes', () => {
-    expect(chat.messages).toStrictEqual([
-      expect.objectContaining({
-        id: 'test-msg-1',
-        parts: [{ text: 'Test message 1', type: 'text' }],
-        role: 'user',
-      }),
-    ]);
-
-    initialMessages = [
-      {
-        id: 'test-msg-2',
-        role: 'user',
-        parts: [{ text: 'Test message 2', type: 'text' }],
-      },
-    ];
-
-    expect(chat.messages).toStrictEqual([
-      expect.objectContaining({
-        id: 'test-msg-1',
-        parts: [{ text: 'Test message 1', type: 'text' }],
-        role: 'user',
-      }),
-    ]);
   });
 });
 

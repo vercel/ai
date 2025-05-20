@@ -12,13 +12,13 @@ import {
   ChatStore,
   defaultChatStore,
   getToolInvocations,
+  TextStreamChatTransport,
   UIMessage,
   UIMessageStreamPart,
 } from 'ai';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
-import { TextStreamChatTransport } from '../../ai/src/ui/chat-transport';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;

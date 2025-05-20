@@ -8,19 +8,20 @@ import {
   type CreateUIMessage,
   type IdGenerator,
   type InferUIDataTypes,
-  type OriginalUseChatOptions,
   type UIDataTypesSchemas,
   type UIMessage,
+  type UseChatOptions,
 } from 'ai';
+import { createSubscriber } from 'svelte/reactivity';
 import {
   getChatStoreContext,
   hasChatStoreContext,
-} from './chat-store-context.svelte.js';
-import { createSubscriber } from 'svelte/reactivity';
+} from './chat-store-context.svelte';
 
-export type ChatOptions<MESSAGE_METADATA = unknown> = Readonly<
-  OriginalUseChatOptions<MESSAGE_METADATA>
->;
+export type ChatOptions<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPE_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
+> = Readonly<UseChatOptions<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>>;
 
 export type { CreateUIMessage, UIMessage };
 
@@ -28,14 +29,14 @@ export class Chat<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
 > {
-  readonly #options: ChatOptions<MESSAGE_METADATA>;
+  readonly #options: ChatOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>;
   readonly #generateId: IdGenerator;
   readonly #chatStore: ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>;
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
    */
-  readonly id: string;
+  readonly chatId: string;
   #subscribe: () => void;
 
   /** The current value of the input. Writable, so it can be bound to form inputs. */
@@ -52,7 +53,7 @@ export class Chat<
     InferUIDataTypes<UI_DATA_PART_SCHEMAS>
   >[] {
     this.#subscribe();
-    return this.#chatStore.getMessages(this.id);
+    return this.#chatStore.getMessages(this.chatId);
   }
   set messages(
     value: UIMessage<
@@ -60,7 +61,7 @@ export class Chat<
       InferUIDataTypes<UI_DATA_PART_SCHEMAS>
     >[],
   ) {
-    this.#chatStore.setMessages({ id: this.id, messages: value });
+    this.#chatStore.setMessages({ id: this.chatId, messages: value });
   }
 
   /**
@@ -73,27 +74,38 @@ export class Chat<
    */
   get status(): ChatStatus {
     this.#subscribe();
-    return this.#chatStore.getStatus(this.id);
+    return this.#chatStore.getStatus(this.chatId);
   }
   set status(value: ChatStatus) {
-    this.#chatStore.setStatus({ id: this.id, status: value });
+    this.#chatStore.setStatus({ id: this.chatId, status: value });
   }
 
   /** The error object of the API request */
   get error(): Error | undefined {
     this.#subscribe();
-    return this.#chatStore.getError(this.id);
+    return this.#chatStore.getError(this.chatId);
   }
   set error(value: Error | undefined) {
-    this.#chatStore.setStatus({ id: this.id, status: 'error', error: value });
+    this.#chatStore.setStatus({
+      id: this.chatId,
+      status: 'error',
+      error: value,
+    });
   }
 
-  constructor(options: () => ChatOptions<MESSAGE_METADATA> = () => ({})) {
+  constructor(
+    options: () => ChatOptions<
+      MESSAGE_METADATA,
+      UI_DATA_PART_SCHEMAS
+    > = () => ({}),
+  ) {
     this.#options = $derived.by(options);
     this.#generateId = $derived(this.#options.generateId ?? generateId);
-    this.id = $derived(this.#options.chatId ?? this.#generateId());
+    this.chatId = $derived(this.#options.chatId ?? this.#generateId());
 
-    if (hasChatStoreContext()) {
+    if (this.#options.chatStore) {
+      this.#chatStore = this.#options.chatStore;
+    } else if (hasChatStoreContext()) {
       this.#chatStore = getChatStoreContext() as ChatStore<
         MESSAGE_METADATA,
         UI_DATA_PART_SCHEMAS
@@ -103,10 +115,8 @@ export class Chat<
         MESSAGE_METADATA,
         UI_DATA_PART_SCHEMAS
       >({
-        api: this.#options.api || '/api/chat',
+        api: '/api/chat',
         generateId: this.#options.generateId || generateId,
-        maxSteps: this.#options.maxSteps,
-        // streamProtocol: this.#options.streamProtocol,
       });
     }
 
@@ -117,6 +127,10 @@ export class Chat<
         onChatChanged: update,
       });
     });
+
+    if (!this.#chatStore.hasChat(this.chatId)) {
+      this.#chatStore.addChat(this.chatId, this.messages);
+    }
   }
 
   /**
@@ -135,7 +149,7 @@ export class Chat<
     { headers, body }: ChatRequestOptions = {},
   ) => {
     await this.#chatStore.submitMessage({
-      chatId: this.id,
+      chatId: this.chatId,
       message,
       headers,
       body,
@@ -152,7 +166,7 @@ export class Chat<
    */
   reload = async ({ headers, body }: ChatRequestOptions = {}) => {
     await this.#chatStore.resubmitLastUserMessage({
-      chatId: this.id,
+      chatId: this.chatId,
       headers,
       body,
       onError: this.#options.onError,
@@ -165,7 +179,7 @@ export class Chat<
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = () => {
-    this.#chatStore.stopStream({ chatId: this.id });
+    this.#chatStore.stopStream({ chatId: this.chatId });
   };
 
   /** Form submission handler to automatically reset input and append a user message */
@@ -205,7 +219,7 @@ export class Chat<
     result: unknown;
   }) => {
     await this.#chatStore.addToolResult({
-      chatId: this.id,
+      chatId: this.chatId,
       toolCallId,
       result,
     });

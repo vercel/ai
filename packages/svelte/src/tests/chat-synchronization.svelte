@@ -1,14 +1,11 @@
 <script lang="ts">
+  import { defaultChatStore } from 'ai';
   import { Chat } from '../chat.svelte.js';
-  import {
-    createAIContext,
-    createChatStoreContext,
-  } from '../context-provider.js';
+  import { createAIContext } from '../context-provider.js';
 
   let { chatId }: { chatId?: string } = $props();
 
-  createAIContext();
-  createChatStoreContext();
+  createAIContext(defaultChatStore({ api: '/api/chat' }));
   const chat1 = new Chat(() => ({ chatId }));
   const chat2 = new Chat(() => ({ chatId }));
 
