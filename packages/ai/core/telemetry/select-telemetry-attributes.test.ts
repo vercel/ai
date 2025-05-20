@@ -99,6 +99,7 @@ it('should handle mixed attribute types correctly', () => {
       input: { input: () => 'input value' },
       output: { output: () => 'output value' },
       undefined: undefined,
+      someNull: null,
     },
   });
   expect(result).toEqual({
