@@ -14,7 +14,7 @@
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
         return cities[Math.floor(Math.random() * cities.length)];
       }
-    }
+    },
   }));
 
   const disabled = $derived(chat.status !== 'ready');
