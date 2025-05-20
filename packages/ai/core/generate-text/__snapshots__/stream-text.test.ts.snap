@@ -3505,9 +3505,8 @@ exports[`streamText > result.toUIMessageStream > should send source content when
         "custom": "value",
       },
     },
-    "sourceType": "url",
     "title": "Example",
-    "type": "source",
+    "type": "source-url",
     "url": "https://example.com",
   },
   {
@@ -3521,9 +3520,8 @@ exports[`streamText > result.toUIMessageStream > should send source content when
         "custom": "value2",
       },
     },
-    "sourceType": "url",
     "title": "Example 2",
-    "type": "source",
+    "type": "source-url",
     "url": "https://example.com/2",
   },
   {

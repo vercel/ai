@@ -124,9 +124,7 @@ export type UIMessageStreamPart =
       providerMetadata?: ProviderMetadata;
     }
   | {
-      // TODO evaluate flattening sources similar to data ui parts
-      type: 'source';
-      sourceType: 'url';
+      type: 'source-url';
       id: string;
       url: string;
       title?: string;

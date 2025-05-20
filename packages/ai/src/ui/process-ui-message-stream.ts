@@ -196,16 +196,13 @@ export function processUIMessageStream<
               break;
             }
 
-            case 'source': {
+            case 'source-url': {
               state.message.parts.push({
-                type: 'source',
-                source: {
-                  sourceType: 'url' as const,
-                  id: part.id,
-                  url: part.url,
-                  title: part.title,
-                  providerMetadata: part.providerMetadata,
-                },
+                type: 'source-url',
+                sourceId: part.id,
+                url: part.url,
+                title: part.title,
+                providerMetadata: part.providerMetadata,
               });
 
               write();
