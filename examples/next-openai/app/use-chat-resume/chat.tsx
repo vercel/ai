@@ -63,15 +63,13 @@ export function Chat({
 
           <div>
             <div className="text-sm text-zinc-500">{message.id}</div>
-            {message.parts
-              .filter(part => part.type !== 'source')
-              .map((part, partIndex) => {
-                if (part.type === 'text') {
-                  return (
-                    <div key={`${message.id}-${partIndex}`}>{part.text}</div>
-                  );
-                }
-              })}
+            {message.parts.map((part, partIndex) => {
+              if (part.type === 'text') {
+                return (
+                  <div key={`${message.id}-${partIndex}`}>{part.text}</div>
+                );
+              }
+            })}
           </div>
         </div>
       ))}
