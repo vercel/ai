@@ -9,8 +9,8 @@
 
   createAIContext();
   createChatStoreContext();
-  const chat1 = new Chat({ chatId });
-  const chat2 = new Chat({ chatId });
+  const chat1 = new Chat(() => ({ chatId }));
+  const chat2 = new Chat(() => ({ chatId }));
 
   export { chat1, chat2 };
 </script>

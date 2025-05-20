@@ -6,6 +6,7 @@ import {
   type ChatRequestOptions,
   type ChatStatus,
   type CreateUIMessage,
+  type IdGenerator,
   type InferUIDataTypes,
   type OriginalUseChatOptions,
   type UIDataTypesSchemas,
@@ -15,6 +16,7 @@ import {
   getChatStoreContext,
   hasChatStoreContext,
 } from './chat-store-context.svelte.js';
+import { createSubscriber } from 'svelte/reactivity';
 
 export type ChatOptions<MESSAGE_METADATA = unknown> = Readonly<
   OriginalUseChatOptions<MESSAGE_METADATA>
@@ -26,37 +28,18 @@ export class Chat<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
 > {
-  readonly #options: ChatOptions<MESSAGE_METADATA> = {};
-  readonly #generateId = $derived(this.#options.generateId ?? generateId);
-  readonly #chatStore =
-    $state<ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>>()!;
-
+  readonly #options: ChatOptions<MESSAGE_METADATA>;
+  readonly #generateId: IdGenerator;
+  readonly #chatStore: ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>;
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
    */
-  readonly id = $derived(this.#options.chatId ?? this.#generateId());
-
-  #messages = $state<
-    UIMessage<MESSAGE_METADATA, InferUIDataTypes<UI_DATA_PART_SCHEMAS>>[]
-  >([]);
-  /**
-   * Hook status:
-   *
-   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
-   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
-   * - `ready`: The full response has been received and processed; a new user message can be submitted.
-   * - `error`: An error occurred during the API request, preventing successful completion.
-   */
-  #status = $state<ChatStatus>('ready');
-  /** The error object of the API request */
-  #error = $state<Error | undefined>(undefined);
-
-  #cleanup: (() => void) | undefined;
-  #unsubscribeFromStore: (() => void) | undefined;
+  readonly id: string;
+  #subscribe: () => void;
 
   /** The current value of the input. Writable, so it can be bound to form inputs. */
-  input = $state<string>()!;
+  input = $state<string>('');
 
   /**
    * Current messages in the chat.
@@ -68,7 +51,8 @@ export class Chat<
     MESSAGE_METADATA,
     InferUIDataTypes<UI_DATA_PART_SCHEMAS>
   >[] {
-    return this.#messages;
+    this.#subscribe();
+    return this.#chatStore.getMessages(this.id);
   }
   set messages(
     value: UIMessage<
@@ -79,22 +63,35 @@ export class Chat<
     this.#chatStore.setMessages({ id: this.id, messages: value });
   }
 
+  /**
+   * Hook status:
+   *
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
   get status(): ChatStatus {
-    return this.#status;
+    this.#subscribe();
+    return this.#chatStore.getStatus(this.id);
   }
   set status(value: ChatStatus) {
     this.#chatStore.setStatus({ id: this.id, status: value });
   }
 
+  /** The error object of the API request */
   get error(): Error | undefined {
-    return this.#error;
+    this.#subscribe();
+    return this.#chatStore.getError(this.id);
   }
   set error(value: Error | undefined) {
     this.#chatStore.setStatus({ id: this.id, status: 'error', error: value });
   }
 
-  constructor(options: ChatOptions<MESSAGE_METADATA> = {}) {
-    this.#options = options;
+  constructor(options: () => ChatOptions<MESSAGE_METADATA> = () => ({})) {
+    this.#options = $derived.by(options);
+    this.#generateId = $derived(this.#options.generateId ?? generateId);
+    this.id = $derived(this.#options.chatId ?? this.#generateId());
 
     if (hasChatStoreContext()) {
       this.#chatStore = getChatStoreContext() as ChatStore<
@@ -109,58 +106,18 @@ export class Chat<
         api: this.#options.api || '/api/chat',
         generateId: this.#options.generateId || generateId,
         maxSteps: this.#options.maxSteps,
-        streamProtocol: this.#options.streamProtocol,
+        // streamProtocol: this.#options.streamProtocol,
       });
     }
 
     this.input = this.#options.initialInput ?? '';
 
-    this.#unsubscribeFromStore = this.#chatStore.subscribe({
-      onChatChanged: event => {
-        if (
-          event.chatId === this.id &&
-          event.type === 'chat-messages-changed'
-        ) {
-          this.#syncMessages();
-        }
-
-        if (event.chatId === this.id && event.type === 'chat-status-changed') {
-          this.#syncStatus();
-        }
-      },
-    });
-
-    this.#cleanup = $effect.root(() => {
-      $effect.pre(() => {
-        const currentChatId = this.id;
-
-        if (!this.#chatStore.hasChat(currentChatId)) {
-          this.#chatStore.addChat(currentChatId, []);
-        }
-
-        this.#syncMessages();
+    this.#subscribe = createSubscriber(update => {
+      return this.#chatStore.subscribe({
+        onChatChanged: update,
       });
     });
   }
-
-  #syncMessages = () => {
-    if (this.#chatStore.hasChat(this.id)) {
-      this.#messages = [...this.#chatStore.getMessages(this.id)];
-    } else {
-      this.#chatStore.addChat(this.id, []);
-      this.#messages = [];
-    }
-  };
-
-  #syncStatus = () => {
-    if (this.#chatStore.hasChat(this.id)) {
-      this.#status = this.#chatStore.getStatus(this.id);
-      this.#error = this.#chatStore.getError(this.id);
-    } else {
-      this.#status = 'ready';
-      this.#error = undefined;
-    }
-  };
 
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
@@ -253,9 +210,4 @@ export class Chat<
       result,
     });
   };
-
-  destroy() {
-    this.#cleanup?.();
-    this.#unsubscribeFromStore?.();
-  }
 }

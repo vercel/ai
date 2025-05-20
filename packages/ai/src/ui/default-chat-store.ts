@@ -118,7 +118,7 @@ export function defaultChatStore<
 >({
   api,
   fetch,
-  streamProtocol = 'ui-message',
+  // streamProtocol = 'ui-message',
   credentials,
   headers,
   body,

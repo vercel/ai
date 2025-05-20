@@ -11,7 +11,8 @@ import {
 } from 'ai';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
-import { promiseWithResolvers } from './utils.svelte.js';
+import { promiseWithResolvers, withEffectRoot } from './utils.svelte.js';
+import { flushSync } from 'svelte';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -39,9 +40,9 @@ describe('data protocol stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should correctly manage streamed response in messages', async () => {
@@ -161,10 +162,10 @@ describe('data protocol stream', () => {
     };
 
     const onFinish = vi.fn();
-    const chatWithOnFinish = new Chat({
+    const chatWithOnFinish = new Chat(() => ({
       onFinish,
       generateId: mockId(),
-    });
+    }));
     await chatWithOnFinish.append({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
@@ -230,11 +231,9 @@ describe('data protocol stream', () => {
       };
 
       let chatId = $state(crypto.randomUUID());
-      const chatWithId = new Chat({
-        get chatId() {
-          return chatId;
-        },
-      });
+      const chatWithId = new Chat(() => ({
+        chatId,
+      }));
       await chatWithId.append({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
@@ -249,10 +248,7 @@ describe('data protocol stream', () => {
 
       chatId = crypto.randomUUID();
 
-      // Wait for the Svelte reactivity cycle to complete after the id change.
-      // This allows the $effect.pre inside the Chat class to run and update messages.
-      // Confirm this:
-      await Promise.resolve();
+      flushSync();
 
       expect(chatWithId.messages).toHaveLength(0);
     });
@@ -270,11 +266,9 @@ describe('data protocol stream', () => {
 
       let chatId = $state(crypto.randomUUID());
       const originalId = chatId;
-      const chatWithId = new Chat({
-        get chatId() {
-          return chatId;
-        },
-      });
+      const chatWithId = new Chat(() => ({
+        chatId,
+      }));
       await chatWithId.append({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
@@ -288,11 +282,11 @@ describe('data protocol stream', () => {
       );
 
       chatId = crypto.randomUUID();
-      await Promise.resolve();
+      flushSync();
 
       expect(chatWithId.messages).toHaveLength(0);
       chatId = originalId;
-      await Promise.resolve();
+      flushSync();
 
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
@@ -308,10 +302,9 @@ describe('text stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
-      streamProtocol: 'text',
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should show streamed response', async () => {
@@ -400,10 +393,9 @@ describe('text stream', () => {
     };
 
     const onFinish = vi.fn();
-    const chatWithOnFinish = new Chat({
-      streamProtocol: 'text',
+    const chatWithOnFinish = new Chat(() => ({
       onFinish,
-    });
+    }));
     await chatWithOnFinish.append({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
@@ -427,10 +419,9 @@ describe('form actions', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
-      streamProtocol: 'text',
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should show streamed response using handleSubmit', async () => {
@@ -491,14 +482,14 @@ describe('onToolCall', () => {
   beforeEach(() => {
     ({ resolve, promise: toolCallPromise } = promiseWithResolvers<void>());
 
-    chat = new Chat({
+    chat = new Chat(() => ({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
         } ${JSON.stringify(toolCall.args)}`;
       },
-    });
+    }));
   });
 
   it("should invoke onToolCall when a tool call is received from the server's response", async () => {
@@ -553,10 +544,10 @@ describe('tool invocations', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       maxSteps: 5,
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should display partial tool call, tool call, and tool result', async () => {
@@ -878,7 +869,7 @@ describe('maxSteps', () => {
     let chat: Chat;
 
     beforeEach(() => {
-      chat = new Chat({
+      chat = new Chat(() => ({
         async onToolCall({ toolCall }) {
           onToolCallInvoked = true;
           return `test-tool-response: ${toolCall.toolName} ${
@@ -888,7 +879,7 @@ describe('maxSteps', () => {
         maxSteps: 5,
         chatId: 'test-id',
         generateId: mockId(),
-      });
+      }));
       onToolCallInvoked = false;
     });
 
@@ -964,7 +955,7 @@ describe('maxSteps', () => {
     let chat: Chat;
 
     beforeEach(() => {
-      chat = new Chat({
+      chat = new Chat(() => ({
         async onToolCall({ toolCall }) {
           onToolCallCounter++;
           return `test-tool-response: ${toolCall.toolName} ${
@@ -972,7 +963,7 @@ describe('maxSteps', () => {
           } ${JSON.stringify(toolCall.args)}`;
         },
         maxSteps: 5,
-      });
+      }));
       onToolCallCounter = 0;
     });
 
@@ -1012,9 +1003,9 @@ describe('file attachments with data url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should handle text file attachment and submission', async () => {
@@ -1178,9 +1169,9 @@ describe('file attachments with url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1266,9 +1257,9 @@ describe('file attachments with empty text content', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1289,6 +1280,8 @@ describe('file attachments with empty text content', () => {
         }),
       ),
     });
+
+    flushSync();
 
     expect(chat.messages).toMatchInlineSnapshot(`
       [
@@ -1352,9 +1345,9 @@ describe('reload', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should show streamed response', async () => {
@@ -1430,9 +1423,9 @@ describe('test sending additional fields during message submission', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should send metadata with the message', async () => {
@@ -1487,11 +1480,9 @@ describe.skip('initialMessages', () => {
   ]);
 
   beforeEach(() => {
-    chat = new Chat({
-      get initialMessages() {
-        return initialMessages;
-      },
-    });
+    chat = new Chat(() => ({
+      initialMessages,
+    }));
   });
 
   it('should not update messages when initialMessages changes', () => {
@@ -1610,9 +1601,9 @@ describe('generateId function', () => {
       ],
     };
 
-    const chatWithCustomId = new Chat({
+    const chatWithCustomId = new Chat(() => ({
       generateId: mockId({ prefix: 'testid' }),
-    });
+    }));
 
     await chatWithCustomId.append({
       role: 'user',

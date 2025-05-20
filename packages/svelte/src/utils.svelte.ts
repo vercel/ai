@@ -64,3 +64,14 @@ export class KeyedStore<T> extends SvelteMap<string, T> {
     return test;
   }
 }
+
+export function withEffectRoot(fn: () => void | Promise<void>) {
+  return async () => {
+    let promise: void | Promise<void> = Promise.resolve();
+    const cleanup = $effect.root(() => {
+      promise = fn();
+    });
+    await promise;
+    cleanup();
+  };
+}

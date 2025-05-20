@@ -418,7 +418,7 @@ export class ChatStore<
     id: string,
   ): Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>> {
     if (!this.hasChat(id)) {
-      throw new Error(`chat '${id}' not found`);
+      this.addChat(id, []);
     }
     return this.chats.get(id)!;
   }
