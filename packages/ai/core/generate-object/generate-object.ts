@@ -35,6 +35,7 @@ import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -633,7 +634,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     input: () => inputFormat,
                   },
                   'ai.prompt.messages': {
-                    input: () => JSON.stringify(promptMessages),
+                    input: () => stringifyForTelemetry(promptMessages),
                   },
                   'ai.settings.mode': mode,
 

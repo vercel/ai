@@ -53,6 +53,7 @@ import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -717,7 +718,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   input: () => callOptions.inputFormat,
                 },
                 'ai.prompt.messages': {
-                  input: () => JSON.stringify(callOptions.prompt),
+                  input: () => stringifyForTelemetry(callOptions.prompt),
                 },
                 'ai.settings.mode': mode,
 
