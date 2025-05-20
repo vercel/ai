@@ -3,11 +3,8 @@
   import Button from '$lib/components/ui/button/button.svelte';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
   import { Chat } from '@ai-sdk/svelte';
-  import { onDestroy } from 'svelte';
 
-  const chat = new Chat({
-    maxSteps: 5,
-
+  const chat = new Chat(() => ({
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
       // artificial 2 second delay
@@ -17,8 +14,8 @@
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
         return cities[Math.floor(Math.random() * cities.length)];
       }
-    },
-  });
+    }
+  }));
 
   const disabled = $derived(chat.status !== 'ready');
 
@@ -27,8 +24,6 @@
       ? 'bg-primary text-secondary rounded-md'
       : 'bg-secondary text-primary rounded-md justify-self-end';
   }
-
-  onDestroy(() => chat.destroy());
 </script>
 
 <main class="flex flex-col items-center h-dvh w-dvw">
@@ -108,6 +103,11 @@
     </div>
     <form class="relative" onsubmit={chat.handleSubmit}>
       <p>{chat.status}</p>
+      <div>
+        <a href="/chat/1">chat 1</a>
+        <a href="/chat/2">chat 2</a>
+        <a href="/chat/3">chat 3</a>
+      </div>
       <Textarea
         bind:value={chat.input}
         placeholder="Send a message..."
