@@ -59,7 +59,7 @@ export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
   | TextUIPart
   | ReasoningUIPart
   | ToolInvocationUIPart
-  | SourceUIPart
+  | SourceUrlUIPart
   | FileUIPart
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
@@ -116,7 +116,7 @@ export type ToolInvocationUIPart = {
 /**
  * A source part of a message.
  */
-export type SourceUIPart = {
+export type SourceUrlUIPart = {
   type: 'source-url';
   sourceId: string;
   url: string;
