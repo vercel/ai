@@ -4,7 +4,7 @@ import { createContext, KeyedStore } from './utils.svelte.js';
 
 class CompletionStore {
   completions = new SvelteMap<string, string>();
-  data: JSONValue[] = $state<JSONValue[]>([]);
+  data = $state<JSONValue[]>([]);
   loading = $state(false);
   error = $state<Error>();
 }
