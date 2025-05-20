@@ -25,6 +25,7 @@ import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { maxSteps } from './stop-condition';
 
 const defaultSettings = () =>
   ({
@@ -2645,7 +2646,7 @@ describe('streamText', () => {
             onStepFinishResults.push(event);
           },
           experimental_telemetry: { isEnabled: true, tracer },
-          maxSteps: 3,
+          continueUntil: maxSteps(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
           },
@@ -2963,7 +2964,7 @@ describe('streamText', () => {
             onStepFinishResults.push(event);
           },
           experimental_telemetry: { isEnabled: true, tracer },
-          maxSteps: 3,
+          continueUntil: maxSteps(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
           },
@@ -2971,9 +2972,8 @@ describe('streamText', () => {
       });
 
       it('should contain assistant response message and tool message from all steps', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.fullStream),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -3706,7 +3706,6 @@ describe('streamText', () => {
                 "ai.response.finishReason": "stop",
                 "ai.response.text": "Hello, world!",
                 "ai.settings.maxRetries": 2,
-                "ai.settings.maxSteps": 3,
                 "ai.usage.cachedInputTokens": 3,
                 "ai.usage.inputTokens": 6,
                 "ai.usage.outputTokens": 20,
