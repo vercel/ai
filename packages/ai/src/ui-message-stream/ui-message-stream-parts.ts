@@ -38,9 +38,8 @@ export const uiMessageStreamPartSchema = z.union([
     providerMetadata: z.record(z.any()).optional(),
   }),
   z.object({
-    type: z.literal('source'),
-    sourceType: z.literal('url'),
-    id: z.string(),
+    type: z.literal('source-url'),
+    sourceId: z.string(),
     url: z.string(),
     title: z.string().optional(),
     providerMetadata: z.any().optional(), // Use z.any() for generic metadata
@@ -125,7 +124,7 @@ export type UIMessageStreamPart =
     }
   | {
       type: 'source-url';
-      id: string;
+      sourceId: string;
       url: string;
       title?: string;
       providerMetadata?: ProviderMetadata;
