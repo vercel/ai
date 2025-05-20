@@ -1,4 +1,8 @@
-import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import type {
+  ImageModelV2,
+  ImageModelV2CallWarning,
+  JSONObject,
+} from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -83,6 +87,17 @@ export class FalImageModel implements ImageModelV2 {
     const downloadedImages = await Promise.all(
       targetImages.map(image => this.downloadImage(image.url, abortSignal)),
     );
+    const {
+      // @ts-expect-error - either image or images is present, not both.
+      image,
+      // @ts-expect-error - either image or images is present, not both.
+      images,
+      // NSFW information is normalized merged into `providerMetadata.fal.images`
+      has_nsfw_concepts,
+      nsfw_content_detected,
+      // pass through other properties to providerMetadata
+      ...responseMetaData
+    } = value;
 
     return {
       images: downloadedImages,
@@ -91,6 +106,21 @@ export class FalImageModel implements ImageModelV2 {
         modelId: this.modelId,
         timestamp: currentDate,
         headers: responseHeaders,
+      },
+      providerMetadata: {
+        fal: {
+          images: targetImages.map((image, index) => {
+            const { url, ...imageMetaData } = image;
+            const nsfw =
+              value.has_nsfw_concepts?.[index] ??
+              value.nsfw_content_detected?.[index];
+            return {
+              ...imageMetaData,
+              ...(nsfw !== undefined ? { nsfw } : undefined),
+            };
+          }),
+          ...responseMetaData,
+        },
       },
     };
   }
@@ -165,16 +195,54 @@ const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
 
 const falImageSchema = z.object({
   url: z.string(),
-  content_type: z.string(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  content_type: z.string().optional(),
+  // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
+  file_name: z.string().optional(),
+  file_data: z.string().optional(),
+  file_size: z.number().optional(),
 });
 
+// https://fal.ai/models/fal-ai/lora/api#type-File
+const LoraFileSchema = z.object({
+  url: z.string(),
+  content_type: z.string().optional(),
+  file_name: z.string().optional(),
+  file_data: z.string().optional(),
+  file_size: z.number().optional(),
+});
+
+const CommonResponseSchema = z.object({
+  timings: z
+    .object({
+      inference: z.number(),
+    })
+    .optional(),
+  seed: z.number().optional(),
+  has_nsfw_concepts: z.array(z.boolean()).optional(),
+  prompt: z.string().optional(),
+  // https://fal.ai/models/fal-ai/lcm/api#schema-output
+  nsfw_content_detected: z.array(z.boolean()).optional(),
+  num_inference_steps: z.number().optional(),
+  // https://fal.ai/models/fal-ai/lora/api#schema-output
+  debug_latents: LoraFileSchema.optional(),
+  debug_per_pass_latents: LoraFileSchema.optional(),
+});
+
+// Most FAL image models respond with an array of images, but some have a response
+// with a single image, e.g. https://fal.ai/models/easel-ai/easel-avatar/api#schema-output
 const falImageResponseSchema = z.union([
-  z.object({
-    images: z.array(falImageSchema),
-  }),
-  z.object({
-    image: falImageSchema,
-  }),
+  z
+    .object({
+      images: z.array(falImageSchema),
+    })
+    .merge(CommonResponseSchema),
+  z
+    .object({
+      image: falImageSchema,
+    })
+    .merge(CommonResponseSchema),
 ]);
 
 function isValidationError(error: unknown): error is ValidationError {
