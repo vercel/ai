@@ -1,5 +1,27 @@
 # ai
 
+## 5.0.0-alpha.2
+
+### Patch Changes
+
+- 82aa95d: fix (ai): merge data ui stream parts correctly
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+  - @ai-sdk/provider-utils@3.0.0-alpha.2
+
+## 5.0.0-alpha.1
+
+### Major Changes
+
+- 109c0ac: chore (ai): rename id to chatId (in post request, resume request, and useChat)
+
+### Patch Changes
+
+- b346545: feat (ai): add data ui part schemas
+- Updated dependencies [3f2f00c]
+  - @ai-sdk/provider@2.0.0-alpha.1
+  - @ai-sdk/provider-utils@3.0.0-alpha.1
+
 ## 5.0.0-canary.24
 
 ### Major Changes

@@ -1,5 +1,23 @@
 # @ai-sdk/azure
 
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+  - @ai-sdk/openai@2.0.0-alpha.2
+  - @ai-sdk/provider-utils@3.0.0-alpha.2
+
+## 2.0.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [3f2f00c]
+  - @ai-sdk/provider@2.0.0-alpha.1
+  - @ai-sdk/openai@2.0.0-alpha.1
+  - @ai-sdk/provider-utils@3.0.0-alpha.1
+
 ## 2.0.0-canary.21
 
 ### Patch Changes

@@ -81,6 +81,12 @@ export const uiMessageStreamPartSchema = z.union([
   }),
 ]);
 
+export type DataUIMessageStreamPart = {
+  type: `data-${string}`;
+  id?: string;
+  data: unknown;
+};
+
 export type UIMessageStreamPart =
   | {
       type: 'text';
@@ -118,9 +124,7 @@ export type UIMessageStreamPart =
       providerMetadata?: ProviderMetadata;
     }
   | {
-      // TODO evaluate flattening sources similar to data ui parts
-      type: 'source';
-      sourceType: 'url';
+      type: 'source-url';
       id: string;
       url: string;
       title?: string;
@@ -131,11 +135,7 @@ export type UIMessageStreamPart =
       url: string;
       mediaType: string;
     }
-  | {
-      type: `data-${string}`;
-      id?: string;
-      data: unknown;
-    }
+  | DataUIMessageStreamPart
   | {
       type: 'metadata';
       metadata: unknown;
@@ -160,3 +160,9 @@ export type UIMessageStreamPart =
   | {
       type: 'reasoning-part-finish';
     };
+
+export function isDataUIMessageStreamPart(
+  part: UIMessageStreamPart,
+): part is DataUIMessageStreamPart {
+  return part.type.startsWith('data-');
+}

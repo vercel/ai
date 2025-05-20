@@ -9,6 +9,7 @@ import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
+  ChatStore,
   defaultChatStore,
   getToolInvocations,
   UIMessage,
@@ -17,6 +18,7 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
+import { TextStreamChatTransport } from '../../ai/src/ui/chat-transport';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -30,16 +32,16 @@ describe('data protocol stream', () => {
   let onFinishCalls: Array<{ message: UIMessage }> = [];
 
   setupTestComponent(
-    ({ id: idParam }: { id: string }) => {
-      const [id, setId] = React.useState<string>(idParam);
+    ({ chatId: idParam }: { chatId: string }) => {
+      const [chatId, setChatId] = React.useState<string>(idParam);
       const {
         messages,
         append,
         error,
         status,
-        id: idKey,
+        chatId: idKey,
       } = useChat({
-        id,
+        chatId,
         onFinish: options => {
           onFinishCalls.push(options);
         },
@@ -64,7 +66,7 @@ describe('data protocol stream', () => {
           <button
             data-testid="do-change-id"
             onClick={() => {
-              setId('second-id');
+              setChatId('second-id');
             }}
           />
         </div>
@@ -313,7 +315,7 @@ describe('data protocol stream', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "id": "first-id-0",
+          "chatId": "id-0",
           "messages": [
             {
               "id": "id-1",
@@ -386,9 +388,10 @@ describe('text stream', () => {
         onFinishCalls.push(options);
       },
       generateId: mockId(),
-      chatStore: defaultChatStore({
-        api: '/api/chat',
-        streamProtocol: 'text',
+      chatStore: new ChatStore({
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
+        }),
         generateId: mockId(),
       }),
     });
@@ -505,9 +508,10 @@ describe('form actions', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({
-        chatStore: defaultChatStore({
-          streamProtocol: 'text',
-          api: '/api/chat',
+        chatStore: new ChatStore({
+          transport: new TextStreamChatTransport({
+            api: '/api/chat',
+          }),
           generateId: mockId(),
         }),
       });
@@ -635,7 +639,7 @@ describe('prepareRequestBody', () => {
 
     expect(bodyOptions).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "msg-0",
@@ -1407,7 +1411,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-0",
@@ -1490,7 +1494,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-0",
@@ -1605,7 +1609,7 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-0",
@@ -1711,7 +1715,7 @@ describe('attachments with empty submit', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1823,7 +1827,7 @@ describe('should append message with attachments', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1910,7 +1914,7 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1983,7 +1987,7 @@ describe('test sending additional fields during message submission', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -2023,7 +2027,7 @@ describe('resume ongoing stream and return assistant message', () => {
       ]);
 
       const { messages, status, experimental_resume } = useChat({
-        id: '123',
+        chatId: '123',
         chatStore,
       });
 

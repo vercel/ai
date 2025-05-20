@@ -12,7 +12,7 @@ describe('SerialJobExecutor', () => {
     });
 
     await jobPromise;
-    expect(await result.value).toBe('done');
+    expect(await result.promise).toBe('done');
   });
 
   it('should execute multiple jobs in serial order', async () => {
@@ -67,14 +67,14 @@ describe('SerialJobExecutor', () => {
     const promise1 = executor.run(async () => {
       concurrentJobs++;
       maxConcurrentJobs = Math.max(maxConcurrentJobs, concurrentJobs);
-      await job1.value;
+      await job1.promise;
       concurrentJobs--;
     });
 
     const promise2 = executor.run(async () => {
       concurrentJobs++;
       maxConcurrentJobs = Math.max(maxConcurrentJobs, concurrentJobs);
-      await job2.value;
+      await job2.promise;
       concurrentJobs--;
     });
 
@@ -131,17 +131,17 @@ describe('SerialJobExecutor', () => {
     const promises = [
       executor.run(async () => {
         startOrder.push(1);
-        await job1.value;
+        await job1.promise;
         executionOrder.push(1);
       }),
       executor.run(async () => {
         startOrder.push(2);
-        await job2.value;
+        await job2.promise;
         executionOrder.push(2);
       }),
       executor.run(async () => {
         startOrder.push(3);
-        await job3.value;
+        await job3.promise;
         executionOrder.push(3);
       }),
     ].map(p => p.catch(e => e));

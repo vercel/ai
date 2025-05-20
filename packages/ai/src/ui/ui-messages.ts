@@ -59,7 +59,7 @@ export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
   | TextUIPart
   | ReasoningUIPart
   | ToolInvocationUIPart
-  | SourceUIPart
+  | SourceUrlUIPart
   | FileUIPart
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
@@ -68,7 +68,7 @@ export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   [NAME in keyof DATA_TYPES & string]: {
     type: `data-${NAME}`;
     id?: string;
-    value: DATA_TYPES[NAME];
+    data: DATA_TYPES[NAME];
   };
 }>;
 
@@ -116,19 +116,12 @@ export type ToolInvocationUIPart = {
 /**
  * A source part of a message.
  */
-export type SourceUIPart = {
-  type: 'source';
-
-  /**
-   * The source.
-   */
-  source: {
-    sourceType: 'url';
-    id: string;
-    url: string;
-    title?: string;
-    providerMetadata?: Record<string, any>;
-  };
+export type SourceUrlUIPart = {
+  type: 'source-url';
+  sourceId: string;
+  url: string;
+  title?: string;
+  providerMetadata?: Record<string, any>;
 };
 
 /**

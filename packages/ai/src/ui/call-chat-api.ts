@@ -24,7 +24,6 @@ const getOriginalFetch = () => fetch;
 export async function fetchUIMessageStream({
   api,
   body,
-  streamProtocol = 'ui-message',
   credentials,
   headers,
   abortController,
@@ -33,7 +32,6 @@ export async function fetchUIMessageStream({
 }: {
   api: string;
   body: Record<string, any>;
-  streamProtocol: 'ui-message' | 'text' | undefined;
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
@@ -42,7 +40,7 @@ export async function fetchUIMessageStream({
 }): Promise<ReadableStream<UIMessageStreamPart>> {
   const response =
     requestType === 'resume'
-      ? await fetch(`${api}?chatId=${body.id}`, {
+      ? await fetch(`${api}?chatId=${body.chatId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -72,26 +70,73 @@ export async function fetchUIMessageStream({
     throw new Error('The response body is empty.');
   }
 
-  return streamProtocol === 'text'
-    ? transformTextToUiMessageStream({
-        stream: response.body.pipeThrough(new TextDecoderStream()),
-      })
-    : parseJsonEventStream({
-        stream: response.body,
-        schema: uiMessageStreamPartSchema,
-      }).pipeThrough(
-        new TransformStream<
-          ParseResult<UIMessageStreamPart>,
-          UIMessageStreamPart
-        >({
-          async transform(part, controller) {
-            if (!part.success) {
-              throw part.error;
-            }
-            controller.enqueue(part.value);
+  return parseJsonEventStream({
+    stream: response.body,
+    schema: uiMessageStreamPartSchema,
+  }).pipeThrough(
+    new TransformStream<ParseResult<UIMessageStreamPart>, UIMessageStreamPart>({
+      async transform(part, controller) {
+        if (!part.success) {
+          throw part.error;
+        }
+        controller.enqueue(part.value);
+      },
+    }),
+  );
+}
+
+export async function fetchTextStream({
+  api,
+  body,
+  credentials,
+  headers,
+  abortController,
+  fetch = getOriginalFetch(),
+  requestType = 'generate',
+}: {
+  api: string;
+  body: Record<string, any>;
+  credentials: RequestCredentials | undefined;
+  headers: HeadersInit | undefined;
+  abortController: (() => AbortController | null) | undefined;
+  fetch: ReturnType<typeof getOriginalFetch> | undefined;
+  requestType?: 'generate' | 'resume';
+}): Promise<ReadableStream<UIMessageStreamPart>> {
+  const response =
+    requestType === 'resume'
+      ? await fetch(`${api}?chatId=${body.chatId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
           },
-        }),
-      );
+          signal: abortController?.()?.signal,
+          credentials,
+        })
+      : await fetch(api, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        });
+
+  if (!response.ok) {
+    throw new Error(
+      (await response.text()) ?? 'Failed to fetch the chat response.',
+    );
+  }
+
+  if (!response.body) {
+    throw new Error('The response body is empty.');
+  }
+
+  return transformTextToUiMessageStream({
+    stream: response.body.pipeThrough(new TextDecoderStream()),
+  });
 }
 
 export async function consumeUIMessageStream<MESSAGE_METADATA>({
@@ -176,16 +221,26 @@ export async function callChatApi<MESSAGE_METADATA>({
   requestType?: 'generate' | 'resume';
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 }) {
-  const stream = await fetchUIMessageStream({
-    api,
-    body,
-    streamProtocol,
-    credentials,
-    headers,
-    abortController,
-    fetch,
-    requestType,
-  });
+  const stream =
+    streamProtocol === 'text'
+      ? await fetchTextStream({
+          api,
+          body,
+          credentials,
+          headers,
+          abortController,
+          fetch,
+          requestType,
+        })
+      : await fetchUIMessageStream({
+          api,
+          body,
+          credentials,
+          headers,
+          abortController,
+          fetch,
+          requestType,
+        });
 
   await consumeUIMessageStream({
     stream,

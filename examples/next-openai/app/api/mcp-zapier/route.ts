@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_createMCPClient, streamText } from 'ai';
+import { experimental_createMCPClient, maxSteps, streamText } from 'ai';
 
 export const maxDuration = 30;
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       onFinish: async () => {
         await mcpClient.close();
       },
-      maxSteps: 10,
+      continueUntil: maxSteps(10),
     });
 
     return result.toUIMessageStreamResponse();

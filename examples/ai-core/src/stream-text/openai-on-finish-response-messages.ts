@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { maxSteps, streamText, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -15,7 +15,7 @@ async function main() {
         }),
       }),
     },
-    maxSteps: 5,
+    continueUntil: maxSteps(5),
     onFinish({ response }) {
       console.log(JSON.stringify(response.messages, null, 2));
     },

@@ -64,6 +64,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { maxSteps, StopCondition } from './stop-condition';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -201,7 +202,7 @@ export function streamText<
   maxRetries,
   abortSignal,
   headers,
-  maxSteps = 1,
+  continueUntil = maxSteps(1),
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
@@ -237,14 +238,7 @@ The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<TOOLS>;
 
-    /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
-
-A maximum number is required to prevent infinite loops in the case of misconfigured tools.
-
-By default, it's set to 1, which means that only a single LLM call is made.
- */
-    maxSteps?: number;
+    continueUntil?: StopCondition<NoInfer<TOOLS>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -344,7 +338,7 @@ Internal. For test use only. May change without notice.
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
-    maxSteps,
+    continueUntil,
     output,
     providerOptions,
     onChunk,
@@ -445,13 +439,13 @@ function createOutputTransformStream<
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
 {
-  private readonly totalUsagePromise = new DelayedPromise<
+  private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
   >();
-  private readonly finishReasonPromise = new DelayedPromise<
+  private readonly _finishReason = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
   >();
-  private readonly stepsPromise = new DelayedPromise<
+  private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
   >();
 
@@ -483,7 +477,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     transforms,
     activeTools,
     repairToolCall,
-    maxSteps,
+    continueUntil,
     output,
     providerOptions,
     now,
@@ -509,7 +503,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-    maxSteps: number;
+    continueUntil: StopCondition<NoInfer<TOOLS>>;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     providerOptions: ProviderOptions | undefined;
     now: () => number;
@@ -522,16 +516,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
-    if (maxSteps < 1) {
-      throw new InvalidArgumentError({
-        parameter: 'maxSteps',
-        value: maxSteps,
-        message: 'maxSteps must be at least 1',
-      });
-    }
-
     this.output = output;
     this.generateId = generateId;
+
+    // promise to ensure that the step has been fully processed by the event processor
+    // before a new step is started. This is required because the continuation condition
+    // needs the updated steps to determine if another step is needed.
+    let stepFinish!: DelayedPromise<void>;
 
     let activeReasoningPart:
       | undefined
@@ -651,6 +642,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           activeReasoningPart = undefined;
 
           recordedResponseMessages.push(...stepMessages);
+
+          // resolve the promise to signal that the step has been fully processed
+          // by the event processor:
+          stepFinish.resolve();
         }
 
         if (part.type === 'finish') {
@@ -674,11 +669,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           };
 
           // from finish:
-          self.finishReasonPromise.resolve(finishReason);
-          self.totalUsagePromise.resolve(totalUsage);
+          self._finishReason.resolve(finishReason);
+          self._totalUsage.resolve(totalUsage);
 
           // aggregate results:
-          self.stepsPromise.resolve(recordedSteps);
+          self._steps.resolve(recordedSteps);
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
@@ -792,7 +787,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           'ai.prompt': {
             input: () => JSON.stringify({ system, prompt, messages }),
           },
-          'ai.settings.maxSteps': maxSteps,
         },
       }),
       tracer,
@@ -809,6 +803,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
         }) {
+          stepFinish = new DelayedPromise<void>();
+
           const initialPrompt = await standardizePrompt({
             system,
             prompt,
@@ -898,7 +894,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             }),
           );
 
-          const transformedStream = runToolsTransformation({
+          const streamWithToolResults = runToolsTransformation({
             tools,
             generatorStream: stream,
             toolCallStreaming,
@@ -948,7 +944,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           }
 
           self.addStream(
-            transformedStream.pipeThrough(
+            streamWithToolResults.pipeThrough(
               new TransformStream<
                 SingleRequestTextStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
@@ -1154,11 +1150,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 
+                  // wait for the step to be fully processed by the event processor
+                  // to ensure that the recorded steps are complete:
+                  await stepFinish.promise;
+
                   if (
-                    currentStep + 1 < maxSteps && // there are tool calls:
                     stepToolCalls.length > 0 &&
                     // all current tool calls have results:
-                    stepToolResults.length === stepToolCalls.length
+                    stepToolResults.length === stepToolCalls.length &&
+                    !(await continueUntil({ steps: recordedSteps }))
                   ) {
                     // append to messages for the next step:
                     responseMessages.push(
@@ -1214,7 +1214,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get steps() {
-    return this.stepsPromise.value;
+    return this._steps.promise;
   }
 
   private get finalStep() {
@@ -1274,11 +1274,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get totalUsage() {
-    return this.totalUsagePromise.value;
+    return this._totalUsage.promise;
   }
 
   get finishReason() {
-    return this.finishReasonPromise.value;
+    return this._finishReason.promise;
   }
 
   /**
@@ -1414,8 +1414,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'source': {
               if (sendSources) {
                 controller.enqueue({
-                  type: 'source',
-                  sourceType: part.sourceType,
+                  type: 'source-url',
                   id: part.id,
                   url: part.url,
                   title: part.title,

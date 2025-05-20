@@ -1,5 +1,20 @@
 # @ai-sdk/langchain
 
+## 1.0.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [82aa95d]
+  - ai@5.0.0-alpha.2
+
+## 1.0.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [b346545]
+- Updated dependencies [109c0ac]
+  - ai@5.0.0-alpha.1
+
 ## 1.0.0-canary.12
 
 ### Patch Changes

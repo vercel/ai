@@ -2,11 +2,11 @@
   import { Chat } from '../chat.svelte.js';
   import { createAIContext } from '../context-provider.js';
 
-  let { id }: { id?: string } = $props();
+  let { chatId }: { chatId?: string } = $props();
 
   createAIContext();
-  const chat1 = new Chat({ id });
-  const chat2 = new Chat({ id });
+  const chat1 = new Chat({ chatId });
+  const chat2 = new Chat({ chatId });
 
   export { chat1, chat2 };
 </script>

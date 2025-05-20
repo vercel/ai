@@ -1,25 +1,32 @@
-import { Schema, validateTypes } from '@ai-sdk/provider-utils';
-import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import {
+  StandardSchemaV1,
+  validateTypes,
+  Validator,
+} from '@ai-sdk/provider-utils';
+import {
+  isDataUIMessageStreamPart,
+  UIMessageStreamPart,
+} from '../ui-message-stream/ui-message-stream-parts';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
+import { InferUIDataParts, UIDataPartSchemas } from './chat-store';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
-  DataUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
-  UIDataTypes,
   UIMessage,
+  UIMessagePart,
 } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
 export type StreamingUIMessageState<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = {
-  message: UIMessage<MESSAGE_METADATA, DATA_TYPES>;
+  message: UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
   activeTextPart: TextUIPart | undefined;
   activeReasoningPart: ReasoningUIPart | undefined;
   partialToolCalls: Record<
@@ -31,21 +38,27 @@ export type StreamingUIMessageState<
 
 export function createStreamingUIMessageState<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
   lastMessage,
   newMessageId = 'no-id',
 }: {
-  lastMessage?: UIMessage<MESSAGE_METADATA, DATA_TYPES>;
+  lastMessage?: UIMessage<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  >;
   newMessageId?: string;
-} = {}): StreamingUIMessageState<MESSAGE_METADATA, DATA_TYPES> {
+} = {}): StreamingUIMessageState<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
   const isContinuation = lastMessage?.role === 'assistant';
 
   const step = isContinuation
     ? 1 + (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0)
     : 0;
 
-  const message: UIMessage<MESSAGE_METADATA, DATA_TYPES> = isContinuation
+  const message: UIMessage<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  > = isContinuation
     ? structuredClone(lastMessage)
     : {
         id: newMessageId,
@@ -64,20 +77,27 @@ export function createStreamingUIMessageState<
 }
 
 export function processUIMessageStream<
-  MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  MESSAGE_METADATA,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
 >({
   stream,
   onToolCall,
   messageMetadataSchema,
+  dataPartSchemas,
   runUpdateMessageJob,
 }: {
   stream: ReadableStream<UIMessageStreamPart>;
-  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
+  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
   onToolCall?: UseChatOptions['onToolCall'];
   runUpdateMessageJob: (
     job: (options: {
-      state: StreamingUIMessageState<MESSAGE_METADATA>;
+      state: StreamingUIMessageState<
+        NoInfer<MESSAGE_METADATA>,
+        NoInfer<UI_DATA_PART_SCHEMAS>
+      >;
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
@@ -92,7 +112,7 @@ export function processUIMessageStream<
           ) {
             const part = state.message.parts.find(
               part =>
-                part.type === 'tool-invocation' &&
+                isToolInvocationUIPart(part) &&
                 part.toolInvocation.toolCallId === toolCallId,
             ) as ToolInvocationUIPart | undefined;
 
@@ -176,16 +196,13 @@ export function processUIMessageStream<
               break;
             }
 
-            case 'source': {
+            case 'source-url': {
               state.message.parts.push({
-                type: 'source',
-                source: {
-                  sourceType: 'url' as const,
-                  id: part.id,
-                  url: part.url,
-                  title: part.title,
-                  providerMetadata: part.providerMetadata,
-                },
+                type: 'source-url',
+                sourceId: part.id,
+                url: part.url,
+                title: part.title,
+                providerMetadata: part.providerMetadata,
               });
 
               write();
@@ -356,28 +373,25 @@ export function processUIMessageStream<
             }
 
             default: {
-              if (part.type.startsWith('data-')) {
-                const existingPart =
+              if (isDataUIMessageStreamPart(part)) {
+                // TODO improve type safety
+                const existingPart: any =
                   part.id != null
                     ? state.message.parts.find(
-                        partArg =>
+                        (partArg: any) =>
                           part.type === partArg.type && part.id === partArg.id,
                       )
                     : undefined;
 
                 if (existingPart != null) {
                   // TODO improve type safety
-                  (existingPart as any).value = mergeObjects(
-                    (existingPart as any).data,
-                    part.data as any,
-                  );
+                  existingPart.data =
+                    isObject(existingPart.data) && isObject(part.data)
+                      ? mergeObjects(existingPart.data, part.data)
+                      : part.data;
                 } else {
                   // TODO improve type safety
-                  state.message.parts.push({
-                    type: part.type,
-                    id: part.id,
-                    value: part.data as unknown as DATA_TYPES[keyof DATA_TYPES],
-                  });
+                  state.message.parts.push(part as any);
                 }
                 write();
               }
@@ -389,4 +403,15 @@ export function processUIMessageStream<
       },
     }),
   );
+}
+
+// helper function to narrow the type of a UIMessagePart
+function isToolInvocationUIPart(
+  part: UIMessagePart<any>,
+): part is ToolInvocationUIPart {
+  return part.type === 'tool-invocation';
+}
+
+function isObject(value: unknown): value is object {
+  return typeof value === 'object' && value !== null;
 }
