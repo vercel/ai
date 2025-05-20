@@ -2548,9 +2548,8 @@ describe('processUIMessageStream', () => {
         { type: 'start-step' },
         { type: 'text', text: 'The weather in London is sunny.' },
         {
-          type: 'source',
-          sourceType: 'url',
-          id: 'source-id',
+          type: 'source-url',
+          sourceId: 'source-id',
           url: 'https://example.com',
           title: 'Example',
         },
@@ -2620,14 +2619,11 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "source": {
-                    "id": "source-id",
-                    "providerMetadata": undefined,
-                    "sourceType": "url",
-                    "title": "Example",
-                    "url": "https://example.com",
-                  },
-                  "type": "source",
+                  "providerMetadata": undefined,
+                  "sourceId": "source-id",
+                  "title": "Example",
+                  "type": "source-url",
+                  "url": "https://example.com",
                 },
               ],
               "role": "assistant",
@@ -2651,14 +2647,11 @@ describe('processUIMessageStream', () => {
               "type": "text",
             },
             {
-              "source": {
-                "id": "source-id",
-                "providerMetadata": undefined,
-                "sourceType": "url",
-                "title": "Example",
-                "url": "https://example.com",
-              },
-              "type": "source",
+              "providerMetadata": undefined,
+              "sourceId": "source-id",
+              "title": "Example",
+              "type": "source-url",
+              "url": "https://example.com",
             },
           ],
           "role": "assistant",
@@ -2925,7 +2918,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('data ui parts (single part with id and updates)', () => {
+  describe('data ui parts (single part with id and replacement update)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
@@ -3026,6 +3019,134 @@ describe('processUIMessageStream', () => {
             },
             {
               "data": "or-something-else",
+              "id": "data-part-id",
+              "type": "data-test",
+            },
+          ],
+          "role": "assistant",
+        }
+      `);
+    });
+  });
+
+  describe('data ui parts (single part with id and merge update)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'data-test',
+          id: 'data-part-id',
+          data: {
+            a: 'a1',
+            b: 'b1',
+          },
+        },
+        {
+          type: 'data-test',
+          id: 'data-part-id',
+          data: {
+            b: 'b2',
+            c: 'c2',
+          },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState();
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "data": {
+                    "a": "a1",
+                    "b": "b1",
+                  },
+                  "id": "data-part-id",
+                  "type": "data-test",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "data": {
+                    "a": "a1",
+                    "b": "b2",
+                    "c": "c2",
+                  },
+                  "id": "data-part-id",
+                  "type": "data-test",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message).toMatchInlineSnapshot(`
+        {
+          "id": "msg-123",
+          "metadata": {},
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "data": {
+                "a": "a1",
+                "b": "b2",
+                "c": "c2",
+              },
               "id": "data-part-id",
               "type": "data-test",
             },

@@ -196,16 +196,13 @@ export function processUIMessageStream<
               break;
             }
 
-            case 'source': {
+            case 'source-url': {
               state.message.parts.push({
-                type: 'source',
-                source: {
-                  sourceType: 'url' as const,
-                  id: part.id,
-                  url: part.url,
-                  title: part.title,
-                  providerMetadata: part.providerMetadata,
-                },
+                type: 'source-url',
+                sourceId: part.sourceId,
+                url: part.url,
+                title: part.title,
+                providerMetadata: part.providerMetadata,
               });
 
               write();
@@ -388,14 +385,10 @@ export function processUIMessageStream<
 
                 if (existingPart != null) {
                   // TODO improve type safety
-                  if (isObject(existingPart.data) && isObject(part.data)) {
-                    existingPart.value = mergeObjects(
-                      existingPart.data,
-                      part.data,
-                    );
-                  } else {
-                    existingPart.data = part.data;
-                  }
+                  existingPart.data =
+                    isObject(existingPart.data) && isObject(part.data)
+                      ? mergeObjects(existingPart.data, part.data)
+                      : part.data;
                 } else {
                   // TODO improve type safety
                   state.message.parts.push(part as any);
