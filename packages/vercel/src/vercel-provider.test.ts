@@ -56,7 +56,7 @@ describe('VercelProvider', () => {
 
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: undefined,
-        environmentVariableName: 'DEEPINFRA_API_KEY',
+        environmentVariableName: 'VERCEL_V0_API_KEY',
         description: "Vercel's API key",
       });
     });
@@ -77,7 +77,7 @@ describe('VercelProvider', () => {
 
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: 'custom-key',
-        environmentVariableName: 'DEEPINFRA_API_KEY',
+        environmentVariableName: 'VERCEL_V0_API_KEY',
         description: "Vercel's API key",
       });
     });

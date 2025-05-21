@@ -82,7 +82,7 @@ export function createVercel(
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: 'DEEPINFRA_API_KEY',
+      environmentVariableName: 'VERCEL_V0_API_KEY',
       description: "Vercel's API key",
     })}`,
     ...options.headers,
