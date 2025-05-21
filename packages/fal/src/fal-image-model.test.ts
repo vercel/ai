@@ -178,6 +178,7 @@ describe('FalImageModel', () => {
       // https://fal.ai/models/fal-ai/lora/api#schema-output
       it('for lora', async () => {
         const responseMetaData = {
+          prompt: '<prompt>',
           seed: 123,
           has_nsfw_concepts: [true],
           debug_latents: {

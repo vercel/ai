@@ -92,6 +92,8 @@ export class FalImageModel implements ImageModelV2 {
       image,
       // @ts-expect-error - either image or images is present, not both.
       images,
+      // prompt is just passed through and not a revised prompt per image
+      prompt: _prompt,
       // NSFW information is normalized merged into `providerMetadata.fal.images`
       has_nsfw_concepts,
       nsfw_content_detected,
