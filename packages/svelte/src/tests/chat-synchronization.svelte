@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { defaultChatStore } from 'ai';
+  import { defaultChatStore } from '../chat-store.svelte.js';
   import { Chat } from '../chat.svelte.js';
   import { createAIContext } from '../context-provider.js';
 

@@ -1,7 +1,6 @@
 import {
   ChatStore,
   convertFileListToFileUIParts,
-  defaultChatStore,
   generateId,
   type ChatRequestOptions,
   type ChatStatus,
@@ -12,11 +11,11 @@ import {
   type UIMessage,
   type UseChatOptions,
 } from 'ai';
-import { createSubscriber } from 'svelte/reactivity';
 import {
+  defaultChatStore,
   getChatStoreContext,
   hasChatStoreContext,
-} from './chat-store-context.svelte';
+} from './chat-store.svelte.js';
 
 export type ChatOptions<
   MESSAGE_METADATA = unknown,
@@ -37,7 +36,6 @@ export class Chat<
    * using the provided `generateId` function, or a built-in function if not provided.
    */
   readonly chatId: string;
-  #subscribe: () => void;
 
   /** The current value of the input. Writable, so it can be bound to form inputs. */
   input = $state<string>('');
@@ -52,16 +50,15 @@ export class Chat<
     MESSAGE_METADATA,
     InferUIDataTypes<UI_DATA_PART_SCHEMAS>
   >[] {
-    this.#subscribe();
     return this.#chatStore.getMessages(this.chatId);
   }
   set messages(
-    value: UIMessage<
+    messages: UIMessage<
       MESSAGE_METADATA,
       InferUIDataTypes<UI_DATA_PART_SCHEMAS>
     >[],
   ) {
-    this.#chatStore.setMessages({ id: this.chatId, messages: value });
+    this.#chatStore.setMessages({ id: this.chatId, messages });
   }
 
   /**
@@ -73,7 +70,6 @@ export class Chat<
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
   get status(): ChatStatus {
-    this.#subscribe();
     return this.#chatStore.getStatus(this.chatId);
   }
   set status(value: ChatStatus) {
@@ -82,7 +78,6 @@ export class Chat<
 
   /** The error object of the API request */
   get error(): Error | undefined {
-    this.#subscribe();
     return this.#chatStore.getError(this.chatId);
   }
   set error(value: Error | undefined) {
@@ -122,14 +117,9 @@ export class Chat<
 
     this.input = this.#options.initialInput ?? '';
 
-    this.#subscribe = createSubscriber(update => {
-      return this.#chatStore.subscribe({
-        onChatChanged: update,
-      });
-    });
-
     if (!this.#chatStore.hasChat(this.chatId)) {
-      this.#chatStore.addChat(this.chatId, this.messages);
+      const messages = $state([]);
+      this.#chatStore.addChat(this.chatId, messages);
     }
   }
 
