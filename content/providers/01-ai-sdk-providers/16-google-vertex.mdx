@@ -666,6 +666,32 @@ The following provider options are available:
   parameter instead.
 </Note>
 
+Additional information about the images can be retrieved using Google Vertex meta data.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+
+const { image, providerMetadata } = await generateImage({
+  model: vertex.image('imagen-3.0-generate-002'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+});
+
+console.log(
+  `Revised prompt: ${providerMetadata.vertex.images[0].revisedPrompt}`,
+);
+```
+
+The following provider meta data is available:
+
+- **revisedPrompt** _string_
+  The prompt that was used to generate the image
+
+- **contentType** _string_
+  The mime type of the image
+
 #### Model Capabilities
 
 | Model                          | Aspect Ratios             |
