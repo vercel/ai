@@ -104,14 +104,11 @@ export class GoogleVertexImageModel implements ImageModelV2 {
           images:
             response.predictions?.map(prediction => {
               const {
-                // normalize mime type property
-                mimeType: contentType,
                 // normalize revised prompt property
                 prompt: revisedPrompt,
               } = prediction;
 
               return {
-                contentType,
                 revisedPrompt,
               };
             }) ?? [],
