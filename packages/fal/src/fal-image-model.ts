@@ -112,12 +112,25 @@ export class FalImageModel implements ImageModelV2 {
       providerMetadata: {
         fal: {
           images: targetImages.map((image, index) => {
-            const { url, ...imageMetaData } = image;
+            const {
+              url,
+              content_type: contentType,
+              file_name: fileName,
+              file_data: fileData,
+              file_size: fileSize,
+              ...imageMetaData
+            } = image;
+
             const nsfw =
               value.has_nsfw_concepts?.[index] ??
               value.nsfw_content_detected?.[index];
+
             return {
               ...imageMetaData,
+              ...(contentType !== undefined ? { contentType } : undefined),
+              ...(fileName !== undefined ? { fileName } : undefined),
+              ...(fileData !== undefined ? { fileData } : undefined),
+              ...(fileSize !== undefined ? { fileSize } : undefined),
               ...(nsfw !== undefined ? { nsfw } : undefined),
             };
           }),
