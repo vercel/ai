@@ -27,8 +27,17 @@ describe('GoogleVertexImageModel', () => {
         headers,
         body: {
           predictions: [
-            { bytesBase64Encoded: 'base64-image-1' },
-            { bytesBase64Encoded: 'base64-image-2' },
+            {
+              mimeType: 'image/png',
+              prompt: 'revised prompt 1',
+              bytesBase64Encoded: 'base64-image-1',
+            },
+            {
+              mimeType: 'image/png',
+              prompt: 'revised prompt 2',
+              bytesBase64Encoded: 'base64-image-2',
+              someFutureField: 'some future value',
+            },
           ],
         },
       };
@@ -242,7 +251,7 @@ describe('GoogleVertexImageModel', () => {
         timestamp: testDate,
         modelId: 'imagen-3.0-generate-002',
         headers: {
-          'content-length': '97',
+          'content-length': '237',
           'content-type': 'application/json',
           'request-id': 'test-request-id',
           'x-goog-quota-remaining': '123',
@@ -302,6 +311,32 @@ describe('GoogleVertexImageModel', () => {
           personGeneration: 'allow_all',
           aspectRatio: '16:9',
         },
+      });
+    });
+
+    it('should return image meta data', async () => {
+      prepareJsonResponse();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 2,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.vertex).toStrictEqual({
+        images: [
+          {
+            contentType: 'image/png',
+            revisedPrompt: 'revised prompt 1',
+          },
+          {
+            contentType: 'image/png',
+            revisedPrompt: 'revised prompt 2',
+          },
+        ],
       });
     });
   });
