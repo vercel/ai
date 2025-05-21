@@ -97,10 +97,8 @@ describe('doStream', () => {
               value: JSON.parse(chunk),
             }));
         }
-        const headers: Record<string, string> = {};
-        response.headers.forEach((value, key) => {
-          headers[key] = value;
-        });
+        const headers = Object.fromEntries<string>([...response.headers]);
+
         return {
           responseHeaders: headers,
           value: new ReadableStream({
