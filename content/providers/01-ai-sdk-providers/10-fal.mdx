@@ -79,7 +79,7 @@ import { fal } from '@ai-sdk/fal';
 import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
-const { image } = await generateImage({
+const { image, providerMetadata } = await generateImage({
   model: fal.image('fal-ai/fast-sdxl'),
   prompt: 'A serene mountain landscape at sunset',
 });
@@ -87,6 +87,17 @@ const { image } = await generateImage({
 const filename = `image-${Date.now()}.png`;
 fs.writeFileSync(filename, image.uint8Array);
 console.log(`Image saved to ${filename}`);
+```
+
+Fal image models may return additional information for the images and the request.
+
+Here are some examples of properties that may be set for each image
+
+```js
+providerMetadata.fal.images[0].nsfw; // boolean, image is not safe for work
+providerMetadata.fal.images[0].width; // number, image width
+providerMetadata.fal.images[0].height; // number, image height
+providerMetadata.fal.images[0].content_type; // string, mime type of the image
 ```
 
 ### Model Capabilities
