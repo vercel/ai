@@ -220,7 +220,7 @@ const falImageSchema = z.object({
 });
 
 // https://fal.ai/models/fal-ai/lora/api#type-File
-const LoraFileSchema = z.object({
+const loraFileSchema = z.object({
   url: z.string(),
   content_type: z.string().optional(),
   file_name: z.string().optional(),
@@ -228,7 +228,7 @@ const LoraFileSchema = z.object({
   file_size: z.number().optional(),
 });
 
-const CommonResponseSchema = z.object({
+const commonResponseSchema = z.object({
   timings: z
     .object({
       inference: z.number(),
@@ -241,8 +241,8 @@ const CommonResponseSchema = z.object({
   nsfw_content_detected: z.array(z.boolean()).optional(),
   num_inference_steps: z.number().optional(),
   // https://fal.ai/models/fal-ai/lora/api#schema-output
-  debug_latents: LoraFileSchema.optional(),
-  debug_per_pass_latents: LoraFileSchema.optional(),
+  debug_latents: loraFileSchema.optional(),
+  debug_per_pass_latents: loraFileSchema.optional(),
 });
 
 // Most FAL image models respond with an array of images, but some have a response
@@ -252,12 +252,12 @@ const falImageResponseSchema = z.union([
     .object({
       images: z.array(falImageSchema),
     })
-    .merge(CommonResponseSchema),
+    .merge(commonResponseSchema),
   z
     .object({
       image: falImageSchema,
     })
-    .merge(CommonResponseSchema),
+    .merge(commonResponseSchema),
 ]);
 
 function isValidationError(error: unknown): error is ValidationError {
