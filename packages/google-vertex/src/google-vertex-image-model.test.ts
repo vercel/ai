@@ -329,11 +329,9 @@ describe('GoogleVertexImageModel', () => {
       expect(result.providerMetadata?.vertex).toStrictEqual({
         images: [
           {
-            contentType: 'image/png',
             revisedPrompt: 'revised prompt 1',
           },
           {
-            contentType: 'image/png',
             revisedPrompt: 'revised prompt 2',
           },
         ],
