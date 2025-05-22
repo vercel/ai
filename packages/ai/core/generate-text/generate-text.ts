@@ -210,7 +210,7 @@ A function that attempts to repair a tool call that failed to parse.
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-  const stopConditions = asArray(continueUntil);
+  const stopConditions = asArray(stopWhen);
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const callSettings = prepareCallSettings(settings);
