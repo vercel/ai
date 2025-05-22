@@ -25,7 +25,7 @@ import { StepResult } from './step-result';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { maxSteps } from './stop-condition';
+import { stepCountIs } from './stop-condition';
 
 const defaultSettings = () =>
   ({
@@ -2646,7 +2646,7 @@ describe('streamText', () => {
             onStepFinishResults.push(event);
           },
           experimental_telemetry: { isEnabled: true, tracer },
-          continueUntil: maxSteps(3),
+          stopWhen: stepCountIs(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
           },
@@ -2964,7 +2964,7 @@ describe('streamText', () => {
             onStepFinishResults.push(event);
           },
           experimental_telemetry: { isEnabled: true, tracer },
-          continueUntil: maxSteps(3),
+          stopWhen: stepCountIs(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
           },

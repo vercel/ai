@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { maxSteps, Output, streamText, tool } from 'ai';
+import { stepCountIs, Output, streamText, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -30,7 +30,7 @@ async function main() {
         ),
       }),
     }),
-    continueUntil: maxSteps(2),
+    stopWhen: stepCountIs(2),
     prompt:
       'What is the weather and the main tourist attraction in San Francisco, London Paris, and Berlin?',
   });

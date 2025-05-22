@@ -1,13 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
-import { maxSteps, streamText, tool } from 'ai';
+import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 async function main() {
   const result = streamText({
     model: openai('gpt-4-turbo'),
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

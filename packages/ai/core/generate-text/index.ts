@@ -8,7 +8,7 @@ export type {
 export * as Output from './output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
-export { hasToolCall, maxSteps, type StopCondition } from './stop-condition';
+export { hasToolCall, stepCountIs, type StopCondition } from './stop-condition';
 export { streamText } from './stream-text';
 export type {
   StreamTextOnChunkCallback,

@@ -29,7 +29,7 @@ import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
-import { maxSteps, StopCondition } from './stop-condition';
+import { stepCountIs, StopCondition } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -110,7 +110,7 @@ export async function generateText<
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
-  continueUntil = maxSteps(1),
+  stopWhen = stepCountIs(1),
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
@@ -140,7 +140,7 @@ The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
-    continueUntil?: StopCondition<NoInfer<TOOLS>>;
+    stopWhen?: StopCondition<NoInfer<TOOLS>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -459,7 +459,7 @@ A function that attempts to repair a tool call that failed to parse.
         // all current tool calls have results:
         currentToolResults.length === currentToolCalls.length &&
         // continue until the stop condition is met:
-        !(await continueUntil({ steps }))
+        !(await stopWhen({ steps }))
       );
 
       // Add response information to the span:
