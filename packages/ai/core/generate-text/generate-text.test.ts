@@ -1063,19 +1063,6 @@ describe('options.stopWhen', () => {
                     modelId: 'test-response-model-id',
                   },
                 };
-              case 1:
-                return {
-                  ...dummyResponseValues,
-                  content: [{ type: 'text', text: 'Hello, world!' }],
-                  response: {
-                    id: 'test-id-2-from-model',
-                    timestamp: new Date(10000),
-                    modelId: 'test-response-model-id',
-                    headers: {
-                      'custom-response-header': 'response-header-value',
-                    },
-                  },
-                };
               default:
                 throw new Error(`Unexpected response count: ${responseCount}`);
             }

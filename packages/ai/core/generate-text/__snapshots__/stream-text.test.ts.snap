@@ -92,806 +92,6 @@ exports[`streamText > multiple stream consumption > should support text stream, 
 }
 `;
 
-exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
-{
-  "content": [
-    {
-      "text": "Hello, world!",
-      "type": "text",
-    },
-  ],
-  "files": [],
-  "finishReason": "stop",
-  "providerMetadata": undefined,
-  "reasoning": [],
-  "reasoningText": undefined,
-  "request": {},
-  "response": {
-    "headers": {
-      "call": "2",
-    },
-    "id": "id-1",
-    "messages": [
-      {
-        "content": [
-          {
-            "providerOptions": undefined,
-            "text": "thinking",
-            "type": "reasoning",
-          },
-          {
-            "args": {
-              "value": "value",
-            },
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-call",
-          },
-        ],
-        "role": "assistant",
-      },
-      {
-        "content": [
-          {
-            "result": "result1",
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-result",
-          },
-        ],
-        "role": "tool",
-      },
-      {
-        "content": [
-          {
-            "text": "Hello, world!",
-            "type": "text",
-          },
-        ],
-        "role": "assistant",
-      },
-    ],
-    "modelId": "mock-model-id",
-    "timestamp": 1970-01-01T00:00:01.000Z,
-  },
-  "sources": [],
-  "steps": [
-    DefaultStepResult {
-      "content": [
-        {
-          "providerMetadata": undefined,
-          "text": "thinking",
-          "type": "reasoning",
-        },
-        {
-          "args": {
-            "value": "value",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-        {
-          "args": {
-            "value": "value",
-          },
-          "result": "result1",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
-      "finishReason": "tool-calls",
-      "providerMetadata": undefined,
-      "request": {},
-      "response": {
-        "headers": {
-          "call": "1",
-        },
-        "id": "id-0",
-        "messages": [
-          {
-            "content": [
-              {
-                "providerOptions": undefined,
-                "text": "thinking",
-                "type": "reasoning",
-              },
-              {
-                "args": {
-                  "value": "value",
-                },
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "result": "result1",
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
-        ],
-        "modelId": "mock-model-id",
-        "timestamp": 1970-01-01T00:00:00.000Z,
-      },
-      "usage": {
-        "cachedInputTokens": undefined,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": undefined,
-        "totalTokens": 13,
-      },
-      "warnings": [],
-    },
-    DefaultStepResult {
-      "content": [
-        {
-          "text": "Hello, world!",
-          "type": "text",
-        },
-      ],
-      "finishReason": "stop",
-      "providerMetadata": undefined,
-      "request": {},
-      "response": {
-        "headers": {
-          "call": "2",
-        },
-        "id": "id-1",
-        "messages": [
-          {
-            "content": [
-              {
-                "providerOptions": undefined,
-                "text": "thinking",
-                "type": "reasoning",
-              },
-              {
-                "args": {
-                  "value": "value",
-                },
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "result": "result1",
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
-          },
-        ],
-        "modelId": "mock-model-id",
-        "timestamp": 1970-01-01T00:00:01.000Z,
-      },
-      "usage": {
-        "cachedInputTokens": 3,
-        "inputTokens": 3,
-        "outputTokens": 10,
-        "reasoningTokens": 10,
-        "totalTokens": 23,
-      },
-      "warnings": [],
-    },
-  ],
-  "text": "Hello, world!",
-  "toolCalls": [],
-  "toolResults": [],
-  "totalUsage": {
-    "cachedInputTokens": 3,
-    "inputTokens": 6,
-    "outputTokens": 20,
-    "reasoningTokens": 10,
-    "totalTokens": 36,
-  },
-  "usage": {
-    "cachedInputTokens": 3,
-    "inputTokens": 3,
-    "outputTokens": 10,
-    "reasoningTokens": 10,
-    "totalTokens": 23,
-  },
-  "warnings": [],
-}
-`;
-
-exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
-[
-  DefaultStepResult {
-    "content": [
-      {
-        "providerMetadata": undefined,
-        "text": "thinking",
-        "type": "reasoning",
-      },
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
-    "finishReason": "tool-calls",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "1",
-      },
-      "id": "id-0",
-      "messages": [
-        {
-          "content": [
-            {
-              "providerOptions": undefined,
-              "text": "thinking",
-              "type": "reasoning",
-            },
-            {
-              "args": {
-                "value": "value",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "result": "result1",
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": undefined,
-      "totalTokens": 13,
-    },
-    "warnings": [],
-  },
-  DefaultStepResult {
-    "content": [
-      {
-        "text": "Hello, world!",
-        "type": "text",
-      },
-    ],
-    "finishReason": "stop",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "2",
-      },
-      "id": "id-1",
-      "messages": [
-        {
-          "content": [
-            {
-              "providerOptions": undefined,
-              "text": "thinking",
-              "type": "reasoning",
-            },
-            {
-              "args": {
-                "value": "value",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "result": "result1",
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-        {
-          "content": [
-            {
-              "text": "Hello, world!",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "usage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": 10,
-      "totalTokens": 23,
-    },
-    "warnings": [],
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
-[
-  {
-    "type": "start",
-  },
-  {
-    "request": {},
-    "type": "start-step",
-    "warnings": [],
-  },
-  {
-    "reasoningType": "text",
-    "text": "thinking",
-    "type": "reasoning",
-  },
-  {
-    "args": {
-      "value": "value",
-    },
-    "toolCallId": "call-1",
-    "toolName": "tool1",
-    "type": "tool-call",
-  },
-  {
-    "args": {
-      "value": "value",
-    },
-    "result": "result1",
-    "toolCallId": "call-1",
-    "toolName": "tool1",
-    "type": "tool-result",
-  },
-  {
-    "finishReason": "tool-calls",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": {
-        "call": "1",
-      },
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish-step",
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": undefined,
-      "totalTokens": 13,
-    },
-  },
-  {
-    "request": {},
-    "type": "start-step",
-    "warnings": [],
-  },
-  {
-    "text": "Hello, ",
-    "type": "text",
-  },
-  {
-    "text": "world!",
-    "type": "text",
-  },
-  {
-    "finishReason": "stop",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": {
-        "call": "2",
-      },
-      "id": "id-1",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "type": "finish-step",
-    "usage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": 10,
-      "totalTokens": 23,
-    },
-  },
-  {
-    "finishReason": "stop",
-    "totalUsage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 6,
-      "outputTokens": 20,
-      "reasoningTokens": 10,
-      "totalTokens": 36,
-    },
-    "type": "finish",
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
-[
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.streamText",
-      "ai.prompt": "{"prompt":"test-input"}",
-      "ai.response.finishReason": "stop",
-      "ai.response.text": "Hello, world!",
-      "ai.settings.maxRetries": 2,
-      "ai.usage.cachedInputTokens": 3,
-      "ai.usage.inputTokens": 6,
-      "ai.usage.outputTokens": 20,
-      "ai.usage.reasoningTokens": 10,
-      "ai.usage.totalTokens": 36,
-      "operation.name": "ai.streamText",
-    },
-    "events": [],
-    "name": "ai.streamText",
-  },
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.streamText.doStream",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-      "ai.prompt.toolChoice": "{"type":"auto"}",
-      "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
-      ],
-      "ai.response.avgOutputTokensPerSecond": 20,
-      "ai.response.finishReason": "tool-calls",
-      "ai.response.id": "id-0",
-      "ai.response.model": "mock-model-id",
-      "ai.response.msToFinish": 500,
-      "ai.response.msToFirstChunk": 100,
-      "ai.response.text": "",
-      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
-      "ai.settings.maxRetries": 2,
-      "ai.usage.inputTokens": 3,
-      "ai.usage.outputTokens": 10,
-      "ai.usage.totalTokens": 13,
-      "gen_ai.request.model": "mock-model-id",
-      "gen_ai.response.finish_reasons": [
-        "tool-calls",
-      ],
-      "gen_ai.response.id": "id-0",
-      "gen_ai.response.model": "mock-model-id",
-      "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 3,
-      "gen_ai.usage.output_tokens": 10,
-      "operation.name": "ai.streamText.doStream",
-    },
-    "events": [
-      {
-        "attributes": {
-          "ai.response.msToFirstChunk": 100,
-        },
-        "name": "ai.stream.firstChunk",
-      },
-      {
-        "attributes": undefined,
-        "name": "ai.stream.finish",
-      },
-    ],
-    "name": "ai.streamText.doStream",
-  },
-  {
-    "attributes": {
-      "ai.operationId": "ai.toolCall",
-      "ai.toolCall.args": "{"value":"value"}",
-      "ai.toolCall.id": "call-1",
-      "ai.toolCall.name": "tool1",
-      "ai.toolCall.result": ""result1"",
-      "operation.name": "ai.toolCall",
-    },
-    "events": [],
-    "name": "ai.toolCall",
-  },
-  {
-    "attributes": {
-      "ai.model.id": "mock-model-id",
-      "ai.model.provider": "mock-provider",
-      "ai.operationId": "ai.streamText.doStream",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
-      "ai.prompt.toolChoice": "{"type":"auto"}",
-      "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
-      ],
-      "ai.response.avgOutputTokensPerSecond": 25,
-      "ai.response.finishReason": "stop",
-      "ai.response.id": "id-1",
-      "ai.response.model": "mock-model-id",
-      "ai.response.msToFinish": 400,
-      "ai.response.msToFirstChunk": 400,
-      "ai.response.text": "Hello, world!",
-      "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-      "ai.settings.maxRetries": 2,
-      "ai.usage.cachedInputTokens": 3,
-      "ai.usage.inputTokens": 3,
-      "ai.usage.outputTokens": 10,
-      "ai.usage.reasoningTokens": 10,
-      "ai.usage.totalTokens": 23,
-      "gen_ai.request.model": "mock-model-id",
-      "gen_ai.response.finish_reasons": [
-        "stop",
-      ],
-      "gen_ai.response.id": "id-1",
-      "gen_ai.response.model": "mock-model-id",
-      "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 3,
-      "gen_ai.usage.output_tokens": 10,
-      "operation.name": "ai.streamText.doStream",
-    },
-    "events": [
-      {
-        "attributes": {
-          "ai.response.msToFirstChunk": 400,
-        },
-        "name": "ai.stream.firstChunk",
-      },
-      {
-        "attributes": undefined,
-        "name": "ai.stream.finish",
-      },
-    ],
-    "name": "ai.streamText.doStream",
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value promises > result.response.messages should contain response messages from all steps 1`] = `
-[
-  {
-    "content": [
-      {
-        "providerOptions": undefined,
-        "text": "thinking",
-        "type": "reasoning",
-      },
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "role": "assistant",
-  },
-  {
-    "content": [
-      {
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
-    "role": "tool",
-  },
-  {
-    "content": [
-      {
-        "text": "Hello, world!",
-        "type": "text",
-      },
-    ],
-    "role": "assistant",
-  },
-]
-`;
-
-exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
-[
-  DefaultStepResult {
-    "content": [
-      {
-        "providerMetadata": undefined,
-        "text": "thinking",
-        "type": "reasoning",
-      },
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
-    "finishReason": "tool-calls",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "1",
-      },
-      "id": "id-0",
-      "messages": [
-        {
-          "content": [
-            {
-              "providerOptions": undefined,
-              "text": "thinking",
-              "type": "reasoning",
-            },
-            {
-              "args": {
-                "value": "value",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "result": "result1",
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": undefined,
-      "totalTokens": 13,
-    },
-    "warnings": [],
-  },
-  DefaultStepResult {
-    "content": [
-      {
-        "text": "Hello, world!",
-        "type": "text",
-      },
-    ],
-    "finishReason": "stop",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": {
-        "call": "2",
-      },
-      "id": "id-1",
-      "messages": [
-        {
-          "content": [
-            {
-              "providerOptions": undefined,
-              "text": "thinking",
-              "type": "reasoning",
-            },
-            {
-              "args": {
-                "value": "value",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "result": "result1",
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-        {
-          "content": [
-            {
-              "text": "Hello, world!",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ],
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:01.000Z,
-    },
-    "usage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": 10,
-      "totalTokens": 23,
-    },
-    "warnings": [],
-  },
-]
-`;
-
 exports[`streamText > options.onChunk > should return events in order 1`] = `
 [
   {
@@ -1585,6 +785,806 @@ exports[`streamText > options.output > object output > should call onFinish with
   },
   "warnings": [],
 }
+`;
+
+exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
+{
+  "content": [
+    {
+      "text": "Hello, world!",
+      "type": "text",
+    },
+  ],
+  "files": [],
+  "finishReason": "stop",
+  "providerMetadata": undefined,
+  "reasoning": [],
+  "reasoningText": undefined,
+  "request": {},
+  "response": {
+    "headers": {
+      "call": "2",
+    },
+    "id": "id-1",
+    "messages": [
+      {
+        "content": [
+          {
+            "providerOptions": undefined,
+            "text": "thinking",
+            "type": "reasoning",
+          },
+          {
+            "args": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ],
+        "role": "assistant",
+      },
+      {
+        "content": [
+          {
+            "result": "result1",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ],
+        "role": "tool",
+      },
+      {
+        "content": [
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+    ],
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:01.000Z,
+  },
+  "sources": [],
+  "steps": [
+    DefaultStepResult {
+      "content": [
+        {
+          "providerMetadata": undefined,
+          "text": "thinking",
+          "type": "reasoning",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "finishReason": "tool-calls",
+      "providerMetadata": undefined,
+      "request": {},
+      "response": {
+        "headers": {
+          "call": "1",
+        },
+        "id": "id-0",
+        "messages": [
+          {
+            "content": [
+              {
+                "providerOptions": undefined,
+                "text": "thinking",
+                "type": "reasoning",
+              },
+              {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "result": "result1",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ],
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+      "warnings": [],
+    },
+    DefaultStepResult {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "finishReason": "stop",
+      "providerMetadata": undefined,
+      "request": {},
+      "response": {
+        "headers": {
+          "call": "2",
+        },
+        "id": "id-1",
+        "messages": [
+          {
+            "content": [
+              {
+                "providerOptions": undefined,
+                "text": "thinking",
+                "type": "reasoning",
+              },
+              {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "result": "result1",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:01.000Z,
+      },
+      "usage": {
+        "cachedInputTokens": 3,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": 10,
+        "totalTokens": 23,
+      },
+      "warnings": [],
+    },
+  ],
+  "text": "Hello, world!",
+  "toolCalls": [],
+  "toolResults": [],
+  "totalUsage": {
+    "cachedInputTokens": 3,
+    "inputTokens": 6,
+    "outputTokens": 20,
+    "reasoningTokens": 10,
+    "totalTokens": 36,
+  },
+  "usage": {
+    "cachedInputTokens": 3,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": 10,
+    "totalTokens": 23,
+  },
+  "warnings": [],
+}
+`;
+
+exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
+[
+  DefaultStepResult {
+    "content": [
+      {
+        "providerMetadata": undefined,
+        "text": "thinking",
+        "type": "reasoning",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "finishReason": "tool-calls",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": {
+        "call": "1",
+      },
+      "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "thinking",
+              "type": "reasoning",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "usage": {
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
+      "totalTokens": 13,
+    },
+    "warnings": [],
+  },
+  DefaultStepResult {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "finishReason": "stop",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": {
+        "call": "2",
+      },
+      "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "thinking",
+              "type": "reasoning",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "usage": {
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
+    },
+    "warnings": [],
+  },
+]
+`;
+
+exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should contain assistant response message and tool message from all steps 1`] = `
+[
+  {
+    "type": "start",
+  },
+  {
+    "request": {},
+    "type": "start-step",
+    "warnings": [],
+  },
+  {
+    "reasoningType": "text",
+    "text": "thinking",
+    "type": "reasoning",
+  },
+  {
+    "args": {
+      "value": "value",
+    },
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "args": {
+      "value": "value",
+    },
+    "result": "result1",
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-result",
+  },
+  {
+    "finishReason": "tool-calls",
+    "providerMetadata": undefined,
+    "response": {
+      "headers": {
+        "call": "1",
+      },
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish-step",
+    "usage": {
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
+      "totalTokens": 13,
+    },
+  },
+  {
+    "request": {},
+    "type": "start-step",
+    "warnings": [],
+  },
+  {
+    "text": "Hello, ",
+    "type": "text",
+  },
+  {
+    "text": "world!",
+    "type": "text",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": undefined,
+    "response": {
+      "headers": {
+        "call": "2",
+      },
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "type": "finish-step",
+    "usage": {
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
+    },
+  },
+  {
+    "finishReason": "stop",
+    "totalUsage": {
+      "cachedInputTokens": 3,
+      "inputTokens": 6,
+      "outputTokens": 20,
+      "reasoningTokens": 10,
+      "totalTokens": 36,
+    },
+    "type": "finish",
+  },
+]
+`;
+
+exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText",
+      "ai.prompt": "{"prompt":"test-input"}",
+      "ai.response.finishReason": "stop",
+      "ai.response.text": "Hello, world!",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.cachedInputTokens": 3,
+      "ai.usage.inputTokens": 6,
+      "ai.usage.outputTokens": 20,
+      "ai.usage.reasoningTokens": 10,
+      "ai.usage.totalTokens": 36,
+      "operation.name": "ai.streamText",
+    },
+    "events": [],
+    "name": "ai.streamText",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+      "ai.prompt.toolChoice": "{"type":"auto"}",
+      "ai.prompt.tools": [
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+      ],
+      "ai.response.avgOutputTokensPerSecond": 20,
+      "ai.response.finishReason": "tool-calls",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
+      "ai.response.msToFinish": 500,
+      "ai.response.msToFirstChunk": 100,
+      "ai.response.text": "",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "tool-calls",
+      ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.response.msToFirstChunk": 100,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+      {
+        "attributes": undefined,
+        "name": "ai.stream.finish",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+  {
+    "attributes": {
+      "ai.operationId": "ai.toolCall",
+      "ai.toolCall.args": "{"value":"value"}",
+      "ai.toolCall.id": "call-1",
+      "ai.toolCall.name": "tool1",
+      "ai.toolCall.result": ""result1"",
+      "operation.name": "ai.toolCall",
+    },
+    "events": [],
+    "name": "ai.toolCall",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
+      "ai.prompt.toolChoice": "{"type":"auto"}",
+      "ai.prompt.tools": [
+        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+      ],
+      "ai.response.avgOutputTokensPerSecond": 25,
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "id-1",
+      "ai.response.model": "mock-model-id",
+      "ai.response.msToFinish": 400,
+      "ai.response.msToFirstChunk": 400,
+      "ai.response.text": "Hello, world!",
+      "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.cachedInputTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.reasoningTokens": 10,
+      "ai.usage.totalTokens": 23,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "id-1",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
+      "operation.name": "ai.streamText.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.response.msToFirstChunk": 400,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+      {
+        "attributes": undefined,
+        "name": "ai.stream.finish",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+]
+`;
+
+exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value promises > result.response.messages should contain response messages from all steps 1`] = `
+[
+  {
+    "content": [
+      {
+        "providerOptions": undefined,
+        "text": "thinking",
+        "type": "reasoning",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
+[
+  DefaultStepResult {
+    "content": [
+      {
+        "providerMetadata": undefined,
+        "text": "thinking",
+        "type": "reasoning",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "finishReason": "tool-calls",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": {
+        "call": "1",
+      },
+      "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "thinking",
+              "type": "reasoning",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "usage": {
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
+      "totalTokens": 13,
+    },
+    "warnings": [],
+  },
+  DefaultStepResult {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "finishReason": "stop",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": {
+        "call": "2",
+      },
+      "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "thinking",
+              "type": "reasoning",
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:01.000Z,
+    },
+    "usage": {
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
+    },
+    "warnings": [],
+  },
+]
 `;
 
 exports[`streamText > options.transform > with base transformation > options.onFinish should receive transformed data 1`] = `

@@ -2468,7 +2468,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.maxSteps', () => {
+  describe('options.stopWhen', () => {
     let result: StreamTextResult<any, any>;
     let onFinishResult: Parameters<
       Required<Parameters<typeof streamText>[0]>['onFinish']
@@ -3881,6 +3881,257 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('2 stop conditions', () => {
+      let stopConditionCalls: Array<{
+        number: number;
+        steps: StepResult<any>[];
+      }>;
+
+      beforeEach(async () => {
+        stopConditionCalls = [];
+
+        let responseCount = 0;
+        result = streamText({
+          model: new MockLanguageModelV2({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-0',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'reasoning',
+                        reasoningType: 'text',
+                        text: 'thinking',
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        args: `{ "value": "value" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+                }
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            tool1: {
+              parameters: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            },
+          },
+          prompt: 'test-input',
+          experimental_telemetry: { isEnabled: true, tracer },
+          stopWhen: [
+            ({ steps }) => {
+              stopConditionCalls.push({ number: 0, steps });
+              return false;
+            },
+            ({ steps }) => {
+              stopConditionCalls.push({ number: 1, steps });
+              return true;
+            },
+          ],
+          _internal: {
+            now: mockValues(0, 100, 500, 600, 1000),
+          },
+        });
+      });
+
+      it('result.steps should contain a single step', async () => {
+        await result.consumeStream();
+        expect((await result.steps).length).toStrictEqual(1);
+      });
+
+      it('stopConditionCalls should be called for each stop condition', async () => {
+        await result.consumeStream();
+        expect(stopConditionCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "number": 0,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "result": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "providerOptions": undefined,
+                            "text": "thinking",
+                            "type": "reasoning",
+                          },
+                          {
+                            "args": {
+                              "value": "value",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "result": "result1",
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+            {
+              "number": 1,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "result": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "providerOptions": undefined,
+                            "text": "thinking",
+                            "type": "reasoning",
+                          },
+                          {
+                            "args": {
+                              "value": "value",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "result": "result1",
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+          ]
+        `);
       });
     });
   });
