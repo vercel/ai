@@ -31,7 +31,7 @@ async function main() {
           },
         },
       }),
-      continueUntil: maxSteps(10),
+      stopWhen: stepCountIs(10),
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },

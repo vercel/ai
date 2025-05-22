@@ -18,7 +18,7 @@ async function main() {
     const { text: answer } = await generateText({
       model: openai('gpt-4o-mini'),
       tools,
-      continueUntil: maxSteps(10),
+      stopWhen: stepCountIs(10),
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },

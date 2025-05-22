@@ -22,7 +22,7 @@ async function main() {
       }),
     },
     prompt: 'List the files in my home directory.',
-    continueUntil: maxSteps(2),
+    stopWhen: stepCountIs(2),
   });
 
   console.log(result.text);

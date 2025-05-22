@@ -1,5 +1,5 @@
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
-import { maxSteps, ModelMessage, streamText, tool } from 'ai';
+import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
@@ -46,7 +46,7 @@ async function main() {
           }),
         }),
       },
-      continueUntil: maxSteps(5),
+      stopWhen: stepCountIs(5),
       maxRetries: 0,
       providerOptions: {
         anthropic: {

@@ -45,7 +45,7 @@ This is a test file.
         },
       },
     ],
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
   });
 
   console.log('TEXT', result.text);

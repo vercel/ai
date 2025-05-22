@@ -42,7 +42,7 @@ async function main() {
     },
     prompt:
       'How can I switch to dark mode? Take a look at the screen and tell me.',
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
   });
 
   console.log(result.text);

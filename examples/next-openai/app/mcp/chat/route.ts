@@ -3,7 +3,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import {
   convertToModelMessages,
   experimental_createMCPClient,
-  maxSteps,
+  stepCountIs,
   streamText,
 } from 'ai';
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: openai('gpt-4o-mini'),
       tools,
-      continueUntil: maxSteps(5),
+      stopWhen: stepCountIs(5),
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },

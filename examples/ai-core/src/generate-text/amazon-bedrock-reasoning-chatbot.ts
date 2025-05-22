@@ -21,7 +21,7 @@ async function main() {
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
-      continueUntil: maxSteps(5),
+      stopWhen: stepCountIs(5),
       providerOptions: {
         bedrock: {
           reasoningConfig: { type: 'enabled', budgetTokens: 2048 },

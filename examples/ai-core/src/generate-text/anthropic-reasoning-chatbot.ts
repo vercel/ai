@@ -33,7 +33,7 @@ async function main() {
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
-      continueUntil: maxSteps(5),
+      stopWhen: stepCountIs(5),
       providerOptions: {
         anthropic: {
           thinking: { type: 'enabled', budgetTokens: 12000 },

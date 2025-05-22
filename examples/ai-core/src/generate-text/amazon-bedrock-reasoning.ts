@@ -13,7 +13,7 @@ async function main() {
       },
     },
     maxRetries: 0,
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
   });
 
   console.log('Reasoning:');
