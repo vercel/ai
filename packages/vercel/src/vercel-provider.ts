@@ -3,20 +3,13 @@ import {
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
-import {
-  OpenAICompatibleChatLanguageModel,
-  OpenAICompatibleCompletionLanguageModel,
-} from '@ai-sdk/openai-compatible';
+import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { VercelChatModelId, VercelChatSettings } from './vercel-chat-settings';
-import {
-  VercelCompletionModelId,
-  VercelCompletionSettings,
-} from './vercel-completion-settings';
 
 export interface VercelProviderSettings {
   /**
@@ -53,19 +46,11 @@ Creates a chat model for text generation.
   ): LanguageModelV1;
 
   /**
-Creates a chat model for text generation.
+Creates a language model for text generation.
 */
   languageModel(
     modelId: VercelChatModelId,
     settings?: VercelChatSettings,
-  ): LanguageModelV1;
-
-  /**
-Creates a completion model for text generation.
-*/
-  completionModel(
-    modelId: VercelCompletionModelId,
-    settings?: VercelCompletionSettings,
   ): LanguageModelV1;
 }
 
@@ -113,7 +98,6 @@ export function createVercel(
     settings?: VercelChatSettings,
   ) => createChatModel(modelId, settings);
 
-  provider.completionModel = createChatModel;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = (modelId: string) => {

@@ -1,8 +1,5 @@
 import { createVercel } from './vercel-provider';
-import {
-  OpenAICompatibleChatLanguageModel,
-  OpenAICompatibleCompletionLanguageModel,
-} from '@ai-sdk/openai-compatible';
+import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import { LanguageModelV1 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
@@ -104,18 +101,6 @@ describe('VercelProvider', () => {
           defaultObjectGenerationMode: 'json',
         }),
       );
-    });
-  });
-
-  describe('completionModel', () => {
-    it('should construct a completion model with correct configuration', () => {
-      const provider = createVercel();
-      const modelId = 'vercel-completion-model';
-      const settings = { user: 'foo-user' };
-
-      const model = provider.completionModel(modelId, settings);
-
-      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
   });
 });
