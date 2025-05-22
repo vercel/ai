@@ -26,6 +26,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicThinkingContent
     | AnthropicRedactedThinkingContent
     | AnthropicToolCallContent
+    | AnthropicWebSearchContent
   >;
 }
 
@@ -40,6 +41,14 @@ export interface AnthropicThinkingContent {
   thinking: string;
   signature: string;
   cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicWebSearchContent {
+  type: 'web_search_result';
+  url: string;
+  title: string;
+  encrypted_content: string;
+  page_age: string;
 }
 
 export interface AnthropicRedactedThinkingContent {
@@ -72,7 +81,7 @@ export interface AnthropicDocumentContent {
 }
 
 export interface AnthropicToolCallContent {
-  type: 'tool_use';
+  type: 'tool_use' | 'server_tool_use';
   id: string;
   name: string;
   input: unknown;
@@ -83,6 +92,25 @@ export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
   content: string | Array<AnthropicTextContent | AnthropicImageContent>;
+  is_error: boolean | undefined;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicWebSearchToolResultErrorContent {
+  type: 'web_search_tool_result_error';
+  error_code: string; // e.g., 'max_uses_exceeded', 'too_many_requests', etc.
+}
+
+/**
+ * See documentation for errors responses that can happen during web search:
+ * @see https://docs.anthropic.com/en/docs/build-with-claude/tool-use/web-search-tool#errors
+ */
+export interface AnthropicWebSearchToolResultContent {
+  type: 'web_search_tool_result';
+  tool_use_id: string;
+  content:
+    | Array<AnthropicWebSearchContent>
+    | AnthropicWebSearchToolResultErrorContent; // Updated
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -107,6 +135,20 @@ export type AnthropicTool =
   | {
       name: string;
       type: 'bash_20250124' | 'bash_20241022';
+    }
+  | {
+      name: string;
+      type: 'web_search_20250305';
+      max_uses?: number;
+      allowed_domains?: string[];
+      blocked_domains?: string[];
+      user_location?: {
+        type: 'approximate';
+        city: string;
+        region: string;
+        country: string;
+        timezone: string;
+      };
     };
 
 export type AnthropicToolChoice =

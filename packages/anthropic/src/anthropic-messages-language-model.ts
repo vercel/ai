@@ -396,6 +396,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       | 'text'
       | 'thinking'
       | 'tool_use'
+      | 'server_tool_use'
+      | 'web_search_result'
+      | 'web_search_tool_result'
       | 'redacted_thinking'
       | undefined = undefined;
 
@@ -437,7 +440,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                     return;
                   }
 
-                  case 'tool_use': {
+                  case 'tool_use':
+                  case 'server_tool_use':
+                  case 'web_search_result':
+                  case 'web_search_tool_result': {
                     toolCallContentBlocks[value.index] = {
                       toolCallId: value.content_block.id,
                       toolName: value.content_block.name,
@@ -620,6 +626,22 @@ const anthropicMessagesResponseSchema = z.object({
         name: z.string(),
         input: z.unknown(),
       }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.unknown(),
+      }),
+      z.object({
+        type: z.literal('web_search_result'),
+        id: z.string(),
+        name: z.string(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.unknown(),
+      }),
     ]),
   ),
   stop_reason: z.string().nullish(),
@@ -661,6 +683,21 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       }),
       z.object({
         type: z.literal('tool_use'),
+        id: z.string(),
+        name: z.string(),
+      }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+      }),
+      z.object({
+        type: z.literal('web_search_result'),
+        id: z.string(),
+        name: z.string(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
         id: z.string(),
         name: z.string(),
       }),
