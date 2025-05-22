@@ -15,3 +15,15 @@ export function hasToolCall(toolName: string): StopCondition<any> {
       toolCall => toolCall.toolName === toolName,
     ) ?? false;
 }
+
+export async function isStopConditionMet<TOOLS extends ToolSet>({
+  stopConditions,
+  steps,
+}: {
+  stopConditions: Array<StopCondition<TOOLS>>;
+  steps: Array<StepResult<TOOLS>>;
+}): Promise<boolean> {
+  return (
+    await Promise.all(stopConditions.map(condition => condition({ steps })))
+  ).some(result => result);
+}
