@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
+exports[`options.stopWhen > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -133,7 +133,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.messages should contain response messages from all steps 1`] = `
+exports[`options.stopWhen > 2 steps: initial, tool-result > result.response.messages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -171,7 +171,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
+exports[`options.stopWhen > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -304,7 +304,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
+exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -437,7 +437,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > result.response.messages should contain response messages from all steps 1`] = `
+exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.response.messages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -475,7 +475,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
 ]
 `;
 
-exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
+exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
 [
   DefaultStepResult {
     "content": [
