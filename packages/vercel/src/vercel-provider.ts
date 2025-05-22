@@ -79,7 +79,7 @@ export function createVercel(
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'VERCEL_API_KEY',
-      description: "Vercel's API key",
+      description: 'Vercel',
     })}`,
     ...options.headers,
   });
