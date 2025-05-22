@@ -3497,12 +3497,12 @@ exports[`streamText > result.toUIMessageStream > should send source content when
     "type": "start-step",
   },
   {
-    "id": "123",
     "providerMetadata": {
       "provider": {
         "custom": "value",
       },
     },
+    "sourceId": "123",
     "title": "Example",
     "type": "source-url",
     "url": "https://example.com",
@@ -3512,12 +3512,12 @@ exports[`streamText > result.toUIMessageStream > should send source content when
     "type": "text",
   },
   {
-    "id": "456",
     "providerMetadata": {
       "provider": {
         "custom": "value2",
       },
     },
+    "sourceId": "456",
     "title": "Example 2",
     "type": "source-url",
     "url": "https://example.com/2",
