@@ -21,6 +21,8 @@ async function main() {
     prompt: 'Generate a lasagna recipe.',
   });
 
+  console.log('Response body', JSON.parse(result.request.body));
+
   console.log(JSON.stringify(result.object.recipe, null, 2));
   console.log();
   console.log('Token usage:', result.usage);

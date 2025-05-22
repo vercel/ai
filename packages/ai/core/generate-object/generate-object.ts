@@ -537,7 +537,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     description: schemaDescription,
                   },
                   responseFormat: {
-                    ...outputStrategy.jsonSchema,
+                    schema: outputStrategy.jsonSchema,
                     type: 'json',
                   },
                   ...prepareCallSettings(settings),
