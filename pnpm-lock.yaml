@@ -144,7 +144,7 @@ importers:
         specifier: 0.1.28
         version: link:../../packages/valibot
       '@ai-sdk/vercel':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../../packages/vercel
       '@ai-sdk/xai':
         specifier: 1.2.16
