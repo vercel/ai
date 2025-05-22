@@ -1,7 +1,7 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
-import { defaultChatStore, UIMessage } from 'ai';
+import { useChat, defaultChatStore } from '@ai-sdk/react';
+import { type UIMessage } from 'ai';
 import Link from 'next/link';
 import { useEffect } from 'react';
 

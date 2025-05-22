@@ -1,36 +1,27 @@
 import {
+  ActiveResponse,
+  ChatStateManager,
+  ChatStatus,
   ChatStore,
-  type ChatStateManager,
-  type UIDataTypes,
-  type UIMessage,
   SerialJobExecutor,
-  type ChatStatus,
-  type ActiveResponse,
-  type UIDataPartSchemas,
-  type UIDataTypesSchemas,
+  UIDataPartSchemas,
+  UIDataTypes,
+  UIDataTypesSchemas,
+  UIMessage,
   defaultChatStore as defaultDefaultChatStore,
 } from 'ai';
-import { createContext } from './utils.svelte.js';
 
-export const {
-  hasContext: hasChatStoreContext,
-  getContext: getChatStoreContext,
-  setContext: setChatStoreContext,
-} = createContext<ChatStore>('ChatStore');
-
-export class SvelteStateManager<
-  MESSAGE_METADATA,
-  DATA_TYPES extends UIDataTypes,
-> implements ChatStateManager<MESSAGE_METADATA, DATA_TYPES>
+export class ReactStateManager<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
+  implements ChatStateManager<MESSAGE_METADATA, DATA_TYPES>
 {
   messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-  status = $state<ChatStatus>('ready');
-  error = $state<Error | undefined>(undefined);
+  status: ChatStatus = 'ready';
+  error: Error | undefined = undefined;
   activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined = undefined;
   jobExecutor = new SerialJobExecutor();
 
   constructor(messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
-    this.messages = $state(messages ?? []);
+    this.messages = messages ?? [];
   }
 
   setStatus = (status: ChatStatus) => {
@@ -48,26 +39,30 @@ export class SvelteStateManager<
   };
 
   setMessages = (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => {
-    this.messages = messages;
+    this.messages = [...messages];
   };
 
   pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
-    this.messages.push(message);
+    this.messages = this.messages.concat(message);
   };
 
   popMessage = () => {
-    this.messages.pop();
+    this.messages = this.messages.slice(0, -1);
   };
 
   replaceMessage = (
     index: number,
     message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
   ) => {
-    this.messages[index] = message;
+    this.messages = [
+      ...this.messages.slice(0, index),
+      message,
+      ...this.messages.slice(index + 1),
+    ];
   };
 }
 
-export class SvelteChatStore<
+export class ReactChatStore<
   MESSAGE_METADATA = unknown,
   DATA_TYPES extends UIDataTypesSchemas = UIDataTypesSchemas,
 > extends ChatStore<MESSAGE_METADATA, DATA_TYPES> {
@@ -77,7 +72,7 @@ export class SvelteChatStore<
       'StateManager'
     >,
   ) {
-    super({ ...arg, StateManager: SvelteStateManager });
+    super({ ...arg, StateManager: ReactStateManager });
   }
 }
 
@@ -96,6 +91,6 @@ export function defaultChatStore<
 > {
   return defaultDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
     ...args,
-    StateManager: SvelteStateManager,
+    StateManager: ReactStateManager,
   });
 }

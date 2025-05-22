@@ -1,8 +1,7 @@
 'use client';
 
 import { zodSchema } from '@ai-sdk/provider-utils';
-import { UIMessage, useChat } from '@ai-sdk/react';
-import { defaultChatStore } from 'ai';
+import { UIMessage, useChat, defaultChatStore } from '@ai-sdk/react';
 import { z } from 'zod';
 
 export default function Chat({
