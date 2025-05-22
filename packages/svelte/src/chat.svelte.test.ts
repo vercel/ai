@@ -913,7 +913,7 @@ describe('maxSteps', () => {
       onToolCallInvoked = false;
     });
 
-    it.only('should automatically call api when tool call gets executed via onToolCall', async () => {
+    it('should automatically call api when tool call gets executed via onToolCall', async () => {
       server.urls['/api/chat'].response = [
         {
           type: 'stream-chunks',
@@ -938,8 +938,6 @@ describe('maxSteps', () => {
       });
 
       expect(onToolCallInvoked).toBe(true);
-
-      console.log(chat.messages);
 
       expect(chat.messages).toMatchInlineSnapshot(`
         [

@@ -198,7 +198,6 @@ export class ChatStore<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[],
   ) {
-    console.log(this.StateManager);
     this.chats.set(id, new this.StateManager(messages));
   }
 
@@ -563,7 +562,6 @@ export class ChatStore<
 
     // auto-submit when all tool calls in the last assistant message have results
     // and assistant has not answered yet
-    console.log(JSON.stringify(chat.messages, null, 2));
     if (
       shouldResubmitMessages({
         originalMaxToolInvocationStep: maxStep,
