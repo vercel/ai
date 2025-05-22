@@ -51,8 +51,8 @@ describe('VercelProvider', () => {
 
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: undefined,
-        environmentVariableName: 'VERCEL_V0_API_KEY',
-        description: "Vercel's API key",
+        environmentVariableName: 'VERCEL_API_KEY',
+        description: 'Vercel',
       });
     });
 
@@ -72,8 +72,8 @@ describe('VercelProvider', () => {
 
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: 'custom-key',
-        environmentVariableName: 'VERCEL_V0_API_KEY',
-        description: "Vercel's API key",
+        environmentVariableName: 'VERCEL_API_KEY',
+        description: 'Vercel',
       });
     });
 
@@ -115,7 +115,7 @@ describe('VercelProvider', () => {
 
       const model = provider.completionModel(modelId, settings);
 
-      expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
+      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
   });
 });
