@@ -1,7 +1,7 @@
 import { createVercel } from './vercel-provider';
 import {
   OpenAICompatibleChatLanguageModel,
-  OpenAICompatibleCompletionLanguageModel
+  OpenAICompatibleCompletionLanguageModel,
 } from '@ai-sdk/openai-compatible';
 import { LanguageModelV1 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';

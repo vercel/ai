@@ -4,6 +4,7 @@ The **[Vercel provider](https://ai-sdk.dev/providers/ai-sdk-providers/vercel)** 
 gives you access to the v0 API, designed for building modern web applications. The `v0-1.0-md` model supports text and image inputs, provides fast streaming responses, and is compatible with the OpenAI Chat Completions API format.
 
 Key features include:
+
 - Framework aware completions: Optimized for modern stacks like Next.js and Vercel
 - Auto-fix: Identifies and corrects common coding issues during generation
 - Quick edit: Streams inline edits as they're available
