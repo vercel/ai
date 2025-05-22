@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { maxSteps, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 
@@ -15,7 +15,7 @@ async function main() {
         reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
       },
     },
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
     maxRetries: 5,
   });
 

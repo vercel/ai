@@ -165,7 +165,7 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   // ...
-  experimental_prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
+  experimental_prepareStep: async ({ model, stepNumber, steps }) => {
     if (stepNumber === 0) {
       return {
         // use a different model for this step:
