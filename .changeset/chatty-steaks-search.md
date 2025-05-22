@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-feat (ai): add array support for generateText.continueUntil
+feat (ai): add array support to stopWhen
