@@ -8,7 +8,7 @@ import {
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
 import { LanguageModelV2 } from '@ai-sdk/provider';
-import { APICallError, generateText, maxSteps } from 'ai';
+import { APICallError, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';

@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, maxSteps } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';
 

@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_createMCPClient, generateText, maxSteps } from 'ai';
+import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 
 async function main() {

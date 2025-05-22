@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { experimental_createMCPClient, generateText, maxSteps } from 'ai';
+import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 
 async function main() {

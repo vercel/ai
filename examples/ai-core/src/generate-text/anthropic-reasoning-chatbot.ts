@@ -1,5 +1,5 @@
 import { createAnthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { ModelMessage, generateText, maxSteps } from 'ai';
+import { ModelMessage, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
