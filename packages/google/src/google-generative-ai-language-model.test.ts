@@ -1256,6 +1256,177 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it('should correctly parse and separate reasoning parts from text output', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'Visible text part 1.' },
+                { text: 'This is a thought process.', thought: true },
+                { text: 'Visible text part 2.' },
+                { text: 'Another internal thought.', thought: true },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    console.log(content);
+
+    expect(content).toStrictEqual([
+      { type: 'text', text: 'Visible text part 1.' },
+      { type: 'reasoning', text: 'This is a thought process.' },
+      { type: 'text', text: 'Visible text part 2.' },
+      { type: 'reasoning', text: 'Another internal thought.' },
+    ]);
+  });
+
+  describe('warnings for includeThoughts option', () => {
+    it('should generate a warning if includeThoughts is true for a non-Vertex provider', async () => {
+      prepareJsonResponse({ content: 'test' }); // Mock API response
+
+      // Manually create a model instance to control the provider string
+      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+      });
+
+      const { warnings } = await nonVertexModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              includeThoughts: true,
+              thinkingBudget: 500,
+            },
+          },
+        },
+      });
+
+      expect(warnings).toContainEqual({
+        type: 'other',
+        message:
+          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          '(google.generative-ai.chat).',
+      });
+    });
+
+    it('should NOT generate a warning if includeThoughts is true for a Vertex provider', async () => {
+      prepareJsonResponse({ content: 'test' }); // Mock API response
+
+      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat', // Simulate Vertex provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+      });
+
+      const { warnings } = await vertexModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              includeThoughts: true,
+              thinkingBudget: 500,
+            },
+          },
+        },
+      });
+
+      const expectedWarningMessage =
+        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+        'and might not be supported or could behave unexpectedly with the current Google provider ';
+
+      expect(
+        warnings?.some(
+          w =>
+            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
+        ),
+      ).toBe(false);
+    });
+
+    it('should NOT generate a warning if includeThoughts is false for a non-Vertex provider', async () => {
+      prepareJsonResponse({ content: 'test' }); // Mock API response
+
+      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+      });
+
+      const { warnings } = await nonVertexModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              includeThoughts: false,
+              thinkingBudget: 500,
+            },
+          },
+        },
+      });
+
+      const expectedWarningMessage =
+        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+        'and might not be supported or could behave unexpectedly with the current Google provider ';
+      expect(
+        warnings?.some(
+          w =>
+            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
+        ),
+      ).toBe(false);
+    });
+
+    it('should NOT generate a warning if thinkingConfig is not provided for a non-Vertex provider', async () => {
+      prepareJsonResponse({ content: 'test' }); // Mock API response
+      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+      });
+
+      const { warnings } = await nonVertexModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            // No thinkingConfig
+          },
+        },
+      });
+      const expectedWarningMessage =
+        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+        'and might not be supported or could behave unexpectedly with the current Google provider ';
+      expect(
+        warnings?.some(
+          w =>
+            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
+        ),
+      ).toBe(false);
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -1942,6 +2113,96 @@ describe('doStream', () => {
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
+    });
+  });
+
+  it('should correctly stream reasoning parts and text deltas separately', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Text delta 1. ' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Reasoning delta 1.', thought: true }],
+                role: 'model',
+              },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Text delta 2.' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Reasoning delta 2.', thought: true }],
+                role: 'model',
+              },
+              finishReason: 'STOP', // Mark finish reason in a chunk that has content
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          // Final chunk for usage metadata
+          usageMetadata: {
+            promptTokenCount: 15,
+            candidatesTokenCount: 25,
+            totalTokenCount: 40,
+            thoughtsTokenCount: 10,
+            cachedContentTokenCount: 0,
+          },
+        })}\n\n`,
+      ],
+    };
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const relevantEvents = events.filter(
+      event => event.type === 'text' || event.type === 'reasoning',
+    );
+
+    expect(relevantEvents).toStrictEqual([
+      { type: 'text', text: 'Text delta 1. ' },
+      { type: 'reasoning', text: 'Reasoning delta 1.' },
+      { type: 'text', text: 'Text delta 2.' },
+      { type: 'reasoning', text: 'Reasoning delta 2.' },
+    ]);
+
+    const finishEvent = events.find(event => event.type === 'finish');
+    expect(finishEvent).toBeDefined();
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
+      'stop',
+    );
+    expect(finishEvent?.type === 'finish' && finishEvent.usage).toStrictEqual({
+      inputTokens: 15,
+      outputTokens: 25,
+      totalTokens: 40,
+      reasoningTokens: 10,
+      cachedInputTokens: 0,
     });
   });
 });
