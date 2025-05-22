@@ -30,6 +30,7 @@
     "@ai-sdk/replicate": "0.2.8",
     "@ai-sdk/revai": "0.0.2",
     "@ai-sdk/togetherai": "0.2.14",
+    "@ai-sdk/vercel": "0.0.1",
     "@ai-sdk/xai": "1.2.16",
     "@ai-sdk/valibot": "0.1.28",
     "@google/generative-ai": "0.21.0",

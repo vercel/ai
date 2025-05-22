@@ -1,19 +1,18 @@
 import {
-  LanguageModelV1, ProviderV1
+  LanguageModelV1,
+  NoSuchModelError,
+  ProviderV1,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
-  OpenAICompatibleCompletionLanguageModel
+  OpenAICompatibleCompletionLanguageModel,
 } from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  VercelChatModelId,
-  VercelChatSettings,
-} from './vercel-chat-settings';
+import { VercelChatModelId, VercelChatSettings } from './vercel-chat-settings';
 import {
   VercelCompletionModelId,
   VercelCompletionSettings,
@@ -43,10 +42,7 @@ export interface VercelProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
-  (
-    modelId: VercelChatModelId,
-    settings?: VercelChatSettings,
-  ): LanguageModelV1;
+  (modelId: VercelChatModelId, settings?: VercelChatSettings): LanguageModelV1;
 
   /**
 Creates a chat model for text generation.
@@ -77,12 +73,12 @@ export function createVercel(
   options: VercelProviderSettings = {},
 ): VercelProvider {
   const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.vercel.com/v1',
+    options.baseURL ?? 'https://api.v0.dev/v1',
   );
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: 'VERCEL_V0_API_KEY',
+      environmentVariableName: 'VERCEL_API_KEY',
       description: "Vercel's API key",
     })}`,
     ...options.headers,
@@ -97,7 +93,7 @@ export function createVercel(
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `vercel.${modelType}`,
-    url: ({ path }) => `${baseURL}/openai${path}`,
+    url: ({ path }) => `${baseURL}${path}`,
     headers: getHeaders,
     fetch: options.fetch,
   });
@@ -112,24 +108,17 @@ export function createVercel(
     });
   };
 
-  const createCompletionModel = (
-    modelId: VercelCompletionModelId,
-    settings: VercelCompletionSettings = {},
-  ) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      settings,
-      getCommonModelConfig('completion'),
-    );
-
   const provider = (
     modelId: VercelChatModelId,
     settings?: VercelChatSettings,
   ) => createChatModel(modelId, settings);
 
-  provider.completionModel = createCompletionModel;
+  provider.completionModel = createChatModel;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
 
   return provider;
 }

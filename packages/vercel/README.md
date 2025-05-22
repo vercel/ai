@@ -1,7 +1,13 @@
 # AI SDK - Vercel Provider
 
 The **[Vercel provider](https://ai-sdk.dev/providers/ai-sdk-providers/vercel)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains language model support for the Vercel API, giving you access to models like Llama 3, Mixtral, and other state-of-the-art LLMs.
+gives you access to the v0 API, designed for building modern web applications. The `v0-1.0-md` model supports text and image inputs, provides fast streaming responses, and is compatible with the OpenAI Chat Completions API format.
+
+Key features include:
+- Framework aware completions: Optimized for modern stacks like Next.js and Vercel
+- Auto-fix: Identifies and corrects common coding issues during generation
+- Quick edit: Streams inline edits as they're available
+- Multimodal: Supports both text and image inputs
 
 ## Setup
 
@@ -27,7 +33,7 @@ import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: vercel('v0-1.0-md'),
-  prompt: 'Create Next.js app',
+  prompt: 'Create a Next.js app',
 });
 ```
 
