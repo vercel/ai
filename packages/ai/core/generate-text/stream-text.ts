@@ -64,7 +64,11 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { stepCountIs, StopCondition } from './stop-condition';
+import {
+  isStopConditionMet,
+  stepCountIs,
+  StopCondition,
+} from './stop-condition';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1167,13 +1171,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     // all current tool calls have results:
                     stepToolResults.length === stepToolCalls.length &&
                     // continue until a stop condition is met:
-                    !(
-                      await Promise.all(
-                        stopConditions.map(condition =>
-                          condition({ steps: recordedSteps }),
-                        ),
-                      )
-                    ).some(result => result)
+                    !(await isStopConditionMet({
+                      stopConditions,
+                      steps: recordedSteps,
+                    }))
                   ) {
                     // append to messages for the next step:
                     responseMessages.push(

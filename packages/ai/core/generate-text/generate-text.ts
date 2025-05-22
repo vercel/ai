@@ -30,7 +30,11 @@ import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
-import { stepCountIs, StopCondition } from './stop-condition';
+import {
+  isStopConditionMet,
+  stepCountIs,
+  StopCondition,
+} from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -469,11 +473,7 @@ A function that attempts to repair a tool call that failed to parse.
         // all current tool calls have results:
         currentToolResults.length === currentToolCalls.length &&
         // continue until a stop condition is met:
-        !(
-          await Promise.all(
-            stopConditions.map(condition => condition({ steps })),
-          )
-        ).some(result => result)
+        !(await isStopConditionMet({ stopConditions, steps }))
       );
 
       // Add response information to the span:
