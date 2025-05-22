@@ -112,6 +112,7 @@ export interface ChatStateManager<
     message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
   ) => void;
   setMessages: (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => void;
+  snapshot?: <T>(thing: T) => T;
 }
 
 export class ChatStore<
@@ -471,9 +472,10 @@ export class ChatStore<
     );
 
     try {
+      const lastMessage = chat.messages[chat.messages.length - 1];
       const activeResponse = {
         state: createStreamingUIMessageState({
-          lastMessage: chat.messages[chat.messages.length - 1],
+          lastMessage: chat.snapshot ? chat.snapshot(lastMessage) : lastMessage,
           newMessageId: this.generateId(),
         }),
         abortController: new AbortController(),

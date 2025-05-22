@@ -65,6 +65,10 @@ export class SvelteStateManager<
   ) => {
     this.messages[index] = message;
   };
+
+  snapshot = <T>(thing: T): T => {
+    return $state.snapshot(thing) as T;
+  };
 }
 
 export class SvelteChatStore<
