@@ -588,7 +588,7 @@ describe('result.response', () => {
   });
 });
 
-describe('options.maxSteps', () => {
+describe('options.stopWhen', () => {
   describe('2 steps: initial, tool-result', () => {
     let result: GenerateTextResult<any, any>;
     let onStepFinishResults: StepResult<any>[];
@@ -1016,6 +1016,243 @@ describe('options.maxSteps', () => {
           {
             "text": "Hello, world!",
             "type": "text",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('2 stop conditions', () => {
+    let result: GenerateTextResult<any, any>;
+    let stopConditionCalls: Array<{
+      number: number;
+      steps: StepResult<any>[];
+    }>;
+
+    beforeEach(async () => {
+      stopConditionCalls = [];
+
+      let responseCount = 0;
+      result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      args: `{ "value": "value" }`,
+                    },
+                  ],
+                  finishReason: 'tool-calls',
+                  usage: {
+                    inputTokens: 10,
+                    outputTokens: 5,
+                    totalTokens: 15,
+                    reasoningTokens: undefined,
+                    cachedInputTokens: undefined,
+                  },
+                  response: {
+                    id: 'test-id-1-from-model',
+                    timestamp: new Date(0),
+                    modelId: 'test-response-model-id',
+                  },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Hello, world!' }],
+                  response: {
+                    id: 'test-id-2-from-model',
+                    timestamp: new Date(10000),
+                    modelId: 'test-response-model-id',
+                    headers: {
+                      'custom-response-header': 'response-header-value',
+                    },
+                  },
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            parameters: z.object({ value: z.string() }),
+            execute: async (args, options) => {
+              expect(args).toStrictEqual({ value: 'value' });
+              expect(options.messages).toStrictEqual([
+                { role: 'user', content: 'test-input' },
+              ]);
+              return 'result1';
+            },
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: [
+          ({ steps }) => {
+            stopConditionCalls.push({ number: 0, steps });
+            return false;
+          },
+          ({ steps }) => {
+            stopConditionCalls.push({ number: 1, steps });
+            return true;
+          },
+        ],
+      });
+    });
+
+    it('result.steps should contain a single step', () => {
+      expect(result.steps.length).toStrictEqual(1);
+    });
+
+    it('stopConditionCalls should be called for each stop condition', () => {
+      expect(stopConditionCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "number": 0,
+            "steps": [
+              DefaultStepResult {
+                "content": [
+                  {
+                    "args": {
+                      "value": "value",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                  {
+                    "args": {
+                      "value": "value",
+                    },
+                    "result": "result1",
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "request": {},
+                "response": {
+                  "body": undefined,
+                  "headers": undefined,
+                  "id": "test-id-1-from-model",
+                  "messages": [
+                    {
+                      "content": [
+                        {
+                          "args": {
+                            "value": "value",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "result": "result1",
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                  "modelId": "test-response-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 10,
+                  "outputTokens": 5,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 15,
+                },
+                "warnings": [],
+              },
+            ],
+          },
+          {
+            "number": 1,
+            "steps": [
+              DefaultStepResult {
+                "content": [
+                  {
+                    "args": {
+                      "value": "value",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                  {
+                    "args": {
+                      "value": "value",
+                    },
+                    "result": "result1",
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "request": {},
+                "response": {
+                  "body": undefined,
+                  "headers": undefined,
+                  "id": "test-id-1-from-model",
+                  "messages": [
+                    {
+                      "content": [
+                        {
+                          "args": {
+                            "value": "value",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "result": "result1",
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                  "modelId": "test-response-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 10,
+                  "outputTokens": 5,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 15,
+                },
+                "warnings": [],
+              },
+            ],
           },
         ]
       `);
