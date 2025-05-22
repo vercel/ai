@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from './duplicated/usage';
+import { DataStreamPartType } from './data-stream-parts';
 
 export * from './use-assistant-types';
 
@@ -268,6 +269,8 @@ Additional data to be sent to the API endpoint.
    * Allow submitting an empty message. Defaults to `false`.
    */
   allowEmptySubmit?: boolean;
+
+  experimental_attachmentGenerator?: () => Promise<Attachment[]> | Attachment[];
 };
 
 export type UseChatOptions = {
@@ -388,6 +391,11 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  /**
+   * Callback function to be called when a part is received while streaming.
+   */
+  onParts?: onParts;
 };
 
 export type UseCompletionOptions = {
@@ -500,4 +508,10 @@ export type DataMessage = {
   id?: string; // optional id, implement if needed (e.g. for persistence)
   role: 'data';
   data: JSONValue; // application-specific data
+};
+
+export type onParts = {
+  onFilePart?: (
+    streamPart: (DataStreamPartType & { type: 'file' })['value'],
+  ) => Promise<FileUIPart> | FileUIPart;
 };

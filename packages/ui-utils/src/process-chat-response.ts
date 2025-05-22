@@ -7,6 +7,7 @@ import {
 import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
 import type {
+  FileUIPart,
   JSONValue,
   ReasoningUIPart,
   TextUIPart,
@@ -14,6 +15,7 @@ import type {
   ToolInvocationUIPart,
   UIMessage,
   UseChatOptions,
+  onParts,
 } from './types';
 
 export async function processChatResponse({
@@ -21,6 +23,7 @@ export async function processChatResponse({
   update,
   onToolCall,
   onFinish,
+  onParts,
   generateId = generateIdFunction,
   getCurrentDate = () => new Date(),
   lastMessage,
@@ -37,6 +40,7 @@ export async function processChatResponse({
     finishReason: LanguageModelV1FinishReason;
     usage: LanguageModelUsage;
   }) => void;
+  onParts?: onParts;
   generateId?: () => string;
   getCurrentDate?: () => Date;
   lastMessage: UIMessage | undefined;
@@ -200,12 +204,19 @@ export async function processChatResponse({
 
       execUpdate();
     },
-    onFilePart(value) {
-      message.parts.push({
-        type: 'file',
-        mimeType: value.mimeType,
-        data: value.data,
-      });
+    async onFilePart(value) {
+      const part: FileUIPart = onParts?.onFilePart
+        ? await onParts?.onFilePart({
+            mimeType: value.mimeType,
+            data: value.data,
+          })
+        : {
+            type: 'file',
+            mimeType: value.mimeType,
+            data: value.data,
+          };
+
+      message.parts.push(part);
 
       execUpdate();
     },
