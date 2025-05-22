@@ -15,9 +15,9 @@ import {
   UIMessageStreamPart,
 } from 'ai';
 import React, { useEffect, useRef, useState } from 'react';
+import { defaultChatStore, ReactChatStore } from './chat-store';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
-import { ReactChatStore, defaultChatStore } from './chat-store';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;

@@ -396,10 +396,9 @@ export class ChatStore<
         toolResult: result,
       });
 
-      // updated the messages array:
-      this.emit({
-        type: 'chat-messages-changed',
-        chatId,
+      this.setMessages({
+        id: chatId,
+        messages: chat.messages,
       });
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
