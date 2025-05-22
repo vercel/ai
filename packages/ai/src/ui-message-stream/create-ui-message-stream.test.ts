@@ -53,16 +53,16 @@ describe('createUIMessageStream', () => {
   });
 
   it('should send async message annotation and close the stream', async () => {
-    const waitPromise = new DelayedPromise<void>();
+    const wait = new DelayedPromise<void>();
 
     const stream = createUIMessageStream({
       execute: async stream => {
-        await waitPromise.value;
+        await wait.promise;
         stream.write({ type: 'text', text: '1a' });
       },
     });
 
-    waitPromise.resolve(undefined);
+    wait.resolve(undefined);
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [

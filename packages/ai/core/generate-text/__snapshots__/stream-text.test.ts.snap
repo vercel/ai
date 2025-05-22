@@ -579,7 +579,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.response.finishReason": "stop",
       "ai.response.text": "Hello, world!",
       "ai.settings.maxRetries": 2,
-      "ai.settings.maxSteps": 3,
       "ai.usage.cachedInputTokens": 3,
       "ai.usage.inputTokens": 6,
       "ai.usage.outputTokens": 20,
@@ -1976,7 +1975,6 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.text": "HELLO, WORLD!",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
-      "ai.settings.maxSteps": 1,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
@@ -3499,15 +3497,14 @@ exports[`streamText > result.toUIMessageStream > should send source content when
     "type": "start-step",
   },
   {
-    "id": "123",
     "providerMetadata": {
       "provider": {
         "custom": "value",
       },
     },
-    "sourceType": "url",
+    "sourceId": "123",
     "title": "Example",
-    "type": "source",
+    "type": "source-url",
     "url": "https://example.com",
   },
   {
@@ -3515,15 +3512,14 @@ exports[`streamText > result.toUIMessageStream > should send source content when
     "type": "text",
   },
   {
-    "id": "456",
     "providerMetadata": {
       "provider": {
         "custom": "value2",
       },
     },
-    "sourceType": "url",
+    "sourceId": "456",
     "title": "Example 2",
-    "type": "source",
+    "type": "source-url",
     "url": "https://example.com/2",
   },
   {
@@ -3705,7 +3701,6 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.operationId": "ai.streamText",
       "ai.response.finishReason": "stop",
       "ai.settings.maxRetries": 2,
-      "ai.settings.maxSteps": 1,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
@@ -3780,7 +3775,6 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.text": "",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
-      "ai.settings.maxSteps": 1,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
@@ -3866,7 +3860,6 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.response.text": "Hello, world!",
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.maxRetries": 2,
-      "ai.settings.maxSteps": 1,
       "ai.settings.presencePenalty": 0.4,
       "ai.settings.stopSequences": [
         "stop",

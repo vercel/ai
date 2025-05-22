@@ -173,6 +173,130 @@ describe('FalImageModel', () => {
         });
       });
     });
+
+    describe('providerMetaData', () => {
+      // https://fal.ai/models/fal-ai/lora/api#schema-output
+      it('for lora', async () => {
+        const responseMetaData = {
+          prompt: '<prompt>',
+          seed: 123,
+          has_nsfw_concepts: [true],
+          debug_latents: {
+            url: '<debug_latents url>',
+            content_type: '<debug_latents content_type>',
+            file_name: '<debug_latents file_name>',
+            file_data: '<debug_latents file_data>',
+            file_size: 123,
+          },
+          debug_per_pass_latents: {
+            url: '<debug_per_pass_latents url>',
+            content_type: '<debug_per_pass_latents content_type>',
+            file_name: '<debug_per_pass_latents file_name>',
+            file_data: '<debug_per_pass_latents file_data>',
+            file_size: 456,
+          },
+        };
+        server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+          type: 'json-value',
+          body: {
+            images: [
+              {
+                url: 'https://api.example.com/image.png',
+                width: 1024,
+                height: 1024,
+                content_type: 'image/png',
+                file_data: '<image file_data>',
+                file_size: 123,
+                file_name: '<image file_name>',
+              },
+            ],
+            ...responseMetaData,
+          },
+        };
+        const model = createBasicModel();
+        const result = await model.doGenerate({
+          prompt,
+          n: 1,
+          providerOptions: {},
+          size: undefined,
+          seed: undefined,
+          aspectRatio: undefined,
+        });
+        expect(result.providerMetadata).toStrictEqual({
+          fal: {
+            images: [
+              {
+                width: 1024,
+                height: 1024,
+                contentType: 'image/png',
+                fileName: '<image file_name>',
+                fileData: '<image file_data>',
+                fileSize: 123,
+                nsfw: true,
+              },
+            ],
+            seed: 123,
+            debug_latents: {
+              url: '<debug_latents url>',
+              content_type: '<debug_latents content_type>',
+              file_name: '<debug_latents file_name>',
+              file_data: '<debug_latents file_data>',
+              file_size: 123,
+            },
+            debug_per_pass_latents: {
+              url: '<debug_per_pass_latents url>',
+              content_type: '<debug_per_pass_latents content_type>',
+              file_name: '<debug_per_pass_latents file_name>',
+              file_data: '<debug_per_pass_latents file_data>',
+              file_size: 456,
+            },
+          },
+        });
+      });
+
+      it('for lcm', async () => {
+        const responseMetaData = {
+          seed: 123,
+          num_inference_steps: 456,
+          nsfw_content_detected: [false],
+        };
+        server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+          type: 'json-value',
+          body: {
+            images: [
+              {
+                url: 'https://api.example.com/image.png',
+                width: 1024,
+                height: 1024,
+              },
+            ],
+            ...responseMetaData,
+          },
+        };
+        const model = createBasicModel();
+        const result = await model.doGenerate({
+          prompt,
+          n: 1,
+          providerOptions: {},
+          size: undefined,
+          seed: undefined,
+          aspectRatio: undefined,
+        });
+        expect(result.providerMetadata).toStrictEqual({
+          fal: {
+            images: [
+              {
+                width: 1024,
+                height: 1024,
+                nsfw: false,
+              },
+            ],
+            seed: 123,
+            num_inference_steps: 456,
+          },
+        });
+      });
+    });
   });
 
   describe('constructor', () => {

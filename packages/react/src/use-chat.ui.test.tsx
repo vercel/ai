@@ -9,6 +9,7 @@ import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
+  ChatStore,
   defaultChatStore,
   getToolInvocations,
   UIMessage,
@@ -17,6 +18,7 @@ import {
 import React, { act, useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
+import { TextStreamChatTransport } from '../../ai/src/ui/chat-transport';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -386,9 +388,10 @@ describe('text stream', () => {
         onFinishCalls.push(options);
       },
       generateId: mockId(),
-      chatStore: defaultChatStore({
-        api: '/api/chat',
-        streamProtocol: 'text',
+      chatStore: new ChatStore({
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
+        }),
         generateId: mockId(),
       }),
     });
@@ -505,9 +508,10 @@ describe('form actions', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({
-        chatStore: defaultChatStore({
-          streamProtocol: 'text',
-          api: '/api/chat',
+        chatStore: new ChatStore({
+          transport: new TextStreamChatTransport({
+            api: '/api/chat',
+          }),
           generateId: mockId(),
         }),
       });

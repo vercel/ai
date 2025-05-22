@@ -13,9 +13,8 @@ export async function POST(req: Request) {
     execute: writer => {
       // write a custom url source to the stream:
       writer.write({
-        type: 'source',
-        sourceType: 'url',
-        id: 'source-1',
+        type: 'source-url',
+        sourceId: 'source-1',
         url: 'https://example.com',
         title: 'Example Source',
       });
