@@ -141,6 +141,12 @@ The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
+    /**
+Condition for stopping the generation when there are tool results in the last step.
+When the condition is an array, any of the conditions can be met to stop the generation.
+
+@default stepCountIs(1)
+     */
     stopWhen?:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>;

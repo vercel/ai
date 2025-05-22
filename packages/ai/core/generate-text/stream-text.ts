@@ -238,7 +238,15 @@ The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<TOOLS>;
 
-    stopWhen?: StopCondition<NoInfer<TOOLS>>;
+    /**
+Condition for stopping the generation when there are tool results in the last step.
+When the condition is an array, any of the conditions can be met to stop the generation.
+
+@default stepCountIs(1)
+     */
+    stopWhen?:
+      | StopCondition<NoInfer<TOOLS>>
+      | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -338,7 +346,7 @@ Internal. For test use only. May change without notice.
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
-    stopWhen,
+    stopConditions: asArray(stopWhen),
     output,
     providerOptions,
     onChunk,
@@ -477,7 +485,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     transforms,
     activeTools,
     repairToolCall,
-    stopWhen,
+    stopConditions,
     output,
     providerOptions,
     now,
@@ -503,7 +511,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-    stopWhen: StopCondition<NoInfer<TOOLS>>;
+    stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     providerOptions: ProviderOptions | undefined;
     now: () => number;
@@ -1158,7 +1166,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     stepToolCalls.length > 0 &&
                     // all current tool calls have results:
                     stepToolResults.length === stepToolCalls.length &&
-                    !(await stopWhen({ steps: recordedSteps }))
+                    // continue until a stop condition is met:
+                    !(
+                      await Promise.all(
+                        stopConditions.map(condition =>
+                          condition({ steps: recordedSteps }),
+                        ),
+                      )
+                    ).some(result => result)
                   ) {
                     // append to messages for the next step:
                     responseMessages.push(
