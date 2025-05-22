@@ -4,6 +4,7 @@ import { LanguageModelV2 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 
+// Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
   OpenAICompatibleChatLanguageModel as unknown as Mock;
 
@@ -25,8 +26,9 @@ describe('VercelProvider', () => {
   let mockLanguageModel: LanguageModelV2;
 
   beforeEach(() => {
+    // Mock implementations of models
     mockLanguageModel = {
-      // Add any required methods for LanguageModelV1
+      // Add any required methods for LanguageModelV2
     } as LanguageModelV2;
 
     // Reset mocks
@@ -36,9 +38,9 @@ describe('VercelProvider', () => {
   describe('createVercel', () => {
     it('should create a VercelProvider instance with default options', () => {
       const provider = createVercel();
-      provider('model-id');
+      const model = provider('model-id');
 
-      // Use the mocked version
+      // Use the mocked version - now constructor takes 2 parameters
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -58,7 +60,7 @@ describe('VercelProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
       const provider = createVercel(options);
-      provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -81,18 +83,20 @@ describe('VercelProvider', () => {
     });
   });
 
-  it('should construct a language model with correct configuration', () => {
-    const provider = createVercel();
-    const modelId = 'vercel-chat-model';
+  describe('languageModel', () => {
+    it('should construct a language model with correct configuration', () => {
+      const provider = createVercel();
+      const modelId = 'vercel-chat-model';
 
-    const model = provider.languageModel(modelId);
+      const model = provider.languageModel(modelId);
 
-    expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
-    expect(OpenAICompatibleChatLanguageModelMock).toHaveBeenCalledWith(
-      modelId,
-      expect.objectContaining({
-        provider: 'vercel.chat',
-      }),
-    );
+      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+      expect(OpenAICompatibleChatLanguageModelMock).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          provider: 'vercel.chat',
+        }),
+      );
+    });
   });
 });

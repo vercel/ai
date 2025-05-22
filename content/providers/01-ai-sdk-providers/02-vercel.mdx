@@ -21,6 +21,10 @@ You can create your Vercel API key at [v0.dev](https://v0.dev/chat/settings/keys
 - **Framework aware completions**: Evaluated on modern stacks like Next.js and Vercel
 - **Auto-fix**: Identifies and corrects common coding issues during generation
 - **Quick edit**: Streams inline edits as they're available
+<<<<<<< HEAD
+=======
+- **OpenAI compatible**: Can be used with any tool or SDK that supports OpenAI's API format
+>>>>>>> 42e37fb08 (feat (providers/vercel): initial vercel provider (#6419))
 - **Multimodal**: Supports both text and image inputs
 
 ## Setup
@@ -95,6 +99,26 @@ const { text } = await generateText({
 
 Vercel language models can also be used in the `streamText` function (see [AI SDK Core](/docs/ai-sdk-core)).
 
+<<<<<<< HEAD
+=======
+## Example with AI SDK
+
+```ts
+import { generateText } from 'ai';
+import { createVercel } from '@ai-sdk/vercel';
+
+const vercel = createVercel({
+  baseURL: 'https://api.v0.dev/v1',
+  apiKey: process.env.VERCEL_API_KEY,
+});
+
+const { text } = await generateText({
+  model: vercel('v0-1.0-md'),
+  prompt: 'Create a Next.js AI chatbot with authentication',
+});
+```
+
+>>>>>>> 42e37fb08 (feat (providers/vercel): initial vercel provider (#6419))
 ## Models
 
 ### v0-1.0-md

@@ -44,9 +44,6 @@
         "SENTRY_PROJECT",
         "TOGETHER_AI_API_KEY",
         "VERCEL_API_KEY",
-        "VERCEL_ENV",
-        "VERCEL_OIDC_TOKEN",
-        "VERCEL_REGION",
         "VERCEL_URL",
         "XAI_API_KEY"
       ],
