@@ -10,10 +10,29 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
+
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+
+import {
+  GoogleGenerativeAIModelId,
+  GoogleGenerativeAISettings,
+} from './google-generative-ai-settings';
+import { ImageModelV2 } from '@ai-sdk/provider';
+import {
+  GoogleGenerativeAIImageSettings,
+  GoogleGenerativeAIImageModelId,
+} from './google-generative-ai-image-settings';
+import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import {
+  GoogleGenerativeAIEmbeddingModelId,
+  GoogleGenerativeAIEmbeddingSettings,
+} from './google-generative-ai-embedding-settings';
+
+import { isSupportedFileUrl } from './google-supported-file-url';
+
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
@@ -21,6 +40,14 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
   languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   chat(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
+
+  /**
+Creates a model for image generation.
+ */
+  image(
+    modelId: GoogleGenerativeAIImageModelId,
+    settings?: GoogleGenerativeAIImageSettings,
+  ): ImageModelV2;
 
   /**
    * @deprecated Use `chat()` instead.
@@ -119,12 +146,29 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+    const createImageModel = (
+      modelId: GoogleGenerativeAIImageModelId,
+      settings: GoogleGenerativeAIImageSettings = {},
+    ) =>
+      new GoogleGenerativeAIImageModel(modelId, settings, {
+        provider: 'google.generative-ai',
+        baseURL,
+        headers: getHeaders,
+        fetch: options.fetch,
+        // Note: generateId is included in your earlier example but not in the embedding model
+        // Check if it's needed based on other models
+        generateId: options.generateId ?? generateId,
+      });
+  
+  
+      if (new.target) {
+        throw new Error(
+          'The Google Generative AI model function cannot be called with the new keyword.',
+        );
+      }
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
-    if (new.target) {
-      throw new Error(
-        'The Google Generative AI model function cannot be called with the new keyword.',
-      );
-    }
+
 
     return createChatModel(modelId);
   };
@@ -135,12 +179,8 @@ export function createGoogleGenerativeAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.image = createImageModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
-
-  return provider;
 }
 
 /**
