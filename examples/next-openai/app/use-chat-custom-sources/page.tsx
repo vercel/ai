@@ -25,23 +25,23 @@ export default function Chat() {
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
           {message.parts
-            .filter(part => part.type !== 'source')
+            .filter(part => part.type !== 'source-url')
             .map((part, index) => {
               if (part.type === 'text') {
                 return <div key={index}>{part.text}</div>;
               }
             })}
           {message.parts
-            .filter(part => part.type === 'source')
+            .filter(part => part.type === 'source-url')
             .map(part => (
-              <span key={`source-${part.source.id}`}>
+              <span key={`source-${part.sourceId}`}>
                 [
                 <a
-                  href={part.source.url}
+                  href={part.url}
                   target="_blank"
                   className="text-sm font-bold text-blue-500 hover:underline"
                 >
-                  {part.source.title ?? new URL(part.source.url).hostname}
+                  {part.title ?? new URL(part.url).hostname}
                 </a>
                 ]
               </span>

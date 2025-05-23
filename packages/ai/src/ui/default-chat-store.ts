@@ -19,7 +19,6 @@ export function defaultChatStore<
 >({
   api,
   fetch,
-  streamProtocol = 'ui-message',
   credentials,
   headers,
   body,
@@ -82,11 +81,6 @@ export function defaultChatStore<
   body?: object;
 
   /**
-    Streaming protocol that is used. Defaults to `ui-message`.
-       */
-  streamProtocol?: 'ui-message' | 'text';
-
-  /**
     Custom fetch implementation. You can use it as a middleware to intercept requests,
     or to provide a custom fetch implementation for e.g. testing.
         */
@@ -136,7 +130,6 @@ export function defaultChatStore<
     >({
       api,
       fetch,
-      streamProtocol,
       credentials,
       headers,
       body,

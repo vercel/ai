@@ -1,5 +1,20 @@
 # ai
 
+## 5.0.0-alpha.3
+
+### Major Changes
+
+- ab7ccef: chore (ai): change source ui message parts to source-url
+- 257224b: chore (ai): separate TextStreamChatTransport
+- 0463011: fix (ai): update source url stream part
+- d306260: feat (ai): replace maxSteps with continueUntil (streamText)
+
+### Patch Changes
+
+- Updated dependencies [6b98118]
+  - @ai-sdk/provider@2.0.0-alpha.3
+  - @ai-sdk/provider-utils@3.0.0-alpha.3
+
 ## 5.0.0-alpha.2
 
 ### Patch Changes

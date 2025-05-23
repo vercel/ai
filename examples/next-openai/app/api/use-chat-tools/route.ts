@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, tool } from 'ai';
+import { convertToModelMessages, stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     // model: anthropic('claude-3-5-sonnet-latest'),
     messages: convertToModelMessages(messages),
     toolCallStreaming: true,
-    maxSteps: 5, // multi-steps for server-side tools
+    stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: tool({

@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -16,7 +16,7 @@ async function main() {
       },
     },
     maxRetries: 0,
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   for await (const part of result.fullStream) {

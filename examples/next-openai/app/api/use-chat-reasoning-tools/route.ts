@@ -3,6 +3,7 @@ import { fireworks } from '@ai-sdk/fireworks';
 import {
   convertToModelMessages,
   extractReasoningMiddleware,
+  stepCountIs,
   streamText,
   tool,
   wrapLanguageModel,
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     }),
     messages: convertToModelMessages(messages),
     toolCallStreaming: true,
-    maxSteps: 5, // multi-steps for server-side tools
+    stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: tool({

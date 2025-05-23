@@ -8,7 +8,7 @@ import {
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
 import { LanguageModelV2 } from '@ai-sdk/provider';
-import { APICallError, generateText, maxSteps } from 'ai';
+import { APICallError, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
@@ -153,7 +153,7 @@ const toolTests = (model: LanguageModelV2) => {
         },
         prompt:
           'How can I switch to dark mode? Take a look at the screen and tell me.',
-        continueUntil: maxSteps(5),
+        stopWhen: stepCountIs(5),
       });
 
       console.log(result.text);
@@ -185,7 +185,7 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'List the files in my directory.',
-        continueUntil: maxSteps(2),
+        stopWhen: stepCountIs(2),
       });
 
       expect(result.text).toBeTruthy();
@@ -227,7 +227,7 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'Update my README file to talk about AI.',
-        continueUntil: maxSteps(5),
+        stopWhen: stepCountIs(5),
       });
 
       expect(result.text).toBeTruthy();

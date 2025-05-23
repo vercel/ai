@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 60 seconds
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         }),
       }),
     },
-    maxSteps: 4,
+    stopWhen: stepCountIs(4),
     prompt,
   });
 

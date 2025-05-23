@@ -6,6 +6,7 @@ import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { ToolExecutionError } from '../../src/error/tool-execution-error';
+import { asArray } from '../../src/util/as-array';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
@@ -29,7 +30,11 @@ import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
-import { maxSteps, StopCondition } from './stop-condition';
+import {
+  isStopConditionMet,
+  stepCountIs,
+  StopCondition,
+} from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -110,7 +115,7 @@ export async function generateText<
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
-  continueUntil = maxSteps(1),
+  stopWhen = stepCountIs(1),
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
@@ -140,7 +145,15 @@ The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
-    continueUntil?: StopCondition<NoInfer<TOOLS>>;
+    /**
+Condition for stopping the generation when there are tool results in the last step.
+When the condition is an array, any of the conditions can be met to stop the generation.
+
+@default stepCountIs(1)
+     */
+    stopWhen?:
+      | StopCondition<NoInfer<TOOLS>>
+      | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -207,6 +220,7 @@ A function that attempts to repair a tool call that failed to parse.
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  const stopConditions = asArray(stopWhen);
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const callSettings = prepareCallSettings(settings);
@@ -458,8 +472,8 @@ A function that attempts to repair a tool call that failed to parse.
         currentToolCalls.length > 0 &&
         // all current tool calls have results:
         currentToolResults.length === currentToolCalls.length &&
-        // continue until the stop condition is met:
-        !(await continueUntil({ steps }))
+        // continue until a stop condition is met:
+        !(await isStopConditionMet({ stopConditions, steps }))
       );
 
       // Add response information to the span:
