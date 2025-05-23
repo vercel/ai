@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  getToolInvocations,
-  ToolInvocation,
-  UIMessage,
-} from 'ai';
+import { getToolInvocations, ToolInvocation, UIMessage } from 'ai';
 import { useChat, defaultChatStore } from '@ai-sdk/react';
 
 export default function Chat() {

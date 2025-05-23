@@ -52,7 +52,11 @@ import {
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
 import { DefaultStepResult, StepResult } from './step-result';
-import { maxSteps, StopCondition } from './stop-condition';
+import {
+  isStopConditionMet,
+  stepCountIs,
+  StopCondition,
+} from './stop-condition';
 import {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -64,11 +68,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import {
-  isStopConditionMet,
-  stepCountIs,
-  StopCondition,
-} from './stop-condition';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
