@@ -50,21 +50,24 @@ export function zod4Schema<OBJECT>(
   // default to no references (to support openapi conversion for google)
   const useReferences = options?.useReferences ?? false;
 
-  const z4JSONSchema = z4.toJSONSchema(zodSchema, { target: 'draft-7', reused: useReferences ? 'ref' : 'inline' }) as JSONSchema7
+  const z4JSONSchema = z4.toJSONSchema(zodSchema, {
+    target: 'draft-7',
+    io: 'output',
+    reused: useReferences ? 'ref' : 'inline',
+  }) as JSONSchema7;
 
-  enforceNoAdditionalProperties(z4JSONSchema);
+  console.log({ z4JSONSchema });
 
-  return jsonSchema(
-    z4JSONSchema,
-    {
-      validate: value => {
-        const result = z4.safeParse(zodSchema, value);
-        return result.success
-          ? { success: true, value: result.data }
-          : { success: false, error: result.error };
-      },
+  // enforceNoAdditionalProperties(z4JSONSchema);
+
+  return jsonSchema(z4JSONSchema, {
+    validate: value => {
+      const result = z4.safeParse(zodSchema, value);
+      return result.success
+        ? { success: true, value: result.data }
+        : { success: false, error: result.error };
     },
-  );
+  });
 }
 
 export function isZod4Schema(
@@ -90,79 +93,5 @@ export function zodSchema<OBJECT>(
     return zod4Schema(zodSchema, options);
   } else {
     return zod3Schema(zodSchema, options);
-  }
-}
-
-/**
- * This function is a workaround for z4's `.toJSONSchema` not setting `additionalProperties: false` for objects.
- *
- * @todo  either remove if colinhacks/zod#4498 is fixed or review the implementation for correctness and performance, it's AI generated
- * @see   https://github.com/colinhacks/zod/issues/4498
- */
-function enforceNoAdditionalProperties(schema: any) {
-  if (schema && typeof schema === 'object') {
-    if (schema.type === 'object') {
-      // Set additionalProperties to false
-      schema.additionalProperties = false;
-
-      // Recurse into properties
-      if (schema.properties && typeof schema.properties === 'object') {
-        for (const key in schema.properties) {
-          enforceNoAdditionalProperties(schema.properties[key]);
-        }
-      }
-
-      // Handle patternProperties, if any
-      if (schema.patternProperties && typeof schema.patternProperties === 'object') {
-        for (const key in schema.patternProperties) {
-          enforceNoAdditionalProperties(schema.patternProperties[key]);
-        }
-      }
-
-      // Handle dependencies that may contain schemas
-      if (schema.dependencies && typeof schema.dependencies === 'object') {
-        for (const key in schema.dependencies) {
-          const dep = schema.dependencies[key];
-          if (typeof dep === 'object' && !Array.isArray(dep)) {
-            enforceNoAdditionalProperties(dep);
-          }
-        }
-      }
-    }
-
-    // Handle combinators that may contain schemas
-    ['allOf', 'anyOf', 'oneOf'].forEach((combiner) => {
-      if (Array.isArray(schema[combiner])) {
-        schema[combiner].forEach((subSchema: any) => enforceNoAdditionalProperties(subSchema));
-      }
-    });
-
-    // Handle not
-    if (schema.not) {
-      enforceNoAdditionalProperties(schema.not);
-    }
-
-    // Items can be a single schema or an array of schemas
-    if (schema.items) {
-      if (Array.isArray(schema.items)) {
-        schema.items.forEach((itemSchema: any) => enforceNoAdditionalProperties(itemSchema));
-      } else {
-        enforceNoAdditionalProperties(schema.items);
-      }
-    }
-
-    // If the schema defines "definitions" (used in older drafts), recurse into them too
-    if (schema.definitions && typeof schema.definitions === 'object') {
-      for (const key in schema.definitions) {
-        enforceNoAdditionalProperties(schema.definitions[key]);
-      }
-    }
-
-    // $defs is used in newer JSON Schema drafts (2020-12+)
-    if (schema.$defs && typeof schema.$defs === 'object') {
-      for (const key in schema.$defs) {
-        enforceNoAdditionalProperties(schema.$defs[key]);
-      }
-    }
   }
 }
