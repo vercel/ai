@@ -2,6 +2,8 @@ import {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2FunctionTool,
+  LanguageModelV2ProviderDefinedTool,
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -5774,6 +5776,72 @@ describe('streamText', () => {
 
         expect(result).toMatchSnapshot();
       });
+    });
+  });
+
+  describe('options.activeTools', () => {
+    it('should filter available tools to only the ones in activeTools', async () => {
+      let tools:
+        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async ({ tools: toolsArg }) => {
+            tools = toolsArg;
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text', text: 'Hello' },
+                { type: 'text', text: ', ' },
+                { type: 'text', text: `world!` },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+          tool2: {
+            parameters: z.object({ value: z.string() }),
+            execute: async () => 'result2',
+          },
+        },
+        prompt: 'test-input',
+        activeTools: ['tool1'],
+      });
+
+      await result.consumeStream();
+
+      expect(tools).toMatchInlineSnapshot(`
+        [
+          {
+            "description": undefined,
+            "name": "tool1",
+            "parameters": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "type": "function",
+          },
+        ]
+      `);
     });
   });
 });
