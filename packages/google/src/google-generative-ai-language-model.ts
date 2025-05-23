@@ -135,6 +135,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             audioTimestamp: googleOptions.audioTimestamp,
           }),
 
+          responseLogprobs:
+            googleOptions?.logprobs === true ||
+            typeof googleOptions?.logprobs === 'number'
+              ? true
+              : undefined,
+
+          logprobs:
+            typeof googleOptions?.logprobs === 'boolean'
+              ? undefined
+              : googleOptions?.logprobs,
+
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
@@ -238,6 +249,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
+          avgLogprobs: candidate.avgLogprobs ?? null,
+          logprobs: candidate.logprobsResult ?? null,
         },
       },
       request: { body },
@@ -389,6 +402,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
+                  avgLogprobs: candidate.avgLogprobs ?? null,
+                  logprobs: candidate.logprobsResult ?? null,
                 },
               };
             }
@@ -556,6 +571,22 @@ export const safetyRatingSchema = z.object({
   blocked: z.boolean().nullish(),
 });
 
+const logprobSchema = z.object({
+  token: z.string(),
+  logProbability: z.number(),
+});
+
+const logprobsResultSchema = z.object({
+  topCandidates: z
+    .array(
+      z.object({
+        candidates: z.array(logprobSchema),
+      }),
+    )
+    .nullish(),
+  chosenCandidates: z.array(logprobSchema),
+});
+
 const usageSchema = z.object({
   cachedContentTokenCount: z.number().nullish(),
   thoughtsTokenCount: z.number().nullish(),
@@ -571,6 +602,8 @@ const responseSchema = z.object({
       finishReason: z.string().nullish(),
       safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),
+      avgLogprobs: z.number().nullish(),
+      logprobsResult: logprobsResultSchema.nullish(),
     }),
   ),
   usageMetadata: usageSchema.nullish(),
@@ -586,6 +619,8 @@ const chunkSchema = z.object({
         finishReason: z.string().nullish(),
         safetyRatings: z.array(safetyRatingSchema).nullish(),
         groundingMetadata: groundingMetadataSchema.nullish(),
+        avgLogprobs: z.number().nullish(),
+        logprobsResult: logprobsResultSchema.nullish(),
       }),
     )
     .nullish(),
