@@ -6,11 +6,11 @@ import { z } from 'zod/v4';
 async function main() {
   const result = await generateObject({
     model: openai('gpt-4o-mini'),
-    schema: z.strictObject({
-      recipe: z.strictObject({
+    schema: z.object({
+      recipe: z.object({
         name: z.string(),
         ingredients: z.array(
-          z.strictObject({
+          z.object({
             name: z.string(),
             amount: z.string(),
           }),
