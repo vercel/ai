@@ -59,7 +59,7 @@ export function createStreamingUIMessageState<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   > = isContinuation
-    ? structuredClone(lastMessage)
+    ? lastMessage
     : {
         id: newMessageId,
         metadata: {} as MESSAGE_METADATA,

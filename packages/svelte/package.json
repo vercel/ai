@@ -43,7 +43,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "svelte": "^5.0.0",
+    "svelte": "^5.31.0",
     "zod": "^3.23.8"
   },
   "peerDependenciesMeta": {
@@ -69,7 +69,7 @@
     "globals": "^16.0.0",
     "jsdom": "^26.0.0",
     "publint": "^0.3.2",
-    "svelte": "^5.0.0",
+    "svelte": "^5.31.0",
     "svelte-check": "^4.0.0",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.20.0",

@@ -1,7 +1,6 @@
 'use client';
 
-import { UIMessage, useChat } from '@ai-sdk/react';
-import { defaultChatStore } from 'ai';
+import { UIMessage, useChat, defaultChatStore } from '@ai-sdk/react';
 
 export default function Chat({
   chatId,

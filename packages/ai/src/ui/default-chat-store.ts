@@ -6,6 +6,7 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
+  ChatStateManagerFactory,
   ChatStore,
   InferUIDataParts,
   type UIDataPartSchemas,
@@ -13,22 +14,10 @@ import {
 import { DefaultChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
 
-export function defaultChatStore<
-  MESSAGE_METADATA,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
->({
-  api,
-  fetch,
-  credentials,
-  headers,
-  body,
-  prepareRequestBody,
-  generateId = generateIdFunc,
-  dataPartSchemas,
-  messageMetadataSchema,
-  maxSteps = 1,
-  chats,
-}: {
+export interface DefaultChatStoreOptions<
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> {
   /**
    * Schema for the message metadata. Validates the message metadata.
    * Message metadata can be undefined or must match the schema.
@@ -122,7 +111,33 @@ export function defaultChatStore<
       >[];
     };
   };
-}): ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+
+  StateManager: ChatStateManagerFactory<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  >;
+}
+
+export function defaultChatStore<
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+>({
+  api,
+  fetch,
+  credentials,
+  headers,
+  body,
+  prepareRequestBody,
+  generateId = generateIdFunc,
+  messageMetadataSchema,
+  maxSteps = 1,
+  dataPartSchemas,
+  chats,
+  StateManager,
+}: DefaultChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>): ChatStore<
+  MESSAGE_METADATA,
+  UI_DATA_PART_SCHEMAS
+> {
   return new ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
     transport: new DefaultChatTransport<
       MESSAGE_METADATA,
@@ -140,5 +155,6 @@ export function defaultChatStore<
     dataPartSchemas,
     maxSteps,
     chats,
+    StateManager,
   });
 }

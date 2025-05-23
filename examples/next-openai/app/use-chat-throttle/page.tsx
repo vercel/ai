@@ -1,7 +1,6 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
-import { defaultChatStore } from 'ai';
+import { useChat, defaultChatStore } from '@ai-sdk/react';
 import { useLayoutEffect, useRef } from 'react';
 
 export default function Chat() {

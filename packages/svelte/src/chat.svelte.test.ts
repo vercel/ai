@@ -6,12 +6,15 @@ import {
 import { render } from '@testing-library/svelte';
 import {
   getToolInvocations,
+  TextStreamChatTransport,
   type UIMessage,
   type UIMessageStreamPart,
 } from 'ai';
+import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
+import { defaultChatStore, SvelteChatStore } from './chat-store.svelte.js';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -39,9 +42,9 @@ describe('data protocol stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should correctly manage streamed response in messages', async () => {
@@ -161,10 +164,10 @@ describe('data protocol stream', () => {
     };
 
     const onFinish = vi.fn();
-    const chatWithOnFinish = new Chat({
+    const chatWithOnFinish = new Chat(() => ({
       onFinish,
       generateId: mockId(),
-    });
+    }));
     await chatWithOnFinish.append({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
@@ -201,7 +204,7 @@ describe('data protocol stream', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "id": "id-0",
+          "chatId": "id-0",
           "messages": [
             {
               "id": "id-1",
@@ -230,11 +233,9 @@ describe('data protocol stream', () => {
       };
 
       let chatId = $state(crypto.randomUUID());
-      const chatWithId = new Chat({
-        get chatId() {
-          return chatId;
-        },
-      });
+      const chatWithId = new Chat(() => ({
+        chatId,
+      }));
       await chatWithId.append({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
@@ -248,6 +249,8 @@ describe('data protocol stream', () => {
       );
 
       chatId = crypto.randomUUID();
+
+      flushSync();
 
       expect(chatWithId.messages).toHaveLength(0);
     });
@@ -265,11 +268,9 @@ describe('data protocol stream', () => {
 
       let chatId = $state(crypto.randomUUID());
       const originalId = chatId;
-      const chatWithId = new Chat({
-        get chatId() {
-          return chatId;
-        },
-      });
+      const chatWithId = new Chat(() => ({
+        chatId,
+      }));
       await chatWithId.append({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
@@ -283,8 +284,12 @@ describe('data protocol stream', () => {
       );
 
       chatId = crypto.randomUUID();
+      flushSync();
+
       expect(chatWithId.messages).toHaveLength(0);
       chatId = originalId;
+      flushSync();
+
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
           role: 'assistant',
@@ -299,10 +304,17 @@ describe('text stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
-      streamProtocol: 'text',
-      generateId: mockId(),
-    });
+    const generateId = mockId();
+
+    chat = new Chat(() => ({
+      generateId,
+      chatStore: new SvelteChatStore({
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
+        }),
+        generateId,
+      }),
+    }));
   });
 
   it('should show streamed response', async () => {
@@ -391,10 +403,14 @@ describe('text stream', () => {
     };
 
     const onFinish = vi.fn();
-    const chatWithOnFinish = new Chat({
-      streamProtocol: 'text',
+    const chatWithOnFinish = new Chat(() => ({
       onFinish,
-    });
+      chatStore: new SvelteChatStore({
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
+        }),
+      }),
+    }));
     await chatWithOnFinish.append({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
@@ -418,10 +434,16 @@ describe('form actions', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
-      streamProtocol: 'text',
-      generateId: mockId(),
-    });
+    const generateId = mockId();
+    chat = new Chat(() => ({
+      generateId,
+      chatStore: new SvelteChatStore({
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
+        }),
+        generateId,
+      }),
+    }));
   });
 
   it('should show streamed response using handleSubmit', async () => {
@@ -482,14 +504,14 @@ describe('onToolCall', () => {
   beforeEach(() => {
     ({ resolve, promise: toolCallPromise } = promiseWithResolvers<void>());
 
-    chat = new Chat({
+    chat = new Chat(() => ({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
         } ${JSON.stringify(toolCall.args)}`;
       },
-    });
+    }));
   });
 
   it("should invoke onToolCall when a tool call is received from the server's response", async () => {
@@ -544,9 +566,15 @@ describe('tool invocations', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
-      maxSteps: 5,
-    });
+    const generateId = mockId();
+    chat = new Chat(() => ({
+      generateId,
+      chatStore: defaultChatStore({
+        api: '/api/chat',
+        maxSteps: 5,
+        generateId,
+      }),
+    }));
   });
 
   it('should display partial tool call, tool call, and tool result', async () => {
@@ -868,17 +896,20 @@ describe('maxSteps', () => {
     let chat: Chat;
 
     beforeEach(() => {
-      chat = new Chat({
+      chat = new Chat(() => ({
         async onToolCall({ toolCall }) {
           onToolCallInvoked = true;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxSteps: 5,
         chatId: 'test-id',
-        generateId: mockId(),
-      });
+        chatStore: defaultChatStore({
+          api: '/api/chat',
+          generateId: mockId(),
+          maxSteps: 5,
+        }),
+      }));
       onToolCallInvoked = false;
     });
 
@@ -954,15 +985,19 @@ describe('maxSteps', () => {
     let chat: Chat;
 
     beforeEach(() => {
-      chat = new Chat({
+      chat = new Chat(() => ({
         async onToolCall({ toolCall }) {
           onToolCallCounter++;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        maxSteps: 5,
-      });
+        chatStore: defaultChatStore({
+          api: '/api/chat',
+          generateId: mockId(),
+          maxSteps: 5,
+        }),
+      }));
       onToolCallCounter = 0;
     });
 
@@ -1002,9 +1037,9 @@ describe('file attachments with data url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should handle text file attachment and submission', async () => {
@@ -1062,7 +1097,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1140,7 +1175,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1168,9 +1203,9 @@ describe('file attachments with url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1228,7 +1263,7 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1256,9 +1291,9 @@ describe('file attachments with empty text content', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1279,6 +1314,8 @@ describe('file attachments with empty text content', () => {
         }),
       ),
     });
+
+    flushSync();
 
     expect(chat.messages).toMatchInlineSnapshot(`
       [
@@ -1314,7 +1351,7 @@ describe('file attachments with empty text content', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1342,9 +1379,9 @@ describe('reload', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should show streamed response', async () => {
@@ -1385,7 +1422,7 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1420,9 +1457,9 @@ describe('test sending additional fields during message submission', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({
+    chat = new Chat(() => ({
       generateId: mockId(),
-    });
+    }));
   });
 
   it('should send metadata with the message', async () => {
@@ -1445,7 +1482,7 @@ describe('test sending additional fields during message submission', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "chatId": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1463,51 +1500,6 @@ describe('test sending additional fields during message submission', () => {
         ],
       }
     `);
-  });
-});
-
-describe('initialMessages', () => {
-  let chat: Chat;
-  let initialMessages = $state<UIMessage[]>([
-    {
-      id: 'test-msg-1',
-      role: 'user',
-      parts: [{ text: 'Test message 1', type: 'text' }],
-    },
-  ]);
-
-  beforeEach(() => {
-    chat = new Chat({
-      get initialMessages() {
-        return initialMessages;
-      },
-    });
-  });
-
-  it('should not update messages when initialMessages changes', () => {
-    expect(chat.messages).toStrictEqual([
-      expect.objectContaining({
-        id: 'test-msg-1',
-        parts: [{ text: 'Test message 1', type: 'text' }],
-        role: 'user',
-      }),
-    ]);
-
-    initialMessages = [
-      {
-        id: 'test-msg-2',
-        role: 'user',
-        parts: [{ text: 'Test message 2', type: 'text' }],
-      },
-    ];
-
-    expect(chat.messages).toStrictEqual([
-      expect.objectContaining({
-        id: 'test-msg-1',
-        parts: [{ text: 'Test message 1', type: 'text' }],
-        role: 'user',
-      }),
-    ]);
   });
 });
 
@@ -1600,9 +1592,9 @@ describe('generateId function', () => {
       ],
     };
 
-    const chatWithCustomId = new Chat({
+    const chatWithCustomId = new Chat(() => ({
       generateId: mockId({ prefix: 'testid' }),
-    });
+    }));
 
     await chatWithCustomId.append({
       role: 'user',

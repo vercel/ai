@@ -1,10 +1,10 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { useChat } from '@ai-sdk/react';
+import { useChat, defaultChatStore } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { defaultChatStore, FileUIPart } from 'ai';
+import { FileUIPart } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
