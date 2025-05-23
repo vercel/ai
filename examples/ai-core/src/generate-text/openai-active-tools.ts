@@ -13,7 +13,7 @@ async function main() {
         parameters: z.object({ city: z.string() }),
       }),
     },
-    experimental_activeTools: [], // disable all tools
+    activeTools: [], // disable all tools
     stopWhen: stepCountIs(5),
     prompt:
       'What is the weather in San Francisco and what attractions should I visit?',

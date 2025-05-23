@@ -212,7 +212,8 @@ export function streamText<
   providerOptions,
   experimental_toolCallStreaming = false,
   toolCallStreaming = experimental_toolCallStreaming,
-  experimental_activeTools: activeTools,
+  experimental_activeTools,
+  activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   onChunk,
@@ -265,10 +266,15 @@ functionality that can be fully encapsulated in the provider.
     providerOptions?: ProviderOptions;
 
     /**
-Limits the tools that are available for the model to call without
-changing the tool call and result types in the result.
+     * @deprecated Use `activeTools` instead.
      */
-    experimental_activeTools?: Array<keyof TOOLS>;
+    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+    /**
+   Limits the tools that are available for the model to call without
+   changing the tool call and result types in the result.
+        */
+    activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
 Optional specification for parsing structured outputs from the LLM response.

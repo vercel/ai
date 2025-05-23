@@ -119,7 +119,8 @@ export async function generateText<
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
-  experimental_activeTools: activeTools,
+  experimental_activeTools,
+  activeTools = experimental_activeTools,
   experimental_prepareStep: prepareStep,
   experimental_repairToolCall: repairToolCall,
   _internal: {
@@ -168,10 +169,15 @@ functionality that can be fully encapsulated in the provider.
     providerOptions?: ProviderOptions;
 
     /**
+     * @deprecated Use `activeTools` instead.
+     */
+    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+    /**
 Limits the tools that are available for the model to call without
 changing the tool call and result types in the result.
      */
-    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
+    activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
 Optional specification for parsing structured outputs from the LLM response.
@@ -197,7 +203,7 @@ If you return undefined (or for undefined settings), the settings from the outer
       | {
           model?: LanguageModel;
           toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-          experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
+          activeTools?: Array<keyof NoInfer<TOOLS>>;
         }
       | undefined
     >;
@@ -296,8 +302,7 @@ A function that attempts to repair a tool call that failed to parse.
           prepareToolsAndToolChoice({
             tools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            activeTools:
-              prepareStepResult?.experimental_activeTools ?? activeTools,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
 
         currentModelResponse = await retry(() =>
