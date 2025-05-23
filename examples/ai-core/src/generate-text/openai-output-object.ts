@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, maxSteps, Output, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const { experimental_output } = await generateText({
@@ -9,7 +9,7 @@ async function main() {
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        parameters: z.strictObject({
           location: z.string().describe('The location to get the weather for'),
         }),
         // location below is inferred to be a string:
@@ -20,7 +20,7 @@ async function main() {
       }),
     },
     experimental_output: Output.object({
-      schema: z.object({
+      schema: z.strictObject({
         location: z.string(),
         temperature: z.number(),
       }),
