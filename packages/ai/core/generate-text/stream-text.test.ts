@@ -2781,6 +2781,493 @@ describe('streamText', () => {
       });
     });
 
+    describe('2 steps: initial, tool-result with prepareStep', () => {
+      let result: StreamTextResult<any, any>;
+      let doStreamCalls: Array<LanguageModelV2CallOptions>;
+      let prepareStepCalls: Array<{
+        stepNumber: number;
+        steps: Array<StepResult<any>>;
+      }>;
+
+      beforeEach(async () => {
+        doStreamCalls = [];
+        prepareStepCalls = [];
+
+        result = streamText({
+          model: new MockLanguageModelV2({
+            doStream: async options => {
+              doStreamCalls.push(options);
+              switch (doStreamCalls.length) {
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-0',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        args: `{ "value": "value" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+                case 2:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-1',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(1000),
+                      },
+                      { type: 'text', text: 'Hello, ' },
+                      { type: 'text', text: `world!` },
+                      {
+                        type: 'finish',
+                        finishReason: 'stop',
+                        usage: testUsage2,
+                      },
+                    ]),
+                    response: { headers: { call: '2' } },
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${doStreamCalls.length}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            tool1: tool({
+              parameters: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          prompt: 'test-input',
+          stopWhen: stepCountIs(3),
+          prepareStep: async ({ model, stepNumber, steps }) => {
+            prepareStepCalls.push({ stepNumber, steps });
+
+            if (stepNumber === 0) {
+              return {
+                toolChoice: {
+                  type: 'tool',
+                  toolName: 'tool1' as const,
+                },
+              };
+            }
+
+            if (stepNumber === 1) {
+              return { activeTools: [] };
+            }
+          },
+        });
+      });
+
+      it('should contain all doStream calls', async () => {
+        await result.consumeStream();
+        expect(doStreamCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "abortSignal": undefined,
+              "frequencyPenalty": undefined,
+              "headers": undefined,
+              "maxOutputTokens": undefined,
+              "presencePenalty": undefined,
+              "prompt": [
+                {
+                  "content": [
+                    {
+                      "text": "test-input",
+                      "type": "text",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "user",
+                },
+              ],
+              "providerOptions": undefined,
+              "responseFormat": undefined,
+              "seed": undefined,
+              "stopSequences": undefined,
+              "temperature": undefined,
+              "toolChoice": {
+                "toolName": "tool1",
+                "type": "tool",
+              },
+              "tools": [
+                {
+                  "description": undefined,
+                  "name": "tool1",
+                  "parameters": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "value",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "function",
+                },
+              ],
+              "topK": undefined,
+              "topP": undefined,
+            },
+            {
+              "abortSignal": undefined,
+              "frequencyPenalty": undefined,
+              "headers": undefined,
+              "maxOutputTokens": undefined,
+              "presencePenalty": undefined,
+              "prompt": [
+                {
+                  "content": [
+                    {
+                      "text": "test-input",
+                      "type": "text",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "user",
+                },
+                {
+                  "content": [
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "content": undefined,
+                      "isError": undefined,
+                      "providerOptions": undefined,
+                      "result": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "tool",
+                },
+              ],
+              "providerOptions": undefined,
+              "responseFormat": undefined,
+              "seed": undefined,
+              "stopSequences": undefined,
+              "temperature": undefined,
+              "toolChoice": {
+                "type": "auto",
+              },
+              "tools": [],
+              "topK": undefined,
+              "topP": undefined,
+            },
+          ]
+        `);
+      });
+
+      it('should contain all prepareStep calls', async () => {
+        await result.consumeStream();
+        expect(prepareStepCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "stepNumber": 0,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "result": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "args": {
+                              "value": "value",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "result": "result1",
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "finishReason": "stop",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "2",
+                    },
+                    "id": "id-1",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "args": {
+                              "value": "value",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "result": "result1",
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                      {
+                        "content": [
+                          {
+                            "text": "Hello, world!",
+                            "type": "text",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:01.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": 3,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": 10,
+                    "totalTokens": 23,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+            {
+              "stepNumber": 1,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "args": {
+                        "value": "value",
+                      },
+                      "result": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "args": {
+                              "value": "value",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "result": "result1",
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "finishReason": "stop",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "2",
+                    },
+                    "id": "id-1",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "args": {
+                              "value": "value",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "result": "result1",
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                      {
+                        "content": [
+                          {
+                            "text": "Hello, world!",
+                            "type": "text",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:01.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": 3,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": 10,
+                    "totalTokens": 23,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+          ]
+        `);
+      });
+    });
+
     describe('2 steps: initial, tool-result with transformed tool results', () => {
       const upperCaseToolResultTransform = () =>
         new TransformStream<
