@@ -16,6 +16,7 @@ export type ToolSchemas =
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
   TOOL_SCHEMAS extends Record<string, { parameters: ToolParameters<any> }>
     ? {
+        // @ts-expect-error - TODO: Type instantiation is excessively deep and possibly infinite. Likely caused by mixing v3 and v4 types.
         [K in keyof TOOL_SCHEMAS]: MappedTool<TOOL_SCHEMAS[K], CallToolResult> &
           Required<
             Pick<MappedTool<TOOL_SCHEMAS[K], CallToolResult>, 'execute'>

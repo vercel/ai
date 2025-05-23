@@ -8,7 +8,8 @@ import {
   safeParseJSON,
   Schema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { prepareHeaders } from '../../src/util/prepare-headers';
 import { prepareRetries } from '../../src/util/prepare-retries';
@@ -115,16 +116,23 @@ functionality that can be fully encapsulated in the provider.
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  RESULT extends SCHEMA extends z.Schema
+  RESULT extends SCHEMA extends z4.$ZodType
     ? Output extends 'array'
-      ? Array<z.infer<SCHEMA>>
-      : z.infer<SCHEMA>
-    : SCHEMA extends Schema<infer T>
+      ? Array<z4.infer<SCHEMA>>
+      : z4.infer<SCHEMA>
+    : SCHEMA extends z3.Schema
       ? Output extends 'array'
-        ? Array<T>
-        : T
-      : never,
-  SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
+        ? Array<
+            // @ts-expect-error - TODO: Type instantiation is excessively deep and possibly infinite. Likely caused by mixing v3 and v4 types.
+            z3.infer<SCHEMA>
+          >
+        : z3.infer<SCHEMA>
+      : SCHEMA extends Schema<infer T>
+        ? Output extends 'array'
+          ? Array<T>
+          : T
+        : never,
+  SCHEMA extends z3.Schema | z4.$ZodType | Schema = z4.$ZodType<JSONValue>,
   Output extends
     | 'object'
     | 'array'
