@@ -1,7 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import {
   extractReasoningMiddleware,
-  maxSteps,
+  stepCountIs,
   streamText,
   ToolCallPart,
   ToolResultPart,
@@ -29,7 +29,7 @@ async function main() {
       weather: weatherTool,
     },
     prompt: 'What is the weather in San Francisco?',
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
   });
 
   let enteredReasoning = false;

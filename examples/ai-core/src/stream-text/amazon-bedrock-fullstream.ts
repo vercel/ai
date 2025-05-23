@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { maxSteps, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
@@ -14,7 +14,7 @@ async function main() {
       },
     },
     prompt: 'What is the weather in San Francisco?',
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
   });
 
   let enteredReasoning = false;

@@ -64,6 +64,11 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import {
+  isStopConditionMet,
+  stepCountIs,
+  StopCondition,
+} from './stop-condition';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -201,7 +206,7 @@ export function streamText<
   maxRetries,
   abortSignal,
   headers,
-  continueUntil = maxSteps(1),
+  stopWhen = stepCountIs(1),
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
@@ -237,7 +242,15 @@ The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<TOOLS>;
 
-    continueUntil?: StopCondition<NoInfer<TOOLS>>;
+    /**
+Condition for stopping the generation when there are tool results in the last step.
+When the condition is an array, any of the conditions can be met to stop the generation.
+
+@default stepCountIs(1)
+     */
+    stopWhen?:
+      | StopCondition<NoInfer<TOOLS>>
+      | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -337,7 +350,7 @@ Internal. For test use only. May change without notice.
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
-    continueUntil,
+    stopConditions: asArray(stopWhen),
     output,
     providerOptions,
     onChunk,
@@ -476,7 +489,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     transforms,
     activeTools,
     repairToolCall,
-    continueUntil,
+    stopConditions,
     output,
     providerOptions,
     now,
@@ -502,7 +515,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-    continueUntil: StopCondition<NoInfer<TOOLS>>;
+    stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     providerOptions: ProviderOptions | undefined;
     now: () => number;
@@ -1157,7 +1170,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     stepToolCalls.length > 0 &&
                     // all current tool calls have results:
                     stepToolResults.length === stepToolCalls.length &&
-                    !(await continueUntil({ steps: recordedSteps }))
+                    // continue until a stop condition is met:
+                    !(await isStopConditionMet({
+                      stopConditions,
+                      steps: recordedSteps,
+                    }))
                   ) {
                     // append to messages for the next step:
                     responseMessages.push(

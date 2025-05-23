@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText, maxSteps, tool } from 'ai';
+import { generateText, stepCountIs, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -40,7 +40,7 @@ async function main() {
         },
       }),
     },
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
   });
 
   console.log(result.text);

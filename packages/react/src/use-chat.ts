@@ -13,6 +13,7 @@ import {
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { defaultChatStore } from './chat-store';
+import { throttle } from './throttle';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
@@ -177,10 +178,7 @@ Default is undefined, which disables throttling.
     }) => {
       return chatStore.current.subscribe({
         onChatChanged: event => {
-          if (event.chatId !== stableChatId || event.type !== eventType) {
-            return;
-          }
-
+          if (event.chatId !== stableChatId || event.type !== eventType) return;
           onStoreChange();
         },
       });
@@ -224,13 +222,20 @@ Default is undefined, which disables throttling.
     () => chatStore.current.getStatus(stableChatId),
   );
 
-  const messages = useSyncExternalStore(
-    callback => {
+  const subscribeToChatStoreForMessages = useCallback(
+    (callback: () => void) => {
       return subscribe({
-        onStoreChange: callback,
+        onStoreChange: throttleWaitMs
+          ? throttle(callback, throttleWaitMs)
+          : callback,
         eventType: 'chat-messages-changed',
       });
     },
+    [subscribe, throttleWaitMs],
+  );
+
+  const messages = useSyncExternalStore(
+    callback => subscribeToChatStoreForMessages(callback),
     () => chatStore.current.getMessages(stableChatId),
     () => chatStore.current.getMessages(stableChatId),
   );

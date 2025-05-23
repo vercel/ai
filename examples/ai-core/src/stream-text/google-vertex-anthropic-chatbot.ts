@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { maxSteps, ModelMessage, streamText, tool } from 'ai';
+import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 
@@ -33,7 +33,7 @@ async function main() {
           }),
         }),
       },
-      continueUntil: maxSteps(5),
+      stopWhen: stepCountIs(5),
       messages,
     });
 

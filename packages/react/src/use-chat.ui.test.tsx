@@ -14,7 +14,7 @@ import {
   UIMessage,
   UIMessageStreamPart,
 } from 'ai';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { act, useEffect, useRef, useState } from 'react';
 import { defaultChatStore, ReactChatStore } from './chat-store';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -2167,5 +2167,78 @@ describe('stop', () => {
 
     expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
     expect(screen.getByTestId('status')).toHaveTextContent('ready');
+  });
+});
+
+describe('experimental_throttle', () => {
+  const throttleMs = 50;
+
+  setupTestComponent(() => {
+    const { messages, append, status } = useChat({
+      experimental_throttle: throttleMs,
+      generateId: mockId(),
+    });
+
+    return (
+      <div>
+        <div data-testid="status">{status.toString()}</div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
+          </div>
+        ))}
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({
+              role: 'user',
+              parts: [{ text: 'hi', type: 'text' }],
+            });
+          }}
+        />
+      </div>
+    );
+  });
+
+  it('should throttle UI updates when experimental_throttle is set', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    vi.useFakeTimers();
+
+    controller.write(formatStreamPart({ type: 'text', text: 'Hel' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(throttleMs + 10);
+    });
+
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+    controller.write(formatStreamPart({ type: 'text', text: 'lo' }));
+    controller.write(formatStreamPart({ type: 'text', text: ' Th' }));
+    controller.write(formatStreamPart({ type: 'text', text: 'ere' }));
+
+    expect(screen.getByTestId('message-1')).not.toHaveTextContent(
+      'AI: Hello There',
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(throttleMs + 10);
+    });
+
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello There',
+    );
+
+    vi.useRealTimers();
   });
 });

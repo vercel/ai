@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, maxSteps } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';
 
@@ -42,7 +42,7 @@ async function main() {
     },
     prompt:
       'How can I switch to dark mode? Take a look at the screen and tell me.',
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
   });
 
   console.log(result.text);
