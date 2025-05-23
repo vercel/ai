@@ -93,7 +93,12 @@ export function zodSchema<OBJECT>(
   }
 }
 
-// https://github.com/colinhacks/zod/issues/4498
+/**
+ * This function is a workaround for z4's `.toJSONSchema` not setting `additionalProperties: false` for objects.
+ *
+ * @todo  either remove if colinhacks/zod#4498 is fixed or review the implementation for correctness and performance, it's AI generated
+ * @see   https://github.com/colinhacks/zod/issues/4498
+ */
 function enforceNoAdditionalProperties(schema: any) {
   if (schema && typeof schema === 'object') {
     if (schema.type === 'object') {
