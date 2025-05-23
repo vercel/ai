@@ -84,6 +84,17 @@ export type UseChatHelpers = {
   metadata?: Object;
 
   /**
+   * Add a tool result to an existing tool call message part.
+   */
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
+
+  /**
    * Whether the API request is in progress
    *
    * @deprecated use `status` instead
