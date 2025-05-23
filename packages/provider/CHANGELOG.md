@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.4
+
+### Patch Changes
+
+- dc714f3: release alpha.4
+
 ## 2.0.0-alpha.3
 
 ### Patch Changes

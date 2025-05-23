@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+
 ## 3.0.0-alpha.3
 
 ### Patch Changes
