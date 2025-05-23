@@ -121,7 +121,8 @@ export async function generateText<
   providerOptions,
   experimental_activeTools,
   activeTools = experimental_activeTools,
-  experimental_prepareStep: prepareStep,
+  experimental_prepareStep,
+  prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
   _internal: {
     generateId = originalGenerateId,
@@ -185,6 +186,22 @@ Optional specification for parsing structured outputs from the LLM response.
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
     /**
+     * @deprecated Use `prepareStep` instead.
+     */
+    experimental_prepareStep?: (options: {
+      steps: Array<StepResult<NoInfer<TOOLS>>>;
+      stepNumber: number;
+      model: LanguageModel;
+    }) => PromiseLike<
+      | {
+          model?: LanguageModel;
+          toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+          activeTools?: Array<keyof NoInfer<TOOLS>>;
+        }
+      | undefined
+    >;
+
+    /**
 Optional function that you can use to provide different settings for a step.
 
 @param options - The options for the step.
@@ -195,7 +212,7 @@ Optional function that you can use to provide different settings for a step.
 @returns An object that contains the settings for the step.
 If you return undefined (or for undefined settings), the settings from the outer level will be used.
     */
-    experimental_prepareStep?: (options: {
+    prepareStep?: (options: {
       steps: Array<StepResult<NoInfer<TOOLS>>>;
       stepNumber: number;
       model: LanguageModel;
