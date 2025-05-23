@@ -5,6 +5,7 @@ import { MCPClientError } from '../../../errors';
 import { inferParameters, tool, Tool, ToolExecutionOptions } from '../tool';
 import {
   JSONRPCError,
+  JSONRPCMessage,
   JSONRPCNotification,
   JSONRPCRequest,
   JSONRPCResponse,
@@ -98,8 +99,14 @@ class MCPClient {
     this.transport.onerror = (error: Error) => this.onError(error);
     this.transport.onmessage = message => {
       if ('method' in message) {
+        // Handle ping requests from the server
+        if (message.method === 'ping') {
+          this.handlePing(message);
+          return;
+        }
+
         // This lightweight client implementation does not support
-        // receiving notifications or requests from server.
+        // receiving other notifications or requests from server.
         // If we get an unsupported message, we can safely ignore it and pass to the onError handler:
         this.onError(
           new MCPClientError({
@@ -399,5 +406,24 @@ class MCPClient {
             cause: response.error,
           }),
     );
+  }
+
+  /**
+   * Handles ping requests from the server
+   * This is required to maintain the connection with the server
+   * which may use pings to check if the client is still connected
+   */
+  private handlePing(message: JSONRPCMessage): void {
+    if ('id' in message) {
+      const response: JSONRPCResponse = {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {},
+      };
+      this.transport.send(response).catch(error => {
+        this.onError(error);
+      });
+    }
+    // If no ID is present (notification ping), we don't need to respond
   }
 }
