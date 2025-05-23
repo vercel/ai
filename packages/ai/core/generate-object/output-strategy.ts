@@ -13,7 +13,8 @@ import {
   Schema,
   ValidationResult,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import {
   AsyncIterableStream,
@@ -392,7 +393,10 @@ export function getOutputStrategy<SCHEMA>({
   enumValues,
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
-  schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
+  schema?:
+    | z4.$ZodType<SCHEMA, any>
+    | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
+    | Schema<SCHEMA>;
   enumValues?: Array<SCHEMA>;
 }): OutputStrategy<any, any, any> {
   switch (output) {
