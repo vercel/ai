@@ -1,8 +1,7 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { useChat } from '@ai-sdk/react';
-import { defaultChatStore } from 'ai';
+import { useChat, defaultChatStore } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {

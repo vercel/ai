@@ -7,6 +7,9 @@ export {
   type ChatStoreEvent,
   type InferUIDataParts as InferUIDataTypes,
   type UIDataPartSchemas as UIDataTypesSchemas,
+  type ChatStateManager,
+  type ActiveResponse,
+  type UIDataPartSchemas,
 } from './chat-store';
 export {
   DefaultChatTransport,

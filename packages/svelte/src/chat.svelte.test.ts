@@ -5,8 +5,6 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { render } from '@testing-library/svelte';
 import {
-  ChatStore,
-  defaultChatStore,
   getToolInvocations,
   TextStreamChatTransport,
   type UIMessage,
@@ -16,6 +14,7 @@ import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
+import { defaultChatStore, SvelteChatStore } from './chat-store.svelte.js';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -309,7 +308,7 @@ describe('text stream', () => {
 
     chat = new Chat(() => ({
       generateId,
-      chatStore: new ChatStore({
+      chatStore: new SvelteChatStore({
         transport: new TextStreamChatTransport({
           api: '/api/chat',
         }),
@@ -406,7 +405,7 @@ describe('text stream', () => {
     const onFinish = vi.fn();
     const chatWithOnFinish = new Chat(() => ({
       onFinish,
-      chatStore: new ChatStore({
+      chatStore: new SvelteChatStore({
         transport: new TextStreamChatTransport({
           api: '/api/chat',
         }),
@@ -438,7 +437,7 @@ describe('form actions', () => {
     const generateId = mockId();
     chat = new Chat(() => ({
       generateId,
-      chatStore: new ChatStore({
+      chatStore: new SvelteChatStore({
         transport: new TextStreamChatTransport({
           api: '/api/chat',
         }),

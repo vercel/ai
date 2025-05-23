@@ -1,7 +1,6 @@
 import {
   ChatStore,
   convertFileListToFileUIParts,
-  defaultChatStore,
   generateId as generateIdFunc,
   InferUIDataTypes,
   UIDataTypesSchemas,
@@ -13,6 +12,7 @@ import {
   type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import { defaultChatStore } from './chat-store';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 

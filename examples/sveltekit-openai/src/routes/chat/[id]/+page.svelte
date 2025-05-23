@@ -3,8 +3,7 @@
   import ArrowUp from '$lib/components/icons/arrow-up.svelte';
   import Button from '$lib/components/ui/button/button.svelte';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
-  import { Chat } from '@ai-sdk/svelte';
-  import { defaultChatStore } from 'ai';
+  import { Chat, defaultChatStore } from '@ai-sdk/svelte';
 
   const chat = new Chat(() => ({
     chatId: page.params.id,

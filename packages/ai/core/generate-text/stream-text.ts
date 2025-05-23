@@ -2,13 +2,12 @@ import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
-import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
-import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
-import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
+import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
+import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
@@ -53,18 +52,18 @@ import {
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
 import { DefaultStepResult, StepResult } from './step-result';
+import { maxSteps, StopCondition } from './stop-condition';
 import {
   ConsumeStreamOptions,
-  UIMessageStreamOptions,
   StreamTextResult,
   TextStreamPart,
+  UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { maxSteps, StopCondition } from './stop-condition';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1525,7 +1524,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     }
 
     const state = createStreamingUIMessageState({
-      lastMessage,
+      lastMessage: structuredClone(lastMessage),
       newMessageId: messageId ?? this.generateId(),
     });
 

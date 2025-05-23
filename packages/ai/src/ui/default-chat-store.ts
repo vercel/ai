@@ -6,6 +6,7 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
+  ChatStateManagerFactory,
   ChatStore,
   InferUIDataParts,
   type UIDataPartSchemas,
@@ -110,6 +111,11 @@ export interface DefaultChatStoreOptions<
       >[];
     };
   };
+
+  StateManager: ChatStateManagerFactory<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  >;
 }
 
 export function defaultChatStore<
@@ -127,6 +133,7 @@ export function defaultChatStore<
   maxSteps = 1,
   dataPartSchemas,
   chats,
+  StateManager,
 }: DefaultChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>): ChatStore<
   MESSAGE_METADATA,
   UI_DATA_PART_SCHEMAS
@@ -148,5 +155,6 @@ export function defaultChatStore<
     dataPartSchemas,
     maxSteps,
     chats,
+    StateManager,
   });
 }

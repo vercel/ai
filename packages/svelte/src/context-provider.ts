@@ -1,5 +1,8 @@
 import { ChatStore, defaultChatStore } from 'ai';
-import { setChatStoreContext } from './chat-store-context.svelte.js';
+import {
+  setChatStoreContext,
+  SvelteStateManager,
+} from './chat-store.svelte.js';
 import {
   KeyedCompletionStore,
   setCompletionContext,
@@ -24,6 +27,7 @@ export function createChatStoreContext(chatStore?: ChatStore) {
     chatStore ??
       defaultChatStore({
         api: '/api/chat',
+        StateManager: SvelteStateManager,
       }),
   );
 }
