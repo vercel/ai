@@ -9,7 +9,7 @@ async function main() {
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.strictObject({
+        parameters: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         // location below is inferred to be a string:
@@ -20,7 +20,7 @@ async function main() {
       }),
     },
     experimental_output: Output.object({
-      schema: z.strictObject({
+      schema: z.object({
         location: z.string(),
         temperature: z.number(),
       }),

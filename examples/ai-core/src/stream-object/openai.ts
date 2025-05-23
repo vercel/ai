@@ -6,9 +6,9 @@ import { z } from 'zod/v4';
 async function main() {
   const result = streamObject({
     model: openai('gpt-4o-mini'),
-    schema: z.strictObject({
+    schema: z.object({
       characters: z.array(
-        z.strictObject({
+        z.object({
           name: z.string(),
           class: z
             .string()
