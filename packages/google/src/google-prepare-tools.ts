@@ -15,6 +15,7 @@ export function prepareTools(
   },
   useSearchGrounding: boolean,
   dynamicRetrievalConfig: DynamicRetrievalConfig | undefined,
+  urlContext: boolean,
   modelId: GoogleGenerativeAIModelId,
 ): {
   tools:
@@ -31,7 +32,8 @@ export function prepareTools(
           | Record<string, never>
           | { dynamicRetrievalConfig: DynamicRetrievalConfig };
       }
-    | { googleSearch: Record<string, never> };
+    | { googleSearch: Record<string, never> }
+    | { urlContext: Record<string, never> };
   toolConfig:
     | undefined
     | {
@@ -59,6 +61,14 @@ export function prepareTools(
                 ? {}
                 : { dynamicRetrievalConfig },
           },
+      toolConfig: undefined,
+      toolWarnings,
+    };
+  }
+
+  if (urlContext) {
+    return {
+      tools: isGemini2 ? { urlContext: {} } : undefined,
       toolConfig: undefined,
       toolWarnings,
     };
