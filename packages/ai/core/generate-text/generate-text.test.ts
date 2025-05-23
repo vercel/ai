@@ -944,7 +944,7 @@ describe('options.stopWhen', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_prepareStep: async ({ model, stepNumber, steps }) => {
+        prepareStep: async ({ model, stepNumber, steps }) => {
           expect(model).toStrictEqual(modelWithFiles);
 
           if (stepNumber === 0) {
