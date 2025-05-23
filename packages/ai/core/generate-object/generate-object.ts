@@ -123,7 +123,7 @@ export async function generateObject<
     : SCHEMA extends z3.Schema
       ? Output extends 'array'
         ? Array<
-            // @ts-expect-error - TODO: Type instantiation is excessively deep and possibly infinite
+            // @ts-expect-error - TODO: Type instantiation is excessively deep and possibly infinite. Likely caused by mixing v3 and v4 types.
             z3.infer<SCHEMA>
           >
         : z3.infer<SCHEMA>
