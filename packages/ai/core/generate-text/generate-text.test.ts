@@ -956,7 +956,7 @@ describe('options.stopWhen', () => {
 
           if (stepNumber === 1) {
             expect(steps.length).toStrictEqual(1);
-            return { model: trueModel, experimental_activeTools: [] };
+            return { model: trueModel, activeTools: [] };
           }
         },
       });
