@@ -51,7 +51,7 @@ export function zod4Schema<OBJECT>(
   const useReferences = options?.useReferences ?? false;
 
   return jsonSchema(
-    z4.toJSONSchema(zodSchema, { target: 'draft-7' }) as JSONSchema7,
+    z4.toJSONSchema(zodSchema, { target: 'draft-7', reused: useReferences ? 'ref' : 'inline' }) as JSONSchema7,
     {
       validate: value => {
         const result = z4.safeParse(zodSchema, value);
