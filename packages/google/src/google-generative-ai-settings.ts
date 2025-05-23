@@ -26,6 +26,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-pro-exp-03-25'
   | 'gemini-2.5-pro-preview-05-06'
   | 'gemini-2.5-flash-preview-04-17'
+  | 'gemini-2.5-flash-preview-05-20'
   | 'gemini-exp-1206'
   | 'gemma-3-27b-it'
   | 'learnlm-1.5-pro-experimental'
@@ -103,6 +104,12 @@ Optional. Specifies the dynamic retrieval configuration.
 @see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval
    */
   dynamicRetrievalConfig?: DynamicRetrievalConfig;
+
+  /**
+   * Optional. Specifies the URL context tool configuration.
+   * @see https://ai.google.dev/gemini-api/docs/url-context
+   */
+  urlContext?: boolean;
 }
 
 export interface InternalGoogleGenerativeAISettings
