@@ -60,6 +60,10 @@ export class ReactStateManager<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
       ...this.messages.slice(index + 1),
     ];
   };
+
+  snapshot = <T>(value: T): T => {
+    return structuredClone(value);
+  };
 }
 
 export class ReactChatStore<
