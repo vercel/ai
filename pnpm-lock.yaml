@@ -146,6 +146,9 @@ importers:
       '@ai-sdk/valibot':
         specifier: workspace:*
         version: link:../../packages/valibot
+      '@ai-sdk/vercel':
+        specifier: workspace:*
+        version: link:../../packages/vercel
       '@ai-sdk/xai':
         specifier: workspace:*
         version: link:../../packages/xai
@@ -2272,6 +2275,34 @@ importers:
       valibot:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(typescript@5.8.3)
+
+  packages/vercel:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.24.4
+        version: 3.24.4
 
   packages/vue:
     dependencies:
