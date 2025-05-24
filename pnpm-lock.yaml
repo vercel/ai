@@ -99,7 +99,7 @@ importers:
         specifier: 0.0.1
         version: link:../../packages/gladia
       '@ai-sdk/google':
-        specifier: 1.2.18
+        specifier: workspace:*
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
         specifier: 2.2.23

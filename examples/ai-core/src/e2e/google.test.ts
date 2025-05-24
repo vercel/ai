@@ -2,11 +2,13 @@ import 'dotenv/config';
 import { expect } from 'vitest';
 import { GoogleErrorData, google as provider } from '@ai-sdk/google';
 import { APICallError, LanguageModelV1 } from 'ai';
+import { ImageModelV1 } from '@ai-sdk/provider';
 import {
   ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
+  createImageModelWithCapabilities,
   defaultChatModelCapabilities,
 } from './feature-test-suite';
 
@@ -14,6 +16,11 @@ const createChatModel = (
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV1> =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
+
+const createImageModel = (
+  modelId: string,
+): ModelWithCapabilities<ImageModelV1> =>
+  createImageModelWithCapabilities(provider.image(modelId));
 
 const createSearchGroundedModel = (
   modelId: string,
@@ -43,6 +50,7 @@ createFeatureTestSuite({
         provider.textEmbeddingModel('text-embedding-004'),
       ),
     ],
+    imageModels: [createImageModel('imagen-3.0-generate-002')],
   },
   timeout: 20000,
   customAssertions: {
