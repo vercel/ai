@@ -533,7 +533,7 @@ const result = await generateText({
               type: 'tool-call',
               toolCallId: toolCall.toolCallId,
               toolName: toolCall.toolName,
-              args: toolCall.args,
+              args: JSON.parse(toolCall.args),
             },
           ],
         },
