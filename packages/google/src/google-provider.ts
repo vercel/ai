@@ -163,7 +163,6 @@ export function createGoogleGenerativeAI(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      generateId: options.generateId ?? generateId,
     });
 
   const provider = function (
