@@ -1,0 +1,108 @@
+---
+title: Arize Phoenix
+description: Monitor and debug your AI SDK application with Arize Phoenix
+---
+
+# Arize Phoenix Observability
+
+[Arize Phoenix](https://docs.arize.com/phoenix) is an open-source observability and evaluation platform for LLM applications. You can integrate Phoenix with the Vercel AI SDK to trace, debug, and evaluate generations using OpenInference. This integration helps you visualize LLM requests, monitor performance, and perform offline evaluations—all from your local or hosted Phoenix instance.
+
+## Install Dependencies
+
+In your Node.js or Next.js app, install the necessary OpenTelemetry dependencies:
+
+```bash
+npm i @opentelemetry/api @vercel/otel @opentelemetry/exporter-trace-otlp-proto @arizeai/openinference-semantic-conventions
+```
+
+You’ll also need Phoenix running, either locally or with the hosted version
+
+<Tabs items={["Local", "Phoenix Cloud"]}>
+
+<Tab>
+  ```bash pip install arize-phoenix phoenix start ``` Once started, Phoenix will
+  be available at http://localhost:6006
+</Tab>
+
+<Tab>
+  Phoenix can also run in a remote or containerized environment (e.g., cloud
+  instance, or Docker). Make sure the hosted Phoenix instance is accessible to
+  your app (e.g., via a public or VPN-accessible URL). Then, set the
+  PHOENIX_ENDPOINT environment variable in your app to point to that instance:
+  ```python PHOENIX_API_KEY = "ADD YOUR API KEY"
+  os.environ["PHOENIX_CLIENT_HEADERS"] = f"api_key={PHOENIX_API_KEY}"
+  os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = "https://app.phoenix.arize.com" ```
+</Tab>
+
+</Tabs>
+
+## Configure OpenTelemetry in Your Application
+
+### Create an Instrumentation File
+
+Create a file named instrumentation.ts in your project's root directory:​
+
+```ts
+import { registerOTel } from '@vercel/otel';
+import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import {
+  isOpenInferenceSpan,
+  OpenInferenceSimpleSpanProcessor,
+} from '@arizeai/openinference-vercel';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+import { SEMRESATTRS_PROJECT_NAME } from '@arizeai/openinference-semantic-conventions';
+// Optional: Enable debug logging for troubleshooting
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+
+export function register() {
+  registerOTel({
+    serviceName: 'your-service-name',
+    attributes: {
+      [SEMRESATTRS_PROJECT_NAME]: 'your-project-name',
+    },
+    spanProcessors: [
+      new OpenInferenceSimpleSpanProcessor({
+        exporter: new OTLPTraceExporter({
+          headers: {
+            api_key: process.env['PHOENIX_API_KEY'],
+          },
+          url:
+            process.env['PHOENIX_COLLECTOR_ENDPOINT'] ||
+            'http://localhost:6006/v1/traces',
+        }),
+        spanFilter: span => {
+          // Export only OpenInference spans
+          return isOpenInferenceSpan(span);
+        },
+      }),
+    ],
+  });
+}
+```
+
+> **_NOTE:_** Replace "your-service-name" and "your-project-name" with appropriate identifiers for your application.
+
+## Enable Telemetry in AI SDK Calls
+
+To capture telemetry data, enable the experimental_telemetry option in your AI SDK function calls:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4-turbo'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: { isEnabled: true },
+});
+```
+
+## Visualize and Debug in Phoenix UI
+
+After running your application with telemetry enabled, open the Phoenix UI to explore the captured traces:
+
+- Local Phoenix: http://localhost:6006
+- Hosted Phoenix: https://your-phoenix-host.com​
+
+In the Phoenix UI, you can:​
+
+- View execution spans and trace hierarchies.
+- Inspect prompts, responses, and associated metadata.
+- Debug issues and analyze performance metrics.​
