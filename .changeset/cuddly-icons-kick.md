@@ -30,3 +30,5 @@
 ---
 
 AI SDK 5
+
+Commit: https://github.com/vercel/ai/pull/5624

@@ -8,3 +8,5 @@ Removed deprecated `options.throwErrorForEmptyVectors` from `cosineSimilarity()`
 - cosineSimilarity(vector1, vector2, options)
 +cosineSimilarity(vector1, vector2)
 ```
+
+Commit: https://github.com/vercel/ai/pull/5772
