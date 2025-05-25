@@ -1,6 +1,7 @@
 import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
+  LanguageModelV1ProviderDefinedTool,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIResponsesTool } from './openai-responses-api-types';
@@ -20,6 +21,7 @@ export function prepareResponsesTools({
     | 'none'
     | 'required'
     | { type: 'web_search_preview' }
+    | { type: 'mcp' }
     | { type: 'function'; name: string };
   toolWarnings: LanguageModelV1CallWarning[];
 } {
@@ -63,6 +65,9 @@ export function prepareResponsesTools({
               },
             });
             break;
+          case 'openai.mcp':
+            openaiTools.push(prepareMcpTool(tool));
+            break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
@@ -95,6 +100,15 @@ export function prepareResponsesTools({
           toolWarnings,
         };
       }
+      if (toolChoice.toolName === 'mcp') {
+        return {
+          tools: openaiTools,
+          tool_choice: {
+            type: 'mcp',
+          },
+          toolWarnings,
+        };
+      }
       return {
         tools: openaiTools,
         tool_choice: {
@@ -110,5 +124,54 @@ export function prepareResponsesTools({
         functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
       });
     }
+  }
+}
+
+function prepareMcpTool(tool: LanguageModelV1ProviderDefinedTool) {
+  return {
+    type: 'mcp',
+    server_label: tool.args.serverLabel as string,
+    server_url: tool.args.serverUrl as string,
+    allowed_tools: tool.args.allowedTools as string[],
+    headers: tool.args.headers as Record<string, string> | null,
+    require_approval: prepareMcpToolRequireApproval(tool.args.requireApproval),
+  } as const;
+}
+
+function prepareMcpToolRequireApproval(requireApproval: unknown) {
+  if (requireApproval == null) {
+    return 'always';
+  }
+
+  switch (typeof requireApproval) {
+    case 'string':
+      return requireApproval as 'always' | 'never';
+    case 'object': {
+      const approvalFilter = requireApproval as {
+        always?: {
+          toolNames?: string[];
+        };
+        never?: {
+          toolNames?: string[];
+        };
+      };
+      return {
+        always: {
+          tool_names: approvalFilter.always?.toolNames,
+        },
+        never: {
+          tool_names: approvalFilter.never?.toolNames,
+        },
+      } as {
+        always?: {
+          tool_names?: string[];
+        };
+        never?: {
+          tool_names?: string[];
+        };
+      };
+    }
+    default:
+      return 'always';
   }
 }

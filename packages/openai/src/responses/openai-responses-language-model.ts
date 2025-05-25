@@ -306,6 +306,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                   }),
                 ),
               }),
+              z.object({
+                type: z.literal('mcp_call'),
+                approval_request_id: z.string().nullable(),
+                arguments: z.string(),
+                error: z.string().nullable(),
+                name: z.string(),
+                output: z.string().nullable(),
+                server_label: z.string(),
+              }),
+              z.object({
+                type: z.literal('mcp_approval_request'),
+                arguments: z.string(),
+                name: z.string(),
+                server_label: z.string(),
+              }),
             ]),
           ),
           incomplete_details: z.object({ reason: z.string() }).nullable(),
@@ -431,6 +446,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
           LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
+            if (chunk.success) {
+              console.log(JSON.stringify(chunk.value, null, 2));
+            }
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -451,6 +469,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                   type: 'tool-call-delta',
                   toolCallType: 'function',
                   toolCallId: value.item.call_id,
+                  toolName: value.item.name,
+                  argsTextDelta: value.item.arguments,
+                });
+              }
+
+              if (value.item.type === 'mcp_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: value.item.name,
+                  toolCallId: value.item.id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: value.item.id,
                   toolName: value.item.name,
                   argsTextDelta: value.item.arguments,
                 });
@@ -487,14 +520,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               });
             } else if (
               isResponseOutputItemDoneChunk(value) &&
-              value.item.type === 'function_call'
+              (value.item.type === 'function_call' ||
+                value.item.type === 'mcp_call')
             ) {
               ongoingToolCalls[value.output_index] = undefined;
               hasToolCalls = true;
               controller.enqueue({
                 type: 'tool-call',
                 toolCallType: 'function',
-                toolCallId: value.item.call_id,
+                toolCallId:
+                  value.item.type === 'function_call'
+                    ? value.item.call_id
+                    : value.item.id,
                 toolName: value.item.name,
                 args: value.item.arguments,
               });
@@ -521,6 +558,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                   title: value.annotation.title,
                 },
               });
+            } else {
             }
           },
 
@@ -601,6 +639,15 @@ const responseOutputItemDoneSchema = z.object({
       arguments: z.string(),
       status: z.literal('completed'),
     }),
+    z.object({
+      type: z.literal('mcp_call'),
+      id: z.string(),
+      name: z.string(),
+      server_label: z.string(),
+      error: z.string().nullable(),
+      output: z.string().nullable(),
+      arguments: z.string(),
+    }),
   ]),
 });
 
@@ -609,6 +656,14 @@ const responseFunctionCallArgumentsDeltaSchema = z.object({
   item_id: z.string(),
   output_index: z.number(),
   delta: z.string(),
+});
+
+const responseMcpCallArgumentsDeltaSchema = z.object({
+  type: z.literal('response.mcp_call.arguments.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  delta: z.object({}).passthrough(),
+  sequence_number: z.number(),
 });
 
 const responseOutputItemAddedSchema = z.object({
@@ -623,6 +678,15 @@ const responseOutputItemAddedSchema = z.object({
       id: z.string(),
       call_id: z.string(),
       name: z.string(),
+      arguments: z.string(),
+    }),
+    z.object({
+      type: z.literal('mcp_call'),
+      id: z.string(),
+      name: z.string(),
+      server_label: z.string(),
+      error: z.string().nullable(),
+      output: z.string().nullable(),
       arguments: z.string(),
     }),
   ]),
@@ -651,6 +715,7 @@ const openaiResponsesChunkSchema = z.union([
   responseCreatedChunkSchema,
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
+  responseMcpCallArgumentsDeltaSchema,
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
@@ -687,6 +752,12 @@ function isResponseFunctionCallArgumentsDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseFunctionCallArgumentsDeltaSchema> {
   return chunk.type === 'response.function_call_arguments.delta';
+}
+
+function isResponseMcpCallArgumentsDeltaChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseMcpCallArgumentsDeltaSchema> {
+  return chunk.type === 'response.mcp_call.arguments.delta';
 }
 
 function isResponseOutputItemAddedChunk(
