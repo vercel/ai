@@ -146,6 +146,7 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+<<<<<<< HEAD
     const createImageModel = (
       modelId: GoogleGenerativeAIImageModelId,
       settings: GoogleGenerativeAIImageSettings = {},
@@ -163,6 +164,18 @@ export function createGoogleGenerativeAI(
           'The Google Generative AI model function cannot be called with the new keyword.',
         );
       }
+=======
+  const createImageModel = (
+    modelId: GoogleGenerativeAIImageModelId,
+    settings: GoogleGenerativeAIImageSettings = {},
+  ) =>
+    new GoogleGenerativeAIImageModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+>>>>>>> 9bb8d6824 (fix(providers/google) Removed unused generateID from Imagemodel)
 
   const provider = function (modelId: GoogleGenerativeAIModelId) {
 
