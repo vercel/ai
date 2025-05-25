@@ -1,6 +1,6 @@
 {
-  "name": "@ai-sdk/google-vertex",
-  "version": "2.2.23",
+  "name": "@ai-sdk/vercel",
+  "version": "0.0.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,22 +8,18 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "edge/dist/**/*",
-    "anthropic/dist/**/*",
-    "anthropic/edge/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf edge/dist && rm -rf anthropic/dist && rm -rf anthropic/edge/dist",
+    "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run",
-    "test:node:watch": "vitest --config vitest.node.config.js"
+    "test:node": "vitest --config vitest.node.config.js --run"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -31,29 +27,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    },
-    "./edge": {
-      "types": "./edge/dist/index.d.ts",
-      "import": "./edge/dist/index.mjs",
-      "require": "./edge/dist/index.js"
-    },
-    "./anthropic": {
-      "types": "./anthropic/dist/index.d.ts",
-      "import": "./anthropic/dist/index.mjs",
-      "require": "./anthropic/dist/index.js"
-    },
-    "./anthropic/edge": {
-      "types": "./anthropic/edge/dist/index.d.ts",
-      "import": "./anthropic/edge/dist/index.mjs",
-      "require": "./anthropic/edge/dist/index.js"
     }
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "1.2.12",
-    "@ai-sdk/google": "1.2.18",
+    "@ai-sdk/openai-compatible": "0.2.14",
     "@ai-sdk/provider": "1.1.3",
-    "@ai-sdk/provider-utils": "2.2.8",
-    "google-auth-library": "^9.15.0"
+    "@ai-sdk/provider-utils": "2.2.8"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
