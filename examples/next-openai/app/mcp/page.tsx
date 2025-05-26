@@ -1,8 +1,10 @@
 'use client';
 
 import { useChat, defaultChatStore } from '@ai-sdk/react';
+import { useState } from 'react';
 
 export default function Chat() {
+  const [chatStore] = useState(defaultChatStore({ api: '/mcp/chat' }));
   const {
     error,
     input,
@@ -12,11 +14,7 @@ export default function Chat() {
     messages,
     reload,
     stop,
-  } = useChat({
-    chatStore: defaultChatStore({
-      api: '/mcp/chat',
-    }),
-  });
+  } = useChat({ chatStore });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

@@ -1,20 +1,12 @@
 'use client';
 
 import { useChat, defaultChatStore } from '@ai-sdk/react';
+import { useState } from 'react';
 import { z } from 'zod';
 
 export default function Chat() {
-  const {
-    error,
-    input,
-    status,
-    handleInputChange,
-    handleSubmit,
-    messages,
-    reload,
-    stop,
-  } = useChat({
-    chatStore: defaultChatStore({
+  const [chatStore] = useState(
+    defaultChatStore({
       api: '/api/use-chat-data-ui-parts',
       dataPartSchemas: {
         weather: z.object({
@@ -24,7 +16,18 @@ export default function Chat() {
         }),
       },
     }),
-  });
+  );
+
+  const {
+    error,
+    input,
+    status,
+    handleInputChange,
+    handleSubmit,
+    messages,
+    reload,
+    stop,
+  } = useChat({ chatStore });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

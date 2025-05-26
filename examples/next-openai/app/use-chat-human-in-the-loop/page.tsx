@@ -6,15 +6,18 @@ import {
   APPROVAL,
   getToolsRequiringConfirmation,
 } from '../api/use-chat-human-in-the-loop/utils';
+import { useState } from 'react';
 
 export default function Chat() {
+  const [chatStore] = useState(
+    defaultChatStore({
+      api: '/api/use-chat-human-in-the-loop',
+      maxSteps: 5,
+    }),
+  );
+
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat({
-      chatStore: defaultChatStore({
-        api: '/api/use-chat-human-in-the-loop',
-        maxSteps: 5,
-      }),
-    });
+    useChat({ chatStore });
 
   const toolsRequiringConfirmation = getToolsRequiringConfirmation(tools);
 
