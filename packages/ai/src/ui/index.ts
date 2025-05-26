@@ -39,3 +39,7 @@ export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
+export {
+  defaultChatStoreOptions,
+  type DefaultChatStoreOptions,
+} from './default-chat-store-options';

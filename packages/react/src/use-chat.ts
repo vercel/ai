@@ -1,6 +1,7 @@
 import {
   ChatStore,
   convertFileListToFileUIParts,
+  defaultChatStoreOptions,
   generateId as generateIdFunc,
   InferUIDataParts,
   UIDataPartSchemas,
@@ -12,8 +13,8 @@ import {
   type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
-import { defaultChatStore } from './chat-store';
 import { throttle } from './throttle';
+import { createChatStore } from './chat-store';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
@@ -155,11 +156,16 @@ Default is undefined, which disables throttling.
 
   // chat store setup
   const chatStore = useRef(
-    chatStoreArg ??
-      defaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
-        api: '/api/chat',
-        generateId,
-      }),
+    chatStoreArg == null
+      ? createChatStore(
+          defaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
+            api: '/api/chat',
+            generateId,
+          })(),
+        )
+      : typeof chatStoreArg === 'function'
+        ? createChatStore(chatStoreArg())
+        : chatStoreArg,
   );
 
   // ensure the chat is in the store

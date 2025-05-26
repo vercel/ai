@@ -10,10 +10,6 @@ import {
   type UIDataTypes,
   type UIMessage,
 } from 'ai';
-import {
-  defaultChatStoreOptions,
-  type DefaultChatStoreOptions,
-} from 'ai/internal';
 import { createContext } from './utils.svelte.js';
 
 export const {
@@ -81,21 +77,6 @@ export function createChatStore<
 ): ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
   return new ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
     ...options,
-    createChat: options =>
-      new SvelteChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
-        options.messages,
-      ),
-  });
-}
-
-export function defaultChatStore<
-  MESSAGE_METADATA = unknown,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
->(
-  options: DefaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
-): ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
-  return new ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
-    ...defaultChatStoreOptions(options),
     createChat: options =>
       new SvelteChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
         options.messages,

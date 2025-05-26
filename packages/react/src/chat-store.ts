@@ -10,7 +10,6 @@ import {
   type ActiveResponse,
   type Chat,
 } from 'ai';
-import { defaultChatStoreOptions, DefaultChatStoreOptions } from 'ai/internal';
 
 class ReactChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   implements Chat<MESSAGE_METADATA, DATA_TYPES>
@@ -75,21 +74,6 @@ export function createChatStore<
 ): ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
   return new ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
     ...options,
-    createChat: options =>
-      new ReactChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
-        options.messages,
-      ),
-  });
-}
-
-export function defaultChatStore<
-  MESSAGE_METADATA = unknown,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
->(
-  options: DefaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
-): ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
-  return new ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
-    ...defaultChatStoreOptions(options),
     createChat: options =>
       new ReactChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
         options.messages,

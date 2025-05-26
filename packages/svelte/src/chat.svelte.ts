@@ -1,6 +1,7 @@
 import {
   ChatStore,
   convertFileListToFileUIParts,
+  defaultChatStoreOptions,
   generateId,
   type ChatRequestOptions,
   type ChatStatus,
@@ -12,9 +13,9 @@ import {
   type UseChatOptions,
 } from 'ai';
 import {
-  defaultChatStore,
   getChatStoreContext,
   hasChatStoreContext,
+  createChatStore,
 } from './chat-store.svelte.js';
 
 export type ChatOptions<
@@ -99,17 +100,23 @@ export class Chat<
     this.chatId = $derived(this.#options.chatId ?? this.#generateId());
 
     if (this.#options.chatStore) {
-      this.#chatStore = this.#options.chatStore;
+      if (typeof this.#options.chatStore === 'function') {
+        this.#chatStore = createChatStore(this.#options.chatStore());
+      } else {
+        this.#chatStore = this.#options.chatStore;
+      }
     } else if (hasChatStoreContext()) {
       this.#chatStore = getChatStoreContext() as ChatStore<
         MESSAGE_METADATA,
         DATA_PART_SCHEMAS
       >;
     } else {
-      this.#chatStore = defaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
-        api: '/api/chat',
-        generateId: this.#options.generateId || generateId,
-      });
+      this.#chatStore = createChatStore(
+        defaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
+          api: '/api/chat',
+          generateId: this.#options.generateId || generateId,
+        })(),
+      );
     }
 
     this.input = this.#options.initialInput ?? '';

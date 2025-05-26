@@ -17,7 +17,12 @@ export default function Chat() {
   );
 
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat({ chatStore });
+    useChat({
+      chatStore: defaultChatStoreOptions({
+        api: '/api/use-chat-human-in-the-loop',
+        maxSteps: 5,
+      }),
+    });
 
   const toolsRequiringConfirmation = getToolsRequiringConfirmation(tools);
 

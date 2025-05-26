@@ -14,4 +14,4 @@ export { Completion, type CompletionOptions } from './completion.svelte.js';
 
 export { createAIContext } from './context-provider.js';
 
-export { defaultChatStore, createChatStore } from './chat-store.svelte.js';
+export { createChatStore } from './chat-store.svelte.js';

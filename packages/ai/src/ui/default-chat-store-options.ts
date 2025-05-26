@@ -131,8 +131,8 @@ export function defaultChatStoreOptions<
 }: DefaultChatStoreOptions<
   MESSAGE_METADATA,
   UI_DATA_PART_SCHEMAS
->): ChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
-  return {
+>): () => ChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+  return () => ({
     transport: new DefaultChatTransport<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
@@ -149,5 +149,5 @@ export function defaultChatStoreOptions<
     dataPartSchemas,
     maxSteps,
     chats,
-  };
+  });
 }
