@@ -82,24 +82,20 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
       : unknown;
 };
 
-export interface ChatStateManagerFactory<
+export type ChatFactory<
   MESSAGE_METADATA,
   DATA_TYPES extends UIDataTypes,
-> {
-  new (
-    messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[],
-  ): ChatStateManager<MESSAGE_METADATA, DATA_TYPES>;
-}
+> = (options: {
+  messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+}) => Chat<MESSAGE_METADATA, DATA_TYPES>;
 
-export interface ChatStateManager<
-  MESSAGE_METADATA,
-  DATA_TYPES extends UIDataTypes,
-> {
+export interface Chat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
   readonly status: ChatStatus;
   readonly messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
   readonly error: Error | undefined;
   readonly activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined;
   readonly jobExecutor: SerialJobExecutor;
+
   setStatus: (status: ChatStatus) => void;
   setError: (error: Error | undefined) => void;
   setActiveResponse: (
@@ -121,9 +117,9 @@ export class ChatStore<
 > {
   private chats: Map<
     string,
-    ChatStateManager<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
+    Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
   >;
-  private StateManager: ChatStateManagerFactory<
+  private readonly createChat: ChatFactory<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
@@ -147,7 +143,7 @@ export class ChatStore<
     maxSteps = 1,
     messageMetadataSchema,
     dataPartSchemas,
-    StateManager,
+    createChat,
   }: {
     chats?: {
       [id: string]: {
@@ -167,16 +163,16 @@ export class ChatStore<
       | Validator<MESSAGE_METADATA>
       | StandardSchemaV1<MESSAGE_METADATA>;
     dataPartSchemas?: UI_DATA_PART_SCHEMAS;
-    StateManager: ChatStateManagerFactory<
+    createChat: ChatFactory<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >;
   }) {
-    this.StateManager = StateManager;
+    this.createChat = createChat;
     this.chats = new Map(
       Object.entries(chats).map(([id, chat]) => [
         id,
-        new this.StateManager(chat.messages),
+        this.createChat({ messages: chat.messages }),
       ]),
     );
 
@@ -199,7 +195,7 @@ export class ChatStore<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[],
   ) {
-    this.chats.set(id, new this.StateManager(messages));
+    this.chats.set(id, this.createChat({ messages }));
   }
 
   getChats() {
@@ -436,10 +432,7 @@ export class ChatStore<
 
   private getChatState(
     id: string,
-  ): ChatStateManager<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  > {
+  ): Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>> {
     if (!this.hasChat(id)) {
       this.addChat(id, []);
     }

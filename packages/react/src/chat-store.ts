@@ -1,18 +1,16 @@
+import { UIDataTypes, UIMessage } from 'ai';
 import {
   ActiveResponse,
-  ChatStateManager,
   ChatStatus,
-  ChatStore,
-  SerialJobExecutor,
+  ChatStore as BaseChatStore,
   UIDataPartSchemas,
-  UIDataTypes,
-  UIDataTypesSchemas,
-  UIMessage,
-  defaultChatStore as defaultDefaultChatStore,
-} from 'ai';
+  defaultChatStore as baseDefaultChatStore,
+  Chat,
+  SerialJobExecutor,
+} from 'ai/internal';
 
-export class ReactStateManager<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
-  implements ChatStateManager<MESSAGE_METADATA, DATA_TYPES>
+class ReactChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
+  implements Chat<MESSAGE_METADATA, DATA_TYPES>
 {
   messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
   status: ChatStatus = 'ready';
@@ -66,17 +64,22 @@ export class ReactStateManager<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   };
 }
 
-export class ReactChatStore<
+export class ChatStore<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypesSchemas = UIDataTypesSchemas,
-> extends ChatStore<MESSAGE_METADATA, DATA_TYPES> {
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> extends BaseChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
   constructor(
     arg: Omit<
-      ConstructorParameters<typeof ChatStore<MESSAGE_METADATA, DATA_TYPES>>[0],
-      'StateManager'
+      ConstructorParameters<
+        typeof BaseChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>
+      >[0],
+      'createChat'
     >,
   ) {
-    super({ ...arg, StateManager: ReactStateManager });
+    super({
+      ...arg,
+      createChat: options => new ReactChat(options.messages),
+    });
   }
 }
 
@@ -86,15 +89,15 @@ export function defaultChatStore<
 >(
   args: Omit<
     Parameters<
-      typeof defaultDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
+      typeof baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
     >[0],
-    'StateManager'
+    'createChat'
   >,
 ): ReturnType<
-  typeof defaultDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
+  typeof baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
 > {
-  return defaultDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+  return baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
     ...args,
-    StateManager: ReactStateManager,
+    createChat: options => new ReactChat(options.messages),
   });
 }

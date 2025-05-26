@@ -2,16 +2,6 @@ export { appendClientMessage } from './append-client-message';
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
 export {
-  ChatStore,
-  type ChatStatus,
-  type ChatStoreEvent,
-  type InferUIDataParts as InferUIDataTypes,
-  type UIDataPartSchemas as UIDataTypesSchemas,
-  type ChatStateManager,
-  type ActiveResponse,
-  type UIDataPartSchemas,
-} from './chat-store';
-export {
   DefaultChatTransport,
   TextStreamChatTransport,
   type ChatTransport,
@@ -21,10 +11,6 @@ export {
   convertToCoreMessages,
   convertToModelMessages,
 } from './convert-to-model-messages';
-export {
-  defaultChatStore,
-  type DefaultChatStoreOptions,
-} from './default-chat-store';
 export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 export { getToolInvocations } from './get-tool-invocations';
 export {

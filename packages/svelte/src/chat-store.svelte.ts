@@ -81,7 +81,7 @@ export class SvelteChatStore<
       'StateManager'
     >,
   ) {
-    super({ ...arg, StateManager: SvelteStateManager });
+    super({ ...arg, createChat: SvelteStateManager });
   }
 }
 

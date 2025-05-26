@@ -7,4 +7,3 @@ export { isDeepEqualData } from './is-deep-equal-data';
 export { parsePartialJson } from './parse-partial-json';
 export { cosineSimilarity } from './cosine-similarity';
 export { simulateReadableStream } from './simulate-readable-stream';
-export { SerialJobExecutor } from './serial-job-executor';
