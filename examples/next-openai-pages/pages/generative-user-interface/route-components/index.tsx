@@ -1,10 +1,14 @@
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStore, getToolInvocations, ToolInvocation } from 'ai';
+import {
+  defaultChatStoreOptions,
+  getToolInvocations,
+  ToolInvocation,
+} from 'ai';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      chatStore: defaultChatStore({
+      chatStore: defaultChatStoreOptions({
         api: '/api/generative-ui-route',
         maxSteps: 5,
       }),

@@ -32,7 +32,7 @@
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-svelte": "^3.0.0",
     "globals": "^16.0.0",
-    "svelte": "^5.0.0",
+    "svelte": "^5.31.0",
     "svelte-check": "^4.0.0",
     "tailwind-merge": "^3.0.2",
     "tailwind-variants": "^1.0.0",

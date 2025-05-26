@@ -1,10 +1,10 @@
 import {
   ChatStore,
   convertFileListToFileUIParts,
-  defaultChatStore,
+  defaultChatStoreOptions,
   generateId as generateIdFunc,
-  InferUIDataTypes,
-  UIDataTypesSchemas,
+  InferUIDataParts,
+  UIDataPartSchemas,
   type ChatRequestOptions,
   type ChatStoreEvent,
   type CreateUIMessage,
@@ -14,12 +14,13 @@ import {
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { throttle } from './throttle';
+import { createChatStore } from './chat-store';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
 export type UseChatHelpers<
   MESSAGE_METADATA = unknown,
-  DATA_TYPE_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = {
   /**
    * The id of the chat.
@@ -39,7 +40,7 @@ export type UseChatHelpers<
   /** Current messages in the chat */
   readonly messages: UIMessage<
     MESSAGE_METADATA,
-    InferUIDataTypes<DATA_TYPE_SCHEMAS>
+    InferUIDataParts<DATA_PART_SCHEMAS>
   >[];
 
   /** The error object of the API request */
@@ -55,7 +56,7 @@ export type UseChatHelpers<
   append: (
     message: CreateUIMessage<
       MESSAGE_METADATA,
-      InferUIDataTypes<DATA_TYPE_SCHEMAS>
+      InferUIDataParts<DATA_PART_SCHEMAS>
     >,
     options?: ChatRequestOptions,
   ) => Promise<void>;
@@ -86,15 +87,15 @@ export type UseChatHelpers<
    */
   setMessages: (
     messages:
-      | UIMessage<MESSAGE_METADATA, InferUIDataTypes<DATA_TYPE_SCHEMAS>>[]
+      | UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[]
       | ((
           messages: UIMessage<
             MESSAGE_METADATA,
-            InferUIDataTypes<DATA_TYPE_SCHEMAS>
+            InferUIDataParts<DATA_PART_SCHEMAS>
           >[],
         ) => UIMessage<
           MESSAGE_METADATA,
-          InferUIDataTypes<DATA_TYPE_SCHEMAS>
+          InferUIDataParts<DATA_PART_SCHEMAS>
         >[]),
   ) => void;
 
@@ -130,7 +131,7 @@ export type UseChatHelpers<
 
 export function useChat<
   MESSAGE_METADATA = unknown,
-  DATA_TYPE_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
   chatId,
   initialInput = '',
@@ -140,13 +141,13 @@ export function useChat<
   generateId = generateIdFunc,
   experimental_throttle: throttleWaitMs,
   chatStore: chatStoreArg,
-}: UseChatOptions<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> & {
+}: UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-} = {}): UseChatHelpers<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> {
+} = {}): UseChatHelpers<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -154,13 +155,17 @@ Default is undefined, which disables throttling.
   const stableChatId = chatId ?? hookId;
 
   // chat store setup
-  // TODO enable as arg
   const chatStore = useRef(
-    chatStoreArg ??
-      defaultChatStore<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>({
-        api: '/api/chat',
-        generateId,
-      }),
+    chatStoreArg == null
+      ? createChatStore(
+          defaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
+            api: '/api/chat',
+            generateId,
+          })(),
+        )
+      : typeof chatStoreArg === 'function'
+        ? createChatStore(chatStoreArg())
+        : chatStoreArg,
   );
 
   // ensure the chat is in the store
@@ -190,7 +195,7 @@ Default is undefined, which disables throttling.
     (
       options: Omit<
         Parameters<
-          ChatStore<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>['addToolResult']
+          ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>['addToolResult']
         >[0],
         'chatId'
       >,
@@ -244,7 +249,7 @@ Default is undefined, which disables throttling.
     (
       message: CreateUIMessage<
         MESSAGE_METADATA,
-        InferUIDataTypes<DATA_TYPE_SCHEMAS>
+        InferUIDataParts<DATA_PART_SCHEMAS>
       >,
       { headers, body }: ChatRequestOptions = {},
     ) =>
@@ -288,15 +293,15 @@ Default is undefined, which disables throttling.
   const setMessages = useCallback(
     (
       messagesParam:
-        | UIMessage<MESSAGE_METADATA, InferUIDataTypes<DATA_TYPE_SCHEMAS>>[]
+        | UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[]
         | ((
             messages: UIMessage<
               MESSAGE_METADATA,
-              InferUIDataTypes<DATA_TYPE_SCHEMAS>
+              InferUIDataParts<DATA_PART_SCHEMAS>
             >[],
           ) => UIMessage<
             MESSAGE_METADATA,
-            InferUIDataTypes<DATA_TYPE_SCHEMAS>
+            InferUIDataParts<DATA_PART_SCHEMAS>
           >[]),
     ) => {
       if (typeof messagesParam === 'function') {

@@ -1,6 +1,6 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
 import { env } from '$env/dynamic/private';
+import { createOpenAI } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText } from 'ai';
 import { z } from 'zod';
 
 const openai = createOpenAI({
@@ -12,7 +12,7 @@ export const POST = async ({ request }) => {
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
     toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools
     tools: {

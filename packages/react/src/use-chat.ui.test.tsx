@@ -9,16 +9,16 @@ import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
-  ChatStore,
-  defaultChatStore,
+  defaultChatStoreOptions,
   getToolInvocations,
+  TextStreamChatTransport,
   UIMessage,
   UIMessageStreamPart,
 } from 'ai';
 import React, { act, useEffect, useRef, useState } from 'react';
+import { createChatStore } from './chat-store';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
-import { TextStreamChatTransport } from '../../ai/src/ui/chat-transport';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -388,7 +388,7 @@ describe('text stream', () => {
         onFinishCalls.push(options);
       },
       generateId: mockId(),
-      chatStore: new ChatStore({
+      chatStore: createChatStore({
         transport: new TextStreamChatTransport({
           api: '/api/chat',
         }),
@@ -508,7 +508,7 @@ describe('form actions', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({
-        chatStore: new ChatStore({
+        chatStore: createChatStore({
           transport: new TextStreamChatTransport({
             api: '/api/chat',
           }),
@@ -576,7 +576,7 @@ describe('prepareRequestBody', () => {
 
   setupTestComponent(() => {
     const { messages, append, status } = useChat({
-      chatStore: defaultChatStore({
+      chatStore: defaultChatStoreOptions({
         api: '/api/chat',
         generateId: mockId({ prefix: 'msg' }),
         prepareRequestBody(options) {
@@ -757,7 +757,7 @@ describe('onToolCall', () => {
 describe('tool invocations', () => {
   setupTestComponent(() => {
     const { messages, append, addToolResult } = useChat({
-      chatStore: defaultChatStore({
+      chatStore: defaultChatStoreOptions({
         api: '/api/chat',
         maxSteps: 5,
         generateId: mockId(),
@@ -1156,7 +1156,7 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatStore: defaultChatStore({
+        chatStore: defaultChatStoreOptions({
           api: '/api/chat',
           generateId: mockId(),
           maxSteps: 5,
@@ -1229,7 +1229,7 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatStore: defaultChatStore({
+        chatStore: defaultChatStoreOptions({
           api: '/api/chat',
           generateId: mockId(),
           maxSteps: 5,
@@ -2013,10 +2013,12 @@ describe('resume ongoing stream and return assistant message', () => {
 
   setupTestComponent(
     () => {
-      const chatStore = defaultChatStore({
-        api: '/api/chat',
-        generateId: mockId(),
-      });
+      const chatStore = createChatStore(
+        defaultChatStoreOptions({
+          api: '/api/chat',
+          generateId: mockId(),
+        })(),
+      );
 
       chatStore.addChat('123', [
         {

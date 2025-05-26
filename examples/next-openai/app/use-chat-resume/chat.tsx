@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStore, UIMessage } from 'ai';
+import { defaultChatStoreOptions, type UIMessage } from 'ai';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
@@ -26,7 +26,7 @@ export function Chat({
     experimental_resume,
   } = useChat({
     chatId,
-    chatStore: defaultChatStore({
+    chatStore: defaultChatStoreOptions({
       api: '/api/use-chat-resume',
       chats: {
         [chatId]: {

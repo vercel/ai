@@ -1600,7 +1600,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     }
 
     const state = createStreamingUIMessageState({
-      lastMessage,
+      lastMessage: structuredClone(lastMessage),
       newMessageId: messageId ?? this.generateId(),
     });
 
