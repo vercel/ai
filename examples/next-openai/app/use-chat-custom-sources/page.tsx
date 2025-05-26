@@ -1,15 +1,9 @@
 'use client';
 
-import { useChat, defaultChatStore } from '@ai-sdk/react';
-import { useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 
 export default function Chat() {
-  const [chatStore] = useState(
-    defaultChatStore({
-      api: '/api/use-chat-custom-sources',
-    }),
-  );
-
   const {
     error,
     input,
@@ -19,7 +13,11 @@ export default function Chat() {
     messages,
     reload,
     stop,
-  } = useChat({ chatStore });
+  } = useChat({
+    chatStore: defaultChatStoreOptions({
+      api: '/api/use-chat-custom-sources',
+    }),
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

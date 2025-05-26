@@ -1,13 +1,11 @@
 'use client';
 
-import { useChat, defaultChatStore } from '@ai-sdk/react';
-import { useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 
 export default function Page() {
-  const [chatStore] = useState(defaultChatStore({ api: '/api/mcp-zapier' }));
-
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    chatStore,
+    chatStore: defaultChatStoreOptions({ api: '/api/mcp-zapier' }),
   });
 
   return (

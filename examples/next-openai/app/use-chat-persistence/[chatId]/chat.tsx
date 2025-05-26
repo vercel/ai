@@ -1,6 +1,7 @@
 'use client';
 
-import { UIMessage, useChat, defaultChatStore } from '@ai-sdk/react';
+import { UIMessage, useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 
 export default function Chat({
   chatId,
@@ -8,7 +9,7 @@ export default function Chat({
 }: { chatId?: string | undefined; initialMessages?: UIMessage[] } = {}) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat({
     chatId, // use the provided chatId
-    chatStore: defaultChatStore({
+    chatStore: defaultChatStoreOptions({
       api: '/api/use-chat-persistence',
       chats:
         initialMessages && chatId

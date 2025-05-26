@@ -1,21 +1,14 @@
 'use client';
 
-import { UIMessage, useChat, defaultChatStore } from '@ai-sdk/react';
+import { UIMessage, useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 import { tools } from '../api/use-chat-human-in-the-loop/tools';
 import {
   APPROVAL,
   getToolsRequiringConfirmation,
 } from '../api/use-chat-human-in-the-loop/utils';
-import { useState } from 'react';
 
 export default function Chat() {
-  const [chatStore] = useState(
-    defaultChatStore({
-      api: '/api/use-chat-human-in-the-loop',
-      maxSteps: 5,
-    }),
-  );
-
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
       chatStore: defaultChatStoreOptions({

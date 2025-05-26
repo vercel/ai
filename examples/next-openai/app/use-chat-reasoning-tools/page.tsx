@@ -1,11 +1,12 @@
 'use client';
 
-import { useChat, defaultChatStore } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      chatStore: defaultChatStore({
+      chatStore: defaultChatStoreOptions({
         api: '/api/use-chat-reasoning-tools',
         maxSteps: 5,
       }),

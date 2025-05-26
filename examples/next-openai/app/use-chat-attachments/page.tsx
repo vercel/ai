@@ -1,15 +1,12 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { useChat, defaultChatStore } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const [chatStore] = useState(defaultChatStore({ api: '/api/chat' }));
-
-  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    chatStore,
-  });
+  const { messages, input, handleSubmit, handleInputChange, status } =
+    useChat();
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);

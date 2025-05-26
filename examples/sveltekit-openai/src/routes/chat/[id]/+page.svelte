@@ -3,11 +3,12 @@
   import ArrowUp from '$lib/components/icons/arrow-up.svelte';
   import Button from '$lib/components/ui/button/button.svelte';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
-  import { Chat, defaultChatStore } from '@ai-sdk/svelte';
+  import { Chat } from '@ai-sdk/svelte';
+  import { defaultChatStoreOptions } from 'ai';
 
   const chat = new Chat(() => ({
     chatId: page.params.id,
-    chatStore: defaultChatStore({
+    chatStore: defaultChatStoreOptions({
       api: '/api/chat',
       maxSteps: 5,
     }),

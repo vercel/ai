@@ -1,6 +1,7 @@
 'use client';
 
-import { useChat, defaultChatStore } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 import { useLayoutEffect, useRef } from 'react';
 
 export default function Chat() {
@@ -10,7 +11,7 @@ export default function Chat() {
   });
 
   const { messages, input, status, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStore({
+    chatStore: defaultChatStoreOptions({
       api: '/api/use-chat-throttle',
     }),
     experimental_throttle: 50,
