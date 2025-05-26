@@ -441,7 +441,7 @@ export class ChatStore<
           requestType: 'generate',
           chatId,
         });
-      }      
+      }
     });
   }
 
