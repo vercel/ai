@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Avoid JSON.strinfigy on Uint8Arrays for telemetry
+fix (ai/telemetry): Avoid JSON.stringify on Uint8Arrays for telemetry
