@@ -30,12 +30,6 @@ export function extractHeaders(
  * @param headers - The Headers object to convert.
  * @returns A record of lowercase keys and values.
  */
-export function convertHeadersToRecord(
-  headers: Headers,
-): Record<string, string> {
-  const record: Record<string, string> = {};
-  headers.forEach((value, key) => {
-    record[key.toLowerCase()] = value;
-  });
-  return record;
+export function convertHeadersToRecord(headers: Headers) {
+  return Object.fromEntries<string>([...headers]);
 }

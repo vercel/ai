@@ -1,5 +1,30 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-alpha.4
+
+### Patch Changes
+
+- ca8aac6: feat (providers/anthropic): add claude v4 models
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+  - @ai-sdk/provider-utils@3.0.0-alpha.4
+
+## 2.0.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [6b98118]
+  - @ai-sdk/provider@2.0.0-alpha.3
+  - @ai-sdk/provider-utils@3.0.0-alpha.3
+
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+  - @ai-sdk/provider-utils@3.0.0-alpha.2
+
 ## 2.0.0-alpha.1
 
 ### Patch Changes

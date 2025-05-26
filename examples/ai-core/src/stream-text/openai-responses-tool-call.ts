@@ -1,13 +1,13 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
-import { streamText, tool } from 'ai';
+import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 async function main() {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

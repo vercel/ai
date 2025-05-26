@@ -8,7 +8,11 @@ export {
   type InferUIDataParts as InferUIDataTypes,
   type UIDataPartSchemas as UIDataTypesSchemas,
 } from './chat-store';
-export { DefaultChatTransport, type ChatTransport } from './chat-transport';
+export {
+  DefaultChatTransport,
+  TextStreamChatTransport,
+  type ChatTransport,
+} from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {
   convertToCoreMessages,

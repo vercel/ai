@@ -1,5 +1,46 @@
 # ai
 
+## 5.0.0-alpha.4
+
+### Major Changes
+
+- 72d7d72: chore (ai): stable activeTools
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+
+### Patch Changes
+
+- b32c141: feat (ai): add array support to stopWhen
+- 7d97ab6: release alpha.4
+- 37a916d: feat (ai): add prepareSteps to streamText
+- 5f2b3d4: chore (ai): stable prepareStep
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+  - @ai-sdk/provider-utils@3.0.0-alpha.4
+
+## 5.0.0-alpha.3
+
+### Major Changes
+
+- ab7ccef: chore (ai): change source ui message parts to source-url
+- 257224b: chore (ai): separate TextStreamChatTransport
+- 0463011: fix (ai): update source url stream part
+- d306260: feat (ai): replace maxSteps with continueUntil (streamText)
+
+### Patch Changes
+
+- Updated dependencies [6b98118]
+  - @ai-sdk/provider@2.0.0-alpha.3
+  - @ai-sdk/provider-utils@3.0.0-alpha.3
+
+## 5.0.0-alpha.2
+
+### Patch Changes
+
+- 82aa95d: fix (ai): merge data ui stream parts correctly
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+  - @ai-sdk/provider-utils@3.0.0-alpha.2
+
 ## 5.0.0-alpha.1
 
 ### Major Changes

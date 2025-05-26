@@ -4,6 +4,7 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  stepCountIs,
   streamText,
 } from 'ai';
 import { z } from 'zod';
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
     execute: writer => {
       const result = streamText({
         model: openai('gpt-4o'),
-        maxSteps: 2,
+        stopWhen: stepCountIs(2),
         tools: {
           weather: {
             description: 'Get the weather in a city',

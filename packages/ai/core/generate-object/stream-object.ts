@@ -341,17 +341,15 @@ Callback that is called when the LLM response and the final object validation ar
 class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 {
-  private readonly objectPromise = new DelayedPromise<RESULT>();
-  private readonly usagePromise = new DelayedPromise<LanguageModelUsage>();
-  private readonly providerMetadataPromise = new DelayedPromise<
+  private readonly _object = new DelayedPromise<RESULT>();
+  private readonly _usage = new DelayedPromise<LanguageModelUsage>();
+  private readonly _providerMetadata = new DelayedPromise<
     ProviderMetadata | undefined
   >();
-  private readonly warningsPromise = new DelayedPromise<
-    CallWarning[] | undefined
-  >();
-  private readonly requestPromise =
+  private readonly _warnings = new DelayedPromise<CallWarning[] | undefined>();
+  private readonly _request =
     new DelayedPromise<LanguageModelRequestMetadata>();
-  private readonly responsePromise =
+  private readonly _response =
     new DelayedPromise<LanguageModelResponseMetadata>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
@@ -543,7 +541,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           }),
         );
 
-        self.requestPromise.resolve(request ?? {});
+        self._request.resolve(request ?? {});
 
         // store information for onFinish callback:
         let warnings: LanguageModelV2CallWarning[] | undefined;
@@ -688,9 +686,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // resolve promises that can be resolved now:
-                    self.usagePromise.resolve(usage);
-                    self.providerMetadataPromise.resolve(providerMetadata);
-                    self.responsePromise.resolve({
+                    self._usage.resolve(usage);
+                    self._providerMetadata.resolve(providerMetadata);
+                    self._response.resolve({
                       ...fullResponse,
                       headers: response?.headers,
                     });
@@ -708,7 +706,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                     if (validationResult.success) {
                       object = validationResult.value;
-                      self.objectPromise.resolve(object);
+                      self._object.resolve(object);
                     } else {
                       error = new NoObjectGeneratedError({
                         message:
@@ -719,7 +717,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         usage,
                         finishReason,
                       });
-                      self.objectPromise.reject(error);
+                      self._object.reject(error);
                     }
 
                     break;
@@ -835,27 +833,27 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   }
 
   get object() {
-    return this.objectPromise.value;
+    return this._object.promise;
   }
 
   get usage() {
-    return this.usagePromise.value;
+    return this._usage.promise;
   }
 
   get providerMetadata() {
-    return this.providerMetadataPromise.value;
+    return this._providerMetadata.promise;
   }
 
   get warnings() {
-    return this.warningsPromise.value;
+    return this._warnings.promise;
   }
 
   get request() {
-    return this.requestPromise.value;
+    return this._request.promise;
   }
 
   get response() {
-    return this.responsePromise.value;
+    return this._response.promise;
   }
 
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {

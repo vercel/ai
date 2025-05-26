@@ -1,5 +1,5 @@
 import { xai } from '@ai-sdk/xai';
-import { ModelMessage, streamText, tool } from 'ai';
+import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
@@ -33,7 +33,7 @@ async function main() {
           }),
         }),
       },
-      maxSteps: 5,
+      stopWhen: stepCountIs(5),
       messages,
     });
 

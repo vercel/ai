@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     tools: {
       web_search_preview: openai.tools.webSearchPreview({
         searchContextSize: 'high',
