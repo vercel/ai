@@ -31,6 +31,7 @@ import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attr
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CallWarning, LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -515,7 +516,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 }),
                 ...baseTelemetryAttributes,
                 'ai.prompt.messages': {
-                  input: () => JSON.stringify(callOptions.prompt),
+                  input: () => stringifyForTelemetry(callOptions.prompt),
                 },
 
                 // standardized gen-ai llm span attributes:

@@ -20,6 +20,7 @@ import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attr
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
@@ -338,7 +339,7 @@ A function that attempts to repair a tool call that failed to parse.
                 'ai.model.id': stepModel.modelId,
                 // prompt:
                 'ai.prompt.messages': {
-                  input: () => JSON.stringify(promptMessages),
+                  input: () => stringifyForTelemetry(promptMessages),
                 },
                 'ai.prompt.tools': {
                   // convert the language model level tools:
