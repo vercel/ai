@@ -1,8 +1,5 @@
-import {
-  ChatStore,
-  defaultChatStore,
-  setChatStoreContext,
-} from './chat-store.svelte.js';
+import type { ChatStore } from 'ai';
+import { defaultChatStore, setChatStoreContext } from './chat-store.svelte.js';
 import {
   KeyedCompletionStore,
   setCompletionContext,

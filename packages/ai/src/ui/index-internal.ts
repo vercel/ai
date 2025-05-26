@@ -1,13 +1,9 @@
 export {
-  ChatStore,
   type ActiveResponse,
   type Chat,
-  type ChatStatus,
   type ChatStoreEvent,
-  type InferUIDataParts,
-  type UIDataPartSchemas,
 } from './chat-store';
 export {
-  defaultChatStore,
+  defaultChatStoreOptions,
   type DefaultChatStoreOptions,
-} from './default-chat-store';
+} from './default-chat-store-options';

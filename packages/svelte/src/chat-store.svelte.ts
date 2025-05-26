@@ -1,12 +1,18 @@
-import { type UIDataTypes, type UIMessage } from 'ai';
+import {
+  ChatStore,
+  type ChatStatus,
+  type ChatStoreOptions,
+  type InferUIDataParts,
+  type UIDataPartSchemas,
+  type UIDataTypes,
+  type UIMessage,
+} from 'ai';
 import {
   type ActiveResponse,
-  ChatStore as BaseChatStore,
-  defaultChatStore as baseDefaultChatStore,
   type Chat,
-  type ChatStatus,
+  type DefaultChatStoreOptions,
+  defaultChatStoreOptions,
   SerialJobExecutor,
-  type UIDataPartSchemas,
 } from 'ai/internal';
 import { createContext } from './utils.svelte.js';
 
@@ -14,7 +20,7 @@ export const {
   hasContext: hasChatStoreContext,
   getContext: getChatStoreContext,
   setContext: setChatStoreContext,
-} = createContext<BaseChatStore>('ChatStore');
+} = createContext<ChatStore>('ChatStore');
 
 class SvelteChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   implements Chat<MESSAGE_METADATA, DATA_TYPES>
@@ -67,40 +73,32 @@ class SvelteChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   };
 }
 
-export class ChatStore<
+export function createChatStore<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataPartSchemas = UIDataPartSchemas,
-> extends BaseChatStore<MESSAGE_METADATA, DATA_TYPES> {
-  constructor(
-    arg: Omit<
-      ConstructorParameters<
-        typeof BaseChatStore<MESSAGE_METADATA, DATA_TYPES>
-      >[0],
-      'createChat'
-    >,
-  ) {
-    super({
-      ...arg,
-      createChat: options => new SvelteChat(options.messages),
-    });
-  }
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+>(
+  options: ChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
+): ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
+  return new ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
+    ...options,
+    createChat: options =>
+      new SvelteChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
+        options.messages,
+      ),
+  });
 }
 
 export function defaultChatStore<
   MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >(
-  args: Omit<
-    Parameters<
-      typeof baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
-    >[0],
-    'createChat'
-  >,
-): ReturnType<
-  typeof baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
-> {
-  return baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
-    ...args,
-    createChat: options => new SvelteChat(options.messages),
+  options: DefaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
+): ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
+  return new ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
+    ...defaultChatStoreOptions(options),
+    createChat: options =>
+      new SvelteChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
+        options.messages,
+      ),
   });
 }

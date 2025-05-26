@@ -7,7 +7,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   ChatFactory,
-  ChatStore,
+  ChatStoreOptions,
   InferUIDataParts,
   type UIDataPartSchemas,
 } from './chat-store';
@@ -111,14 +111,9 @@ export interface DefaultChatStoreOptions<
       >[];
     };
   };
-
-  createChat: ChatFactory<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >;
 }
 
-export function defaultChatStore<
+export function defaultChatStoreOptions<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
@@ -133,12 +128,11 @@ export function defaultChatStore<
   maxSteps = 1,
   dataPartSchemas,
   chats,
-  createChat,
-}: DefaultChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>): ChatStore<
+}: DefaultChatStoreOptions<
   MESSAGE_METADATA,
   UI_DATA_PART_SCHEMAS
-> {
-  return new ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+>): ChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+  return {
     transport: new DefaultChatTransport<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
@@ -155,6 +149,5 @@ export function defaultChatStore<
     dataPartSchemas,
     maxSteps,
     chats,
-    createChat,
-  });
+  };
 }

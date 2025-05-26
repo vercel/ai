@@ -15,7 +15,7 @@ import {
   UIMessageStreamPart,
 } from 'ai';
 import React, { act, useEffect, useRef, useState } from 'react';
-import { defaultChatStore, ChatStore } from './chat-store';
+import { defaultChatStore, createChatStore } from './chat-store';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 
@@ -387,7 +387,7 @@ describe('text stream', () => {
         onFinishCalls.push(options);
       },
       generateId: mockId(),
-      chatStore: new ChatStore({
+      chatStore: createChatStore({
         transport: new TextStreamChatTransport({
           api: '/api/chat',
         }),
@@ -507,7 +507,7 @@ describe('form actions', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({
-        chatStore: new ChatStore({
+        chatStore: createChatStore({
           transport: new TextStreamChatTransport({
             api: '/api/chat',
           }),

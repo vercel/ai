@@ -2,6 +2,14 @@ export { appendClientMessage } from './append-client-message';
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
 export {
+  ChatStore,
+  type ChatStatus,
+  type ChatStoreFactory,
+  type ChatStoreOptions,
+  type InferUIDataParts,
+  type UIDataPartSchemas,
+} from './chat-store';
+export {
   DefaultChatTransport,
   TextStreamChatTransport,
   type ChatTransport,

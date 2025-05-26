@@ -1,13 +1,18 @@
-import { UIDataTypes, UIMessage } from 'ai';
+import {
+  ChatStatus,
+  ChatStore,
+  ChatStoreOptions,
+  InferUIDataParts,
+  UIDataPartSchemas,
+  UIDataTypes,
+  UIMessage,
+} from 'ai';
 import {
   ActiveResponse,
-  ChatStatus,
-  ChatStore as BaseChatStore,
-  UIDataPartSchemas,
-  defaultChatStore as baseDefaultChatStore,
+  defaultChatStoreOptions,
   Chat,
   SerialJobExecutor,
-  InferUIDataParts,
+  DefaultChatStoreOptions,
 } from 'ai/internal';
 
 class ReactChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
@@ -65,43 +70,29 @@ class ReactChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   };
 }
 
-export class ChatStore<
+export function createChatStore<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> extends BaseChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
-  constructor(
-    arg: Omit<
-      ConstructorParameters<
-        typeof BaseChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>
-      >[0],
-      'createChat'
-    >,
-  ) {
-    super({
-      ...arg,
-      createChat: options =>
-        new ReactChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
-          options.messages,
-        ),
-    });
-  }
+>(
+  options: ChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
+): ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
+  return new ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
+    ...options,
+    createChat: options =>
+      new ReactChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
+        options.messages,
+      ),
+  });
 }
 
 export function defaultChatStore<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >(
-  args: Omit<
-    Parameters<
-      typeof baseDefaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>
-    >[0],
-    'createChat'
-  >,
-): ReturnType<
-  typeof baseDefaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>
-> {
-  return baseDefaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
-    ...args,
+  options: DefaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
+): ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
+  return new ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
+    ...defaultChatStoreOptions(options),
     createChat: options =>
       new ReactChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
         options.messages,

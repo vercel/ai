@@ -89,6 +89,37 @@ export type ChatFactory<
   messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
 }) => Chat<MESSAGE_METADATA, DATA_TYPES>;
 
+export type ChatStoreOptions<
+  MESSAGE_METADATA,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas,
+> = {
+  chats?: {
+    [id: string]: {
+      messages: UIMessage<
+        MESSAGE_METADATA,
+        InferUIDataParts<DATA_PART_SCHEMAS>
+      >[];
+    };
+  };
+  generateId?: UseChatOptions['generateId'];
+  transport: ChatTransport<
+    MESSAGE_METADATA,
+    InferUIDataParts<DATA_PART_SCHEMAS>
+  >;
+  maxSteps?: number;
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
+  dataPartSchemas?: DATA_PART_SCHEMAS;
+};
+
+export type ChatStoreFactory<
+  MESSAGE_METADATA,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas,
+> = (
+  options: ChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
+) => ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>;
+
 export interface Chat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
   readonly status: ChatStatus;
   readonly messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];

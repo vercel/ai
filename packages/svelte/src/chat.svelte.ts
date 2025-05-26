@@ -1,23 +1,21 @@
 import {
+  ChatStore,
   convertFileListToFileUIParts,
   generateId,
   type ChatRequestOptions,
+  type ChatStatus,
   type CreateUIMessage,
   type IdGenerator,
+  type InferUIDataParts,
+  type UIDataPartSchemas,
   type UIMessage,
   type UseChatOptions,
 } from 'ai';
 import {
-  ChatStore,
   defaultChatStore,
   getChatStoreContext,
   hasChatStoreContext,
 } from './chat-store.svelte.js';
-import type {
-  ChatStatus,
-  InferUIDataParts,
-  UIDataPartSchemas,
-} from 'ai/internal';
 
 export type ChatOptions<
   MESSAGE_METADATA = unknown,
