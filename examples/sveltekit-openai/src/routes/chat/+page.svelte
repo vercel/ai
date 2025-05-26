@@ -7,7 +7,6 @@
 
   const chat = new Chat(() => ({
     chatStore: defaultChatStoreOptions({
-      api: '/api/chat',
       maxSteps: 5,
     }),
 

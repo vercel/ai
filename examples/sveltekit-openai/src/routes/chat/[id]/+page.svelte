@@ -9,7 +9,6 @@
   const chat = new Chat(() => ({
     chatId: page.params.id,
     chatStore: defaultChatStoreOptions({
-      api: '/api/chat',
       maxSteps: 5,
     }),
     // run client-side tools that are automatically executed:

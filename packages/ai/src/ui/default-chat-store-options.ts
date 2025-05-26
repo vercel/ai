@@ -34,8 +34,10 @@ export interface DefaultChatStoreOptions<
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response.
+   *
+   * Defaults to `/api/chat`
    */
-  api: string;
+  api?: string;
 
   /**
    * A way to provide a function that is going to be used for ids for messages and the chat.
@@ -117,7 +119,7 @@ export function defaultChatStoreOptions<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
-  api,
+  api = '/api/chat',
   fetch,
   credentials,
   headers,
