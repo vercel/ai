@@ -1,27 +1,23 @@
+import { type UIDataTypes, type UIMessage } from 'ai';
 import {
-  ChatStore,
-  type ChatStateManager,
-  type UIDataTypes,
-  type UIMessage,
-  SerialJobExecutor,
-  type ChatStatus,
   type ActiveResponse,
+  ChatStore as BaseChatStore,
+  defaultChatStore as baseDefaultChatStore,
+  type Chat,
+  type ChatStatus,
+  SerialJobExecutor,
   type UIDataPartSchemas,
-  type UIDataTypesSchemas,
-  defaultChatStore as defaultDefaultChatStore,
-} from 'ai';
+} from 'ai/internal';
 import { createContext } from './utils.svelte.js';
 
 export const {
   hasContext: hasChatStoreContext,
   getContext: getChatStoreContext,
   setContext: setChatStoreContext,
-} = createContext<ChatStore>('ChatStore');
+} = createContext<BaseChatStore>('ChatStore');
 
-export class SvelteStateManager<
-  MESSAGE_METADATA,
-  DATA_TYPES extends UIDataTypes,
-> implements ChatStateManager<MESSAGE_METADATA, DATA_TYPES>
+class SvelteChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
+  implements Chat<MESSAGE_METADATA, DATA_TYPES>
 {
   messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
   status = $state<ChatStatus>('ready');
@@ -71,17 +67,22 @@ export class SvelteStateManager<
   };
 }
 
-export class SvelteChatStore<
+export class ChatStore<
   MESSAGE_METADATA = unknown,
-  DATA_TYPES extends UIDataTypesSchemas = UIDataTypesSchemas,
-> extends ChatStore<MESSAGE_METADATA, DATA_TYPES> {
+  DATA_TYPES extends UIDataPartSchemas = UIDataPartSchemas,
+> extends BaseChatStore<MESSAGE_METADATA, DATA_TYPES> {
   constructor(
     arg: Omit<
-      ConstructorParameters<typeof ChatStore<MESSAGE_METADATA, DATA_TYPES>>[0],
-      'StateManager'
+      ConstructorParameters<
+        typeof BaseChatStore<MESSAGE_METADATA, DATA_TYPES>
+      >[0],
+      'createChat'
     >,
   ) {
-    super({ ...arg, createChat: SvelteStateManager });
+    super({
+      ...arg,
+      createChat: options => new SvelteChat(options.messages),
+    });
   }
 }
 
@@ -91,15 +92,15 @@ export function defaultChatStore<
 >(
   args: Omit<
     Parameters<
-      typeof defaultDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
+      typeof baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
     >[0],
-    'StateManager'
+    'createChat'
   >,
 ): ReturnType<
-  typeof defaultDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
+  typeof baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
 > {
-  return defaultDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+  return baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
     ...args,
-    StateManager: SvelteStateManager,
+    createChat: options => new SvelteChat(options.messages),
   });
 }
