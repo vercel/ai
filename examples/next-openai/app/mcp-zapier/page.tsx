@@ -5,7 +5,9 @@ import { defaultChatStoreOptions } from 'ai';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStoreOptions({ api: '/api/mcp-zapier' }),
+    chatStore: defaultChatStoreOptions({
+      api: '/api/mcp-zapier',
+    }),
   });
 
   return (
