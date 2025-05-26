@@ -1,36 +1,38 @@
 import {
-  ChatStore,
   convertFileListToFileUIParts,
   generateId,
   type ChatRequestOptions,
-  type ChatStatus,
   type CreateUIMessage,
   type IdGenerator,
-  type InferUIDataTypes,
-  type UIDataTypesSchemas,
   type UIMessage,
   type UseChatOptions,
 } from 'ai';
 import {
+  ChatStore,
   defaultChatStore,
   getChatStoreContext,
   hasChatStoreContext,
 } from './chat-store.svelte.js';
+import type {
+  ChatStatus,
+  InferUIDataParts,
+  UIDataPartSchemas,
+} from 'ai/internal';
 
 export type ChatOptions<
   MESSAGE_METADATA = unknown,
-  DATA_TYPE_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
-> = Readonly<UseChatOptions<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>>;
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> = Readonly<UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>>;
 
 export type { CreateUIMessage, UIMessage };
 
 export class Chat<
   MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataTypesSchemas = UIDataTypesSchemas,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
-  readonly #options: ChatOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>;
+  readonly #options: ChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>;
   readonly #generateId: IdGenerator;
-  readonly #chatStore: ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>;
+  readonly #chatStore: ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>;
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
@@ -48,14 +50,14 @@ export class Chat<
    */
   get messages(): UIMessage<
     MESSAGE_METADATA,
-    InferUIDataTypes<UI_DATA_PART_SCHEMAS>
+    InferUIDataParts<DATA_PART_SCHEMAS>
   >[] {
     return this.#chatStore.getMessages(this.chatId);
   }
   set messages(
     messages: UIMessage<
       MESSAGE_METADATA,
-      InferUIDataTypes<UI_DATA_PART_SCHEMAS>
+      InferUIDataParts<DATA_PART_SCHEMAS>
     >[],
   ) {
     this.#chatStore.setMessages({ id: this.chatId, messages });
@@ -91,7 +93,7 @@ export class Chat<
   constructor(
     options: () => ChatOptions<
       MESSAGE_METADATA,
-      UI_DATA_PART_SCHEMAS
+      DATA_PART_SCHEMAS
     > = () => ({}),
   ) {
     this.#options = $derived.by(options);
@@ -103,13 +105,10 @@ export class Chat<
     } else if (hasChatStoreContext()) {
       this.#chatStore = getChatStoreContext() as ChatStore<
         MESSAGE_METADATA,
-        UI_DATA_PART_SCHEMAS
+        DATA_PART_SCHEMAS
       >;
     } else {
-      this.#chatStore = defaultChatStore<
-        MESSAGE_METADATA,
-        UI_DATA_PART_SCHEMAS
-      >({
+      this.#chatStore = defaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
         api: '/api/chat',
         generateId: this.#options.generateId || generateId,
       });
@@ -131,11 +130,8 @@ export class Chat<
    */
   append = async (
     message:
-      | UIMessage<MESSAGE_METADATA, InferUIDataTypes<UI_DATA_PART_SCHEMAS>>
-      | CreateUIMessage<
-          MESSAGE_METADATA,
-          InferUIDataTypes<UI_DATA_PART_SCHEMAS>
-        >,
+      | UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>
+      | CreateUIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>,
     { headers, body }: ChatRequestOptions = {},
   ) => {
     await this.#chatStore.submitMessage({

@@ -7,6 +7,7 @@ import {
   defaultChatStore as baseDefaultChatStore,
   Chat,
   SerialJobExecutor,
+  InferUIDataParts,
 } from 'ai/internal';
 
 class ReactChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
@@ -78,26 +79,32 @@ export class ChatStore<
   ) {
     super({
       ...arg,
-      createChat: options => new ReactChat(options.messages),
+      createChat: options =>
+        new ReactChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
+          options.messages,
+        ),
     });
   }
 }
 
 export function defaultChatStore<
   MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >(
   args: Omit<
     Parameters<
-      typeof baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
+      typeof baseDefaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>
     >[0],
     'createChat'
   >,
 ): ReturnType<
-  typeof baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
+  typeof baseDefaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>
 > {
-  return baseDefaultChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+  return baseDefaultChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
     ...args,
-    createChat: options => new ReactChat(options.messages),
+    createChat: options =>
+      new ReactChat<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>(
+        options.messages,
+      ),
   });
 }
