@@ -1,12 +1,12 @@
 'use client';
 
 import { Card } from '@/app/components';
-import { useChat, ChatStore } from '@ai-sdk/react';
+import { createChatStore, useChat } from '@ai-sdk/react';
 import { TextStreamChatTransport } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    chatStore: new ChatStore({
+    chatStore: createChatStore({
       transport: new TextStreamChatTransport({
         api: '/api/chat?protocol=text',
       }),

@@ -3,17 +3,14 @@ import {
   ChatStore,
   ChatStoreOptions,
   InferUIDataParts,
+  SerialJobExecutor,
   UIDataPartSchemas,
   UIDataTypes,
   UIMessage,
+  type ActiveResponse,
+  type Chat,
 } from 'ai';
-import {
-  ActiveResponse,
-  defaultChatStoreOptions,
-  Chat,
-  SerialJobExecutor,
-  DefaultChatStoreOptions,
-} from 'ai/internal';
+import { defaultChatStoreOptions, DefaultChatStoreOptions } from 'ai/internal';
 
 class ReactChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   implements Chat<MESSAGE_METADATA, DATA_TYPES>

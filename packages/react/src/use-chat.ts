@@ -5,12 +5,12 @@ import {
   InferUIDataParts,
   UIDataPartSchemas,
   type ChatRequestOptions,
+  type ChatStoreEvent,
   type CreateUIMessage,
   type FileUIPart,
   type UIMessage,
   type UseChatOptions,
 } from 'ai';
-import { type ChatStoreEvent } from 'ai/internal';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { defaultChatStore } from './chat-store';
 import { throttle } from './throttle';

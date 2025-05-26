@@ -3,7 +3,10 @@ export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
 export {
   ChatStore,
+  type ActiveResponse,
+  type Chat,
   type ChatStatus,
+  type ChatStoreEvent,
   type ChatStoreFactory,
   type ChatStoreOptions,
   type InferUIDataParts,
