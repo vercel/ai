@@ -34,6 +34,7 @@ import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attr
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModelRequestMetadata } from '../types';
 import {
@@ -208,10 +209,12 @@ export function streamText<
   stopWhen = stepCountIs(1),
   experimental_output: output,
   experimental_telemetry: telemetry,
+  prepareStep,
   providerOptions,
   experimental_toolCallStreaming = false,
   toolCallStreaming = experimental_toolCallStreaming,
-  experimental_activeTools: activeTools,
+  experimental_activeTools,
+  activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   onChunk,
@@ -264,15 +267,44 @@ functionality that can be fully encapsulated in the provider.
     providerOptions?: ProviderOptions;
 
     /**
-Limits the tools that are available for the model to call without
-changing the tool call and result types in the result.
+     * @deprecated Use `activeTools` instead.
      */
-    experimental_activeTools?: Array<keyof TOOLS>;
+    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+    /**
+   Limits the tools that are available for the model to call without
+   changing the tool call and result types in the result.
+        */
+    activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
     experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+
+    /**
+Optional function that you can use to provide different settings for a step.
+
+@param options - The options for the step.
+@param options.steps - The steps that have been executed so far.
+@param options.stepNumber - The number of the step that is being executed.
+@param options.model - The model that is being used.
+
+@returns An object that contains the settings for the step.
+If you return undefined (or for undefined settings), the settings from the outer level will be used.
+    */
+    prepareStep?: (options: {
+      steps: Array<StepResult<NoInfer<TOOLS>>>;
+      stepNumber: number;
+      model: LanguageModel;
+    }) => PromiseLike<
+      | {
+          model?: LanguageModel;
+          toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+          activeTools?: Array<keyof NoInfer<TOOLS>>;
+        }
+      | undefined
+    >;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
@@ -352,6 +384,7 @@ Internal. For test use only. May change without notice.
     stopConditions: asArray(stopWhen),
     output,
     providerOptions,
+    prepareStep,
     onChunk,
     onError,
     onFinish,
@@ -491,6 +524,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     stopConditions,
     output,
     providerOptions,
+    prepareStep,
     now,
     currentDate,
     generateId,
@@ -517,6 +551,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     providerOptions: ProviderOptions | undefined;
+    prepareStep:
+      | ((options: {
+          steps: Array<StepResult<NoInfer<TOOLS>>>;
+          stepNumber: number;
+          model: LanguageModel;
+        }) => PromiseLike<
+          | {
+              model?: LanguageModel;
+              toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+              activeTools?: Array<keyof NoInfer<TOOLS>>;
+            }
+          | undefined
+        >)
+      | undefined;
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
@@ -827,6 +875,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             ...responseMessages,
           ];
 
+          const prepareStepResult = await prepareStep?.({
+            model,
+            steps: recordedSteps,
+            stepNumber: recordedSteps.length,
+          });
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: initialPrompt.system,
@@ -835,9 +889,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             supportedUrls: await model.supportedUrls,
           });
 
-          const toolsAndToolChoice = {
-            ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
-          };
+          const stepModel = prepareStepResult?.model ?? model;
+          const { toolChoice: stepToolChoice, tools: stepTools } =
+            prepareToolsAndToolChoice({
+              tools,
+              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              activeTools: prepareStepResult?.activeTools ?? activeTools,
+            });
 
           const {
             result: { stream, response, request },
@@ -854,26 +912,27 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     telemetry,
                   }),
                   ...baseTelemetryAttributes,
+                  // model:
+                  'ai.model.provider': stepModel.provider,
+                  'ai.model.id': stepModel.modelId,
+                  // prompt:
                   'ai.prompt.messages': {
-                    input: () => JSON.stringify(promptMessages),
+                    input: () => stringifyForTelemetry(promptMessages),
                   },
                   'ai.prompt.tools': {
                     // convert the language model level tools:
-                    input: () =>
-                      toolsAndToolChoice.tools?.map(tool =>
-                        JSON.stringify(tool),
-                      ),
+                    input: () => stepTools?.map(tool => JSON.stringify(tool)),
                   },
                   'ai.prompt.toolChoice': {
                     input: () =>
-                      toolsAndToolChoice.toolChoice != null
-                        ? JSON.stringify(toolsAndToolChoice.toolChoice)
+                      stepToolChoice != null
+                        ? JSON.stringify(stepToolChoice)
                         : undefined,
                   },
 
                   // standardized gen-ai llm span attributes:
-                  'gen_ai.system': model.provider,
-                  'gen_ai.request.model': model.modelId,
+                  'gen_ai.system': stepModel.provider,
+                  'gen_ai.request.model': stepModel.modelId,
                   'gen_ai.request.frequency_penalty':
                     callSettings.frequencyPenalty,
                   'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
@@ -891,9 +950,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 return {
                   startTimestampMs: now(), // get before the call
                   doStreamSpan,
-                  result: await model.doStream({
+                  result: await stepModel.doStream({
                     ...callSettings,
-                    ...toolsAndToolChoice,
+                    tools: stepTools,
+                    toolChoice: stepToolChoice,
                     responseFormat: output?.responseFormat,
                     prompt: promptMessages,
                     providerOptions,
