@@ -103,6 +103,22 @@ const { text, steps } = await generateText({
 
 <Note>You can use `streamText` in a similar way.</Note>
 
+## Multi-Step Calls with `useChat`
+
+To access multi-step calls on the client with [ `useChat` ](/docs/reference/ai-sdk-ui/use-chat), you should set `maxSteps` within the `useChat` options rather than within the `generateText` or `streamText` call. This will allow you to access all steps in callbacks like `onToolCall` and `onFinish`.
+
+```tsx highlight="2"
+const { messages } = useChat({
+  maxSteps: 3,
+  onFinish: message => {
+    // access message from each step
+  },
+  onToolCall: ({ toolCall }) => {
+    // access tool call from each step
+  },
+});
+```
+
 ### Steps
 
 To access intermediate tool calls and results, you can use the `steps` property in the result object
