@@ -5,7 +5,7 @@ export function createUIMessageStream({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
 }: {
-  execute: (writer: UIMessageStreamWriter) => Promise<void> | void;
+  execute: (options: { writer: UIMessageStreamWriter }) => Promise<void> | void;
   onError?: (error: unknown) => string;
 }): ReadableStream<UIMessageStreamPart> {
   let controller!: ReadableStreamDefaultController<UIMessageStreamPart>;
@@ -28,24 +28,26 @@ export function createUIMessageStream({
 
   try {
     const result = execute({
-      write(part: UIMessageStreamPart) {
-        safeEnqueue(part);
+      writer: {
+        write(part: UIMessageStreamPart) {
+          safeEnqueue(part);
+        },
+        merge(streamArg) {
+          ongoingStreamPromises.push(
+            (async () => {
+              const reader = streamArg.getReader();
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                safeEnqueue(value);
+              }
+            })().catch(error => {
+              safeEnqueue({ type: 'error', errorText: onError(error) });
+            }),
+          );
+        },
+        onError,
       },
-      merge(streamArg) {
-        ongoingStreamPromises.push(
-          (async () => {
-            const reader = streamArg.getReader();
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              safeEnqueue(value);
-            }
-          })().catch(error => {
-            safeEnqueue({ type: 'error', errorText: onError(error) });
-          }),
-        );
-      },
-      onError,
     });
 
     if (result) {
