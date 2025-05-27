@@ -338,7 +338,7 @@ describe('GatewayLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           ...content.map(
-            (text) =>
+            text =>
               `data: ${JSON.stringify({
                 type: 'text-delta',
                 textDelta: text,
