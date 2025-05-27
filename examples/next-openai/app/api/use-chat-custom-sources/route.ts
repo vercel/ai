@@ -34,8 +34,8 @@ export async function POST(req: Request) {
       );
     },
     originalMessages: messages,
-    onFinish: ({ messages, isContinuation, responseMessage }) => {
-      console.log('onFinish', { messages, isContinuation, responseMessage });
+    onFinish: options => {
+      console.log('onFinish', JSON.stringify(options, null, 2));
     },
   });
 
