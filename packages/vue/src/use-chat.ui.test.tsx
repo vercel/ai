@@ -10,7 +10,6 @@ import { setupTestComponent } from './setup-test-component';
 import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatComponent from './TestChatComponent.vue';
-import TestChatCustomMetadataComponent from './TestChatCustomMetadataComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
 import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
 import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
@@ -63,7 +62,7 @@ describe('prepareRequestBody', () => {
           parts: [{ type: 'text', text: 'hi' }],
         },
       ],
-      requestBody: { 'request-body-key': 'request-body-value' },
+      'request-body-key': 'request-body-value',
     });
 
     expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
@@ -287,56 +286,6 @@ describe('text stream', () => {
         },
       },
     ]);
-  });
-});
-
-describe('custom metadata', () => {
-  setupTestComponent(TestChatCustomMetadataComponent);
-
-  it('should should use custom headers', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [formatStreamPart({ type: 'text', text: 'Hello, World.' })],
-    };
-
-    await userEvent.click(screen.getByTestId('do-append'));
-
-    await screen.findByTestId('message-1');
-
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      'content-type': 'application/json',
-      header1: 'value1',
-      header2: 'value2',
-    });
-  });
-
-  it('should should use custom body', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [formatStreamPart({ type: 'text', text: 'Hello, World.' })],
-    };
-
-    await userEvent.click(screen.getByTestId('do-append'));
-
-    await screen.findByTestId('message-1');
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      body1: 'value1',
-      body2: 'value2',
-      chatId: expect.any(String),
-      messages: [
-        {
-          id: 'id-0',
-          parts: [
-            {
-              text: 'custom metadata component',
-              type: 'text',
-            },
-          ],
-          role: 'user',
-        },
-      ],
-    });
   });
 });
 

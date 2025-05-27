@@ -1,14 +1,21 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
+import { TextStreamChatTransport } from 'ai';
 import { UIMessage, useChat } from './use-chat';
+import { createChatStore } from './chat-store';
 
 const onFinishCalls: Array<{ message: UIMessage }> = reactive([]);
 
 const { messages, append } = useChat({
-  streamProtocol: 'text',
   onFinish: options => {
     onFinishCalls.push(options);
   },
+  chatStore: createChatStore({
+    api: '/api/chat',
+    transport: new TextStreamChatTransport({
+      api: '/api/chat',
+    }),
+  }),
 });
 </script>
 

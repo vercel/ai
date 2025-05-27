@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { defaultChatStoreOptions } from 'ai';
 import { UIMessage, useChat } from './use-chat';
 
 const bodyOptions = ref<{
   chatId: string;
   messages: UIMessage[];
-  requestBody?: object;
+  [key: string]: string;
 }>();
 
 const { messages, append, status } = useChat({
-  experimental_prepareRequestBody(options) {
-    bodyOptions.value = options;
-    return 'test-request-body';
-  },
+  chatStore: defaultChatStoreOptions({
+    api: '/api/chat',
+    prepareRequestBody(options) {
+      bodyOptions.value = options;
+      return 'test-request-body';
+    },
+  }),
 });
 
 const isLoading = computed(() => status.value !== 'ready');
