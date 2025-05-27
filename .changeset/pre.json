@@ -34,6 +34,7 @@
     "@ai-sdk/elevenlabs": "1.0.0-canary.12",
     "@ai-sdk/fal": "1.0.0-canary.20",
     "@ai-sdk/fireworks": "1.0.0-canary.19",
+    "@ai-sdk/gateway": "0.0.0",
     "@ai-sdk/gladia": "1.0.0-canary.9",
     "@ai-sdk/google": "2.0.0-canary.20",
     "@ai-sdk/google-vertex": "3.0.0-canary.20",
