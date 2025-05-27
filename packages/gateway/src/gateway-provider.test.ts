@@ -420,7 +420,9 @@ describe('GatewayProvider', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         if (error instanceof Error) {
-          expect(error.cause).toBe(originalError);
+          expect((error as Error & { cause: unknown }).cause).toBe(
+            originalError,
+          );
         }
       }
     });

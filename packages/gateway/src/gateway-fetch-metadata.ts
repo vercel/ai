@@ -17,7 +17,7 @@ export interface GatewayFetchMetadataResponse {
 export class GatewayFetchMetadata {
   constructor(private readonly config: GatewayFetchMetadataConfig) {}
 
-  async getAvailableModels() {
+  async getAvailableModels(): Promise<GatewayFetchMetadataResponse> {
     const { value } = await getFromApi({
       url: `${this.config.baseURL}/config`,
       headers: await resolve(this.config.headers()),
@@ -26,12 +26,12 @@ export class GatewayFetchMetadata {
       ),
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: z.any(),
-        errorToMessage: (data) => data,
+        errorToMessage: data => data,
       }),
       fetch: this.config.fetch,
     });
 
-    return value;
+    return value as GatewayFetchMetadataResponse;
   }
 }
 

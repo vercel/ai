@@ -1,5 +1,6 @@
 import type { LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
+import { loadOptionalSetting } from '@ai-sdk/provider-utils';
 import {
   type FetchFunction,
   withoutTrailingSlash,
@@ -74,7 +75,7 @@ export async function getGatewayAuthToken(options: GatewayProviderSettings) {
       // The missing vercel oidc token error has an obtuse message that doesn't
       // provide much context about what to do for an AI Gateway user, so we
       // intervene to provide more guidance and then rethrow.
-      throw new Error(
+      const enhancedError = new Error(
         `Failed to get Vercel OIDC token for AI Gateway access.
 The token is expected to be provided via the 'VERCEL_OIDC_TOKEN' environment variable. It expires every 12 hours.
 - make sure your Vercel project settings have OIDC enabled
@@ -82,6 +83,8 @@ The token is expected to be provided via the 'VERCEL_OIDC_TOKEN' environment var
 - if you're running locally with your own dev server script you can fetch/update the token by running 'vercel env pull'
 - in production or preview the token is automatically obtained and refreshed for you`,
       );
+      (enhancedError as Error & { cause: unknown }).cause = error;
+      throw enhancedError;
     }
     throw error;
   }
@@ -121,9 +124,18 @@ export function createGatewayProvider(
       return modelEntry.specification;
     };
 
-    const deploymentId = process.env.DEPLOYMENT_ID;
-    const environment = process.env.VERCEL_ENV;
-    const region = process.env.VERCEL_REGION;
+    const deploymentId = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'DEPLOYMENT_ID',
+    });
+    const environment = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'VERCEL_ENV',
+    });
+    const region = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'VERCEL_REGION',
+    });
     return new GatewayLanguageModel(
       modelId,
       {

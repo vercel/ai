@@ -33,7 +33,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     private readonly getSpecification: () => Promise<GatewayLanguageModelSpecification>,
   ) {
     this.pendingSpecification = this.getSpecification();
-    this.pendingSpecification.then((specification) => {
+    this.pendingSpecification.then(specification => {
       this.specification = specification;
     });
   }
@@ -54,7 +54,6 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   }
 
   get supportedUrls(): PromiseLike<Record<string, RegExp[]>> {
-    // TODO(shaper): Make sure the key below doesn't need extra backslashes before '/'.
     return Promise.resolve({ '*/*': [/.*/] });
   }
 
@@ -80,13 +79,12 @@ export class GatewayLanguageModel implements LanguageModelV2 {
       successfulResponseHandler: createJsonResponseHandler(z.any()),
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: z.any(),
-        errorToMessage: (data) => data,
+        errorToMessage: data => data,
       }),
       ...(abortSignal && { abortSignal }),
       fetch: this.config.fetch,
     });
 
-    // TODO what about response, e.g. headers, rawCall, rawResponse, request, response
     return {
       ...responseBody,
       request: { body },
@@ -114,7 +112,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
       successfulResponseHandler: createEventSourceResponseHandler(z.any()),
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: z.any(),
-        errorToMessage: (data) => data,
+        errorToMessage: data => data,
       }),
       ...(abortSignal && { abortSignal }),
       fetch: this.config.fetch,
@@ -130,7 +128,9 @@ export class GatewayLanguageModel implements LanguageModelV2 {
             if (chunk.success) {
               controller.enqueue(chunk.value);
             } else {
-              controller.error(chunk.error);
+              controller.error(
+                (chunk as { success: false; error: unknown }).error,
+              );
             }
           },
         }),
@@ -141,7 +141,6 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   }
 
   private isFilePart(part: unknown) {
-    // TODO: do we need to look for 'image' below as well?
     return (
       part && typeof part === 'object' && 'type' in part && part.type === 'file'
     );
