@@ -13,7 +13,10 @@ const { messages, append, status } = useChat({
   chatStore: defaultChatStoreOptions({
     api: '/api/chat',
     prepareRequestBody(options) {
-      bodyOptions.value = options;
+      bodyOptions.value = {
+        ...options,
+        messages: [...options.messages],
+      };
       return 'test-request-body';
     },
   }),
@@ -27,7 +30,7 @@ const isLoading = computed(() => status.value !== 'ready');
     <div data-testid="loading">{{ isLoading?.toString() }}</div>
     <div
       v-for="(m, idx) in messages"
-      key="m.id"
+      :key="m.id"
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}

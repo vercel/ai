@@ -218,7 +218,7 @@ export function useChat<
 
     if (!inputValue && fileParts.length === 0) return;
 
-    append(
+    await append(
       {
         id: generateId(),
         role: 'user',

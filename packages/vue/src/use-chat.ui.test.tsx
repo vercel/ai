@@ -6,6 +6,7 @@ import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/vue';
 import { UIMessageStreamPart } from 'ai';
+import { nextTick } from 'vue';
 import { setupTestComponent } from './setup-test-component';
 import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
@@ -51,8 +52,8 @@ describe('prepareRequestBody', () => {
       screen.getByTestId('on-body-options').textContent ?? '',
     );
 
-    await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
     expect(value).toStrictEqual({
       chatId: expect.any(String),
       messages: [
@@ -316,9 +317,11 @@ describe('form actions', () => {
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Hello, world.',
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        'AI: Hello, world.',
+      );
+    });
 
     const secondInput = screen.getByTestId('do-input');
     await userEvent.type(secondInput, '{Enter}');
@@ -492,6 +495,8 @@ describe('tool invocations', () => {
       }),
     );
 
+    await nextTick();
+
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
         '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
@@ -605,39 +610,41 @@ describe('tool invocations', () => {
     });
   });
 
-  // TODO re-enable when chat store is in place
-  it.skip('should update tool call to result when addToolResult is called', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatStreamPart({
-          type: 'tool-call',
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        }),
-      ],
-    };
+  // TODO: Either fix by fully moving to immutable mutations or debug further
+  it.fails(
+    'should update tool call to result when addToolResult is called',
+    async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatStreamPart({
+            type: 'tool-call',
+            toolCallId: 'tool-call-0',
+            toolName: 'test-tool',
+            args: { testArg: 'test-value' },
+          }),
+        ],
+      };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+      await userEvent.click(screen.getByTestId('do-append'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
-      );
-    });
+      await waitFor(() => {
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        );
+      });
 
-    await userEvent.click(screen.getByTestId('add-result-0'));
+      await userEvent.click(screen.getByTestId('add-result-0'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
-      );
-    });
-  });
+      await waitFor(() => {
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+        );
+      });
+    },
+  );
 
-  // TODO re-enable when chat store is in place
-  it.skip('should delay tool result submission until the stream is finished', async () => {
+  it('should delay tool result submission until the stream is finished', async () => {
     const controller1 = new TestResponseController();
     const controller2 = new TestResponseController();
 

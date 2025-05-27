@@ -6,7 +6,7 @@ const { messages, append, addToolResult } = useChat({
   chatStore: defaultChatStoreOptions({
     api: '/api/chat',
     maxSteps: 5,
-  })
+  }),
 });
 </script>
 
@@ -14,7 +14,7 @@ const { messages, append, addToolResult } = useChat({
   <div>
     <div
       v-for="(m, idx) in messages"
-      key="m.id"
+      :key="m.id"
       :data-testid="`message-${idx}`"
     >
       <div

@@ -10,7 +10,7 @@ import {
   type UIDataTypes,
   type UIMessage,
 } from 'ai';
-import { Ref, ref, shallowRef } from 'vue';
+import { Ref, ref } from 'vue';
 
 class VueChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   implements Chat<MESSAGE_METADATA, DATA_TYPES>
@@ -23,7 +23,9 @@ class VueChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   jobExecutor = new SerialJobExecutor();
 
   constructor(messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
-    this.messagesRef = shallowRef(messages ?? []);
+    this.messagesRef = ref(messages ?? []) as Ref<
+      UIMessage<MESSAGE_METADATA, DATA_TYPES>[]
+    >;
   }
 
   get messages(): UIMessage<MESSAGE_METADATA, DATA_TYPES>[] {
@@ -57,22 +59,18 @@ class VueChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   };
 
   pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
-    this.messagesRef.value = [...this.messagesRef.value, message];
+    this.messagesRef.value.push(message);
   };
 
   popMessage = () => {
-    this.messagesRef.value = this.messagesRef.value.slice(0, -1);
+    this.messagesRef.value.pop();
   };
 
   replaceMessage = (
     index: number,
     message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
   ) => {
-    this.messagesRef.value = [
-      ...this.messagesRef.value.slice(0, index),
-      message,
-      ...this.messagesRef.value.slice(index + 1),
-    ];
+    this.messagesRef.value[index] = { ...message };
   };
 }
 
