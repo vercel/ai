@@ -1,5 +1,20 @@
 # ai
 
+## 5.0.0-alpha.5
+
+### Major Changes
+
+- ef256ed: chore (ai): refactor and use chatstore in svelte
+- 1ed0287: chore (ai): stable sendStart/sendFinish options
+
+### Patch Changes
+
+- 655cf3c: feat (ui): add onFinish to createUIMessageStream
+- 1675396: fix: avoid job executor deadlock when adding tool result
+- cf9af6e: feat (ai): allow sync prepareStep
+- 825e8d7: release alpha.5
+- 7324c21: fix (ai/telemetry): Avoid JSON.stringify on Uint8Arrays for telemetry
+
 ## 5.0.0-alpha.4
 
 ### Major Changes
