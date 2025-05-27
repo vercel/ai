@@ -4,6 +4,7 @@ import { DelayedPromise } from '../util/delayed-promise';
 import { createUIMessageStream } from './create-ui-message-stream';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
+import { consumeStream } from '../util/consume-stream';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
@@ -325,5 +326,127 @@ describe('createUIMessageStream', () => {
       { type: 'text', text: '1a' },
       { type: 'text', text: '2a' },
     ]);
+  });
+
+  it('should handle onFinish without original messages', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text', text: '1a' });
+      },
+      onFinish: options => {
+        recordedOptions.push(options);
+      },
+    });
+
+    await consumeStream({ stream });
+
+    expect(recordedOptions).toMatchInlineSnapshot(`
+      [
+        {
+          "isContinuation": false,
+          "messages": [
+            {
+              "id": "",
+              "metadata": {},
+              "parts": [
+                {
+                  "text": "1a",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "responseMessage": {
+            "id": "",
+            "metadata": {},
+            "parts": [
+              {
+                "text": "1a",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should handle onFinish with messages', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text', text: '1b' });
+      },
+      originalMessages: [
+        {
+          id: '0',
+          role: 'user',
+          parts: [{ type: 'text', text: '0a' }],
+        },
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [{ type: 'text', text: '1a' }],
+        },
+      ],
+      onFinish: options => {
+        recordedOptions.push(options);
+      },
+    });
+
+    await consumeStream({ stream });
+
+    expect(recordedOptions).toMatchInlineSnapshot(`
+      [
+        {
+          "isContinuation": true,
+          "messages": [
+            {
+              "id": "0",
+              "parts": [
+                {
+                  "text": "0a",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "text": "1a",
+                  "type": "text",
+                },
+                {
+                  "text": "1b",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "responseMessage": {
+            "id": "1",
+            "parts": [
+              {
+                "text": "1a",
+                "type": "text",
+              },
+              {
+                "text": "1b",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        },
+      ]
+    `);
   });
 });
