@@ -436,7 +436,8 @@ export class ChatStore<
       // auto-submit when all tool calls in the last assistant message have results:
       const lastMessage = chat.messages[chat.messages.length - 1];
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        await this.triggerRequest({
+        // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
+        this.triggerRequest({
           requestType: 'generate',
           chatId,
         });
