@@ -1,27 +1,27 @@
 # AI SDK - Gateway Provider
 
-The Gateway provider for the [AI SDK](https://sdk.vercel.ai/docs) allows the use of a wide variety of AI models and providers.
+The Gateway provider for the [AI SDK](https://ai-sdk.dev/docs) allows the use of a wide variety of AI models and providers.
 
 ## Setup
 
-The Gateway provider is available in the `@vercel/ai-sdk-gateway` module. You can install it with
+The Gateway provider is available in the `@ai-sdk/gateway` module. You can install it with
 
 ```bash
-npm i @vercel/ai-sdk-gateway
+npm i @ai-sdk/gateway
 ```
 
 ## Provider Instance
 
-You can import the default provider instance `gateway` from `@vercel/ai-sdk-gateway`:
+You can import the default provider instance `gateway` from `@ai-sdk/gateway`:
 
 ```ts
-import { gateway } from '@vercel/ai-sdk-gateway';
+import { gateway } from '@ai-sdk/gateway';
 ```
 
 ## Example
 
 ```ts
-import { gateway } from '@vercel/ai-sdk-gateway';
+import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -33,4 +33,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the [AI SDK documentation](https://sdk.vercel.ai/docs) for more information.
+Please check out the [AI SDK documentation](https://ai-sdk.dev/docs) for more information.
