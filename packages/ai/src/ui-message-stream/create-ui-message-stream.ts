@@ -1,16 +1,12 @@
-import {
-  processUIMessageStream,
-  StreamingUIMessageState,
-} from '../ui/process-ui-message-stream';
-import { createStreamingUIMessageState } from '../ui/process-ui-message-stream';
 import { UIMessage } from '../ui/ui-messages';
+import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
 export function createUIMessageStream({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
-  originalMessages = [],
+  originalMessages,
   onFinish,
 }: {
   execute: (options: { writer: UIMessageStreamWriter }) => Promise<void> | void;
@@ -112,50 +108,10 @@ export function createUIMessageStream({
     }
   });
 
-  if (onFinish == null) {
-    return stream;
-  }
-
-  const lastMessage = originalMessages[originalMessages.length - 1];
-  const isContinuation = lastMessage?.role === 'assistant';
-  const messageId = isContinuation ? lastMessage.id : undefined;
-
-  const state = createStreamingUIMessageState({
-    lastMessage: structuredClone(lastMessage),
-    newMessageId: messageId,
-  });
-
-  const runUpdateMessageJob = async (
-    job: (options: {
-      state: StreamingUIMessageState;
-      write: () => void;
-    }) => Promise<void>,
-  ) => {
-    await job({ state, write: () => {} });
-  };
-
-  return processUIMessageStream({
+  return handleUIMessageStreamFinish({
     stream,
-    runUpdateMessageJob,
-  }).pipeThrough(
-    new TransformStream({
-      transform(chunk, controller) {
-        controller.enqueue(chunk);
-      },
-
-      flush() {
-        const isContinuation = state.message.id === lastMessage?.id;
-        onFinish({
-          isContinuation,
-          responseMessage: state.message,
-          messages: [
-            ...(isContinuation
-              ? originalMessages.slice(0, -1)
-              : originalMessages),
-            state.message,
-          ],
-        });
-      },
-    }),
-  );
+    newMessageId: '',
+    originalMessages,
+    onFinish,
+  });
 }
