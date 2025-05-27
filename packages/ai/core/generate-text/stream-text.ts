@@ -88,8 +88,9 @@ Callback that is set using the `onError` option.
 
 @param event - The event that is passed to the callback.
  */
-export type StreamTextOnErrorCallback = (event: {
+export type StreamTextOnErrorCallback<TOOLS extends ToolSet> = (event: {
   error: unknown;
+  steps: Array<StepResult<TOOLS>>;
 }) => Promise<void> | void;
 
 /**
@@ -327,7 +328,7 @@ Callback that is invoked when an error occurs during streaming.
 You can use it to log errors.
 The stream processing will pause until the callback promise is resolved.
      */
-    onError?: StreamTextOnErrorCallback;
+    onError?: StreamTextOnErrorCallback<TOOLS>;
 
     /**
 Callback that is called when the LLM response and all request tool executions
@@ -544,7 +545,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
-    onError: undefined | StreamTextOnErrorCallback;
+    onError: undefined | StreamTextOnErrorCallback<TOOLS>;
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
@@ -592,7 +593,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'error') {
-          await onError?.({ error: part.error });
+          await onError?.({ error: part.error, steps: recordedSteps });
         }
 
         if (part.type === 'text') {
