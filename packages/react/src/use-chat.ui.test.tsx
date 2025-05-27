@@ -1082,11 +1082,9 @@ describe('tool invocations', () => {
 
   it('should delay tool result submission until the stream is finished', async () => {
     const controller1 = new TestResponseController();
-    // const controller2 = new TestResponseController();
 
     server.urls['/api/chat'].response = [
       { type: 'controlled-stream', controller: controller1 },
-      // { type: 'controlled-stream', controller: controller2 },
     ];
 
     await userEvent.click(screen.getByTestId('do-append'));
@@ -1209,11 +1207,6 @@ describe('tool invocations', () => {
 
     // should trigger second request w/ tool result
     expect(server.calls.length).toBe(2);
-
-    // 2nd call should happen after the stream is finished
-    await waitFor(() => {
-      expect(server.calls.length).toBe(2);
-    });
 
     controller2.write(formatStreamPart({ type: 'start' }));
     controller2.write(formatStreamPart({ type: 'start-step' }));

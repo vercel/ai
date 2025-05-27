@@ -13,8 +13,8 @@ import {
   type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
-import { throttle } from './throttle';
 import { createChatStore } from './chat-store';
+import { throttle } from './throttle';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
