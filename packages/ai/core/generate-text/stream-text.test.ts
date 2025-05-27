@@ -2887,11 +2887,15 @@ describe('streamText', () => {
                   type: 'tool',
                   toolName: 'tool1' as const,
                 },
+                system: 'system-message-0',
               };
             }
 
             if (stepNumber === 1) {
-              return { activeTools: [] };
+              return {
+                activeTools: [],
+                system: 'system-message-1',
+              };
             }
           },
         });
@@ -2908,6 +2912,10 @@ describe('streamText', () => {
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
               "prompt": [
+                {
+                  "content": "system-message-0",
+                  "role": "system",
+                },
                 {
                   "content": [
                     {
@@ -2958,6 +2966,10 @@ describe('streamText', () => {
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
               "prompt": [
+                {
+                  "content": "system-message-1",
+                  "role": "system",
+                },
                 {
                   "content": [
                     {

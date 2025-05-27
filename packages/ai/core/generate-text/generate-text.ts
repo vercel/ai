@@ -280,7 +280,7 @@ A function that attempts to repair a tool call that failed to parse.
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
-            system: initialPrompt.system,
+            system: prepareStepResult?.system ?? initialPrompt.system,
             messages: stepInputMessages,
           },
           supportedUrls: await model.supportedUrls,
