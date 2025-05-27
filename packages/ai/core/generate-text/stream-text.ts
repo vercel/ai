@@ -1411,8 +1411,8 @@ However, the LLM results are expected to be small enough to not cause issues.
     messageMetadata,
     sendReasoning = false,
     sendSources = false,
-    experimental_sendStart = true,
-    experimental_sendFinish = true,
+    sendStart = true,
+    sendFinish = true,
     onError = () => 'An error occurred.', // mask error messages for safety by default
   }: UIMessageStreamOptions = {}): ReadableStream<UIMessageStreamPart> {
     const lastMessage = originalMessages[originalMessages.length - 1];
@@ -1539,7 +1539,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'start': {
-              if (experimental_sendStart) {
+              if (sendStart) {
                 const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'start',
@@ -1551,7 +1551,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'finish': {
-              if (experimental_sendFinish) {
+              if (sendFinish) {
                 const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'finish',
@@ -1587,8 +1587,8 @@ However, the LLM results are expected to be small enough to not cause issues.
       messageMetadata,
       sendReasoning,
       sendSources,
-      experimental_sendFinish,
-      experimental_sendStart,
+      sendFinish,
+      sendStart,
       onError,
       ...init
     }: ResponseInit & UIMessageStreamOptions = {},
@@ -1602,8 +1602,8 @@ However, the LLM results are expected to be small enough to not cause issues.
         messageMetadata,
         sendReasoning,
         sendSources,
-        experimental_sendFinish,
-        experimental_sendStart,
+        sendFinish,
+        sendStart,
         onError,
       }),
       ...init,
@@ -1625,8 +1625,8 @@ However, the LLM results are expected to be small enough to not cause issues.
     messageMetadata,
     sendReasoning,
     sendSources,
-    experimental_sendFinish,
-    experimental_sendStart,
+    sendFinish,
+    sendStart,
     onError,
     ...init
   }: ResponseInit & UIMessageStreamOptions = {}): Response {
@@ -1638,8 +1638,8 @@ However, the LLM results are expected to be small enough to not cause issues.
         messageMetadata,
         sendReasoning,
         sendSources,
-        experimental_sendFinish,
-        experimental_sendStart,
+        sendFinish,
+        sendStart,
         onError,
       }),
       ...init,

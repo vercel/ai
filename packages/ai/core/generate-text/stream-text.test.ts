@@ -999,9 +999,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeUIMessageStreamToResponse(mockResponse, {
-        experimental_sendFinish: false,
-      });
+      result.pipeUIMessageStreamToResponse(mockResponse, { sendFinish: false });
 
       await mockResponse.waitForEnd();
 
@@ -1447,9 +1445,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const uiMessageStream = result.toUIMessageStream({
-        experimental_sendFinish: false,
-      });
+      const uiMessageStream = result.toUIMessageStream({ sendFinish: false });
 
       expect(
         await convertReadableStreamToArray(uiMessageStream),
@@ -1472,9 +1468,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const uiMessageStream = result.toUIMessageStream({
-        experimental_sendStart: false,
-      });
+      const uiMessageStream = result.toUIMessageStream({ sendStart: false });
 
       expect(
         await convertReadableStreamToArray(uiMessageStream),
