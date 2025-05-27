@@ -27,11 +27,7 @@ export async function POST(req: Request) {
         messages: convertToModelMessages(messages),
       });
 
-      writer.merge(
-        result.toUIMessageStream({
-          experimental_sendStart: false,
-        }),
-      );
+      writer.merge(result.toUIMessageStream({ sendStart: false }));
     },
     originalMessages: messages,
     onFinish: options => {
