@@ -856,7 +856,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
-              system: initialPrompt.system,
+              system: prepareStepResult?.system ?? initialPrompt.system,
               messages: stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
