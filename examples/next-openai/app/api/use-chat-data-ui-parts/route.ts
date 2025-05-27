@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const stream = createUIMessageStream({
-    execute: writer => {
+    execute: ({ writer }) => {
       const result = streamText({
         model: openai('gpt-4o'),
         stopWhen: stepCountIs(2),

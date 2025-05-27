@@ -4,12 +4,13 @@ import { DelayedPromise } from '../util/delayed-promise';
 import { createUIMessageStream } from './create-ui-message-stream';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
+import { consumeStream } from '../util/consume-stream';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
     const stream = createUIMessageStream({
-      execute: stream => {
-        stream.write({ type: 'text', text: '1a' });
+      execute: ({ writer }) => {
+        writer.write({ type: 'text', text: '1a' });
       },
     });
 
@@ -25,8 +26,8 @@ describe('createUIMessageStream', () => {
 
   it('should forward a single stream with 2 elements', async () => {
     const stream = createUIMessageStream({
-      execute: stream => {
-        stream.merge(
+      execute: ({ writer }) => {
+        writer.merge(
           new ReadableStream({
             start(controller) {
               controller.enqueue({ type: 'text', text: '1a' });
@@ -56,9 +57,9 @@ describe('createUIMessageStream', () => {
     const wait = new DelayedPromise<void>();
 
     const stream = createUIMessageStream({
-      execute: async stream => {
+      execute: async ({ writer }) => {
         await wait.promise;
-        stream.write({ type: 'text', text: '1a' });
+        writer.write({ type: 'text', text: '1a' });
       },
     });
 
@@ -79,10 +80,10 @@ describe('createUIMessageStream', () => {
     let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
 
     const stream = createUIMessageStream({
-      execute: stream => {
-        stream.write({ type: 'text', text: 'data-part-1' });
+      execute: ({ writer }) => {
+        writer.write({ type: 'text', text: 'data-part-1' });
 
-        stream.merge(
+        writer.merge(
           new ReadableStream({
             start(controllerArg) {
               controller1 = controllerArg;
@@ -91,10 +92,10 @@ describe('createUIMessageStream', () => {
         );
 
         controller1!.enqueue({ type: 'text', text: '1a' });
-        stream.write({ type: 'text', text: 'data-part-2' });
+        writer.write({ type: 'text', text: 'data-part-2' });
         controller1!.enqueue({ type: 'text', text: '1b' });
 
-        stream.merge(
+        writer.merge(
           new ReadableStream({
             start(controllerArg) {
               controller2 = controllerArg;
@@ -102,7 +103,7 @@ describe('createUIMessageStream', () => {
           }),
         );
 
-        stream.write({ type: 'text', text: 'data-part-3' });
+        writer.write({ type: 'text', text: 'data-part-3' });
       },
     });
 
@@ -165,15 +166,15 @@ describe('createUIMessageStream', () => {
     let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
 
     const stream = createUIMessageStream({
-      execute: stream => {
-        stream.merge(
+      execute: ({ writer }) => {
+        writer.merge(
           new ReadableStream({
             start(controllerArg) {
               controller1 = controllerArg;
             },
           }),
         );
-        stream.merge(
+        writer.merge(
           new ReadableStream({
             start(controllerArg) {
               controller2 = controllerArg;
@@ -249,12 +250,12 @@ describe('createUIMessageStream', () => {
   });
 
   it('should suppress error when writing to closed stream', async () => {
-    let uiMessageStream: UIMessageStreamWriter;
+    let uiMessageStreamWriter: UIMessageStreamWriter;
 
     const stream = createUIMessageStream({
-      execute: uiMessageStreamArg => {
-        uiMessageStreamArg.write({ type: 'text', text: '1a' });
-        uiMessageStream = uiMessageStreamArg;
+      execute: ({ writer }) => {
+        writer.write({ type: 'text', text: '1a' });
+        uiMessageStreamWriter = writer;
       },
     });
 
@@ -263,19 +264,19 @@ describe('createUIMessageStream', () => {
     ]);
 
     expect(() =>
-      uiMessageStream!.write({ type: 'text', text: '1b' }),
+      uiMessageStreamWriter!.write({ type: 'text', text: '1b' }),
     ).not.toThrow();
   });
 
   it('should support writing from delayed merged streams', async () => {
-    let uiMessageStream: UIMessageStreamWriter;
+    let uiMessageStreamWriter: UIMessageStreamWriter;
     let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
     let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
     let done = false;
 
     const stream = createUIMessageStream({
-      execute: uiMessageStreamArg => {
-        uiMessageStreamArg.merge(
+      execute: ({ writer }) => {
+        writer.merge(
           new ReadableStream({
             start(controllerArg) {
               controller1 = controllerArg;
@@ -283,7 +284,7 @@ describe('createUIMessageStream', () => {
           }),
         );
 
-        uiMessageStream = uiMessageStreamArg;
+        uiMessageStreamWriter = writer;
         done = true;
       },
     });
@@ -302,7 +303,7 @@ describe('createUIMessageStream', () => {
     await pull();
 
     // controller1 is still open, create 2nd stream
-    uiMessageStream!.merge(
+    uiMessageStreamWriter!.merge(
       new ReadableStream({
         start(controllerArg) {
           controller2 = controllerArg;
@@ -325,5 +326,127 @@ describe('createUIMessageStream', () => {
       { type: 'text', text: '1a' },
       { type: 'text', text: '2a' },
     ]);
+  });
+
+  it('should handle onFinish without original messages', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text', text: '1a' });
+      },
+      onFinish: options => {
+        recordedOptions.push(options);
+      },
+    });
+
+    await consumeStream({ stream });
+
+    expect(recordedOptions).toMatchInlineSnapshot(`
+      [
+        {
+          "isContinuation": false,
+          "messages": [
+            {
+              "id": "",
+              "metadata": {},
+              "parts": [
+                {
+                  "text": "1a",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "responseMessage": {
+            "id": "",
+            "metadata": {},
+            "parts": [
+              {
+                "text": "1a",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should handle onFinish with messages', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text', text: '1b' });
+      },
+      originalMessages: [
+        {
+          id: '0',
+          role: 'user',
+          parts: [{ type: 'text', text: '0a' }],
+        },
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [{ type: 'text', text: '1a' }],
+        },
+      ],
+      onFinish: options => {
+        recordedOptions.push(options);
+      },
+    });
+
+    await consumeStream({ stream });
+
+    expect(recordedOptions).toMatchInlineSnapshot(`
+      [
+        {
+          "isContinuation": true,
+          "messages": [
+            {
+              "id": "0",
+              "parts": [
+                {
+                  "text": "0a",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "text": "1a",
+                  "type": "text",
+                },
+                {
+                  "text": "1b",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "responseMessage": {
+            "id": "1",
+            "parts": [
+              {
+                "text": "1a",
+                "type": "text",
+              },
+              {
+                "text": "1b",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        },
+      ]
+    `);
   });
 });

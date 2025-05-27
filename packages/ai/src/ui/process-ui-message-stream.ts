@@ -41,7 +41,7 @@ export function createStreamingUIMessageState<
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
   lastMessage,
-  newMessageId = 'no-id',
+  newMessageId = '',
 }: {
   lastMessage?: UIMessage<
     MESSAGE_METADATA,

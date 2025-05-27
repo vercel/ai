@@ -6,13 +6,9 @@ import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-erro
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
 import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
+import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
 import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
-import {
-  createStreamingUIMessageState,
-  processUIMessageStream,
-  StreamingUIMessageState,
-} from '../../src/ui/process-ui-message-stream';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -1421,7 +1417,9 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: UIMessageStreamOptions = {}): ReadableStream<UIMessageStreamPart> {
     const lastMessage = originalMessages[originalMessages.length - 1];
     const isContinuation = lastMessage?.role === 'assistant';
-    const messageId = isContinuation ? lastMessage.id : newMessageId;
+    const messageId = isContinuation
+      ? lastMessage.id
+      : (newMessageId ?? this.generateId());
 
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, UIMessageStreamPart>({
@@ -1572,48 +1570,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       }),
     );
 
-    if (onFinish == null) {
-      return baseStream;
-    }
-
-    const state = createStreamingUIMessageState({
-      lastMessage: structuredClone(lastMessage),
-      newMessageId: messageId ?? this.generateId(),
-    });
-
-    const runUpdateMessageJob = async (
-      job: (options: {
-        state: StreamingUIMessageState;
-        write: () => void;
-      }) => Promise<void>,
-    ) => {
-      await job({ state, write: () => {} });
-    };
-
-    return processUIMessageStream({
+    return handleUIMessageStreamFinish({
       stream: baseStream,
-      runUpdateMessageJob,
-    }).pipeThrough(
-      new TransformStream({
-        transform(chunk, controller) {
-          controller.enqueue(chunk);
-        },
-
-        flush() {
-          const isContinuation = state.message.id === lastMessage?.id;
-          onFinish({
-            isContinuation,
-            responseMessage: state.message,
-            messages: [
-              ...(isContinuation
-                ? originalMessages.slice(0, -1)
-                : originalMessages),
-              state.message,
-            ],
-          });
-        },
-      }),
-    );
+      newMessageId: messageId,
+      originalMessages,
+      onFinish,
+    });
   }
 
   pipeUIMessageStreamToResponse(
