@@ -257,18 +257,3 @@ export function useChat<
     addToolResult,
   };
 }
-
-// required for use of structured clone
-// function recursiveToRaw<T>(inputValue: T): T {
-//   if (Array.isArray(inputValue)) {
-//     return [...inputValue.map(recursiveToRaw)] as T;
-//   } else if (typeof inputValue === 'object' && inputValue !== null) {
-//     const clone: any = {};
-//     for (const [key, value] of Object.entries(inputValue)) {
-//       clone[key] = recursiveToRaw(value);
-//     }
-//     return clone;
-//   } else {
-//     return inputValue;
-//   }
-// }
