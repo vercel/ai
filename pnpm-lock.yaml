@@ -98,6 +98,9 @@ importers:
       '@ai-sdk/fireworks':
         specifier: workspace:*
         version: link:../../packages/fireworks
+      '@ai-sdk/gateway':
+        specifier: workspace:*
+        version: link:../../packages/gateway
       '@ai-sdk/gladia':
         specifier: workspace:*
         version: link:../../packages/gladia
