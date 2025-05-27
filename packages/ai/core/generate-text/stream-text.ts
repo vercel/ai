@@ -1421,7 +1421,9 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: UIMessageStreamOptions = {}): ReadableStream<UIMessageStreamPart> {
     const lastMessage = originalMessages[originalMessages.length - 1];
     const isContinuation = lastMessage?.role === 'assistant';
-    const messageId = isContinuation ? lastMessage.id : newMessageId;
+    const messageId = isContinuation
+      ? lastMessage.id
+      : (newMessageId ?? this.generateId());
 
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, UIMessageStreamPart>({
@@ -1578,7 +1580,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     const state = createStreamingUIMessageState({
       lastMessage: structuredClone(lastMessage),
-      newMessageId: messageId ?? this.generateId(),
+      newMessageId: messageId,
     });
 
     const runUpdateMessageJob = async (
