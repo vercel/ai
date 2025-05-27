@@ -1,3 +1,4 @@
+import { UIMessage } from '../ui/ui-messages';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
@@ -7,6 +8,30 @@ export function createUIMessageStream({
 }: {
   execute: (options: { writer: UIMessageStreamWriter }) => Promise<void> | void;
   onError?: (error: unknown) => string;
+
+  /**
+   * The original messages.
+   */
+  originalMessages?: UIMessage[];
+
+  onFinish?: (options: {
+    /**
+     * The updates list of UI messages.
+     */
+    messages: UIMessage[];
+
+    /**
+     * Indicates whether the response message is a continuation of the last original message,
+     * or if a new message was created.
+     */
+    isContinuation: boolean;
+
+    /**
+     * The message that was sent to the client as a response
+     * (including the original message if it was extended).
+     */
+    responseMessage: UIMessage;
+  }) => void;
 }): ReadableStream<UIMessageStreamPart> {
   let controller!: ReadableStreamDefaultController<UIMessageStreamPart>;
 
