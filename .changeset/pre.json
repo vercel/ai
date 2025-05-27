@@ -57,6 +57,7 @@
     "@ai-sdk/svelte": "3.0.0-canary.23",
     "@ai-sdk/togetherai": "1.0.0-canary.19",
     "@ai-sdk/valibot": "1.0.0-canary.21",
+    "@ai-sdk/vercel": "0.0.0",
     "@ai-sdk/vue": "2.0.0-canary.23",
     "@ai-sdk/xai": "2.0.0-canary.19",
     "analyze-downloads": "0.0.0",
