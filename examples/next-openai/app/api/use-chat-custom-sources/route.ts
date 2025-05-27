@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const stream = createUIMessageStream({
-    execute: writer => {
+    execute: ({ writer }) => {
       // write a custom url source to the stream:
       writer.write({
         type: 'source-url',
