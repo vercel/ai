@@ -19,18 +19,15 @@ export type PrepareStepFunction<
   steps: Array<StepResult<NoInfer<TOOLS>>>;
   stepNumber: number;
   model: LanguageModel;
-}) =>
-  | PromiseLike<
-      | {
-          model?: LanguageModel;
-          toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-          activeTools?: Array<keyof NoInfer<TOOLS>>;
-        }
-      | undefined
-    >
+}) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
+
+export type PrepareStepResult<
+  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+> =
   | {
       model?: LanguageModel;
       toolChoice?: ToolChoice<NoInfer<TOOLS>>;
       activeTools?: Array<keyof NoInfer<TOOLS>>;
+      system?: string;
     }
   | undefined;
