@@ -829,6 +829,10 @@ describe('options.stopWhen', () => {
 
               expect(prompt).toStrictEqual([
                 {
+                  role: 'system',
+                  content: 'system-message-0',
+                },
+                {
                   role: 'user',
                   content: [{ type: 'text', text: 'test-input' }],
                   providerOptions: undefined,
@@ -873,6 +877,10 @@ describe('options.stopWhen', () => {
               expect(toolChoice).toStrictEqual({ type: 'auto' });
 
               expect(prompt).toStrictEqual([
+                {
+                  role: 'system',
+                  content: 'system-message-1',
+                },
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'test-input' }],
@@ -955,12 +963,17 @@ describe('options.stopWhen', () => {
                 type: 'tool',
                 toolName: 'tool1' as const,
               },
+              system: 'system-message-0',
             };
           }
 
           if (stepNumber === 1) {
             expect(steps.length).toStrictEqual(1);
-            return { model: trueModel, activeTools: [] };
+            return {
+              model: trueModel,
+              activeTools: [],
+              system: 'system-message-1',
+            };
           }
         },
       });
