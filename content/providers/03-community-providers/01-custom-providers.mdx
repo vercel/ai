@@ -21,7 +21,7 @@ The Language Model Specification V2 is a standardized specification for interact
 
 The Language Model Specification V2 creates a robust abstraction layer that works across all current and future AI providers. By establishing a standardized interface, it provides the flexibility to support emerging LLM capabilities while ensuring your application code remains provider-agnostic and future-ready.
 
-### Core Architecture
+### Architecture
 
 At its heart, the V2 specification defines three main interfaces:
 
@@ -43,7 +43,7 @@ interface ProviderV2 {
 
 ### `LanguageModelV2`
 
-The `LanguageModelV2` interface defines the core methods your provider must implement:
+The `LanguageModelV2` interface defines the methods your provider must implement:
 
 ```ts
 interface LanguageModelV2 {
@@ -61,9 +61,7 @@ Key aspects:
 
 - **specificationVersion**: Must be 'V2'
 - **supportedUrls**: Declares which URLs (for file parts) the provider can handle natively
-- **doGenerate/doStream**: Core methods for non-streaming and streaming generation
-
-// trash title
+- **doGenerate/doStream**: methods for non-streaming and streaming generation
 
 ### Understanding Input vs Output
 
@@ -407,6 +405,12 @@ The V2 specification emphasizes robust error handling:
    - `'other'`: Provider-specific reasons
 
 ## Provider Implementation Guide
+
+To implement a custom language model provider, you'll need to install the required packages:
+
+```bash
+npm install @ai-sdk/provider @ai-sdk/provider-utils
+```
 
 Implementing a custom language model provider involves several steps:
 
