@@ -4,7 +4,12 @@ import {
   Schema,
   ToolCall,
 } from '@ai-sdk/provider-utils';
-import { ChatStore, InferUIDataParts, UIDataPartSchemas } from './chat-store';
+import {
+  ChatStore,
+  ChatStoreOptions,
+  InferUIDataParts,
+  UIDataPartSchemas,
+} from './chat-store';
 import { UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
@@ -69,9 +74,23 @@ export type UseChatOptions<
   generateId?: IdGenerator;
 
   /**
-   * Optional chat store. Default is used when not provided.
+   * Chat store that should be used.
+   * It must not change during the component lifecycle.
+   *
+   * When a ChatStore is provided, it will be used as is.
+   * It should be stable and the stability is guaranteed by the user.
+   *
+   * When a function is provided, it will be called to create a new chat store.
+   * The function will be called when the hook is mounted and the chat store will be
+   * created.
+   * The function will be called with the same arguments as the hook is called with.
+   * The function should return a ChatStoreOptions object.
+   *
+   * When no value is provided, a default chat store will be created.
    */
-  chatStore?: ChatStore<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>;
+  chatStore?:
+    | ChatStore<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
+    | (() => ChatStoreOptions<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>);
 };
 
 export type OriginalUseChatOptions<MESSAGE_METADATA = unknown> = {

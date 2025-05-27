@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const stream = createUIMessageStream({
-    execute: async writer => {
+    execute: async ({ writer }) => {
       // Utility function to handle tools that require human confirmation
       // Checks for confirmation in last message and then runs associated tool
       const processedMessages = await processToolCalls(

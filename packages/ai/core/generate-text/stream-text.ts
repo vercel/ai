@@ -2,18 +2,13 @@ import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
-import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
-import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
-import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import {
-  createStreamingUIMessageState,
-  processUIMessageStream,
-  StreamingUIMessageState,
-} from '../../src/ui/process-ui-message-stream';
+import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
+import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
+import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
+import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -35,6 +30,7 @@ import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attr
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModelRequestMetadata } from '../types';
 import {
@@ -47,6 +43,7 @@ import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { Output } from './output';
+import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
@@ -54,21 +51,21 @@ import {
 } from './run-tools-transformation';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
+  isStopConditionMet,
+  stepCountIs,
+  StopCondition,
+} from './stop-condition';
+import {
   ConsumeStreamOptions,
-  UIMessageStreamOptions,
   StreamTextResult,
   TextStreamPart,
+  UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import {
-  isStopConditionMet,
-  stepCountIs,
-  StopCondition,
-} from './stop-condition';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -293,18 +290,7 @@ Optional function that you can use to provide different settings for a step.
 @returns An object that contains the settings for the step.
 If you return undefined (or for undefined settings), the settings from the outer level will be used.
     */
-    prepareStep?: (options: {
-      steps: Array<StepResult<NoInfer<TOOLS>>>;
-      stepNumber: number;
-      model: LanguageModel;
-    }) => PromiseLike<
-      | {
-          model?: LanguageModel;
-          toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-          activeTools?: Array<keyof NoInfer<TOOLS>>;
-        }
-      | undefined
-    >;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
@@ -551,20 +537,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     providerOptions: ProviderOptions | undefined;
-    prepareStep:
-      | ((options: {
-          steps: Array<StepResult<NoInfer<TOOLS>>>;
-          stepNumber: number;
-          model: LanguageModel;
-        }) => PromiseLike<
-          | {
-              model?: LanguageModel;
-              toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-              activeTools?: Array<keyof NoInfer<TOOLS>>;
-            }
-          | undefined
-        >)
-      | undefined;
+    prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
@@ -917,7 +890,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   'ai.model.id': stepModel.modelId,
                   // prompt:
                   'ai.prompt.messages': {
-                    input: () => JSON.stringify(promptMessages),
+                    input: () => stringifyForTelemetry(promptMessages),
                   },
                   'ai.prompt.tools': {
                     // convert the language model level tools:
@@ -1438,13 +1411,15 @@ However, the LLM results are expected to be small enough to not cause issues.
     messageMetadata,
     sendReasoning = false,
     sendSources = false,
-    experimental_sendStart = true,
-    experimental_sendFinish = true,
+    sendStart = true,
+    sendFinish = true,
     onError = () => 'An error occurred.', // mask error messages for safety by default
   }: UIMessageStreamOptions = {}): ReadableStream<UIMessageStreamPart> {
     const lastMessage = originalMessages[originalMessages.length - 1];
     const isContinuation = lastMessage?.role === 'assistant';
-    const messageId = isContinuation ? lastMessage.id : newMessageId;
+    const messageId = isContinuation
+      ? lastMessage.id
+      : (newMessageId ?? this.generateId());
 
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, UIMessageStreamPart>({
@@ -1564,7 +1539,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'start': {
-              if (experimental_sendStart) {
+              if (sendStart) {
                 const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'start',
@@ -1576,7 +1551,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'finish': {
-              if (experimental_sendFinish) {
+              if (sendFinish) {
                 const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'finish',
@@ -1595,48 +1570,12 @@ However, the LLM results are expected to be small enough to not cause issues.
       }),
     );
 
-    if (onFinish == null) {
-      return baseStream;
-    }
-
-    const state = createStreamingUIMessageState({
-      lastMessage,
-      newMessageId: messageId ?? this.generateId(),
-    });
-
-    const runUpdateMessageJob = async (
-      job: (options: {
-        state: StreamingUIMessageState;
-        write: () => void;
-      }) => Promise<void>,
-    ) => {
-      await job({ state, write: () => {} });
-    };
-
-    return processUIMessageStream({
+    return handleUIMessageStreamFinish({
       stream: baseStream,
-      runUpdateMessageJob,
-    }).pipeThrough(
-      new TransformStream({
-        transform(chunk, controller) {
-          controller.enqueue(chunk);
-        },
-
-        flush() {
-          const isContinuation = state.message.id === lastMessage?.id;
-          onFinish({
-            isContinuation,
-            responseMessage: state.message,
-            messages: [
-              ...(isContinuation
-                ? originalMessages.slice(0, -1)
-                : originalMessages),
-              state.message,
-            ],
-          });
-        },
-      }),
-    );
+      newMessageId: messageId,
+      originalMessages,
+      onFinish,
+    });
   }
 
   pipeUIMessageStreamToResponse(
@@ -1648,8 +1587,8 @@ However, the LLM results are expected to be small enough to not cause issues.
       messageMetadata,
       sendReasoning,
       sendSources,
-      experimental_sendFinish,
-      experimental_sendStart,
+      sendFinish,
+      sendStart,
       onError,
       ...init
     }: ResponseInit & UIMessageStreamOptions = {},
@@ -1663,8 +1602,8 @@ However, the LLM results are expected to be small enough to not cause issues.
         messageMetadata,
         sendReasoning,
         sendSources,
-        experimental_sendFinish,
-        experimental_sendStart,
+        sendFinish,
+        sendStart,
         onError,
       }),
       ...init,
@@ -1686,8 +1625,8 @@ However, the LLM results are expected to be small enough to not cause issues.
     messageMetadata,
     sendReasoning,
     sendSources,
-    experimental_sendFinish,
-    experimental_sendStart,
+    sendFinish,
+    sendStart,
     onError,
     ...init
   }: ResponseInit & UIMessageStreamOptions = {}): Response {
@@ -1699,8 +1638,8 @@ However, the LLM results are expected to be small enough to not cause issues.
         messageMetadata,
         sendReasoning,
         sendSources,
-        experimental_sendFinish,
-        experimental_sendStart,
+        sendFinish,
+        sendStart,
         onError,
       }),
       ...init,

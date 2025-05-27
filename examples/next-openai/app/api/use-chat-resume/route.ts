@@ -37,12 +37,12 @@ export async function POST(req: Request) {
     throw new Error('No recent user message found');
   }
 
-  await appendMessageToChat({ chatId: chatId, message: recentUserMessage });
+  await appendMessageToChat({ chatId, message: recentUserMessage });
 
-  await appendStreamId({ chatId: chatId, streamId });
+  await appendStreamId({ chatId, streamId });
 
   const stream = createUIMessageStream({
-    execute: writer => {
+    execute: ({ writer }) => {
       const result = streamText({
         model: openai('gpt-4o'),
         messages: convertToModelMessages(messages),

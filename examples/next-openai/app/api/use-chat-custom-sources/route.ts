@@ -4,13 +4,16 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
+  UIMessage,
 } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const stream = createUIMessageStream({
-    execute: writer => {
+    execute: ({ writer }) => {
+      writer.write({ type: 'start' });
+
       // write a custom url source to the stream:
       writer.write({
         type: 'source-url',
@@ -24,7 +27,11 @@ export async function POST(req: Request) {
         messages: convertToModelMessages(messages),
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(result.toUIMessageStream({ sendStart: false }));
+    },
+    originalMessages: messages,
+    onFinish: options => {
+      console.log('onFinish', JSON.stringify(options, null, 2));
     },
   });
 

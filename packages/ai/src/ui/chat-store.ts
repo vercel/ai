@@ -35,16 +35,10 @@ export interface ChatStoreEvent {
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
-export interface Chat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
-  status: ChatStatus;
-  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-  error?: Error;
-  activeResponse?: {
-    state: StreamingUIMessageState<MESSAGE_METADATA>;
-    abortController?: AbortController;
-  };
-  jobExecutor: SerialJobExecutor;
-}
+export type ActiveResponse<MESSAGE_METADATA> = {
+  state: StreamingUIMessageState<MESSAGE_METADATA>;
+  abortController: AbortController | undefined;
+};
 
 type ExtendedCallOptions<
   MESSAGE_METADATA,
@@ -88,13 +82,77 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
       : unknown;
 };
 
-export class ChatStore<
+export type ChatFactory<
   MESSAGE_METADATA,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
+  DATA_TYPES extends UIDataTypes,
+> = (options: {
+  messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+}) => Chat<MESSAGE_METADATA, DATA_TYPES>;
+
+export type ChatStoreOptions<
+  MESSAGE_METADATA,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas,
+> = {
+  chats?: {
+    [id: string]: {
+      messages: UIMessage<
+        MESSAGE_METADATA,
+        InferUIDataParts<DATA_PART_SCHEMAS>
+      >[];
+    };
+  };
+  generateId?: UseChatOptions['generateId'];
+  transport: ChatTransport<
+    MESSAGE_METADATA,
+    InferUIDataParts<DATA_PART_SCHEMAS>
+  >;
+  maxSteps?: number;
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
+  dataPartSchemas?: DATA_PART_SCHEMAS;
+};
+
+export type ChatStoreFactory<
+  MESSAGE_METADATA,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas,
+> = (
+  options: ChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
+) => ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>;
+
+export interface Chat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
+  readonly status: ChatStatus;
+  readonly messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  readonly error: Error | undefined;
+  readonly activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined;
+  readonly jobExecutor: SerialJobExecutor;
+
+  setStatus: (status: ChatStatus) => void;
+  setError: (error: Error | undefined) => void;
+  setActiveResponse: (
+    activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined,
+  ) => void;
+  pushMessage: (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => void;
+  popMessage: () => void;
+  replaceMessage: (
+    index: number,
+    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
+  ) => void;
+  setMessages: (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => void;
+  snapshot?: <T>(thing: T) => T;
+}
+
+export class ChatStore<
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
   private chats: Map<
     string,
     Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
+  >;
+  private readonly createChat: ChatFactory<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
   private subscribers: Set<ChatStoreSubscriber>;
   private generateId: IdGenerator;
@@ -116,6 +174,7 @@ export class ChatStore<
     maxSteps = 1,
     messageMetadataSchema,
     dataPartSchemas,
+    createChat,
   }: {
     chats?: {
       [id: string]: {
@@ -135,17 +194,16 @@ export class ChatStore<
       | Validator<MESSAGE_METADATA>
       | StandardSchemaV1<MESSAGE_METADATA>;
     dataPartSchemas?: UI_DATA_PART_SCHEMAS;
+    createChat: ChatFactory<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >;
   }) {
+    this.createChat = createChat;
     this.chats = new Map(
-      Object.entries(chats).map(([id, state]) => [
+      Object.entries(chats).map(([id, chat]) => [
         id,
-        {
-          messages: [...state.messages],
-          status: 'ready',
-          activeResponse: undefined,
-          error: undefined,
-          jobExecutor: new SerialJobExecutor(),
-        },
+        this.createChat({ messages: chat.messages }),
       ]),
     );
 
@@ -168,11 +226,7 @@ export class ChatStore<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[],
   ) {
-    this.chats.set(id, {
-      messages,
-      status: 'ready',
-      jobExecutor: new SerialJobExecutor(),
-    });
+    this.chats.set(id, this.createChat({ messages }));
   }
 
   getChats() {
@@ -184,7 +238,7 @@ export class ChatStore<
   }
 
   getStatus(id: string): ChatStatus {
-    return this.getChat(id).status;
+    return this.getChatState(id).status;
   }
 
   setStatus({
@@ -193,32 +247,29 @@ export class ChatStore<
     error,
   }: {
     id: string;
-    status: Chat<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >['status'];
+    status: ChatStatus;
     error?: Error;
   }) {
-    const chat = this.getChat(id);
+    const state = this.getChatState(id);
 
-    if (chat.status === status) return;
+    if (state.status === status) return;
 
-    chat.status = status;
-    chat.error = error;
+    state.setStatus(status);
+    state.setError(error);
 
     this.emit({ type: 'chat-status-changed', chatId: id, error });
   }
 
   getError(id: string) {
-    return this.getChat(id).error;
+    return this.getChatState(id).error;
   }
 
   getMessages(id: string) {
-    return this.getChat(id).messages;
+    return this.getChatState(id).messages;
   }
 
   getLastMessage(id: string) {
-    const chat = this.getChat(id);
+    const chat = this.getChatState(id);
     return chat.messages[chat.messages.length - 1];
   }
 
@@ -237,14 +288,12 @@ export class ChatStore<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[];
   }) {
-    // mutate the messages array directly:
-    this.getChat(id).messages = [...messages];
+    this.getChatState(id).setMessages(messages);
     this.emit({ type: 'chat-messages-changed', chatId: id });
   }
 
   removeAssistantResponse(id: string) {
-    const chat = this.getChat(id);
-
+    const chat = this.getChatState(id);
     const lastMessage = chat.messages[chat.messages.length - 1];
 
     if (lastMessage == null) {
@@ -255,7 +304,8 @@ export class ChatStore<
       throw new Error('Last message is not an assistant message');
     }
 
-    this.setMessages({ id, messages: chat.messages.slice(0, -1) });
+    chat.popMessage();
+    this.emit({ type: 'chat-messages-changed', chatId: id });
   }
 
   async submitMessage({
@@ -276,15 +326,14 @@ export class ChatStore<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >;
   }) {
-    const chat = this.getChat(chatId);
-    const currentMessages = chat.messages;
-
+    const state = this.getChatState(chatId);
+    state.pushMessage({ ...message, id: message.id ?? this.generateId() });
+    this.emit({
+      type: 'chat-messages-changed',
+      chatId,
+    });
     await this.triggerRequest({
       chatId,
-      messages: currentMessages.concat({
-        ...message,
-        id: message.id ?? this.generateId(),
-      }),
       headers,
       body,
       requestType: 'generate',
@@ -307,21 +356,23 @@ export class ChatStore<
   > & {
     chatId: string;
   }) {
-    const messages = this.getChat(chatId).messages;
+    const chat = this.getChatState(chatId);
 
-    const messagesToSubmit =
-      messages[messages.length - 1].role === 'assistant'
-        ? messages.slice(0, -1)
-        : messages;
+    if (chat.messages[chat.messages.length - 1].role === 'assistant') {
+      chat.popMessage();
+      this.emit({
+        type: 'chat-messages-changed',
+        chatId,
+      });
+    }
 
-    if (messagesToSubmit.length === 0) {
+    if (chat.messages.length === 0) {
       return;
     }
 
     return this.triggerRequest({
       chatId,
       requestType: 'generate',
-      messages: messagesToSubmit,
       headers,
       body,
       onError,
@@ -343,12 +394,8 @@ export class ChatStore<
   > & {
     chatId: string;
   }) {
-    const chat = this.getChat(chatId);
-    const currentMessages = chat.messages;
-
     return this.triggerRequest({
       chatId,
-      messages: currentMessages,
       requestType: 'resume',
       headers,
       body,
@@ -367,19 +414,19 @@ export class ChatStore<
     toolCallId: string;
     result: unknown;
   }) {
-    const chat = this.getChat(chatId);
+    const chat = this.getChatState(chatId);
 
     chat.jobExecutor.run(async () => {
-      const currentMessages = chat.messages;
-
       updateToolCallResult({
-        messages: currentMessages,
+        messages: chat.messages,
         toolCallId,
         toolResult: result,
       });
 
-      // updated the messages array:
-      this.setMessages({ id: chatId, messages: currentMessages });
+      this.setMessages({
+        id: chatId,
+        messages: chat.messages,
+      });
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
       if (chat.status === 'submitted' || chat.status === 'streaming') {
@@ -387,10 +434,10 @@ export class ChatStore<
       }
 
       // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = currentMessages[currentMessages.length - 1];
+      const lastMessage = chat.messages[chat.messages.length - 1];
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        await this.triggerRequest({
-          messages: currentMessages,
+        // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
+        this.triggerRequest({
           requestType: 'generate',
           chatId,
         });
@@ -399,7 +446,7 @@ export class ChatStore<
   }
 
   async stopStream({ chatId }: { chatId: string }) {
-    const chat = this.getChat(chatId);
+    const chat = this.getChatState(chatId);
 
     if (chat.status !== 'streaming' && chat.status !== 'submitted') return;
 
@@ -415,18 +462,17 @@ export class ChatStore<
     }
   }
 
-  private getChat(
+  private getChatState(
     id: string,
   ): Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>> {
     if (!this.hasChat(id)) {
-      throw new Error(`chat '${id}' not found`);
+      this.addChat(id, []);
     }
     return this.chats.get(id)!;
   }
 
   private async triggerRequest({
     chatId,
-    messages: chatMessages,
     requestType,
     headers,
     body,
@@ -438,39 +484,32 @@ export class ChatStore<
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   > & {
     chatId: string;
-    messages: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >[];
     requestType: 'generate' | 'resume';
   }) {
-    const self = this;
-    const chat = this.getChat(chatId);
-
-    // update the messages array with the new message:
-    this.setMessages({ id: chatId, messages: chatMessages });
+    const chat = this.getChatState(chatId);
 
     this.setStatus({ id: chatId, status: 'submitted', error: undefined });
 
-    const messageCount = chatMessages.length;
+    const messageCount = chat.messages.length;
     const maxStep = extractMaxToolInvocationStep(
-      getToolInvocations(chatMessages[chatMessages.length - 1]),
+      getToolInvocations(chat.messages[chat.messages.length - 1]),
     );
 
     try {
+      const lastMessage = chat.messages[chat.messages.length - 1];
       const activeResponse = {
         state: createStreamingUIMessageState({
-          lastMessage: chatMessages[chatMessages.length - 1],
-          newMessageId: self.generateId(),
+          lastMessage: chat.snapshot ? chat.snapshot(lastMessage) : lastMessage,
+          newMessageId: this.generateId(),
         }),
         abortController: new AbortController(),
       };
 
-      chat.activeResponse = activeResponse;
+      chat.setActiveResponse(activeResponse);
 
-      const stream = await self.transport.submitMessages({
+      const stream = await this.transport.submitMessages({
         chatId,
-        messages: chatMessages,
+        messages: chat.messages,
         body,
         headers,
         abortController: activeResponse.abortController,
@@ -492,22 +531,24 @@ export class ChatStore<
             state: activeResponse.state,
             write: () => {
               // streaming is set on first write (before it should be "submitted")
-              self.setStatus({ id: chatId, status: 'streaming' });
+              this.setStatus({ id: chatId, status: 'streaming' });
 
               const replaceLastMessage =
                 activeResponse.state.message.id ===
-                chatMessages[chatMessages.length - 1].id;
+                chat.messages[chat.messages.length - 1].id;
 
-              const newMessages = [
-                ...(replaceLastMessage
-                  ? chatMessages.slice(0, chatMessages.length - 1)
-                  : chatMessages),
-                activeResponse.state.message,
-              ];
+              if (replaceLastMessage) {
+                chat.replaceMessage(
+                  chat.messages.length - 1,
+                  activeResponse.state.message,
+                );
+              } else {
+                chat.pushMessage(activeResponse.state.message);
+              }
 
-              self.setMessages({
-                id: chatId,
-                messages: newMessages,
+              this.emit({
+                type: 'chat-messages-changed',
+                chatId,
               });
             },
           }),
@@ -517,8 +558,8 @@ export class ChatStore<
         stream: processUIMessageStream({
           stream,
           onToolCall,
-          messageMetadataSchema: self.messageMetadataSchema,
-          dataPartSchemas: self.dataPartSchemas,
+          messageMetadataSchema: this.messageMetadataSchema,
+          dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
         }),
         onError: error => {
@@ -542,21 +583,20 @@ export class ChatStore<
 
       this.setStatus({ id: chatId, status: 'error', error: err as Error });
     } finally {
-      chat.activeResponse = undefined;
+      chat.setActiveResponse(undefined);
     }
 
     // auto-submit when all tool calls in the last assistant message have results
     // and assistant has not answered yet
-    const currentMessages = self.getMessages(chatId);
     if (
       shouldResubmitMessages({
         originalMaxToolInvocationStep: maxStep,
         originalMessageCount: messageCount,
-        maxSteps: self.maxSteps,
-        messages: currentMessages,
+        maxSteps: this.maxSteps,
+        messages: chat.messages,
       })
     ) {
-      await self.triggerRequest({
+      await this.triggerRequest({
         chatId,
         requestType,
         onError,
@@ -564,7 +604,6 @@ export class ChatStore<
         onFinish,
         headers,
         body,
-        messages: currentMessages,
       });
     }
   }

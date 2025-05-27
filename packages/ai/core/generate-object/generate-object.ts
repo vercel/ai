@@ -23,6 +23,7 @@ import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attr
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   CallWarning,
@@ -322,7 +323,7 @@ Default and recommended: 'auto' (best mode for the model).
               }),
               ...baseTelemetryAttributes,
               'ai.prompt.messages': {
-                input: () => JSON.stringify(promptMessages),
+                input: () => stringifyForTelemetry(promptMessages),
               },
 
               // standardized gen-ai llm span attributes:

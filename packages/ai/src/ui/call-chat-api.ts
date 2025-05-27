@@ -157,7 +157,7 @@ export async function consumeUIMessageStream<MESSAGE_METADATA>({
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 }) {
   const state = createStreamingUIMessageState({
-    lastMessage,
+    lastMessage: lastMessage ? structuredClone(lastMessage) : undefined,
     newMessageId: generateId(),
   });
 

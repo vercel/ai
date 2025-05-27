@@ -6,29 +6,18 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
-  ChatStore,
+  ChatFactory,
+  ChatStoreOptions,
   InferUIDataParts,
   type UIDataPartSchemas,
 } from './chat-store';
 import { DefaultChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
 
-export function defaultChatStore<
-  MESSAGE_METADATA,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
->({
-  api,
-  fetch,
-  credentials,
-  headers,
-  body,
-  prepareRequestBody,
-  generateId = generateIdFunc,
-  dataPartSchemas,
-  messageMetadataSchema,
-  maxSteps = 1,
-  chats,
-}: {
+export interface DefaultChatStoreOptions<
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> {
   /**
    * Schema for the message metadata. Validates the message metadata.
    * Message metadata can be undefined or must match the schema.
@@ -45,8 +34,10 @@ export function defaultChatStore<
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response.
+   *
+   * Defaults to `/api/chat`
    */
-  api: string;
+  api?: string;
 
   /**
    * A way to provide a function that is going to be used for ids for messages and the chat.
@@ -122,8 +113,28 @@ export function defaultChatStore<
       >[];
     };
   };
-}): ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
-  return new ChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+}
+
+export function defaultChatStoreOptions<
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+>({
+  api = '/api/chat',
+  fetch,
+  credentials,
+  headers,
+  body,
+  prepareRequestBody,
+  generateId = generateIdFunc,
+  messageMetadataSchema,
+  maxSteps = 1,
+  dataPartSchemas,
+  chats,
+}: DefaultChatStoreOptions<
+  MESSAGE_METADATA,
+  UI_DATA_PART_SCHEMAS
+>): () => ChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+  return () => ({
     transport: new DefaultChatTransport<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>

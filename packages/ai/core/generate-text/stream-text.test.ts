@@ -822,6 +822,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse);
@@ -840,7 +843,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start"}
+          "data: {"type":"start","messageId":"id-0"}
 
         ",
           "data: {"type":"start-step"}
@@ -874,6 +877,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse, {
@@ -902,7 +908,7 @@ describe('streamText', () => {
 
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start"}
+          "data: {"type":"start","messageId":"id-0"}
 
         ",
           "data: {"type":"start-step"}
@@ -940,6 +946,9 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse);
@@ -959,6 +968,9 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse, {
@@ -987,9 +999,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeUIMessageStreamToResponse(mockResponse, {
-        experimental_sendFinish: false,
-      });
+      result.pipeUIMessageStreamToResponse(mockResponse, { sendFinish: false });
 
       await mockResponse.waitForEnd();
 
@@ -1022,7 +1032,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start"}
+          "data: {"type":"start","messageId":"id-0"}
 
         ",
           "data: {"type":"start-step"}
@@ -1103,7 +1113,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start"}
+          "data: {"type":"start","messageId":"id-0"}
 
         ",
           "data: {"type":"start-step"}
@@ -1155,7 +1165,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start"}
+          "data: {"type":"start","messageId":"id-0"}
 
         ",
           "data: {"type":"start-step"}
@@ -1343,7 +1353,7 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": undefined,
+              "messageId": "id-0",
               "metadata": {
                 "key1": "value1",
               },
@@ -1435,9 +1445,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const uiMessageStream = result.toUIMessageStream({
-        experimental_sendFinish: false,
-      });
+      const uiMessageStream = result.toUIMessageStream({ sendFinish: false });
 
       expect(
         await convertReadableStreamToArray(uiMessageStream),
@@ -1460,9 +1468,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const uiMessageStream = result.toUIMessageStream({
-        experimental_sendStart: false,
-      });
+      const uiMessageStream = result.toUIMessageStream({ sendStart: false });
 
       expect(
         await convertReadableStreamToArray(uiMessageStream),
@@ -1514,6 +1520,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       const response = result.toUIMessageStreamResponse();
@@ -1533,7 +1542,7 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
           [
-            "data: {"type":"start"}
+            "data: {"type":"start","messageId":"id-0"}
 
           ",
             "data: {"type":"start-step"}
@@ -1565,6 +1574,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       const response = result.toUIMessageStreamResponse({
@@ -1591,7 +1603,7 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
           [
-            "data: {"type":"start"}
+            "data: {"type":"start","messageId":"id-0"}
 
           ",
             "data: {"type":"start-step"}
@@ -1627,6 +1639,9 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       const response = result.toUIMessageStreamResponse();
@@ -1642,6 +1657,9 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       const response = result.toUIMessageStreamResponse({
@@ -1781,6 +1799,9 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       expect({
@@ -2651,6 +2672,7 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
+            generateId: mockId({ prefix: 'id' }),
           },
         });
       });
@@ -2729,55 +2751,55 @@ describe('streamText', () => {
       it('should have correct ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "messageId": undefined,
-              "metadata": undefined,
-              "type": "start",
-            },
-            {
-              "metadata": undefined,
-              "type": "start-step",
-            },
-            {
-              "args": {
-                "value": "value",
+            [
+              {
+                "messageId": "id-0",
+                "metadata": undefined,
+                "type": "start",
               },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-            {
-              "result": "result1",
-              "toolCallId": "call-1",
-              "type": "tool-result",
-            },
-            {
-              "metadata": undefined,
-              "type": "finish-step",
-            },
-            {
-              "metadata": undefined,
-              "type": "start-step",
-            },
-            {
-              "text": "Hello, ",
-              "type": "text",
-            },
-            {
-              "text": "world!",
-              "type": "text",
-            },
-            {
-              "metadata": undefined,
-              "type": "finish-step",
-            },
-            {
-              "metadata": undefined,
-              "type": "finish",
-            },
-          ]
-        `);
+              {
+                "metadata": undefined,
+                "type": "start-step",
+              },
+              {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "result": "result1",
+                "toolCallId": "call-1",
+                "type": "tool-result",
+              },
+              {
+                "metadata": undefined,
+                "type": "finish-step",
+              },
+              {
+                "metadata": undefined,
+                "type": "start-step",
+              },
+              {
+                "text": "Hello, ",
+                "type": "text",
+              },
+              {
+                "text": "world!",
+                "type": "text",
+              },
+              {
+                "metadata": undefined,
+                "type": "finish-step",
+              },
+              {
+                "metadata": undefined,
+                "type": "finish",
+              },
+            ]
+          `);
       });
     });
 
@@ -3456,6 +3478,7 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
+            generateId: mockId({ prefix: 'id' }),
           },
         });
       });
@@ -4323,7 +4346,7 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": undefined,
+                "messageId": "id-0",
                 "metadata": undefined,
                 "type": "start",
               },

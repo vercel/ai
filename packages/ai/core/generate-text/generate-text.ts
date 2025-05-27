@@ -20,6 +20,7 @@ import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attr
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
@@ -28,6 +29,7 @@ import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
@@ -188,42 +190,12 @@ Optional specification for parsing structured outputs from the LLM response.
     /**
      * @deprecated Use `prepareStep` instead.
      */
-    experimental_prepareStep?: (options: {
-      steps: Array<StepResult<NoInfer<TOOLS>>>;
-      stepNumber: number;
-      model: LanguageModel;
-    }) => PromiseLike<
-      | {
-          model?: LanguageModel;
-          toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-          activeTools?: Array<keyof NoInfer<TOOLS>>;
-        }
-      | undefined
-    >;
+    experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
     /**
 Optional function that you can use to provide different settings for a step.
-
-@param options - The options for the step.
-@param options.steps - The steps that have been executed so far.
-@param options.stepNumber - The number of the step that is being executed.
-@param options.model - The model that is being used.
-
-@returns An object that contains the settings for the step.
-If you return undefined (or for undefined settings), the settings from the outer level will be used.
     */
-    prepareStep?: (options: {
-      steps: Array<StepResult<NoInfer<TOOLS>>>;
-      stepNumber: number;
-      model: LanguageModel;
-    }) => PromiseLike<
-      | {
-          model?: LanguageModel;
-          toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-          activeTools?: Array<keyof NoInfer<TOOLS>>;
-        }
-      | undefined
-    >;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
@@ -338,7 +310,7 @@ A function that attempts to repair a tool call that failed to parse.
                 'ai.model.id': stepModel.modelId,
                 // prompt:
                 'ai.prompt.messages': {
-                  input: () => JSON.stringify(promptMessages),
+                  input: () => stringifyForTelemetry(promptMessages),
                 },
                 'ai.prompt.tools': {
                   // convert the language model level tools:

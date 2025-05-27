@@ -1,52 +1,66 @@
-import { isAbortError } from '@ai-sdk/provider-utils';
 import {
-  callChatApi,
+  ChatStore,
   convertFileListToFileUIParts,
-  extractMaxToolInvocationStep,
+  defaultChatStoreOptions,
   generateId,
-  getToolInvocations,
-  isAssistantMessageWithCompletedToolCalls,
-  shouldResubmitMessages,
-  updateToolCallResult,
   type ChatRequestOptions,
+  type ChatStatus,
   type CreateUIMessage,
-  type OriginalUseChatOptions,
+  type IdGenerator,
+  type InferUIDataParts,
+  type UIDataPartSchemas,
   type UIMessage,
+  type UseChatOptions,
 } from 'ai';
-import { untrack } from 'svelte';
 import {
-  KeyedChatStore,
-  getChatContext,
-  hasChatContext,
-} from './chat-context.svelte.js';
+  getChatStoreContext,
+  hasChatStoreContext,
+  createChatStore,
+} from './chat-store.svelte.js';
 
-export type ChatOptions<MESSAGE_METADATA = unknown> = Readonly<
-  OriginalUseChatOptions<MESSAGE_METADATA>
->;
+export type ChatOptions<
+  MESSAGE_METADATA = unknown,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> = Readonly<UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>>;
 
 export type { CreateUIMessage, UIMessage };
 
-export class Chat<MESSAGE_METADATA = unknown> {
-  readonly #options: ChatOptions<MESSAGE_METADATA> = {};
-  readonly #api = $derived(this.#options.api ?? '/api/chat');
-  readonly #generateId = $derived(this.#options.generateId ?? generateId);
-  readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
-  readonly #streamProtocol = $derived(
-    this.#options.streamProtocol ?? 'ui-message',
-  );
-  readonly #keyedStore = $state<KeyedChatStore<MESSAGE_METADATA>>()!;
+export class Chat<
+  MESSAGE_METADATA = unknown,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> {
+  readonly #options: ChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>;
+  readonly #generateId: IdGenerator;
+  readonly #chatStore: ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>;
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
    */
-  readonly chatId = $derived(this.#options.chatId ?? this.#generateId());
-  readonly #store = $derived(this.#keyedStore.get(this.chatId));
+  readonly chatId: string;
 
-  readonly #messageMetadataSchema = $derived(
-    this.#options.messageMetadataSchema,
-  );
+  /** The current value of the input. Writable, so it can be bound to form inputs. */
+  input = $state<string>('');
 
-  #abortController: AbortController | undefined;
+  /**
+   * Current messages in the chat.
+   *
+   * This is writable, which is useful when you want to edit the messages on the client, and then
+   * trigger {@link reload} to regenerate the AI response.
+   */
+  get messages(): UIMessage<
+    MESSAGE_METADATA,
+    InferUIDataParts<DATA_PART_SCHEMAS>
+  >[] {
+    return this.#chatStore.getMessages(this.chatId);
+  }
+  set messages(
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<DATA_PART_SCHEMAS>
+    >[],
+  ) {
+    this.#chatStore.setMessages({ id: this.chatId, messages });
+  }
 
   /**
    * Hook status:
@@ -56,41 +70,61 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * - `ready`: The full response has been received and processed; a new user message can be submitted.
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
-  get status() {
-    return this.#store.status;
+  get status(): ChatStatus {
+    return this.#chatStore.getStatus(this.chatId);
+  }
+  set status(value: ChatStatus) {
+    this.#chatStore.setStatus({ id: this.chatId, status: value });
   }
 
   /** The error object of the API request */
-  get error() {
-    return this.#store.error;
+  get error(): Error | undefined {
+    return this.#chatStore.getError(this.chatId);
+  }
+  set error(value: Error | undefined) {
+    this.#chatStore.setStatus({
+      id: this.chatId,
+      status: 'error',
+      error: value,
+    });
   }
 
-  /** The current value of the input. Writable, so it can be bound to form inputs. */
-  input = $state<string>()!;
+  constructor(
+    options: () => ChatOptions<
+      MESSAGE_METADATA,
+      DATA_PART_SCHEMAS
+    > = () => ({}),
+  ) {
+    this.#options = $derived.by(options);
+    this.#generateId = $derived(this.#options.generateId ?? generateId);
+    this.chatId = $derived(this.#options.chatId ?? this.#generateId());
 
-  /**
-   * Current messages in the chat.
-   *
-   * This is writable, which is useful when you want to edit the messages on the client, and then
-   * trigger {@link reload} to regenerate the AI response.
-   */
-  get messages(): UIMessage<MESSAGE_METADATA>[] {
-    return this.#store.messages;
-  }
-  set messages(value: UIMessage<MESSAGE_METADATA>[]) {
-    untrack(() => (this.#store.messages = value));
-  }
-
-  constructor(options: ChatOptions<MESSAGE_METADATA> = {}) {
-    if (hasChatContext()) {
-      this.#keyedStore = getChatContext() as KeyedChatStore<MESSAGE_METADATA>;
+    if (this.#options.chatStore) {
+      if (typeof this.#options.chatStore === 'function') {
+        this.#chatStore = createChatStore(this.#options.chatStore());
+      } else {
+        this.#chatStore = this.#options.chatStore;
+      }
+    } else if (hasChatStoreContext()) {
+      this.#chatStore = getChatStoreContext() as ChatStore<
+        MESSAGE_METADATA,
+        DATA_PART_SCHEMAS
+      >;
     } else {
-      this.#keyedStore = new KeyedChatStore<MESSAGE_METADATA>();
+      this.#chatStore = createChatStore(
+        defaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
+          api: '/api/chat',
+          generateId: this.#options.generateId || generateId,
+        })(),
+      );
     }
 
-    this.#options = options;
-    this.messages = options.initialMessages ?? [];
-    this.input = options.initialInput ?? '';
+    this.input = this.#options.initialInput ?? '';
+
+    if (!this.#chatStore.hasChat(this.chatId)) {
+      const messages = $state([]);
+      this.#chatStore.addChat(this.chatId, messages);
+    }
   }
 
   /**
@@ -100,15 +134,20 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * @param options Additional options to pass to the API call
    */
   append = async (
-    message: UIMessage<MESSAGE_METADATA> | CreateUIMessage<MESSAGE_METADATA>,
+    message:
+      | UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>
+      | CreateUIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>,
     { headers, body }: ChatRequestOptions = {},
   ) => {
-    const messages = this.messages.concat({
-      ...message,
-      id: message.id ?? this.#generateId(),
+    await this.#chatStore.submitMessage({
+      chatId: this.chatId,
+      message,
+      headers,
+      body,
+      onError: this.#options.onError,
+      onToolCall: this.#options.onToolCall,
+      onFinish: this.#options.onFinish,
     });
-
-    return this.#triggerRequest({ messages, headers, body });
   };
 
   /**
@@ -117,18 +156,13 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * new response.
    */
   reload = async ({ headers, body }: ChatRequestOptions = {}) => {
-    if (this.messages.length === 0) {
-      return;
-    }
-
-    const lastMessage = this.messages[this.messages.length - 1];
-    await this.#triggerRequest({
-      messages:
-        lastMessage.role === 'assistant'
-          ? this.messages.slice(0, -1)
-          : this.messages,
+    await this.#chatStore.resubmitLastUserMessage({
+      chatId: this.chatId,
       headers,
       body,
+      onError: this.#options.onError,
+      onToolCall: this.#options.onToolCall,
+      onFinish: this.#options.onFinish,
     });
   };
 
@@ -136,14 +170,7 @@ export class Chat<MESSAGE_METADATA = unknown> {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = () => {
-    try {
-      this.#abortController?.abort();
-    } catch {
-      // ignore
-    } finally {
-      this.#store.status = 'ready';
-      this.#abortController = undefined;
-    }
+    this.#chatStore.stopStream({ chatId: this.chatId });
   };
 
   /** Form submission handler to automatically reset input and append a user message */
@@ -159,17 +186,17 @@ export class Chat<MESSAGE_METADATA = unknown> {
 
     if (!this.input && fileParts.length === 0) return;
 
-    const messages = this.messages.concat({
-      id: this.#generateId(),
-      role: 'user',
-      parts: [...fileParts, { type: 'text', text: this.input }],
-    });
-
-    const request = this.#triggerRequest({
-      messages,
-      headers: options.headers,
-      body: options.body,
-    });
+    const request = this.append(
+      {
+        id: this.#generateId(),
+        role: 'user',
+        parts: [...fileParts, { type: 'text', text: this.input }],
+      },
+      {
+        headers: options.headers,
+        body: options.body,
+      },
+    );
 
     this.input = '';
     await request;
@@ -182,114 +209,10 @@ export class Chat<MESSAGE_METADATA = unknown> {
     toolCallId: string;
     result: unknown;
   }) => {
-    updateToolCallResult({
-      messages: this.messages,
+    await this.#chatStore.addToolResult({
+      chatId: this.chatId,
       toolCallId,
-      toolResult: result,
+      result,
     });
-
-    // when the request is ongoing, the auto-submit will be triggered after the request is finished
-    if (
-      this.#store.status === 'submitted' ||
-      this.#store.status === 'streaming'
-    ) {
-      return;
-    }
-
-    const lastMessage = this.messages[this.messages.length - 1];
-    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      await this.#triggerRequest({ messages: this.messages });
-    }
-  };
-
-  #triggerRequest = async (
-    chatRequest: ChatRequestOptions & {
-      messages: UIMessage<MESSAGE_METADATA>[];
-    },
-  ) => {
-    this.#store.status = 'submitted';
-    this.#store.error = undefined;
-
-    const messages = chatRequest.messages;
-    const messageCount = messages.length;
-    const maxStep = extractMaxToolInvocationStep(
-      getToolInvocations(messages[messages.length - 1]),
-    );
-
-    try {
-      const abortController = new AbortController();
-      this.#abortController = abortController;
-
-      // Optimistically update messages
-      this.messages = messages;
-
-      await callChatApi({
-        api: this.#api,
-        body: {
-          id: this.chatId,
-          messages,
-          ...$state.snapshot(this.#options.body),
-          ...chatRequest.body,
-        },
-        streamProtocol: this.#streamProtocol,
-        credentials: this.#options.credentials,
-        headers: {
-          ...this.#options.headers,
-          ...chatRequest.headers,
-        },
-        abortController: () => abortController,
-        onUpdate: ({ message }) => {
-          this.#store.status = 'streaming';
-
-          const replaceLastMessage =
-            message.id === messages[messages.length - 1].id;
-
-          this.messages = messages;
-          if (replaceLastMessage) {
-            this.messages[this.messages.length - 1] = message;
-          } else {
-            this.messages.push(message);
-          }
-        },
-        onToolCall: this.#options.onToolCall,
-        onFinish: this.#options.onFinish,
-        generateId: this.#generateId,
-        fetch: this.#options.fetch,
-        // callChatApi calls structuredClone on the message
-        lastMessage: $state.snapshot(
-          this.messages[this.messages.length - 1],
-        ) as UIMessage<MESSAGE_METADATA>,
-        messageMetadataSchema: this.#messageMetadataSchema,
-      });
-
-      this.#abortController = undefined;
-      this.#store.status = 'ready';
-    } catch (error) {
-      if (isAbortError(error)) {
-        return;
-      }
-
-      const coalescedError =
-        error instanceof Error ? error : new Error(String(error));
-      if (this.#options.onError) {
-        this.#options.onError(coalescedError);
-      }
-
-      this.#store.status = 'error';
-      this.#store.error = coalescedError;
-    }
-
-    // auto-submit when all tool calls in the last assistant message have results
-    // and assistant has not answered yet
-    if (
-      shouldResubmitMessages({
-        originalMaxToolInvocationStep: maxStep,
-        originalMessageCount: messageCount,
-        maxSteps: this.#maxSteps,
-        messages: this.messages,
-      })
-    ) {
-      await this.#triggerRequest({ messages: this.messages });
-    }
   };
 }

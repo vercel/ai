@@ -60,7 +60,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
   ],
   "uiMessageStream": [
     {
-      "messageId": undefined,
+      "messageId": "id-1",
       "metadata": undefined,
       "type": "start",
     },
@@ -2816,7 +2816,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error messages by default 1`] = `
 [
-  "data: {"type":"start"}
+  "data: {"type":"start","messageId":"id-0"}
 
 ",
   "data: {"type":"start-step"}
@@ -2839,7 +2839,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
-  "data: {"type":"start"}
+  "data: {"type":"start","messageId":"id-0"}
 
 ",
   "data: {"type":"start-step"}
@@ -2859,7 +2859,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should omit message
 
 exports[`streamText > result.pipeUIMessageStreamToResponse > should support custom error messages 1`] = `
 [
-  "data: {"type":"start"}
+  "data: {"type":"start","messageId":"id-0"}
 
 ",
   "data: {"type":"start-step"}
@@ -3263,7 +3263,7 @@ exports[`streamText > result.textStream > should swallow error to prevent server
 exports[`streamText > result.toUIMessageStream > should create a data stream 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3297,7 +3297,7 @@ exports[`streamText > result.toUIMessageStream > should create a data stream 1`]
 exports[`streamText > result.toUIMessageStream > should mask error messages by default 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3323,7 +3323,7 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
 exports[`streamText > result.toUIMessageStream > should omit message finish event when sendFinish is false 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3366,7 +3366,7 @@ exports[`streamText > result.toUIMessageStream > should omit message start event
 exports[`streamText > result.toUIMessageStream > should send file content 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3402,7 +3402,7 @@ exports[`streamText > result.toUIMessageStream > should send file content 1`] = 
 exports[`streamText > result.toUIMessageStream > should send reasoning content when sendReasoning is true 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3488,7 +3488,7 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
 exports[`streamText > result.toUIMessageStream > should send source content when sendSources is true 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3536,7 +3536,7 @@ exports[`streamText > result.toUIMessageStream > should send source content when
 exports[`streamText > result.toUIMessageStream > should send tool call and tool result stream parts 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3571,7 +3571,7 @@ exports[`streamText > result.toUIMessageStream > should send tool call and tool 
 exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3621,7 +3621,7 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
 exports[`streamText > result.toUIMessageStream > should support custom error messages 1`] = `
 [
   {
-    "messageId": undefined,
+    "messageId": "id-0",
     "metadata": undefined,
     "type": "start",
   },
@@ -3646,7 +3646,7 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
 
 exports[`streamText > result.toUIMessageStreamResponse > should mask error messages by default 1`] = `
 [
-  "data: {"type":"start"}
+  "data: {"type":"start","messageId":"id-0"}
 
 ",
   "data: {"type":"start-step"}
@@ -3669,7 +3669,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
 
 exports[`streamText > result.toUIMessageStreamResponse > should support custom error messages 1`] = `
 [
-  "data: {"type":"start"}
+  "data: {"type":"start","messageId":"id-0"}
 
 ",
   "data: {"type":"start-step"}

@@ -41,7 +41,7 @@ export function createStreamingUIMessageState<
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
   lastMessage,
-  newMessageId = 'no-id',
+  newMessageId = '',
 }: {
   lastMessage?: UIMessage<
     MESSAGE_METADATA,
@@ -59,7 +59,7 @@ export function createStreamingUIMessageState<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   > = isContinuation
-    ? structuredClone(lastMessage)
+    ? lastMessage
     : {
         id: newMessageId,
         metadata: {} as MESSAGE_METADATA,

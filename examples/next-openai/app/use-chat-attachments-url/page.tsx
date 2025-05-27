@@ -2,16 +2,13 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useChat } from '@ai-sdk/react';
-import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { defaultChatStore, FileUIPart } from 'ai';
+import { FileUIPart } from 'ai';
+import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    chatStore: defaultChatStore({
-      api: '/api/chat',
-    }),
-  });
+  const { messages, input, handleSubmit, handleInputChange, status } =
+    useChat();
 
   const [files, setFiles] = useState<FileUIPart[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);

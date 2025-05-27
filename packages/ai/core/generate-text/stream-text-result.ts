@@ -82,7 +82,7 @@ export type UIMessageStreamOptions = {
    * that send additional data.
    * Default to true.
    */
-  experimental_sendFinish?: boolean;
+  sendFinish?: boolean;
 
   /**
    * Send the message start event to the client.
@@ -95,7 +95,7 @@ export type UIMessageStreamOptions = {
    * streamText calls that send additional data to prevent
    * the message start event from being sent multiple times.
    */
-  experimental_sendStart?: boolean;
+  sendStart?: boolean;
 
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
