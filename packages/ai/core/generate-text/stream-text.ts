@@ -47,6 +47,7 @@ import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { Output } from './output';
+import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
@@ -293,18 +294,7 @@ Optional function that you can use to provide different settings for a step.
 @returns An object that contains the settings for the step.
 If you return undefined (or for undefined settings), the settings from the outer level will be used.
     */
-    prepareStep?: (options: {
-      steps: Array<StepResult<NoInfer<TOOLS>>>;
-      stepNumber: number;
-      model: LanguageModel;
-    }) => PromiseLike<
-      | {
-          model?: LanguageModel;
-          toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-          activeTools?: Array<keyof NoInfer<TOOLS>>;
-        }
-      | undefined
-    >;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
     /**
 A function that attempts to repair a tool call that failed to parse.
@@ -551,20 +541,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     providerOptions: ProviderOptions | undefined;
-    prepareStep:
-      | ((options: {
-          steps: Array<StepResult<NoInfer<TOOLS>>>;
-          stepNumber: number;
-          model: LanguageModel;
-        }) => PromiseLike<
-          | {
-              model?: LanguageModel;
-              toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-              activeTools?: Array<keyof NoInfer<TOOLS>>;
-            }
-          | undefined
-        >)
-      | undefined;
+    prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
