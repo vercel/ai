@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   gateway,
   createGatewayProvider,
@@ -51,7 +51,6 @@ describe('GatewayProvider', () => {
           headers: expect.any(Function),
           fetch: undefined,
         }),
-        expect.any(Function),
       );
 
       // Verify headers function
@@ -238,7 +237,6 @@ describe('GatewayProvider', () => {
               'ai-o11y-region': 'iad1',
             },
           }),
-          expect.any(Function),
         );
       } finally {
         process.env = originalEnv;
@@ -266,7 +264,6 @@ describe('GatewayProvider', () => {
             baseURL: 'https://api.example.com',
             o11yHeaders: {},
           }),
-          expect.any(Function),
         );
       } finally {
         process.env = originalEnv;

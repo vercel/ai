@@ -8,7 +8,6 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
-import { vi } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -19,24 +18,16 @@ const createTestModel = (
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
 ) => {
-  return new GatewayLanguageModel(
-    'test-model',
-    {
-      provider: 'test-provider',
-      baseURL: 'https://api.test.com',
-      headers: () => ({
-        Authorization: 'Bearer test-token',
-      }),
-      fetch: globalThis.fetch,
-      o11yHeaders: config.o11yHeaders || {},
-      ...config,
-    },
-    async () => ({
-      provider: 'test-provider',
-      specificationVersion: 'v2',
-      modelId: 'test-model',
+  return new GatewayLanguageModel('test-model', {
+    provider: 'test-provider',
+    baseURL: 'https://api.test.com',
+    headers: () => ({
+      Authorization: 'Bearer test-token',
     }),
-  );
+    fetch: globalThis.fetch,
+    o11yHeaders: config.o11yHeaders || {},
+    ...config,
+  });
 };
 
 describe('GatewayLanguageModel', () => {
