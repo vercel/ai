@@ -843,7 +843,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start","messageId":"id-0"}
+          "data: {"type":"start"}
 
         ",
           "data: {"type":"start-step"}
@@ -908,7 +908,7 @@ describe('streamText', () => {
 
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start","messageId":"id-0"}
+          "data: {"type":"start"}
 
         ",
           "data: {"type":"start-step"}
@@ -1032,7 +1032,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start","messageId":"id-0"}
+          "data: {"type":"start"}
 
         ",
           "data: {"type":"start-step"}
@@ -1113,7 +1113,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start","messageId":"id-0"}
+          "data: {"type":"start"}
 
         ",
           "data: {"type":"start-step"}
@@ -1165,7 +1165,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start","messageId":"id-0"}
+          "data: {"type":"start"}
 
         ",
           "data: {"type":"start-step"}
@@ -1353,7 +1353,7 @@ describe('streamText', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "id-0",
+              "messageId": undefined,
               "metadata": {
                 "key1": "value1",
               },
@@ -1542,7 +1542,7 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
           [
-            "data: {"type":"start","messageId":"id-0"}
+            "data: {"type":"start"}
 
           ",
             "data: {"type":"start-step"}
@@ -1603,7 +1603,7 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
           [
-            "data: {"type":"start","messageId":"id-0"}
+            "data: {"type":"start"}
 
           ",
             "data: {"type":"start-step"}
@@ -2753,7 +2753,7 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": "id-0",
+                "messageId": undefined,
                 "metadata": undefined,
                 "type": "start",
               },
@@ -4358,7 +4358,7 @@ describe('streamText', () => {
           .toMatchInlineSnapshot(`
             [
               {
-                "messageId": "id-0",
+                "messageId": undefined,
                 "metadata": undefined,
                 "type": "start",
               },

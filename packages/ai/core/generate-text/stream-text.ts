@@ -1421,9 +1421,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: UIMessageStreamOptions = {}): ReadableStream<UIMessageStreamPart> {
     const lastMessage = originalMessages[originalMessages.length - 1];
     const isContinuation = lastMessage?.role === 'assistant';
-    const messageId = isContinuation
-      ? lastMessage.id
-      : (newMessageId ?? this.generateId());
+    const messageId = isContinuation ? lastMessage.id : newMessageId;
 
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, UIMessageStreamPart>({
@@ -1576,7 +1574,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return handleUIMessageStreamFinish({
       stream: baseStream,
-      newMessageId: messageId,
+      newMessageId: messageId ?? this.generateId(),
       originalMessages,
       onFinish,
     });
