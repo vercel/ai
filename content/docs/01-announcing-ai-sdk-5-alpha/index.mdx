@@ -34,6 +34,12 @@ During this Alpha phase, we expect to make significant, potentially breaking cha
   reliable.
 </Note>
 
+## For Community Provider Maintainers
+
+AI SDK 5 introduces a [new LanguageModel specification](#languagemodelv2) that represents a breaking change from the previous version. Community provider packages will need to be updated to work with this new specification.
+
+For detailed information about implementing the new specification in your provider package, please refer to our comprehensive documentation: [v5.ai-sdk.dev/providers/](https://v5.ai-sdk.dev/providers/community-providers/custom-providers)
+
 ## Installation
 
 To install the AI SDK 5 - Alpha, run the following command:
@@ -41,6 +47,12 @@ To install the AI SDK 5 - Alpha, run the following command:
 ```bash
 # replace with your provider and framework
 npm install ai@alpha @ai-sdk/[your-provider]@alpha @ai-sdk/[your-framework]@alpha
+```
+
+To update an existing project dependencies, run the following command:
+
+```bash
+npm update ai@alpha ‘@ai-sdk/*'@alpha
 ```
 
 <Note type="warning">
@@ -75,6 +87,8 @@ LanguageModelV2 represents a complete redesign of how the AI SDK communicates wi
 - **Content-First Design** - Rather than separating text, reasoning, and tool calls, everything is now represented as ordered content parts in a unified array
 - **Improved Type Safety** - The new LanguageModelV2 provides better TypeScript type guarantees, making it easier to work with different content types
 - **Simplified Extensibility** - Adding support for new model capabilities no longer requires changes to the core structure
+
+To learn more about LanguageModelV2, visit the [LanguageModelV2 documentation](https://v5.ai-sdk.dev/providers/community-providers/custom-providers).
 
 ## Message Overhaul
 
@@ -297,7 +311,6 @@ import { defaultChatStore } from 'ai';
 
 const chatStore = defaultChatStore({
   api: '/api/chat', // your chat endpoint
-  maxSteps: 5, // optional: limit LLM calls in tool chains
   chats: {}, // optional: preload previous chat sessions
 });
 
@@ -330,7 +343,7 @@ The `prepareStep` function gives you fine-grained control over each step in a mu
 ```ts
 const result = await generateText({
   // ...
-  experimental_prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
+  experimental_prepareStep: async ({ model, stepNumber, steps }) => {
     if (stepNumber === 0) {
       return {
         // use a different model for this step:
@@ -348,9 +361,9 @@ const result = await generateText({
 
 This makes it easier to build AI systems that adapt their capabilities based on the current context and task requirements.
 
-### continueUntil
+### stopWhen
 
-The `continueUntil` parameter lets you define stopping conditions for your agent. Instead of running indefinitely, you can specify exactly when the agent should terminate based on various conditions:
+The `stopWhen` parameter lets you define stopping conditions for your agent. Instead of running indefinitely, you can specify exactly when the agent should terminate based on various conditions:
 
 - Reaching a maximum number of steps
 - Calling a specific tool
@@ -360,19 +373,19 @@ The `continueUntil` parameter lets you define stopping conditions for your agent
 const result = generateText({
   // ...
   // stop loop at 5 steps
-  continueUntil: maxSteps(5),
+  stopWhen: stepCountIs(5),
 });
 
 const result = generateText({
   // ...
-  // stop loop when weather tool called
-  continueUntil: hasToolCall('weather'),
+  // stop loop when weather tool called or at 5 steps
+  stopWhen: [hasToolCall('weather'), stepCountIs(5)],
 });
 
 const result = generateText({
   // ...
   // stop loop at your own custom condition
-  continueUntil: maxTotalTokens(20000),
+  stopWhen: maxTotalTokens(20000),
 });
 ```
 
