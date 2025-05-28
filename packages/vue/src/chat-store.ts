@@ -70,6 +70,7 @@ class VueChat<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     index: number,
     message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
   ) => {
+    // message is cloned here because vue's deep reactivity shows unexpected behavior, particularly when updating tool invocation parts
     this.messagesRef.value[index] = { ...message };
   };
 }
