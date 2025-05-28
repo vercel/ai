@@ -12,7 +12,8 @@ import {
 } from 'ai';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-import z from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -26,7 +27,10 @@ export type Experimental_UseObjectOptions<RESULT> = {
   /**
    * A Zod schema that defines the shape of the complete object.
    */
-  schema: z.Schema<RESULT, z.ZodTypeDef, any> | Schema<RESULT>;
+  schema:
+    | z4.$ZodType<RESULT, any>
+    | z3.Schema<RESULT, z3.ZodTypeDef, any>
+    | Schema<RESULT>;
 
   /**
    * An unique identifier. If not provided, a random one will be
