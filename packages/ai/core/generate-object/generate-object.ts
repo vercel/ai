@@ -37,6 +37,7 @@ import { LanguageModelUsage } from '../types/usage';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { resolveLanguageModel } from '../prompt/resolve-language-model';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -215,7 +216,7 @@ Default and recommended: 'auto' (best mode for the model).
     },
 ): Promise<GenerateObjectResult<RESULT>> {
   const {
-    model,
+    model: modelArg,
     output = 'object',
     system,
     prompt,
@@ -232,6 +233,8 @@ Default and recommended: 'auto' (best mode for the model).
     } = {},
     ...settings
   } = options;
+
+  const model = resolveLanguageModel(modelArg);
 
   const enumValues = 'enum' in options ? options.enum : undefined;
   const {

@@ -1168,6 +1168,9 @@ importers:
 
   packages/ai:
     dependencies:
+      '@ai-sdk/gateway':
+        specifier: workspace:*
+        version: link:../gateway
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider

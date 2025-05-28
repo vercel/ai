@@ -1,4 +1,4 @@
-import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -66,6 +66,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { resolveLanguageModel } from '../prompt/resolve-language-model';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -352,7 +353,7 @@ Internal. For test use only. May change without notice.
     };
   }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
   return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
-    model,
+    model: resolveLanguageModel(model),
     telemetry,
     headers,
     settings,
@@ -519,7 +520,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onFinish,
     onStepFinish,
   }: {
-    model: LanguageModel;
+    model: LanguageModelV2;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -862,7 +863,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             supportedUrls: await model.supportedUrls,
           });
 
-          const stepModel = prepareStepResult?.model ?? model;
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
               tools,

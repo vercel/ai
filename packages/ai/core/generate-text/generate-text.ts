@@ -1,4 +1,5 @@
 import {
+  LanguageModelV2,
   LanguageModelV2Content,
   LanguageModelV2ToolCall,
 } from '@ai-sdk/provider';
@@ -42,6 +43,7 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
+import { resolveLanguageModel } from '../prompt/resolve-language-model';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -108,7 +110,7 @@ export async function generateText<
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 >({
-  model,
+  model: modelArg,
   tools,
   toolChoice,
   system,
@@ -215,6 +217,7 @@ A function that attempts to repair a tool call that failed to parse.
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
@@ -259,7 +262,7 @@ A function that attempts to repair a tool call that failed to parse.
       const callSettings = prepareCallSettings(settings);
 
       let currentModelResponse: Awaited<
-        ReturnType<LanguageModel['doGenerate']>
+        ReturnType<LanguageModelV2['doGenerate']>
       > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToolCallArray<TOOLS> = [];
       let currentToolResults: ToolResultArray<TOOLS> = [];
@@ -286,7 +289,10 @@ A function that attempts to repair a tool call that failed to parse.
           supportedUrls: await model.supportedUrls,
         });
 
-        const stepModel = prepareStepResult?.model ?? model;
+        const stepModel = resolveLanguageModel(
+          prepareStepResult?.model ?? model,
+        );
+
         const { toolChoice: stepToolChoice, tools: stepTools } =
           prepareToolsAndToolChoice({
             tools,

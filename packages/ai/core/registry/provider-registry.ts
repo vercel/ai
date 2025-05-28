@@ -1,5 +1,10 @@
-import { NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
-import { EmbeddingModel, ImageModel, LanguageModel } from '../types';
+import {
+  EmbeddingModelV2,
+  ImageModelV2,
+  LanguageModelV2,
+  NoSuchModelError,
+  ProviderV2,
+} from '@ai-sdk/provider';
 import { NoSuchProviderError } from './no-such-provider-error';
 
 type ExtractLiteralUnion<T> = T extends string
@@ -16,28 +21,28 @@ export interface ProviderRegistryProvider<
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]>}`
       : never,
-  ): LanguageModel;
+  ): LanguageModelV2;
   languageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): LanguageModel;
+  ): LanguageModelV2;
 
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['textEmbeddingModel']>>[0]>}`
       : never,
-  ): EmbeddingModel<string>;
+  ): EmbeddingModelV2<string>;
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): EmbeddingModel<string>;
+  ): EmbeddingModelV2<string>;
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['imageModel']>>[0]>}`
       : never,
-  ): ImageModel;
+  ): ImageModelV2;
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): ImageModel;
+  ): ImageModelV2;
 }
 
 /**
@@ -131,7 +136,7 @@ class DefaultProviderRegistry<
 
   languageModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): LanguageModel {
+  ): LanguageModelV2 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
     const model = this.getProvider(providerId).languageModel?.(modelId);
 
@@ -144,7 +149,7 @@ class DefaultProviderRegistry<
 
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): EmbeddingModel<string> {
+  ): EmbeddingModelV2<string> {
     const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
     const provider = this.getProvider(providerId);
 
@@ -162,7 +167,7 @@ class DefaultProviderRegistry<
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): ImageModel {
+  ): ImageModelV2 {
     const [providerId, modelId] = this.splitId(id, 'imageModel');
     const provider = this.getProvider(providerId);
 
