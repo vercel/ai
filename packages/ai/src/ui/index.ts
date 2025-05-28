@@ -21,7 +21,6 @@ export {
   type DefaultChatStoreOptions,
 } from './default-chat-store-options';
 export { DefaultChatTransport } from './default-chat-transport';
-export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 export { getToolInvocations } from './get-tool-invocations';
 export {
   isAssistantMessageWithCompletedToolCalls,
