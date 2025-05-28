@@ -68,10 +68,10 @@
     "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "zod": "3.24.4"
+    "zod": "3.25.32"
   },
   "peerDependencies": {
-    "zod": "^3.23.8"
+    "zod": "^3.24.0"
   },
   "engines": {
     "node": ">=18"
