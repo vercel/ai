@@ -1,22 +1,9 @@
-import {
-  IdGenerator,
-  parseJsonEventStream,
-  ParseResult,
-  Schema,
-} from '@ai-sdk/provider-utils';
+import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
 import {
   UIMessageStreamPart,
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
-import { consumeStream } from '../util/consume-stream';
-import {
-  createStreamingUIMessageState,
-  processUIMessageStream,
-  StreamingUIMessageState,
-} from './process-ui-message-stream';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
-import { UIMessage } from './ui-messages';
-import { UseChatOptions } from './use-chat';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -137,55 +124,4 @@ export async function fetchTextStream({
   return transformTextToUiMessageStream({
     stream: response.body.pipeThrough(new TextDecoderStream()),
   });
-}
-
-export async function consumeUIMessageStream<MESSAGE_METADATA>({
-  stream,
-  onUpdate,
-  onFinish,
-  onToolCall,
-  generateId,
-  lastMessage,
-  messageMetadataSchema,
-}: {
-  stream: ReadableStream<UIMessageStreamPart>;
-  onUpdate: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
-  onFinish: UseChatOptions<MESSAGE_METADATA>['onFinish'];
-  onToolCall: UseChatOptions<MESSAGE_METADATA>['onToolCall'];
-  generateId: IdGenerator;
-  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
-  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
-}) {
-  const state = createStreamingUIMessageState({
-    lastMessage: lastMessage ? structuredClone(lastMessage) : undefined,
-    newMessageId: generateId(),
-  });
-
-  const runUpdateMessageJob = async (
-    job: (options: {
-      state: StreamingUIMessageState<MESSAGE_METADATA>;
-      write: () => void;
-    }) => Promise<void>,
-  ) => {
-    await job({
-      state,
-      write: () => {
-        onUpdate({ message: state.message });
-      },
-    });
-  };
-
-  await consumeStream({
-    stream: processUIMessageStream({
-      stream,
-      onToolCall,
-      messageMetadataSchema,
-      runUpdateMessageJob,
-    }),
-    onError: error => {
-      throw error;
-    },
-  });
-
-  onFinish?.({ message: state.message });
 }
