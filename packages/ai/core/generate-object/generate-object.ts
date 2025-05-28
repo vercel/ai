@@ -120,18 +120,18 @@ A result object that contains the generated object, the finish reason, the token
  */
 export async function generateObject<
   SCHEMA extends z3.Schema | z4.$ZodType | Schema = z4.$ZodType<JSONValue>,
-  Output extends
+  OUTPUT extends
     | 'object'
     | 'array'
     | 'enum'
     | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
-  RESULT = Output extends 'array'
+  RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
-    (Output extends 'enum'
+    (OUTPUT extends 'enum'
       ? {
           /**
 The enum values that the model should use.
@@ -140,7 +140,7 @@ The enum values that the model should use.
           mode?: 'json';
           output: 'enum';
         }
-      : Output extends 'no-schema'
+      : OUTPUT extends 'no-schema'
         ? {}
         : {
             /**
@@ -177,7 +177,7 @@ Default and recommended: 'auto' (best mode for the model).
         */
             mode?: 'auto' | 'json' | 'tool';
           }) & {
-      output?: Output;
+      output?: OUTPUT;
 
       /**
   The language model to use.

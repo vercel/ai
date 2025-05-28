@@ -161,18 +161,18 @@ A result object for accessing the partial object stream and additional informati
  */
 export function streamObject<
   SCHEMA extends z3.Schema | z4.$ZodType | Schema = z4.$ZodType<JSONValue>,
-  Output extends
+  OUTPUT extends
     | 'object'
     | 'array'
     | 'enum'
     | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
-  RESULT = Output extends 'array'
+  RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
-    (Output extends 'enum'
+    (OUTPUT extends 'enum'
       ? {
           /**
 The enum values that the model should use.
@@ -181,7 +181,7 @@ The enum values that the model should use.
           mode?: 'json';
           output: 'enum';
         }
-      : Output extends 'no-schema'
+      : OUTPUT extends 'no-schema'
         ? {}
         : {
             /**
@@ -218,7 +218,7 @@ Default and recommended: 'auto' (best mode for the model).
       */
             mode?: 'auto' | 'json' | 'tool';
           }) & {
-      output?: Output;
+      output?: OUTPUT;
 
       /**
 The language model to use.
@@ -260,13 +260,13 @@ Callback that is called when the LLM response and the final object validation ar
       };
     },
 ): StreamObjectResult<
-  Output extends 'enum'
+  OUTPUT extends 'enum'
     ? string
-    : Output extends 'array'
+    : OUTPUT extends 'array'
       ? RESULT
       : DeepPartial<RESULT>,
-  Output extends 'array' ? RESULT : RESULT,
-  Output extends 'array'
+  OUTPUT extends 'array' ? RESULT : RESULT,
+  OUTPUT extends 'array'
     ? RESULT extends Array<infer U>
       ? AsyncIterableStream<U>
       : never
