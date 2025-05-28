@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.7
+
+### Patch Changes
+
+- 5c56081: release alpha.7
+
 ## 2.0.0-alpha.6
 
 ### Patch Changes
