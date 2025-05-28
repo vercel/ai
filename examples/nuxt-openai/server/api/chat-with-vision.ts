@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const apiKey = useRuntimeConfig().openaiApiKey;
@@ -10,8 +10,8 @@ export default defineLazyEventHandler(async () => {
     // Extract the `prompt` from the body of the request
     const { messages, data } = await readBody(event);
 
-    const initialMessages = messages.slice(0, -1);
-    const currentMessage = messages[messages.length - 1];
+    const initialMessages = convertToModelMessages(messages.slice(0, -1));
+    const currentMessage = messages[messages.length - 1] as UIMessage;
 
     // Ask OpenAI for a streaming chat completion given the prompt
     const response = streamText({
@@ -22,7 +22,12 @@ export default defineLazyEventHandler(async () => {
         {
           role: 'user',
           content: [
-            { type: 'text', text: currentMessage.content },
+            {
+              type: 'text',
+              text: currentMessage.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join(''),
+            },
             { type: 'image', image: new URL(data.imageUrl) },
           ],
         },
