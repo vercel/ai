@@ -22,13 +22,8 @@ export {
 } from './default-chat-store-options';
 export { DefaultChatTransport } from './default-chat-transport';
 export { getToolInvocations } from './get-tool-invocations';
-export {
-  isAssistantMessageWithCompletedToolCalls,
-  shouldResubmitMessages,
-} from './should-resubmit-messages';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export * from './ui-messages';
-export { updateToolCallResult } from './update-tool-call-result';
 export { type ChatRequestOptions, type UseChatOptions } from './use-chat';
 export {
   type CompletionRequestOptions,
