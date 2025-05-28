@@ -66,7 +66,12 @@ const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
 export async function getGatewayAuthToken(options: GatewayProviderSettings) {
   try {
-    return options.apiKey ?? (await getVercelOidcToken());
+    return (
+      loadOptionalSetting({
+        settingValue: options.apiKey,
+        environmentVariableName: 'AI_GATEWAY_API_KEY',
+      }) ?? (await getVercelOidcToken())
+    );
   } catch (error: unknown) {
     if (
       error instanceof Error &&
