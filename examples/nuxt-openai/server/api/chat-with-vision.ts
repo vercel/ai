@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const apiKey = useRuntimeConfig().openaiApiKey;
