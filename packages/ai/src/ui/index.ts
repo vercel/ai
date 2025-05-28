@@ -10,7 +10,7 @@ export {
   type InferUIDataParts,
   type UIDataPartSchemas,
 } from './chat-store';
-export { DefaultChatTransport, type ChatTransport } from './chat-transport';
+export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {
   convertToCoreMessages,
@@ -20,6 +20,7 @@ export {
   defaultChatStoreOptions,
   type DefaultChatStoreOptions,
 } from './default-chat-store-options';
+export { DefaultChatTransport } from './default-chat-transport';
 export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 export { getToolInvocations } from './get-tool-invocations';
 export {
