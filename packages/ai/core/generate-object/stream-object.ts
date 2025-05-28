@@ -41,6 +41,7 @@ import { LanguageModelUsage } from '../types/usage';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { resolveLanguageModel } from '../prompt/resolve-language-model';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -361,7 +362,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
   >;
 
   constructor({
-    model,
+    model: modelArg,
     headers,
     telemetry,
     settings,
@@ -399,6 +400,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     currentDate: () => Date;
     now: () => number;
   }) {
+    const model = resolveLanguageModel(modelArg);
+
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
     });
