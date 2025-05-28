@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.0-alpha.6
+
+### Patch Changes
+
+- 0d2c085: feat (ai): support string model ids through gateway
+- 48a7606: feat (ai): support changing the system prompt in prepareSteps
+- Updated dependencies [0d2c085]
+- Updated dependencies [6c2c708]
+  - @ai-sdk/provider@2.0.0-alpha.6
+  - @ai-sdk/gateway@1.0.0-alpha.6
+  - @ai-sdk/provider-utils@3.0.0-alpha.6
+
 ## 5.0.0-alpha.5
 
 ### Major Changes

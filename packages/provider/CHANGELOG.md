@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.6
+
+### Patch Changes
+
+- 0d2c085: chore (provider): tweak provider definition
+
 ## 2.0.0-alpha.4
 
 ### Patch Changes

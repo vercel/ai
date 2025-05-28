@@ -1,5 +1,13 @@
 # @ai-sdk/gladia
 
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+  - @ai-sdk/provider@2.0.0-alpha.6
+  - @ai-sdk/provider-utils@3.0.0-alpha.6
+
 ## 1.0.0-alpha.4
 
 ### Patch Changes
