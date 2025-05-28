@@ -62,7 +62,8 @@ export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
   | SourceUrlUIPart
   | FileUIPart
   | DataUIPart<DATA_TYPES>
-  | StepStartUIPart;
+  | StepStartUIPart
+  | StepEndUIPart;
 
 export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   [NAME in keyof DATA_TYPES & string]: {
@@ -150,10 +151,17 @@ export type FileUIPart = {
 };
 
 /**
- * A step boundary part of a message.
+ * A step start boundary.
  */
 export type StepStartUIPart = {
   type: 'step-start';
+};
+
+/**
+ * A step end boundary.
+ */
+export type StepEndUIPart = {
+  type: 'step-end';
 };
 
 export type CreateUIMessage<

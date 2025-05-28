@@ -320,7 +320,9 @@ export function processUIMessageStream<
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
 
+              // update the message metadata
               await updateMessageMetadata(part.metadata);
+
               write();
               break;
             }
@@ -328,14 +330,17 @@ export function processUIMessageStream<
             case 'finish-step': {
               state.step += 1;
 
+              // add a step end boundary part to the message
+              state.message.parts.push({ type: 'step-end' });
+
+              // update the message metadata
+              await updateMessageMetadata(part.metadata);
+
               // reset the current text and reasoning parts
               state.activeTextPart = undefined;
               state.activeReasoningPart = undefined;
 
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
-                write();
-              }
+              write();
               break;
             }
 

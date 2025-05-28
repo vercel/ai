@@ -116,6 +116,25 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -132,6 +151,9 @@ describe('processUIMessageStream', () => {
             {
               "text": "Hello, world!",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -271,6 +293,39 @@ describe('processUIMessageStream', () => {
                   "type": "tool-invocation",
                 },
                 {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+                {
                   "type": "step-start",
                 },
               ],
@@ -301,11 +356,54 @@ describe('processUIMessageStream', () => {
                   "type": "tool-invocation",
                 },
                 {
+                  "type": "step-end",
+                },
+                {
                   "type": "step-start",
                 },
                 {
                   "text": "The weather in London is sunny.",
                   "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
                 },
               ],
               "role": "assistant",
@@ -340,11 +438,17 @@ describe('processUIMessageStream', () => {
               "type": "tool-invocation",
             },
             {
+              "type": "step-end",
+            },
+            {
               "type": "step-start",
             },
             {
               "text": "The weather in London is sunny.",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -569,6 +673,52 @@ describe('processUIMessageStream', () => {
                   "type": "tool-invocation",
                 },
                 {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "toolInvocation": {
+                    "args": {},
+                    "result": {
+                      "location": "Berlin",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id-original",
+                    "toolName": "tool-name-original",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 1,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+                {
                   "type": "step-start",
                 },
               ],
@@ -612,11 +762,67 @@ describe('processUIMessageStream', () => {
                   "type": "tool-invocation",
                 },
                 {
+                  "type": "step-end",
+                },
+                {
                   "type": "step-start",
                 },
                 {
                   "text": "The weather in London is sunny.",
                   "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "toolInvocation": {
+                    "args": {},
+                    "result": {
+                      "location": "Berlin",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id-original",
+                    "toolName": "tool-name-original",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 1,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
                 },
               ],
               "role": "assistant",
@@ -664,11 +870,17 @@ describe('processUIMessageStream', () => {
               "type": "tool-invocation",
             },
             {
+              "type": "step-end",
+            },
+            {
               "type": "step-start",
             },
             {
               "text": "The weather in London is sunny.",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -855,6 +1067,43 @@ describe('processUIMessageStream', () => {
                   "type": "tool-invocation",
                 },
                 {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "text",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+                {
                   "type": "step-start",
                 },
               ],
@@ -887,6 +1136,9 @@ describe('processUIMessageStream', () => {
                     "toolName": "tool-name",
                   },
                   "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
                 },
                 {
                   "type": "step-start",
@@ -927,11 +1179,58 @@ describe('processUIMessageStream', () => {
                   "type": "tool-invocation",
                 },
                 {
+                  "type": "step-end",
+                },
+                {
                   "type": "step-start",
                 },
                 {
                   "text": "The weather in London is sunny.",
                   "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "text",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
                 },
               ],
               "role": "assistant",
@@ -970,11 +1269,17 @@ describe('processUIMessageStream', () => {
               "type": "tool-invocation",
             },
             {
+              "type": "step-end",
+            },
+            {
               "type": "step-start",
             },
             {
               "text": "The weather in London is sunny.",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -1196,6 +1501,48 @@ describe('processUIMessageStream', () => {
                   "type": "tool-invocation",
                 },
                 {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+                {
                   "type": "step-start",
                 },
               ],
@@ -1233,6 +1580,9 @@ describe('processUIMessageStream', () => {
                     "toolName": "tool-name",
                   },
                   "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
                 },
                 {
                   "type": "step-start",
@@ -1281,6 +1631,9 @@ describe('processUIMessageStream', () => {
                     "toolName": "tool-name",
                   },
                   "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
                 },
                 {
                   "type": "step-start",
@@ -1297,6 +1650,64 @@ describe('processUIMessageStream', () => {
                 {
                   "text": "The weather in London is sunny.",
                   "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "abc123",
+                    },
+                  },
+                  "text": "I know know the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
                 },
               ],
               "role": "assistant",
@@ -1340,6 +1751,9 @@ describe('processUIMessageStream', () => {
               "type": "tool-invocation",
             },
             {
+              "type": "step-end",
+            },
+            {
               "type": "step-start",
             },
             {
@@ -1354,6 +1768,9 @@ describe('processUIMessageStream', () => {
             {
               "text": "The weather in London is sunny.",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -1567,6 +1984,9 @@ describe('processUIMessageStream', () => {
                   "text": "t1t2",
                   "type": "text",
                 },
+                {
+                  "type": "step-end",
+                },
               ],
               "role": "assistant",
             },
@@ -1596,6 +2016,9 @@ describe('processUIMessageStream', () => {
                 {
                   "text": "t1t2",
                   "type": "text",
+                },
+                {
+                  "type": "step-end",
                 },
               ],
               "role": "assistant",
@@ -1631,6 +2054,9 @@ describe('processUIMessageStream', () => {
             {
               "text": "t1t2",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -1707,6 +2133,25 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
               "metadata": {
                 "key1": "value-1",
               },
@@ -1717,6 +2162,9 @@ describe('processUIMessageStream', () => {
                 {
                   "text": "t1",
                   "type": "text",
+                },
+                {
+                  "type": "step-end",
                 },
               ],
               "role": "assistant",
@@ -1740,6 +2188,9 @@ describe('processUIMessageStream', () => {
             {
               "text": "t1",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -1834,6 +2285,29 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1b",
+                "key2": "value-2b",
+                "key3": "value-3a",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -1854,6 +2328,9 @@ describe('processUIMessageStream', () => {
             {
               "text": "t1",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -2049,6 +2526,34 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "testArg": "test-value",
+                    },
+                    "result": "test-result",
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-0",
+                    "toolName": "test-tool",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -2074,6 +2579,9 @@ describe('processUIMessageStream', () => {
                 "toolName": "test-tool",
               },
               "type": "tool-invocation",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -2158,6 +2666,25 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -2174,6 +2701,9 @@ describe('processUIMessageStream', () => {
             {
               "text": "Hello, world!",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -2377,6 +2907,34 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "abc123",
+                    },
+                  },
+                  "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
+                  "type": "reasoning",
+                },
+                {
+                  "text": "Hi there!",
+                  "type": "text",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -2402,6 +2960,9 @@ describe('processUIMessageStream', () => {
             {
               "text": "Hi there!",
               "type": "text",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -2508,6 +3069,34 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": "test-result",
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -2533,6 +3122,9 @@ describe('processUIMessageStream', () => {
                 "toolName": "tool-name",
               },
               "type": "tool-invocation",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -2629,6 +3221,32 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "sourceId": "source-id",
+                  "title": "Example",
+                  "type": "source-url",
+                  "url": "https://example.com",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -2652,6 +3270,9 @@ describe('processUIMessageStream', () => {
               "title": "Example",
               "type": "source-url",
               "url": "https://example.com",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -2798,6 +3419,35 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Here is a file:And another one:",
+                  "type": "text",
+                },
+                {
+                  "mediaType": "text/plain",
+                  "type": "file",
+                  "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+                },
+                {
+                  "mediaType": "application/json",
+                  "type": "file",
+                  "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -2824,6 +3474,9 @@ describe('processUIMessageStream', () => {
               "mediaType": "application/json",
               "type": "file",
               "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -2894,6 +3547,25 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "data": "example-data-can-be-anything",
+                  "type": "data-test",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -2910,6 +3582,9 @@ describe('processUIMessageStream', () => {
             {
               "data": "example-data-can-be-anything",
               "type": "data-test",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -3004,6 +3679,26 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "data": "or-something-else",
+                  "id": "data-part-id",
+                  "type": "data-test",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -3021,6 +3716,9 @@ describe('processUIMessageStream', () => {
               "data": "or-something-else",
               "id": "data-part-id",
               "type": "data-test",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
@@ -3128,6 +3826,30 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {},
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "data": {
+                    "a": "a1",
+                    "b": "b2",
+                    "c": "c2",
+                  },
+                  "id": "data-part-id",
+                  "type": "data-test",
+                },
+                {
+                  "type": "step-end",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -3149,6 +3871,9 @@ describe('processUIMessageStream', () => {
               },
               "id": "data-part-id",
               "type": "data-test",
+            },
+            {
+              "type": "step-end",
             },
           ],
           "role": "assistant",
