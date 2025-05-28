@@ -363,6 +363,7 @@ describe('convertToModelMessages', () => {
                   result: 'result-4',
                 },
               },
+              { type: 'step-start' },
               { type: 'text', text: 'final response' },
             ],
           },

@@ -58,8 +58,6 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
 
       case 'assistant': {
         if (message.parts != null) {
-          let currentStep = 0;
-          let blockHasToolInvocations = false;
           let block: Array<
             TextUIPart | ToolInvocationUIPart | ReasoningUIPart | FileUIPart
           > = [];
@@ -167,27 +165,15 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
 
             // updates for next block
             block = [];
-            blockHasToolInvocations = false;
-            currentStep++;
           }
 
           for (const part of message.parts) {
             switch (part.type) {
-              case 'text': {
-                if (blockHasToolInvocations) {
-                  processBlock(); // text must come before tool invocations
-                }
-                block.push(part);
-                break;
-              }
+              case 'text':
+              case 'reasoning':
               case 'file':
-              case 'reasoning': {
-                block.push(part);
-                break;
-              }
               case 'tool-invocation': {
                 block.push(part);
-                blockHasToolInvocations = true;
                 break;
               }
               case 'step-start': {
