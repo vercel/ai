@@ -1,23 +1,67 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { UIMessageStreamPart } from '../ui-message-stream';
-import { fetchUIMessageStream } from './call-chat-api';
+import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import { ChatTransport } from './chat-transport';
+import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
 import { UIDataTypes, UIMessage } from './ui-messages';
 
-export interface ChatTransport<
-  MESSAGE_METADATA,
-  DATA_TYPES extends UIDataTypes,
-> {
-  submitMessages: (options: {
-    chatId: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-    abortController: AbortController;
-    body?: object;
-    headers?: Record<string, string> | Headers;
-    requestType: 'generate' | 'resume'; // TODO have separate functions
-  }) => Promise<ReadableStream<UIMessageStreamPart>>;
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
+
+async function fetchTextStream({
+  api,
+  body,
+  credentials,
+  headers,
+  abortController,
+  fetch = getOriginalFetch(),
+  requestType = 'generate',
+}: {
+  api: string;
+  body: Record<string, any>;
+  credentials: RequestCredentials | undefined;
+  headers: HeadersInit | undefined;
+  abortController: (() => AbortController | null) | undefined;
+  fetch: ReturnType<typeof getOriginalFetch> | undefined;
+  requestType?: 'generate' | 'resume';
+}): Promise<ReadableStream<UIMessageStreamPart>> {
+  const response =
+    requestType === 'resume'
+      ? await fetch(`${api}?chatId=${body.chatId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        })
+      : await fetch(api, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        });
+
+  if (!response.ok) {
+    throw new Error(
+      (await response.text()) ?? 'Failed to fetch the chat response.',
+    );
+  }
+
+  if (!response.body) {
+    throw new Error('The response body is empty.');
+  }
+
+  return transformTextToUiMessageStream({
+    stream: response.body.pipeThrough(new TextDecoderStream()),
+  });
 }
 
-export class DefaultChatTransport<
+export class TextStreamChatTransport<
   MESSAGE_METADATA,
   DATA_TYPES extends UIDataTypes,
 > implements ChatTransport<MESSAGE_METADATA, DATA_TYPES>
@@ -108,7 +152,7 @@ export class DefaultChatTransport<
   }: Parameters<
     ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
   >[0]) {
-    return fetchUIMessageStream({
+    return fetchTextStream({
       api: this.api,
       headers: {
         ...this.headers,
