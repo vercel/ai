@@ -1,9 +1,4 @@
-import {
-  FetchFunction,
-  IdGenerator,
-  Schema,
-  ToolCall,
-} from '@ai-sdk/provider-utils';
+import { IdGenerator, ToolCall } from '@ai-sdk/provider-utils';
 import {
   ChatStore,
   ChatStoreOptions,
