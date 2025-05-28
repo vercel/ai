@@ -8,7 +8,6 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
 import { ChatTransport } from './chat-transport';
-import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import {
   createStreamingUIMessageState,
@@ -495,9 +494,10 @@ export class ChatStore<
     this.setStatus({ id: chatId, status: 'submitted', error: undefined });
 
     const messageCount = chat.messages.length;
-    const maxStep = extractMaxToolInvocationStep(
-      getToolInvocations(chat.messages[chat.messages.length - 1]),
-    );
+    const lastMessage = chat.messages[chat.messages.length - 1];
+    const maxStep = lastMessage.parts.filter(
+      part => part.type === 'step-start',
+    ).length;
 
     try {
       const lastMessage = chat.messages[chat.messages.length - 1];

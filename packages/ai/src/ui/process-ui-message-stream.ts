@@ -10,7 +10,6 @@ import {
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { InferUIDataParts, UIDataPartSchemas } from './chat-store';
-import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
   ReasoningUIPart,
@@ -31,9 +30,8 @@ export type StreamingUIMessageState<
   activeReasoningPart: ReasoningUIPart | undefined;
   partialToolCalls: Record<
     string,
-    { text: string; step: number; index: number; toolName: string }
+    { text: string; index: number; toolName: string }
   >;
-  step: number;
 };
 
 export function createStreamingUIMessageState<
@@ -50,10 +48,6 @@ export function createStreamingUIMessageState<
   newMessageId?: string;
 } = {}): StreamingUIMessageState<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
   const isContinuation = lastMessage?.role === 'assistant';
-
-  const step = isContinuation
-    ? 1 + (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0)
-    : 0;
 
   const message: UIMessage<
     MESSAGE_METADATA,
@@ -72,7 +66,6 @@ export function createStreamingUIMessageState<
     activeTextPart: undefined,
     activeReasoningPart: undefined,
     partialToolCalls: {},
-    step,
   };
 }
 
@@ -215,14 +208,12 @@ export function processUIMessageStream<
               // add the partial tool call to the map
               state.partialToolCalls[part.toolCallId] = {
                 text: '',
-                step: state.step,
                 toolName: part.toolName,
                 index: toolInvocations.length,
               };
 
               updateToolInvocationPart(part.toolCallId, {
                 state: 'partial-call',
-                step: state.step,
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 args: undefined,
@@ -243,7 +234,6 @@ export function processUIMessageStream<
 
               updateToolInvocationPart(part.toolCallId, {
                 state: 'partial-call',
-                step: partialToolCall.step,
                 toolCallId: part.toolCallId,
                 toolName: partialToolCall.toolName,
                 args: partialArgs,
@@ -256,7 +246,6 @@ export function processUIMessageStream<
             case 'tool-call': {
               updateToolInvocationPart(part.toolCallId, {
                 state: 'call',
-                step: state.step,
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 args: part.args,
@@ -274,7 +263,6 @@ export function processUIMessageStream<
                 if (result != null) {
                   updateToolInvocationPart(part.toolCallId, {
                     state: 'result',
-                    step: state.step,
                     toolCallId: part.toolCallId,
                     toolName: part.toolName,
                     args: part.args,
@@ -326,8 +314,6 @@ export function processUIMessageStream<
             }
 
             case 'finish-step': {
-              state.step += 1;
-
               // reset the current text and reasoning parts
               state.activeTextPart = undefined;
               state.activeReasoningPart = undefined;

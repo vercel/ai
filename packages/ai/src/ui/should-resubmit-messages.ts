@@ -1,5 +1,3 @@
-import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
-import { getToolInvocations } from './get-tool-invocations';
 import { UIMessage } from './ui-messages';
 
 export function shouldResubmitMessages({
@@ -14,6 +12,12 @@ export function shouldResubmitMessages({
   messages: UIMessage[];
 }) {
   const lastMessage = messages[messages.length - 1];
+
+  // count the number of step-start parts in the last message:
+  const lastMessageStepStartCount = lastMessage.parts.filter(
+    part => part.type === 'step-start',
+  ).length;
+
   return (
     // check if the feature is enabled:
     maxSteps > 1 &&
@@ -21,13 +25,11 @@ export function shouldResubmitMessages({
     lastMessage != null &&
     // ensure we actually have new steps (to prevent infinite loops in case of errors):
     (messages.length > originalMessageCount ||
-      extractMaxToolInvocationStep(getToolInvocations(lastMessage)) !==
-        originalMaxToolInvocationStep) &&
+      lastMessageStepStartCount !== originalMaxToolInvocationStep) &&
     // check that next step is possible:
     isAssistantMessageWithCompletedToolCalls(lastMessage) &&
     // limit the number of automatic steps:
-    (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0) <
-      maxSteps
+    lastMessageStepStartCount < maxSteps
   );
 }
 

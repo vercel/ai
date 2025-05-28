@@ -65,6 +65,10 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
           > = [];
 
           function processBlock() {
+            if (block.length === 0) {
+              return;
+            }
+
             const content: AssistantContent = [];
 
             for (const part of block) {
@@ -182,11 +186,12 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                 break;
               }
               case 'tool-invocation': {
-                if ((part.toolInvocation.step ?? 0) !== currentStep) {
-                  processBlock();
-                }
                 block.push(part);
                 blockHasToolInvocations = true;
+                break;
+              }
+              case 'step-start': {
+                processBlock();
                 break;
               }
             }
