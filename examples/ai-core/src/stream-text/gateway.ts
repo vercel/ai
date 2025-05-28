@@ -1,14 +1,11 @@
-import { gateway } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: gateway('xai/grok-3-beta'),
+    model: 'openai/gpt-4.1',
     prompt: 'Invent a new holiday and describe its traditions.',
-    onError: (error: unknown) => {
-      console.error(error);
-    },
+    onError: console.error,
   });
 
   for await (const textPart of result.textStream) {
