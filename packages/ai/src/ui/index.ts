@@ -1,4 +1,3 @@
-export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
 export {
   ChatStore,
