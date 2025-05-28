@@ -120,15 +120,6 @@ export function createGatewayProvider(
   };
 
   const createLanguageModel = (modelId: GatewayModelId) => {
-    const getSpecification = async () => {
-      const metadata = await getAvailableModels();
-      const modelEntry = metadata.models.find(model => model.id === modelId);
-      if (!modelEntry) {
-        throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
-      }
-      return modelEntry.specification;
-    };
-
     const deploymentId = loadOptionalSetting({
       settingValue: undefined,
       environmentVariableName: 'DEPLOYMENT_ID',
@@ -141,21 +132,17 @@ export function createGatewayProvider(
       settingValue: undefined,
       environmentVariableName: 'VERCEL_REGION',
     });
-    return new GatewayLanguageModel(
-      modelId,
-      {
-        provider: 'gateway',
-        baseURL,
-        headers: getHeaders,
-        fetch: options.fetch,
-        o11yHeaders: {
-          ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
-          ...(environment && { 'ai-o11y-environment': environment }),
-          ...(region && { 'ai-o11y-region': region }),
-        },
+    return new GatewayLanguageModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: {
+        ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
+        ...(environment && { 'ai-o11y-environment': environment }),
+        ...(region && { 'ai-o11y-region': region }),
       },
-      getSpecification,
-    );
+    });
   };
 
   const getAvailableModels = async () => {

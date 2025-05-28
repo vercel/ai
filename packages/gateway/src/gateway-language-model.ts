@@ -24,44 +24,21 @@ type GatewayChatConfig = GatewayConfig & {
 };
 
 export class GatewayLanguageModel implements LanguageModelV2 {
-  private pendingSpecification: Promise<GatewayLanguageModelSpecification>;
-  private specification: GatewayLanguageModelSpecification | null = null;
+  readonly specificationVersion = 'v2';
+  readonly supportedUrls = { '*/*': [/.*/] };
 
   constructor(
     readonly modelId: GatewayModelId,
     private readonly config: GatewayChatConfig,
-    private readonly getSpecification: () => Promise<GatewayLanguageModelSpecification>,
-  ) {
-    this.pendingSpecification = this.getSpecification();
-    this.pendingSpecification.then(specification => {
-      this.specification = specification;
-    });
-  }
-
-  private async ensureSpecification() {
-    if (!this.specification) {
-      this.specification = await this.pendingSpecification;
-    }
-    return this.specification;
-  }
+  ) {}
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get specificationVersion() {
-    return this.specification?.specificationVersion ?? 'v2';
-  }
-
-  get supportedUrls(): PromiseLike<Record<string, RegExp[]>> {
-    return Promise.resolve({ '*/*': [/.*/] });
-  }
-
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    await this.ensureSpecification();
-
     const { abortSignal, ...body } = options;
     const {
       responseHeaders,
@@ -96,8 +73,6 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    await this.ensureSpecification();
-
     const { abortSignal, ...body } = options;
 
     const { value: response, responseHeaders } = await postJsonToApi({
