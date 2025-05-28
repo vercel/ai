@@ -1,5 +1,10 @@
-import { NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
-import { EmbeddingModel, ImageModel, LanguageModel, Provider } from '../types';
+import {
+  EmbeddingModelV2,
+  ImageModelV2,
+  LanguageModelV2,
+  NoSuchModelError,
+  ProviderV2,
+} from '@ai-sdk/provider';
 
 /**
  * Creates a custom provider with specified language models, text embedding models, and an optional fallback provider.
@@ -14,9 +19,9 @@ import { EmbeddingModel, ImageModel, LanguageModel, Provider } from '../types';
  * @throws {NoSuchModelError} Throws when a requested model is not found and no fallback provider is available.
  */
 export function customProvider<
-  LANGUAGE_MODELS extends Record<string, LanguageModel>,
-  EMBEDDING_MODELS extends Record<string, EmbeddingModel<string>>,
-  IMAGE_MODELS extends Record<string, ImageModel>,
+  LANGUAGE_MODELS extends Record<string, LanguageModelV2>,
+  EMBEDDING_MODELS extends Record<string, EmbeddingModelV2<string>>,
+  IMAGE_MODELS extends Record<string, ImageModelV2>,
 >({
   languageModels,
   textEmbeddingModels,
@@ -27,15 +32,15 @@ export function customProvider<
   textEmbeddingModels?: EMBEDDING_MODELS;
   imageModels?: IMAGE_MODELS;
   fallbackProvider?: ProviderV2;
-}): Provider & {
-  languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModel;
+}): ProviderV2 & {
+  languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV2;
   textEmbeddingModel(
     modelId: ExtractModelId<EMBEDDING_MODELS>,
-  ): EmbeddingModel<string>;
-  imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModel;
+  ): EmbeddingModelV2<string>;
+  imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV2;
 } {
   return {
-    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModel {
+    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV2 {
       if (languageModels != null && modelId in languageModels) {
         return languageModels[modelId];
       }
@@ -49,7 +54,7 @@ export function customProvider<
 
     textEmbeddingModel(
       modelId: ExtractModelId<EMBEDDING_MODELS>,
-    ): EmbeddingModel<string> {
+    ): EmbeddingModelV2<string> {
       if (textEmbeddingModels != null && modelId in textEmbeddingModels) {
         return textEmbeddingModels[modelId];
       }
@@ -61,7 +66,7 @@ export function customProvider<
       throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
     },
 
-    imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModel {
+    imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV2 {
       if (imageModels != null && modelId in imageModels) {
         return imageModels[modelId];
       }
