@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { useChat, type Message } from '@ai-sdk/vue';
 
-const { input, messages, handleSubmit } = useChat({
-  api: '/api/chat',
-});
+const { input, messages, handleSubmit } = useChat();
 
 const files = ref<FileList | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const submit = (event: Event) => {
   handleSubmit(event, {
-    experimental_attachments: files.value ?? undefined,
+    files: files.value ?? undefined,
   });
 
   files.value = null;
@@ -34,16 +32,16 @@ const filesWithUrl = computed(() => {
       class="whitespace-pre-wrap"
     >
       <strong>{{ `${message.role}: ` }}</strong>
-      {{ message.content }}
+      {{ message.parts.map(part => (part.type === 'text' ? part.text : '')).join('') }}
 
       <div
-        v-if="(message as Message).experimental_attachments"
+        v-if="(message as Message).parts.some(part => part.type === 'file')"
         class="flex flex-row gap-2"
       >
         <img
-          v-for="(attachment, index) in message.experimental_attachments"
+          v-for="(attachment, index) in message.parts.filter(part => part.type === 'file')"
           :key="`${message.id}-${index}`"
-          :src="attachment.url"
+          :src="attachment.file.url"
           class="rounded-md size-20"
         />
       </div>

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue';
+import { defaultChatStoreOptions } from 'ai';
 
 const { messages, input, handleSubmit } = useChat({
-  api: '/api/chat-with-vision',
+  chatStore: defaultChatStoreOptions({
+    api: '/api/chat-with-vision',
+  }),
 });
 </script>
 
@@ -10,16 +13,18 @@ const { messages, input, handleSubmit } = useChat({
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
     <div v-for="m in messages" :key="m.id" class="whitespace-pre-wrap">
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
+      {{ JSON.stringify(m.parts, null, 2) }}
     </div>
 
     <form
       @submit="
         e =>
           handleSubmit(e, {
-            data: {
-              imageUrl:
-                'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg/733px-Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg',
+            body: {
+              data: {
+                imageUrl:
+                  'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg/733px-Field_sparrow_in_CP_%2841484%29_%28cropped%29.jpg',
+              },
             },
           })
       "

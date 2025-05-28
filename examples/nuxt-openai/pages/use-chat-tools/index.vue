@@ -1,17 +1,23 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue';
+import { defaultChatStoreOptions } from 'ai';
 
 const { input, handleSubmit, messages, addToolResult } = useChat({
-  api: '/api/use-chat-tools',
-  maxSteps: 5,
-
   // run client-side tools that are automatically executed:
   async onToolCall({ toolCall }) {
+    // artificial 2 second delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     if (toolCall.toolName === 'getLocation') {
       const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
       return cities[Math.floor(Math.random() * cities.length)];
     }
   },
+
+  chatStore: defaultChatStoreOptions({
+    api: '/api/use-chat-tools',
+    maxSteps: 5,
+  }),
 });
 
 const messageList = computed(() => messages.value); // computer property for type inference

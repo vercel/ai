@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue';
+import { convertFileListToFileUIParts } from 'ai';
 
-const { input, messages, append } = useChat({
-  api: '/api/chat',
-});
+const { input, messages, append } = useChat();
 
 const files = ref<FileList | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
-const submit = () => {
-  append(
-    { role: 'user', content: input.value },
-    {
-      experimental_attachments: files.value ?? undefined,
-    },
-  );
+const submit = async () => {
+  const fileParts = await convertFileListToFileUIParts(files.value ?? undefined);
+  
+  append({
+    role: 'user',
+    parts: [
+      ...fileParts,
+      { type: 'text', text: input.value }
+    ],
+  });
 
   input.value = '';
   fileInputRef.value!.value = '';
@@ -39,11 +41,11 @@ const filesWithUrl = computed(() => {
       class="whitespace-pre-wrap"
     >
       <strong>{{ `${message.role}: ` }}</strong>
-      {{ message.content }}
+      {{ message.parts.map(part => (part.type === 'text' ? part.text : '')).join('') }}
 
-      <div v-if="message.experimental_attachments" class="flex flex-row gap-2">
+      <div v-if="message.parts.some(part => part.type === 'file')" class="flex flex-row gap-2">
         <img
-          v-for="(attachment, index) in message.experimental_attachments"
+          v-for="(attachment, index) in message.parts.filter(part => part.type === 'file')"
           :key="`${message.id}-${index}`"
           :src="attachment.url"
           class="rounded-md size-20"

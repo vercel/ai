@@ -12,7 +12,7 @@ const disabled = computed(() => status.value !== 'ready');
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
     <div v-for="m in messages" :key="m.id" class="whitespace-pre-wrap">
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
+      {{ m.parts.map(part => (part.type === 'text' ? part.text : '')).join('') }}
     </div>
 
     <div

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getToolInvocations } from 'ai';
+import { defaultChatStoreOptions, getToolInvocations } from 'ai';
 import { useChat } from './use-chat';
 
 const { messages, handleSubmit, input } = useChat({
@@ -11,13 +11,14 @@ const { messages, handleSubmit, input } = useChat({
     }
   },
 });
+
 </script>
 
 <template>
   <div>
     <div
       v-for="(m, idx) in messages"
-      key="m.id"
+      :key="m.id"
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}

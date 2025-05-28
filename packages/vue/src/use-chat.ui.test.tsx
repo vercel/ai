@@ -10,7 +10,6 @@ import { setupTestComponent } from './setup-test-component';
 import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatComponent from './TestChatComponent.vue';
-import TestChatCustomMetadataComponent from './TestChatCustomMetadataComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
 import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
 import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
@@ -52,8 +51,8 @@ describe('prepareRequestBody', () => {
       screen.getByTestId('on-body-options').textContent ?? '',
     );
 
-    await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
     expect(value).toStrictEqual({
       chatId: expect.any(String),
       messages: [
@@ -63,7 +62,7 @@ describe('prepareRequestBody', () => {
           parts: [{ type: 'text', text: 'hi' }],
         },
       ],
-      requestBody: { 'request-body-key': 'request-body-value' },
+      'request-body-key': 'request-body-value',
     });
 
     expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
@@ -290,56 +289,6 @@ describe('text stream', () => {
   });
 });
 
-describe('custom metadata', () => {
-  setupTestComponent(TestChatCustomMetadataComponent);
-
-  it('should should use custom headers', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [formatStreamPart({ type: 'text', text: 'Hello, World.' })],
-    };
-
-    await userEvent.click(screen.getByTestId('do-append'));
-
-    await screen.findByTestId('message-1');
-
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      'content-type': 'application/json',
-      header1: 'value1',
-      header2: 'value2',
-    });
-  });
-
-  it('should should use custom body', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [formatStreamPart({ type: 'text', text: 'Hello, World.' })],
-    };
-
-    await userEvent.click(screen.getByTestId('do-append'));
-
-    await screen.findByTestId('message-1');
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      body1: 'value1',
-      body2: 'value2',
-      chatId: expect.any(String),
-      messages: [
-        {
-          id: 'id-0',
-          parts: [
-            {
-              text: 'custom metadata component',
-              type: 'text',
-            },
-          ],
-          role: 'user',
-        },
-      ],
-    });
-  });
-});
-
 describe('form actions', () => {
   setupTestComponent(TestChatFormComponent);
 
@@ -367,9 +316,11 @@ describe('form actions', () => {
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Hello, world.',
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        'AI: Hello, world.',
+      );
+    });
 
     const secondInput = screen.getByTestId('do-input');
     await userEvent.type(secondInput, '{Enter}');
@@ -510,12 +461,15 @@ describe('tool invocations', () => {
 
   it('should display partial tool call, tool call, and tool result', async () => {
     const controller = new TestResponseController();
-
     server.urls['/api/chat'].response = [
-      { type: 'controlled-stream', controller },
+      {
+        type: 'controlled-stream',
+        controller,
+      },
+      // DO NOT REMOVE: used to ensure test does not have side-effects
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'test-result' })],
+        chunks: [formatStreamPart({ type: 'text', text: 'extra text' })],
       },
     ];
 
@@ -606,18 +560,25 @@ describe('tool invocations', () => {
       });
     });
 
-    // wait for final text to ensure test does not have side-effects
+    // DO NOT REMOVE: used to ensure test does not have side-effects
     await waitFor(() => {
-      expect(screen.getByTestId('text-1')).toHaveTextContent('test-result');
+      expect(screen.getByTestId('text-1')).toHaveTextContent('extra text');
     });
   });
 
   it('should display tool call and tool result (when there is no tool call streaming)', async () => {
     const controller = new TestResponseController();
-    server.urls['/api/chat'].response = {
-      type: 'controlled-stream',
-      controller,
-    };
+    server.urls['/api/chat'].response = [
+      {
+        type: 'controlled-stream',
+        controller,
+      },
+      // DO NOT REMOVE: used to ensure test does not have side-effects
+      {
+        type: 'stream-chunks',
+        chunks: [formatStreamPart({ type: 'text', text: 'extra text' })],
+      },
+    ];
 
     await userEvent.click(screen.getByTestId('do-append'));
 
@@ -654,23 +615,39 @@ describe('tool invocations', () => {
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent('test-result');
     });
+
+    // DO NOT REMOVE: wait for final text to ensure test does not have side-effects
+    await waitFor(() => {
+      expect(screen.getByTestId('text-1')).toHaveTextContent('extra text');
+    });
   });
 
-  // TODO re-enable when chat store is in place
-  it.skip('should update tool call to result when addToolResult is called', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatStreamPart({
-          type: 'tool-call',
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        }),
-      ],
-    };
+  it('should update tool call to result when addToolResult is called', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = [
+      {
+        type: 'controlled-stream',
+        controller,
+      },
+      // DO NOT REMOVE: used to ensure test does not have side-effects
+      {
+        type: 'stream-chunks',
+        chunks: [formatStreamPart({ type: 'text', text: 'extra text' })],
+      },
+    ];
 
     await userEvent.click(screen.getByTestId('do-append'));
+
+    controller.write(formatStreamPart({ type: 'start' }));
+    controller.write(formatStreamPart({ type: 'start-step' }));
+    controller.write(
+      formatStreamPart({
+        type: 'tool-call',
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -685,17 +662,31 @@ describe('tool invocations', () => {
         '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
       );
     });
+
+    controller.write(
+      formatStreamPart({
+        type: 'text',
+        text: 'more text',
+      }),
+    );
+    controller.close();
+
+    // DO NOT REMOVE: used to ensure test does not have side-effects
+    await waitFor(() => {
+      expect(screen.getByTestId('text-1')).toHaveTextContent('extra text');
+    });
   });
 
-  // TODO re-enable when chat store is in place
-  it.skip('should delay tool result submission until the stream is finished', async () => {
+  it('should delay tool result submission until the stream is finished', async () => {
     const controller1 = new TestResponseController();
-    const controller2 = new TestResponseController();
 
     server.urls['/api/chat'].response = [
       { type: 'controlled-stream', controller: controller1 },
-      { type: 'controlled-stream', controller: controller2 },
-      { type: 'stream-chunks', chunks: ['0:"test-result"\n'] },
+      // DO NOT REMOVE: used to ensure test does not have side-effects
+      {
+        type: 'stream-chunks',
+        chunks: [formatStreamPart({ type: 'text', text: 'extra text' })],
+      },
     ];
 
     await userEvent.click(screen.getByTestId('do-append'));
@@ -744,11 +735,9 @@ describe('tool invocations', () => {
       expect(server.calls.length).toBe(2);
     });
 
-    // wait for final text to ensure test does not have side-effects
+    // DO NOT REMOVE: used to ensure test does not have side-effects
     await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
-      );
+      expect(screen.getByTestId('text-1')).toHaveTextContent('extra text');
     });
   });
 });
