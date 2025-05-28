@@ -19,8 +19,12 @@ import {
   isAssistantMessageWithCompletedToolCalls,
   shouldResubmitMessages,
 } from './should-resubmit-messages';
-import type { CreateUIMessage, UIDataTypes, UIMessage } from './ui-messages';
-import { updateToolCallResult } from './update-tool-call-result';
+import type {
+  CreateUIMessage,
+  ToolInvocationUIPart,
+  UIDataTypes,
+  UIMessage,
+} from './ui-messages';
 import { ChatRequestOptions, UseChatOptions } from './use-chat';
 
 export interface ChatStoreSubscriber {
@@ -607,4 +611,41 @@ export class ChatStore<
       });
     }
   }
+}
+
+/**
+ * Updates the result of a specific tool invocation in the last message of the given messages array.
+ *
+ * @param {object} params - The parameters object.
+ * @param {UIMessage[]} params.messages - An array of messages, from which the last one is updated.
+ * @param {string} params.toolCallId - The unique identifier for the tool invocation to update.
+ * @param {unknown} params.toolResult - The result object to attach to the tool invocation.
+ * @returns {void} This function does not return anything.
+ */
+function updateToolCallResult({
+  messages,
+  toolCallId,
+  toolResult: result,
+}: {
+  messages: UIMessage[];
+  toolCallId: string;
+  toolResult: unknown;
+}) {
+  const lastMessage = messages[messages.length - 1];
+
+  const invocationPart = lastMessage.parts.find(
+    (part): part is ToolInvocationUIPart =>
+      part.type === 'tool-invocation' &&
+      part.toolInvocation.toolCallId === toolCallId,
+  );
+
+  if (invocationPart == null) {
+    return;
+  }
+
+  invocationPart.toolInvocation = {
+    ...invocationPart.toolInvocation,
+    state: 'result' as const,
+    result,
+  };
 }

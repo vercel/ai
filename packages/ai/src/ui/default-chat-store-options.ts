@@ -6,12 +6,11 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
-  ChatFactory,
   ChatStoreOptions,
   InferUIDataParts,
   type UIDataPartSchemas,
 } from './chat-store';
-import { DefaultChatTransport } from './chat-transport';
+import { DefaultChatTransport } from './default-chat-transport';
 import { UIMessage } from './ui-messages';
 
 export interface DefaultChatStoreOptions<
