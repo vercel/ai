@@ -168,6 +168,7 @@ describe('convertToModelMessages', () => {
         {
           role: 'assistant',
           parts: [
+            { type: 'step-start' },
             { type: 'text', text: 'Let me calculate that for you.' },
             {
               type: 'tool-invocation',
@@ -177,7 +178,6 @@ describe('convertToModelMessages', () => {
                 toolName: 'calculator',
                 args: { operation: 'add', numbers: [1, 2] },
                 result: '3',
-                step: 0,
               },
             },
           ],
@@ -203,6 +203,7 @@ describe('convertToModelMessages', () => {
           {
             role: 'assistant',
             parts: [
+              { type: 'step-start' },
               { type: 'text', text: 'Let me calculate that for you.' },
               {
                 type: 'tool-invocation',
@@ -212,7 +213,6 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: {},
                   result: 'imgbase64',
-                  step: 0,
                 },
               },
             ],
@@ -252,6 +252,7 @@ describe('convertToModelMessages', () => {
           {
             role: 'assistant',
             parts: [
+              { type: 'step-start' },
               { type: 'text', text: 'response' },
               {
                 type: 'tool-invocation',
@@ -261,9 +262,9 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-1' },
                   result: 'result-1',
-                  step: 0,
                 },
               },
+              { type: 'step-start' },
               {
                 type: 'tool-invocation',
                 toolInvocation: {
@@ -272,7 +273,6 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-2' },
                   result: 'result-2',
-                  step: 1,
                 },
               },
               {
@@ -283,9 +283,9 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-3' },
                   result: 'result-3',
-                  step: 1,
                 },
               },
+              { type: 'step-start' },
               {
                 type: 'tool-invocation',
                 toolInvocation: {
@@ -294,7 +294,6 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-4' },
                   result: 'result-4',
-                  step: 2,
                 },
               },
             ],
@@ -319,6 +318,7 @@ describe('convertToModelMessages', () => {
           {
             role: 'assistant',
             parts: [
+              { type: 'step-start' },
               { type: 'text', text: 'i am gonna use tool1' },
               {
                 type: 'tool-invocation',
@@ -328,9 +328,9 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-1' },
                   result: 'result-1',
-                  step: 0,
                 },
               },
+              { type: 'step-start' },
               { type: 'text', text: 'i am gonna use tool2 and tool3' },
               {
                 type: 'tool-invocation',
@@ -340,7 +340,6 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-2' },
                   result: 'result-2',
-                  step: 1,
                 },
               },
               {
@@ -351,9 +350,9 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-3' },
                   result: 'result-3',
-                  step: 1,
                 },
               },
+              { type: 'step-start' },
               {
                 type: 'tool-invocation',
                 toolInvocation: {
@@ -362,9 +361,9 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-4' },
                   result: 'result-4',
-                  step: 2,
                 },
               },
+              { type: 'step-start' },
               { type: 'text', text: 'final response' },
             ],
           },
@@ -439,6 +438,7 @@ describe('convertToModelMessages', () => {
           {
             role: 'assistant',
             parts: [
+              { type: 'step-start' },
               {
                 type: 'tool-invocation',
                 toolInvocation: {
@@ -447,9 +447,9 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-1' },
                   result: 'result-1',
-                  step: 0,
                 },
               },
+              { type: 'step-start' },
               {
                 type: 'tool-invocation',
                 toolInvocation: {
@@ -458,10 +458,8 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-2' },
                   result: 'result-2',
-                  step: 1,
                 },
               },
-
               {
                 type: 'tool-invocation',
                 toolInvocation: {
@@ -470,9 +468,9 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-3' },
                   result: 'result-3',
-                  step: 1,
                 },
               },
+              { type: 'step-start' },
               {
                 type: 'tool-invocation',
                 toolInvocation: {
@@ -481,9 +479,9 @@ describe('convertToModelMessages', () => {
                   toolName: 'screenshot',
                   args: { value: 'value-4' },
                   result: 'result-4',
-                  step: 2,
                 },
               },
+              { type: 'step-start' },
               { type: 'text', text: 'response' },
             ],
           },

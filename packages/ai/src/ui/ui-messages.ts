@@ -11,9 +11,9 @@ back to a sequence of LLM assistant/tool result message pairs.
 It is optional for backwards compatibility.
  */
 export type ToolInvocation =
-  | ({ state: 'partial-call'; step?: number } & ToolCall<string, any>)
-  | ({ state: 'call'; step?: number } & ToolCall<string, any>)
-  | ({ state: 'result'; step?: number } & ToolResult<string, any, any>);
+  | ({ state: 'partial-call' } & ToolCall<string, any>)
+  | ({ state: 'call' } & ToolCall<string, any>)
+  | ({ state: 'result' } & ToolResult<string, any, any>);
 
 /**
 The data types that can be used in the UI message for the UI message data parts.

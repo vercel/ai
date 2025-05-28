@@ -538,7 +538,6 @@ describe('onToolCall', () => {
       ).toStrictEqual([
         {
           state: 'call',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -552,7 +551,6 @@ describe('onToolCall', () => {
     expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
       {
         state: 'result',
-        step: 0,
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
         args: { testArg: 'test-value' },
@@ -604,7 +602,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'partial-call',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: undefined,
@@ -626,7 +623,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'partial-call',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 't' },
@@ -648,7 +644,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'partial-call',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -671,7 +666,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'call',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -692,7 +686,6 @@ describe('tool invocations', () => {
     expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
       {
         state: 'result',
-        step: 0,
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
         args: { testArg: 'test-value' },
@@ -728,7 +721,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'call',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -749,7 +741,6 @@ describe('tool invocations', () => {
     expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
       {
         state: 'result',
-        step: 0,
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
         args: { testArg: 'test-value' },
@@ -782,7 +773,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'call',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -801,7 +791,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'result',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -845,7 +834,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'call',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -866,7 +854,6 @@ describe('tool invocations', () => {
       ).toStrictEqual([
         {
           state: 'result',
-          step: 0,
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
           args: { testArg: 'test-value' },
@@ -963,7 +950,6 @@ describe('maxSteps', () => {
                   },
                   "result": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
                   "state": "result",
-                  "step": 0,
                   "toolCallId": "tool-call-0",
                   "toolName": "test-tool",
                 },

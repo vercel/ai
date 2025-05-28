@@ -42,6 +42,7 @@ describe('shouldResubmitMessages', () => {
             id: '2',
             role: 'assistant' as const,
             parts: [
+              { type: 'step-start' },
               {
                 type: 'tool-invocation' as const,
                 toolInvocation: {
@@ -50,7 +51,6 @@ describe('shouldResubmitMessages', () => {
                   toolName: 'some-tool',
                   args: {},
                   result: 'some result',
-                  step: 1,
                 },
               },
             ],
@@ -73,7 +73,6 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
             type: 'tool-invocation',
             toolInvocation: {
               state: 'result',
-              step: 1,
               toolCallId: 'call_CuEdmzpx4ZldCkg5SVr3ikLz',
               toolName: 'getLocation',
               args: {},
@@ -101,7 +100,6 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
             type: 'tool-invocation',
             toolInvocation: {
               state: 'result',
-              step: 2,
               toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
               toolName: 'getWeatherInformation',
               args: {
