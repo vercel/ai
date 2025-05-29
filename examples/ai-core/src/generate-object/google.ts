@@ -34,7 +34,12 @@ async function main() {
   const orderedResult = await generateObject({
     model: google('gemini-2.0-flash', {
       structuredOutputs: true,
-      propertyOrdering: ['name', 'age', 'level', 'contact'],
+      propertyOrdering: {
+        name: null,
+        age: null,
+        level: null,
+        contact: null,
+      },
     }),
     schema: z.object({
       name: z.string(),

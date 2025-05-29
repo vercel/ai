@@ -119,7 +119,11 @@ The following optional settings are available for Google Generative AI models:
 
   ```ts
   const model = google('gemini-1.5-flash', {
-    propertyOrdering: ['name', 'email', 'age'],
+    propertyOrdering: {
+      name: null,
+      email: null,
+      age: null,
+    },
   });
 
   const result = await generateObject({
