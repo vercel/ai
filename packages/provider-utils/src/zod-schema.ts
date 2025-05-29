@@ -56,10 +56,6 @@ export function zod4Schema<OBJECT>(
     reused: useReferences ? 'ref' : 'inline',
   }) as JSONSchema7;
 
-  console.log({ z4JSONSchema });
-
-  // enforceNoAdditionalProperties(z4JSONSchema);
-
   return jsonSchema(z4JSONSchema, {
     validate: value => {
       const result = z4.safeParse(zodSchema, value);
