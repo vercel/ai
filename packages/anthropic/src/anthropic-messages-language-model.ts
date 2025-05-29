@@ -620,6 +620,23 @@ const anthropicMessagesResponseSchema = z.object({
         name: z.string(),
         input: z.unknown(),
       }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.unknown(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.array(z.object({
+          type: z.literal('web_search_result'),
+          url: z.string(),
+          title: z.string(),
+          encrypted_content: z.string(),
+          page_age: z.string().nullable(),
+        })),
+      }),
     ]),
   ),
   stop_reason: z.string().nullish(),
