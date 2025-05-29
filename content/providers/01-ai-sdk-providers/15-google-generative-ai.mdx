@@ -109,14 +109,15 @@ The following optional settings are available for Google Generative AI models:
 
   See [Troubleshooting: Schema Limitations](#schema-limitations) for more details.
 
-- **propertyOrdering** _string[]_
+- **propertyOrdering**
 
-  Optional. Array of property names specifying the order of properties in structured output.
-  This ensures consistent property ordering in JSON responses and only applies to object schemas.
+  Optional. Configure property ordering for structured output responses.
+  This ensures consistent property ordering in JSON responses from Google's Gemini models.
 
-  When specified, properties in the generated JSON will appear in the exact order provided,
-  which is useful for applications requiring predictable output formats.
+  Uses a nested object notation where keys represent property names in desired order,
+  and values are either `null` for leaf properties or nested configurations.
 
+  For example:
   ```ts
   const model = google('gemini-1.5-flash', {
     propertyOrdering: {

@@ -115,7 +115,7 @@ const model = google('gemini-1.5-pro', {
 
 ### Usage with Zod Schemas
 
-The property ordering configuration works seamlessly with Zod schemas. Unlike the previous approach, you don't need to modify your Zod schemas or use helper functions - simply define your schemas normally and configure property ordering separately in the model settings.
+The property ordering configuration works seamlessly with Zod schemas. You don't need to modify your Zod schemas or use helper functions - simply define your schemas normally and configure property ordering separately in the model settings.
 
 ```typescript
 import { google } from '@ai-sdk/google';
@@ -224,58 +224,6 @@ const result = await generateObject({
   model,
   schema: userSchema,
   prompt: 'Generate a user profile for John Doe',
-});
-```
-
-### Zod with Tools
-
-```typescript
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
-import { tool } from 'ai';
-import { z } from 'zod';
-
-// Define tool parameters with Zod
-const createUserParamsSchema = z.object({
-  username: z.string(),
-  email: z.string(),
-  profile: z.object({
-    firstName: z.string(),
-    lastName: z.string(),
-    bio: z.string(),
-  }),
-  settings: z.object({
-    theme: z.enum(['light', 'dark']),
-    notifications: z.boolean(),
-  }),
-});
-
-const model = google('gemini-1.5-pro', {
-  propertyOrdering: {
-    // Order for tool parameters
-    username: null,
-    email: null,
-    profile: {
-      firstName: null,
-      lastName: null,
-      bio: null,
-    },
-    settings: {
-      theme: null,
-      notifications: null,
-    },
-  },
-});
-
-const result = await generateText({
-  model,
-  prompt: 'Create a new user account for Jane Smith',
-  tools: {
-    createUser: tool({
-      description: 'Create a new user account',
-      parameters: createUserParamsSchema,
-    }),
-  },
 });
 ```
 
