@@ -41,6 +41,29 @@ export interface DynamicRetrievalConfig {
   dynamicThreshold?: number;
 }
 
+/**
+ * Recursive type for defining property ordering configuration.
+ * Keys represent property names in the desired order, values are either:
+ * - null for leaf properties
+ * - Nested PropertyOrderingConfig for objects with nested properties
+ *
+ * Example:
+ * ```
+ * {
+ *   parentProperty1: {
+ *     childProperty1: {
+ *       subchildProperty1: null
+ *     },
+ *     childProperty2: null
+ *   },
+ *   parentProperty2: null
+ * }
+ * ```
+ */
+export interface PropertyOrderingConfig {
+  [propertyName: string]: PropertyOrderingConfig | null;
+}
+
 export interface GoogleGenerativeAISettings {
   /**
 Optional.
@@ -60,16 +83,28 @@ Format: cachedContents/{cachedContent}
   structuredOutputs?: boolean;
 
   /**
-   * Optional. Array of property names specifying the order of properties in structured output.
-   * This sets Google's propertyOrdering extension to ensure consistent property ordering
-   * in JSON responses. Only applies to object schemas.
+   * Optional. Configure property ordering for structured output responses.
+   * This ensures consistent property ordering in JSON responses from Google's Gemini models.
+   *
+   * Uses a nested object notation where keys represent property names in the desired order,
+   * and values are either null for leaf properties or nested configurations.
    *
    * @example
-   * propertyOrdering: ['name', 'email', 'age']
+   * ```typescript
+   * propertyOrdering: {
+   *   recipeName: null,
+   *   ingredients: null,
+   *   cookingTime: null,
+   *   chef: {
+   *     name: null,
+   *     experience: null
+   *   }
+   * }
+   * ```
    *
    * @see https://ai.google.dev/gemini-api/docs/structured-output#property-ordering
    */
-  propertyOrdering?: string[];
+  propertyOrdering?: PropertyOrderingConfig;
 
   /**
 Optional. A list of unique safety settings for blocking unsafe content.

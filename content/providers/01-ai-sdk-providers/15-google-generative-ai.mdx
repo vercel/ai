@@ -109,6 +109,33 @@ The following optional settings are available for Google Generative AI models:
 
   See [Troubleshooting: Schema Limitations](#schema-limitations) for more details.
 
+- **propertyOrdering** _string[]_
+
+  Optional. Array of property names specifying the order of properties in structured output.
+  This ensures consistent property ordering in JSON responses and only applies to object schemas.
+
+  When specified, properties in the generated JSON will appear in the exact order provided,
+  which is useful for applications requiring predictable output formats.
+
+  ```ts
+  const model = google('gemini-1.5-flash', {
+    propertyOrdering: ['name', 'email', 'age'],
+  });
+
+  const result = await generateObject({
+    model,
+    schema: z.object({
+      name: z.string(),
+      email: z.string(),
+      age: z.number(),
+    }),
+    prompt: 'Generate a user profile',
+  });
+  // Properties will appear in order: name, email, age
+  ```
+
+  For more information, see [Google's property ordering documentation](https://ai.google.dev/gemini-api/docs/structured-output#property-ordering).
+
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
   Optional. Safety settings for the model.

@@ -1491,56 +1491,6 @@ describe('doGenerate', () => {
       ).toBe(false);
     });
   });
-
-  it('should include propertyOrdering in responseSchema when provided in settings', async () => {
-    const provider = createGoogleGenerativeAI({
-      apiKey: 'test-api-key',
-      generateId: () => 'test-id',
-    });
-
-    const model = provider.languageModel('gemini-1.5-flash', {
-      propertyOrdering: ['name', 'age', 'email'],
-    });
-
-    prepareJsonResponse({
-      content: '{}',
-      url: TEST_URL_GEMINI_1_5_FLASH,
-    });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            age: { type: 'number' },
-            email: { type: 'string' },
-          },
-          required: ['name'],
-        },
-      },
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
-    });
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            age: { type: 'number' },
-            email: { type: 'string' },
-          },
-          required: ['name'],
-          propertyOrdering: ['name', 'age', 'email'],
-        },
-      },
-      contents: [{ role: 'user', parts: [{ text: 'test' }] }],
-    });
-  });
 });
 
 describe('doStream', () => {

@@ -28,6 +28,28 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
+
+  // Example with property ordering
+  console.log('\n--- Property Ordering Example ---');
+  const orderedResult = await generateObject({
+    model: google('gemini-2.0-flash', {
+      structuredOutputs: true,
+      propertyOrdering: ['name', 'age', 'level', 'contact'],
+    }),
+    schema: z.object({
+      name: z.string(),
+      age: z.number().nullable().describe('Age of the person.'),
+      contact: z.object({
+        type: z.literal('email'),
+        value: z.string(),
+      }),
+      level: z.enum(['L1', 'L2', 'L3']).nullable(),
+    }),
+    prompt: 'Generate an example person for testing.',
+  });
+
+  console.log('Properties ordered as: name, age, level, contact');
+  console.log(JSON.stringify(orderedResult.object, null, 2));
 }
 
 main().catch(console.error);

@@ -1,23 +1,12 @@
 import { JSONSchema7Definition } from '@ai-sdk/provider';
+import { PropertyOrderingConfig } from './google-generative-ai-settings';
 
 /**
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
  */
 export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition,
-  options?: {
-    propertyOrdering?: string[];
-  },
-): unknown {
-  return convertJSONSchemaToOpenAPISchemaInternal(jsonSchema, options, true);
-}
-
-function convertJSONSchemaToOpenAPISchemaInternal(
-  jsonSchema: JSONSchema7Definition,
-  options?: {
-    propertyOrdering?: string[];
-  },
-  isTopLevel = false,
+  propertyOrderingConfig?: PropertyOrderingConfig,
 ): unknown {
   // parameters need to be undefined if they are empty objects:
   if (isEmptyObjectSchema(jsonSchema)) {
@@ -77,37 +66,43 @@ function convertJSONSchemaToOpenAPISchemaInternal(
   if (properties != null) {
     result.properties = Object.entries(properties).reduce(
       (acc, [key, value]) => {
-        acc[key] = convertJSONSchemaToOpenAPISchemaInternal(
+        // Apply nested property ordering configuration if it exists for this property
+        const nestedConfig = propertyOrderingConfig?.[key];
+        // Only pass nested config if it's not null (null means leaf property)
+        acc[key] = convertJSONSchemaToOpenAPISchema(
           value,
-          options,
-          false,
+          nestedConfig === null ? undefined : nestedConfig,
         );
         return acc;
       },
       {} as Record<string, unknown>,
     );
 
-    // Add propertyOrdering only to top-level objects when provided in options
+    // Apply property ordering if configuration is provided for this level
     if (
-      isTopLevel &&
-      options?.propertyOrdering &&
-      Array.isArray(options.propertyOrdering)
+      propertyOrderingConfig &&
+      Object.keys(propertyOrderingConfig).length > 0
     ) {
-      result.propertyOrdering = options.propertyOrdering;
+      const propertyOrdering = Object.keys(propertyOrderingConfig);
+      // Only include properties that actually exist in the schema
+      const validPropertyOrdering = propertyOrdering.filter(prop =>
+        properties.hasOwnProperty(prop),
+      );
+      if (validPropertyOrdering.length > 0) {
+        result.propertyOrdering = validPropertyOrdering;
+      }
     }
   }
 
   if (items) {
     result.items = Array.isArray(items)
-      ? items.map(item =>
-          convertJSONSchemaToOpenAPISchemaInternal(item, options, false),
-        )
-      : convertJSONSchemaToOpenAPISchemaInternal(items, options, false);
+      ? items.map(item => convertJSONSchemaToOpenAPISchema(item))
+      : convertJSONSchemaToOpenAPISchema(items);
   }
 
   if (allOf) {
     result.allOf = allOf.map(schema =>
-      convertJSONSchemaToOpenAPISchemaInternal(schema, options, false),
+      convertJSONSchemaToOpenAPISchema(schema),
     );
   }
   if (anyOf) {
@@ -123,11 +118,7 @@ function convertJSONSchemaToOpenAPISchemaInternal(
 
       if (nonNullSchemas.length === 1) {
         // If there's only one non-null schema, convert it and make it nullable
-        const converted = convertJSONSchemaToOpenAPISchemaInternal(
-          nonNullSchemas[0],
-          options,
-          false,
-        );
+        const converted = convertJSONSchemaToOpenAPISchema(nonNullSchemas[0]);
         if (typeof converted === 'object') {
           result.nullable = true;
           Object.assign(result, converted);
@@ -135,19 +126,19 @@ function convertJSONSchemaToOpenAPISchemaInternal(
       } else {
         // If there are multiple non-null schemas, keep them in anyOf
         result.anyOf = nonNullSchemas.map(schema =>
-          convertJSONSchemaToOpenAPISchemaInternal(schema, options, false),
+          convertJSONSchemaToOpenAPISchema(schema),
         );
         result.nullable = true;
       }
     } else {
       result.anyOf = anyOf.map(schema =>
-        convertJSONSchemaToOpenAPISchemaInternal(schema, options, false),
+        convertJSONSchemaToOpenAPISchema(schema),
       );
     }
   }
   if (oneOf) {
     result.oneOf = oneOf.map(schema =>
-      convertJSONSchemaToOpenAPISchemaInternal(schema, options, false),
+      convertJSONSchemaToOpenAPISchema(schema),
     );
   }
 
