@@ -60,6 +60,18 @@ Format: cachedContents/{cachedContent}
   structuredOutputs?: boolean;
 
   /**
+   * Optional. Array of property names specifying the order of properties in structured output.
+   * This sets Google's propertyOrdering extension to ensure consistent property ordering
+   * in JSON responses. Only applies to object schemas.
+   *
+   * @example
+   * propertyOrdering: ['name', 'email', 'age']
+   *
+   * @see https://ai.google.dev/gemini-api/docs/structured-output#property-ordering
+   */
+  propertyOrdering?: string[];
+
+  /**
 Optional. A list of unique safety settings for blocking unsafe content.
    */
   safetySettings?: Array<{

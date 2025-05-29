@@ -553,3 +553,218 @@ it('should convert nullable string enum', () => {
     },
   });
 });
+
+it('should add propertyOrdering when provided via options', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      recipeName: { type: 'string' },
+      ingredients: { type: 'array', items: { type: 'string' } },
+      cookingTime: { type: 'number' },
+    },
+    required: ['recipeName'],
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      recipeName: { type: 'string' },
+      ingredients: { type: 'array', items: { type: 'string' } },
+      cookingTime: { type: 'number' },
+    },
+    required: ['recipeName'],
+    propertyOrdering: ['recipeName', 'ingredients', 'cookingTime'],
+  };
+
+  expect(
+    convertJSONSchemaToOpenAPISchema(input, {
+      propertyOrdering: ['recipeName', 'ingredients', 'cookingTime'],
+    }),
+  ).toEqual(expected);
+});
+
+it('should preserve custom propertyOrdering order when provided via options', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      id: { type: 'number' },
+      name: { type: 'string' },
+      email: { type: 'string' },
+      age: { type: 'number' },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      id: { type: 'number' },
+      name: { type: 'string' },
+      email: { type: 'string' },
+      age: { type: 'number' },
+    },
+    propertyOrdering: ['name', 'id', 'age', 'email'],
+  };
+
+  expect(
+    convertJSONSchemaToOpenAPISchema(input, {
+      propertyOrdering: ['name', 'id', 'age', 'email'],
+    }),
+  ).toEqual(expected);
+});
+
+it('should not add propertyOrdering when not provided in options', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      id: { type: 'number' },
+      name: { type: 'string' },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      id: { type: 'number' },
+      name: { type: 'string' },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should not add propertyOrdering for objects without properties', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+  };
+
+  const expected = undefined; // This returns undefined for empty object schemas
+
+  expect(
+    convertJSONSchemaToOpenAPISchema(input, {
+      propertyOrdering: ['name'],
+    }),
+  ).toEqual(expected);
+});
+
+it('should not add propertyOrdering for non-object types', () => {
+  const input: JSONSchema7 = {
+    type: 'array',
+    items: { type: 'string' },
+  };
+
+  const expected = {
+    type: 'array',
+    items: { type: 'string' },
+  };
+
+  expect(
+    convertJSONSchemaToOpenAPISchema(input, {
+      propertyOrdering: ['name'],
+    }),
+  ).toEqual(expected);
+});
+
+it('should ignore invalid propertyOrdering values', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+    },
+  };
+
+  expect(
+    convertJSONSchemaToOpenAPISchema(input, {
+      propertyOrdering: 'invalid' as any, // Not an array
+    }),
+  ).toEqual(expected);
+});
+
+it('should work with Zod schemas using propertyOrdering via options', () => {
+  // Simulate how a user would use propertyOrdering with Zod-converted JSON schema
+  const zodGeneratedJsonSchema: JSONSchema7 = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      name: { type: 'string' },
+      email: { type: 'string' },
+      age: { type: 'number' },
+      isActive: { type: 'boolean' },
+    },
+    required: ['name', 'email'],
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      email: { type: 'string' },
+      age: { type: 'number' },
+      isActive: { type: 'boolean' },
+    },
+    required: ['name', 'email'],
+    propertyOrdering: ['name', 'email', 'age', 'isActive'],
+  };
+
+  expect(
+    convertJSONSchemaToOpenAPISchema(zodGeneratedJsonSchema, {
+      propertyOrdering: ['name', 'email', 'age', 'isActive'],
+    }),
+  ).toEqual(expected);
+});
+
+it('should work with nested objects when propertyOrdering provided via options', () => {
+  const nestedJsonSchema: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      user: {
+        type: 'object',
+        properties: {
+          profile: { type: 'string' },
+          id: { type: 'number' },
+        },
+      },
+      metadata: {
+        type: 'object',
+        properties: {
+          updatedAt: { type: 'string' },
+          createdAt: { type: 'string' },
+        },
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      user: {
+        type: 'object',
+        properties: {
+          profile: { type: 'string' },
+          id: { type: 'number' },
+        },
+      },
+      metadata: {
+        type: 'object',
+        properties: {
+          updatedAt: { type: 'string' },
+          createdAt: { type: 'string' },
+        },
+      },
+    },
+    propertyOrdering: ['user', 'metadata'],
+  };
+
+  expect(
+    convertJSONSchemaToOpenAPISchema(nestedJsonSchema, {
+      propertyOrdering: ['user', 'metadata'],
+    }),
+  ).toEqual(expected);
+});
