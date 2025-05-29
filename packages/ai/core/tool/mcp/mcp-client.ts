@@ -315,7 +315,13 @@ class MCPClient {
     try {
       const listToolsResult = await this.listTools();
 
-      for (const { name, description, inputSchema } of listToolsResult.tools) {
+      // In the tools() method, you'll need to handle output schemas:
+      for (const {
+        name,
+        description,
+        inputSchema,
+        outputSchema,
+      } of listToolsResult.tools) {
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
@@ -326,6 +332,7 @@ class MCPClient {
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
                 additionalProperties: false,
+                ...(outputSchema && { outputSchema }),
               } as JSONSchema7)
             : schemas[name].parameters;
 
@@ -339,11 +346,19 @@ class MCPClient {
           ): Promise<CallToolResult> => {
             options?.abortSignal?.throwIfAborted();
 
-            return self.callTool({
+            const result = await self.callTool({
               name,
               args,
               options,
             });
+
+            // Validate structured content if output schema is present
+            if (outputSchema && 'structuredContent' in result) {
+              // You might want to add schema validation here
+              // using a JSON schema validator like Ajv
+            }
+
+            return result;
           },
         });
 
