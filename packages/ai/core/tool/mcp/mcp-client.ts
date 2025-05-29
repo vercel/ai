@@ -315,7 +315,6 @@ class MCPClient {
     try {
       const listToolsResult = await this.listTools();
 
-      // In the tools() method, you'll need to handle output schemas:
       for (const {
         name,
         description,
@@ -352,10 +351,8 @@ class MCPClient {
               options,
             });
 
-            // Validate structured content if output schema is present
             if (outputSchema && 'structuredContent' in result) {
-              // You might want to add schema validation here
-              // using a JSON schema validator like Ajv
+              // TODO: might want to add schema validation here
             }
 
             return result;
