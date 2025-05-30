@@ -1357,9 +1357,6 @@ importers:
       commander:
         specifier: ^12.1.0
         version: 12.1.0
-      debug:
-        specifier: ^4.3.7
-        version: 4.3.7
       jscodeshift:
         specifier: ^17.1.1
         version: 17.1.1
@@ -1367,9 +1364,6 @@ importers:
       '@types/cli-progress':
         specifier: ^3.11.6
         version: 3.11.6
-      '@types/debug':
-        specifier: ^4.1.12
-        version: 4.1.12
       '@types/jscodeshift':
         specifier: ^0.12.0
         version: 0.12.0

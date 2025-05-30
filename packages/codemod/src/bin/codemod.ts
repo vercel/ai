@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 
-import debug from 'debug';
 import { Command } from 'commander';
 import { transform } from '../lib/transform';
 import { upgrade } from '../lib/upgrade';
 import { TransformOptions } from '../lib/transform-options';
 
-const error = debug('codemod:error');
-debug.enable('codemod:*');
-
 const program = new Command();
+const errorLog = (message: string) => {
+  console.error(`codemod:error ${process.pid}: ${message}`);
+}
 
 const addTransformOptions = (command: Command): Command => {
   return command
@@ -32,7 +31,7 @@ addTransformOptions(
   try {
     transform(codemod, source, options);
   } catch (err: any) {
-    error(`Error transforming: ${err}`);
+    errorLog(`Error transforming: ${err}`);
     process.exit(1);
   }
 });
@@ -45,7 +44,7 @@ addTransformOptions(
   try {
     upgrade(options);
   } catch (err: any) {
-    error(`Error upgrading: ${err}`);
+    errorLog(`Error upgrading: ${err}`);
     process.exit(1);
   }
 });
