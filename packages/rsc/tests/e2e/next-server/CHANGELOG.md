@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@5.0.0-alpha.8
+
+## 0.0.1-alpha.0
+
+### Patch Changes
+
 - Updated dependencies [db345da]
 - Updated dependencies [9b0da33]
 - Updated dependencies [247ee0c]
