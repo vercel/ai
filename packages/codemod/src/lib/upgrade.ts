@@ -21,6 +21,7 @@ const bundle = [
   'remove-openai-facade',
   'rename-format-stream-part',
   'rename-parse-stream-part',
+  'rename-reasoning-to-reasoningText',
   'replace-baseurl',
   'replace-continuation-steps',
   'replace-langchain-toaistream',
@@ -28,6 +29,7 @@ const bundle = [
   'replace-roundtrips-with-maxsteps',
   'replace-token-usage-types',
   'rewrite-framework-imports',
+  'rsc-package',
 ];
 
 const log = debug('codemod:upgrade');
@@ -46,7 +48,7 @@ export function upgrade(options: TransformOptions) {
   );
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
-  for (const [index, codemod] of bundle.entries()) {
+  for (const codemod of bundle) {
     const errors = transform(codemod, cwd, options, { logStatus: false });
     allErrors.push(...errors);
     bar.increment(1, { codemod });
