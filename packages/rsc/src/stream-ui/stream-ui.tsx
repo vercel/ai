@@ -1,7 +1,8 @@
 import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { InferSchema, safeParseJSON } from '@ai-sdk/provider-utils';
 import { ReactNode } from 'react';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 import {
   CallWarning,
   FinishReason,
@@ -35,16 +36,14 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<PARAMETERS extends z.Schema | Schema = any> = {
+type RenderTool<
+  PARAMETERS_SCHEMA extends z4.$ZodType | z3.Schema | Schema = any,
+> = {
   description?: string;
-  parameters: PARAMETERS;
+  parameters: PARAMETERS_SCHEMA;
   generate?: Renderer<
     [
-      PARAMETERS extends z.Schema
-        ? z.infer<PARAMETERS>
-        : PARAMETERS extends Schema<infer T>
-          ? T
-          : never,
+      InferSchema<PARAMETERS_SCHEMA>,
       {
         toolName: string;
         toolCallId: string;
@@ -86,7 +85,7 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
  * `streamUI` is a helper function to create a streamable UI from LLMs.
  */
 export async function streamUI<
-  TOOLS extends { [name: string]: z.Schema | Schema } = {},
+  TOOLS extends { [name: string]: z4.$ZodType | z3.Schema | Schema } = {},
 >({
   model,
   tools,

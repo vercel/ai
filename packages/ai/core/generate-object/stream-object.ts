@@ -6,9 +6,14 @@ import {
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import { createIdGenerator, Schema } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  type Schema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
@@ -155,25 +160,19 @@ functionality that can be fully encapsulated in the provider.
 A result object for accessing the partial object stream and additional information.
  */
 export function streamObject<
-  RESULT extends SCHEMA extends z.Schema
-    ? Output extends 'array'
-      ? Array<z.infer<SCHEMA>>
-      : z.infer<SCHEMA>
-    : SCHEMA extends Schema<infer T>
-      ? Output extends 'array'
-        ? Array<T>
-        : T
-      : never,
-  SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
-  Output extends
+  SCHEMA extends z3.Schema | z4.$ZodType | Schema = z4.$ZodType<JSONValue>,
+  OUTPUT extends
     | 'object'
     | 'array'
     | 'enum'
-    | 'no-schema' = RESULT extends string ? 'enum' : 'object',
+    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  RESULT = OUTPUT extends 'array'
+    ? Array<InferSchema<SCHEMA>>
+    : InferSchema<SCHEMA>,
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
-    (Output extends 'enum'
+    (OUTPUT extends 'enum'
       ? {
           /**
 The enum values that the model should use.
@@ -182,7 +181,7 @@ The enum values that the model should use.
           mode?: 'json';
           output: 'enum';
         }
-      : Output extends 'no-schema'
+      : OUTPUT extends 'no-schema'
         ? {}
         : {
             /**
@@ -219,7 +218,7 @@ Default and recommended: 'auto' (best mode for the model).
       */
             mode?: 'auto' | 'json' | 'tool';
           }) & {
-      output?: Output;
+      output?: OUTPUT;
 
       /**
 The language model to use.
@@ -261,13 +260,13 @@ Callback that is called when the LLM response and the final object validation ar
       };
     },
 ): StreamObjectResult<
-  Output extends 'enum'
+  OUTPUT extends 'enum'
     ? string
-    : Output extends 'array'
+    : OUTPUT extends 'array'
       ? RESULT
       : DeepPartial<RESULT>,
-  Output extends 'array' ? RESULT : RESULT,
-  Output extends 'array'
+  OUTPUT extends 'array' ? RESULT : RESULT,
+  OUTPUT extends 'array'
     ? RESULT extends Array<infer U>
       ? AsyncIterableStream<U>
       : never
