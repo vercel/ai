@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.0-alpha.8
+
+### Patch Changes
+
+- 989ac75: chore (providers/gateway): update chat model ids
+
 ## 1.0.0-alpha.7
 
 ### Patch Changes
