@@ -8,16 +8,17 @@ if (!codemodName) {
 }
 
 // Templates
-const codemodTemplate = `import { API, FileInfo } from 'jscodeshift';
+const codemodTemplate = `import { createTransformer } from './lib/create-transformer';
 
-export default function transformer(file: FileInfo, api: API) {
-  const j = api.jscodeshift;
-  const root = j(file.source);
+/*
+TODO: describe what the codemod does
+*/
 
-  // TODO: Implement transform
+export default createTransformer((fileInfo, api, options, context) => {
+  const { j, root } = context;
 
-  return root.toSource();
-}
+  // TODO: make your changes and set \`context.hasChanges = true;\` if any changes were made
+});
 `;
 
 const testTemplate = `import { describe, it } from 'vitest';
