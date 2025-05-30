@@ -21,4 +21,7 @@ const test = {
 for (const step of steps) {
   console.log(step.reasoningText);
 }
+steps.forEach(step => {
+  console.log(step.reasoningText);
+});
 console.log(test.reasoning);
