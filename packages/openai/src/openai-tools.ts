@@ -31,6 +31,29 @@ function webSearchPreviewTool({
   };
 }
 
+const FileSearchPreviewParameters = z.object({});
+
+function fileSearchTool({
+  vectorStoreIds,
+}: {
+  vectorStoreIds?: string[];
+} = {}): {
+  type: 'provider-defined';
+  id: 'openai.file_search';
+  args: {};
+  parameters: typeof FileSearchPreviewParameters;
+} {
+  return {
+    type: 'provider-defined',
+    id: 'openai.file_search',
+    args: {
+      vectorStoreIds,
+    },
+    parameters: FileSearchPreviewParameters,
+  };
+}
+
 export const openaiTools = {
   webSearchPreview: webSearchPreviewTool,
+  fileSearch: fileSearchTool,
 };
