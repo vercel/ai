@@ -1,3 +1,4 @@
+import { AnthropicProviderOptions } from './anthropic-messages-language-model';
 import { prepareTools } from './anthropic-prepare-tools';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
@@ -178,4 +179,33 @@ it('should handle tool choice "tool"', () => {
     toolChoice: { type: 'tool', toolName: 'testFunction' },
   });
   expect(result.tool_choice).toEqual({ type: 'tool', name: 'testFunction' });
+});
+
+it('should handle cacheToolDefinitions option', () => {
+  const result = prepareTools(
+    {
+      type: 'regular',
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          parameters: { type: 'object', properties: {} },
+        },
+      ],
+    },
+    {
+      anthropic: {
+        cacheToolDefinitions: true,
+      } satisfies AnthropicProviderOptions,
+    },
+  );
+  expect(result.tools).toEqual([
+    {
+      name: 'testFunction',
+      description: 'Test',
+      input_schema: { type: 'object', properties: {} },
+      cache_control: { type: 'ephemeral' },
+    },
+  ]);
 });
