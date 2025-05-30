@@ -88,6 +88,7 @@ const model = google('gemini-1.5-pro-latest', {
   safetySettings: [
     { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
   ],
+  mediaResolution: 'MEDIA_RESOLUTION_HIGH',
 });
 ```
 
@@ -97,6 +98,8 @@ The following optional settings are available for Google Generative AI models:
 
   Optional. The name of the cached content used as context to serve the prediction.
   Format: cachedContents/\{cachedContent\}
+
+  When `cachedContent` is provided, parameters such as `tools`, `toolConfig`, and `systemInstruction` for the specific call might be handled differently or conditionally omitted, as the context is primarily driven by the cached content.
 
 - **structuredOutputs** _boolean_
 
@@ -131,6 +134,18 @@ The following optional settings are available for Google Generative AI models:
     - `BLOCK_MEDIUM_AND_ABOVE`
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
+
+- **mediaResolution** _string_
+
+  Optional. Media resolution used for vision capabilities.
+  Can be one of the following:
+
+  - `MEDIA_RESOLUTION_UNSPECIFIED`
+  - `MEDIA_RESOLUTION_LOW`
+  - `MEDIA_RESOLUTION_MEDIUM`
+  - `MEDIA_RESOLUTION_HIGH`
+
+  See [Google AI documentation on media resolution](https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig#FIELDS.media_resolution) for more details.
 
 Further configuration can be done using Google Generative AI provider options. You can validate the provider options using the `GoogleGenerativeAIProviderOptions` type.
 
@@ -351,7 +366,44 @@ Example response:
         "confidenceScores": [0.99]
       }
     ]
-  }
+  },
+  "safetyRatings": [
+    {
+      "category": "HARM_CATEGORY_HATE_SPEECH",
+      "probability": "NEGLIGIBLE",
+      "probabilityScore": 0.11027937,
+      "severity": "HARM_SEVERITY_LOW",
+      "severityScore": 0.28487435
+    },
+    {
+      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+      "probability": "HIGH",
+      "blocked": true,
+      "probabilityScore": 0.95422274,
+      "severity": "HARM_SEVERITY_MEDIUM",
+      "severityScore": 0.43398145
+    },
+    {
+      "category": "HARM_CATEGORY_HARASSMENT",
+      "probability": "NEGLIGIBLE",
+      "probabilityScore": 0.11085559,
+      "severity": "HARM_SEVERITY_NEGLIGIBLE",
+      "severityScore": 0.19027223
+    },
+    {
+      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+      "probability": "NEGLIGIBLE",
+      "probabilityScore": 0.22901751,
+      "severity": "HARM_SEVERITY_NEGLIGIBLE",
+      "severityScore": 0.09089675
+    }
+  ],
+  "cachedContentTokenCount": 5,
+  "thoughtsTokenCount": 2,
+  "promptTokensDetails": [{ "modality": "TEXT", "tokenCount": 10 }],
+  "cacheTokensDetails": [{ "modality": "IMAGE", "tokenCount": 20 }],
+  "candidatesTokensDetails": [{ "modality": "AUDIO", "tokenCount": 30 }],
+  "toolUsePromptTokensDetails": [{ "modality": "VIDEO", "tokenCount": 40 }]
 }
 ```
 
@@ -468,6 +520,50 @@ Example response excerpt:
       "severityScore": 0.09089675
     }
   ]
+}
+```
+
+### Token Usage Metadata
+
+The `providerMetadata.google` object also contains detailed token usage information when available from the API. This can be useful for monitoring costs and understanding model behavior.
+
+- **`cachedContentTokenCount`** (`number | null`): Number of tokens in the cached content, if used.
+- **`thoughtsTokenCount`** (`number | null`): Number of tokens related to the model's thinking process, if applicable.
+- **`promptTokensDetails`** (Array of `ModalityTokenDetail` | `null`): Detailed breakdown of prompt tokens by modality.
+  - Each `ModalityTokenDetail` object has:
+    - `modality`: e.g., 'TEXT', 'IMAGE', 'AUDIO', 'VIDEO', 'DOCUMENT'.
+    - `tokenCount`: Number of tokens for that modality.
+- **`cacheTokensDetails`** (Array of `ModalityTokenDetail` | `null`): Detailed breakdown of cache tokens by modality.
+- **`candidatesTokensDetails`** (Array of `ModalityTokenDetail` | `null`): Detailed breakdown of candidate (completion) tokens by modality.
+- **`toolUsePromptTokensDetails`** (Array of `ModalityTokenDetail` | `null`): Detailed breakdown of tokens used in tool prompts by modality.
+
+Example accessing these fields:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, providerMetadata } = await generateText({
+  model: google('gemini-1.5-pro-latest'),
+  prompt: 'Tell me a joke.',
+});
+
+const metadata = providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+
+if (metadata) {
+  console.log('Safety Ratings:', metadata.safetyRatings);
+  console.log('Cached Content Tokens:', metadata.cachedContentTokenCount);
+  console.log('Thoughts Tokens:', metadata.thoughtsTokenCount);
+  console.log('Prompt Token Details:', metadata.promptTokensDetails);
+  console.log('Cache Token Details:', metadata.cacheTokensDetails);
+  console.log('Candidates Token Details:', metadata.candidatesTokensDetails);
+  console.log(
+    'Tool Use Prompt Token Details:',
+    metadata.toolUsePromptTokensDetails,
+  );
 }
 ```
 
