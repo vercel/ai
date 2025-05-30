@@ -6,7 +6,6 @@ import { transform } from '../lib/transform';
 import { upgrade } from '../lib/upgrade';
 import { TransformOptions } from '../lib/transform-options';
 
-const log = debug('codemod');
 const error = debug('codemod:error');
 debug.enable('codemod:*');
 
