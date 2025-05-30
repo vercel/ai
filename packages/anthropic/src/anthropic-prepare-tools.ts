@@ -1,6 +1,7 @@
 import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
+  LanguageModelV1ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
@@ -9,6 +10,7 @@ export function prepareTools(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   },
+  providerOptions?: LanguageModelV1ProviderMetadata,
 ): {
   tools: Array<AnthropicTool> | undefined;
   tool_choice: AnthropicToolChoice | undefined;
@@ -34,6 +36,9 @@ export function prepareTools(
           name: tool.name,
           description: tool.description,
           input_schema: tool.parameters,
+          cache_control: providerOptions?.anthropic.cacheToolDefinitions
+            ? { type: 'ephemeral' }
+            : undefined,
         });
         break;
       case 'provider-defined':
