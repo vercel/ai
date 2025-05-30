@@ -93,15 +93,17 @@ console.log(`Image saved to ${filename}`);
 
 Fal offers many models optimized for different use cases. Here are a few popular examples. For a full list of models, see the [Fal AI documentation](https://fal.ai/models).
 
-| Model                               | Description                                                                                                                                            |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `fal-ai/fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                        |
-| `fal-ai/flux-lora`                  | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations. |
-| `fal-ai/flux-pro/v1.1-ultra`        | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                 |
-| `fal-ai/ideogram/v2`                | Specialized for high-quality posters and logos with exceptional typography handling                                                                    |
-| `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                  |
-| `fal-ai/stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding                                                                         |
-| `fal-ai/hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                 |
+| Model                               | Description                                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fal-ai/fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                               |
+| `fal-ai/flux-pro/kontext`           | FLUX.1 Kontext [pro] handles both text and reference images as inputs, seamlessly enabling targeted, local edits and complex transformations of entire scenes |
+| `fal-ai/flux-pro/kontext/max`       | FLUX.1 Kontext [max] with greatly improved prompt adherence and typography generation, meeting premium consistency for editing without compromise on speed    |
+| `fal-ai/flux-lora`                  | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations.        |
+| `fal-ai/flux-pro/v1.1-ultra`        | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                        |
+| `fal-ai/ideogram/v2`                | Specialized for high-quality posters and logos with exceptional typography handling                                                                           |
+| `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                         |
+| `fal-ai/stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding                                                                                |
+| `fal-ai/hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                        |
 
 Fal models support the following aspect ratios:
 
@@ -122,6 +124,24 @@ Key features of Fal models include:
 - Support for real-time infrastructure
 - Cost-effective scaling with pay-per-use pricing
 - LoRA training capabilities for model personalization
+
+#### Modify Image
+
+Transform existing images using text prompts.
+
+```ts
+// Example: Modify existing image
+await generateImage({
+  model: fal.image('fal-ai/flux-pro/kontext'),
+  prompt: 'Put a donut next to the flour.',
+  providerOptions: {
+    fal: {
+      image_url:
+        'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
+    },
+  },
+});
+```
 
 ### Advanced Features
 
