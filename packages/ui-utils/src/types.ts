@@ -335,7 +335,7 @@ either synchronously or asynchronously.
       usage: LanguageModelUsage;
       finishReason: LanguageModelV1FinishReason;
     },
-  ) => void;
+  ) => void | Promise<void>;
 
   /**
    * Callback function to be called when an error is encountered.

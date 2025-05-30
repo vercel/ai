@@ -39,7 +39,7 @@ export async function processChatResponse({
     message: UIMessage | undefined;
     finishReason: LanguageModelV1FinishReason;
     usage: LanguageModelUsage;
-  }) => void;
+  }) => void | Promise<void>;
   onParts?: onParts;
   generateId?: () => string;
   getCurrentDate?: () => Date;
@@ -395,5 +395,5 @@ export async function processChatResponse({
     },
   });
 
-  onFinish?.({ message, finishReason, usage });
+  await onFinish?.({ message, finishReason, usage });
 }

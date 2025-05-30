@@ -46,7 +46,7 @@ export async function processChatTextResponse({
   });
 
   // in text mode, we don't have usage information or finish reason:
-  onFinish?.(resultMessage, {
+  await onFinish?.(resultMessage, {
     usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
     finishReason: 'unknown',
   });

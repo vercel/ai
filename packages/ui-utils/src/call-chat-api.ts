@@ -114,9 +114,9 @@ export async function callChatApi({
         lastMessage,
         onToolCall,
         onParts,
-        onFinish({ message, finishReason, usage }) {
+        async onFinish({ message, finishReason, usage }) {
           if (onFinish && message != null) {
-            onFinish(message, { usage, finishReason });
+            await onFinish(message, { usage, finishReason });
           }
         },
         generateId,
