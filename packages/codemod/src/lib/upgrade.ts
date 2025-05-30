@@ -28,6 +28,7 @@ const bundle = [
   'replace-roundtrips-with-maxsteps',
   'replace-token-usage-types',
   'rewrite-framework-imports',
+  'rsc-package',
 ];
 
 const log = debug('codemod:upgrade');
