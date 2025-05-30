@@ -21,6 +21,7 @@ const bundle = [
   'remove-openai-facade',
   'rename-format-stream-part',
   'rename-parse-stream-part',
+  'rename-reasoning-to-reasoningText',
   'replace-baseurl',
   'replace-continuation-steps',
   'replace-langchain-toaistream',
