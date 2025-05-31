@@ -60,6 +60,7 @@ export async function processChatResponse({
         parts: [],
       };
 
+  let hasIdBeenEstablished = replaceLastMessage;
   let currentTextPart: TextUIPart | undefined = undefined;
   let currentReasoningPart: ReasoningUIPart | undefined = undefined;
   let currentReasoningTextDetail:
@@ -364,9 +365,12 @@ export async function processChatResponse({
       currentReasoningTextDetail = undefined;
     },
     onStartStepPart(value) {
-      // keep message id stable when we are updating an existing message:
-      if (!replaceLastMessage) {
+      // keep message id stable when we've already received a messageId
+      // need to stay consistent with behavior of appendResponseMessages
+      // in order for client and server to be in sync
+      if (!hasIdBeenEstablished) {
         message.id = value.messageId;
+        hasIdBeenEstablished = true;
       }
 
       // add a step boundary part to the message
