@@ -51,6 +51,7 @@ export const googleGenerativeAIProviderOptions = z.object({
   thinkingConfig: z
     .object({
       thinkingBudget: z.number().optional(),
+      includeThoughts: z.boolean().nullish(),
     })
     .optional(),
 
