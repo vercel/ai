@@ -9,7 +9,13 @@ import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
+import { ImageModelV1 } from '@ai-sdk/provider';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
+import {
+  GoogleGenerativeAIImageSettings,
+  GoogleGenerativeAIImageModelId,
+} from './google-generative-ai-image-settings';
+import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import {
   GoogleGenerativeAIEmbeddingModelId,
   GoogleGenerativeAIEmbeddingSettings,
@@ -36,6 +42,14 @@ export interface GoogleGenerativeAIProvider extends ProviderV1 {
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
   ): LanguageModelV1;
+
+  /**
+Creates a model for image generation.
+ */
+  image(
+    modelId: GoogleGenerativeAIImageModelId,
+    settings?: GoogleGenerativeAIImageSettings,
+  ): ImageModelV1;
 
   /**
    * @deprecated Use `chat()` instead.
@@ -140,6 +154,17 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createImageModel = (
+    modelId: GoogleGenerativeAIImageModelId,
+    settings: GoogleGenerativeAIImageSettings = {},
+  ) =>
+    new GoogleGenerativeAIImageModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
@@ -159,7 +184,7 @@ export function createGoogleGenerativeAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-
+  provider.image = createImageModel;
   return provider;
 }
 
