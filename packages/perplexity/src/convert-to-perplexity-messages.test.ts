@@ -30,8 +30,8 @@ describe('convertToPerplexityMessages', () => {
       ).toMatchSnapshot();
     });
 
-    it('should throw an error for user messages with image parts', () => {
-      expect(() => {
+    it('should convert a user message with image parts', () => {
+      expect(
         convertToPerplexityMessages([
           {
             role: 'user',
@@ -44,8 +44,8 @@ describe('convertToPerplexityMessages', () => {
               },
             ],
           },
-        ]);
-      }).toThrow(UnsupportedFunctionalityError);
+        ]),
+      ).toMatchSnapshot();
     });
 
     it('should throw an error for user messages with file parts', () => {
