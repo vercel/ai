@@ -103,8 +103,9 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [
-          // HTTP URLs:
-          /^https?:\/\/.*$/,
+          // Only allow requests to the Google Generative Language "files" endpoint
+          // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
+          new RegExp(`^${baseURL}/files/.*$`),
         ],
       }),
       fetch: options.fetch,
