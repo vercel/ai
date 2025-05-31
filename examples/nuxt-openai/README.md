@@ -41,7 +41,7 @@ You can use different providers, such as `vercel` by modifying your `nuxt.config
 
 To learn more about OpenAI, Nuxt, and the AI SDK take a look at the following resources:
 
-- [AI SDK docs](https://ai-sdk.dev/docs) - learn mode about the AI SDK
+- [AI SDK docs](https://ai-sdk.dev/docs) - learn more about the AI SDK
 - [Vercel AI Playground](https://ai-sdk.dev/playground) - compare and tune 20+ AI models side-by-side
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [Nuxt Documentation](https://nuxt.com/docs) - learn about Nuxt features and API.
