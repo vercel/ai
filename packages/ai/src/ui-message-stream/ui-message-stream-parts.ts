@@ -82,7 +82,6 @@ export const uiMessageStreamPartSchema = z.union([
   }),
 ]);
 
-
 export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   [NAME in keyof DATA_TYPES & string]: {
     type: `data-${NAME}`;
@@ -91,79 +90,79 @@ export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   };
 }>;
 
-export type UIMessageStreamPart<DATA_TYPES extends UIDataTypes=UIDataTypes> =
+export type UIMessageStreamPart<DATA_TYPES extends UIDataTypes = UIDataTypes> =
   | {
-  type: 'text';
-  text: string;
-}
+      type: 'text';
+      text: string;
+    }
   | {
-  type: 'error';
-  errorText: string;
-}
+      type: 'error';
+      errorText: string;
+    }
   | {
-  type: 'tool-call';
-  toolCallId: string;
-  toolName: string;
-  args: unknown;
-}
+      type: 'tool-call';
+      toolCallId: string;
+      toolName: string;
+      args: unknown;
+    }
   | {
-  type: 'tool-result';
-  toolCallId: string;
-  result: unknown;
-  providerMetadata?: ProviderMetadata;
-}
+      type: 'tool-result';
+      toolCallId: string;
+      result: unknown;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
-  type: 'tool-call-streaming-start';
-  toolCallId: string;
-  toolName: string;
-}
+      type: 'tool-call-streaming-start';
+      toolCallId: string;
+      toolName: string;
+    }
   | {
-  type: 'tool-call-delta';
-  toolCallId: string;
-  argsTextDelta: string;
-}
+      type: 'tool-call-delta';
+      toolCallId: string;
+      argsTextDelta: string;
+    }
   | {
-  type: 'reasoning';
-  text: string;
-  providerMetadata?: ProviderMetadata;
-}
+      type: 'reasoning';
+      text: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
-  type: 'source-url';
-  sourceId: string;
-  url: string;
-  title?: string;
-  providerMetadata?: ProviderMetadata;
-}
+      type: 'source-url';
+      sourceId: string;
+      url: string;
+      title?: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
-  type: 'file';
-  url: string;
-  mediaType: string;
-}
+      type: 'file';
+      url: string;
+      mediaType: string;
+    }
   | DataUIMessageStreamPart<DATA_TYPES>
   | {
-  type: 'metadata';
-  metadata: unknown;
-}
+      type: 'metadata';
+      metadata: unknown;
+    }
   | {
-  type: 'start-step';
-  metadata?: unknown;
-}
+      type: 'start-step';
+      metadata?: unknown;
+    }
   | {
-  type: 'finish-step';
-  metadata?: unknown;
-}
+      type: 'finish-step';
+      metadata?: unknown;
+    }
   | {
-  type: 'start';
-  messageId?: string;
-  metadata?: unknown;
-}
+      type: 'start';
+      messageId?: string;
+      metadata?: unknown;
+    }
   | {
-  type: 'finish';
-  metadata?: unknown;
-}
+      type: 'finish';
+      metadata?: unknown;
+    }
   | {
-  type: 'reasoning-part-finish';
-};
+      type: 'reasoning-part-finish';
+    };
 
 export function isDataUIMessageStreamPart(
   part: UIMessageStreamPart,

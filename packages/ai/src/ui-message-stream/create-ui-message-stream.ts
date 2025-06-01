@@ -3,13 +3,17 @@ import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
-export function createUIMessageStream<DATA_TYPES extends UIDataTypes= UIDataTypes>({
+export function createUIMessageStream<
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+>({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
   originalMessages,
   onFinish,
 }: {
-  execute: (options: { writer: UIMessageStreamWriter<DATA_TYPES> }) => Promise<void> | void;
+  execute: (options: {
+    writer: UIMessageStreamWriter<DATA_TYPES>;
+  }) => Promise<void> | void;
   onError?: (error: unknown) => string;
 
   /**
@@ -36,7 +40,9 @@ export function createUIMessageStream<DATA_TYPES extends UIDataTypes= UIDataType
     responseMessage: UIMessage;
   }) => void;
 }): ReadableStream<UIMessageStreamPart<DATA_TYPES>> {
-  let controller!: ReadableStreamDefaultController<UIMessageStreamPart<DATA_TYPES>>;
+  let controller!: ReadableStreamDefaultController<
+    UIMessageStreamPart<DATA_TYPES>
+  >;
 
   const ongoingStreamPromises: Promise<void>[] = [];
 

@@ -1,7 +1,9 @@
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIDataTypes } from '../ui';
 
-export interface UIMessageStreamWriter<DATA_TYPES extends UIDataTypes= UIDataTypes> {
+export interface UIMessageStreamWriter<
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> {
   /**
    * Appends a data stream part to the stream.
    */
