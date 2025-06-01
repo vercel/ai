@@ -3,6 +3,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2FunctionTool,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -104,13 +105,35 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       });
     }
 
-    if (responseFormat != null && responseFormat.type !== 'text') {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
-        details: 'JSON response format is not supported.',
-      });
+    if (responseFormat?.type === 'json') {
+      if (responseFormat.schema == null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'responseFormat',
+          details:
+            'JSON response format requires a schema. ' +
+            'The response format is ignored.',
+        });
+      } else if (tools != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'tools',
+          details:
+            'JSON response format does not support tools. ' +
+            'The provided tools are ignored.',
+        });
+      }
     }
+
+    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? {
+            type: 'function',
+            name: 'json',
+            description: 'Respond with a JSON object.',
+            parameters: responseFormat.schema,
+          }
+        : undefined;
 
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -192,7 +215,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       toolChoice: anthropicToolChoice,
       toolWarnings,
       betas: toolsBetas,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools(
+      jsonResponseTool != null
+        ? {
+            tools: [jsonResponseTool],
+            toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
+          }
+        : { tools, toolChoice },
+    );
 
     return {
       args: {
@@ -202,6 +232,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       },
       warnings: [...warnings, ...toolWarnings],
       betas: new Set([...messagesBetas, ...toolsBetas]),
+      jsonResponseTool,
     };
   }
 
@@ -233,7 +264,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings, betas } = await this.getArgs(options);
+    const { args, warnings, betas, jsonResponseTool } =
+      await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -257,7 +289,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          content.push({ type: 'text', text: part.text });
+          // when a json response tool is used, the tool call is returned as text,
+          // so we ignore the text content:
+          if (jsonResponseTool == null) {
+            content.push({ type: 'text', text: part.text });
+          }
           break;
         }
         case 'thinking': {
@@ -285,13 +321,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'tool_use': {
-          content.push({
-            type: 'tool-call' as const,
-            toolCallType: 'function',
-            toolCallId: part.id,
-            toolName: part.name,
-            args: JSON.stringify(part.input),
-          });
+          content.push(
+            // when a json response tool is used, the tool call becomes the text:
+            jsonResponseTool != null
+              ? {
+                  type: 'text',
+                  text: JSON.stringify(part.input),
+                }
+              : {
+                  type: 'tool-call' as const,
+                  toolCallType: 'function',
+                  toolCallId: part.id,
+                  toolName: part.name,
+                  args: JSON.stringify(part.input),
+                },
+          );
+
           break;
         }
       }
@@ -326,7 +371,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings, betas } = await this.getArgs(options);
+    const { args, warnings, betas, jsonResponseTool } =
+      await this.getArgs(options);
+
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -437,13 +484,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 if (toolCallContentBlocks[value.index] != null) {
                   const contentBlock = toolCallContentBlocks[value.index];
 
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallType: 'function',
-                    toolCallId: contentBlock.toolCallId,
-                    toolName: contentBlock.toolName,
-                    args: contentBlock.jsonText,
-                  });
+                  // when a json response tool is used, the tool call is returned as text,
+                  // so we ignore the tool call content:
+                  if (jsonResponseTool == null) {
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: contentBlock.toolCallId,
+                      toolName: contentBlock.toolName,
+                      args: contentBlock.jsonText,
+                    });
+                  }
 
                   delete toolCallContentBlocks[value.index];
                 }
@@ -457,6 +508,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 const deltaType = value.delta.type;
                 switch (deltaType) {
                   case 'text_delta': {
+                    // when a json response tool is used, the tool call is returned as text,
+                    // so we ignore the text content:
+                    if (jsonResponseTool != null) {
+                      return;
+                    }
+
                     controller.enqueue({
                       type: 'text',
                       text: value.delta.text,
@@ -495,13 +552,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'input_json_delta': {
                     const contentBlock = toolCallContentBlocks[value.index];
 
-                    controller.enqueue({
-                      type: 'tool-call-delta',
-                      toolCallType: 'function',
-                      toolCallId: contentBlock.toolCallId,
-                      toolName: contentBlock.toolName,
-                      argsTextDelta: value.delta.partial_json,
-                    });
+                    controller.enqueue(
+                      jsonResponseTool != null
+                        ? {
+                            type: 'text',
+                            text: value.delta.partial_json,
+                          }
+                        : {
+                            type: 'tool-call-delta',
+                            toolCallType: 'function',
+                            toolCallId: contentBlock.toolCallId,
+                            toolName: contentBlock.toolName,
+                            argsTextDelta: value.delta.partial_json,
+                          },
+                    );
 
                     contentBlock.jsonText += value.delta.partial_json;
 

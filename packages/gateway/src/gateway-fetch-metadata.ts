@@ -4,9 +4,10 @@ import {
   getFromApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { asGatewayError } from './errors';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayLanguageModelEntry } from './gateway-model-entry';
+import { z } from 'zod';
 
 type GatewayFetchMetadataConfig = GatewayConfig;
 
@@ -18,20 +19,24 @@ export class GatewayFetchMetadata {
   constructor(private readonly config: GatewayFetchMetadataConfig) {}
 
   async getAvailableModels(): Promise<GatewayFetchMetadataResponse> {
-    const { value } = await getFromApi({
-      url: `${this.config.baseURL}/config`,
-      headers: await resolve(this.config.headers()),
-      successfulResponseHandler: createJsonResponseHandler(
-        gatewayFetchMetadataSchema,
-      ),
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: z.any(),
-        errorToMessage: data => data,
-      }),
-      fetch: this.config.fetch,
-    });
+    try {
+      const { value } = await getFromApi({
+        url: `${this.config.baseURL}/config`,
+        headers: await resolve(this.config.headers()),
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayFetchMetadataSchema,
+        ),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => data,
+        }),
+        fetch: this.config.fetch,
+      });
 
-    return value as GatewayFetchMetadataResponse;
+      return value;
+    } catch (error) {
+      throw asGatewayError(error);
+    }
   }
 }
 

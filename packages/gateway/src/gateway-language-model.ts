@@ -16,7 +16,7 @@ import {
 import { z } from 'zod';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
-import type { GatewayLanguageModelSpecification } from './gateway-model-entry';
+import { asGatewayError } from './errors';
 
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
@@ -40,34 +40,38 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { abortSignal, ...body } = options;
-    const {
-      responseHeaders,
-      value: responseBody,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: this.getUrl(),
-      headers: combineHeaders(
-        await resolve(this.config.headers()),
-        options.headers,
-        this.getModelConfigHeaders(this.modelId, false),
-        this.config.o11yHeaders,
-      ),
-      body: this.maybeEncodeFileParts(body),
-      successfulResponseHandler: createJsonResponseHandler(z.any()),
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: z.any(),
-        errorToMessage: data => data,
-      }),
-      ...(abortSignal && { abortSignal }),
-      fetch: this.config.fetch,
-    });
+    try {
+      const {
+        responseHeaders,
+        value: responseBody,
+        rawValue: rawResponse,
+      } = await postJsonToApi({
+        url: this.getUrl(),
+        headers: combineHeaders(
+          await resolve(this.config.headers()),
+          options.headers,
+          this.getModelConfigHeaders(this.modelId, false),
+          this.config.o11yHeaders,
+        ),
+        body: this.maybeEncodeFileParts(body),
+        successfulResponseHandler: createJsonResponseHandler(z.any()),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => data,
+        }),
+        ...(abortSignal && { abortSignal }),
+        fetch: this.config.fetch,
+      });
 
-    return {
-      ...responseBody,
-      request: { body },
-      response: { headers: responseHeaders, body: rawResponse },
-      warnings: [],
-    };
+      return {
+        ...responseBody,
+        request: { body },
+        response: { headers: responseHeaders, body: rawResponse },
+        warnings: [],
+      };
+    } catch (error) {
+      throw asGatewayError(error);
+    }
   }
 
   async doStream(
@@ -75,44 +79,48 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { abortSignal, ...body } = options;
 
-    const { value: response, responseHeaders } = await postJsonToApi({
-      url: this.getUrl(),
-      headers: combineHeaders(
-        await resolve(this.config.headers()),
-        options.headers,
-        this.getModelConfigHeaders(this.modelId, true),
-        this.config.o11yHeaders,
-      ),
-      body: this.maybeEncodeFileParts(body),
-      successfulResponseHandler: createEventSourceResponseHandler(z.any()),
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: z.any(),
-        errorToMessage: data => data,
-      }),
-      ...(abortSignal && { abortSignal }),
-      fetch: this.config.fetch,
-    });
-
-    return {
-      stream: response.pipeThrough(
-        new TransformStream<
-          ParseResult<LanguageModelV2StreamPart>,
-          LanguageModelV2StreamPart
-        >({
-          transform(chunk, controller) {
-            if (chunk.success) {
-              controller.enqueue(chunk.value);
-            } else {
-              controller.error(
-                (chunk as { success: false; error: unknown }).error,
-              );
-            }
-          },
+    try {
+      const { value: response, responseHeaders } = await postJsonToApi({
+        url: this.getUrl(),
+        headers: combineHeaders(
+          await resolve(this.config.headers()),
+          options.headers,
+          this.getModelConfigHeaders(this.modelId, true),
+          this.config.o11yHeaders,
+        ),
+        body: this.maybeEncodeFileParts(body),
+        successfulResponseHandler: createEventSourceResponseHandler(z.any()),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => data,
         }),
-      ),
-      request: { body },
-      response: { headers: responseHeaders },
-    };
+        ...(abortSignal && { abortSignal }),
+        fetch: this.config.fetch,
+      });
+
+      return {
+        stream: response.pipeThrough(
+          new TransformStream<
+            ParseResult<LanguageModelV2StreamPart>,
+            LanguageModelV2StreamPart
+          >({
+            transform(chunk, controller) {
+              if (chunk.success) {
+                controller.enqueue(chunk.value);
+              } else {
+                controller.error(
+                  (chunk as { success: false; error: unknown }).error,
+                );
+              }
+            },
+          }),
+        ),
+        request: { body },
+        response: { headers: responseHeaders },
+      };
+    } catch (error) {
+      throw asGatewayError(error);
+    }
   }
 
   private isFilePart(part: unknown) {
