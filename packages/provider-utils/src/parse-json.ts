@@ -4,9 +4,11 @@ import {
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { secureJsonParse } from './secure-json-parse';
-import { ZodSchema } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import { Validator } from './validator';
+import { InferSchema } from './schema';
 
 /**
  * Parses a JSON string into an unknown object.
@@ -26,17 +28,14 @@ export async function parseJSON(options: {
  * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns {Promise<T>} - The parsed object.
  */
-export async function parseJSON<T>(options: {
-  text: string;
-  schema: ZodSchema<T> | Validator<T>;
-}): Promise<T>;
-export async function parseJSON<T>({
-  text,
-  schema,
-}: {
-  text: string;
-  schema?: ZodSchema<T> | Validator<T>;
-}): Promise<T> {
+export async function parseJSON<
+  SCHEMA extends z4.$ZodType | z3.Schema | Validator,
+  VALUE = InferSchema<SCHEMA>,
+>(options: { text: string; schema: SCHEMA }): Promise<VALUE>;
+export async function parseJSON<
+  SCHEMA extends z4.$ZodType | z3.Schema | Validator,
+  VALUE = InferSchema<SCHEMA>,
+>({ text, schema }: { text: string; schema?: SCHEMA }): Promise<VALUE> {
   try {
     const value = secureJsonParse(text);
 
@@ -83,22 +82,25 @@ export async function safeParseJSON(options: {
  * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export async function safeParseJSON<T>(options: {
-  text: string;
-  schema: ZodSchema<T> | Validator<T>;
-}): Promise<ParseResult<T>>;
-export async function safeParseJSON<T>({
+export async function safeParseJSON<
+  SCHEMA extends z4.$ZodType | z3.Schema | Validator,
+  VALUE = InferSchema<SCHEMA>,
+>(options: { text: string; schema: SCHEMA }): Promise<ParseResult<VALUE>>;
+export async function safeParseJSON<
+  SCHEMA extends z4.$ZodType | z3.Schema | Validator,
+  VALUE = InferSchema<SCHEMA>,
+>({
   text,
   schema,
 }: {
   text: string;
-  schema?: ZodSchema<T> | Validator<T>;
-}): Promise<ParseResult<T>> {
+  schema?: SCHEMA;
+}): Promise<ParseResult<VALUE>> {
   try {
     const value = secureJsonParse(text);
 
     if (schema == null) {
-      return { success: true, value: value as T, rawValue: value };
+      return { success: true, value: value as VALUE, rawValue: value };
     }
 
     return await safeValidateTypes({ value, schema });

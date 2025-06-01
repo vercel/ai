@@ -5,7 +5,8 @@ import {
   safeValidateTypes,
   Schema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { DeepPartial } from '../../src/util/deep-partial';
 import { parsePartialJson } from '../../src/util/parse-partial-json';
@@ -49,7 +50,10 @@ export const text = (): Output<string, string> => ({
 export const object = <OUTPUT>({
   schema: inputSchema,
 }: {
-  schema: z.Schema<OUTPUT, z.ZodTypeDef, any> | Schema<OUTPUT>;
+  schema:
+    | z4.$ZodType<OUTPUT, any>
+    | z3.Schema<OUTPUT, z3.ZodTypeDef, any>
+    | Schema<OUTPUT>;
 }): Output<OUTPUT, DeepPartial<OUTPUT>> => {
   const schema = asSchema(inputSchema);
 

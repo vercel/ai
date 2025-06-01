@@ -7,8 +7,10 @@ import {
   createIdGenerator,
   safeParseJSON,
   Schema,
+  InferSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { prepareHeaders } from '../../src/util/prepare-headers';
 import { prepareRetries } from '../../src/util/prepare-retries';
@@ -117,25 +119,19 @@ functionality that can be fully encapsulated in the provider.
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  RESULT extends SCHEMA extends z.Schema
-    ? Output extends 'array'
-      ? Array<z.infer<SCHEMA>>
-      : z.infer<SCHEMA>
-    : SCHEMA extends Schema<infer T>
-      ? Output extends 'array'
-        ? Array<T>
-        : T
-      : never,
-  SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
-  Output extends
+  SCHEMA extends z3.Schema | z4.$ZodType | Schema = z4.$ZodType<JSONValue>,
+  OUTPUT extends
     | 'object'
     | 'array'
     | 'enum'
-    | 'no-schema' = RESULT extends string ? 'enum' : 'object',
+    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  RESULT = OUTPUT extends 'array'
+    ? Array<InferSchema<SCHEMA>>
+    : InferSchema<SCHEMA>,
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
-    (Output extends 'enum'
+    (OUTPUT extends 'enum'
       ? {
           /**
 The enum values that the model should use.
@@ -144,7 +140,7 @@ The enum values that the model should use.
           mode?: 'json';
           output: 'enum';
         }
-      : Output extends 'no-schema'
+      : OUTPUT extends 'no-schema'
         ? {}
         : {
             /**
@@ -181,7 +177,7 @@ Default and recommended: 'auto' (best mode for the model).
         */
             mode?: 'auto' | 'json' | 'tool';
           }) & {
-      output?: Output;
+      output?: OUTPUT;
 
       /**
   The language model to use.
