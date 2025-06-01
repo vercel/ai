@@ -8,3 +8,13 @@ export type {
   GatewayProvider,
   GatewayProviderSettings,
 } from './gateway-provider';
+export {
+  GatewayError,
+  GatewayAuthenticationError,
+  GatewayInvalidRequestError,
+  GatewayRateLimitError,
+  GatewayModelNotFoundError,
+  GatewayInternalServerError,
+  GatewayResponseError,
+} from './errors';
+export type { GatewayErrorResponse } from './errors';
