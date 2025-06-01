@@ -3,6 +3,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2FunctionTool,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -104,6 +105,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       });
     }
 
+    // TODO update
     if (responseFormat != null && responseFormat.type !== 'text') {
       warnings.push({
         type: 'unsupported-setting',
@@ -111,6 +113,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         details: 'JSON response format is not supported.',
       });
     }
+
+    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? {
+            type: 'function',
+            name: 'json',
+            description: 'Respond with a JSON object.',
+            parameters: responseFormat.schema,
+          }
+        : undefined;
 
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -192,7 +204,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       toolChoice: anthropicToolChoice,
       toolWarnings,
       betas: toolsBetas,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools(
+      jsonResponseTool != null
+        ? {
+            tools: [jsonResponseTool],
+            toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
+          }
+        : { tools, toolChoice },
+    );
 
     return {
       args: {
@@ -202,6 +221,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       },
       warnings: [...warnings, ...toolWarnings],
       betas: new Set([...messagesBetas, ...toolsBetas]),
+      jsonResponseTool,
     };
   }
 
@@ -233,7 +253,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings, betas } = await this.getArgs(options);
+    const { args, warnings, betas, jsonResponseTool } =
+      await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -257,7 +278,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          content.push({ type: 'text', text: part.text });
+          // when a json response tool is used, the tool call is returned as text,
+          // so we ignore the text content:
+          if (jsonResponseTool != null) {
+            content.push({ type: 'text', text: part.text });
+          }
           break;
         }
         case 'thinking': {
@@ -285,13 +310,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'tool_use': {
-          content.push({
-            type: 'tool-call' as const,
-            toolCallType: 'function',
-            toolCallId: part.id,
-            toolName: part.name,
-            args: JSON.stringify(part.input),
-          });
+          content.push(
+            // when a json response tool is used, the tool call becomes the text:
+            jsonResponseTool != null
+              ? {
+                  type: 'text',
+                  text: JSON.stringify(part.input),
+                }
+              : {
+                  type: 'tool-call' as const,
+                  toolCallType: 'function',
+                  toolCallId: part.id,
+                  toolName: part.name,
+                  args: JSON.stringify(part.input),
+                },
+          );
+
           break;
         }
       }
