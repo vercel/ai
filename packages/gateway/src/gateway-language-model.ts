@@ -75,7 +75,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         warnings: [],
       };
     } catch (error) {
-      throw this.handleError(error);
+      throw asGatewayError(error);
     }
   }
 
@@ -124,33 +124,8 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw this.handleError(error);
+      throw asGatewayError(error);
     }
-  }
-
-  private handleError(error: unknown) {
-    if (GatewayError.isInstance(error)) {
-      return error;
-    }
-
-    if (APICallError.isInstance(error)) {
-      return createGatewayErrorFromResponse({
-        response: extractApiCallResponse(error),
-        statusCode: error.statusCode ?? 500,
-        defaultMessage: 'Gateway request failed',
-        cause: error,
-      });
-    }
-
-    return createGatewayErrorFromResponse({
-      response: {},
-      statusCode: 500,
-      defaultMessage:
-        error instanceof Error
-          ? `Gateway request failed: ${error.message}`
-          : 'Unknown Gateway error',
-      cause: error,
-    });
   }
 
   private isFilePart(part: unknown) {
@@ -197,4 +172,29 @@ export class GatewayLanguageModel implements LanguageModelV2 {
       'ai-language-model-streaming': String(streaming),
     };
   }
+}
+
+function asGatewayError(error: unknown) {
+  if (GatewayError.isInstance(error)) {
+    return error;
+  }
+
+  if (APICallError.isInstance(error)) {
+    return createGatewayErrorFromResponse({
+      response: extractApiCallResponse(error),
+      statusCode: error.statusCode ?? 500,
+      defaultMessage: 'Gateway request failed',
+      cause: error,
+    });
+  }
+
+  return createGatewayErrorFromResponse({
+    response: {},
+    statusCode: 500,
+    defaultMessage:
+      error instanceof Error
+        ? `Gateway request failed: ${error.message}`
+        : 'Unknown Gateway error',
+    cause: error,
+  });
 }

@@ -937,29 +937,63 @@ describe('GatewayLanguageModel', () => {
 
     describe('Error handling', () => {
       it('should not double-wrap existing Gateway errors', async () => {
-        const model = createTestModel();
+        // Mock fetch to throw a Gateway error directly
         const existingGatewayError = new GatewayAuthenticationError({
           message: 'Already a Gateway error',
           statusCode: 401,
         });
 
-        const result = (model as any).handleError(existingGatewayError);
+        const mockFetch = vi.fn().mockRejectedValue(existingGatewayError);
+        const model = createTestModel({ fetch: mockFetch });
 
-        expect(result).toBe(existingGatewayError); // Same instance, not wrapped
-        expect(result.message).toBe('Already a Gateway error');
+        try {
+          await model.doGenerate({ prompt: TEST_PROMPT });
+          expect.fail('Should have thrown an error');
+        } catch (error: unknown) {
+          // Should be the same instance, not wrapped
+          expect(error).toBe(existingGatewayError);
+          expect((error as GatewayAuthenticationError).message).toBe(
+            'Already a Gateway error',
+          );
+        }
       });
 
       it('should handle network errors gracefully', async () => {
-        const model = createTestModel();
+        // Mock fetch to throw a network error
         const networkError = new Error('Network connection failed');
+        const mockFetch = vi.fn().mockRejectedValue(networkError);
+        const model = createTestModel({ fetch: mockFetch });
 
-        const result = (model as any).handleError(networkError);
+        try {
+          await model.doGenerate({ prompt: TEST_PROMPT });
+          expect.fail('Should have thrown an error');
+        } catch (error: unknown) {
+          expect(GatewayResponseError.isInstance(error)).toBe(true);
+          const responseError = error as GatewayResponseError;
+          expect(responseError.message).toBe(
+            'Invalid error response format: Gateway request failed: Network connection failed',
+          );
+          expect(responseError.cause).toBe(networkError);
+        }
+      });
 
-        expect(result).toBeInstanceOf(GatewayResponseError);
-        expect(result.message).toBe(
-          'Invalid error response format: Gateway request failed: Network connection failed',
-        );
-        expect(result.cause).toBe(networkError);
+      it('should handle network errors gracefully in streaming', async () => {
+        // Mock fetch to throw a network error during streaming
+        const networkError = new Error('Network connection failed');
+        const mockFetch = vi.fn().mockRejectedValue(networkError);
+        const model = createTestModel({ fetch: mockFetch });
+
+        try {
+          await model.doStream({ prompt: TEST_PROMPT });
+          expect.fail('Should have thrown an error');
+        } catch (error: unknown) {
+          expect(GatewayResponseError.isInstance(error)).toBe(true);
+          const responseError = error as GatewayResponseError;
+          expect(responseError.message).toBe(
+            'Invalid error response format: Gateway request failed: Network connection failed',
+          );
+          expect(responseError.cause).toBe(networkError);
+        }
       });
 
       it('should preserve error cause chain', async () => {
@@ -979,7 +1013,7 @@ describe('GatewayLanguageModel', () => {
         try {
           await model.doGenerate({ prompt: TEST_PROMPT });
           expect.fail('Should have thrown an error');
-        } catch (error) {
+        } catch (error: unknown) {
           expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
           const authError = error as GatewayAuthenticationError;
           expect(authError.cause).toBeDefined();
