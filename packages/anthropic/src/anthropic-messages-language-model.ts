@@ -360,7 +360,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings, betas } = await this.getArgs(options);
+    const { args, warnings, betas, jsonResponseTool } =
+      await this.getArgs(options);
+
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -491,6 +493,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 const deltaType = value.delta.type;
                 switch (deltaType) {
                   case 'text_delta': {
+                    // when a json response tool is used, the tool call is returned as text,
+                    // so we ignore the text content:
+                    if (jsonResponseTool != null) {
+                      return;
+                    }
+
                     controller.enqueue({
                       type: 'text',
                       text: value.delta.text,
@@ -529,13 +537,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'input_json_delta': {
                     const contentBlock = toolCallContentBlocks[value.index];
 
-                    controller.enqueue({
-                      type: 'tool-call-delta',
-                      toolCallType: 'function',
-                      toolCallId: contentBlock.toolCallId,
-                      toolName: contentBlock.toolName,
-                      argsTextDelta: value.delta.partial_json,
-                    });
+                    controller.enqueue(
+                      jsonResponseTool != null
+                        ? {
+                            type: 'text',
+                            text: value.delta.partial_json,
+                          }
+                        : {
+                            type: 'tool-call-delta',
+                            toolCallType: 'function',
+                            toolCallId: contentBlock.toolCallId,
+                            toolName: contentBlock.toolName,
+                            argsTextDelta: value.delta.partial_json,
+                          },
+                    );
 
                     contentBlock.jsonText += value.delta.partial_json;
 
