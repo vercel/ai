@@ -110,13 +110,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         warnings.push({
           type: 'unsupported-setting',
           setting: 'responseFormat',
-          details: 'JSON response format requires a schema.',
+          details:
+            'JSON response format requires a schema. ' +
+            'The response format is ignored.',
         });
       } else if (tools != null) {
         warnings.push({
           type: 'unsupported-setting',
           setting: 'tools',
-          details: 'JSON response format does not support tools.',
+          details:
+            'JSON response format does not support tools. ' +
+            'The provided tools are ignored.',
         });
       }
     }
