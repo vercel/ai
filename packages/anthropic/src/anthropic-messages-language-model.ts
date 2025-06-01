@@ -280,7 +280,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         case 'text': {
           // when a json response tool is used, the tool call is returned as text,
           // so we ignore the text content:
-          if (jsonResponseTool != null) {
+          if (jsonResponseTool == null) {
             content.push({ type: 'text', text: part.text });
           }
           break;
