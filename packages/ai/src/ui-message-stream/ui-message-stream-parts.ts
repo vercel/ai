@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProviderMetadata } from '../../core';
 import { ValueOf } from '../util/value-of';
-import { DataUIPart, UIDataTypes } from '../ui';
+import { UIDataTypes } from '../ui';
 
 export const uiMessageStreamPartSchema = z.union([
   z.object({
