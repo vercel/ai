@@ -9,6 +9,10 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { getVercelOidcToken } from './get-vercel-oidc-token';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
+import {
+  GatewayAuthenticationError,
+  GatewayInternalServerError,
+} from './errors';
 import { fail } from 'node:assert';
 
 vi.mock('./gateway-language-model', () => ({
@@ -507,16 +511,20 @@ describe('GatewayProvider', () => {
       expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
 
-    it('should provide a helpful error message when OIDC token is missing', async () => {
+    it('should throw GatewayAuthenticationError when OIDC token is missing', async () => {
       vi.mocked(getVercelOidcToken).mockRejectedValueOnce(
-        new Error(
-          "The 'x-vercel-oidc-token' header is missing from the request. Do you have the OIDC option enabled in the Vercel project settings?",
-        ),
+        new GatewayAuthenticationError({
+          message: 'Failed to get Vercel OIDC token for AI Gateway access.',
+          statusCode: 401,
+        }),
       );
 
-      await expect(getGatewayAuthToken({})).rejects.toThrow(
-        /Failed to get Vercel OIDC token for AI Gateway access/,
-      );
+      await expect(getGatewayAuthToken({})).rejects.toMatchObject({
+        name: 'GatewayAuthenticationError',
+        type: 'authentication_error',
+        statusCode: 401,
+        message: expect.stringContaining('Failed to get Vercel OIDC token'),
+      });
     });
 
     it('should rethrow other OIDC errors without modification', async () => {
@@ -526,23 +534,202 @@ describe('GatewayProvider', () => {
       await expect(getGatewayAuthToken({})).rejects.toThrow(originalError);
     });
 
-    it('should include the original error as the cause in the enhanced error', async () => {
-      const originalError = new Error(
-        "The 'x-vercel-oidc-token' header is missing from the request. Do you have the OIDC option enabled in the Vercel project settings?",
-      );
-      vi.mocked(getVercelOidcToken).mockRejectedValueOnce(originalError);
+    it('should pass through GatewayAuthenticationError from getVercelOidcToken', async () => {
+      const authError = new GatewayAuthenticationError({
+        message: 'Failed to get Vercel OIDC token for AI Gateway access.',
+        statusCode: 401,
+      });
+      vi.mocked(getVercelOidcToken).mockRejectedValueOnce(authError);
 
       try {
         await getGatewayAuthToken({});
         fail('Expected error was not thrown');
       } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        if (error instanceof Error) {
-          expect((error as Error & { cause: unknown }).cause).toBe(
-            originalError,
-          );
-        }
+        expect(error).toBe(authError); // Same instance, not wrapped
+        expect(error).toBeInstanceOf(GatewayAuthenticationError);
       }
+    });
+  });
+
+  describe('Error handling in metadata fetching', () => {
+    it('should convert metadata fetch errors to Gateway errors', async () => {
+      const mockGetAvailableModels = vi.fn().mockRejectedValue(
+        new GatewayInternalServerError({
+          message: 'Database connection failed',
+          statusCode: 500,
+        }),
+      );
+
+      vi.mocked(GatewayFetchMetadata).mockImplementation(
+        () =>
+          ({
+            getAvailableModels: mockGetAvailableModels,
+          }) as any,
+      );
+
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-key',
+      });
+
+      await expect(provider.getAvailableModels()).rejects.toMatchObject({
+        name: 'GatewayInternalServerError',
+        message: 'Database connection failed',
+        statusCode: 500,
+      });
+    });
+
+    it('should not double-wrap Gateway errors from metadata fetch', async () => {
+      const originalError = new GatewayAuthenticationError({
+        message: 'Invalid token',
+        statusCode: 401,
+      });
+
+      const mockGetAvailableModels = vi.fn().mockRejectedValue(originalError);
+
+      vi.mocked(GatewayFetchMetadata).mockImplementation(
+        () =>
+          ({
+            getAvailableModels: mockGetAvailableModels,
+          }) as any,
+      );
+
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-key',
+      });
+
+      try {
+        await provider.getAvailableModels();
+        fail('Expected error was not thrown');
+      } catch (error) {
+        expect(error).toBe(originalError); // Same instance
+        expect(error).toBeInstanceOf(GatewayAuthenticationError);
+        expect((error as GatewayAuthenticationError).message).toBe(
+          'Invalid token',
+        );
+      }
+    });
+
+    it('should handle model specification errors', async () => {
+      // Mock successful metadata fetch with a model
+      const mockGetAvailableModels = vi.fn().mockResolvedValue({
+        models: [
+          {
+            id: 'test-model',
+            specification: {
+              provider: 'test',
+              specificationVersion: 'v2',
+              modelId: 'test-model',
+            },
+          },
+        ],
+      });
+
+      vi.mocked(GatewayFetchMetadata).mockImplementation(
+        () =>
+          ({
+            getAvailableModels: mockGetAvailableModels,
+          }) as any,
+      );
+
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-key',
+      });
+
+      // Create a language model that should work
+      const model = provider('test-model');
+      expect(model).toBeDefined();
+
+      // Verify the model was created with the correct parameters
+      expect(GatewayLanguageModel).toHaveBeenCalledWith(
+        'test-model',
+        expect.objectContaining({
+          provider: 'gateway',
+          baseURL: 'https://api.example.com',
+          headers: expect.any(Function),
+          fetch: undefined,
+          o11yHeaders: expect.any(Object),
+        }),
+      );
+    });
+
+    it('should create language model for any modelId', async () => {
+      // Mock successful metadata fetch with different models
+      const mockGetAvailableModels = vi.fn().mockResolvedValue({
+        models: [
+          {
+            id: 'model-1',
+            specification: {
+              provider: 'test',
+              specificationVersion: 'v2',
+              modelId: 'model-1',
+            },
+          },
+          {
+            id: 'model-2',
+            specification: {
+              provider: 'test',
+              specificationVersion: 'v2',
+              modelId: 'model-2',
+            },
+          },
+        ],
+      });
+
+      vi.mocked(GatewayFetchMetadata).mockImplementation(
+        () =>
+          ({
+            getAvailableModels: mockGetAvailableModels,
+          }) as any,
+      );
+
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-key',
+      });
+
+      // Create a language model for any model ID
+      const model = provider('any-model-id');
+
+      // The model should be created successfully
+      expect(GatewayLanguageModel).toHaveBeenCalledWith(
+        'any-model-id',
+        expect.objectContaining({
+          provider: 'gateway',
+          baseURL: 'https://api.example.com',
+          headers: expect.any(Function),
+          fetch: undefined,
+          o11yHeaders: expect.any(Object),
+        }),
+      );
+
+      expect(model).toBeDefined();
+    });
+
+    it('should handle non-existent model requests', async () => {
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-key',
+      });
+
+      // Create a language model for a non-existent model
+      const model = provider('non-existent-model');
+
+      // The model should be created successfully (validation happens at API call time)
+      expect(GatewayLanguageModel).toHaveBeenCalledWith(
+        'non-existent-model',
+        expect.objectContaining({
+          provider: 'gateway',
+          baseURL: 'https://api.example.com',
+          headers: expect.any(Function),
+          fetch: undefined,
+          o11yHeaders: expect.any(Object),
+        }),
+      );
+
+      expect(model).toBeDefined();
     });
   });
 });
