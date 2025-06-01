@@ -1,17 +1,18 @@
 import type { LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
-import { loadOptionalSetting } from '@ai-sdk/provider-utils';
 import {
-  type FetchFunction,
+  loadOptionalSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { GatewayLanguageModel } from './gateway-language-model';
-import type { GatewayModelId } from './gateway-language-model-settings';
-import { getVercelOidcToken } from './get-vercel-oidc-token';
+import { type FetchFunction } from '@ai-sdk/provider-utils';
+import { asGatewayError } from './errors';
 import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
 } from './gateway-fetch-metadata';
+import { GatewayLanguageModel } from './gateway-language-model';
+import type { GatewayModelId } from './gateway-language-model-settings';
+import { getVercelOidcToken } from './get-vercel-oidc-token';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -65,34 +66,12 @@ How frequently to refresh the metadata cache in milliseconds.
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
 export async function getGatewayAuthToken(options: GatewayProviderSettings) {
-  try {
-    return (
-      loadOptionalSetting({
-        settingValue: options.apiKey,
-        environmentVariableName: 'AI_GATEWAY_API_KEY',
-      }) ?? (await getVercelOidcToken())
-    );
-  } catch (error: unknown) {
-    if (
-      error instanceof Error &&
-      error.message.includes("'x-vercel-oidc-token' header is missing")
-    ) {
-      // The missing vercel oidc token error has an obtuse message that doesn't
-      // provide much context about what to do for an AI Gateway user, so we
-      // intervene to provide more guidance and then rethrow.
-      const enhancedError = new Error(
-        `Failed to get Vercel OIDC token for AI Gateway access.
-The token is expected to be provided via the 'VERCEL_OIDC_TOKEN' environment variable. It expires every 12 hours.
-- make sure your Vercel project settings have OIDC enabled
-- if you're running locally with 'vercel dev' the token is automatically obtained and refreshed for you
-- if you're running locally with your own dev server script you can fetch/update the token by running 'vercel env pull'
-- in production or preview the token is automatically obtained and refreshed for you`,
-      );
-      (enhancedError as Error & { cause: unknown }).cause = error;
-      throw enhancedError;
-    }
-    throw error;
-  }
+  return (
+    loadOptionalSetting({
+      settingValue: options.apiKey,
+      environmentVariableName: 'AI_GATEWAY_API_KEY',
+    }) ?? (await getVercelOidcToken())
+  );
 }
 
 /**
@@ -158,6 +137,9 @@ export function createGatewayProvider(
         .then(metadata => {
           metadataCache = metadata;
           return metadata;
+        })
+        .catch((error: unknown) => {
+          throw asGatewayError(error);
         });
     }
 
