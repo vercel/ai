@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { getVercelOidcToken } from './get-vercel-oidc-token';
+import { GatewayAuthenticationError } from './errors';
 
 const SYMBOL_FOR_REQ_CONTEXT = Symbol.for('@vercel/request-context');
 
@@ -58,14 +59,20 @@ describe('getVercelOidcToken', () => {
     expect(token).toBe('header-token-value');
   });
 
-  it('should throw an error when no token is available', async () => {
+  it('should throw GatewayAuthenticationError when no token is available', async () => {
     (globalThis as any)[SYMBOL_FOR_REQ_CONTEXT] = {
       get: () => ({ headers: {} }),
     };
     process.env.VERCEL_OIDC_TOKEN = undefined;
-    await expect(getVercelOidcToken()).rejects.toThrow(
-      "The 'x-vercel-oidc-token' header is missing from the request. Do you have the OIDC option enabled in the Vercel project settings?",
-    );
+
+    await expect(getVercelOidcToken()).rejects.toMatchObject({
+      name: 'GatewayAuthenticationError',
+      type: 'authentication_error',
+      statusCode: 401,
+      message: expect.stringContaining(
+        'Failed to get Vercel OIDC token for AI Gateway access',
+      ),
+    });
   });
 
   it('should handle missing request context gracefully', async () => {
