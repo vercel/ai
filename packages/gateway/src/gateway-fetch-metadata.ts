@@ -4,13 +4,10 @@ import {
   getFromApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { asGatewayError } from './errors';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayLanguageModelEntry } from './gateway-model-entry';
-import { GatewayError } from './errors';
-import { extractApiCallResponse } from './errors';
-import { createGatewayErrorFromResponse } from './errors';
-import { APICallError } from '@ai-sdk/provider';
+import { z } from 'zod';
 
 type GatewayFetchMetadataConfig = GatewayConfig;
 
@@ -38,28 +35,7 @@ export class GatewayFetchMetadata {
 
       return value;
     } catch (error) {
-      if (GatewayError.isInstance(error)) {
-        throw error;
-      }
-
-      if (APICallError.isInstance(error)) {
-        throw createGatewayErrorFromResponse({
-          response: extractApiCallResponse(error),
-          statusCode: error.statusCode ?? 500,
-          defaultMessage: 'Failed to fetch Gateway configuration',
-          cause: error,
-        });
-      }
-
-      throw createGatewayErrorFromResponse({
-        response: {},
-        statusCode: 500,
-        defaultMessage:
-          error instanceof Error
-            ? `Failed to fetch Gateway configuration: ${error.message}`
-            : 'Unknown error fetching Gateway configuration',
-        cause: error,
-      });
+      throw asGatewayError(error);
     }
   }
 }

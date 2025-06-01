@@ -4,7 +4,6 @@ import type {
   LanguageModelV2FilePart,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
-import { APICallError } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -17,11 +16,7 @@ import {
 import { z } from 'zod';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
-import {
-  createGatewayErrorFromResponse,
-  GatewayError,
-  extractApiCallResponse,
-} from './errors';
+import { asGatewayError } from './errors';
 
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
@@ -172,29 +167,4 @@ export class GatewayLanguageModel implements LanguageModelV2 {
       'ai-language-model-streaming': String(streaming),
     };
   }
-}
-
-function asGatewayError(error: unknown) {
-  if (GatewayError.isInstance(error)) {
-    return error;
-  }
-
-  if (APICallError.isInstance(error)) {
-    return createGatewayErrorFromResponse({
-      response: extractApiCallResponse(error),
-      statusCode: error.statusCode ?? 500,
-      defaultMessage: 'Gateway request failed',
-      cause: error,
-    });
-  }
-
-  return createGatewayErrorFromResponse({
-    response: {},
-    statusCode: 500,
-    defaultMessage:
-      error instanceof Error
-        ? `Gateway request failed: ${error.message}`
-        : 'Unknown Gateway error',
-    cause: error,
-  });
 }
