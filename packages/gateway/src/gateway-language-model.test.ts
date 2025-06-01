@@ -8,6 +8,14 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
+import {
+  GatewayAuthenticationError,
+  GatewayRateLimitError,
+  GatewayInternalServerError,
+  GatewayInvalidRequestError,
+  GatewayModelNotFoundError,
+  GatewayResponseError,
+} from './errors';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -185,6 +193,105 @@ describe('GatewayLanguageModel', () => {
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject(o11yHeaders);
     });
+    it('should convert API call errors to Gateway errors', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 401,
+        body: JSON.stringify({
+          error: {
+            message: 'Invalid API key provided',
+            type: 'authentication_error',
+          },
+        }),
+      };
+
+      const model = createTestModel();
+
+      try {
+        await model.doGenerate({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
+        const authError = error as GatewayAuthenticationError;
+        expect(authError.message).toBe('Invalid API key provided');
+        expect(authError.statusCode).toBe(401);
+        expect(authError.type).toBe('authentication_error');
+      }
+    });
+
+    it('should handle malformed error responses', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 500,
+        body: 'Not JSON',
+      };
+
+      const model = createTestModel();
+
+      try {
+        await model.doGenerate({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayResponseError.isInstance(error)).toBe(true);
+        const responseError = error as GatewayResponseError;
+        expect(responseError.statusCode).toBe(500);
+        expect(responseError.type).toBe('response_error');
+      }
+    });
+
+    it('should handle rate limit errors', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 429,
+        body: JSON.stringify({
+          error: {
+            message: 'Rate limit exceeded. Try again later.',
+            type: 'rate_limit_exceeded',
+          },
+        }),
+      };
+
+      const model = createTestModel();
+
+      try {
+        await model.doGenerate({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayRateLimitError.isInstance(error)).toBe(true);
+        const rateLimitError = error as GatewayRateLimitError;
+        expect(rateLimitError.message).toBe(
+          'Rate limit exceeded. Try again later.',
+        );
+        expect(rateLimitError.statusCode).toBe(429);
+        expect(rateLimitError.type).toBe('rate_limit_exceeded');
+      }
+    });
+
+    it('should handle invalid request errors', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: 'Invalid prompt format',
+            type: 'invalid_request_error',
+          },
+        }),
+      };
+
+      const model = createTestModel();
+
+      try {
+        await model.doGenerate({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayInvalidRequestError.isInstance(error)).toBe(true);
+        const invalidError = error as GatewayInvalidRequestError;
+        expect(invalidError.message).toBe('Invalid prompt format');
+        expect(invalidError.statusCode).toBe(400);
+        expect(invalidError.type).toBe('invalid_request_error');
+      }
+    });
 
     describe('Image part encoding', () => {
       it('should not modify prompt without image parts', async () => {
@@ -313,6 +420,138 @@ describe('GatewayLanguageModel', () => {
           data: imageUrl.toString(),
           mediaType: 'image/png',
         });
+      });
+    });
+
+    it('should handle various error types with proper conversion', async () => {
+      const model = createTestModel();
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: 'Invalid request format',
+            type: 'invalid_request_error',
+          },
+        }),
+      };
+
+      try {
+        await model.doGenerate({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayInvalidRequestError.isInstance(error)).toBe(true);
+        const invalidError = error as GatewayInvalidRequestError;
+        expect(invalidError.message).toBe('Invalid request format');
+        expect(invalidError.statusCode).toBe(400);
+        expect(invalidError.type).toBe('invalid_request_error');
+      }
+
+      // Test model not found error
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          error: {
+            message: 'Model xyz not found',
+            type: 'model_not_found',
+            param: { modelId: 'xyz' },
+          },
+        }),
+      };
+
+      try {
+        await model.doGenerate({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayModelNotFoundError.isInstance(error)).toBe(true);
+        const modelError = error as GatewayModelNotFoundError;
+        expect(modelError.message).toBe('Model xyz not found');
+        expect(modelError.statusCode).toBe(404);
+        expect(modelError.type).toBe('model_not_found');
+        expect(modelError.modelId).toBe('xyz');
+      }
+
+      // Test internal server error
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 500,
+        body: JSON.stringify({
+          error: {
+            message: 'Database connection failed',
+            type: 'internal_server_error',
+          },
+        }),
+      };
+
+      try {
+        await model.doGenerate({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayInternalServerError.isInstance(error)).toBe(true);
+        const serverError = error as GatewayInternalServerError;
+        expect(serverError.message).toBe('Database connection failed');
+        expect(serverError.statusCode).toBe(500);
+        expect(serverError.type).toBe('internal_server_error');
+      }
+    });
+
+    describe('Gateway error handling for malformed responses', () => {
+      it('should include actual response body when APICallError has no data', async () => {
+        const malformedResponse = {
+          ferror: { message: 'Model not found', type: 'model_not_found' },
+        };
+
+        // Mock the server to return malformed response that can't be parsed by AI SDK
+        server.urls['https://api.test.com/language-model'].response = {
+          type: 'error',
+          status: 404,
+          body: JSON.stringify(malformedResponse),
+        };
+
+        const model = createTestModel();
+
+        try {
+          await model.doGenerate({
+            prompt: [
+              { role: 'user', content: [{ type: 'text', text: 'test' }] },
+            ],
+          });
+          expect.fail('Expected error to be thrown');
+        } catch (error) {
+          expect(GatewayResponseError.isInstance(error)).toBe(true);
+          const gatewayError = error as GatewayResponseError;
+          expect(gatewayError.response).toEqual(malformedResponse);
+          expect(gatewayError.validationError).toBeDefined();
+        }
+      });
+
+      it('should use raw response body when JSON parsing fails', async () => {
+        const invalidJson = 'invalid json response';
+
+        // Mock the server to return invalid JSON
+        server.urls['https://api.test.com/language-model'].response = {
+          type: 'error',
+          status: 500,
+          body: invalidJson,
+        };
+
+        const model = createTestModel();
+
+        try {
+          await model.doGenerate({
+            prompt: [
+              { role: 'user', content: [{ type: 'text', text: 'test' }] },
+            ],
+          });
+          expect.fail('Expected error to be thrown');
+        } catch (error) {
+          expect(GatewayResponseError.isInstance(error)).toBe(true);
+          const gatewayError = error as GatewayResponseError;
+          expect(gatewayError.response).toBe(invalidJson);
+          expect(gatewayError.validationError).toBeDefined();
+        }
       });
     });
   });
@@ -464,6 +703,104 @@ describe('GatewayLanguageModel', () => {
       expect(headers).toMatchObject(o11yHeaders);
     });
 
+    it('should convert API call errors to Gateway errors in streaming', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 429,
+        body: JSON.stringify({
+          error: {
+            message: 'Rate limit exceeded',
+            type: 'rate_limit_exceeded',
+          },
+        }),
+      };
+
+      const model = createTestModel();
+
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayRateLimitError.isInstance(error)).toBe(true);
+        const rateLimitError = error as GatewayRateLimitError;
+        expect(rateLimitError.message).toBe('Rate limit exceeded');
+        expect(rateLimitError.statusCode).toBe(429);
+        expect(rateLimitError.type).toBe('rate_limit_exceeded');
+      }
+    });
+
+    it('should handle authentication errors in streaming', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 401,
+        body: JSON.stringify({
+          error: {
+            message: 'Authentication failed for streaming',
+            type: 'authentication_error',
+          },
+        }),
+      };
+
+      const model = createTestModel();
+
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
+        const authError = error as GatewayAuthenticationError;
+        expect(authError.message).toBe('Authentication failed for streaming');
+        expect(authError.statusCode).toBe(401);
+        expect(authError.type).toBe('authentication_error');
+      }
+    });
+
+    it('should handle invalid request errors in streaming', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: 'Invalid streaming request',
+            type: 'invalid_request_error',
+          },
+        }),
+      };
+
+      const model = createTestModel();
+
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayInvalidRequestError.isInstance(error)).toBe(true);
+        const invalidError = error as GatewayInvalidRequestError;
+        expect(invalidError.message).toBe('Invalid streaming request');
+        expect(invalidError.statusCode).toBe(400);
+        expect(invalidError.type).toBe('invalid_request_error');
+      }
+    });
+
+    it('should handle malformed error responses in streaming', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'error',
+        status: 500,
+        body: 'Invalid JSON for streaming',
+      };
+
+      const model = createTestModel();
+
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayResponseError.isInstance(error)).toBe(true);
+        const responseError = error as GatewayResponseError;
+        expect(responseError.statusCode).toBe(500);
+        expect(responseError.type).toBe('response_error');
+      }
+    });
+
     describe('Image part encoding', () => {
       it('should not modify prompt without image parts', async () => {
         prepareStreamResponse({ content: ['response'] });
@@ -595,6 +932,58 @@ describe('GatewayLanguageModel', () => {
           data: imageUrl.toString(),
           mediaType: 'image/png',
         });
+      });
+    });
+
+    describe('Error handling', () => {
+      it('should not double-wrap existing Gateway errors', async () => {
+        const model = createTestModel();
+        const existingGatewayError = new GatewayAuthenticationError({
+          message: 'Already a Gateway error',
+          statusCode: 401,
+        });
+
+        const result = (model as any).handleError(existingGatewayError);
+
+        expect(result).toBe(existingGatewayError); // Same instance, not wrapped
+        expect(result.message).toBe('Already a Gateway error');
+      });
+
+      it('should handle network errors gracefully', async () => {
+        const model = createTestModel();
+        const networkError = new Error('Network connection failed');
+
+        const result = (model as any).handleError(networkError);
+
+        expect(result).toBeInstanceOf(GatewayResponseError);
+        expect(result.message).toBe(
+          'Invalid error response format: Gateway request failed: Network connection failed',
+        );
+        expect(result.cause).toBe(networkError);
+      });
+
+      it('should preserve error cause chain', async () => {
+        server.urls['https://api.test.com/language-model'].response = {
+          type: 'error',
+          status: 401,
+          body: JSON.stringify({
+            error: {
+              message: 'Token expired',
+              type: 'authentication_error',
+            },
+          }),
+        };
+
+        const model = createTestModel();
+
+        try {
+          await model.doGenerate({ prompt: TEST_PROMPT });
+          expect.fail('Should have thrown an error');
+        } catch (error) {
+          expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
+          const authError = error as GatewayAuthenticationError;
+          expect(authError.cause).toBeDefined();
+        }
       });
     });
   });

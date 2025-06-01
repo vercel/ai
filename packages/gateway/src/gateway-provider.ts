@@ -1,5 +1,5 @@
 import type { LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
+import { NoSuchModelError, APICallError } from '@ai-sdk/provider';
 import { loadOptionalSetting } from '@ai-sdk/provider-utils';
 import {
   type FetchFunction,
@@ -12,6 +12,13 @@ import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
 } from './gateway-fetch-metadata';
+import {
+  GatewayAuthenticationError,
+  GatewayModelNotFoundError,
+  createGatewayErrorFromResponse,
+  GatewayError,
+  extractApiCallResponse,
+} from './errors';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -77,19 +84,16 @@ export async function getGatewayAuthToken(options: GatewayProviderSettings) {
       error instanceof Error &&
       error.message.includes("'x-vercel-oidc-token' header is missing")
     ) {
-      // The missing vercel oidc token error has an obtuse message that doesn't
-      // provide much context about what to do for an AI Gateway user, so we
-      // intervene to provide more guidance and then rethrow.
-      const enhancedError = new Error(
-        `Failed to get Vercel OIDC token for AI Gateway access.
+      throw new GatewayAuthenticationError({
+        message: `Failed to get Vercel OIDC token for AI Gateway access.
 The token is expected to be provided via the 'VERCEL_OIDC_TOKEN' environment variable. It expires every 12 hours.
 - make sure your Vercel project settings have OIDC enabled
 - if you're running locally with 'vercel dev' the token is automatically obtained and refreshed for you
 - if you're running locally with your own dev server script you can fetch/update the token by running 'vercel env pull'
 - in production or preview the token is automatically obtained and refreshed for you`,
-      );
-      (enhancedError as Error & { cause: unknown }).cause = error;
-      throw enhancedError;
+        statusCode: 401,
+        cause: error,
+      });
     }
     throw error;
   }
@@ -158,6 +162,30 @@ export function createGatewayProvider(
         .then(metadata => {
           metadataCache = metadata;
           return metadata;
+        })
+        .catch((error: unknown) => {
+          if (GatewayError.isInstance(error)) {
+            throw error;
+          }
+
+          if (APICallError.isInstance(error)) {
+            throw createGatewayErrorFromResponse({
+              response: extractApiCallResponse(error),
+              statusCode: error.statusCode ?? 500,
+              defaultMessage: 'Failed to fetch available models',
+              cause: error,
+            });
+          }
+
+          throw createGatewayErrorFromResponse({
+            response: {},
+            statusCode: 500,
+            defaultMessage:
+              error instanceof Error
+                ? `Failed to fetch available models: ${error.message}`
+                : 'Unknown error fetching models',
+            cause: error,
+          });
         });
     }
 
