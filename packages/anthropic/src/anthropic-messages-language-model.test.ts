@@ -745,13 +745,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "type": "stream-start",
-              "warnings": [
-                {
-                  "details": "JSON response format is not supported.",
-                  "setting": "responseFormat",
-                  "type": "unsupported-setting",
-                },
-              ],
+              "warnings": [],
             },
             {
               "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",

@@ -105,13 +105,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       });
     }
 
-    // TODO update
-    if (responseFormat != null && responseFormat.type !== 'text') {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
-        details: 'JSON response format is not supported.',
-      });
+    if (responseFormat?.type === 'json') {
+      if (responseFormat.schema == null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'responseFormat',
+          details: 'JSON response format requires a schema.',
+        });
+      } else if (tools != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'tools',
+          details: 'JSON response format does not support tools.',
+        });
+      }
     }
 
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
