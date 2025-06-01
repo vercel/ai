@@ -147,6 +147,95 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('json schema response format', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonResponse({
+          content: [
+            { type: 'text', text: 'Some text\n\n' },
+            {
+              type: 'tool_use',
+              id: 'toolu_1',
+              name: 'json',
+              input: { name: 'example value' },
+            },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tool_choice": {
+              "name": "json",
+              "type": "tool",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"name":"example value"}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     it('should extract text response', async () => {
       prepareJsonResponse({
         content: [{ type: 'text', text: 'Hello, World!' }],
