@@ -1,23 +1,18 @@
 import type { LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
-import { NoSuchModelError, APICallError } from '@ai-sdk/provider';
-import { loadOptionalSetting } from '@ai-sdk/provider-utils';
+import { NoSuchModelError } from '@ai-sdk/provider';
 import {
-  type FetchFunction,
+  loadOptionalSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { GatewayLanguageModel } from './gateway-language-model';
-import type { GatewayModelId } from './gateway-language-model-settings';
-import { getVercelOidcToken } from './get-vercel-oidc-token';
+import { type FetchFunction } from '@ai-sdk/provider-utils';
+import { asGatewayError } from './errors';
 import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
 } from './gateway-fetch-metadata';
-import {
-  GatewayAuthenticationError,
-  createGatewayErrorFromResponse,
-  GatewayError,
-  extractApiCallResponse,
-} from './errors';
+import { GatewayLanguageModel } from './gateway-language-model';
+import type { GatewayModelId } from './gateway-language-model-settings';
+import { getVercelOidcToken } from './get-vercel-oidc-token';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -144,28 +139,7 @@ export function createGatewayProvider(
           return metadata;
         })
         .catch((error: unknown) => {
-          if (GatewayError.isInstance(error)) {
-            throw error;
-          }
-
-          if (APICallError.isInstance(error)) {
-            throw createGatewayErrorFromResponse({
-              response: extractApiCallResponse(error),
-              statusCode: error.statusCode ?? 500,
-              defaultMessage: 'Failed to fetch available models',
-              cause: error,
-            });
-          }
-
-          throw createGatewayErrorFromResponse({
-            response: {},
-            statusCode: 500,
-            defaultMessage:
-              error instanceof Error
-                ? `Failed to fetch available models: ${error.message}`
-                : 'Unknown error fetching models',
-            cause: error,
-          });
+          throw asGatewayError(error);
         });
     }
 
