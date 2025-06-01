@@ -110,6 +110,41 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]);
       });
+
+      it('should extract reasoning response', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'thinking',
+              thinking: 'I am thinking...',
+              signature: '1234567890',
+            },
+            { type: 'text', text: 'Hello, World!' },
+          ],
+        });
+
+        const { content } = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "anthropic": {
+                  "signature": "1234567890",
+                },
+              },
+              "text": "I am thinking...",
+              "type": "reasoning",
+            },
+            {
+              "text": "Hello, World!",
+              "type": "text",
+            },
+          ]
+        `);
+      });
     });
 
     it('should extract text response', async () => {
@@ -123,41 +158,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(content).toMatchInlineSnapshot(`
         [
-          {
-            "text": "Hello, World!",
-            "type": "text",
-          },
-        ]
-      `);
-    });
-
-    it('should extract reasoning response', async () => {
-      prepareJsonResponse({
-        content: [
-          {
-            type: 'thinking',
-            thinking: 'I am thinking...',
-            signature: '1234567890',
-          },
-          { type: 'text', text: 'Hello, World!' },
-        ],
-      });
-
-      const { content } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(content).toMatchInlineSnapshot(`
-        [
-          {
-            "providerMetadata": {
-              "anthropic": {
-                "signature": "1234567890",
-              },
-            },
-            "text": "I am thinking...",
-            "type": "reasoning",
-          },
           {
             "text": "Hello, World!",
             "type": "text",
@@ -389,7 +389,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestHeaders).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
