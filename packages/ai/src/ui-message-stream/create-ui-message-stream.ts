@@ -1,15 +1,15 @@
-import { UIMessage } from '../ui/ui-messages';
+import { UIDataTypes, UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
-export function createUIMessageStream({
+export function createUIMessageStream<DATA_TYPES extends UIDataTypes= UIDataTypes>({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
   originalMessages,
   onFinish,
 }: {
-  execute: (options: { writer: UIMessageStreamWriter }) => Promise<void> | void;
+  execute: (options: { writer: UIMessageStreamWriter<DATA_TYPES> }) => Promise<void> | void;
   onError?: (error: unknown) => string;
 
   /**
@@ -35,8 +35,8 @@ export function createUIMessageStream({
      */
     responseMessage: UIMessage;
   }) => void;
-}): ReadableStream<UIMessageStreamPart> {
-  let controller!: ReadableStreamDefaultController<UIMessageStreamPart>;
+}): ReadableStream<UIMessageStreamPart<DATA_TYPES>> {
+  let controller!: ReadableStreamDefaultController<UIMessageStreamPart<DATA_TYPES>>;
 
   const ongoingStreamPromises: Promise<void>[] = [];
 
@@ -46,7 +46,7 @@ export function createUIMessageStream({
     },
   });
 
-  function safeEnqueue(data: UIMessageStreamPart) {
+  function safeEnqueue(data: UIMessageStreamPart<DATA_TYPES>) {
     try {
       controller.enqueue(data);
     } catch (error) {
@@ -57,7 +57,7 @@ export function createUIMessageStream({
   try {
     const result = execute({
       writer: {
-        write(part: UIMessageStreamPart) {
+        write(part: UIMessageStreamPart<DATA_TYPES>) {
           safeEnqueue(part);
         },
         merge(streamArg) {

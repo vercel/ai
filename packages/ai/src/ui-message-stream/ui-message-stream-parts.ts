@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { ProviderMetadata } from '../../core';
+import { ValueOf } from '../util/value-of';
+import { DataUIPart, UIDataTypes } from '../ui';
 
 export const uiMessageStreamPartSchema = z.union([
   z.object({
@@ -80,88 +82,91 @@ export const uiMessageStreamPartSchema = z.union([
   }),
 ]);
 
-export type DataUIMessageStreamPart = {
-  type: `data-${string}`;
-  id?: string;
-  data: unknown;
-};
 
-export type UIMessageStreamPart =
+export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
+  [NAME in keyof DATA_TYPES & string]: {
+    type: `data-${NAME}`;
+    id?: string;
+    data: DATA_TYPES[NAME];
+  };
+}>;
+
+export type UIMessageStreamPart<DATA_TYPES extends UIDataTypes=UIDataTypes> =
   | {
-      type: 'text';
-      text: string;
-    }
+  type: 'text';
+  text: string;
+}
   | {
-      type: 'error';
-      errorText: string;
-    }
+  type: 'error';
+  errorText: string;
+}
   | {
-      type: 'tool-call';
-      toolCallId: string;
-      toolName: string;
-      args: unknown;
-    }
+  type: 'tool-call';
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+}
   | {
-      type: 'tool-result';
-      toolCallId: string;
-      result: unknown;
-      providerMetadata?: ProviderMetadata;
-    }
+  type: 'tool-result';
+  toolCallId: string;
+  result: unknown;
+  providerMetadata?: ProviderMetadata;
+}
   | {
-      type: 'tool-call-streaming-start';
-      toolCallId: string;
-      toolName: string;
-    }
+  type: 'tool-call-streaming-start';
+  toolCallId: string;
+  toolName: string;
+}
   | {
-      type: 'tool-call-delta';
-      toolCallId: string;
-      argsTextDelta: string;
-    }
+  type: 'tool-call-delta';
+  toolCallId: string;
+  argsTextDelta: string;
+}
   | {
-      type: 'reasoning';
-      text: string;
-      providerMetadata?: ProviderMetadata;
-    }
+  type: 'reasoning';
+  text: string;
+  providerMetadata?: ProviderMetadata;
+}
   | {
-      type: 'source-url';
-      sourceId: string;
-      url: string;
-      title?: string;
-      providerMetadata?: ProviderMetadata;
-    }
+  type: 'source-url';
+  sourceId: string;
+  url: string;
+  title?: string;
+  providerMetadata?: ProviderMetadata;
+}
   | {
-      type: 'file';
-      url: string;
-      mediaType: string;
-    }
-  | DataUIMessageStreamPart
+  type: 'file';
+  url: string;
+  mediaType: string;
+}
+  | DataUIMessageStreamPart<DATA_TYPES>
   | {
-      type: 'metadata';
-      metadata: unknown;
-    }
+  type: 'metadata';
+  metadata: unknown;
+}
   | {
-      type: 'start-step';
-      metadata?: unknown;
-    }
+  type: 'start-step';
+  metadata?: unknown;
+}
   | {
-      type: 'finish-step';
-      metadata?: unknown;
-    }
+  type: 'finish-step';
+  metadata?: unknown;
+}
   | {
-      type: 'start';
-      messageId?: string;
-      metadata?: unknown;
-    }
+  type: 'start';
+  messageId?: string;
+  metadata?: unknown;
+}
   | {
-      type: 'finish';
-      metadata?: unknown;
-    }
+  type: 'finish';
+  metadata?: unknown;
+}
   | {
-      type: 'reasoning-part-finish';
-    };
+  type: 'reasoning-part-finish';
+};
 
 export function isDataUIMessageStreamPart(
   part: UIMessageStreamPart,
-): part is DataUIMessageStreamPart {
+): part is DataUIMessageStreamPart<UIDataTypes> {
   return part.type.startsWith('data-');
 }
