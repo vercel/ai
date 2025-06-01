@@ -473,13 +473,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 if (toolCallContentBlocks[value.index] != null) {
                   const contentBlock = toolCallContentBlocks[value.index];
 
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallType: 'function',
-                    toolCallId: contentBlock.toolCallId,
-                    toolName: contentBlock.toolName,
-                    args: contentBlock.jsonText,
-                  });
+                  // when a json response tool is used, the tool call is returned as text,
+                  // so we ignore the tool call content:
+                  if (jsonResponseTool == null) {
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: contentBlock.toolCallId,
+                      toolName: contentBlock.toolName,
+                      args: contentBlock.jsonText,
+                    });
+                  }
 
                   delete toolCallContentBlocks[value.index];
                 }
