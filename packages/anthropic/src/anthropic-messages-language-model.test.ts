@@ -1,4 +1,7 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import {
+  LanguageModelV2Prompt,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
@@ -110,6 +113,130 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]);
       });
+
+      it('should extract reasoning response', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'thinking',
+              thinking: 'I am thinking...',
+              signature: '1234567890',
+            },
+            { type: 'text', text: 'Hello, World!' },
+          ],
+        });
+
+        const { content } = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "anthropic": {
+                  "signature": "1234567890",
+                },
+              },
+              "text": "I am thinking...",
+              "type": "reasoning",
+            },
+            {
+              "text": "Hello, World!",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('json schema response format', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonResponse({
+          content: [
+            { type: 'text', text: 'Some text\n\n' },
+            {
+              type: 'tool_use',
+              id: 'toolu_1',
+              name: 'json',
+              input: { name: 'example value' },
+            },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tool_choice": {
+              "name": "json",
+              "type": "tool",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"name":"example value"}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
     });
 
     it('should extract text response', async () => {
@@ -123,41 +250,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(content).toMatchInlineSnapshot(`
         [
-          {
-            "text": "Hello, World!",
-            "type": "text",
-          },
-        ]
-      `);
-    });
-
-    it('should extract reasoning response', async () => {
-      prepareJsonResponse({
-        content: [
-          {
-            type: 'thinking',
-            thinking: 'I am thinking...',
-            signature: '1234567890',
-          },
-          { type: 'text', text: 'Hello, World!' },
-        ],
-      });
-
-      const { content } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(content).toMatchInlineSnapshot(`
-        [
-          {
-            "providerMetadata": {
-              "anthropic": {
-                "signature": "1234567890",
-              },
-            },
-            "text": "I am thinking...",
-            "type": "reasoning",
-          },
           {
             "text": "Hello, World!",
             "type": "text",
@@ -389,7 +481,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestHeaders).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
@@ -559,6 +651,151 @@ describe('AnthropicMessagesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    describe('json schema response format', () => {
+      let result: Array<LanguageModelV2StreamPart>;
+
+      beforeEach(async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
+            `data: {"type": "ping"}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
+            `data: {"type":"content_block_stop","index":0    }\n\n`,
+            `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"json","input":{}}      }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
+            `data: {"type":"content_block_stop","index":1              }\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
+            `data: {"type":"message_stop"           }\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+
+        result = await convertReadableStreamToArray(stream);
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tool_choice": {
+              "name": "json",
+              "type": "tool",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+              "modelId": "claude-3-haiku-20240307",
+              "type": "response-metadata",
+            },
+            {
+              "text": "",
+              "type": "text",
+            },
+            {
+              "text": "{"value",
+              "type": "text",
+            },
+            {
+              "text": "":",
+              "type": "text",
+            },
+            {
+              "text": ""Spark",
+              "type": "text",
+            },
+            {
+              "text": "le",
+              "type": "text",
+            },
+            {
+              "text": " Day"}",
+              "type": "text",
+            },
+            {
+              "finishReason": "tool-calls",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": null,
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 441,
+                "outputTokens": 65,
+                "totalTokens": 506,
+              },
+            },
+          ]
+        `);
+      });
+    });
+
     it('should stream text deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
