@@ -1,4 +1,4 @@
-import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -356,7 +356,7 @@ Internal. For test use only. May change without notice.
     };
   }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
   return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
-    model,
+    model: resolveLanguageModel(model),
     telemetry,
     headers,
     settings,
@@ -496,7 +496,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private generateId: () => string;
 
   constructor({
-    model: modelArg,
+    model,
     telemetry,
     headers,
     settings,
@@ -523,7 +523,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onFinish,
     onStepFinish,
   }: {
-    model: LanguageModel;
+    model: LanguageModelV2;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -552,8 +552,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
-    const model = resolveLanguageModel(modelArg);
-
     this.output = output;
     this.generateId = generateId;
 
