@@ -44,13 +44,22 @@ Install `ai`, `@ai-sdk/react` and `@ai-sdk/openai`, the AI package, the AI React
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod" dark />
+      <Snippet
+        text="pnpm add ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod" dark />
+      <Snippet
+        text="npm install ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod" dark />
+      <Snippet
+        text="yarn add ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod"
+        dark
+      />
     </Tab>
   </Tabs>
 </div>
@@ -410,7 +419,13 @@ Modify your `app/api/chat+api.ts` file to include `stopWhen`:
 
 ```tsx filename="app/api/chat+api.ts" highlight="2,11"
 import { openai } from '@ai-sdk/openai';
-import { streamText, UIMessage, convertToModelMessages, tool, stepCountIs } from 'ai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
@@ -461,7 +476,13 @@ Update your `app/api/chat+api.ts` file to add a new tool to convert the temperat
 
 ```tsx filename="app/api/chat+api.ts" highlight="29-42"
 import { openai } from '@ai-sdk/openai';
-import { streamText, UIMessage, convertToModelMessages, tool, stepCountIs } from 'ai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {

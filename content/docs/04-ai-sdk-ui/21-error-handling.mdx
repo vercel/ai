@@ -34,7 +34,8 @@ export default function Chat() {
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.parts
+          {m.role}:{' '}
+          {m.parts
             .filter(part => part.type === 'text')
             .map(part => part.text)
             .join('')}
@@ -98,7 +99,8 @@ export default function Chat() {
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.parts
+          {m.role}:{' '}
+          {m.parts
             .filter(part => part.type === 'text')
             .map(part => part.text)
             .join('')}

@@ -66,13 +66,22 @@ Install `ai` and `@ai-sdk/openai`, the Vercel AI package and the AI SDK's [ Open
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha" dark />
+      <Snippet
+        text="pnpm add ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha" dark />
+      <Snippet
+        text="npm install ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha" dark />
+      <Snippet
+        text="yarn add ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha"
+        dark
+      />
     </Tab>
   </Tabs>
 </div>
@@ -313,9 +322,7 @@ export async function POST(req: Request) {
 
   // check if user has sent a PDF
   const messagesHavePDF = messages.some(message =>
-    message.attachments?.some(
-      a => a.contentType === 'application/pdf',
-    ),
+    message.attachments?.some(a => a.contentType === 'application/pdf'),
   );
 
   const result = streamText({

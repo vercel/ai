@@ -429,9 +429,9 @@ const result = streamText({
   prompt: 'List the top 5 San Francisco news from the past week.',
   providerOptions: {
     google: {
-      useSearchGrounding: true
-    }
-  }
+      useSearchGrounding: true,
+    },
+  },
 });
 
 for await (const part of result.fullStream) {

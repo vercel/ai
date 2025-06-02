@@ -32,11 +32,9 @@ export default function Page() {
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.parts.map((part, index) => (
-            part.type === 'text' ? (
-              <span key={index}>{part.text}</span>
-            ) : null
-          ))}
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
 
@@ -116,11 +114,9 @@ export default function Page() {
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.parts.map((part, index) => (
-            part.type === 'text' ? (
-              <span key={index}>{part.text}</span>
-            ) : null
-          ))}
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
 
@@ -171,11 +167,10 @@ export default function Chat() {
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.parts.map((part, index) => (
-            part.type === 'text' ? (
-              <span key={index}>{part.text}</span>
-            ) : null
-          ))}
+          {m.role}:{' '}
+          {m.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
 
@@ -363,11 +358,10 @@ export default function Chat() {
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.parts.map((part, index) => (
-            part.type === 'text' ? (
-              <span key={index}>{part.text}</span>
-            ) : null
-          ))}
+          {m.role}:{' '}
+          {m.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
 
@@ -392,7 +386,8 @@ You can retrieve these custom fields on your server side by destructuring the re
 ```ts filename="app/api/chat/route.ts" highlight="3,4"
 export async function POST(req: Request) {
   // Extract addition information ("customKey") from the body of the request:
-  const { messages, customKey }: { messages: UIMessage[], customKey: string } = await req.json();
+  const { messages, customKey }: { messages: UIMessage[]; customKey: string } =
+    await req.json();
   //...
 }
 ```
@@ -692,11 +687,11 @@ export default function Page() {
             <div>{`${message.role}: `}</div>
 
             <div>
-              {message.parts.map((part, index) => (
+              {message.parts.map((part, index) =>
                 part.type === 'text' ? (
                   <span key={index}>{part.text}</span>
-                ) : null
-              ))}
+                ) : null,
+              )}
 
               <div>
                 {message.experimental_attachments
@@ -789,11 +784,11 @@ export default function Page() {
             <div>{`${message.role}: `}</div>
 
             <div>
-              {message.parts.map((part, index) => (
+              {message.parts.map((part, index) =>
                 part.type === 'text' ? (
                   <span key={index}>{part.text}</span>
-                ) : null
-              ))}
+                ) : null,
+              )}
 
               <div>
                 {message.experimental_attachments
