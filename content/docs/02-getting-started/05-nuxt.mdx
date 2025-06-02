@@ -44,20 +44,16 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/vue zod" dark />
+      <Snippet text="pnpm add ai@alpha @ai-sdk/openai@alpha @ai-sdk/vue@alpha zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/vue zod" dark />
+      <Snippet text="npm install ai@alpha @ai-sdk/openai@alpha @ai-sdk/vue@alpha zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/vue zod" dark />
+      <Snippet text="yarn add ai@alpha @ai-sdk/openai@alpha @ai-sdk/vue@alpha zod" dark />
     </Tab>
   </Tabs>
 </div>
-
-<Note type="secondary" fill>
-  Make sure you are using `ai` version 3.1 or higher.
-</Note>
 
 ### Configure OpenAI API key
 
@@ -92,7 +88,7 @@ export default defineNuxtConfig({
 Create an API route, `server/api/chat.ts` and add the following code:
 
 ```typescript filename="server/api/chat.ts"
-import { streamText } from 'ai';
+import { streamText, UIMessage, convertToModelMessages } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
 export default defineLazyEventHandler(async () => {
@@ -103,14 +99,14 @@ export default defineLazyEventHandler(async () => {
   });
 
   return defineEventHandler(async (event: any) => {
-    const { messages } = await readBody(event);
+    const { messages }: { messages: UIMessage[] } = await readBody(event);
 
     const result = streamText({
       model: openai('gpt-4o'),
-      messages,
+      messages: convertToModelMessages(messages),
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   });
 });
 ```
@@ -194,7 +190,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 Modify your `server/api/chat.ts` file to include the new weather tool:
 
 ```typescript filename="server/api/chat.ts" highlight="1,18-34"
-import { streamText, tool } from 'ai';
+import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -206,11 +202,11 @@ export default defineLazyEventHandler(async () => {
   });
 
   return defineEventHandler(async (event: any) => {
-    const { messages } = await readBody(event);
+    const { messages }: { messages: UIMessage[] } = await readBody(event);
 
     const result = streamText({
       model: openai('gpt-4o'),
-      messages,
+      messages: convertToModelMessages(messages),
       tools: {
         weather: tool({
           description: 'Get the weather in a location (fahrenheit)',
@@ -230,7 +226,7 @@ export default defineLazyEventHandler(async () => {
       },
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   });
 });
 ```
@@ -319,7 +315,7 @@ By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for
 Update your `server/api/chat.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
 ```typescript filename="server/api/chat.ts" highlight="34-47"
-import { streamText, tool } from 'ai';
+import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -331,11 +327,11 @@ export default defineLazyEventHandler(async () => {
   });
 
   return defineEventHandler(async (event: any) => {
-    const { messages } = await readBody(event);
+    const { messages }: { messages: UIMessage[] } = await readBody(event);
 
     const result = streamText({
       model: openai('gpt-4o-preview'),
-      messages,
+      messages: convertToModelMessages(messages),
       tools: {
         weather: tool({
           description: 'Get the weather in a location (fahrenheit)',
@@ -369,7 +365,7 @@ export default defineLazyEventHandler(async () => {
       },
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   });
 });
 ```

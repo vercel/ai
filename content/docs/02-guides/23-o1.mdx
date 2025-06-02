@@ -52,7 +52,7 @@ The AI SDK abstracts away the differences between model providers, eliminates bo
 
 At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call OpenAI o1-mini with the AI SDK:
 
-```tsx
+```ts
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -69,7 +69,7 @@ const { text } = await generateText({
 
 AI SDK Core abstracts away the differences between model providers, allowing you to focus on building great applications. The unified interface also means that you can easily switch between models by changing just one line of code.
 
-```tsx highlight="5"
+```ts highlight="5"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -88,7 +88,7 @@ const { text } = await generateText({
 You can control the amount of reasoning effort expended by o1 through the `reasoningEffort` parameter.
 This parameter can be set to `'low'`, `'medium'`, or `'high'` to adjust how much time and computation the model spends on internal reasoning before producing a response.
 
-```tsx highlight="9"
+```ts highlight="9"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -111,7 +111,7 @@ const { text } = await generateText({
 
 While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
 
-```tsx
+```ts
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -146,9 +146,10 @@ The AI SDK supports tool usage across several of its functions, like [`generateT
 
 Here's an example of how you can use a tool with the AI SDK and o1:
 
-```tsx
+```ts
 import { generateText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 const { text } = await generateText({
   model: openai('o1'),
@@ -184,20 +185,20 @@ Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK,
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow responses up to 5 minutes
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('o1-mini'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 

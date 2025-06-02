@@ -85,14 +85,14 @@ You can use the following optional settings to customize the OpenAI provider ins
 The OpenAI provider instance is a function that you can invoke to create a language model:
 
 ```ts
-const model = openai('gpt-4-turbo');
+const model = openai('gpt-4.1');
 ```
 
 It automatically selects the correct API based on the model id.
 You can also pass additional settings in the second argument:
 
 ```ts
-const model = openai('gpt-4-turbo', {
+const model = openai('gpt-4.1', {
   // additional settings
 });
 ```
@@ -109,7 +109,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -842,7 +842,7 @@ The following optional provider options are available for OpenAI completion mode
 | `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `o1`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |

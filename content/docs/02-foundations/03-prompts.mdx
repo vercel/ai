@@ -73,7 +73,7 @@ You can use the `messages` property to set message prompts.
 Each message has a `role` and a `content` property. The content can either be text (for user and assistant messages), or an array of relevant parts (data) for that message type.
 
 ```ts highlight="3-7"
-const result = await streamUI({
+const result = await generateText({
   model: yourModel,
   messages: [
     { role: 'user', content: 'Hi!' },

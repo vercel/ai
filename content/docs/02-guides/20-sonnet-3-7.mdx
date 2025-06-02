@@ -85,14 +85,14 @@ Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { streamText } from 'ai';
+import { streamText, UIMessage, convertToModelMessages } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: anthropic('claude-3-7-sonnet-20250219'),
-    messages,
+    messages: convertToModelMessages(messages),
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 12000 },
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     sendReasoning: true,
   });
 }
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
 
 <Note>
   You can forward the model's reasoning tokens to the client with
-  `sendReasoning: true` in the `toDataStreamResponse` method.
+  `sendReasoning: true` in the `toUIMessageStreamResponse` method.
 </Note>
 
 Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:

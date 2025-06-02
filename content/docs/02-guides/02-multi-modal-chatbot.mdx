@@ -66,20 +66,16 @@ Install `ai` and `@ai-sdk/openai`, the Vercel AI package and the AI SDK's [ Open
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" dark />
+      <Snippet text="pnpm add ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/react @ai-sdk/openai" dark />
+      <Snippet text="npm install ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/react @ai-sdk/openai" dark />
+      <Snippet text="yarn add ai@alpha @ai-sdk/react@alpha @ai-sdk/openai@alpha" dark />
     </Tab>
   </Tabs>
 </div>
-
-<Note type="secondary" fill>
-  Make sure you are using `ai` version 3.2.27 or higher.
-</Note>
 
 ### Configure OpenAI API key
 
@@ -114,29 +110,30 @@ Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText, Message } from 'ai';
+import { streamText, convertToModelMessages, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: Message[] } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
 Let's take a look at what is happening in this code:
 
 1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation.
-2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
-3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ai-stream-response) function which converts the result to a streamed response object.
-4. Finally, return the result to the client to stream the response.
+2. Convert the UI messages to model messages using `convertToModelMessages`, which transforms the UI-focused message format to the format expected by the language model.
+3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (converted in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
+4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ui-message-stream-response) function which converts the result to a streamed response object.
+5. Finally, return the result to the client to stream the response.
 
 This Route Handler creates a POST request endpoint at `/api/chat`.
 
@@ -192,7 +189,7 @@ This page utilizes the `useChat` hook, which will, by default, use the `POST` AP
 
 ## Add Image Upload
 
-To make your chatbot multi-modal, let's add the ability to upload and send images to the model. There are two ways to send attachments alongside a message with the `useChat` hook: by [ providing a `FileList` object ](/docs/ai-sdk-ui/chatbot#filelist) or a [ list of URLs ](/docs/ai-sdk-ui/chatbot#urls) to the `handleSubmit` function. In this guide, you will be using the `FileList` approach as it does not require any additional setup.
+To make your chatbot multi-modal, let's add the ability to upload and send images to the model. There are two ways to send attachments alongside a message with the `useChat` hook: by providing a `FileList` object or a list of URLs to the `handleSubmit` function. In this guide, you will be using the `FileList` approach as it does not require any additional setup.
 
 Update your root page (`app/page.tsx`) with the following code:
 
@@ -216,7 +213,7 @@ export default function Chat() {
           {m.role === 'user' ? 'User: ' : 'AI: '}
           {m.content}
           <div>
-            {m?.experimental_attachments
+            {m?.attachments
               ?.filter(attachment =>
                 attachment?.contentType?.startsWith('image/'),
               )
@@ -237,7 +234,7 @@ export default function Chat() {
         className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl space-y-2"
         onSubmit={event => {
           handleSubmit(event, {
-            experimental_attachments: files,
+            attachments: files,
           });
 
           setFiles(undefined);
@@ -274,7 +271,7 @@ In this code, you:
 
 1. Create state to hold the files and create a ref to the file input field.
 2. Display the "uploaded" files in the UI.
-3. Update the `onSubmit` function, to call the `handleSubmit` function manually, passing the files as an option using the `experimental_attachments` key.
+3. Update the `onSubmit` function, to call the `handleSubmit` function manually, passing the files as an option using the `attachments` key.
 4. Add a file input field to the form, including an `onChange` handler to handle updating the files state.
 
 ## Running Your Application
@@ -304,19 +301,19 @@ ANTHROPIC_API_KEY=xxxxxxxxx
 
 3. Modify your route handler:
 
-```tsx filename="app/api/chat/route.ts" highlight="2,10-15,18-20"
+```tsx filename="app/api/chat/route.ts" highlight="2,10-15,18-21"
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { streamText, type Message } from 'ai';
+import { streamText, convertToModelMessages, UIMessage } from 'ai';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: Message[] } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   // check if user has sent a PDF
   const messagesHavePDF = messages.some(message =>
-    message.experimental_attachments?.some(
+    message.attachments?.some(
       a => a.contentType === 'application/pdf',
     ),
   );
@@ -325,10 +322,10 @@ export async function POST(req: Request) {
     model: messagesHavePDF
       ? anthropic('claude-3-5-sonnet-latest')
       : openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -356,7 +353,7 @@ export default function Chat() {
           {m.role === 'user' ? 'User: ' : 'AI: '}
           {m.content}
           <div>
-            {m?.experimental_attachments
+            {m?.attachments
               ?.filter(
                 attachment =>
                   attachment?.contentType?.startsWith('image/') ||
@@ -389,7 +386,7 @@ export default function Chat() {
         className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl space-y-2"
         onSubmit={event => {
           handleSubmit(event, {
-            experimental_attachments: files,
+            attachments: files,
           });
 
           setFiles(undefined);

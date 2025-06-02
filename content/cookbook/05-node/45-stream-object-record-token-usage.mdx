@@ -20,7 +20,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const result = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -45,7 +45,7 @@ import { streamObject, TokenUsage } from 'ai';
 import { z } from 'zod';
 
 const result = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),

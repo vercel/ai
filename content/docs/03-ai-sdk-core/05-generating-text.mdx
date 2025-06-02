@@ -102,8 +102,8 @@ UI](/examples/next-pages/basics/streaming-text-generation) and [AI SDK
 RSC](/examples/next-app/basics/streaming-text-generation).
 The result object contains several helper functions to make the integration into [AI SDK UI](/docs/ai-sdk-ui) easier:
 
-- `result.toDataStreamResponse()`: Creates a data stream HTTP response (with tool calls etc.) that can be used in a Next.js App Router API route.
-- `result.pipeDataStreamToResponse()`: Writes data stream delta output to a Node.js response-like object.
+- `result.toUIMessageStreamResponse()`: Creates a UI Message stream HTTP response (with tool calls etc.) that can be used in a Next.js App Router API route.
+- `result.pipeUIMessageStreamToResponse()`: Writes UI Message stream delta output to a Node.js response-like object.
 - `result.toTextStreamResponse()`: Creates a simple text stream HTTP response.
 - `result.pipeTextStreamToResponse()`: Writes text delta output to a Node.js response-like object.
 
@@ -145,7 +145,7 @@ When using `streamText`, you can provide an `onChunk` callback that is triggered
 
 It receives the following chunk types:
 
-- `text-delta`
+- `text`
 - `reasoning`
 - `source`
 - `tool-call`
@@ -161,7 +161,7 @@ const result = streamText({
   prompt: 'Invent a new holiday and describe its traditions.',
   onChunk({ chunk }) {
     // implement your own logic here, e.g.:
-    if (chunk.type === 'text-delta') {
+    if (chunk.type === 'text') {
       console.log(chunk.text);
     }
   },
@@ -214,7 +214,7 @@ const result = streamText({
 
 for await (const part of result.fullStream) {
   switch (part.type) {
-    case 'text-delta': {
+    case 'text': {
       // handle text delta here
       break;
     }
@@ -296,9 +296,9 @@ const upperCaseTransform =
     new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       transform(chunk, controller) {
         controller.enqueue(
-          // for text-delta chunks, convert the text to uppercase:
-          chunk.type === 'text-delta'
-            ? { ...chunk, textDelta: chunk.textDelta.toUpperCase() }
+          // for text chunks, convert the text to uppercase:
+          chunk.type === 'text'
+            ? { ...chunk, text: chunk.text.toUpperCase() }
             : chunk,
         );
       },
@@ -321,12 +321,12 @@ const stopWordTransform =
       // stream buffering and scanning to correctly emit prior text
       // and to detect all STOP occurrences.
       transform(chunk, controller) {
-        if (chunk.type !== 'text-delta') {
+        if (chunk.type !== 'text') {
           controller.enqueue(chunk);
           return;
         }
 
-        if (chunk.textDelta.includes('STOP')) {
+        if (chunk.text.includes('STOP')) {
           // stop the stream
           stopStream();
 
@@ -425,16 +425,21 @@ When you use `streamText`, you can access the sources using the `fullStream` pro
 
 ```tsx
 const result = streamText({
-  model: google('gemini-2.0-flash-exp', { useSearchGrounding: true }),
+  model: google('gemini-2.0-flash-exp'),
   prompt: 'List the top 5 San Francisco news from the past week.',
+  providerOptions: {
+    google: {
+      useSearchGrounding: true
+    }
+  }
 });
 
 for await (const part of result.fullStream) {
-  if (part.type === 'source' && part.source.sourceType === 'url') {
-    console.log('ID:', part.source.id);
-    console.log('Title:', part.source.title);
-    console.log('URL:', part.source.url);
-    console.log('Provider metadata:', part.source.providerMetadata);
+  if (part.type === 'source' && part.sourceType === 'url') {
+    console.log('ID:', part.id);
+    console.log('Title:', part.title);
+    console.log('URL:', part.url);
+    console.log('Provider metadata:', part.providerMetadata);
     console.log();
   }
 }

@@ -16,20 +16,28 @@ You can use the error object to show an error message, disable the submit button
   server.
 </Note>
 
-```tsx file="app/page.tsx" highlight="7,17-24,30"
+```tsx file="app/page.tsx" highlight="7,18-25,31"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, error, reload } =
-    useChat({});
+    useChat({
+      chatStore: defaultChatStoreOptions({
+        api: '/api/chat',
+      }),
+    });
 
   return (
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.content}
+          {m.role}: {m.parts
+            .filter(part => part.type === 'text')
+            .map(part => part.text)
+            .join('')}
         </div>
       ))}
 
@@ -58,10 +66,11 @@ export default function Chat() {
 
 Alternatively you can write a custom submit handler that replaces the last message when an error is present.
 
-```tsx file="app/page.tsx" highlight="15-21,33"
+```tsx file="app/page.tsx" highlight="17-23,35"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 
 export default function Chat() {
   const {
@@ -71,7 +80,11 @@ export default function Chat() {
     input,
     messages,
     setMessages,
-  } = useChat({});
+  } = useChat({
+    chatStore: defaultChatStoreOptions({
+      api: '/api/chat',
+    }),
+  });
 
   function customSubmit(event: React.FormEvent<HTMLFormElement>) {
     if (error != null) {
@@ -85,7 +98,10 @@ export default function Chat() {
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.content}
+          {m.role}: {m.parts
+            .filter(part => part.type === 'text')
+            .map(part => part.text)
+            .join('')}
         </div>
       ))}
 
@@ -104,17 +120,21 @@ export default function Chat() {
 Errors can be processed by passing an [`onError`](/docs/reference/ai-sdk-ui/use-chat#on-error) callback function as an option to the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) or [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hooks.
 The callback function receives an error object as an argument.
 
-```tsx file="app/page.tsx" highlight="8-11"
+```tsx file="app/page.tsx" highlight="10-13"
 import { useChat } from '@ai-sdk/react';
+import { defaultChatStoreOptions } from 'ai';
 
 export default function Page() {
   const {
     /* ... */
   } = useChat({
-    // handle error:
-    onError: error => {
-      console.error(error);
-    },
+    chatStore: defaultChatStoreOptions({
+      api: '/api/chat',
+      // handle error:
+      onError: error => {
+        console.error(error);
+      },
+    }),
   });
 }
 ```

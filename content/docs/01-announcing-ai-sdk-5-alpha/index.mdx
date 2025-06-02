@@ -180,12 +180,12 @@ Finally, specify the message metadata schema on the client and then render the (
 ```tsx filename="app/page.tsx"
 import { zodSchema } from '@ai-sdk/provider-utils';
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStore } from 'ai';
+import { defaultChatStoreOptions } from 'ai';
 import { exampleMetadataSchema } from '@/api/chat/example-metadata-schema';
 
 export default function Chat() {
   const { messages } = useChat({
-    chatStore: defaultChatStore({
+    chatStore: defaultChatStoreOptions({
       api: '/api/use-chat',
       messageMetadataSchema: zodSchema(exampleMetadataSchema),
     }),
@@ -293,9 +293,9 @@ The `ChatStore` is responsible for:
 You can create a basic ChatStore with the helper function:
 
 ```ts
-import { defaultChatStore } from 'ai';
+import { defaultChatStoreOptions } from 'ai';
 
-const chatStore = defaultChatStore({
+const chatStore = defaultChatStoreOptions({
   api: '/api/chat', // your chat endpoint
   maxSteps: 5, // optional: limit LLM calls in tool chains
   chats: {}, // optional: preload previous chat sessions

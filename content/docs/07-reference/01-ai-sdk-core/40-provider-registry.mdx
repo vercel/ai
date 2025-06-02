@@ -58,7 +58,7 @@ import { generateText } from 'ai';
 import { registry } from './registry';
 
 const { text } = await generateText({
-  model: registry.languageModel('openai:gpt-4-turbo'),
+  model: registry.languageModel('openai:gpt-4.1'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```
