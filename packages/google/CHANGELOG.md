@@ -1,5 +1,15 @@
 # @ai-sdk/google
 
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- 1a635b5: update supportedUrls to only support native URL
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
 ## 2.0.0-alpha.7
 
 ### Patch Changes
