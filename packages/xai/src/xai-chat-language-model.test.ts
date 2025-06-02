@@ -35,12 +35,14 @@ describe('XaiChatLanguageModel', () => {
   });
 
   describe('doGenerate', () => {
-    it('should throw not implemented error for now', async () => {
+    it('should attempt to call XAI API', async () => {
+      // Since we've implemented doGenerate, it will try to make a real API call
+      // and fail with "Not Found" because there's no test server set up
       await expect(
         model.doGenerate({
           prompt: TEST_PROMPT,
         }),
-      ).rejects.toThrow('Not implemented yet');
+      ).rejects.toThrow('Not Found');
     });
   });
 

@@ -26,6 +26,7 @@ vi.mock('./xai-image-model', () => ({
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
   withoutTrailingSlash: vi.fn(url => url),
+  createJsonErrorResponseHandler: vi.fn().mockReturnValue(() => {}),
 }));
 
 describe('xAIProvider', () => {

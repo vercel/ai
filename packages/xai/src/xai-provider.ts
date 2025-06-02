@@ -14,13 +14,13 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-options';
-import { XaiErrorData, xaiErrorSchema } from './xai-error';
+import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
 import { XaiImageModelId } from './xai-image-settings';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
-  errorSchema: xaiErrorSchema,
-  errorToMessage: data => data.error,
+  errorSchema: xaiErrorDataSchema,
+  errorToMessage: data => data.error.message,
 };
 
 export interface XaiProvider extends ProviderV2 {

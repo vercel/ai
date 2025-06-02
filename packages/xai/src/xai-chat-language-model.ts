@@ -16,7 +16,11 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
+import { getResponseMetadata } from './get-response-metadata';
+import { mapXaiFinishReason } from './map-xai-finish-reason';
 import { XaiChatModelId } from './xai-chat-options';
+import { xaiFailedResponseHandler } from './xai-error';
 
 type XaiChatConfig = {
   provider: string;
@@ -54,8 +58,12 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
+    const { messages, warnings: messageWarnings } =
+      convertToXaiChatMessages(prompt);
+    warnings.push(...messageWarnings);
+
     const baseArgs = {
-      // the model we're using
+      // model id
       model: this.modelId,
 
       // standard generation settings
@@ -64,8 +72,8 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       top_p: topP,
       seed,
 
-      // convert prompt to xai message format
-      messages: [], // TODO: implement message conversion
+      // messages in xai format
+      messages,
     };
 
     return {
@@ -77,8 +85,61 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    // TODO: Implement
-    throw new Error('Not implemented yet');
+    const { args: body, warnings } = await this.getArgs(options);
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/chat/completions`,
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body,
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiChatResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const choice = response.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
+
+    // extract text content
+    if (choice.message.content != null && choice.message.content.length > 0) {
+      content.push({ type: 'text', text: choice.message.content });
+    }
+
+    // extract tool calls
+    if (choice.message.tool_calls != null) {
+      for (const toolCall of choice.message.tool_calls) {
+        content.push({
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: toolCall.id,
+          toolName: toolCall.function.name,
+          args: toolCall.function.arguments,
+        });
+      }
+    }
+
+    return {
+      content,
+      finishReason: mapXaiFinishReason(choice.finish_reason),
+      usage: {
+        inputTokens: response.usage.prompt_tokens,
+        outputTokens: response.usage.completion_tokens,
+        totalTokens: response.usage.total_tokens,
+      },
+      request: { body },
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+      warnings,
+    };
   }
 
   async doStream(
@@ -87,7 +148,73 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
     const { args, warnings } = await this.getArgs(options);
     console.log('XAI doStream would send:', JSON.stringify(args, null, 2));
 
-    // actual api call comes next
+    // streaming api call implementation comes next
     throw new Error('Not implemented yet - but args prepared!');
   }
 }
+
+// XAI API Response Schemas (OpenAI-compatible)
+const xaiUsageSchema = z.object({
+  prompt_tokens: z.number(),
+  completion_tokens: z.number(),
+  total_tokens: z.number(),
+});
+
+const xaiChatResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
+  choices: z.array(
+    z.object({
+      message: z.object({
+        role: z.literal('assistant'),
+        content: z.string().nullish(),
+        tool_calls: z
+          .array(
+            z.object({
+              id: z.string(),
+              type: z.literal('function'),
+              function: z.object({
+                name: z.string(),
+                arguments: z.string(),
+              }),
+            }),
+          )
+          .nullish(),
+      }),
+      index: z.number(),
+      finish_reason: z.string().nullish(),
+    }),
+  ),
+  object: z.literal('chat.completion'),
+  usage: xaiUsageSchema,
+});
+
+const xaiChatChunkSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
+  choices: z.array(
+    z.object({
+      delta: z.object({
+        role: z.enum(['assistant']).optional(),
+        content: z.string().nullish(),
+        tool_calls: z
+          .array(
+            z.object({
+              id: z.string(),
+              type: z.literal('function'),
+              function: z.object({
+                name: z.string(),
+                arguments: z.string(),
+              }),
+            }),
+          )
+          .nullish(),
+      }),
+      finish_reason: z.string().nullish(),
+      index: z.number(),
+    }),
+  ),
+  usage: xaiUsageSchema.nullish(),
+});
