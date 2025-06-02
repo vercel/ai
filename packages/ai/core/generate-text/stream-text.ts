@@ -216,7 +216,7 @@ export function streamText<
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   onChunk,
-  onError,
+  onError = console.error,
   onFinish,
   onStepFinish,
   _internal: {
