@@ -15,4 +15,13 @@ describe('resolveLanguageModel', () => {
       expect(resolvedModel.modelId).toBe('test-model-id');
     });
   });
+
+  describe('when a string is provided', () => {
+    it('should return a gateway language model when the default provider is not set', () => {
+      const resolvedModel = resolveLanguageModel('test-model-id');
+
+      expect(resolvedModel.provider).toBe('gateway');
+      expect(resolvedModel.modelId).toBe('test-model-id');
+    });
+  });
 });
