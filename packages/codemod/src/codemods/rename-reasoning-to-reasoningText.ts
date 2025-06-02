@@ -1,3 +1,4 @@
+import { ASTPath } from 'jscodeshift';
 import { createTransformer } from './lib/create-transformer';
 
 /*
@@ -9,7 +10,7 @@ export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
   // Collect names of variables that are assigned `steps` from `generateText`
-  const stepsIdentifiers = new Set();
+  const stepsIdentifiers = new Set<string>();
 
   // Step 1: Find destructuring from `generateText()`
   root
@@ -18,18 +19,27 @@ export default createTransformer((fileInfo, api, options, context) => {
       init: { type: 'AwaitExpression' },
     })
     .filter(path => {
-      const awaitExpr = path.node.init;
-      const callee = awaitExpr.argument.callee;
-      return (
-        callee &&
-        ((callee.type === 'Identifier' && callee.name === 'generateText') ||
-          (callee.type === 'MemberExpression' &&
-            callee.property.name === 'generateText'))
-      );
+      const init = path.node.init;
+
+      if (
+        init?.type !== 'AwaitExpression' ||
+        init.argument?.type !== 'CallExpression'
+      ) {
+        return false;
+      }
+
+      const callee = init.argument.callee;
+
+      return callee.type === 'Identifier' && callee.name === 'generateText';
     })
     .forEach(path => {
+      if (path.node.id.type !== 'ObjectPattern') return;
+
       path.node.id.properties.forEach(prop => {
-        if (prop.key.name === 'steps') {
+        if (prop.type !== 'ObjectProperty') return;
+        if (prop.key.type !== 'Identifier') return;
+
+        if (prop.key.name === 'steps' && prop.value.type === 'Identifier') {
           stepsIdentifiers.add(prop.value.name); // usually 'steps'
         }
       });
@@ -37,7 +47,10 @@ export default createTransformer((fileInfo, api, options, context) => {
 
   if (stepsIdentifiers.size === 0) return null;
 
-  const pathsAndStepNames = [];
+  const pathsAndStepNames: {
+    path: ASTPath;
+    stepName: string;
+  }[] = [];
 
   // Step 2a: Look for `forEach` calls on `steps`
   root
@@ -52,13 +65,22 @@ export default createTransformer((fileInfo, api, options, context) => {
     })
     .filter(path => {
       const callee = path.node.callee;
+
+      if (callee.type !== 'MemberExpression') return false;
+
       return (
         callee.object.type === 'Identifier' &&
         stepsIdentifiers.has(callee.object.name)
       );
     })
     .forEach(path => {
-      const stepName = path.node.arguments[0].params[0].name;
+      const arg = path.node.arguments[0];
+      if (arg.type !== 'ArrowFunctionExpression') return;
+
+      const param = arg.params[0];
+      if (param.type !== 'Identifier') return;
+
+      const stepName = param.name;
       pathsAndStepNames.push({
         path,
         stepName,
@@ -77,9 +99,11 @@ export default createTransformer((fileInfo, api, options, context) => {
       let stepName = null;
 
       if (stepVar.type === 'VariableDeclaration') {
-        const decl = stepVar.declarations[0];
-        if (decl.id.type === 'Identifier') {
-          stepName = decl.id.name;
+        const declaration = stepVar.declarations[0];
+        if (declaration.type !== 'VariableDeclarator') return;
+
+        if (declaration.id.type === 'Identifier') {
+          stepName = declaration.id.name;
         }
       } else if (stepVar.type === 'Identifier') {
         stepName = stepVar.name;
@@ -91,8 +115,7 @@ export default createTransformer((fileInfo, api, options, context) => {
         path,
         stepName,
       });
-    })
-    .filter(Boolean);
+    });
 
   // Step 3: Rename `reasoning` to `reasoningText` in the identified paths
   pathsAndStepNames.forEach(({ path, stepName }) => {
@@ -102,6 +125,8 @@ export default createTransformer((fileInfo, api, options, context) => {
         property: { type: 'Identifier', name: 'reasoning' },
       })
       .forEach(memberPath => {
+        if (memberPath.node.property.type !== 'Identifier') return;
+
         memberPath.node.property.name = 'reasoningText';
         context.hasChanges = true; // Mark that changes were made
       });
