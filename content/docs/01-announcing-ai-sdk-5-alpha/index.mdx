@@ -62,18 +62,18 @@ While we've designed AI SDK 5 to be a substantial improvement over previous vers
 
 ## New Features
 
-- [**LanguageModelV2**](#languagemodelv2) - new redesigned architecture
+- [**`LanguageModelV2`**](#languagemodelv2) - new redesigned architecture
 - [**Message Overhaul**](#message-overhaul) - new `UIMessage` and `ModelMessage` types
-- [**ChatStore**](#chatstore) - new `useChat` architecture
+- [**`ChatStore`**](#chatstore) - new `useChat` architecture
 - [**Server-Sent Events (SSE)**](#server-sent-events-sse) - new standardised protocol for sending UI messages to the client
 - [**Agentic Control**](#agentic-control) - new primitives for building agentic systems
 
-## LanguageModelV2
+## `LanguageModelV2`
 
-LanguageModelV2 represents a complete redesign of how the AI SDK communicates with language models, adapting to the increasingly complex outputs modern AI systems generate. The new LanguageModelV2 treats all LLM outputs as content parts, enabling more consistent handling of text, images, reasoning, sources, and other response types. It now has:
+`LanguageModelV2` represents a complete redesign of how the AI SDK communicates with language models, adapting to the increasingly complex outputs modern AI systems generate. The new `LanguageModelV2` treats all LLM outputs as content parts, enabling more consistent handling of text, images, reasoning, sources, and other response types. It now has:
 
 - **Content-First Design** - Rather than separating text, reasoning, and tool calls, everything is now represented as ordered content parts in a unified array
-- **Improved Type Safety** - The new LanguageModelV2 provides better TypeScript type guarantees, making it easier to work with different content types
+- **Improved Type Safety** - The new `LanguageModelV2` provides better TypeScript type guarantees, making it easier to work with different content types
 - **Simplified Extensibility** - Adding support for new model capabilities no longer requires changes to the core structure
 
 ## Message Overhaul
@@ -104,8 +104,8 @@ export async function POST(req: Request) {
 
 <Note>
   This separation is essential as you cannot use a single message format for
-  both purposes. The state you save should always be the UIMessage format to
-  prevent information loss, with explicit conversion to ModelMessage when
+  both purposes. The state you save should always be the `UIMessage` format to
+  prevent information loss, with explicit conversion to `ModelMessage` when
   communicating with language models.
 </Note>
 
@@ -280,9 +280,9 @@ On the client, you can render these parts with full type safety:
 
 Data parts appear in the `message.parts` array along with other content, maintaining the proper ordering of the conversation. You can update parts by referencing the same ID, enabling dynamic experiences like collaborative artifacts.
 
-## ChatStore
+## `ChatStore`
 
-AI SDK 5 introduces a new `useChat` architecture with ChatStore and ChatTransport components. These two core building blocks make state management and API integration more flexible, allowing you to compose reactive UI bindings, share chat state across multiple instances, and swap out your backend protocol without rewriting application logic.
+AI SDK 5 introduces a new `useChat` architecture with `ChatStore` and `ChatTransport` components. These two core building blocks make state management and API integration more flexible, allowing you to compose reactive UI bindings, share chat state across multiple instances, and swap out your backend protocol without rewriting application logic.
 
 The `ChatStore` is responsible for:
 
