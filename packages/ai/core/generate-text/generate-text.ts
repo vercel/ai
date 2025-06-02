@@ -44,6 +44,7 @@ import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
 import { resolveLanguageModel } from '../prompt/resolve-language-model';
+import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -238,285 +239,290 @@ A function that attempts to repair a tool call that failed to parse.
 
   const tracer = getTracer(telemetry);
 
-  return recordSpan({
-    name: 'ai.generateText',
-    attributes: selectTelemetryAttributes({
-      telemetry,
-      attributes: {
-        ...assembleOperationName({
-          operationId: 'ai.generateText',
-          telemetry,
-        }),
-        ...baseTelemetryAttributes,
-        // model:
-        'ai.model.provider': model.provider,
-        'ai.model.id': model.modelId,
-        // specific settings that only make sense on the outer level:
-        'ai.prompt': {
-          input: () => JSON.stringify({ system, prompt, messages }),
-        },
-      },
-    }),
-    tracer,
-    fn: async span => {
-      const callSettings = prepareCallSettings(settings);
-
-      let currentModelResponse: Awaited<
-        ReturnType<LanguageModelV2['doGenerate']>
-      > & { response: { id: string; timestamp: Date; modelId: string } };
-      let currentToolCalls: ToolCallArray<TOOLS> = [];
-      let currentToolResults: ToolResultArray<TOOLS> = [];
-      const responseMessages: Array<ResponseMessage> = [];
-      const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
-
-      do {
-        const stepInputMessages = [
-          ...initialPrompt.messages,
-          ...responseMessages,
-        ];
-
-        const prepareStepResult = await prepareStep?.({
-          model,
-          steps,
-          stepNumber: steps.length,
-        });
-
-        const promptMessages = await convertToLanguageModelPrompt({
-          prompt: {
-            system: prepareStepResult?.system ?? initialPrompt.system,
-            messages: stepInputMessages,
+  try {
+    return await recordSpan({
+      name: 'ai.generateText',
+      attributes: selectTelemetryAttributes({
+        telemetry,
+        attributes: {
+          ...assembleOperationName({
+            operationId: 'ai.generateText',
+            telemetry,
+          }),
+          ...baseTelemetryAttributes,
+          // model:
+          'ai.model.provider': model.provider,
+          'ai.model.id': model.modelId,
+          // specific settings that only make sense on the outer level:
+          'ai.prompt': {
+            input: () => JSON.stringify({ system, prompt, messages }),
           },
-          supportedUrls: await model.supportedUrls,
-        });
+        },
+      }),
+      tracer,
+      fn: async span => {
+        const callSettings = prepareCallSettings(settings);
 
-        const stepModel = resolveLanguageModel(
-          prepareStepResult?.model ?? model,
-        );
+        let currentModelResponse: Awaited<
+          ReturnType<LanguageModelV2['doGenerate']>
+        > & { response: { id: string; timestamp: Date; modelId: string } };
+        let currentToolCalls: ToolCallArray<TOOLS> = [];
+        let currentToolResults: ToolResultArray<TOOLS> = [];
+        const responseMessages: Array<ResponseMessage> = [];
+        const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
-        const { toolChoice: stepToolChoice, tools: stepTools } =
-          prepareToolsAndToolChoice({
-            tools,
-            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            activeTools: prepareStepResult?.activeTools ?? activeTools,
+        do {
+          const stepInputMessages = [
+            ...initialPrompt.messages,
+            ...responseMessages,
+          ];
+
+          const prepareStepResult = await prepareStep?.({
+            model,
+            steps,
+            stepNumber: steps.length,
           });
 
-        currentModelResponse = await retry(() =>
-          recordSpan({
-            name: 'ai.generateText.doGenerate',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.generateText.doGenerate',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                // model:
-                'ai.model.provider': stepModel.provider,
-                'ai.model.id': stepModel.modelId,
-                // prompt:
-                'ai.prompt.messages': {
-                  input: () => stringifyForTelemetry(promptMessages),
-                },
-                'ai.prompt.tools': {
-                  // convert the language model level tools:
-                  input: () => stepTools?.map(tool => JSON.stringify(tool)),
-                },
-                'ai.prompt.toolChoice': {
-                  input: () =>
-                    stepToolChoice != null
-                      ? JSON.stringify(stepToolChoice)
-                      : undefined,
-                },
+          const promptMessages = await convertToLanguageModelPrompt({
+            prompt: {
+              system: prepareStepResult?.system ?? initialPrompt.system,
+              messages: stepInputMessages,
+            },
+            supportedUrls: await model.supportedUrls,
+          });
 
-                // standardized gen-ai llm span attributes:
-                'gen_ai.system': stepModel.provider,
-                'gen_ai.request.model': stepModel.modelId,
-                'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                'gen_ai.request.presence_penalty': settings.presencePenalty,
-                'gen_ai.request.stop_sequences': settings.stopSequences,
-                'gen_ai.request.temperature': settings.temperature ?? undefined,
-                'gen_ai.request.top_k': settings.topK,
-                'gen_ai.request.top_p': settings.topP,
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
+          const { toolChoice: stepToolChoice, tools: stepTools } =
+            prepareToolsAndToolChoice({
+              tools,
+              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              activeTools: prepareStepResult?.activeTools ?? activeTools,
+            });
+
+          currentModelResponse = await retry(() =>
+            recordSpan({
+              name: 'ai.generateText.doGenerate',
+              attributes: selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  ...assembleOperationName({
+                    operationId: 'ai.generateText.doGenerate',
+                    telemetry,
+                  }),
+                  ...baseTelemetryAttributes,
+                  // model:
+                  'ai.model.provider': stepModel.provider,
+                  'ai.model.id': stepModel.modelId,
+                  // prompt:
+                  'ai.prompt.messages': {
+                    input: () => stringifyForTelemetry(promptMessages),
+                  },
+                  'ai.prompt.tools': {
+                    // convert the language model level tools:
+                    input: () => stepTools?.map(tool => JSON.stringify(tool)),
+                  },
+                  'ai.prompt.toolChoice': {
+                    input: () =>
+                      stepToolChoice != null
+                        ? JSON.stringify(stepToolChoice)
+                        : undefined,
+                  },
+
+                  // standardized gen-ai llm span attributes:
+                  'gen_ai.system': stepModel.provider,
+                  'gen_ai.request.model': stepModel.modelId,
+                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
+                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
+                  'gen_ai.request.presence_penalty': settings.presencePenalty,
+                  'gen_ai.request.stop_sequences': settings.stopSequences,
+                  'gen_ai.request.temperature':
+                    settings.temperature ?? undefined,
+                  'gen_ai.request.top_k': settings.topK,
+                  'gen_ai.request.top_p': settings.topP,
+                },
+              }),
+              tracer,
+              fn: async span => {
+                const result = await stepModel.doGenerate({
+                  ...callSettings,
+                  tools: stepTools,
+                  toolChoice: stepToolChoice,
+                  responseFormat: output?.responseFormat,
+                  prompt: promptMessages,
+                  providerOptions,
+                  abortSignal,
+                  headers,
+                });
+
+                // Fill in default values:
+                const responseData = {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? currentDate(),
+                  modelId: result.response?.modelId ?? stepModel.modelId,
+                  headers: result.response?.headers,
+                  body: result.response?.body,
+                };
+
+                // Add response information to the span:
+                span.setAttributes(
+                  selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.response.finishReason': result.finishReason,
+                      'ai.response.text': {
+                        output: () => extractContentText(result.content),
+                      },
+                      'ai.response.toolCalls': {
+                        output: () => {
+                          const toolCalls = asToolCalls(result.content);
+                          return toolCalls == null
+                            ? undefined
+                            : JSON.stringify(toolCalls);
+                        },
+                      },
+                      'ai.response.id': responseData.id,
+                      'ai.response.model': responseData.modelId,
+                      'ai.response.timestamp':
+                        responseData.timestamp.toISOString(),
+
+                      // TODO rename telemetry attributes to inputTokens and outputTokens
+                      'ai.usage.promptTokens': result.usage.inputTokens,
+                      'ai.usage.completionTokens': result.usage.outputTokens,
+
+                      // standardized gen-ai llm span attributes:
+                      'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.response.id': responseData.id,
+                      'gen_ai.response.model': responseData.modelId,
+                      'gen_ai.usage.input_tokens': result.usage.inputTokens,
+                      'gen_ai.usage.output_tokens': result.usage.outputTokens,
+                    },
+                  }),
+                );
+
+                return { ...result, response: responseData };
               },
             }),
-            tracer,
-            fn: async span => {
-              const result = await stepModel.doGenerate({
-                ...callSettings,
-                tools: stepTools,
-                toolChoice: stepToolChoice,
-                responseFormat: output?.responseFormat,
-                prompt: promptMessages,
-                providerOptions,
-                abortSignal,
-                headers,
-              });
+          );
 
-              // Fill in default values:
-              const responseData = {
-                id: result.response?.id ?? generateId(),
-                timestamp: result.response?.timestamp ?? currentDate(),
-                modelId: result.response?.modelId ?? stepModel.modelId,
-                headers: result.response?.headers,
-                body: result.response?.body,
-              };
-
-              // Add response information to the span:
-              span.setAttributes(
-                selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.response.finishReason': result.finishReason,
-                    'ai.response.text': {
-                      output: () => extractContentText(result.content),
-                    },
-                    'ai.response.toolCalls': {
-                      output: () => {
-                        const toolCalls = asToolCalls(result.content);
-                        return toolCalls == null
-                          ? undefined
-                          : JSON.stringify(toolCalls);
-                      },
-                    },
-                    'ai.response.id': responseData.id,
-                    'ai.response.model': responseData.modelId,
-                    'ai.response.timestamp':
-                      responseData.timestamp.toISOString(),
-
-                    // TODO rename telemetry attributes to inputTokens and outputTokens
-                    'ai.usage.promptTokens': result.usage.inputTokens,
-                    'ai.usage.completionTokens': result.usage.outputTokens,
-
-                    // standardized gen-ai llm span attributes:
-                    'gen_ai.response.finish_reasons': [result.finishReason],
-                    'gen_ai.response.id': responseData.id,
-                    'gen_ai.response.model': responseData.modelId,
-                    'gen_ai.usage.input_tokens': result.usage.inputTokens,
-                    'gen_ai.usage.output_tokens': result.usage.outputTokens,
-                  },
+          // parse tool calls:
+          currentToolCalls = await Promise.all(
+            currentModelResponse.content
+              .filter(
+                (part): part is LanguageModelV2ToolCall =>
+                  part.type === 'tool-call',
+              )
+              .map(toolCall =>
+                parseToolCall({
+                  toolCall,
+                  tools,
+                  repairToolCall,
+                  system,
+                  messages: stepInputMessages,
                 }),
-              );
+              ),
+          );
 
-              return { ...result, response: responseData };
-            },
-          }),
-        );
+          // execute tools:
+          currentToolResults =
+            tools == null
+              ? []
+              : await executeTools({
+                  toolCalls: currentToolCalls,
+                  tools,
+                  tracer,
+                  telemetry,
+                  messages: stepInputMessages,
+                  abortSignal,
+                });
 
-        // parse tool calls:
-        currentToolCalls = await Promise.all(
-          currentModelResponse.content
-            .filter(
-              (part): part is LanguageModelV2ToolCall =>
-                part.type === 'tool-call',
-            )
-            .map(toolCall =>
-              parseToolCall({
-                toolCall,
-                tools,
-                repairToolCall,
-                system,
-                messages: stepInputMessages,
-              }),
-            ),
-        );
+          // content:
+          const stepContent = asContent({
+            content: currentModelResponse.content,
+            toolCalls: currentToolCalls,
+            toolResults: currentToolResults,
+          });
 
-        // execute tools:
-        currentToolResults =
-          tools == null
-            ? []
-            : await executeTools({
-                toolCalls: currentToolCalls,
-                tools,
-                tracer,
-                telemetry,
-                messages: stepInputMessages,
-                abortSignal,
-              });
+          // append to messages for potential next step:
+          responseMessages.push(
+            ...toResponseMessages({
+              content: stepContent,
+              tools: tools ?? ({} as TOOLS),
+            }),
+          );
 
-        // content:
-        const stepContent = asContent({
-          content: currentModelResponse.content,
-          toolCalls: currentToolCalls,
-          toolResults: currentToolResults,
-        });
-
-        // append to messages for potential next step:
-        responseMessages.push(
-          ...toResponseMessages({
+          // Add step information (after response messages are updated):
+          const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
-            tools: tools ?? ({} as TOOLS),
+            finishReason: currentModelResponse.finishReason,
+            usage: currentModelResponse.usage,
+            warnings: currentModelResponse.warnings,
+            providerMetadata: currentModelResponse.providerMetadata,
+            request: currentModelResponse.request ?? {},
+            response: {
+              ...currentModelResponse.response,
+              // deep clone msgs to avoid mutating past messages in multi-step:
+              messages: structuredClone(responseMessages),
+            },
+          });
+
+          steps.push(currentStepResult);
+          await onStepFinish?.(currentStepResult);
+        } while (
+          // there are tool calls:
+          currentToolCalls.length > 0 &&
+          // all current tool calls have results:
+          currentToolResults.length === currentToolCalls.length &&
+          // continue until a stop condition is met:
+          !(await isStopConditionMet({ stopConditions, steps }))
+        );
+
+        // Add response information to the span:
+        span.setAttributes(
+          selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              'ai.response.finishReason': currentModelResponse.finishReason,
+              'ai.response.text': {
+                output: () => extractContentText(currentModelResponse.content),
+              },
+              'ai.response.toolCalls': {
+                output: () => {
+                  const toolCalls = asToolCalls(currentModelResponse.content);
+                  return toolCalls == null
+                    ? undefined
+                    : JSON.stringify(toolCalls);
+                },
+              },
+
+              // TODO rename telemetry attributes to inputTokens and outputTokens
+              'ai.usage.promptTokens': currentModelResponse.usage.inputTokens,
+              'ai.usage.completionTokens':
+                currentModelResponse.usage.outputTokens,
+            },
           }),
         );
 
-        // Add step information (after response messages are updated):
-        const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
-          content: stepContent,
-          finishReason: currentModelResponse.finishReason,
-          usage: currentModelResponse.usage,
-          warnings: currentModelResponse.warnings,
-          providerMetadata: currentModelResponse.providerMetadata,
-          request: currentModelResponse.request ?? {},
-          response: {
-            ...currentModelResponse.response,
-            // deep clone msgs to avoid mutating past messages in multi-step:
-            messages: structuredClone(responseMessages),
-          },
+        const lastStep = steps[steps.length - 1];
+
+        return new DefaultGenerateTextResult({
+          steps,
+          resolvedOutput: await output?.parseOutput(
+            { text: lastStep.text },
+            {
+              response: lastStep.response,
+              usage: lastStep.usage,
+              finishReason: lastStep.finishReason,
+            },
+          ),
         });
-
-        steps.push(currentStepResult);
-        await onStepFinish?.(currentStepResult);
-      } while (
-        // there are tool calls:
-        currentToolCalls.length > 0 &&
-        // all current tool calls have results:
-        currentToolResults.length === currentToolCalls.length &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
-
-      // Add response information to the span:
-      span.setAttributes(
-        selectTelemetryAttributes({
-          telemetry,
-          attributes: {
-            'ai.response.finishReason': currentModelResponse.finishReason,
-            'ai.response.text': {
-              output: () => extractContentText(currentModelResponse.content),
-            },
-            'ai.response.toolCalls': {
-              output: () => {
-                const toolCalls = asToolCalls(currentModelResponse.content);
-                return toolCalls == null
-                  ? undefined
-                  : JSON.stringify(toolCalls);
-              },
-            },
-
-            // TODO rename telemetry attributes to inputTokens and outputTokens
-            'ai.usage.promptTokens': currentModelResponse.usage.inputTokens,
-            'ai.usage.completionTokens':
-              currentModelResponse.usage.outputTokens,
-          },
-        }),
-      );
-
-      const lastStep = steps[steps.length - 1];
-
-      return new DefaultGenerateTextResult({
-        steps,
-        resolvedOutput: await output?.parseOutput(
-          { text: lastStep.text },
-          {
-            response: lastStep.response,
-            usage: lastStep.usage,
-            finishReason: lastStep.finishReason,
-          },
-        ),
-      });
-    },
-  });
+      },
+    });
+  } catch (error) {
+    throw wrapGatewayError(error);
+  }
 }
 
 async function executeTools<TOOLS extends ToolSet>({

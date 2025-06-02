@@ -8,8 +8,8 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
-  type Schema,
   type InferSchema,
+  type Schema,
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
 import * as z3 from 'zod/v3';
@@ -30,7 +30,9 @@ import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
+import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
+import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -46,7 +48,6 @@ import { LanguageModelUsage } from '../types/usage';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -283,7 +284,9 @@ Callback that is called when the LLM response and the final object validation ar
     headers,
     experimental_telemetry: telemetry,
     providerOptions,
-    onError = console.error,
+    onError = ({ error }: { error: unknown }) => {
+      console.error(error);
+    },
     onFinish,
     _internal: {
       generateId = originalGenerateId,
@@ -393,7 +396,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
-    onError: StreamObjectOnErrorCallback | undefined;
+    onError: StreamObjectOnErrorCallback;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     generateId: () => string;
     currentDate: () => Date;
@@ -428,7 +431,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError?.({ error: chunk.error });
+          onError({ error: wrapGatewayError(chunk.error) });
         }
       },
     });
