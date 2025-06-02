@@ -125,7 +125,7 @@ export function convertToOpenAIChatMessages({
                     type: 'file',
                     file: {
                       filename: part.filename ?? `part-${index}.pdf`,
-                      file_data: `data:application/pdf;base64,${part.data}`,
+                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
                     },
                   };
                 } else {
