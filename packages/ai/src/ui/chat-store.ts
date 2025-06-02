@@ -8,7 +8,6 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
 import { ChatTransport } from './chat-transport';
-import { getToolInvocations } from './get-tool-invocations';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
@@ -241,7 +240,7 @@ export class ChatStore<
   }
 
   getStatus(id: string): ChatStatus {
-    return this.getChatState(id).status;
+    return this.getChat(id).status;
   }
 
   setStatus({
@@ -253,7 +252,7 @@ export class ChatStore<
     status: ChatStatus;
     error?: Error;
   }) {
-    const state = this.getChatState(id);
+    const state = this.getChat(id);
 
     if (state.status === status) return;
 
@@ -264,15 +263,15 @@ export class ChatStore<
   }
 
   getError(id: string) {
-    return this.getChatState(id).error;
+    return this.getChat(id).error;
   }
 
   getMessages(id: string) {
-    return this.getChatState(id).messages;
+    return this.getChat(id).messages;
   }
 
   getLastMessage(id: string) {
-    const chat = this.getChatState(id);
+    const chat = this.getChat(id);
     return chat.messages[chat.messages.length - 1];
   }
 
@@ -291,12 +290,12 @@ export class ChatStore<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >[];
   }) {
-    this.getChatState(id).setMessages(messages);
+    this.getChat(id).setMessages(messages);
     this.emit({ type: 'chat-messages-changed', chatId: id });
   }
 
   removeAssistantResponse(id: string) {
-    const chat = this.getChatState(id);
+    const chat = this.getChat(id);
     const lastMessage = chat.messages[chat.messages.length - 1];
 
     if (lastMessage == null) {
@@ -329,8 +328,8 @@ export class ChatStore<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >;
   }) {
-    const state = this.getChatState(chatId);
-    state.pushMessage({ ...message, id: message.id ?? this.generateId() });
+    const chat = this.getChat(chatId);
+    chat.pushMessage({ ...message, id: message.id ?? this.generateId() });
     this.emit({
       type: 'chat-messages-changed',
       chatId,
@@ -359,7 +358,7 @@ export class ChatStore<
   > & {
     chatId: string;
   }) {
-    const chat = this.getChatState(chatId);
+    const chat = this.getChat(chatId);
 
     if (chat.messages[chat.messages.length - 1].role === 'assistant') {
       chat.popMessage();
@@ -417,7 +416,7 @@ export class ChatStore<
     toolCallId: string;
     result: unknown;
   }) {
-    const chat = this.getChatState(chatId);
+    const chat = this.getChat(chatId);
 
     chat.jobExecutor.run(async () => {
       updateToolCallResult({
@@ -449,7 +448,7 @@ export class ChatStore<
   }
 
   async stopStream({ chatId }: { chatId: string }) {
-    const chat = this.getChatState(chatId);
+    const chat = this.getChat(chatId);
 
     if (chat.status !== 'streaming' && chat.status !== 'submitted') return;
 
@@ -465,7 +464,7 @@ export class ChatStore<
     }
   }
 
-  private getChatState(
+  private getChat(
     id: string,
   ): Chat<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>> {
     if (!this.hasChat(id)) {
@@ -489,7 +488,7 @@ export class ChatStore<
     chatId: string;
     requestType: 'generate' | 'resume';
   }) {
-    const chat = this.getChatState(chatId);
+    const chat = this.getChat(chatId);
 
     this.setStatus({ id: chatId, status: 'submitted', error: undefined });
 
