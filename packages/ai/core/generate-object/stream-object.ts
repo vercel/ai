@@ -283,7 +283,7 @@ Callback that is called when the LLM response and the final object validation ar
     headers,
     experimental_telemetry: telemetry,
     providerOptions,
-    onError,
+    onError = console.error,
     onFinish,
     _internal: {
       generateId = originalGenerateId,
