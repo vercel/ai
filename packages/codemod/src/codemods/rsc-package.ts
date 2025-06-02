@@ -31,5 +31,5 @@ export default createTransformer((fileInfo, api, options, context) => {
     .forEach(path => {
       path.node.source.value = '@ai-sdk/rsc';
       context.hasChanges = true;
-    })
+    });
 });

@@ -8,7 +8,7 @@ import { TransformOptions } from '../lib/transform-options';
 const program = new Command();
 const errorLog = (message: string) => {
   console.error(`codemod:error ${process.pid}: ${message}`);
-}
+};
 
 const addTransformOptions = (command: Command): Command => {
   return command
