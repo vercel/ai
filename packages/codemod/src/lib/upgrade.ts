@@ -1,4 +1,3 @@
-import debug from 'debug';
 import { transform, TransformErrors } from './transform';
 import { TransformOptions } from './transform-options';
 import { SingleBar, Presets } from 'cli-progress';
@@ -32,8 +31,12 @@ const bundle = [
   'rsc-package',
 ];
 
-const log = debug('codemod:upgrade');
-const error = debug('codemod:upgrade:error');
+const log = (message: string) => {
+  console.error(`codemod:upgrade ${process.pid}: ${message}`);
+};
+const errorLog = (message: string) => {
+  console.error(`codemod:upgrade:error ${process.pid}: ${message}`);
+};
 
 export function upgrade(options: TransformOptions) {
   const cwd = process.cwd();
@@ -58,7 +61,7 @@ export function upgrade(options: TransformOptions) {
   if (allErrors.length > 0) {
     log('Some codemods did not apply successfully to all files. Details:');
     allErrors.forEach(({ transform, filename, summary }) => {
-      error(`codemod=${transform}, path=${filename}, summary=${summary}`);
+      errorLog(`codemod=${transform}, path=${filename}, summary=${summary}`);
     });
   }
 
