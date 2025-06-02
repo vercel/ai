@@ -1,5 +1,34 @@
 # ai
 
+## 5.0.0-alpha.8
+
+### Major Changes
+
+- c25cbce: feat (ai): use console.error as default error handler for streamText and streamObject
+
+### Patch Changes
+
+- 4fef487: feat: support for zod v4 for schema validation
+
+  All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
+  - `generateObject()`
+  - `streamObject()`
+  - `generateText()`
+  - `experimental_useObject()` from `@ai-sdk/react`
+  - `streamUI()` from `@ai-sdk/rsc`
+
+- 6b1c55c: feat (ai): introduce GLOBAL_DEFAULT_PROVIDER
+- 2e4f9e4: feat (ai): improved error messages when using gateway
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+- Updated dependencies [3cbcbb7]
+- Updated dependencies [989ac75]
+- Updated dependencies [7742ba3]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+  - @ai-sdk/gateway@1.0.0-alpha.8
+
 ## 5.0.0-alpha.7
 
 ### Major Changes

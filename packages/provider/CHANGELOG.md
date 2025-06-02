@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- 9222aeb: release alpha.8
+
 ## 2.0.0-alpha.7
 
 ### Patch Changes

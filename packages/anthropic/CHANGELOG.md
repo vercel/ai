@@ -1,5 +1,16 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- ad66c0e: feat (provider/anthropic): json response schema support via tool calls
+- 075711d: fix (provider/anthropic): return stop finish reason for json output with tool
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
 ## 2.0.0-alpha.7
 
 ### Patch Changes

@@ -1,11 +1,10 @@
-import { gateway } from '@ai-sdk/gateway';
 import { generateObject } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: gateway('xai/grok-3-beta'),
+    model: 'xai/grok-3-beta',
     schema: z.object({
       recipe: z.object({
         name: z.string(),

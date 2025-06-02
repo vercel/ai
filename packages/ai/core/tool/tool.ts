@@ -1,10 +1,14 @@
 import { JSONObject, JSONValue } from '@ai-sdk/provider';
 import { Schema } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
 import { ModelMessage } from '../prompt/message';
 import { ToolResultContent } from '../prompt/tool-result-content';
 
-export type ToolParameters<T = JSONObject> = z.Schema<T> | Schema<T>;
+export type ToolParameters<T = JSONObject> =
+  | z4.$ZodType<T>
+  | z3.Schema<T>
+  | Schema<T>;
 
 export interface ToolExecutionOptions {
   /**

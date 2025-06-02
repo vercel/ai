@@ -777,7 +777,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text",
             },
             {
-              "finishReason": "tool-calls",
+              "finishReason": "stop",
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,

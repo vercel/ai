@@ -1,11 +1,10 @@
-import { gateway } from '@ai-sdk/gateway';
 import { streamObject } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
-    model: gateway('xai/grok-3-beta'),
+    model: 'xai/grok-3-beta',
     schema: z.object({
       characters: z.array(
         z.object({
