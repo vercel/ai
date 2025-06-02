@@ -90,7 +90,7 @@ importers:
         specifier: 0.0.3
         version: link:../../packages/elevenlabs
       '@ai-sdk/fal':
-        specifier: 0.1.11
+        specifier: 0.1.12
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
         specifier: 0.2.14
