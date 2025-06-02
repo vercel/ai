@@ -344,7 +344,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     return {
       content,
-      finishReason: mapAnthropicStopReason(response.stop_reason),
+      finishReason: mapAnthropicStopReason({
+        finishReason: response.stop_reason,
+        isJsonResponseFromTool: jsonResponseTool != null,
+      }),
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
@@ -607,7 +610,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 usage.totalTokens =
                   (usage.inputTokens ?? 0) + (value.usage.output_tokens ?? 0);
 
-                finishReason = mapAnthropicStopReason(value.delta.stop_reason);
+                finishReason = mapAnthropicStopReason({
+                  finishReason: value.delta.stop_reason,
+                  isJsonResponseFromTool: jsonResponseTool != null,
+                });
                 return;
               }
 
