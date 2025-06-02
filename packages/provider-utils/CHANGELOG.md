@@ -1,5 +1,22 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-alpha.8
+
+### Patch Changes
+
+- 4fef487: feat: support for zod v4 for schema validation
+
+  All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
+  - `generateObject()`
+  - `streamObject()`
+  - `generateText()`
+  - `experimental_useObject()` from `@ai-sdk/react`
+  - `streamUI()` from `@ai-sdk/rsc`
+
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider@2.0.0-alpha.8
+
 ## 3.0.0-alpha.7
 
 ### Patch Changes
