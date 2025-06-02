@@ -1,4 +1,4 @@
-import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -24,7 +24,9 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
+import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -66,7 +68,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -216,7 +217,9 @@ export function streamText<
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   onChunk,
-  onError = console.error,
+  onError = ({ error }) => {
+    console.error(error);
+  },
   onFinish,
   onStepFinish,
   _internal: {
@@ -353,7 +356,7 @@ Internal. For test use only. May change without notice.
     };
   }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
   return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
-    model: resolveLanguageModel(model),
+    model,
     telemetry,
     headers,
     settings,
@@ -493,7 +496,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private generateId: () => string;
 
   constructor({
-    model,
+    model: modelArg,
     telemetry,
     headers,
     settings,
@@ -520,7 +523,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onFinish,
     onStepFinish,
   }: {
-    model: LanguageModelV2;
+    model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -545,10 +548,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
-    onError: undefined | StreamTextOnErrorCallback;
+    onError: StreamTextOnErrorCallback;
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
+    const model = resolveLanguageModel(modelArg);
+
     this.output = output;
     this.generateId = generateId;
 
@@ -593,7 +598,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'error') {
-          await onError?.({ error: part.error });
+          await onError({
+            error: wrapGatewayError({
+              error: part.error,
+              isTextModelId: typeof modelArg === 'string',
+            }),
+          });
         }
 
         if (part.type === 'text') {
