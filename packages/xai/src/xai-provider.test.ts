@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createXai } from './xai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
+import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { OpenAICompatibleImageModel } from '@ai-sdk/openai-compatible';
 
-const OpenAICompatibleChatLanguageModelMock =
-  OpenAICompatibleChatLanguageModel as unknown as Mock;
+const XaiChatLanguageModelMock = XaiChatLanguageModel as unknown as Mock;
 const OpenAICompatibleImageModelMock =
   OpenAICompatibleImageModel as unknown as Mock;
+
+vi.mock('./xai-chat-language-model', () => ({
+  XaiChatLanguageModel: vi.fn(),
+}));
 
 vi.mock('@ai-sdk/openai-compatible', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
@@ -35,8 +38,7 @@ describe('xAIProvider', () => {
       const provider = createXai();
       const model = provider('model-id');
 
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -56,8 +58,7 @@ describe('xAIProvider', () => {
       const provider = createXai(options);
       provider('model-id');
 
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -73,7 +74,7 @@ describe('xAIProvider', () => {
       const modelId = 'foo-model-id';
 
       const model = provider(modelId);
-      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+      expect(model).toBeInstanceOf(XaiChatLanguageModel);
     });
   });
 
@@ -84,7 +85,7 @@ describe('xAIProvider', () => {
 
       const model = provider.chat(modelId);
 
-      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+      expect(model).toBeInstanceOf(XaiChatLanguageModel);
     });
 
     it('should pass the includeUsage option to the chat model, to make sure usage is reported while streaming', () => {
@@ -93,13 +94,13 @@ describe('xAIProvider', () => {
 
       const model = provider.chat(modelId);
 
-      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+      expect(model).toBeInstanceOf(XaiChatLanguageModel);
 
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
 
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1].includeUsage).toBe(true);
+      expect(constructorCall[1].provider).toBe('xai.chat');
+      expect(constructorCall[1].baseURL).toBe('https://api.x.ai/v1');
     });
   });
 
