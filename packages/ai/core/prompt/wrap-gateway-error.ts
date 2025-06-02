@@ -4,17 +4,7 @@ import {
 } from '@ai-sdk/gateway';
 import { AISDKError } from '@ai-sdk/provider';
 
-export function wrapGatewayError({
-  error,
-  isTextModelId,
-}: {
-  error: unknown;
-  isTextModelId: boolean;
-}): unknown {
-  if (!isTextModelId) {
-    return error;
-  }
-
+export function wrapGatewayError(error: unknown): unknown {
   if (
     GatewayAuthenticationError.isInstance(error) ||
     GatewayModelNotFoundError.isInstance(error)

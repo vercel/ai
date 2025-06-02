@@ -598,12 +598,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'error') {
-          await onError({
-            error: wrapGatewayError({
-              error: part.error,
-              isTextModelId: typeof modelArg === 'string',
-            }),
-          });
+          await onError({ error: wrapGatewayError(part.error) });
         }
 
         if (part.type === 'text') {
