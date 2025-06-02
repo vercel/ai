@@ -3,6 +3,7 @@ import { TransformOptions } from './transform-options';
 import { SingleBar, Presets } from 'cli-progress';
 
 const bundle = [
+  'import-LanguageModelV2-from-provider-package',
   'remove-ai-stream-methods-from-stream-text-result',
   'remove-anthropic-facade',
   'remove-await-streamobject',
