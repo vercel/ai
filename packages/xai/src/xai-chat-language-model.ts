@@ -158,6 +158,17 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             : { type: 'json_object' }
           : undefined,
 
+      // search parameters
+      search_parameters: options.searchParameters
+        ? {
+            mode: options.searchParameters.mode,
+            return_citations: options.searchParameters.returnCitations,
+            from_date: options.searchParameters.fromDate,
+            to_date: options.searchParameters.toDate,
+            max_search_results: options.searchParameters.maxSearchResults,
+          }
+        : undefined,
+
       // messages in xai format
       messages,
 

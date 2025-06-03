@@ -346,6 +346,7 @@ describe('XaiChatLanguageModel', () => {
             "model": "grok-beta",
             "reasoning_effort": undefined,
             "response_format": undefined,
+            "search_parameters": undefined,
             "seed": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
@@ -354,6 +355,37 @@ describe('XaiChatLanguageModel', () => {
           },
         }
       `);
+    });
+
+    it('should pass search parameters', async () => {
+      prepareJsonResponse({ content: '' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            searchParameters: {
+              mode: 'auto',
+              returnCitations: true,
+              fromDate: '2024-01-01',
+              toDate: '2024-12-31',
+              maxSearchResults: 10,
+            },
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        search_parameters: {
+          mode: 'auto',
+          return_citations: true,
+          from_date: '2024-01-01',
+          to_date: '2024-12-31',
+          max_search_results: 10,
+        },
+      });
     });
 
     it('should extract content when message content is a content object', async () => {
@@ -677,6 +709,7 @@ describe('XaiChatLanguageModel', () => {
             "model": "grok-beta",
             "reasoning_effort": undefined,
             "response_format": undefined,
+            "search_parameters": undefined,
             "seed": undefined,
             "stream": true,
             "stream_options": {
