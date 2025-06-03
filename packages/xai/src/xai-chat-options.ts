@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =
   | 'grok-3'
@@ -42,3 +44,8 @@ export function supportsStructuredOutputs(modelId: XaiChatModelId) {
     'grok-2-vision-1212',
   ].includes(modelId);
 }
+
+// xai-specific provider options
+export const xaiProviderOptions = z.object({});
+
+export type XaiProviderOptions = z.infer<typeof xaiProviderOptions>;

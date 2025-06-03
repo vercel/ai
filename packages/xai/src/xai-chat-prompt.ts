@@ -35,3 +35,10 @@ export interface XaiToolMessage {
   tool_call_id: string;
   content: string;
 }
+
+// xai tool choice
+export type XaiToolChoice =
+  | 'auto'
+  | 'none'
+  | 'required'
+  | { type: 'function'; function: { name: string } };
