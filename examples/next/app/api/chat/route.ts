@@ -13,6 +13,8 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
+  result.consumeStream(); // always consume the stream even when the client disconnects
+
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     onFinish: ({ messages }) => {
