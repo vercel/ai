@@ -9,8 +9,8 @@ export default function Chat({
 }: {
   chatData: { id: string; messages: MyUIMessage[] };
 }) {
-  const { input, status, handleInputChange, handleSubmit, messages } = useChat2(
-    {
+  const { input, status, append, messages, setInput, handleInputChange } =
+    useChat2({
       chat: createChat2({
         id: chatData.id,
         messages: chatData.messages,
@@ -23,8 +23,7 @@ export default function Chat({
         }),
         messageMetadataSchema: myMessageMetadataSchema,
       }),
-    },
-  );
+    });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -50,12 +49,23 @@ export default function Chat({
         );
       })}
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={e => {
+          // TODO submit a user message
+          e.preventDefault();
+          append({
+            role: 'user',
+            metadata: { createdAt: Date.now() },
+            parts: [{ type: 'text', text: input }],
+          });
+          setInput('');
+        }}
+      >
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
-          placeholder="Say something..."
           onChange={handleInputChange}
+          placeholder="Say something..."
           disabled={status !== 'ready'}
         />
       </form>
