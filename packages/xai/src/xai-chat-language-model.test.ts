@@ -115,7 +115,7 @@ describe('XaiChatLanguageModel', () => {
       expect(content).toMatchInlineSnapshot(`
         [
           {
-            "text": "and more content",
+            "text": "prefix and more content",
             "type": "text",
           },
         ]
