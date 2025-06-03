@@ -7,6 +7,7 @@ export {
   type ChatStoreEvent,
   type ChatStoreFactory,
   type ChatStoreOptions,
+  type ChatStoreSubscriber,
   type InferUIDataParts,
   type UIDataPartSchemas,
 } from './chat-store';

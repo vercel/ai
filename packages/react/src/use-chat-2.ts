@@ -1,8 +1,8 @@
 import {
-  ChatStore,
+  ChatStatus,
   ChatStoreOptions,
+  ChatStoreSubscriber,
   convertFileListToFileUIParts,
-  defaultChatStoreOptions,
   generateId as generateIdFunc,
   IdGenerator,
   InferUIDataParts,
@@ -18,7 +18,6 @@ import {
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { createChatStore } from './chat-store';
 import { throttle } from './throttle';
-import { ChatStatus, ChatStoreSubscriber } from '../../ai/src/ui/chat-store';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
