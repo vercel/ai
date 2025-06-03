@@ -9,8 +9,8 @@ export type MyMessageMetadata = z.infer<typeof myMessageMetadataSchema>;
 
 export type MyUIMessage = UIMessage<MyMessageMetadata, UIDataPartSchemas>;
 
-export type ChatModel = {
-  chatId: string;
+export type ChatData = {
+  id: string;
   messages: MyUIMessage[];
   createdAt: number;
 };

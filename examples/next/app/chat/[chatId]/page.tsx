@@ -6,7 +6,7 @@ export default async function Page(props: {
   params: Promise<{ chatId: string }>;
 }) {
   const { chatId } = await props.params; // get the chat ID from the URL
-  const chat = await readChat(chatId); // load the chat
+  const chatData = await readChat(chatId); // load the chat
   const chats = await readAllChats(); // load all chats
 
   // filter to 5 most recent chats
@@ -18,12 +18,12 @@ export default async function Page(props: {
     <div>
       <ul>
         {recentChats.map(chat => (
-          <li key={chat.chatId}>
-            <Link href={`/chat/${chat.chatId}`}>{chat.chatId}</Link>
+          <li key={chat.id}>
+            <Link href={`/chat/${chat.id}`}>{chat.id}</Link>
           </li>
         ))}
       </ul>
-      <Chat chatData={{ id: chat.chatId, messages: chat.messages }} />;
+      <Chat chatData={chatData} />;
     </div>
   );
 }

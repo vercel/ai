@@ -2,7 +2,7 @@ import { generateId } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
 import { readdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
-import { ChatModel, MyUIMessage } from './chat-schema';
+import { ChatData, MyUIMessage } from './chat-schema';
 
 // example implementation for demo purposes
 // in a real app, you would save the chat to a database
@@ -15,41 +15,38 @@ export async function createChat(): Promise<string> {
 }
 
 export async function saveChat({
-  chatId,
+  id,
   messages,
 }: {
-  chatId: string;
+  id: string;
   messages: MyUIMessage[];
 }): Promise<void> {
-  const chat = await readChat(chatId);
+  const chat = await readChat(id);
   chat.messages = messages;
   writeChat(chat);
 }
 
 export async function appendMessageToChat({
-  chatId,
+  id,
   message,
 }: {
-  chatId: string;
+  id: string;
   message: MyUIMessage;
 }): Promise<void> {
-  const chat = await readChat(chatId);
+  const chat = await readChat(id);
   chat.messages.push(message);
   writeChat(chat);
 }
 
-async function writeChat(chat: ChatModel) {
-  await writeFile(
-    await getChatFile(chat.chatId),
-    JSON.stringify(chat, null, 2),
-  );
+async function writeChat(chat: ChatData) {
+  await writeFile(await getChatFile(chat.id), JSON.stringify(chat, null, 2));
 }
 
-export async function readChat(id: string): Promise<ChatModel> {
+export async function readChat(id: string): Promise<ChatData> {
   return JSON.parse(await readFile(await getChatFile(id), 'utf8'));
 }
 
-export async function readAllChats(): Promise<ChatModel[]> {
+export async function readAllChats(): Promise<ChatData[]> {
   const chatDir = path.join(process.cwd(), '.chats');
   const files = await readdir(chatDir, { withFileTypes: true });
   return Promise.all(
@@ -59,17 +56,17 @@ export async function readAllChats(): Promise<ChatModel[]> {
   );
 }
 
-async function getChatFile(chatId: string): Promise<string> {
+async function getChatFile(id: string): Promise<string> {
   const chatDir = path.join(process.cwd(), '.chats');
 
   if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
 
-  const chatFile = path.join(chatDir, `${chatId}.json`);
+  const chatFile = path.join(chatDir, `${id}.json`);
 
   if (!existsSync(chatFile)) {
     await writeFile(
       chatFile,
-      JSON.stringify({ chatId, messages: [], createdAt: Date.now() }, null, 2),
+      JSON.stringify({ id, messages: [], createdAt: Date.now() }, null, 2),
     );
   }
 
@@ -77,26 +74,26 @@ async function getChatFile(chatId: string): Promise<string> {
 }
 
 export async function appendStreamId({
-  chatId,
+  id,
   streamId,
 }: {
-  chatId: string;
+  id: string;
   streamId: string;
 }) {
-  const file = getStreamsFile(chatId);
-  const streams = await loadStreams(chatId);
+  const file = getStreamsFile(id);
+  const streams = await loadStreams(id);
   streams.push(streamId);
   await writeFile(file, JSON.stringify(streams, null, 2));
 }
 
-export async function loadStreams(chatId: string): Promise<string[]> {
-  const file = getStreamsFile(chatId);
+export async function loadStreams(id: string): Promise<string[]> {
+  const file = getStreamsFile(id);
   if (!existsSync(file)) return [];
   return JSON.parse(await readFile(file, 'utf8'));
 }
 
-function getStreamsFile(chatId: string): string {
+function getStreamsFile(id: string): string {
   const chatDir = path.join(process.cwd(), '.streams');
   if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
-  return path.join(chatDir, `${chatId}.json`);
+  return path.join(chatDir, `${id}.json`);
 }
