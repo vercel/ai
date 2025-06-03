@@ -16,6 +16,7 @@ export default function Chat({
         messages: chatData.messages,
         transport: new DefaultChatTransport({
           api: '/api/chat',
+          // TODO fix type safety
           prepareRequestBody: ({ chatId, messages }) => ({
             id: chatId,
             message: messages[messages.length - 1],
