@@ -141,6 +141,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       temperature,
       top_p: topP,
       seed,
+      reasoning_effort: options.reasoningEffort,
 
       // response format
       response_format:
@@ -216,6 +217,17 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       }
     }
 
+    // extract reasoning content
+    if (
+      choice.message.reasoning_content != null &&
+      choice.message.reasoning_content.length > 0
+    ) {
+      content.push({
+        type: 'reasoning',
+        text: choice.message.reasoning_content,
+      });
+    }
+
     // extract tool calls
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
@@ -236,6 +248,9 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage.prompt_tokens,
         outputTokens: response.usage.completion_tokens,
         totalTokens: response.usage.total_tokens,
+        reasoningTokens:
+          response.usage.completion_tokens_details?.reasoning_tokens ??
+          undefined,
       },
       request: { body },
       response: {
@@ -310,6 +325,9 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
               usage.inputTokens = value.usage.prompt_tokens;
               usage.outputTokens = value.usage.completion_tokens;
               usage.totalTokens = value.usage.total_tokens;
+              usage.reasoningTokens =
+                value.usage.completion_tokens_details?.reasoning_tokens ??
+                undefined;
             }
 
             const choice = value.choices[0];
@@ -341,6 +359,17 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
               }
 
               controller.enqueue({ type: 'text', text: textContent });
+            }
+
+            // process reasoning content
+            if (
+              delta.reasoning_content != null &&
+              delta.reasoning_content.length > 0
+            ) {
+              controller.enqueue({
+                type: 'reasoning',
+                text: delta.reasoning_content,
+              });
             }
 
             // process tool calls
@@ -381,6 +410,11 @@ const xaiUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  completion_tokens_details: z
+    .object({
+      reasoning_tokens: z.number().nullish(),
+    })
+    .nullish(),
 });
 
 const xaiChatResponseSchema = z.object({
@@ -392,6 +426,7 @@ const xaiChatResponseSchema = z.object({
       message: z.object({
         role: z.literal('assistant'),
         content: z.string().nullish(),
+        reasoning_content: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -422,6 +457,7 @@ const xaiChatChunkSchema = z.object({
       delta: z.object({
         role: z.enum(['assistant']).optional(),
         content: z.string().nullish(),
+        reasoning_content: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({

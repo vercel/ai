@@ -46,6 +46,12 @@ export function supportsStructuredOutputs(modelId: XaiChatModelId) {
 }
 
 // xai-specific provider options
-export const xaiProviderOptions = z.object({});
+export const xaiProviderOptions = z.object({
+  /**
+   * Reasoning effort for reasoning models.
+   * Only supported by grok-3-mini and grok-3-mini-fast models.
+   */
+  reasoningEffort: z.enum(['low', 'high']).optional(),
+});
 
 export type XaiProviderOptions = z.infer<typeof xaiProviderOptions>;

@@ -188,6 +188,7 @@ describe('XaiChatLanguageModel', () => {
         {
           "inputTokens": 20,
           "outputTokens": 5,
+          "reasoningTokens": undefined,
           "totalTokens": 25,
         }
       `);
@@ -343,6 +344,7 @@ describe('XaiChatLanguageModel', () => {
               },
             ],
             "model": "grok-beta",
+            "reasoning_effort": undefined,
             "response_format": undefined,
             "seed": undefined,
             "temperature": undefined,
@@ -460,6 +462,7 @@ describe('XaiChatLanguageModel', () => {
             "usage": {
               "inputTokens": 4,
               "outputTokens": 32,
+              "reasoningTokens": undefined,
               "totalTokens": 36,
             },
           },
@@ -510,6 +513,7 @@ describe('XaiChatLanguageModel', () => {
             "usage": {
               "inputTokens": 4,
               "outputTokens": 32,
+              "reasoningTokens": undefined,
               "totalTokens": 36,
             },
           },
@@ -580,6 +584,7 @@ describe('XaiChatLanguageModel', () => {
             "usage": {
               "inputTokens": 183,
               "outputTokens": 133,
+              "reasoningTokens": undefined,
               "totalTokens": 316,
             },
           },
@@ -670,6 +675,7 @@ describe('XaiChatLanguageModel', () => {
               },
             ],
             "model": "grok-beta",
+            "reasoning_effort": undefined,
             "response_format": undefined,
             "seed": undefined,
             "stream": true,
@@ -682,6 +688,194 @@ describe('XaiChatLanguageModel', () => {
             "top_p": undefined,
           },
         }
+      `);
+    });
+  });
+
+  describe('reasoning models', () => {
+    const reasoningModel = new XaiChatLanguageModel('grok-3-mini', testConfig);
+
+    function prepareReasoningResponse({
+      content = 'The result is 303.',
+      reasoning_content = 'Let me calculate 101 multiplied by 3: 101 * 3 = 303.',
+      usage = {
+        prompt_tokens: 15,
+        total_tokens: 35,
+        completion_tokens: 20,
+        completion_tokens_details: {
+          reasoning_tokens: 10,
+        },
+      },
+    }: {
+      content?: string;
+      reasoning_content?: string;
+      usage?: {
+        prompt_tokens: number;
+        total_tokens: number;
+        completion_tokens: number;
+        completion_tokens_details?: {
+          reasoning_tokens?: number;
+        };
+      };
+    }) {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-reasoning-test',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-3-mini',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content,
+                reasoning_content,
+                tool_calls: null,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage,
+        },
+      };
+    }
+
+    it('should pass reasoning_effort parameter', async () => {
+      prepareReasoningResponse({});
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'high' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-3-mini',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should extract reasoning content', async () => {
+      prepareReasoningResponse({
+        content: 'The answer is 303.',
+        reasoning_content: 'Let me think: 101 * 3 = 303.',
+      });
+
+      const { content } = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'low' },
+        },
+      });
+
+      expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "The answer is 303.",
+            "type": "text",
+          },
+          {
+            "text": "Let me think: 101 * 3 = 303.",
+            "type": "reasoning",
+          },
+        ]
+      `);
+    });
+
+    it('should extract reasoning tokens from usage', async () => {
+      prepareReasoningResponse({
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+          },
+        },
+      });
+
+      const { usage } = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'high' },
+        },
+      });
+
+      expect(usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": 15,
+          "outputTokens": 20,
+          "reasoningTokens": 10,
+          "totalTokens": 35,
+        }
+      `);
+    });
+
+    it('should handle reasoning streaming', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Let me calculate: "},"finish_reason":null}]}\n\n`,
+          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"101 * 3 = 303"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{"content":"The answer is 303."},"finish_reason":null}]}\n\n`,
+          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":15,"total_tokens":35,"completion_tokens":20,"completion_tokens_details":{"reasoning_tokens":10}}}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await reasoningModel.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'low' },
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-stream",
+            "modelId": "grok-3-mini",
+            "timestamp": 2023-11-08T19:35:11.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "text": "Let me calculate: ",
+            "type": "reasoning",
+          },
+          {
+            "text": "101 * 3 = 303",
+            "type": "reasoning",
+          },
+          {
+            "text": "The answer is 303.",
+            "type": "text",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "inputTokens": 15,
+              "outputTokens": 20,
+              "reasoningTokens": 10,
+              "totalTokens": 35,
+            },
+          },
+        ]
       `);
     });
   });
