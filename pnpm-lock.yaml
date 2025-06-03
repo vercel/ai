@@ -428,6 +428,9 @@ importers:
 
   examples/next:
     dependencies:
+      '@ai-sdk/react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
