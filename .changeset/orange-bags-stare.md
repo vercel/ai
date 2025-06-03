@@ -2,8 +2,8 @@
 'ai': patch
 ---
 
-### fix use with Google APIs + `.literal()`
+### Fix use with Google APIs + zod v4's `.literal()` schema
 
-Before, when using a zod v4 schema to interact with Google's models, requests would fail due to schema errors. The problem was fixed in zod@3.25.49.
+Before [zod@3.25.49](https://github.com/colinhacks/zod/releases/tag/v3.25.49), requests to Google's APIs failed due to a missing `type` in the provided schema. The problem has been resolved for the `ai` SDK by bumping our `zod` peer dependencies to `^3.25.49`.
 
 pull request: https://github.com/vercel/ai/pull/6609
