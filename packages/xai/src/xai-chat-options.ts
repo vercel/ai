@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =
   | 'grok-3'
@@ -42,3 +44,14 @@ export function supportsStructuredOutputs(modelId: XaiChatModelId) {
     'grok-2-vision-1212',
   ].includes(modelId);
 }
+
+// xai-specific provider options
+export const xaiProviderOptions = z.object({
+  /**
+   * Reasoning effort for reasoning models.
+   * Only supported by grok-3-mini and grok-3-mini-fast models.
+   */
+  reasoningEffort: z.enum(['low', 'high']).optional(),
+});
+
+export type XaiProviderOptions = z.infer<typeof xaiProviderOptions>;
