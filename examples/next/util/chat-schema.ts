@@ -1,0 +1,16 @@
+import { UIDataPartSchemas, UIMessage } from 'ai';
+import { z } from 'zod';
+
+export const myMessageMetadataSchema = z.object({
+  createdAt: z.number(),
+});
+
+export type MyMessageMetadata = z.infer<typeof myMessageMetadataSchema>;
+
+export type MyUIMessage = UIMessage<MyMessageMetadata, UIDataPartSchemas>;
+
+export type ChatModel = {
+  chatId: string;
+  messages: MyUIMessage[];
+  createdAt: number;
+};

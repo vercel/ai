@@ -2,6 +2,7 @@ import { generateId, UIMessage } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
 import { readdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
+import { ChatModel, MyUIMessage } from './chat-schema';
 
 // example implementation for demo purposes
 // in a real app, you would save the chat to a database
@@ -18,7 +19,7 @@ export async function saveChat({
   messages,
 }: {
   chatId: string;
-  messages: UIMessage[];
+  messages: MyUIMessage[];
 }): Promise<void> {
   const chat = await readChat(chatId);
   chat.messages = messages;
@@ -30,18 +31,12 @@ export async function appendMessageToChat({
   message,
 }: {
   chatId: string;
-  message: UIMessage;
+  message: MyUIMessage;
 }): Promise<void> {
   const chat = await readChat(chatId);
   chat.messages.push(message);
   writeChat(chat);
 }
-
-export type ChatModel = {
-  chatId: string;
-  messages: UIMessage[];
-  createdAt: number;
-};
 
 async function writeChat(chat: ChatModel) {
   await writeFile(

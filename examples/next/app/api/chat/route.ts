@@ -1,3 +1,4 @@
+import { MyUIMessage } from '@/util/chat-schema';
 import { readChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
@@ -17,8 +18,14 @@ export async function POST(req: Request) {
 
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
+    messageMetadata: ({ part }) => {
+      if (part.type === 'start') {
+        return { createdAt: Date.now() };
+      }
+    },
     onFinish: ({ messages }) => {
-      saveChat({ chatId, messages });
+      // TODO fix type safety
+      saveChat({ chatId, messages: messages as MyUIMessage[] });
     },
   });
 }

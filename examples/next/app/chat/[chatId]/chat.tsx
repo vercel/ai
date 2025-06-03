@@ -1,12 +1,13 @@
 'use client';
 
+import { myMessageMetadataSchema, MyUIMessage } from '@/util/chat-schema';
 import { createChat2, useChat2 } from '@ai-sdk/react';
-import { DefaultChatTransport, UIMessage } from 'ai';
+import { DefaultChatTransport } from 'ai';
 
 export default function Chat({
   chatData,
 }: {
-  chatData: { id: string; messages: UIMessage[] };
+  chatData: { id: string; messages: MyUIMessage[] };
 }) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat2(
     {
@@ -20,20 +21,34 @@ export default function Chat({
             message: messages[messages.length - 1],
           }),
         }),
+        messageMetadataSchema: myMessageMetadataSchema,
       }),
     },
   );
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.parts
-            .map(part => (part.type === 'text' ? part.text : ''))
-            .join('')}
-        </div>
-      ))}
+      {messages.map(m => {
+        const date = m.metadata?.createdAt
+          ? new Date(m.metadata.createdAt).toLocaleString()
+          : '';
+        const isUser = m.role === 'user';
+        return (
+          <div
+            key={m.id}
+            className={`whitespace-pre-wrap my-2 p-3 rounded-lg shadow
+              ${isUser ? 'bg-blue-100 text-right ml-10' : 'bg-gray-100 text-left mr-10'}`}
+          >
+            <div className="mb-1 text-xs text-gray-500">{date}</div>
+            <div className="font-semibold">{isUser ? 'User:' : 'AI:'}</div>
+            <div>
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          </div>
+        );
+      })}
 
       <form onSubmit={handleSubmit}>
         <input
