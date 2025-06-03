@@ -200,16 +200,10 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
     if (choice.message.content != null && choice.message.content.length > 0) {
       let text = choice.message.content;
 
-      // when there is a trailing assistant message, xai might send the
-      // content of that message again. we skip this repeated content to
-      // avoid duplication, e.g. in continuation mode. (following mistral pattern)
+      // skip if this content duplicates the last assistant message
       const lastMessage = body.messages[body.messages.length - 1];
-      if (
-        lastMessage.role === 'assistant' &&
-        typeof lastMessage.content === 'string' &&
-        text.startsWith(lastMessage.content)
-      ) {
-        text = text.slice(lastMessage.content.length);
+      if (lastMessage?.role === 'assistant' && text === lastMessage.content) {
+        text = '';
       }
 
       if (text.length > 0) {
@@ -291,7 +285,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let chunkNumber = 0;
+    let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
@@ -309,15 +303,15 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
               return;
             }
 
-            chunkNumber++;
             const value = chunk.value;
 
             // emit response metadata on first chunk
-            if (chunkNumber === 1) {
+            if (isFirstChunk) {
               controller.enqueue({
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
               });
+              isFirstChunk = false;
             }
 
             // update usage if present
@@ -351,8 +345,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
               // skip if this content duplicates the last assistant message
               const lastMessage = body.messages[body.messages.length - 1];
               if (
-                lastMessage.role === 'assistant' &&
-                typeof lastMessage.content === 'string' &&
+                lastMessage?.role === 'assistant' &&
                 textContent === lastMessage.content
               ) {
                 return;
