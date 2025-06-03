@@ -1,21 +1,23 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { useChat2 } from '@ai-sdk/react';
 import { ChatModel } from '@util/chat-store';
 import { defaultChatStoreOptions } from 'ai';
 
 export default function Chat({ chat }: { chat: ChatModel }) {
-  const { input, status, handleInputChange, handleSubmit, messages } = useChat({
-    chatId: chat.chatId,
-    chatStore: defaultChatStoreOptions({
-      chats: { [chat.chatId]: { messages: chat.messages ?? [] } },
+  const { input, status, handleInputChange, handleSubmit, messages } = useChat2(
+    {
+      chatId: chat.chatId,
+      chatStore: defaultChatStoreOptions({
+        chats: { [chat.chatId]: { messages: chat.messages ?? [] } },
 
-      // only send the last message to the server:
-      prepareRequestBody({ chatId, messages }) {
-        return { chatId, message: messages[messages.length - 1] };
-      },
-    }),
-  });
+        // only send the last message to the server:
+        prepareRequestBody({ chatId, messages }) {
+          return { chatId, message: messages[messages.length - 1] };
+        },
+      }),
+    },
+  );
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
