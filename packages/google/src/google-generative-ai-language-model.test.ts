@@ -2000,6 +2000,20 @@ describe('doStream', () => {
           candidates: [
             {
               content: {
+                // currently ignored:
+                parts: [{ thoughtSignature: 'test-signature', thought: true }],
+                role: 'model',
+              },
+              finishReason: 'STOP', // Mark finish reason in a chunk that has content
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
                 parts: [{ text: 'Another internal thought.', thought: true }],
                 role: 'model',
               },
