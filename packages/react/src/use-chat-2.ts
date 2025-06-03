@@ -466,3 +466,52 @@ Default is undefined, which disables throttling.
     addToolResult,
   };
 }
+
+export function createChat2<
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+>(
+  chat: {
+    id: string;
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >[];
+  } & Omit<ChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'chats'>,
+): Chat2<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+  const { id, messages, ...options } = chat;
+  const store = createChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+    ...options,
+    chats: {
+      [chat.id]: {
+        messages: chat.messages ?? [],
+      },
+    },
+  });
+
+  return {
+    id: chat.id,
+    status: store.getStatus(chat.id),
+    get messages() {
+      return store.getMessages(chat.id);
+    },
+    subscribe: options => store.subscribe(options),
+    addToolResult: options =>
+      store.addToolResult({ chatId: chat.id, ...options }),
+    stopStream: () => store.stopStream({ chatId: chat.id }),
+    submitMessage: options =>
+      store.submitMessage({ chatId: chat.id, ...options }),
+    resubmitLastUserMessage: async options => {
+      await store.resubmitLastUserMessage({
+        chatId: chat.id,
+        ...options,
+      });
+    },
+    resumeStream: async options => {
+      await store.resumeStream({ chatId: chat.id, ...options });
+    },
+    setMessages: async ({ messages }) => {
+      store.setMessages({ id: chat.id, messages });
+    },
+  };
+}

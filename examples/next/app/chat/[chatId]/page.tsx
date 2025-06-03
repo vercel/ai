@@ -23,7 +23,7 @@ export default async function Page(props: {
           </li>
         ))}
       </ul>
-      <Chat chat={chat} />;
+      <Chat chatData={{ id: chat.chatId, messages: chat.messages }} />;
     </div>
   );
 }
