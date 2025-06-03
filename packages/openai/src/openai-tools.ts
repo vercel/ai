@@ -31,6 +31,23 @@ function webSearchPreviewTool({
   };
 }
 
+const CodeInterpreterParameters = z.object({});
+
+function codeInterpreterTool({}: {} = {}): {
+  type: 'provider-defined';
+  id: 'openai.code_interpreter';
+  args: {};
+  parameters: typeof CodeInterpreterParameters;
+} {
+  return {
+    type: 'provider-defined',
+    id: 'openai.code_interpreter',
+    args: {},
+    parameters: CodeInterpreterParameters,
+  };
+}
+
 export const openaiTools = {
   webSearchPreview: webSearchPreviewTool,
+  codeInterpreter: codeInterpreterTool,
 };
