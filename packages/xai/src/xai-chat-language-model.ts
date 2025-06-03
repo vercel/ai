@@ -240,7 +240,13 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
-    const body = { ...args, stream: true };
+    const body = {
+      ...args,
+      stream: true,
+      stream_options: {
+        include_usage: true,
+      },
+    };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/chat/completions`,
