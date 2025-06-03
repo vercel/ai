@@ -508,7 +508,8 @@ function getReasoningDetailsFromParts(
   parts: z.infer<typeof contentSchema>['parts'],
 ): Array<{ type: 'text'; text: string }> | undefined {
   const reasoningParts = parts?.filter(
-    part => 'text' in part && (part as any).thought === true,
+    part =>
+      'text' in part && (part as any).thought === true && part.text != null,
   ) as Array<
     GoogleGenerativeAIContentPart & { text: string; thought?: boolean }
   >;
@@ -552,14 +553,10 @@ function extractSources({
 }
 
 const contentSchema = z.object({
-  role: z.string(),
   parts: z
     .array(
       z.union([
-        z.object({
-          text: z.string(),
-          thought: z.boolean().nullish(),
-        }),
+        // note: order matters since text can be fully empty
         z.object({
           functionCall: z.object({
             name: z.string(),
@@ -571,6 +568,10 @@ const contentSchema = z.object({
             mimeType: z.string(),
             data: z.string(),
           }),
+        }),
+        z.object({
+          text: z.string().nullish(),
+          thought: z.boolean().nullish(),
         }),
       ]),
     )
