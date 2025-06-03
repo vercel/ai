@@ -1,4 +1,3 @@
-import { openai } from '@ai-sdk/openai';
 import { loadChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
@@ -10,7 +9,7 @@ export async function POST(req: Request) {
   const messages = [...previousMessages, message];
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-4o-mini',
     messages: convertToModelMessages(messages),
   });
 
