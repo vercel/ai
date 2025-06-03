@@ -145,8 +145,7 @@ Callback that is set using the `beforeToolUse` option.
 
 @param currentModelResponse - The generated model response
  */
-export type StreamTextBeforeToolUseCallback = (
-) => Promise<void> | void;
+export type StreamTextBeforeToolUseCallback = () => Promise<void> | void;
 
 /**
 Generate a text and call tools for a given prompt using a language model.
