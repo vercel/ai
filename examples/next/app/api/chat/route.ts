@@ -1,9 +1,10 @@
 import { MyUIMessage } from '@/util/chat-schema';
 import { readChat, saveChat } from '@util/chat-store';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { convertToModelMessages, streamText } from 'ai';
 
 export async function POST(req: Request) {
-  const { message, id }: { message: UIMessage; id: string } = await req.json();
+  const { message, id }: { message: MyUIMessage; id: string } =
+    await req.json();
 
   const chat = await readChat(id);
   const messages = [...chat.messages, message];
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
-  result.consumeStream(); // always consume the stream even when the client disconnects
+  result.consumeStream(); // TODO always consume the stream even when the client disconnects
 
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
