@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-turbo',
+    model: 'gpt-4.1',
     stream: true,
     messages,
   });
@@ -75,11 +75,11 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = await streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     messages,
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -103,7 +103,7 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
 
   return render({
     provider: openai,
-    model: 'gpt-4-turbo',
+    model: 'gpt-4.1',
     messages: [
       { role: 'system', content: 'You are a helpful assistant' },
       { role: 'user', content: userInput },
@@ -141,7 +141,7 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
   'use server';
 
   const result = await streamUI({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     system: 'You are a helpful assistant',
     messages: [{ role: 'user', content: userInput }],
     text: ({ content }) => <p>{content}</p>,

@@ -393,20 +393,20 @@ async function translateWithFeedback(text: string, targetLanguage: string) {
 
 ## Multi-Step Tool Usage
 
-If your use case involves solving problems where the solution path is poorly defined or too complex to map out as a workflow in advance, you may want to provide the LLM with a set of lower-level tools and allow it to break down the task into small pieces that it can solve on its own iteratively, without discrete instructions. To implement this kind of agentic pattern, you need to call an LLM in a loop until a task is complete. The AI SDK makes this simple with the `maxSteps` parameter.
+If your use case involves solving problems where the solution path is poorly defined or too complex to map out as a workflow in advance, you may want to provide the LLM with a set of lower-level tools and allow it to break down the task into small pieces that it can solve on its own iteratively, without discrete instructions. To implement this kind of agentic pattern, you need to call an LLM in a loop until a task is complete. The AI SDK makes this simple with the `stopWhen` parameter.
 
-With `maxSteps`, the AI SDK automatically triggers an additional request to the model after every tool result (each request is considered a "step"). If the model does not generate a tool call or the `maxSteps` threshold has been met, the generation is complete.
+The AI SDK gives you control over the stopping conditions, enabling you to keep the LLM running until one of the conditions are met. The SDK automatically triggers an additional request to the model after every tool result (each request is considered a "step"), continuing until the model does not generate a tool call or other stopping conditions (e.g. `stepCountIs`) you define are satisfied.
 
-<Note>`maxSteps` can be used with both `generateText` and `streamText`</Note>
+<Note>`stopWhen` can be used with both `generateText` and `streamText`</Note>
 
-### Using maxSteps
+### Using `stopWhen`
 
 This example demonstrates how to create an agent that solves math problems.
 It has a calculator tool (using [math.js](https://mathjs.org/)) that it can call to evaluate mathematical expressions.
 
 ```ts file='main.ts'
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 import * as mathjs from 'mathjs';
 import { z } from 'zod';
 
@@ -422,7 +422,7 @@ const { text: answer } = await generateText({
       execute: async ({ expression }) => mathjs.evaluate(expression),
     }),
   },
-  maxSteps: 10,
+  stopWhen: stepCountIs(10),
   system:
     'You are solving math problems. ' +
     'Reason step by step. ' +
@@ -445,7 +445,7 @@ When building an agent for tasks like mathematical analysis or report generation
 
 ```ts highlight="6,16-29,31,45"
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -475,7 +475,7 @@ const { toolCalls } = await generateText({
     }),
   },
   toolChoice: 'required',
-  maxSteps: 10,
+  stopWhen: stepCountIs(10),
   system:
     'You are solving math problems. ' +
     'Reason step by step. ' +
@@ -499,15 +499,15 @@ console.log(`FINAL TOOL CALLS: ${JSON.stringify(toolCalls, null, 2)}`);
 
 ### Accessing all steps
 
-Calling `generateText` with `maxSteps` can result in several calls to the LLM (steps).
+Calling `generateText` with `stopWhen` can result in several calls to the LLM (steps).
 You can access information from all steps by using the `steps` property of the response.
 
 ```ts highlight="3,9-10"
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 
 const { steps } = await generateText({
   model: openai('gpt-4o'),
-  maxSteps: 10,
+  stopWhen: stepCountIs(10),
   // ...
 });
 
@@ -522,11 +522,11 @@ It is triggered when a step is finished,
 i.e. all text deltas, tool calls, and tool results for the step are available.
 
 ```tsx highlight="6-8"
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 
 const result = await generateText({
   model: yourModel,
-  maxSteps: 10,
+  stopWhen: stepCountIs(10),
   onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
     // your own logic, e.g. for saving the chat history or recording usage
   },
