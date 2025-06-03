@@ -13,9 +13,10 @@ export default function Chat({
       chats: chatId
         ? { [chatId]: { messages: initialMessages ?? [] } }
         : undefined,
+
       // only send the last message to the server:
-      prepareRequestBody({ messages, chatId }) {
-        return { message: messages[messages.length - 1], chatId };
+      prepareRequestBody({ chatId, messages }) {
+        return { chatId, message: messages[messages.length - 1] };
       },
     }),
   });
