@@ -1,18 +1,23 @@
 import { openai } from '@ai-sdk/openai';
+import { loadChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
-
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { message, chatId }: { message: UIMessage; chatId: string } =
+    await req.json();
 
-  const prompt = convertToModelMessages(messages);
+  const previousMessages = await loadChat(chatId);
+  const messages = [...previousMessages, message];
 
   const result = streamText({
-    model: openai('gpt-4o'),
-    prompt,
+    model: openai('gpt-4o-mini'),
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    onFinish: ({ messages }) => {
+      saveChat({ chatId, messages });
+    },
+  });
 }
