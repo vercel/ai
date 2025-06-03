@@ -6,7 +6,7 @@ import {
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { NoSuchModelError } from '@ai-sdk/provider';
-import { getVercelOidcToken } from './get-vercel-oidc-token';
+import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
 import {
@@ -23,14 +23,16 @@ vi.mock('./gateway-fetch-metadata', () => ({
   GatewayFetchMetadata: vi.fn(),
 }));
 
-vi.mock('./get-vercel-oidc-token', () => ({
+vi.mock('./vercel-environment', () => ({
   getVercelOidcToken: vi.fn(),
+  getVercelRequestId: vi.fn(),
 }));
 
 describe('GatewayProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getVercelOidcToken).mockResolvedValue('mock-oidc-token');
+    vi.mocked(getVercelRequestId).mockResolvedValue('mock-request-id');
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
@@ -76,7 +78,7 @@ describe('GatewayProvider', () => {
       };
 
       const provider = createGatewayProvider(options);
-      await provider('test-model');
+      provider('test-model');
 
       const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
@@ -218,10 +220,11 @@ describe('GatewayProvider', () => {
       const originalEnv = process.env;
       process.env = {
         ...originalEnv,
-        DEPLOYMENT_ID: 'test-deployment',
+        VERCEL_DEPLOYMENT_ID: 'test-deployment',
         VERCEL_ENV: 'test',
         VERCEL_REGION: 'iad1',
       };
+      vi.mocked(getVercelRequestId).mockResolvedValue('test-request-id');
 
       try {
         const provider = createGatewayProvider({
@@ -230,18 +233,25 @@ describe('GatewayProvider', () => {
         });
         provider('test-model');
 
-        expect(GatewayLanguageModel).toHaveBeenCalledWith(
-          'test-model',
+        const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
+        const config = constructorCall[1];
+
+        expect(config).toEqual(
           expect.objectContaining({
             provider: 'gateway',
             baseURL: 'https://api.example.com',
-            o11yHeaders: {
-              'ai-o11y-deployment-id': 'test-deployment',
-              'ai-o11y-environment': 'test',
-              'ai-o11y-region': 'iad1',
-            },
+            o11yHeaders: expect.any(Function),
           }),
         );
+
+        // Test that the o11yHeaders function returns the expected result
+        const o11yHeaders = await resolve(config.o11yHeaders);
+        expect(o11yHeaders).toEqual({
+          'ai-o11y-deployment-id': 'test-deployment',
+          'ai-o11y-environment': 'test',
+          'ai-o11y-region': 'iad1',
+          'ai-o11y-request-id': 'test-request-id',
+        });
       } finally {
         process.env = originalEnv;
       }
@@ -254,6 +264,8 @@ describe('GatewayProvider', () => {
       process.env.VERCEL_ENV = undefined;
       process.env.VERCEL_REGION = undefined;
 
+      vi.mocked(getVercelRequestId).mockResolvedValue(undefined);
+
       try {
         const provider = createGatewayProvider({
           baseURL: 'https://api.example.com',
@@ -261,14 +273,21 @@ describe('GatewayProvider', () => {
         });
         provider('test-model');
 
-        expect(GatewayLanguageModel).toHaveBeenCalledWith(
-          'test-model',
+        // Get the constructor call to check o11yHeaders
+        const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
+        const config = constructorCall[1];
+
+        expect(config).toEqual(
           expect.objectContaining({
             provider: 'gateway',
             baseURL: 'https://api.example.com',
-            o11yHeaders: {},
+            o11yHeaders: expect.any(Function),
           }),
         );
+
+        // Test that the o11yHeaders function returns empty object
+        const o11yHeaders = await resolve(config.o11yHeaders);
+        expect(o11yHeaders).toEqual({});
       } finally {
         process.env = originalEnv;
       }
@@ -650,7 +669,7 @@ describe('GatewayProvider', () => {
           baseURL: 'https://api.example.com',
           headers: expect.any(Function),
           fetch: undefined,
-          o11yHeaders: expect.any(Object),
+          o11yHeaders: expect.any(Function),
         }),
       );
     });
@@ -701,7 +720,7 @@ describe('GatewayProvider', () => {
           baseURL: 'https://api.example.com',
           headers: expect.any(Function),
           fetch: undefined,
-          o11yHeaders: expect.any(Object),
+          o11yHeaders: expect.any(Function),
         }),
       );
 
@@ -725,7 +744,7 @@ describe('GatewayProvider', () => {
           baseURL: 'https://api.example.com',
           headers: expect.any(Function),
           fetch: undefined,
-          o11yHeaders: expect.any(Object),
+          o11yHeaders: expect.any(Function),
         }),
       );
 

@@ -20,6 +20,10 @@ The token is expected to be provided via the 'VERCEL_OIDC_TOKEN' environment var
   return token;
 }
 
+export async function getVercelRequestId(): Promise<string | undefined> {
+  return getContext().headers?.['x-vercel-id'];
+}
+
 type Context = {
   headers?: Record<string, string>;
 };
