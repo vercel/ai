@@ -1335,6 +1335,57 @@ describe('doGenerate', () => {
       { type: 'text', text: 'Another internal thought.' },
     ]);
   });
+
+  it('should correctly parse reasoning parts with thoughtSignature format', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'Visible text part 1. ' },
+                {
+                  thought: true,
+                  thoughtSignature:
+                    'AVSoXO7qF/Am002atYzdg3gH+fuKwqaFBtNL8wTanfsv1JycHM8HNKOGp8zmJJBoE6twT5wRnwaj9/yrr2HcQK57qc/cWKQ=',
+                },
+                { text: 'Visible text part 2.' },
+                {
+                  thought: true,
+                  thoughtSignature: 'AnotherThoughtSignature123',
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { text, reasoning } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Visible text part 1. Visible text part 2.');
+    expect(reasoning).toStrictEqual([
+      {
+        type: 'text',
+        text: 'AVSoXO7qF/Am002atYzdg3gH+fuKwqaFBtNL8wTanfsv1JycHM8HNKOGp8zmJJBoE6twT5wRnwaj9/yrr2HcQK57qc/cWKQ=',
+      },
+      { type: 'text', text: 'AnotherThoughtSignature123' },
+    ]);
+  });
   describe('warnings for includeThoughts option', () => {
     it('should generate a warning if includeThoughts is true for a non-Vertex provider', async () => {
       prepareJsonResponse({ content: 'test' }); // Mock API response
@@ -2209,5 +2260,91 @@ describe('doStream', () => {
       promptTokens: 15,
       completionTokens: 25,
     });
+  });
+
+  it('should correctly stream reasoning parts with thoughtSignature format', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Text delta 1. ' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { thought: true, thoughtSignature: 'ThoughtSignature1' },
+                ],
+                role: 'model',
+              },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Text delta 2.' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { thought: true, thoughtSignature: 'ThoughtSignature2' },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          usageMetadata: {
+            promptTokenCount: 15,
+            candidatesTokenCount: 25,
+            totalTokenCount: 40,
+          },
+        })}\n\n`,
+      ],
+    };
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const relevantEvents = events.filter(
+      event => event.type === 'text-delta' || event.type === 'reasoning',
+    );
+
+    expect(relevantEvents).toStrictEqual([
+      { type: 'text-delta', textDelta: 'Text delta 1. ' },
+      { type: 'reasoning', textDelta: 'ThoughtSignature1' },
+      { type: 'text-delta', textDelta: 'Text delta 2.' },
+      { type: 'reasoning', textDelta: 'ThoughtSignature2' },
+    ]);
+
+    const finishEvent = events.find(event => event.type === 'finish');
+    expect(finishEvent).toBeDefined();
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
+      'stop',
+    );
   });
 });

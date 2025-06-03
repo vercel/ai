@@ -508,14 +508,23 @@ function getReasoningDetailsFromParts(
   parts: z.infer<typeof contentSchema>['parts'],
 ): Array<{ type: 'text'; text: string }> | undefined {
   const reasoningParts = parts?.filter(
-    part => 'text' in part && (part as any).thought === true,
+    part =>
+      ('text' in part && (part as any).thought === true) ||
+      ('thoughtSignature' in part && (part as any).thought === true),
   ) as Array<
-    GoogleGenerativeAIContentPart & { text: string; thought?: boolean }
+    GoogleGenerativeAIContentPart &
+      (
+        | { text: string; thought?: boolean }
+        | { thoughtSignature: string; thought: true }
+      )
   >;
 
   return reasoningParts == null || reasoningParts.length === 0
     ? undefined
-    : reasoningParts.map(part => ({ type: 'text', text: part.text }));
+    : reasoningParts.map(part => ({
+        type: 'text',
+        text: 'text' in part ? part.text : (part as any).thoughtSignature,
+      }));
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -559,6 +568,10 @@ const contentSchema = z.object({
         z.object({
           text: z.string(),
           thought: z.boolean().nullish(),
+        }),
+        z.object({
+          thought: z.literal(true),
+          thoughtSignature: z.string(),
         }),
         z.object({
           functionCall: z.object({
