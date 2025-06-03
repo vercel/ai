@@ -1,6 +1,6 @@
 import { generateId, UIMessage } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
-import { readFile, writeFile } from 'fs/promises';
+import { readdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 
 // example implementation for demo purposes
@@ -52,6 +52,16 @@ async function writeChat(chat: ChatModel) {
 
 export async function readChat(id: string): Promise<ChatModel> {
   return JSON.parse(await readFile(await getChatFile(id), 'utf8'));
+}
+
+export async function readAllChats(): Promise<ChatModel[]> {
+  const chatDir = path.join(process.cwd(), '.chats');
+  const files = await readdir(chatDir, { withFileTypes: true });
+  return Promise.all(
+    files
+      .filter(file => file.isFile())
+      .map(async file => readChat(file.name.replace('.json', ''))),
+  );
 }
 
 async function getChatFile(chatId: string): Promise<string> {
