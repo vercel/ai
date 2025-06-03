@@ -156,6 +156,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       const chunkType = chunk.type;
 
       switch (chunkType) {
+        // forward:
         case 'text-delta':
         case 'reasoning':
         case 'reasoning-signature':
@@ -200,6 +201,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        // process tool call:
         case 'tool-call': {
           if (beforeToolUse) {
             await beforeToolUse();

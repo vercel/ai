@@ -28,7 +28,6 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   FinishReason,
   LanguageModel,
-  LanguageModelV1StreamPart,
   LogProbs,
   ToolChoice,
 } from '../types/language-model';
@@ -193,6 +192,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
 @param onFinish - Callback that is called when the LLM response and all request tool executions
+@param onToolUse - Callback that is invoked before a tool is used.
 (for tools that have an `execute` function) are finished.
 
 @return
