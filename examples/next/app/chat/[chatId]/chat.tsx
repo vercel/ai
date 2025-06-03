@@ -2,54 +2,78 @@
 
 import { Chat2, createChatStore, useChat2 } from '@ai-sdk/react';
 import { ChatModel } from '@util/chat-store';
-import { defaultChatStoreOptions } from 'ai';
+import {
+  ChatStoreOptions,
+  DefaultChatTransport,
+  InferUIDataParts,
+  UIDataPartSchemas,
+  UIMessage,
+} from 'ai';
 
-function createChat(chat: ChatModel): Chat2 {
-  const store = createChatStore({
-    ...defaultChatStoreOptions({
-      // only send the last message to the server:
-      prepareRequestBody: ({ chatId, messages }) => ({
-        chatId,
-        message: messages[messages.length - 1],
-      }),
-    })(),
+function createChat<
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+>(
+  chat: {
+    id: string;
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >[];
+  } & Omit<ChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'chats'>,
+): Chat2<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+  const { id, messages, ...options } = chat;
+  const store = createChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+    ...options,
     chats: {
-      [chat.chatId]: {
+      [chat.id]: {
         messages: chat.messages ?? [],
       },
     },
   });
 
   return {
-    id: chat.chatId,
-    status: store.getStatus(chat.chatId),
+    id: chat.id,
+    status: store.getStatus(chat.id),
     get messages() {
-      return store.getMessages(chat.chatId);
+      return store.getMessages(chat.id);
     },
     subscribe: options => store.subscribe(options),
     addToolResult: options =>
-      store.addToolResult({ chatId: chat.chatId, ...options }),
-    stopStream: () => store.stopStream({ chatId: chat.chatId }),
+      store.addToolResult({ chatId: chat.id, ...options }),
+    stopStream: () => store.stopStream({ chatId: chat.id }),
     submitMessage: options =>
-      store.submitMessage({ chatId: chat.chatId, ...options }),
+      store.submitMessage({ chatId: chat.id, ...options }),
     resubmitLastUserMessage: async options => {
       await store.resubmitLastUserMessage({
-        chatId: chat.chatId,
+        chatId: chat.id,
         ...options,
       });
     },
     resumeStream: async options => {
-      await store.resumeStream({ chatId: chat.chatId, ...options });
+      await store.resumeStream({ chatId: chat.id, ...options });
     },
     setMessages: async ({ messages }) => {
-      store.setMessages({ id: chat.chatId, messages });
+      store.setMessages({ id: chat.id, messages });
     },
   };
 }
 
 export default function Chat({ chat }: { chat: ChatModel }) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat2(
-    { chat: createChat(chat) },
+    {
+      chat: createChat({
+        id: chat.chatId,
+        messages: chat.messages,
+        transport: new DefaultChatTransport({
+          api: '/api/chat',
+          prepareRequestBody: ({ chatId, messages }) => ({
+            chatId,
+            message: messages[messages.length - 1],
+          }),
+        }),
+      }),
+    },
   );
 
   return (
