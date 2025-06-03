@@ -17,7 +17,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -45,7 +45,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -69,7 +69,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -114,7 +114,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     {
       name: 'model',
       type: 'LanguageModel',
-      description: "The language model to use. Example: openai('gpt-4-turbo')",
+      description: "The language model to use. Example: openai('gpt-4.1')",
     },
     {
       name: 'output',

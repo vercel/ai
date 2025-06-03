@@ -129,7 +129,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -180,7 +180,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });

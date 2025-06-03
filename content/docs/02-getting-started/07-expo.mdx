@@ -44,20 +44,25 @@ Install `ai`, `@ai-sdk/react` and `@ai-sdk/openai`, the AI package, the AI React
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/react zod" dark />
+      <Snippet
+        text="pnpm add ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/react zod" dark />
+      <Snippet
+        text="npm install ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/react zod" dark />
+      <Snippet
+        text="yarn add ai@alpha @ai-sdk/openai@alpha @ai-sdk/react@alpha zod"
+        dark
+      />
     </Tab>
   </Tabs>
 </div>
-
-<Note type="secondary" fill>
-  Make sure you are using `ai` version 3.1 or higher.
-</Note>
 
 ### Configure OpenAI API key
 
@@ -84,17 +89,17 @@ Create a route handler, `app/api/chat+api.ts` and add the following code:
 
 ```tsx filename="app/api/chat+api.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, UIMessage, convertToModelMessages } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     headers: {
       'Content-Type': 'application/octet-stream',
       'Content-Encoding': 'none',
@@ -148,7 +153,12 @@ export default function App() {
             <View key={m.id} style={{ marginVertical: 8 }}>
               <View>
                 <Text style={{ fontWeight: 700 }}>{m.role}</Text>
-                <Text>{m.content}</Text>
+                {m.parts.map((part, i) => {
+                  switch (part.type) {
+                    case 'text':
+                      return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
+                  }
+                })}
               </View>
             </View>
           ))}
@@ -183,9 +193,11 @@ export default function App() {
 
 This page utilizes the `useChat` hook, which will, by default, use the `POST` API route you created earlier (`/api/chat`). The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
 
-- `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
+- `messages` - the current chat messages (an array of objects with `id`, `role`, and `parts` properties).
 - `input` - the current value of the user's input field.
 - `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
+
+The LLM's response is accessed through the message `parts` array. Each message contains an ordered array of `parts` that represents everything the model generated in its response. These parts can include plain text, reasoning tokens, and more that you will see later. The `parts` array preserves the sequence of the model's outputs, allowing you to display or process each component in the order it was generated.
 
 <Note>
   You use the expo/fetch function instead of the native node fetch to enable
@@ -253,17 +265,17 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `app/api/chat+api.ts` file to include the new weather tool:
 
-```tsx filename="app/api/chat+api.ts" highlight="2,13-27"
+```tsx filename="app/api/chat+api.ts" highlight="2,8,11,13-27"
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -281,7 +293,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     headers: {
       'Content-Type': 'application/octet-stream',
       'Content-Encoding': 'none',
@@ -347,7 +359,12 @@ export default function App() {
                 {m.toolInvocations ? (
                   <Text>{JSON.stringify(m.toolInvocations, null, 2)}</Text>
                 ) : (
-                  <Text>{m.content}</Text>
+                  m.parts.map((part, i) => {
+                    switch (part.type) {
+                      case 'text':
+                        return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
+                    }
+                  })
                 )}
               </View>
             </View>
@@ -394,25 +411,53 @@ Now, when you ask about the weather, you'll see the tool invocation and its resu
 
 You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
+To solve this, you can enable multi-step tool calls using `stopWhen` in your API route. This feature will automatically send tool results back to the model to trigger an additional generation until the stopping condition you define is met. In this case, you want the model to answer your question using the results from the weather tool.
 
-### Update Your Client-Side Code
+### Update Your API Route
 
-Modify your `app/(tabs)/index.tsx` file to include the `maxSteps` option:
+Modify your `app/api/chat+api.ts` file to include `stopWhen`:
 
-```tsx filename="app/(tabs)/index.tsx" highlight="9"
-import { useChat } from '@ai-sdk/react';
-// ... rest of your imports
+```tsx filename="app/api/chat+api.ts" highlight="2,11"
+import { openai } from '@ai-sdk/openai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
+import { z } from 'zod';
 
-export default function App() {
-  const { messages, error, handleInputChange, input, handleSubmit } = useChat({
-    fetch: expoFetch as unknown as typeof globalThis.fetch,
-    api: generateAPIUrl('/api/chat'),
-    onError: error => console.error(error, 'ERROR'),
-    maxSteps: 5,
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (fahrenheit)',
+        parameters: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return {
+            location,
+            temperature,
+          };
+        },
+      }),
+    },
   });
 
-  // ... rest of your component code
+  return result.toUIMessageStreamResponse({
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'none',
+    },
+  });
 }
 ```
 
@@ -423,23 +468,30 @@ export default function App() {
 
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
-By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
-### Update Your API Route
+### Add More Tools
 
 Update your `app/api/chat+api.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat+api.ts" highlight="27-40"
+```tsx filename="app/api/chat+api.ts" highlight="29-42"
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -471,7 +523,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     headers: {
       'Content-Type': 'application/octet-stream',
       'Content-Encoding': 'none',

@@ -193,7 +193,7 @@ export default async function POST(request: Request) {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     messages,
     tools: {
       // server-side tool with execute function:
@@ -232,6 +232,6 @@ export default async function POST(request: Request) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```

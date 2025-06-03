@@ -5,13 +5,14 @@ description: Learn how to stream smooth stream japanese text
 
 # Smooth streaming japanese text
 
-You can smooth stream japanese text by using the `smoothStream` function, and the following regex that splits either on words of japanese characters:
+You can smooth stream japanese text by using the `smoothStream` function with `streamText`, and the following regex that splits either on words of japanese characters:
 
 ```tsx filename="page.tsx"
-import { smoothStream } from 'ai';
-import { useChat } from '@ai-sdk/react';
+import { smoothStream, streamText } from 'ai';
 
-const { data } = useChat({
+const result = streamText({
+  model: yourModel,
+  prompt: 'Your prompt here',
   experimental_transform: smoothStream({
     chunking: /[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/,
   }),

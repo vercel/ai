@@ -42,9 +42,9 @@ The AI SDK abstracts away the differences between model providers, eliminates bo
 
 At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call Llama 3.1 (using [DeepInfra](https://deepinfra.com)) with the AI SDK:
 
-```tsx
-import { generateText } from 'ai';
+```ts
 import { deepinfra } from '@ai-sdk/deepinfra';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: deepinfra('meta-llama/Meta-Llama-3.1-405B-Instruct'),
@@ -90,7 +90,7 @@ const { textStream } = streamText({
 
 While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
 
-```tsx
+```ts
 import { generateObject } from 'ai';
 import { deepinfra } from '@ai-sdk/deepinfra';
 import { z } from 'zod';
@@ -120,16 +120,16 @@ The AI SDK supports tool usage across several of its functions, including [`gene
 
 Here's an example of how you can use a tool with the AI SDK and Llama 3.1:
 
-```tsx
+```ts
 import { generateText, tool } from 'ai';
 import { deepinfra } from '@ai-sdk/deepinfra';
-import { getWeather } from './weatherTool';
+import { z } from 'zod';
 
 const { text } = await generateText({
   model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   prompt: 'What is the weather like today?',
   tools: {
-    weather: tool({
+    getWeather: tool({
       description: 'Get the weather in a location',
       parameters: z.object({
         location: z.string().describe('The location to get the weather for'),
@@ -195,8 +195,8 @@ With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useC
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Llama 3.1 (via [DeepInfra](https://deepinfra.com)):
 
 ```tsx filename="app/api/chat/route.ts"
-import { streamText } from 'ai';
 import { deepinfra } from '@ai-sdk/deepinfra';
+import { convertToModelMessages, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -206,11 +206,10 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
-    system: 'You are a helpful assistant.',
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -327,7 +326,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   prompt: 'What is love?',
 });
 ```
@@ -347,7 +346,7 @@ const { text } = await generateText({
 Thanks to the unified API, the core structure of the code remains the same. The main differences are:
 
 1. Creating a DeepInfra client
-2. Changing the model name from `openai("gpt-4-turbo")` to `deepinfra("meta-llama/Meta-Llama-3.1-70B-Instruct")`.
+2. Changing the model name from `openai("gpt-4.1")` to `deepinfra("meta-llama/Meta-Llama-3.1-70B-Instruct")`.
 
 With just these few changes, you've migrated from using OpenAI's GPT-4-Turbo to Meta's Llama 3.1 hosted on DeepInfra. The `generateText` function and its usage remain identical, showcasing the power of the AI SDK's unified API.
 
