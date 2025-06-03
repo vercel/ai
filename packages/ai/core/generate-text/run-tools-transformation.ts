@@ -21,6 +21,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { StreamTextBeforeToolUseCallback } from './stream-text';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
@@ -91,6 +92,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   repairToolCall,
+  beforeToolUse,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV1StreamPart>;
@@ -101,6 +103,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages: CoreMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  beforeToolUse?: StreamTextBeforeToolUseCallback | undefined;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -153,7 +156,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       const chunkType = chunk.type;
 
       switch (chunkType) {
-        // forward:
         case 'text-delta':
         case 'reasoning':
         case 'reasoning-signature':
@@ -198,8 +200,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        // process tool call:
         case 'tool-call': {
+          if (beforeToolUse) {
+            await beforeToolUse();
+          }
           try {
             const toolCall = await parseToolCall({
               toolCall: chunk,
@@ -312,7 +316,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         default: {
-          const _exhaustiveCheck: never = chunkType;
+          const _exhaustiveCheck = chunkType as never;
           throw new Error(`Unhandled chunk type: ${_exhaustiveCheck}`);
         }
       }

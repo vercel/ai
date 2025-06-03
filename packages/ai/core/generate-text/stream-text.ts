@@ -28,6 +28,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   FinishReason,
   LanguageModel,
+  LanguageModelV1StreamPart,
   LogProbs,
   ToolChoice,
 } from '../types/language-model';
@@ -141,6 +142,14 @@ Details for all steps.
 ) => Promise<void> | void;
 
 /**
+Callback that is set using the `beforeToolUse` option.
+
+@param currentModelResponse - The generated model response
+ */
+export type StreamTextBeforeToolUseCallback = (
+) => Promise<void> | void;
+
+/**
 Generate a text and call tools for a given prompt using a language model.
 
 This function streams the output. If you do not want to stream the output, use `generateText` instead.
@@ -219,6 +228,7 @@ export function streamText<
   onError,
   onFinish,
   onStepFinish,
+  beforeToolUse,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -342,6 +352,11 @@ Callback that is called when each step (LLM call) is finished, including interme
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
+Callback that is invoked before a tool is used.
+    */
+    beforeToolUse?: StreamTextBeforeToolUseCallback;
+
+    /**
 Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -374,6 +389,7 @@ Internal. For test use only. May change without notice.
     onError,
     onFinish,
     onStepFinish,
+    beforeToolUse,
     now,
     currentDate,
     generateId,
@@ -552,6 +568,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onError,
     onFinish,
     onStepFinish,
+    beforeToolUse,
   }: {
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
@@ -582,6 +599,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onError: undefined | StreamTextOnErrorCallback;
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
+    beforeToolUse: undefined | StreamTextBeforeToolUseCallback;
   }) {
     if (maxSteps < 1) {
       throw new InvalidArgumentError({
@@ -1053,6 +1071,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
             repairToolCall,
             abortSignal,
+            beforeToolUse,
           });
 
           const stepRequest = request ?? {};
