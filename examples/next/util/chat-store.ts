@@ -9,7 +9,7 @@ import path from 'path';
 
 export async function createChat(): Promise<string> {
   const id = generateId();
-  await writeFile(getChatFile(id), '[]');
+  getChatFile(id);
   return id;
 }
 
@@ -20,7 +20,9 @@ export async function saveChat({
   chatId: string;
   messages: UIMessage[];
 }): Promise<void> {
-  await writeFile(getChatFile(chatId), JSON.stringify(messages, null, 2));
+  const chat = await loadChat(chatId);
+  chat.messages = messages;
+  await writeFile(getChatFile(chatId), JSON.stringify(chat, null, 2));
 }
 
 export async function appendMessageToChat({
@@ -30,13 +32,14 @@ export async function appendMessageToChat({
   chatId: string;
   message: UIMessage;
 }): Promise<void> {
-  const file = getChatFile(chatId);
-  const messages = await loadChat(chatId);
-  messages.push(message);
-  await writeFile(file, JSON.stringify(messages, null, 2));
+  const chat = await loadChat(chatId);
+  chat.messages.push(message);
+  await writeFile(getChatFile(chatId), JSON.stringify(chat, null, 2));
 }
 
-export async function loadChat(id: string): Promise<UIMessage[]> {
+export async function loadChat(id: string): Promise<{
+  messages: UIMessage[];
+}> {
   return JSON.parse(await readFile(getChatFile(id), 'utf8'));
 }
 
@@ -48,7 +51,7 @@ function getChatFile(id: string): string {
   const chatFile = path.join(chatDir, `${id}.json`);
 
   if (!existsSync(chatFile)) {
-    writeFile(chatFile, '[]');
+    writeFile(chatFile, JSON.stringify({ messages: [] }, null, 2));
   }
 
   return chatFile;

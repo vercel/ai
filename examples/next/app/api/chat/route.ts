@@ -5,8 +5,8 @@ export async function POST(req: Request) {
   const { message, chatId }: { message: UIMessage; chatId: string } =
     await req.json();
 
-  const previousMessages = await loadChat(chatId);
-  const messages = [...previousMessages, message];
+  const chat = await loadChat(chatId);
+  const messages = [...chat.messages, message];
 
   const result = streamText({
     model: 'openai/gpt-4o-mini',
