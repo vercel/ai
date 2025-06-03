@@ -37,20 +37,24 @@ export async function appendMessageToChat({
   writeChat(chat);
 }
 
-type ChatModel = {
+export type ChatModel = {
   chatId: string;
   messages: UIMessage[];
+  createdAt: number;
 };
 
 async function writeChat(chat: ChatModel) {
-  await writeFile(getChatFile(chat.chatId), JSON.stringify(chat, null, 2));
+  await writeFile(
+    await getChatFile(chat.chatId),
+    JSON.stringify(chat, null, 2),
+  );
 }
 
 export async function readChat(id: string): Promise<ChatModel> {
-  return JSON.parse(await readFile(getChatFile(id), 'utf8'));
+  return JSON.parse(await readFile(await getChatFile(id), 'utf8'));
 }
 
-function getChatFile(chatId: string): string {
+async function getChatFile(chatId: string): Promise<string> {
   const chatDir = path.join(process.cwd(), '.chats');
 
   if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
@@ -58,7 +62,10 @@ function getChatFile(chatId: string): string {
   const chatFile = path.join(chatDir, `${chatId}.json`);
 
   if (!existsSync(chatFile)) {
-    writeFile(chatFile, JSON.stringify({ chatId, messages: [] }, null, 2));
+    await writeFile(
+      chatFile,
+      JSON.stringify({ chatId, messages: [], createdAt: Date.now() }, null, 2),
+    );
   }
 
   return chatFile;

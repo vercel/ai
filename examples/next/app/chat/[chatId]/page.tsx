@@ -6,5 +6,5 @@ export default async function Page(props: {
 }) {
   const { chatId } = await props.params; // get the chat ID from the URL
   const chat = await readChat(chatId); // load the chat
-  return <Chat chatId={chatId} initialMessages={chat.messages} />; // display the chat
+  return <Chat chat={chat} />; // display the chat
 }
