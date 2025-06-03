@@ -47,7 +47,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
-    'application/pdf': [/^https:\/\/.*$/],
+    'image/*': [/^https?:\/\/.*$/],
   };
 
   private async getArgs({
@@ -75,7 +75,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
         schema: xaiProviderOptions,
       })) ?? {};
 
-    // check for unsupported parameters (following mistral pattern)
+    // check for unsupported parameters
     if (topK != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -144,7 +144,18 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
 
       // response format
       response_format:
-        responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
+        responseFormat?.type === 'json'
+          ? responseFormat.schema != null
+            ? {
+                type: 'json_schema',
+                json_schema: {
+                  name: responseFormat.name ?? 'response',
+                  schema: responseFormat.schema,
+                  strict: true,
+                },
+              }
+            : { type: 'json_object' }
+          : undefined,
 
       // messages in xai format
       messages,
@@ -266,7 +277,6 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let chunkNumber = 0;
-    let trimLeadingSpace = false;
 
     return {
       stream: response.pipeThrough(
@@ -320,34 +330,17 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             if (delta.content != null && delta.content.length > 0) {
               let textContent = delta.content;
 
-              // when there is a trailing assistant message, xai will send the
-              // content of that message again. we skip this repeated content to
-              // avoid duplication, e.g. in continuation mode.
-              if (chunkNumber <= 2) {
-                const lastMessage = body.messages[body.messages.length - 1];
-
-                if (
-                  lastMessage.role === 'assistant' &&
-                  typeof lastMessage.content === 'string' &&
-                  textContent === lastMessage.content.trimEnd()
-                ) {
-                  // XAI moves the trailing space from the prefix to the next chunk.
-                  // We trim the leading space to avoid duplication.
-                  if (textContent.length < lastMessage.content.length) {
-                    trimLeadingSpace = true;
-                  }
-
-                  // skip the repeated content:
-                  return;
-                }
+              // skip if this content duplicates the last assistant message
+              const lastMessage = body.messages[body.messages.length - 1];
+              if (
+                lastMessage.role === 'assistant' &&
+                typeof lastMessage.content === 'string' &&
+                textContent === lastMessage.content
+              ) {
+                return;
               }
 
-              controller.enqueue({
-                type: 'text',
-                text: trimLeadingSpace ? textContent.trimStart() : textContent,
-              });
-
-              trimLeadingSpace = false;
+              controller.enqueue({ type: 'text', text: textContent });
             }
 
             // process tool calls

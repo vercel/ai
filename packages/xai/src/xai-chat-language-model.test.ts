@@ -30,7 +30,7 @@ describe('XaiChatLanguageModel', () => {
 
   it('should have supported URLs', () => {
     expect(model.supportedUrls).toEqual({
-      'application/pdf': [/^https:\/\/.*$/],
+      'image/*': [/^https?:\/\/.*$/],
     });
   });
 
@@ -493,7 +493,11 @@ describe('XaiChatLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "and",
+            "text": "prefix",
+            "type": "text",
+          },
+          {
+            "text": " and",
             "type": "text",
           },
           {
@@ -615,6 +619,9 @@ describe('XaiChatLanguageModel', () => {
         stream: true,
         model: 'grok-beta',
         messages: [{ role: 'user', content: 'Hello' }],
+        stream_options: {
+          include_usage: true,
+        },
       });
     });
 
@@ -666,6 +673,9 @@ describe('XaiChatLanguageModel', () => {
             "response_format": undefined,
             "seed": undefined,
             "stream": true,
+            "stream_options": {
+              "include_usage": true,
+            },
             "temperature": undefined,
             "tool_choice": undefined,
             "tools": undefined,
