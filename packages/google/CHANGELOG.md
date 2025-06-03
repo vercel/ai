@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.19
+
+### Patch Changes
+
+- f262012: fix (provider/google): prevent error when thinking signature is used
+
 ## 1.2.18
 
 ### Patch Changes
