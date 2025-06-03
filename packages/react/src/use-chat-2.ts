@@ -18,6 +18,7 @@ import {
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { createChatStore } from './chat-store';
 import { throttle } from './throttle';
+import { ChatStatus, ChatStoreSubscriber } from '../../ai/src/ui/chat-store';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
@@ -46,9 +47,6 @@ export type UseChatHelpers2<
     InferUIDataParts<DATA_PART_SCHEMAS>
   >[];
 
-  /** The error object of the API request */
-  readonly error: undefined | Error;
-
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
@@ -69,9 +67,7 @@ export type UseChatHelpers2<
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+  reload: (chatRequestOptions?: ChatRequestOptions) => Promise<void>;
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
@@ -132,17 +128,103 @@ export type UseChatHelpers2<
   }) => void;
 };
 
+type ExtendedCallOptions<
+  MESSAGE_METADATA,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas,
+> = ChatRequestOptions & {
+  onError?: (error: Error) => void;
+
+  /**
+Optional callback function that is invoked when a tool call is received.
+Intended for automatic client-side tool execution.
+
+You can optionally return a result for the tool call,
+either synchronously or asynchronously.
+   */
+  onToolCall?: ({
+    toolCall,
+  }: {
+    toolCall: ToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
+
+  /**
+   * Optional callback function that is called when the assistant message is finished streaming.
+   *
+   * @param message The message that was streamed.
+   */
+  onFinish?: (options: {
+    message: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>;
+  }) => void;
+};
+
+export type Chat2<
+  MESSAGE_METADATA = unknown,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> = {
+  id: string;
+  status: ChatStatus;
+  messages: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
+
+  // TODO simplified subscriber
+  subscribe(subscriber: ChatStoreSubscriber): () => void;
+
+  addToolResult({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: unknown;
+  }): Promise<void>;
+
+  stopStream(): Promise<void>;
+
+  submitMessage({
+    message,
+    headers,
+    body,
+    onError,
+    onToolCall,
+    onFinish,
+  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> & {
+    message: CreateUIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<DATA_PART_SCHEMAS>
+    >;
+  }): Promise<void>;
+
+  resubmitLastUserMessage({
+    headers,
+    body,
+    onError,
+    onToolCall,
+    onFinish,
+  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>): Promise<void>;
+
+  resumeStream({
+    headers,
+    body,
+    onError,
+    onToolCall,
+    onFinish,
+  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>): Promise<void>;
+
+  setMessages({
+    messages,
+  }: {
+    messages: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<DATA_PART_SCHEMAS>
+    >[];
+  }): Promise<void>;
+};
+
 export type UseChatOptions2<
   MESSAGE_METADATA = unknown,
   DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = {
-  /**
-   * A unique identifier for the chat. If not provided, a random one will be
-   * generated. When provided, the `useChat` hook with the same `id` will
-   * have shared states across components.
-   */
-  chatId?: string;
+  chat: Chat2<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>;
 
+  /**
   /**
    * Initial input of the chat.
    */
@@ -180,70 +262,27 @@ export type UseChatOptions2<
    * If not provided the default AI SDK `generateId` is used.
    */
   generateId?: IdGenerator;
-
-  /**
-   * Chat store that should be used.
-   * It must not change during the component lifecycle.
-   *
-   * When a ChatStore is provided, it will be used as is.
-   * It should be stable and the stability is guaranteed by the user.
-   *
-   * When a function is provided, it will be called to create a new chat store.
-   * The function will be called when the hook is mounted and the chat store will be
-   * created.
-   * The function will be called with the same arguments as the hook is called with.
-   * The function should return a ChatStoreOptions object.
-   *
-   * When no value is provided, a default chat store will be created.
-   */
-  chatStore?:
-    | ChatStore<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
-    | (() => ChatStoreOptions<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>);
 };
 
 export function useChat2<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
-  chatId,
+  chat,
   initialInput = '',
   onToolCall,
   onFinish,
   onError,
   generateId = generateIdFunc,
   experimental_throttle: throttleWaitMs,
-  chatStore: chatStoreArg,
 }: UseChatOptions2<MESSAGE_METADATA, DATA_PART_SCHEMAS> & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-} = {}): UseChatHelpers2<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
-  // Generate ID once, store in state for stability across re-renders
-  const [hookId] = useState(generateId);
-
-  // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
-  const stableChatId = chatId ?? hookId;
-
-  // chat store setup
-  const chatStore = useRef(
-    chatStoreArg == null
-      ? createChatStore(
-          defaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
-            api: '/api/chat',
-            generateId,
-          })(),
-        )
-      : typeof chatStoreArg === 'function'
-        ? createChatStore(chatStoreArg())
-        : chatStoreArg,
-  );
-
-  // ensure the chat is in the store
-  if (!chatStore.current.hasChat(stableChatId)) {
-    chatStore.current.addChat(stableChatId, []);
-  }
+}): UseChatHelpers2<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
+  const chatRef = useRef(chat);
 
   const subscribe = useCallback(
     ({
@@ -252,42 +291,29 @@ Default is undefined, which disables throttling.
     }: {
       onStoreChange: () => void;
       eventType: ChatStoreEvent['type'];
-    }) => {
-      return chatStore.current.subscribe({
+    }) =>
+      chatRef.current.subscribe({
         onChatChanged: event => {
-          if (event.chatId !== stableChatId || event.type !== eventType) return;
+          if (event.chatId !== chatRef.current.id || event.type !== eventType)
+            return;
           onStoreChange();
         },
-      });
-    },
-    [chatStore, stableChatId],
+      }),
+    [chatRef],
   );
 
   const addToolResult = useCallback(
     (
-      options: Omit<
-        Parameters<
-          ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>['addToolResult']
-        >[0],
-        'chatId'
-      >,
-    ) => chatStore.current.addToolResult({ chatId: stableChatId, ...options }),
-    [chatStore, stableChatId],
+      options: Parameters<
+        Chat2<MESSAGE_METADATA, DATA_PART_SCHEMAS>['addToolResult']
+      >[0],
+    ) => chatRef.current.addToolResult(options),
+    [chatRef],
   );
 
   const stopStream = useCallback(() => {
-    chatStore.current.stopStream({ chatId: stableChatId });
-  }, [chatStore, stableChatId]);
-
-  const error = useSyncExternalStore(
-    callback =>
-      subscribe({
-        onStoreChange: callback,
-        eventType: 'chat-status-changed',
-      }),
-    () => chatStore.current.getError(stableChatId),
-    () => chatStore.current.getError(stableChatId),
-  );
+    chatRef.current.stopStream();
+  }, [chatRef]);
 
   const status = useSyncExternalStore(
     callback =>
@@ -295,8 +321,8 @@ Default is undefined, which disables throttling.
         onStoreChange: callback,
         eventType: 'chat-status-changed',
       }),
-    () => chatStore.current.getStatus(stableChatId),
-    () => chatStore.current.getStatus(stableChatId),
+    () => chatRef.current.status,
+    () => chatRef.current.status,
   );
 
   const subscribeToChatStoreForMessages = useCallback(
@@ -313,8 +339,8 @@ Default is undefined, which disables throttling.
 
   const messages = useSyncExternalStore(
     callback => subscribeToChatStoreForMessages(callback),
-    () => chatStore.current.getMessages(stableChatId),
-    () => chatStore.current.getMessages(stableChatId),
+    () => chatRef.current.messages,
+    () => chatRef.current.messages,
   );
 
   const append = useCallback(
@@ -325,8 +351,7 @@ Default is undefined, which disables throttling.
       >,
       { headers, body }: ChatRequestOptions = {},
     ) =>
-      chatStore.current.submitMessage({
-        chatId: stableChatId,
+      chatRef.current.submitMessage({
         message,
         headers,
         body,
@@ -334,32 +359,30 @@ Default is undefined, which disables throttling.
         onToolCall,
         onFinish,
       }),
-    [chatStore, stableChatId, onError, onToolCall, onFinish],
+    [chatRef, onError, onToolCall, onFinish],
   );
 
   const reload = useCallback(
     async ({ headers, body }: ChatRequestOptions = {}) =>
-      chatStore.current.resubmitLastUserMessage({
-        chatId: stableChatId,
+      chatRef.current.resubmitLastUserMessage({
         headers,
         body,
         onError,
         onToolCall,
         onFinish,
       }),
-    [chatStore, stableChatId, onError, onToolCall, onFinish],
+    [chatRef, onError, onToolCall, onFinish],
   );
   const stop = useCallback(() => stopStream(), [stopStream]);
 
   const experimental_resume = useCallback(
     async () =>
-      chatStore.current.resumeStream({
-        chatId: stableChatId,
+      chatRef.current.resumeStream({
         onError,
         onToolCall,
         onFinish,
       }),
-    [chatStore, stableChatId, onError, onToolCall, onFinish],
+    [chatRef, onError, onToolCall, onFinish],
   );
 
   const setMessages = useCallback(
@@ -380,12 +403,11 @@ Default is undefined, which disables throttling.
         messagesParam = messagesParam(messages);
       }
 
-      chatStore.current.setMessages({
-        id: stableChatId,
+      chatRef.current.setMessages({
         messages: messagesParam,
       });
     },
-    [stableChatId, messages],
+    [chatRef, messages],
   );
 
   // Input state and handlers.
@@ -430,9 +452,8 @@ Default is undefined, which disables throttling.
 
   return {
     messages,
-    chatId: stableChatId,
+    chatId: chatRef.current.id,
     setMessages,
-    error,
     append,
     reload,
     stop,

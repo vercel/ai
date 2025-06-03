@@ -1,22 +1,55 @@
 'use client';
 
-import { useChat2 } from '@ai-sdk/react';
+import { Chat2, createChatStore, useChat2 } from '@ai-sdk/react';
 import { ChatModel } from '@util/chat-store';
 import { defaultChatStoreOptions } from 'ai';
 
+function createChat(chat: ChatModel): Chat2 {
+  const store = createChatStore({
+    ...defaultChatStoreOptions({
+      // only send the last message to the server:
+      prepareRequestBody: ({ chatId, messages }) => ({
+        chatId,
+        message: messages[messages.length - 1],
+      }),
+    })(),
+    chats: {
+      [chat.chatId]: {
+        messages: chat.messages ?? [],
+      },
+    },
+  });
+
+  return {
+    id: chat.chatId,
+    status: store.getStatus(chat.chatId),
+    get messages() {
+      return store.getMessages(chat.chatId);
+    },
+    subscribe: options => store.subscribe(options),
+    addToolResult: options =>
+      store.addToolResult({ chatId: chat.chatId, ...options }),
+    stopStream: () => store.stopStream({ chatId: chat.chatId }),
+    submitMessage: options =>
+      store.submitMessage({ chatId: chat.chatId, ...options }),
+    resubmitLastUserMessage: async options => {
+      await store.resubmitLastUserMessage({
+        chatId: chat.chatId,
+        ...options,
+      });
+    },
+    resumeStream: async options => {
+      await store.resumeStream({ chatId: chat.chatId, ...options });
+    },
+    setMessages: async ({ messages }) => {
+      store.setMessages({ id: chat.chatId, messages });
+    },
+  };
+}
+
 export default function Chat({ chat }: { chat: ChatModel }) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat2(
-    {
-      chatId: chat.chatId,
-      chatStore: defaultChatStoreOptions({
-        chats: { [chat.chatId]: { messages: chat.messages ?? [] } },
-
-        // only send the last message to the server:
-        prepareRequestBody({ chatId, messages }) {
-          return { chatId, message: messages[messages.length - 1] };
-        },
-      }),
-    },
+    { chat: createChat(chat) },
   );
 
   return (
