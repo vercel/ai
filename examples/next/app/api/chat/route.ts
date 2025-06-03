@@ -3,10 +3,9 @@ import { readChat, saveChat } from '@util/chat-store';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { message, chatId }: { message: UIMessage; chatId: string } =
-    await req.json();
+  const { message, id }: { message: UIMessage; id: string } = await req.json();
 
-  const chat = await readChat(chatId);
+  const chat = await readChat(id);
   const messages = [...chat.messages, message];
 
   const result = streamText({
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
     },
     onFinish: ({ messages }) => {
       // TODO fix type safety
-      saveChat({ id: chatId, messages: messages as MyUIMessage[] });
+      saveChat({ id, messages: messages as MyUIMessage[] });
     },
   });
 }

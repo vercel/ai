@@ -17,7 +17,7 @@ export default function Chat({
         transport: new DefaultChatTransport({
           api: '/api/chat',
           prepareRequestBody: ({ chatId, messages }) => ({
-            chatId,
+            id: chatId,
             message: messages[messages.length - 1],
           }),
         }),
