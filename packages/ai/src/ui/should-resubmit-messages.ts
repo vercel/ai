@@ -39,10 +39,14 @@ The last step of the message must have at least one tool invocation and
 all tool invocations must have a result.
  */
 export function isAssistantMessageWithCompletedToolCalls(
-  message: UIMessage,
+  message: UIMessage | undefined,
 ): message is UIMessage & {
   role: 'assistant';
 } {
+  if (!message) {
+    return false;
+  }
+
   if (message.role !== 'assistant') {
     return false;
   }

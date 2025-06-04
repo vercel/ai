@@ -4,13 +4,10 @@
   import Button from '$lib/components/ui/button/button.svelte';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
   import { Chat } from '@ai-sdk/svelte';
-  import { defaultChatStoreOptions } from 'ai';
 
-  const chat = new Chat(() => ({
-    chatId: page.params.id,
-    chatStore: defaultChatStoreOptions({
-      maxSteps: 5,
-    }),
+  const chat = new Chat({
+    id: page.params.id,
+    maxSteps: 5,
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
       // artificial 2 second delay
@@ -21,7 +18,7 @@
         return cities[Math.floor(Math.random() * cities.length)];
       }
     },
-  }));
+  });
 
   const disabled = $derived(chat.status !== 'ready');
 
