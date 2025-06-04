@@ -28,22 +28,6 @@ export type UseChatHelpers2<
   readonly chatId: string;
 
   /**
-   * Hook status:
-   *
-   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
-   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
-   * - `ready`: The full response has been received and processed; a new user message can be submitted.
-   * - `error`: An error occurred during the API request, preventing successful completion.
-   */
-  readonly status: 'submitted' | 'streaming' | 'ready' | 'error';
-
-  /** Current messages in the chat */
-  readonly messages: UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<DATA_PART_SCHEMAS>
-  >[];
-
-  /**
    * Update the `messages` state locally. This is useful when you want to
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
@@ -84,7 +68,13 @@ export type UseChatHelpers2<
   ) => void;
 } & Pick<
   AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
-  'append' | 'reload' | 'stop' | 'experimental_resume' | 'addToolResult'
+  | 'append'
+  | 'reload'
+  | 'stop'
+  | 'experimental_resume'
+  | 'addToolResult'
+  | 'status'
+  | 'messages'
 >;
 
 export type UseChatOptions2<

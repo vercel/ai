@@ -186,11 +186,25 @@ export abstract class AbstractChat<
     this.onFinish = onFinish;
   }
 
+  /**
+   * Hook status:
+   *
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
   get status(): ChatStatus {
     return this.state.status;
   }
 
-  setStatus({ status, error }: { status: ChatStatus; error?: Error }) {
+  protected setStatus({
+    status,
+    error,
+  }: {
+    status: ChatStatus;
+    error?: Error;
+  }) {
     if (this.status === status) return;
 
     this.state.status = status;
