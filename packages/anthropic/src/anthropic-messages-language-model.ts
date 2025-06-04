@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -221,28 +222,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       const webSearchTool: any = {
         type: 'web_search_20250305',
         name: 'web_search',
-        ...(anthropicOptions.webSearch.maxUses && {
-          max_uses: anthropicOptions.webSearch.maxUses,
-        }),
-        ...(anthropicOptions.webSearch.allowedDomains && {
-          allowed_domains: anthropicOptions.webSearch.allowedDomains,
-        }),
-        ...(anthropicOptions.webSearch.blockedDomains && {
-          blocked_domains: anthropicOptions.webSearch.blockedDomains,
-        }),
+        max_uses: anthropicOptions.webSearch.maxUses,
+        allowed_domains: anthropicOptions.webSearch.allowedDomains,
+        blocked_domains: anthropicOptions.webSearch.blockedDomains,
         ...(anthropicOptions.webSearch.userLocation && {
           user_location: {
             type: anthropicOptions.webSearch.userLocation.type,
             country: anthropicOptions.webSearch.userLocation.country,
-            ...(anthropicOptions.webSearch.userLocation.city && {
-              city: anthropicOptions.webSearch.userLocation.city,
-            }),
-            ...(anthropicOptions.webSearch.userLocation.region && {
-              region: anthropicOptions.webSearch.userLocation.region,
-            }),
-            ...(anthropicOptions.webSearch.userLocation.timezone && {
-              timezone: anthropicOptions.webSearch.userLocation.timezone,
-            }),
+            city: anthropicOptions.webSearch.userLocation.city,
+            region: anthropicOptions.webSearch.userLocation.region,
+            timezone: anthropicOptions.webSearch.userLocation.timezone,
           },
         }),
       };
@@ -402,7 +391,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               }
             }
           } else if (part.content.type === 'web_search_tool_result_error') {
-            throw new Error(`Web search failed: ${part.content.error_code}`);
+            throw new APICallError({
+              message: `Web search failed: ${part.content.error_code}`,
+              url: 'web_search_api',
+              requestBodyValues: { tool_use_id: part.tool_use_id },
+              data: { error_code: part.content.error_code },
+            });
           }
           break;
         }

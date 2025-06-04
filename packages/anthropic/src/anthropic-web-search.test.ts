@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { APICallError } from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT = [
@@ -193,7 +194,7 @@ describe('Anthropic Web Search', () => {
           },
         },
       }),
-    ).rejects.toThrow('Web search failed: max_uses_exceeded');
+    ).rejects.toThrow(APICallError);
   });
 
   it('should combine web search with regular tools', async () => {
