@@ -23,7 +23,7 @@ import type {
   UIDataTypes,
   UIMessage,
 } from './ui-messages';
-import { ChatRequestOptions, UseChatOptions } from './use-chat';
+import { ChatRequestOptions } from './use-chat';
 
 export interface ChatSubscriber {
   onChange: (event: ChatEvent) => void;
