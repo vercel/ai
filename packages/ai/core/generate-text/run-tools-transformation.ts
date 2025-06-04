@@ -318,7 +318,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         default: {
-          const _exhaustiveCheck = chunkType as never;
+          const _exhaustiveCheck: never = chunkType;
           throw new Error(`Unhandled chunk type: ${_exhaustiveCheck}`);
         }
       }
