@@ -4,7 +4,7 @@ import { invalidateRouterCache } from '@/app/actions';
 import { myMessageMetadataSchema, MyUIMessage } from '@/util/chat-schema';
 import { Chat2, useChat2 } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function Chat({
   chatData,
@@ -36,12 +36,17 @@ export default function Chat({
         invalidateRouterCache();
       }
 
-      // focus the input field
+      // focus the input field again after the response is finished
       requestAnimationFrame(() => {
         inputRef.current?.focus();
       });
     },
   });
+
+  // activate the input field
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
