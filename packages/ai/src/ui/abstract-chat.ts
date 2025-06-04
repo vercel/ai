@@ -228,7 +228,7 @@ export abstract class AbstractChat<
     this.emit({ type: 'messages-changed' });
   }
 
-  removeAssistantResponse() {
+  removeAssistantResponse = () => {
     const lastMessage = this.state.messages[this.state.messages.length - 1];
 
     if (lastMessage == null) {
@@ -241,19 +241,19 @@ export abstract class AbstractChat<
 
     this.state.popMessage();
     this.emit({ type: 'messages-changed' });
-  }
+  };
 
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
    */
-  async append(
+  append = async (
     message: CreateUIMessage<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >,
     { headers, body }: ChatRequestOptions = {},
-  ) {
+  ) => {
     this.state.pushMessage({ ...message, id: message.id ?? this.generateId() });
     this.emit({ type: 'messages-changed' });
     await this.triggerRequest({
@@ -261,14 +261,17 @@ export abstract class AbstractChat<
       body,
       requestType: 'generate',
     });
-  }
+  };
 
   /**
    * Reload the last AI chat response for the given chat history. If the last
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  async reload({ headers, body }: ChatRequestOptions = {}): Promise<void> {
+  reload = async ({
+    headers,
+    body,
+  }: ChatRequestOptions = {}): Promise<void> => {
     if (this.lastMessage === undefined) {
       return;
     }
@@ -283,29 +286,29 @@ export abstract class AbstractChat<
       headers,
       body,
     });
-  }
+  };
 
   /**
    * Resume an ongoing chat generation stream. This does not resume an aborted generation.
    */
-  async experimental_resume({
+  experimental_resume = async ({
     headers,
     body,
-  }: ChatRequestOptions = {}): Promise<void> {
+  }: ChatRequestOptions = {}): Promise<void> => {
     await this.triggerRequest({
       requestType: 'resume',
       headers,
       body,
     });
-  }
+  };
 
-  async addToolResult({
+  addToolResult = async ({
     toolCallId,
     result,
   }: {
     toolCallId: string;
     result: unknown;
-  }) {
+  }) => {
     this.jobExecutor.run(async () => {
       updateToolCallResult({
         messages: this.state.messages,
@@ -329,19 +332,19 @@ export abstract class AbstractChat<
         });
       }
     });
-  }
+  };
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
    */
-  async stop() {
+  stop = async () => {
     if (this.status !== 'streaming' && this.status !== 'submitted') return;
 
     if (this.activeResponse?.abortController) {
       this.activeResponse.abortController.abort();
       this.activeResponse.abortController = undefined;
     }
-  }
+  };
 
   private emit(event: ChatEvent) {
     for (const subscriber of this.subscribers) {
