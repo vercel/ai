@@ -275,3 +275,29 @@ exports[`zodSchema > json schema conversion > should use references when useRefe
   "type": "object",
 }
 `;
+
+exports[`zodSchema > json schema conversion > z4 schema > generates correct JSON SChema for z4 and .literal and .enum 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "number": {
+      "enum": [
+        "one",
+        "two",
+        "three",
+      ],
+      "type": "string",
+    },
+    "text": {
+      "const": "hello",
+      "type": "string",
+    },
+  },
+  "required": [
+    "text",
+    "number",
+  ],
+  "type": "object",
+}
+`;
