@@ -1,5 +1,6 @@
 'use client';
 
+import { invalidateRouterCache } from '@/app/actions';
 import { myMessageMetadataSchema, MyUIMessage } from '@/util/chat-schema';
 import { createChat2, useChat2 } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
@@ -24,6 +25,9 @@ export default function Chat({
         }),
         messageMetadataSchema: myMessageMetadataSchema,
       }),
+      onFinish: async () => {
+        await invalidateRouterCache();
+      },
     });
 
   return (
@@ -60,6 +64,7 @@ export default function Chat({
             parts: [{ type: 'text', text: input }],
           });
           setInput('');
+          window.history.pushState(null, '', `/chat/${chatData.id}`);
         }}
       >
         <input

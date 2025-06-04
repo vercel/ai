@@ -1,7 +1,11 @@
-import { redirect } from 'next/navigation';
-import { createChat } from '@util/chat-store';
+import { generateId } from 'ai';
+import Chat from './chat/[chatId]/chat';
 
 export default async function ChatPage() {
-  const id = await createChat();
-  redirect(`/chat/${id}`);
+  const chatData = {
+    id: generateId(),
+    messages: [],
+  };
+
+  return <Chat chatData={chatData} />;
 }
