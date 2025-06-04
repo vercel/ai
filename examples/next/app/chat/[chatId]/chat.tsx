@@ -15,34 +15,33 @@ export default function Chat({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { input, status, append, messages, setInput, handleInputChange } =
-    useChat2({
-      chat: new Chat2({
-        id: chatData.id,
-        messages: chatData.messages,
-        transport: new DefaultChatTransport({
-          api: '/api/chat',
-          // TODO fix type safety
-          prepareRequestBody: ({ chatId, messages }) => ({
-            id: chatId,
-            message: messages[messages.length - 1],
-          }),
+  const { status, append, messages } = useChat2({
+    chat: new Chat2({
+      id: chatData.id,
+      messages: chatData.messages,
+      transport: new DefaultChatTransport({
+        api: '/api/chat',
+        // TODO fix type safety
+        prepareRequestBody: ({ chatId, messages }) => ({
+          id: chatId,
+          message: messages[messages.length - 1],
         }),
-        messageMetadataSchema: myMessageMetadataSchema,
       }),
-      onFinish() {
-        // for new chats, the router cache needs to be invalidated so
-        // navigation to the previous page triggers SSR correctly
-        if (isNewChat) {
-          invalidateRouterCache();
-        }
+      messageMetadataSchema: myMessageMetadataSchema,
+    }),
+    onFinish() {
+      // for new chats, the router cache needs to be invalidated so
+      // navigation to the previous page triggers SSR correctly
+      if (isNewChat) {
+        invalidateRouterCache();
+      }
 
-        // focus the input field
-        requestAnimationFrame(() => {
-          inputRef.current?.focus();
-        });
-      },
-    });
+      // focus the input field
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    },
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -70,14 +69,19 @@ export default function Chat({
 
       <form
         onSubmit={e => {
-          // TODO submit a user message
           e.preventDefault();
+
+          if (!inputRef.current) return;
+
+          // TODO submit a user message
           append({
             role: 'user',
             metadata: { createdAt: Date.now() },
-            parts: [{ type: 'text', text: input }],
+            parts: [{ type: 'text', text: inputRef.current.value }],
           });
-          setInput('');
+
+          // clear the input
+          inputRef.current.value = '';
 
           if (isNewChat) {
             window.history.pushState(null, '', `/chat/${chatData.id}`);
@@ -87,8 +91,6 @@ export default function Chat({
         <input
           ref={inputRef}
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          onChange={handleInputChange}
           placeholder="Say something..."
           disabled={status !== 'ready'}
         />
