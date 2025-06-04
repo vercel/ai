@@ -551,7 +551,8 @@ To see `generateText` in action, check out [these examples](#examples).
                     {
                       name: 'stepNumber',
                       type: 'number',
-                      description: 'The number of the step that is being executed.',
+                      description:
+                        'The number of the step that is being executed.',
                     },
                     {
                       name: 'model',
@@ -899,8 +900,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'toolResults',
       type: 'ToolResultArray<TOOLS>',
-      description:
-        'The results of the tool calls from the last step.',
+      description: 'The results of the tool calls from the last step.',
     },
     {
       name: 'finishReason',
@@ -928,7 +928,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'totalTokens',
               type: 'number | undefined',
-              description: 'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+              description:
+                'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
             },
             {
               name: 'reasoningTokens',
@@ -949,7 +950,8 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'totalUsage',
       type: 'CompletionTokenUsage',
-      description: 'The total token usage of all steps. When there are multiple steps, the usage is the sum of all step usages.',
+      description:
+        'The total token usage of all steps. When there are multiple steps, the usage is the sum of all step usages.',
       properties: [
         {
           type: 'LanguageModelUsage',
@@ -967,7 +969,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'totalTokens',
               type: 'number | undefined',
-              description: 'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+              description:
+                'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
             },
             {
               name: 'reasoningTokens',
@@ -1122,7 +1125,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'files',
               type: 'Array<GeneratedFile>',
-              description: 'The files that were generated during the generation.',
+              description:
+                'The files that were generated during the generation.',
               properties: [
                 {
                   type: 'GeneratedFile',
@@ -1149,8 +1153,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'The sources that were used to generate the text.',
+              description: 'The sources that were used to generate the text.',
               properties: [
                 {
                   type: 'Source',
@@ -1191,13 +1194,13 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'toolCalls',
               type: 'ToolCallArray<TOOLS>',
-              description: 'The tool calls that were made during the generation.',
+              description:
+                'The tool calls that were made during the generation.',
             },
             {
               name: 'toolResults',
               type: 'ToolResultArray<TOOLS>',
-              description:
-                'The results of the tool calls.',
+              description: 'The results of the tool calls.',
             },
             {
               name: 'finishReason',
@@ -1220,12 +1223,14 @@ To see `generateText` in action, check out [these examples](#examples).
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
-                      description: 'The number of output (completion) tokens used.',
+                      description:
+                        'The number of output (completion) tokens used.',
                     },
                     {
                       name: 'totalTokens',
                       type: 'number | undefined',
-                      description: 'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+                      description:
+                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
                     },
                     {
                       name: 'reasoningTokens',
@@ -1303,7 +1308,8 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'body',
                       isOptional: true,
                       type: 'unknown',
-                      description: 'Response body (available only for providers that use HTTP requests).',
+                      description:
+                        'Response body (available only for providers that use HTTP requests).',
                     },
                     {
                       name: 'messages',
