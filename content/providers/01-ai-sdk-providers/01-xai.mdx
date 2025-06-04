@@ -142,7 +142,7 @@ The following optional provider options are available for xAI chat models:
 
 ## Live Search
 
-xAI models support Live Search functionality, allowing them to query real-time data from various sources and include it in responses with citations. This feature is available at no additional cost until June 5, 2025.
+xAI models support Live Search functionality, allowing them to query real-time data from various sources and include it in responses with citations.
 
 ### Basic Search
 
@@ -230,7 +230,7 @@ const result = await generateText({
 });
 ```
 
-**Web source parameters:**
+#### Web source parameters
 
 - **country** _string_: ISO alpha-2 country code
 - **allowedWebsites** _string[]_: Max 5 allowed websites (cannot be used with `excludedWebsites`)
@@ -259,7 +259,7 @@ const result = await generateText({
 });
 ```
 
-**X source parameters:**
+#### X source parameters
 
 - **xHandles** _string[]_: Array of X/Twitter handles to search
 
@@ -287,7 +287,7 @@ const result = await generateText({
 });
 ```
 
-**News source parameters:**
+#### News source parameters
 
 - **country** _string_: ISO alpha-2 country code
 - **excludedWebsites** _string[]_: Max 5 excluded websites
@@ -315,7 +315,7 @@ const result = await generateText({
 });
 ```
 
-**RSS source parameters:**
+#### RSS source parameters
 
 - **links** _string[]_: Array of RSS feed URLs (max 1 currently supported)
 
