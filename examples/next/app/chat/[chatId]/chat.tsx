@@ -7,8 +7,10 @@ import { DefaultChatTransport } from 'ai';
 
 export default function Chat({
   chatData,
+  isNewChat = false,
 }: {
   chatData: { id: string; messages: MyUIMessage[] };
+  isNewChat?: boolean;
 }) {
   const { input, status, append, messages, setInput, handleInputChange } =
     useChat2({
@@ -25,9 +27,7 @@ export default function Chat({
         }),
         messageMetadataSchema: myMessageMetadataSchema,
       }),
-      onFinish: async () => {
-        await invalidateRouterCache();
-      },
+      onFinish: isNewChat ? invalidateRouterCache : undefined,
     });
 
   return (
@@ -64,7 +64,10 @@ export default function Chat({
             parts: [{ type: 'text', text: input }],
           });
           setInput('');
-          window.history.pushState(null, '', `/chat/${chatData.id}`);
+
+          if (isNewChat) {
+            window.history.pushState(null, '', `/chat/${chatData.id}`);
+          }
         }}
       >
         <input
