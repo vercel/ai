@@ -5,22 +5,18 @@ import {
   ChatStatus,
   ChatTransport,
   InferUIDataParts,
-  SerialJobExecutor,
   UIDataPartSchemas,
   UIDataTypes,
   UIMessage,
   UseChatOptions,
-  type ActiveResponse,
 } from 'ai';
 
 class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   implements ChatState<MESSAGE_METADATA, DATA_TYPES>
 {
-  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-  status: ChatStatus = 'ready';
-  error: Error | undefined = undefined;
-  activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined = undefined;
-  jobExecutor = new SerialJobExecutor();
+  private messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  private status: ChatStatus = 'ready';
+  private error: Error | undefined = undefined;
 
   constructor(messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
     this.messages = messages ?? [];
@@ -34,14 +30,16 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     this.status = status;
   };
 
+  getError = () => {
+    return this.error;
+  };
+
   setError = (error: Error | undefined) => {
     this.error = error;
   };
 
-  setActiveResponse = (
-    activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined,
-  ) => {
-    this.activeResponse = activeResponse;
+  getMessages = () => {
+    return this.messages;
   };
 
   setMessages = (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => {
@@ -72,7 +70,7 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   };
 }
 
-export class ReactChat2<
+export class Chat2<
   MESSAGE_METADATA,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > extends AbstractChat<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
@@ -120,6 +118,6 @@ export class ReactChat2<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >[] {
-    return this.state.messages;
+    return this.state.getMessages();
   }
 }

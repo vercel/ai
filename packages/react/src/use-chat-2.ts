@@ -16,7 +16,7 @@ import {
   type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
-import { ReactChat2 } from './react-chat';
+import { Chat2 } from './react-chat';
 import { throttle } from './throttle';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
@@ -154,67 +154,6 @@ either synchronously or asynchronously.
   onFinish?: (options: {
     message: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>;
   }) => void;
-};
-
-export type Chat2<
-  MESSAGE_METADATA = unknown,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = {
-  id: string;
-  status: ChatStatus;
-  messages: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
-
-  // TODO simplified subscriber
-  subscribe(subscriber: ChatSubscriber): () => void;
-
-  addToolResult({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: unknown;
-  }): Promise<void>;
-
-  stopStream(): Promise<void>;
-
-  submitMessage({
-    message,
-    headers,
-    body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> & {
-    message: CreateUIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<DATA_PART_SCHEMAS>
-    >;
-  }): Promise<void>;
-
-  resubmitLastUserMessage({
-    headers,
-    body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>): Promise<void>;
-
-  resumeStream({
-    headers,
-    body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>): Promise<void>;
-
-  setMessages({
-    messages,
-  }: {
-    messages: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<DATA_PART_SCHEMAS>
-    >[];
-  }): Promise<void>;
 };
 
 export type UseChatOptions2<
@@ -463,28 +402,4 @@ Default is undefined, which disables throttling.
     status,
     addToolResult,
   };
-}
-
-export function createChat2<
-  MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
->(
-  chat: {
-    id: string;
-    messages: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >[];
-  } & Omit<ChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'chats'>,
-): Chat2<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
-  const { id, messages, ...options } = chat;
-
-  return new ReactChat2<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
-    id,
-    messages,
-    transport: options.transport,
-    maxSteps: options.maxSteps,
-    messageMetadataSchema: options.messageMetadataSchema,
-    dataPartSchemas: options.dataPartSchemas,
-  });
 }

@@ -83,25 +83,21 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
 };
 
 export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
-  readonly messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-  readonly error: Error | undefined;
-  readonly activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined;
-  readonly jobExecutor: SerialJobExecutor;
-
   getStatus: () => ChatStatus;
   setStatus: (status: ChatStatus) => void;
 
+  getError: () => Error | undefined;
   setError: (error: Error | undefined) => void;
-  setActiveResponse: (
-    activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined,
-  ) => void;
+
+  getMessages: () => UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  setMessages: (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => void;
   pushMessage: (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => void;
   popMessage: () => void;
   replaceMessage: (
     index: number,
     message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
   ) => void;
-  setMessages: (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => void;
+
   snapshot?: <T>(thing: T) => T;
 }
 
@@ -127,6 +123,10 @@ export abstract class AbstractChat<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
+
+  private activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined =
+    undefined;
+  private jobExecutor = new SerialJobExecutor();
 
   constructor({
     id,
@@ -174,15 +174,15 @@ export abstract class AbstractChat<
   }
 
   getError() {
-    return this.state.error;
+    return this.state.getError();
   }
 
   getMessages() {
-    return this.state.messages;
+    return this.state.getMessages();
   }
 
   getLastMessage() {
-    return this.state.messages[this.state.messages.length - 1];
+    return this.state.getMessages()[this.state.getMessages().length - 1];
   }
 
   subscribe(subscriber: ChatSubscriber): () => void {
@@ -203,7 +203,8 @@ export abstract class AbstractChat<
   }
 
   removeAssistantResponse() {
-    const lastMessage = this.state.messages[this.state.messages.length - 1];
+    const lastMessage =
+      this.state.getMessages()[this.state.getMessages().length - 1];
 
     if (lastMessage == null) {
       throw new Error('Cannot remove assistant response from empty chat');
@@ -256,13 +257,14 @@ export abstract class AbstractChat<
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   > & {}): Promise<void> {
     if (
-      this.state.messages[this.state.messages.length - 1].role === 'assistant'
+      this.state.getMessages()[this.state.getMessages().length - 1].role ===
+      'assistant'
     ) {
       this.state.popMessage();
       this.emit({ type: 'messages-changed' });
     }
 
-    if (this.state.messages.length === 0) {
+    if (this.state.getMessages().length === 0) {
       return;
     }
 
@@ -303,15 +305,15 @@ export abstract class AbstractChat<
     toolCallId: string;
     result: unknown;
   }) {
-    this.state.jobExecutor.run(async () => {
+    this.jobExecutor.run(async () => {
       updateToolCallResult({
-        messages: this.state.messages,
+        messages: this.state.getMessages(),
         toolCallId,
         toolResult: result,
       });
 
       this.setMessages({
-        messages: this.state.messages,
+        messages: this.state.getMessages(),
       });
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
@@ -323,7 +325,8 @@ export abstract class AbstractChat<
       }
 
       // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = this.state.messages[this.state.messages.length - 1];
+      const lastMessage =
+        this.state.getMessages()[this.state.getMessages().length - 1];
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
         // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
         this.triggerRequest({
@@ -337,9 +340,9 @@ export abstract class AbstractChat<
     if (this.getStatus() !== 'streaming' && this.getStatus() !== 'submitted')
       return;
 
-    if (this.state.activeResponse?.abortController) {
-      this.state.activeResponse.abortController.abort();
-      this.state.activeResponse.abortController = undefined;
+    if (this.activeResponse?.abortController) {
+      this.activeResponse.abortController.abort();
+      this.activeResponse.abortController = undefined;
     }
   }
 
@@ -364,8 +367,9 @@ export abstract class AbstractChat<
   }) {
     this.setStatus({ status: 'submitted', error: undefined });
 
-    const messageCount = this.state.messages.length;
-    const lastMessage = this.state.messages[this.state.messages.length - 1];
+    const messageCount = this.state.getMessages().length;
+    const lastMessage =
+      this.state.getMessages()[this.state.getMessages().length - 1];
     const maxStep = lastMessage.parts.filter(
       part => part.type === 'step-start',
     ).length;
@@ -381,11 +385,11 @@ export abstract class AbstractChat<
         abortController: new AbortController(),
       };
 
-      this.state.setActiveResponse(activeResponse);
+      this.activeResponse = activeResponse;
 
       const stream = await this.transport.submitMessages({
         chatId: this.id,
-        messages: this.state.messages,
+        messages: this.state.getMessages(),
         body,
         headers,
         abortController: activeResponse.abortController,
@@ -402,7 +406,7 @@ export abstract class AbstractChat<
         }) => Promise<void>,
       ) =>
         // serialize the job execution to avoid race conditions:
-        this.state.jobExecutor.run(() =>
+        this.jobExecutor.run(() =>
           job({
             state: activeResponse.state,
             write: () => {
@@ -411,11 +415,12 @@ export abstract class AbstractChat<
 
               const replaceLastMessage =
                 activeResponse.state.message.id ===
-                this.state.messages[this.state.messages.length - 1].id;
+                this.state.getMessages()[this.state.getMessages().length - 1]
+                  .id;
 
               if (replaceLastMessage) {
                 this.state.replaceMessage(
-                  this.state.messages.length - 1,
+                  this.state.getMessages().length - 1,
                   activeResponse.state.message,
                 );
               } else {
@@ -458,7 +463,7 @@ export abstract class AbstractChat<
 
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
-      this.state.setActiveResponse(undefined);
+      this.activeResponse = undefined;
     }
 
     // auto-submit when all tool calls in the last assistant message have results
@@ -468,7 +473,7 @@ export abstract class AbstractChat<
         originalMaxToolInvocationStep: maxStep,
         originalMessageCount: messageCount,
         maxSteps: this.maxSteps,
-        messages: this.state.messages,
+        messages: this.state.getMessages(),
       })
     ) {
       await this.triggerRequest({
