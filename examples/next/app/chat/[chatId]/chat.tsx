@@ -27,6 +27,8 @@ export default function Chat({
         }),
         messageMetadataSchema: myMessageMetadataSchema,
       }),
+      // for new chats, the router cache needs to be invalidated so
+      // navigation to the previous page triggers SSR correctly
       onFinish: isNewChat ? invalidateRouterCache : undefined,
     });
 
