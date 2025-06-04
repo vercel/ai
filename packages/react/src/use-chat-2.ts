@@ -1,7 +1,8 @@
 import {
+  ChatEvent,
   ChatStatus,
   ChatStoreOptions,
-  ChatStoreSubscriber,
+  ChatSubscriber,
   convertFileListToFileUIParts,
   generateId as generateIdFunc,
   IdGenerator,
@@ -9,14 +10,13 @@ import {
   ToolCall,
   UIDataPartSchemas,
   type ChatRequestOptions,
-  type ChatStoreEvent,
   type CreateUIMessage,
   type FileUIPart,
   type UIMessage,
   type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
-import { createChatStore } from './chat-store';
+import { ReactChat2 } from './react-chat';
 import { throttle } from './throttle';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
@@ -165,7 +165,7 @@ export type Chat2<
   messages: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
 
   // TODO simplified subscriber
-  subscribe(subscriber: ChatStoreSubscriber): () => void;
+  subscribe(subscriber: ChatSubscriber): () => void;
 
   addToolResult({
     toolCallId,
@@ -289,12 +289,11 @@ Default is undefined, which disables throttling.
       eventType,
     }: {
       onStoreChange: () => void;
-      eventType: ChatStoreEvent['type'];
+      eventType: ChatEvent['type'];
     }) =>
       chatRef.current.subscribe({
-        onChatChanged: event => {
-          if (event.chatId !== chatRef.current.id || event.type !== eventType)
-            return;
+        onChange: event => {
+          if (event.type !== eventType) return;
           onStoreChange();
         },
       }),
@@ -318,7 +317,7 @@ Default is undefined, which disables throttling.
     callback =>
       subscribe({
         onStoreChange: callback,
-        eventType: 'chat-status-changed',
+        eventType: 'status-changed',
       }),
     () => chatRef.current.status,
     () => chatRef.current.status,
@@ -330,7 +329,7 @@ Default is undefined, which disables throttling.
         onStoreChange: throttleWaitMs
           ? throttle(callback, throttleWaitMs)
           : callback,
-        eventType: 'chat-messages-changed',
+        eventType: 'messages-changed',
       });
     },
     [subscribe, throttleWaitMs],
@@ -479,38 +478,13 @@ export function createChat2<
   } & Omit<ChatStoreOptions<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'chats'>,
 ): Chat2<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
   const { id, messages, ...options } = chat;
-  const store = createChatStore<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
-    ...options,
-    chats: {
-      [chat.id]: {
-        messages: chat.messages ?? [],
-      },
-    },
-  });
 
-  return {
-    id: chat.id,
-    status: store.getStatus(chat.id),
-    get messages() {
-      return store.getMessages(chat.id);
-    },
-    subscribe: options => store.subscribe(options),
-    addToolResult: options =>
-      store.addToolResult({ chatId: chat.id, ...options }),
-    stopStream: () => store.stopStream({ chatId: chat.id }),
-    submitMessage: options =>
-      store.submitMessage({ chatId: chat.id, ...options }),
-    resubmitLastUserMessage: async options => {
-      await store.resubmitLastUserMessage({
-        chatId: chat.id,
-        ...options,
-      });
-    },
-    resumeStream: async options => {
-      await store.resumeStream({ chatId: chat.id, ...options });
-    },
-    setMessages: async ({ messages }) => {
-      store.setMessages({ id: chat.id, messages });
-    },
-  };
+  return new ReactChat2<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>({
+    id,
+    messages,
+    transport: options.transport,
+    maxSteps: options.maxSteps,
+    messageMetadataSchema: options.messageMetadataSchema,
+    dataPartSchemas: options.dataPartSchemas,
+  });
 }

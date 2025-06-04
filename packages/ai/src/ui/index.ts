@@ -11,6 +11,7 @@ export {
   type InferUIDataParts,
   type UIDataPartSchemas,
 } from './chat-store';
+export * from './abstract-chat';
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {
