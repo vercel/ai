@@ -30,6 +30,12 @@ export function prepareTools({
   const anthropicTools: AnthropicTool[] = [];
 
   for (const tool of tools) {
+    // handle direct web search tool objects passed from provider options
+    if ((tool as any).type === 'web_search_20250305') {
+      anthropicTools.push(tool as any);
+      continue;
+    }
+
     switch (tool.type) {
       case 'function':
         anthropicTools.push({
