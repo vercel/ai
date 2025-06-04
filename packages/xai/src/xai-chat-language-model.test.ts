@@ -13,6 +13,7 @@ const testConfig = {
   provider: 'xai.chat',
   baseURL: 'https://api.x.ai/v1',
   headers: () => ({ authorization: 'Bearer test-api-key' }),
+  generateId: () => 'test-id',
 };
 
 const model = new XaiChatLanguageModel('grok-beta', testConfig);
@@ -307,6 +308,7 @@ describe('XaiChatLanguageModel', () => {
           authorization: 'Bearer test-api-key',
           'Custom-Provider-Header': 'provider-header-value',
         }),
+        generateId: () => 'test-id',
       });
 
       await modelWithHeaders.doGenerate({
@@ -388,6 +390,69 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
+    it('should pass search parameters with sources array', async () => {
+      prepareJsonResponse({ content: '' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            searchParameters: {
+              mode: 'on',
+              sources: [
+                {
+                  type: 'web',
+                  country: 'US',
+                  excludedWebsites: ['example.com'],
+                  safeSearch: false,
+                },
+                {
+                  type: 'x',
+                  xHandles: ['grok'],
+                },
+                {
+                  type: 'news',
+                  country: 'GB',
+                },
+                {
+                  type: 'rss',
+                  links: ['https://status.x.ai/feed.xml'],
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        search_parameters: {
+          mode: 'on',
+          sources: [
+            {
+              type: 'web',
+              country: 'US',
+              excluded_websites: ['example.com'],
+              safe_search: false,
+            },
+            {
+              type: 'x',
+              x_handles: ['grok'],
+            },
+            {
+              type: 'news',
+              country: 'GB',
+            },
+            {
+              type: 'rss',
+              links: ['https://status.x.ai/feed.xml'],
+            },
+          ],
+        },
+      });
+    });
+
     it('should extract content when message content is a content object', async () => {
       server.urls['https://api.x.ai/v1/chat/completions'].response = {
         type: 'json-value',
@@ -419,6 +484,180 @@ describe('XaiChatLanguageModel', () => {
         [
           {
             "text": "Hello from object",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should extract citations as sources', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'citations-test',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-beta',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Here are the latest developments in AI.',
+                tool_calls: null,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+          citations: [
+            'https://example.com/article1',
+            'https://example.com/article2',
+          ],
+        },
+      };
+
+      const { content } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            searchParameters: {
+              mode: 'auto',
+              returnCitations: true,
+            },
+          },
+        },
+      });
+
+      expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Here are the latest developments in AI.",
+            "type": "text",
+          },
+          {
+            "id": "test-id",
+            "sourceType": "url",
+            "type": "source",
+            "url": "https://example.com/article1",
+          },
+          {
+            "id": "test-id",
+            "sourceType": "url",
+            "type": "source",
+            "url": "https://example.com/article2",
+          },
+        ]
+      `);
+    });
+
+    it('should handle complex search parameter combinations', async () => {
+      prepareJsonResponse({
+        content: 'Research results from multiple sources',
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            searchParameters: {
+              mode: 'on',
+              returnCitations: true,
+              fromDate: '2024-01-01',
+              toDate: '2024-12-31',
+              maxSearchResults: 15,
+              sources: [
+                {
+                  type: 'web',
+                  country: 'US',
+                  allowedWebsites: ['arxiv.org', 'nature.com'],
+                  safeSearch: true,
+                },
+                {
+                  type: 'news',
+                  country: 'GB',
+                  excludedWebsites: ['tabloid.com'],
+                },
+                {
+                  type: 'x',
+                  xHandles: ['openai', 'deepmind'],
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        search_parameters: {
+          mode: 'on',
+          return_citations: true,
+          from_date: '2024-01-01',
+          to_date: '2024-12-31',
+          max_search_results: 15,
+          sources: [
+            {
+              type: 'web',
+              country: 'US',
+              allowed_websites: ['arxiv.org', 'nature.com'],
+              safe_search: true,
+            },
+            {
+              type: 'news',
+              country: 'GB',
+              excluded_websites: ['tabloid.com'],
+            },
+            {
+              type: 'x',
+              x_handles: ['openai', 'deepmind'],
+            },
+          ],
+        },
+      });
+    });
+
+    it('should handle empty citations array', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'no-citations-test',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-beta',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Response without citations.',
+                tool_calls: null,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+          citations: [],
+        },
+      };
+
+      const { content } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            searchParameters: {
+              mode: 'auto',
+              returnCitations: true,
+            },
+          },
+        },
+      });
+
+      expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Response without citations.",
             "type": "text",
           },
         ]
@@ -672,6 +911,7 @@ describe('XaiChatLanguageModel', () => {
           authorization: 'Bearer test-api-key',
           'Custom-Provider-Header': 'provider-header-value',
         }),
+        generateId: () => 'test-id',
       });
 
       await modelWithHeaders.doStream({
@@ -721,6 +961,76 @@ describe('XaiChatLanguageModel', () => {
             "top_p": undefined,
           },
         }
+      `);
+    });
+
+    it('should stream citations as sources', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"citations-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-beta",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"citations-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-beta",` +
+            `"choices":[{"index":0,"delta":{"content":"Latest AI news"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"citations-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-beta",` +
+            `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":4,"total_tokens":34,"completion_tokens":30},` +
+            `"citations":["https://example.com/source1","https://example.com/source2"]}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            searchParameters: {
+              mode: 'auto',
+              returnCitations: true,
+            },
+          },
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "citations-stream",
+            "modelId": "grok-beta",
+            "timestamp": 2023-11-08T19:35:11.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "text": "Latest AI news",
+            "type": "text",
+          },
+          {
+            "id": "test-id",
+            "sourceType": "url",
+            "type": "source",
+            "url": "https://example.com/source1",
+          },
+          {
+            "id": "test-id",
+            "sourceType": "url",
+            "type": "source",
+            "url": "https://example.com/source2",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "inputTokens": 4,
+              "outputTokens": 30,
+              "reasoningTokens": undefined,
+              "totalTokens": 34,
+            },
+          },
+        ]
       `);
     });
   });

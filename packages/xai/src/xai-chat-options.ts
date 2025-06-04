@@ -45,6 +45,39 @@ export function supportsStructuredOutputs(modelId: XaiChatModelId) {
   ].includes(modelId);
 }
 
+// search source schemas
+const webSourceSchema = z.object({
+  type: z.literal('web'),
+  country: z.string().length(2).optional(),
+  excludedWebsites: z.array(z.string()).max(5).optional(),
+  allowedWebsites: z.array(z.string()).max(5).optional(),
+  safeSearch: z.boolean().optional(),
+});
+
+const xSourceSchema = z.object({
+  type: z.literal('x'),
+  xHandles: z.array(z.string()).optional(),
+});
+
+const newsSourceSchema = z.object({
+  type: z.literal('news'),
+  country: z.string().length(2).optional(),
+  excludedWebsites: z.array(z.string()).max(5).optional(),
+  safeSearch: z.boolean().optional(),
+});
+
+const rssSourceSchema = z.object({
+  type: z.literal('rss'),
+  links: z.array(z.string().url()).max(1), // currently only supports one RSS link
+});
+
+const searchSourceSchema = z.discriminatedUnion('type', [
+  webSourceSchema,
+  xSourceSchema,
+  newsSourceSchema,
+  rssSourceSchema,
+]);
+
 // xai-specific provider options
 export const xaiProviderOptions = z.object({
   /**
@@ -84,6 +117,12 @@ export const xaiProviderOptions = z.object({
        * defaults to 20
        */
       maxSearchResults: z.number().min(1).max(50).optional(),
+
+      /**
+       * data sources to search from
+       * defaults to ["web", "x"] if not specified
+       */
+      sources: z.array(searchSourceSchema).optional(),
     })
     .optional(),
 });
