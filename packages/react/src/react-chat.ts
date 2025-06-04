@@ -12,30 +12,38 @@ import {
 class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   implements ChatState<MESSAGE_METADATA, DATA_TYPES>
 {
-  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  #messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
   status: ChatStatus = 'ready';
   error: Error | undefined = undefined;
 
   constructor(messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
-    this.messages = messages ?? [];
+    this.#messages = messages ?? [];
+  }
+
+  get messages() {
+    return this.#messages;
+  }
+
+  set messages(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
+    this.#messages = [...messages];
   }
 
   pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
-    this.messages = this.messages.concat(message);
+    this.#messages = this.messages.concat(message);
   };
 
   popMessage = () => {
-    this.messages = this.messages.slice(0, -1);
+    this.#messages = this.messages.slice(0, -1);
   };
 
   replaceMessage = (
     index: number,
     message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
   ) => {
-    this.messages = [
-      ...this.messages.slice(0, index),
+    this.#messages = [
+      ...this.#messages.slice(0, index),
       message,
-      ...this.messages.slice(index + 1),
+      ...this.#messages.slice(index + 1),
     ];
   };
 
