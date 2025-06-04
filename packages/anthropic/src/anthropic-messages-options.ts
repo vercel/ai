@@ -19,10 +19,10 @@ export type AnthropicMessagesModelId =
 // web search tool options schema
 const webSearchLocationSchema = z.object({
   type: z.literal('approximate'),
-  city: z.string(),
-  region: z.string(),
+  city: z.string().optional(),
+  region: z.string().optional(),
   country: z.string(),
-  timezone: z.string(),
+  timezone: z.string().optional(),
 });
 
 export const anthropicProviderOptions = z.object({

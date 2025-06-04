@@ -139,14 +139,9 @@ describe('Anthropic Web Search', () => {
       },
     });
 
-    expect(result.content).toHaveLength(3);
+    expect(result.content).toHaveLength(2);
 
     expect(result.content[0]).toEqual({
-      type: 'text',
-      text: 'Searching for: latest AI news',
-    });
-
-    expect(result.content[1]).toEqual({
       type: 'source',
       sourceType: 'url',
       id: expect.any(String),
@@ -160,7 +155,7 @@ describe('Anthropic Web Search', () => {
       },
     });
 
-    expect(result.content[2]).toEqual({
+    expect(result.content[1]).toEqual({
       type: 'text',
       text: 'Based on recent articles, AI continues to advance rapidly.',
     });
@@ -188,20 +183,17 @@ describe('Anthropic Web Search', () => {
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 
-    const result = await model.doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        anthropic: {
-          webSearch: { maxUses: 1 },
+    // web search errors should throw an exception in non-streaming mode
+    await expect(() =>
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            webSearch: { maxUses: 1 },
+          },
         },
-      },
-    });
-
-    expect(result.content).toHaveLength(2);
-    expect(result.content[0]).toEqual({
-      type: 'text',
-      text: 'Web search error: max_uses_exceeded',
-    });
+      }),
+    ).rejects.toThrow('Web search failed: max_uses_exceeded');
   });
 
   it('should combine web search with regular tools', async () => {

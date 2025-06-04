@@ -16,6 +16,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -47,6 +48,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly modelId: AnthropicMessagesModelId;
 
   private readonly config: AnthropicMessagesConfig;
+  private readonly generateId: () => string;
 
   constructor(
     modelId: AnthropicMessagesModelId,
@@ -54,6 +56,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   ) {
     this.modelId = modelId;
     this.config = config;
+    this.generateId = config.generateId ?? generateId;
   }
 
   supportsUrl(url: URL): boolean {
@@ -230,10 +233,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         ...(anthropicOptions.webSearch.userLocation && {
           user_location: {
             type: anthropicOptions.webSearch.userLocation.type,
-            city: anthropicOptions.webSearch.userLocation.city,
-            region: anthropicOptions.webSearch.userLocation.region,
             country: anthropicOptions.webSearch.userLocation.country,
-            timezone: anthropicOptions.webSearch.userLocation.timezone,
+            ...(anthropicOptions.webSearch.userLocation.city && {
+              city: anthropicOptions.webSearch.userLocation.city,
+            }),
+            ...(anthropicOptions.webSearch.userLocation.region && {
+              region: anthropicOptions.webSearch.userLocation.region,
+            }),
+            ...(anthropicOptions.webSearch.userLocation.timezone && {
+              timezone: anthropicOptions.webSearch.userLocation.timezone,
+            }),
           },
         }),
       };
@@ -371,17 +380,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'server_tool_use': {
-          const query =
-            part.input &&
-            typeof part.input === 'object' &&
-            'query' in part.input
-              ? String(part.input.query)
-              : 'web search';
-          content.push({
-            type: 'text',
-            text: `Searching for: ${query}`,
-          });
-          break;
+          continue;
         }
         case 'web_search_tool_result': {
           if (Array.isArray(part.content)) {
@@ -390,7 +389,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 content.push({
                   type: 'source',
                   sourceType: 'url',
-                  id: this.config.generateId?.() ?? Math.random().toString(36),
+                  id: this.generateId(),
                   url: result.url,
                   title: result.title,
                   providerMetadata: {
@@ -403,10 +402,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               }
             }
           } else if (part.content.type === 'web_search_tool_result_error') {
-            content.push({
-              type: 'text',
-              text: `Web search error: ${part.content.error_code}`,
-            });
+            throw new Error(`Web search failed: ${part.content.error_code}`);
           }
           break;
         }
@@ -490,6 +486,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | undefined = undefined;
 
     const config = this.config;
+    const generateId = this.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -549,16 +546,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   }
 
                   case 'server_tool_use': {
-                    const query =
-                      value.content_block.input &&
-                      typeof value.content_block.input === 'object' &&
-                      'query' in value.content_block.input
-                        ? String(value.content_block.input.query)
-                        : 'web search';
-                    controller.enqueue({
-                      type: 'text',
-                      text: `Searching for: ${query}`,
-                    });
+                    // server_tool_use is just metadata about the tool usage
+                    // We don't generate synthetic content for it
                     return;
                   }
 
@@ -569,9 +558,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           controller.enqueue({
                             type: 'source',
                             sourceType: 'url',
-                            id:
-                              config.generateId?.() ??
-                              Math.random().toString(36),
+                            id: generateId(),
                             url: result.url,
                             title: result.title,
                             providerMetadata: {
@@ -588,8 +575,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       'web_search_tool_result_error'
                     ) {
                       controller.enqueue({
-                        type: 'text',
-                        text: `Web search error: ${value.content_block.content.error_code}`,
+                        type: 'error',
+                        error: {
+                          type: 'web-search-error',
+                          message: `Web search failed: ${value.content_block.content.error_code}`,
+                          code: value.content_block.content.error_code,
+                        },
                       });
                     }
                     return;
@@ -809,7 +800,7 @@ const anthropicMessagesResponseSchema = z.object({
         type: z.literal('server_tool_use'),
         id: z.string(),
         name: z.string(),
-        input: z.record(z.unknown()).optional(),
+        input: z.record(z.unknown()).nullish(),
       }),
       z.object({
         type: z.literal('web_search_tool_result'),
@@ -826,13 +817,7 @@ const anthropicMessagesResponseSchema = z.object({
           ),
           z.object({
             type: z.literal('web_search_tool_result_error'),
-            error_code: z.enum([
-              'too_many_requests',
-              'invalid_input',
-              'max_uses_exceeded',
-              'query_too_long',
-              'unavailable',
-            ]),
+            error_code: z.string(),
           }),
         ]),
       }),
@@ -848,7 +833,7 @@ const anthropicMessagesResponseSchema = z.object({
       .object({
         web_search_requests: z.number(),
       })
-      .optional(),
+      .nullish(),
   }),
 });
 
@@ -893,7 +878,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         type: z.literal('server_tool_use'),
         id: z.string(),
         name: z.string(),
-        input: z.record(z.unknown()).optional(),
+        input: z.record(z.unknown()).nullish(),
       }),
       z.object({
         type: z.literal('web_search_tool_result'),
@@ -910,13 +895,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
           ),
           z.object({
             type: z.literal('web_search_tool_result_error'),
-            error_code: z.enum([
-              'too_many_requests',
-              'invalid_input',
-              'max_uses_exceeded',
-              'query_too_long',
-              'unavailable',
-            ]),
+            error_code: z.string(),
           }),
         ]),
       }),

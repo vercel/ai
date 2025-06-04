@@ -5,6 +5,17 @@ import {
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
 
+function isWebSearchTool(
+  tool: unknown,
+): tool is Extract<AnthropicTool, { type: 'web_search_20250305' }> {
+  return (
+    typeof tool === 'object' &&
+    tool !== null &&
+    'type' in tool &&
+    tool.type === 'web_search_20250305'
+  );
+}
+
 export function prepareTools({
   tools,
   toolChoice,
@@ -31,8 +42,8 @@ export function prepareTools({
 
   for (const tool of tools) {
     // handle direct web search tool objects passed from provider options
-    if ((tool as any).type === 'web_search_20250305') {
-      anthropicTools.push(tool as any);
+    if (isWebSearchTool(tool)) {
+      anthropicTools.push(tool);
       continue;
     }
 
