@@ -27,6 +27,7 @@ type XaiChatConfig = {
   provider: string;
   baseURL: string | undefined;
   headers: () => Record<string, string | undefined>;
+  generateId: () => string;
   fetch?: FetchFunction;
 };
 
@@ -158,6 +159,37 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             : { type: 'json_object' }
           : undefined,
 
+      // search parameters
+      search_parameters: options.searchParameters
+        ? {
+            mode: options.searchParameters.mode,
+            return_citations: options.searchParameters.returnCitations,
+            from_date: options.searchParameters.fromDate,
+            to_date: options.searchParameters.toDate,
+            max_search_results: options.searchParameters.maxSearchResults,
+            sources: options.searchParameters.sources?.map(source => ({
+              type: source.type,
+              ...(source.type === 'web' && {
+                country: source.country,
+                excluded_websites: source.excludedWebsites,
+                allowed_websites: source.allowedWebsites,
+                safe_search: source.safeSearch,
+              }),
+              ...(source.type === 'x' && {
+                x_handles: source.xHandles,
+              }),
+              ...(source.type === 'news' && {
+                country: source.country,
+                excluded_websites: source.excludedWebsites,
+                safe_search: source.safeSearch,
+              }),
+              ...(source.type === 'rss' && {
+                links: source.links,
+              }),
+            })),
+          }
+        : undefined,
+
       // messages in xai format
       messages,
 
@@ -235,6 +267,18 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       }
     }
 
+    // extract citations
+    if (response.citations != null) {
+      for (const url of response.citations) {
+        content.push({
+          type: 'source',
+          sourceType: 'url',
+          id: this.config.generateId(),
+          url,
+        });
+      }
+    }
+
     return {
       content,
       finishReason: mapXaiFinishReason(choice.finish_reason),
@@ -287,6 +331,8 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
     };
     let isFirstChunk = true;
 
+    const self = this;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -312,6 +358,18 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
                 ...getResponseMetadata(value),
               });
               isFirstChunk = false;
+            }
+
+            // emit citations if present (they come in the last chunk according to docs)
+            if (value.citations != null) {
+              for (const url of value.citations) {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: self.config.generateId(),
+                  url,
+                });
+              }
             }
 
             // update usage if present
@@ -439,6 +497,7 @@ const xaiChatResponseSchema = z.object({
   ),
   object: z.literal('chat.completion'),
   usage: xaiUsageSchema,
+  citations: z.array(z.string().url()).nullish(),
 });
 
 const xaiChatChunkSchema = z.object({
@@ -469,4 +528,5 @@ const xaiChatChunkSchema = z.object({
     }),
   ),
   usage: xaiUsageSchema.nullish(),
+  citations: z.array(z.string().url()).nullish(),
 });
