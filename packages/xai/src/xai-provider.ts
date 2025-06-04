@@ -10,6 +10,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
@@ -93,6 +94,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       provider: 'xai.chat',
       baseURL: baseURL,
       headers: getHeaders,
+      generateId,
       fetch: options.fetch,
     });
   };
