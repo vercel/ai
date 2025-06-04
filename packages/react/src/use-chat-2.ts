@@ -124,35 +124,6 @@ export type UseChatHelpers2<
   }) => void;
 };
 
-type ExtendedCallOptions<
-  MESSAGE_METADATA,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas,
-> = ChatRequestOptions & {
-  onError?: (error: Error) => void;
-
-  /**
-Optional callback function that is invoked when a tool call is received.
-Intended for automatic client-side tool execution.
-
-You can optionally return a result for the tool call,
-either synchronously or asynchronously.
-   */
-  onToolCall?: ({
-    toolCall,
-  }: {
-    toolCall: ToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
-
-  /**
-   * Optional callback function that is called when the assistant message is finished streaming.
-   *
-   * @param message The message that was streamed.
-   */
-  onFinish?: (options: {
-    message: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>;
-  }) => void;
-};
-
 export type UseChatOptions2<
   MESSAGE_METADATA = unknown,
   DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
