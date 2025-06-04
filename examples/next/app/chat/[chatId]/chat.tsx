@@ -4,6 +4,7 @@ import { invalidateRouterCache } from '@/app/actions';
 import { myMessageMetadataSchema, MyUIMessage } from '@/util/chat-schema';
 import { Chat2, useChat2 } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useRef } from 'react';
 
 export default function Chat({
   chatData,
@@ -12,6 +13,8 @@ export default function Chat({
   chatData: { id: string; messages: MyUIMessage[] };
   isNewChat?: boolean;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const { input, status, append, messages, setInput, handleInputChange } =
     useChat2({
       chat: new Chat2({
@@ -27,9 +30,18 @@ export default function Chat({
         }),
         messageMetadataSchema: myMessageMetadataSchema,
       }),
-      // for new chats, the router cache needs to be invalidated so
-      // navigation to the previous page triggers SSR correctly
-      onFinish: isNewChat ? invalidateRouterCache : undefined,
+      onFinish() {
+        // for new chats, the router cache needs to be invalidated so
+        // navigation to the previous page triggers SSR correctly
+        if (isNewChat) {
+          invalidateRouterCache();
+        }
+
+        // focus the input field
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
+      },
     });
 
   return (
@@ -73,6 +85,7 @@ export default function Chat({
         }}
       >
         <input
+          ref={inputRef}
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
           onChange={handleInputChange}
