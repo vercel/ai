@@ -220,7 +220,10 @@ export abstract class AbstractChat<
     return this.state.error;
   }
 
-  get messages() {
+  get messages(): UIMessage<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  >[] {
     return this.state.messages;
   }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defaultChatStoreOptions, getToolInvocations } from 'ai';
+import { getToolInvocations } from 'ai';
 import { useChat } from './use-chat';
 
 const { messages, handleSubmit, input } = useChat({
@@ -11,7 +11,6 @@ const { messages, handleSubmit, input } = useChat({
     }
   },
 });
-
 </script>
 
 <template>

@@ -229,8 +229,8 @@ Default is undefined, which disables throttling.
   };
 
   return {
-    messages,
     id: chatRef.current.id,
+    messages,
     setMessages,
     append: chatRef.current.append,
     reload: chatRef.current.reload,

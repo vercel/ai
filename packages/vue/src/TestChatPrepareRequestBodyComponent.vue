@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { UIMessage, useChat } from './use-chat';
 
 const bodyOptions = ref<{
@@ -10,7 +10,7 @@ const bodyOptions = ref<{
 }>();
 
 const { messages, append, status } = useChat({
-  chatStore: defaultChatStoreOptions({
+  transport: new DefaultChatTransport({
     api: '/api/chat',
     prepareRequestBody(options) {
       bodyOptions.value = {

@@ -1,4 +1,5 @@
 import type {
+  AbstractChatInit,
   ChatRequestOptions,
   ChatStatus,
   ChatStore,
@@ -9,16 +10,29 @@ import type {
   UIMessage,
   UseChatOptions,
 } from 'ai';
-import {
-  convertFileListToFileUIParts,
-  defaultChatStoreOptions,
-  generateId as generateIdFunc,
-} from 'ai';
+import { convertFileListToFileUIParts } from 'ai';
 import type { Ref } from 'vue';
 import { computed, ref } from 'vue';
-import { createChatStore } from './chat-store';
+import { Chat, ChatInit } from './chat.vue';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
+
+export type UseChatOptions2<
+  MESSAGE_METADATA = unknown,
+  DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> = (
+  | { chat: Chat<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> }
+  | ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
+) & {
+  /**
+  /**
+   * Initial input of the chat.
+   */
+  initialInput?: string;
+} & Pick<
+    AbstractChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>,
+    'onToolCall' | 'onFinish' | 'onError'
+  >;
 
 export type UseChatHelpers<
   MESSAGE_METADATA = unknown,
@@ -27,7 +41,7 @@ export type UseChatHelpers<
   /**
    * The id of the chat.
    */
-  readonly chatId: string;
+  readonly id: string;
 
   /** Current messages in the chat */
   readonly messages: Ref<
@@ -57,9 +71,7 @@ export type UseChatHelpers<
    * message isn't from the assistant, it will request the API to generate a
    * new response.
    */
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+  reload: (chatRequestOptions?: ChatRequestOptions) => Promise<void>;
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
@@ -119,34 +131,17 @@ export function useChat<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
-  chatId,
   initialInput = '',
-  onFinish,
-  onError,
-  generateId = generateIdFunc,
-  onToolCall,
-  chatStore: chatStoreArg,
-}: UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> = {}): UseChatHelpers<
+  ...options
+}: UseChatOptions2<MESSAGE_METADATA, DATA_PART_SCHEMAS> = {}): UseChatHelpers<
   MESSAGE_METADATA,
   DATA_PART_SCHEMAS
 > {
-  const stableChatId = chatId ?? generateId();
+  const chat = 'chat' in options ? options.chat : new Chat(options);
 
-  const chatStore =
-    chatStoreArg == null
-      ? createChatStore(
-          defaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
-            api: '/api/chat',
-            generateId,
-          })(),
-        )
-      : typeof chatStoreArg === 'function'
-        ? createChatStore(chatStoreArg())
-        : chatStoreArg;
-
-  const messages = computed(() => chatStore.getMessages(stableChatId));
-  const status = computed(() => chatStore.getStatus(stableChatId));
-  const error = computed(() => chatStore.getError(stableChatId));
+  const messages = computed(() => chat.messages);
+  const status = computed(() => chat.status);
+  const error = computed(() => chat.error);
 
   const append = async (
     message: CreateUIMessage<
@@ -154,30 +149,12 @@ export function useChat<
       InferUIDataParts<DATA_PART_SCHEMAS>
     >,
     { headers, body }: ChatRequestOptions = {},
-  ) =>
-    chatStore.submitMessage({
-      chatId: stableChatId,
-      message,
-      headers,
-      body,
-      onError,
-      onToolCall,
-      onFinish,
-    });
+  ) => chat.append(message, { headers, body });
 
   const reload = async ({ headers, body }: ChatRequestOptions = {}) =>
-    chatStore.resubmitLastUserMessage({
-      chatId: stableChatId,
-      headers,
-      body,
-      onError,
-      onToolCall,
-      onFinish,
-    });
+    chat.reload({ headers, body });
 
-  const stop = () => {
-    chatStore.stopStream({ chatId: stableChatId });
-  };
+  const stop = () => chat.stop();
 
   const setMessages = (
     messagesParam:
@@ -193,13 +170,10 @@ export function useChat<
         >[]),
   ) => {
     if (typeof messagesParam === 'function') {
-      messagesParam = messagesParam(chatStore.getMessages(stableChatId));
+      messagesParam = messagesParam(chat.messages);
     }
 
-    chatStore.setMessages({
-      id: stableChatId,
-      messages: messagesParam,
-    });
+    chat.messages = messagesParam;
   };
 
   const input = ref(initialInput);
@@ -220,7 +194,7 @@ export function useChat<
 
     await append(
       {
-        id: generateId(),
+        id: chat.generateId(),
         role: 'user',
         metadata: undefined,
         parts: [...fileParts, { type: 'text', text: inputValue }],
@@ -241,10 +215,10 @@ export function useChat<
       >[0],
       'chatId'
     >,
-  ) => chatStore.addToolResult({ chatId: stableChatId, ...options });
+  ) => chat.addToolResult(options);
 
   return {
-    chatId: stableChatId,
+    id: chat.id,
     messages,
     append,
     error,
