@@ -37,9 +37,7 @@ createFeatureTestSuite({
   timeout: 30000,
   customAssertions: {
     errorValidator: (error: APICallError) => {
-      expect((error.data as XaiErrorData).code).toBe(
-        'Some requested entity was not found',
-      );
+      expect((error.data as XaiErrorData).error.message).toContain('model');
     },
   },
 })();
