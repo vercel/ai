@@ -105,6 +105,12 @@ const { embedding } = await embed({
               description:
                 'Additional information to include in the telemetry data.',
             },
+            {
+              name: 'tracer',
+              type: 'Tracer',
+              isOptional: true,
+              description: 'A custom tracer to use for the telemetry data.',
+            },
           ],
         },
       ],
@@ -128,16 +134,16 @@ const { embedding } = await embed({
     },
     {
       name: 'usage',
-      type: 'EmbeddingTokenUsage',
+      type: 'EmbeddingModelUsage',
       description: 'The token usage for generating the embeddings.',
       properties: [
         {
-          type: 'EmbeddingTokenUsage',
+          type: 'EmbeddingModelUsage',
           parameters: [
             {
               name: 'tokens',
               type: 'number',
-              description: 'The total number of input tokens.',
+              description: 'The number of tokens used in the embedding.',
             },
           ],
         },
@@ -157,6 +163,12 @@ const { embedding } = await embed({
               isOptional: true,
               type: 'Record<string, string>',
               description: 'Response headers.',
+            },
+            {
+              name: 'body',
+              type: 'unknown',
+              isOptional: true,
+              description: 'The response body.',
             },
           ],
         },
