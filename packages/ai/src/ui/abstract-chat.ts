@@ -35,11 +35,6 @@ export interface ChatEvent {
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
-export type ActiveResponse<MESSAGE_METADATA> = {
-  state: StreamingUIMessageState<MESSAGE_METADATA>;
-  abortController: AbortController | undefined;
-};
-
 export type UIDataPartSchemas = Record<
   string,
   Validator<any> | StandardSchemaV1<any>
@@ -51,6 +46,11 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
     : T[K] extends StandardSchemaV1<infer U>
       ? U
       : unknown;
+};
+
+type ActiveResponse<MESSAGE_METADATA> = {
+  state: StreamingUIMessageState<MESSAGE_METADATA>;
+  abortController: AbortController | undefined;
 };
 
 export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
@@ -99,7 +99,7 @@ export interface AbstractChatInit<
   /**
   Optional callback function that is invoked when a tool call is received.
   Intended for automatic client-side tool execution.
-  
+
   You can optionally return a result for the tool call,
   either synchronously or asynchronously.
      */
