@@ -1,5 +1,14 @@
 # @ai-sdk/fal
 
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- b248983: feat (@ai-sdk/fal): support new Flux Kontext models
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
 ## 1.0.0-alpha.8
 
 ### Patch Changes
