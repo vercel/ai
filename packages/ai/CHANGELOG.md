@@ -1,5 +1,25 @@
 # ai
 
+## 5.0.0-alpha.9
+
+### Major Changes
+
+- 9ae327d: chore (ui): replace chat store concept with chat instances
+
+### Patch Changes
+
+- 8255639: ### Fix use with Google APIs + zod v4's `.literal()` schema
+
+  Before [zod@3.25.49](https://github.com/colinhacks/zod/releases/tag/v3.25.49), requests to Google's APIs failed due to a missing `type` in the provided schema. The problem has been resolved for the `ai` SDK by bumping our `zod` peer dependencies to `^3.25.49`.
+
+  pull request: https://github.com/vercel/ai/pull/6609
+
+- Updated dependencies [26b6dd0]
+- Updated dependencies [811dff3]
+  - @ai-sdk/gateway@1.0.0-alpha.9
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
 ## 5.0.0-alpha.8
 
 ### Major Changes
