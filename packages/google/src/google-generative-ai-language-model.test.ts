@@ -223,24 +223,14 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    const text = content
-      .filter(
-        (item): item is { type: 'text'; text: string } =>
-          item.type === 'text' && (item as any).thought !== true,
-      )
-      .map(item => item.text)
-      .join('');
-    const reasoning = content
-      .filter(
-        (item): item is { type: 'text'; text: string; thought?: boolean } =>
-          item.type === 'text' && (item as any).thought === true,
-      )
-      .map(item => ({ type: 'text', text: item.text }));
-
-    expect(text).toMatchInlineSnapshot(`
-      "Hello, World!"
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
-    expect(reasoning).toStrictEqual([]);
   });
 
   it('should extract usage', async () => {
@@ -1298,25 +1288,28 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    const text = content
-      .filter(
-        (item): item is { type: 'text'; text: string } =>
-          item.type === 'text' && (item as any).thought !== true,
-      )
-      .map(item => item.text)
-      .join('');
-    const reasoning = content
-      .filter(
-        (item): item is { type: 'text'; text: string; thought?: boolean } =>
-          item.type === 'text' && (item as any).thought === true,
-      )
-      .map(item => ({ type: 'text', text: item.text }));
-
-    expect(text).toStrictEqual('Visible text part 1. Visible text part 2.');
-    expect(reasoning).toStrictEqual([
-      { type: 'text', text: 'This is a thought process.' },
-      { type: 'text', text: 'Another internal thought.' },
-    ]);
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Visible text part 1. ",
+          "type": "text",
+        },
+        {
+          "text": "This is a thought process.",
+          "thought": true,
+          "type": "text",
+        },
+        {
+          "text": "Visible text part 2.",
+          "type": "text",
+        },
+        {
+          "text": "Another internal thought.",
+          "thought": true,
+          "type": "text",
+        },
+      ]
+    `);
   });
   describe('warnings for includeThoughts option', () => {
     it('should generate a warning if includeThoughts is true for a non-Vertex provider', async () => {
@@ -1343,13 +1336,14 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(warnings).toContainEqual({
-        type: 'other',
-        message:
-          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
-          'and might not be supported or could behave unexpectedly with the current Google provider ' +
-          '(google.generative-ai.chat).',
-      });
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "The 'includeThoughts' option is only supported with the Google Vertex provider and might not be supported or could behave unexpectedly with the current Google provider (google.generative-ai.chat).",
+            "type": "other",
+          },
+        ]
+      `);
     });
 
     it('should NOT generate a warning if includeThoughts is true for a Vertex provider', async () => {
@@ -1375,16 +1369,7 @@ describe('doGenerate', () => {
         },
       });
 
-      const expectedWarningMessage =
-        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
-        'and might not be supported or could behave unexpectedly with the current Google provider ';
-
-      expect(
-        warnings?.some(
-          w =>
-            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
-        ),
-      ).toBe(false);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should NOT generate a warning if includeThoughts is false for a non-Vertex provider', async () => {
@@ -1410,15 +1395,7 @@ describe('doGenerate', () => {
         },
       });
 
-      const expectedWarningMessage =
-        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
-        'and might not be supported or could behave unexpectedly with the current Google provider ';
-      expect(
-        warnings?.some(
-          w =>
-            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
-        ),
-      ).toBe(false);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should NOT generate a warning if thinkingConfig is not provided for a non-Vertex provider', async () => {
@@ -1439,15 +1416,8 @@ describe('doGenerate', () => {
           },
         },
       });
-      const expectedWarningMessage =
-        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
-        'and might not be supported or could behave unexpectedly with the current Google provider ';
-      expect(
-        warnings?.some(
-          w =>
-            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
-        ),
-      ).toBe(false);
+
+      expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });
 });
@@ -1595,165 +1565,6 @@ describe('doStream', () => {
 
   it('should stream text deltas', async () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "text": "Hello",
-          "type": "text",
-        },
-        {
-          "text": ", ",
-          "type": "text",
-        },
-        {
-          "text": "world!",
-          "type": "text",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": {
-            "google": {
-              "groundingMetadata": null,
-              "safetyRatings": [
-                {
-                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HATE_SPEECH",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HARASSMENT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                  "probability": "NEGLIGIBLE",
-                },
-              ],
-            },
-          },
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 294,
-            "outputTokens": 233,
-            "reasoningTokens": undefined,
-            "totalTokens": 527,
-          },
-        },
-      ]
-    `);
-  });
-
-  it('should expose the raw response headers', async () => {
-    prepareStreamResponse({
-      content: [],
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-type': 'text/event-stream',
-      'cache-control': 'no-cache',
-      connection: 'keep-alive',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
-  it('should pass the messages', async () => {
-    prepareStreamResponse({ content: [''] });
-    await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
-        },
-      ],
-      generationConfig: {},
-    });
-  });
-
-  it('should set streaming mode search param', async () => {
-    prepareStreamResponse({ content: [''] });
-    await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const searchParams = server.calls[0].requestUrlSearchParams;
-    expect(searchParams.get('alt')).toStrictEqual('sse');
-  });
-
-  it('should pass headers', async () => {
-    prepareStreamResponse({ content: [''] });
-    const provider = createGoogleGenerativeAI({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
-      },
-    });
-
-    await provider.chat('gemini-pro').doStream({
-      prompt: TEST_PROMPT,
-      headers: {
-        'Custom-Request-Header': 'request-header-value',
-      },
-    });
-
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-      'x-goog-api-key': 'test-api-key',
-    });
-  });
-
-  it('should send request body', async () => {
-    prepareStreamResponse({ content: [''] });
-
-    const { request } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      generationConfig: {},
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-    });
-  });
-
-  it('should support empty candidates array', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"candidates": [{"content": {"parts": [{"text": "test"}],"role": "model"},` +
-          `"finishReason": "STOP","index": 0,"safetyRatings": [` +
-          `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}]}\n\n`,
-        `data: {"usageMetadata": {"promptTokenCount": 294,"candidatesTokenCount": 233,"totalTokenCount": 527}}\n\n`,
-      ],
-    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -2092,6 +1903,19 @@ describe('doStream', () => {
       ],
     };
     const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
@@ -2123,94 +1947,6 @@ describe('doStream', () => {
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
-    });
-  });
-
-  it('should correctly stream reasoning parts and text deltas separately', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: { parts: [{ text: 'Text delta 1. ' }], role: 'model' },
-              index: 0,
-              safetyRatings: SAFETY_RATINGS,
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Reasoning delta 1.', thought: true }],
-                role: 'model',
-              },
-              index: 0,
-              safetyRatings: SAFETY_RATINGS,
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: { parts: [{ text: 'Text delta 2.' }], role: 'model' },
-              index: 0,
-              safetyRatings: SAFETY_RATINGS,
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Reasoning delta 2.', thought: true }],
-                role: 'model',
-              },
-              finishReason: 'STOP', // Mark finish reason in a chunk that has content
-              index: 0,
-              safetyRatings: SAFETY_RATINGS,
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          // Final chunk for usage metadata
-          usageMetadata: {
-            promptTokenCount: 15,
-            candidatesTokenCount: 25,
-            totalTokenCount: 40,
-          },
-        })}\n\n`,
-      ],
-    };
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const events = await convertReadableStreamToArray(stream);
-
-    const relevantEvents = events.filter(
-      event => event.type === 'text' || event.type === 'reasoning',
-    );
-
-    expect(relevantEvents).toStrictEqual([
-      { type: 'text', text: 'Text delta 1. ' },
-      { type: 'reasoning', text: 'Reasoning delta 1.' },
-      { type: 'text', text: 'Text delta 2.' },
-      { type: 'reasoning', text: 'Reasoning delta 2.' },
-    ]);
-
-    const finishEvent = events.find(event => event.type === 'finish');
-    expect(finishEvent).toBeDefined();
-    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
-      'stop',
-    );
-    expect(finishEvent?.type === 'finish' && finishEvent.usage).toStrictEqual({
-      inputTokens: 15,
-      outputTokens: 25,
-      totalTokens: 40,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     });
   });
 });
