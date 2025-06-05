@@ -172,8 +172,6 @@ describe('doGenerate', () => {
         providerOptions: {},
       });
 
-      console.log('response headers', result)
-
       expect(result.response.headers).toMatchObject({
         'x-request-id': 'test-request-id',
         'content-type': 'image/png',

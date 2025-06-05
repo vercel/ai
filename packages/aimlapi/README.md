@@ -30,6 +30,66 @@ const { text } = await generateText({
 });
 ```
 
+### Using the `gpt-4o` model
+
+```ts
+import 'dotenv/config';
+import { generateText, LanguageModel } from 'ai';
+import { aimlapi } from '@ai-sdk/aimlapi';
+
+async function main() {
+  const { text } = await generateText({
+    model: aimlapi('gpt-4o') as LanguageModel,
+    system: 'You are a friendly assistant!',
+    prompt: 'Why is the sky blue?',
+  });
+
+  console.log(text);
+}
+
+main();
+```
+
+### Generating images
+
+```ts
+import 'dotenv/config';
+import { experimental_generateImage } from 'ai';
+import { aimlapi } from '@ai-sdk/aimlapi';
+import * as fs from 'fs';
+
+async function main() {
+  const model = aimlapi.imageModel?.('flux-realism');
+  if (!model) throw new Error('Image model not available');
+
+  const { image } = await experimental_generateImage({
+    model,
+    prompt: 'pixelated image of a cute baby sea otter, 8-bit style, vibrant colors',
+  });
+
+  const jsonText = new TextDecoder().decode(image.uint8Array);
+  const json = JSON.parse(jsonText);
+  const url = json.data?.[0]?.url;
+
+  if (!url) {
+    console.error('❌ URL not found in image response');
+    return;
+  }
+
+  console.log('✅ Image URL:', url);
+
+  fs.writeFile('imageUrlFile.txt', url, (err) => {
+    if (err) {
+      console.error('Error writing to file:', err);
+      return;
+    }
+    console.log('File written successfully.');
+  });
+}
+
+main().catch(console.error);
+```
+
 ## Documentation
 
 See the **[AIMLAPI provider docs](https://ai-sdk.dev/providers/community-providers/aimlapi)** for more details.
