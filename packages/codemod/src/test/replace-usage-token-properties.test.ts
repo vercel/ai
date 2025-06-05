@@ -6,4 +6,4 @@ describe('replace-usage-token-properties', () => {
   it('transforms correctly', () => {
     testTransform(transformer, 'replace-usage-token-properties');
   });
-}); 
+});

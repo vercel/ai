@@ -90,32 +90,33 @@ export default createTransformer((fileInfo, api, options, context) => {
     });
 
   // Replace destructuring patterns: { promptTokens } = obj
-  root
-    .find(j.ObjectPattern)
-    .forEach(path => {
-      let hasPatternChanges = false;
-      path.node.properties.forEach(prop => {
-        // Handle both ObjectProperty and Property nodes in destructuring
-        if ((prop.type === 'ObjectProperty' || prop.type === 'Property') && prop.key.type === 'Identifier') {
-          if (prop.key.name === 'promptTokens') {
-            prop.key = j.identifier('inputTokens');
-            // If it's shorthand, update the value as well
-            if (prop.shorthand && prop.value.type === 'Identifier') {
-              prop.value = j.identifier('inputTokens');
-            }
-            hasPatternChanges = true;
-          } else if (prop.key.name === 'completionTokens') {
-            prop.key = j.identifier('outputTokens');
-            // If it's shorthand, update the value as well
-            if (prop.shorthand && prop.value.type === 'Identifier') {
-              prop.value = j.identifier('outputTokens');
-            }
-            hasPatternChanges = true;
+  root.find(j.ObjectPattern).forEach(path => {
+    let hasPatternChanges = false;
+    path.node.properties.forEach(prop => {
+      // Handle both ObjectProperty and Property nodes in destructuring
+      if (
+        (prop.type === 'ObjectProperty' || prop.type === 'Property') &&
+        prop.key.type === 'Identifier'
+      ) {
+        if (prop.key.name === 'promptTokens') {
+          prop.key = j.identifier('inputTokens');
+          // If it's shorthand, update the value as well
+          if (prop.shorthand && prop.value.type === 'Identifier') {
+            prop.value = j.identifier('inputTokens');
           }
+          hasPatternChanges = true;
+        } else if (prop.key.name === 'completionTokens') {
+          prop.key = j.identifier('outputTokens');
+          // If it's shorthand, update the value as well
+          if (prop.shorthand && prop.value.type === 'Identifier') {
+            prop.value = j.identifier('outputTokens');
+          }
+          hasPatternChanges = true;
         }
-      });
-      if (hasPatternChanges) {
-        context.hasChanges = true;
       }
     });
-}); 
+    if (hasPatternChanges) {
+      context.hasChanges = true;
+    }
+  });
+});
