@@ -1,27 +1,19 @@
 export { callCompletionApi } from './call-completion-api';
 export {
-  ChatStore,
-  type ActiveResponse,
-  type Chat,
+  AbstractChat,
+  type AbstractChatInit,
+  type ChatEvent,
   type ChatStatus,
-  type ChatStoreEvent,
-  type ChatStoreFactory,
-  type ChatStoreOptions,
-  type ChatStoreSubscriber,
+  type ChatState,
   type InferUIDataParts,
   type UIDataPartSchemas,
-} from './chat-store';
-export * from './abstract-chat';
+} from './abstract-chat';
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {
   convertToCoreMessages,
   convertToModelMessages,
 } from './convert-to-model-messages';
-export {
-  defaultChatStoreOptions,
-  type DefaultChatStoreOptions,
-} from './default-chat-store-options';
 export { DefaultChatTransport } from './default-chat-transport';
 export { getToolInvocations } from './get-tool-invocations';
 export { TextStreamChatTransport } from './text-stream-chat-transport';

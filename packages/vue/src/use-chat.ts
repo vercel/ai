@@ -2,7 +2,6 @@ import type {
   AbstractChatInit,
   ChatRequestOptions,
   ChatStatus,
-  ChatStore,
   CreateUIMessage,
   FileUIPart,
   InferUIDataParts,
@@ -210,9 +209,7 @@ export function useChat<
 
   const addToolResult = (
     options: Omit<
-      Parameters<
-        ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>['addToolResult']
-      >[0],
+      Parameters<Chat<MESSAGE_METADATA, DATA_PART_SCHEMAS>['addToolResult']>[0],
       'chatId'
     >,
   ) => chat.addToolResult(options);
