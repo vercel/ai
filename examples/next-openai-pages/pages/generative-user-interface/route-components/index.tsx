@@ -1,17 +1,13 @@
 import { useChat } from '@ai-sdk/react';
-import {
-  defaultChatStoreOptions,
-  getToolInvocations,
-  ToolInvocation,
-} from 'ai';
+import { DefaultChatTransport, getToolInvocations, ToolInvocation } from 'ai';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      chatStore: defaultChatStoreOptions({
+      transport: new DefaultChatTransport({
         api: '/api/generative-ui-route',
-        maxSteps: 5,
       }),
+      maxSteps: 5,
       async onToolCall({ toolCall }) {
         if (toolCall.toolName === 'getLocation') {
           const cities = [

@@ -4,7 +4,7 @@ import { mockId } from 'ai/test';
 import { useChat } from './use-chat';
 
 const { messages, append, reload } = useChat({
-  chatId: generateId(),
+  id: generateId(),
   generateId: mockId(),
 });
 </script>

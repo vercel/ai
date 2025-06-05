@@ -5,7 +5,7 @@ import { computed } from 'vue';
 import { useChat } from './use-chat';
 
 const { messages, handleSubmit, status, input } = useChat({
-  chatId: generateId(),
+  id: generateId(),
   generateId: mockId(),
 });
 const isLoading = computed(() => status.value !== 'ready');

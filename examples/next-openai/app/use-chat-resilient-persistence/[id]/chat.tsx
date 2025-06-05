@@ -1,23 +1,20 @@
 'use client';
 
 import { UIMessage, useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { createIdGenerator } from 'ai';
 
 export default function Chat({
-  chatId,
+  id,
   initialMessages,
-}: { chatId?: string | undefined; initialMessages?: UIMessage[] } = {}) {
+}: { id?: string | undefined; initialMessages?: UIMessage[] } = {}) {
   const { input, status, handleInputChange, handleSubmit, messages, stop } =
     useChat({
-      chatStore: defaultChatStoreOptions({
+      id,
+      messages: initialMessages,
+      transport: new DefaultChatTransport({
         api: '/api/use-chat-resilient-persistence',
-        chats:
-          initialMessages && chatId
-            ? { [chatId]: { messages: initialMessages } }
-            : undefined,
       }),
-      chatId, // use the provided chatId
       generateId: createIdGenerator({ prefix: 'msgc', size: 16 }), // id format for client-side messages
     });
 

@@ -1,177 +1,43 @@
 import {
-  ChatStore,
-  convertFileListToFileUIParts,
-  defaultChatStoreOptions,
-  generateId,
+  AbstractChat,
+  type BaseChatInit,
   type ChatRequestOptions,
+  type ChatState,
   type ChatStatus,
   type CreateUIMessage,
-  type IdGenerator,
-  type InferUIDataParts,
   type UIDataPartSchemas,
+  type UIDataTypes,
   type UIMessage,
-  type UseChatOptions,
+  convertFileListToFileUIParts,
 } from 'ai';
-import {
-  getChatStoreContext,
-  hasChatStoreContext,
-  createChatStore,
-} from './chat-store.svelte.js';
 
-export type ChatOptions<
+export type ChatInit<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = Readonly<UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>>;
+> = Readonly<BaseChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>> & {
+  /**
+   * Initial input of the chat.
+   */
+  initialInput?: string;
+};
 
 export type { CreateUIMessage, UIMessage };
 
 export class Chat<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> {
-  readonly #options: ChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>;
-  readonly #generateId: IdGenerator;
-  readonly #chatStore: ChatStore<MESSAGE_METADATA, DATA_PART_SCHEMAS>;
-  /**
-   * The id of the chat. If not provided through the constructor, a random ID will be generated
-   * using the provided `generateId` function, or a built-in function if not provided.
-   */
-  readonly chatId: string;
-
+> extends AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
   /** The current value of the input. Writable, so it can be bound to form inputs. */
-  input = $state<string>('');
+  input: string;
 
-  /**
-   * Current messages in the chat.
-   *
-   * This is writable, which is useful when you want to edit the messages on the client, and then
-   * trigger {@link reload} to regenerate the AI response.
-   */
-  get messages(): UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<DATA_PART_SCHEMAS>
-  >[] {
-    return this.#chatStore.getMessages(this.chatId);
-  }
-  set messages(
-    messages: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<DATA_PART_SCHEMAS>
-    >[],
-  ) {
-    this.#chatStore.setMessages({ id: this.chatId, messages });
-  }
-
-  /**
-   * Hook status:
-   *
-   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
-   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
-   * - `ready`: The full response has been received and processed; a new user message can be submitted.
-   * - `error`: An error occurred during the API request, preventing successful completion.
-   */
-  get status(): ChatStatus {
-    return this.#chatStore.getStatus(this.chatId);
-  }
-  set status(value: ChatStatus) {
-    this.#chatStore.setStatus({ id: this.chatId, status: value });
-  }
-
-  /** The error object of the API request */
-  get error(): Error | undefined {
-    return this.#chatStore.getError(this.chatId);
-  }
-  set error(value: Error | undefined) {
-    this.#chatStore.setStatus({
-      id: this.chatId,
-      status: 'error',
-      error: value,
+  constructor(init: ChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>) {
+    super({
+      ...init,
+      state: new SvelteChatState(init.messages),
     });
+
+    this.input = $state(init.initialInput ?? '');
   }
-
-  constructor(
-    options: () => ChatOptions<
-      MESSAGE_METADATA,
-      DATA_PART_SCHEMAS
-    > = () => ({}),
-  ) {
-    this.#options = $derived.by(options);
-    this.#generateId = $derived(this.#options.generateId ?? generateId);
-    this.chatId = $derived(this.#options.chatId ?? this.#generateId());
-
-    if (this.#options.chatStore) {
-      if (typeof this.#options.chatStore === 'function') {
-        this.#chatStore = createChatStore(this.#options.chatStore());
-      } else {
-        this.#chatStore = this.#options.chatStore;
-      }
-    } else if (hasChatStoreContext()) {
-      this.#chatStore = getChatStoreContext() as ChatStore<
-        MESSAGE_METADATA,
-        DATA_PART_SCHEMAS
-      >;
-    } else {
-      this.#chatStore = createChatStore(
-        defaultChatStoreOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS>({
-          api: '/api/chat',
-          generateId: this.#options.generateId || generateId,
-        })(),
-      );
-    }
-
-    this.input = this.#options.initialInput ?? '';
-
-    if (!this.#chatStore.hasChat(this.chatId)) {
-      const messages = $state([]);
-      this.#chatStore.addChat(this.chatId, messages);
-    }
-  }
-
-  /**
-   * Append a user message to the chat list. This triggers the API call to fetch
-   * the assistant's response.
-   * @param message The message to append
-   * @param options Additional options to pass to the API call
-   */
-  append = async (
-    message:
-      | UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>
-      | CreateUIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>,
-    { headers, body }: ChatRequestOptions = {},
-  ) => {
-    await this.#chatStore.submitMessage({
-      chatId: this.chatId,
-      message,
-      headers,
-      body,
-      onError: this.#options.onError,
-      onToolCall: this.#options.onToolCall,
-      onFinish: this.#options.onFinish,
-    });
-  };
-
-  /**
-   * Reload the last AI chat response for the given chat history. If the last
-   * message isn't from the assistant, it will request the API to generate a
-   * new response.
-   */
-  reload = async ({ headers, body }: ChatRequestOptions = {}) => {
-    await this.#chatStore.resubmitLastUserMessage({
-      chatId: this.chatId,
-      headers,
-      body,
-      onError: this.#options.onError,
-      onToolCall: this.#options.onToolCall,
-      onFinish: this.#options.onFinish,
-    });
-  };
-
-  /**
-   * Abort the current request immediately, keep the generated tokens if any.
-   */
-  stop = () => {
-    this.#chatStore.stopStream({ chatId: this.chatId });
-  };
 
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit = async (
@@ -188,7 +54,7 @@ export class Chat<
 
     const request = this.append(
       {
-        id: this.#generateId(),
+        id: this.generateId(),
         role: 'user',
         parts: [...fileParts, { type: 'text', text: this.input }],
       },
@@ -201,18 +67,37 @@ export class Chat<
     this.input = '';
     await request;
   };
+}
 
-  addToolResult = async ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: unknown;
-  }) => {
-    await this.#chatStore.addToolResult({
-      chatId: this.chatId,
-      toolCallId,
-      result,
-    });
+class SvelteChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
+  implements ChatState<MESSAGE_METADATA, DATA_TYPES>
+{
+  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  status = $state<ChatStatus>('ready');
+  error = $state<Error | undefined>(undefined);
+
+  constructor(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[] = []) {
+    this.messages = $state(messages);
+  }
+
+  setMessages = (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => {
+    this.messages = messages;
   };
+
+  pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
+    this.messages.push(message);
+  };
+
+  popMessage = () => {
+    this.messages.pop();
+  };
+
+  replaceMessage = (
+    index: number,
+    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
+  ) => {
+    this.messages[index] = message;
+  };
+
+  snapshot = <T>(thing: T): T => $state.snapshot(thing) as T;
 }

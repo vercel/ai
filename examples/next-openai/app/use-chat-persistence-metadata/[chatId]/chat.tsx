@@ -2,30 +2,27 @@
 
 import { zodSchema } from '@ai-sdk/provider-utils';
 import { UIMessage, useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { z } from 'zod';
 
 export default function Chat({
-  chatId,
+  id,
   initialMessages,
 }: {
-  chatId?: string | undefined;
+  id?: string | undefined;
   initialMessages?: UIMessage<{ createdAt: string }>[];
 } = {}) {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat({
-    chatId, // use the provided chatId
-    chatStore: defaultChatStoreOptions({
+    id, // use the provided chatId
+    messages: initialMessages,
+    transport: new DefaultChatTransport({
       api: '/api/use-chat-persistence-metadata',
-      messageMetadataSchema: zodSchema(
-        z.object({
-          createdAt: z.string().datetime(),
-        }),
-      ),
-      chats:
-        initialMessages && chatId
-          ? { [chatId]: { messages: initialMessages } }
-          : undefined,
     }),
+    messageMetadataSchema: zodSchema(
+      z.object({
+        createdAt: z.string().datetime(),
+      }),
+    ),
   });
 
   return (

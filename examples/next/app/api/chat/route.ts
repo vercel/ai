@@ -1,11 +1,12 @@
+import { MyUIMessage } from '@/util/chat-schema';
 import { readChat, saveChat } from '@util/chat-store';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { convertToModelMessages, streamText } from 'ai';
 
 export async function POST(req: Request) {
-  const { message, chatId }: { message: UIMessage; chatId: string } =
+  const { message, id }: { message: MyUIMessage; id: string } =
     await req.json();
 
-  const chat = await readChat(chatId);
+  const chat = await readChat(id);
   const messages = [...chat.messages, message];
 
   const result = streamText({
@@ -13,10 +14,18 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
+  result.consumeStream(); // TODO always consume the stream even when the client disconnects
+
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
+    messageMetadata: ({ part }) => {
+      if (part.type === 'start') {
+        return { createdAt: Date.now() };
+      }
+    },
     onFinish: ({ messages }) => {
-      saveChat({ chatId, messages });
+      // TODO fix type safety
+      saveChat({ id, messages: messages as MyUIMessage[] });
     },
   });
 }

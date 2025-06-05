@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { getToolInvocations, defaultChatStoreOptions } from 'ai';
+import { getToolInvocations } from 'ai';
 import { useChat } from './use-chat';
 
 const { messages, append, addToolResult } = useChat({
-  chatStore: defaultChatStoreOptions({
-    api: '/api/chat',
-    maxSteps: 5,
-  }),
+  maxSteps: 5,
 });
 </script>
 

@@ -1,30 +1,37 @@
 export { callCompletionApi } from './call-completion-api';
 export {
-  ChatStore,
-  type ActiveResponse,
-  type Chat,
+  AbstractChat,
+  type BaseChatInit,
+  type ChatEvent,
   type ChatStatus,
-  type ChatStoreEvent,
-  type ChatStoreFactory,
-  type ChatStoreOptions,
-  type InferUIDataParts,
-  type UIDataPartSchemas,
-} from './chat-store';
+  type ChatState,
+} from './chat';
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {
   convertToCoreMessages,
   convertToModelMessages,
 } from './convert-to-model-messages';
-export {
-  defaultChatStoreOptions,
-  type DefaultChatStoreOptions,
-} from './default-chat-store-options';
 export { DefaultChatTransport } from './default-chat-transport';
 export { getToolInvocations } from './get-tool-invocations';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
-export * from './ui-messages';
-export { type ChatRequestOptions, type UseChatOptions } from './use-chat';
+export {
+  type InferUIDataParts,
+  type UIDataPartSchemas,
+  type ToolInvocation,
+  type UIMessage,
+  type CreateUIMessage,
+  type UIDataTypes,
+  type DataUIPart,
+  type StepStartUIPart,
+  type SourceUrlUIPart,
+  type FileUIPart,
+  type UIMessagePart,
+  type TextUIPart,
+  type ReasoningUIPart,
+  type ToolInvocationUIPart,
+} from './ui-messages';
+export { type ChatRequestOptions } from './use-chat';
 export {
   type CompletionRequestOptions,
   type UseCompletionOptions,

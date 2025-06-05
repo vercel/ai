@@ -3,9 +3,8 @@ import {
   mockId,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { render } from '@testing-library/svelte';
 import {
-  defaultChatStoreOptions,
+  DefaultChatTransport,
   getToolInvocations,
   TextStreamChatTransport,
   type UIMessage,
@@ -13,9 +12,7 @@ import {
 } from 'ai';
 import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
-import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
-import { createChatStore } from './chat-store.svelte.js';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -43,9 +40,9 @@ describe('data protocol stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should correctly manage streamed response in messages', async () => {
@@ -165,10 +162,10 @@ describe('data protocol stream', () => {
     };
 
     const onFinish = vi.fn();
-    const chatWithOnFinish = new Chat(() => ({
+    const chatWithOnFinish = new Chat({
       onFinish,
       generateId: mockId(),
-    }));
+    });
     await chatWithOnFinish.append({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
@@ -221,83 +218,6 @@ describe('data protocol stream', () => {
         }
       `);
     });
-
-    it('should clear out messages when the id changes', async () => {
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatStreamPart({ type: 'text', text: 'Hello' }),
-          formatStreamPart({ type: 'text', text: ',' }),
-          formatStreamPart({ type: 'text', text: ' world' }),
-          formatStreamPart({ type: 'text', text: '.' }),
-        ],
-      };
-
-      let chatId = $state(crypto.randomUUID());
-      const chatWithId = new Chat(() => ({
-        chatId,
-      }));
-      await chatWithId.append({
-        role: 'user',
-        parts: [{ text: 'hi', type: 'text' }],
-      });
-
-      expect(chatWithId.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
-        }),
-      );
-
-      chatId = crypto.randomUUID();
-
-      flushSync();
-
-      expect(chatWithId.messages).toHaveLength(0);
-    });
-
-    it('should restore messages when the id changes back to an existing id', async () => {
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatStreamPart({ type: 'text', text: 'Hello' }),
-          formatStreamPart({ type: 'text', text: ',' }),
-          formatStreamPart({ type: 'text', text: ' world' }),
-          formatStreamPart({ type: 'text', text: '.' }),
-        ],
-      };
-
-      let chatId = $state(crypto.randomUUID());
-      const originalId = chatId;
-      const chatWithId = new Chat(() => ({
-        chatId,
-      }));
-      await chatWithId.append({
-        role: 'user',
-        parts: [{ text: 'hi', type: 'text' }],
-      });
-
-      expect(chatWithId.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
-        }),
-      );
-
-      chatId = crypto.randomUUID();
-      flushSync();
-
-      expect(chatWithId.messages).toHaveLength(0);
-      chatId = originalId;
-      flushSync();
-
-      expect(chatWithId.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
-        }),
-      );
-    });
   });
 });
 
@@ -307,15 +227,12 @@ describe('text stream', () => {
   beforeEach(() => {
     const generateId = mockId();
 
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId,
-      chatStore: createChatStore({
-        transport: new TextStreamChatTransport({
-          api: '/api/chat',
-        }),
-        generateId,
+      transport: new TextStreamChatTransport({
+        api: '/api/chat',
       }),
-    }));
+    });
   });
 
   it('should show streamed response', async () => {
@@ -404,14 +321,12 @@ describe('text stream', () => {
     };
 
     const onFinish = vi.fn();
-    const chatWithOnFinish = new Chat(() => ({
+    const chatWithOnFinish = new Chat({
       onFinish,
-      chatStore: createChatStore({
-        transport: new TextStreamChatTransport({
-          api: '/api/chat',
-        }),
+      transport: new TextStreamChatTransport({
+        api: '/api/chat',
       }),
-    }));
+    });
     await chatWithOnFinish.append({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
@@ -436,15 +351,12 @@ describe('form actions', () => {
 
   beforeEach(() => {
     const generateId = mockId();
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId,
-      chatStore: createChatStore({
-        transport: new TextStreamChatTransport({
-          api: '/api/chat',
-        }),
-        generateId,
+      transport: new TextStreamChatTransport({
+        api: '/api/chat',
       }),
-    }));
+    });
   });
 
   it('should show streamed response using handleSubmit', async () => {
@@ -505,14 +417,14 @@ describe('onToolCall', () => {
   beforeEach(() => {
     ({ resolve, promise: toolCallPromise } = promiseWithResolvers<void>());
 
-    chat = new Chat(() => ({
+    chat = new Chat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
         } ${JSON.stringify(toolCall.args)}`;
       },
-    }));
+    });
   });
 
   it("should invoke onToolCall when a tool call is received from the server's response", async () => {
@@ -566,14 +478,13 @@ describe('tool invocations', () => {
 
   beforeEach(() => {
     const generateId = mockId();
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId,
-      chatStore: defaultChatStoreOptions({
+      maxSteps: 5,
+      transport: new DefaultChatTransport({
         api: '/api/chat',
-        maxSteps: 5,
-        generateId,
       }),
-    }));
+    });
   });
 
   it('should display partial tool call, tool call, and tool result', async () => {
@@ -884,20 +795,20 @@ describe('maxSteps', () => {
     let chat: Chat;
 
     beforeEach(() => {
-      chat = new Chat(() => ({
+      chat = new Chat({
         async onToolCall({ toolCall }) {
           onToolCallInvoked = true;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatId: 'test-id',
-        chatStore: defaultChatStoreOptions({
+        id: 'test-id',
+        maxSteps: 5,
+        transport: new DefaultChatTransport({
           api: '/api/chat',
-          generateId: mockId(),
-          maxSteps: 5,
         }),
-      }));
+        generateId: mockId(),
+      });
       onToolCallInvoked = false;
     });
 
@@ -972,19 +883,18 @@ describe('maxSteps', () => {
     let chat: Chat;
 
     beforeEach(() => {
-      chat = new Chat(() => ({
+      chat = new Chat({
         async onToolCall({ toolCall }) {
           onToolCallCounter++;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatStore: defaultChatStoreOptions({
+        maxSteps: 5,
+        transport: new DefaultChatTransport({
           api: '/api/chat',
-          generateId: mockId(),
-          maxSteps: 5,
         }),
-      }));
+      });
       onToolCallCounter = 0;
     });
 
@@ -1024,9 +934,9 @@ describe('file attachments with data url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should handle text file attachment and submission', async () => {
@@ -1190,9 +1100,9 @@ describe('file attachments with url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1278,9 +1188,9 @@ describe('file attachments with empty text content', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1366,9 +1276,9 @@ describe('reload', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should show streamed response', async () => {
@@ -1444,9 +1354,9 @@ describe('test sending additional fields during message submission', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should send metadata with the message', async () => {
@@ -1490,82 +1400,6 @@ describe('test sending additional fields during message submission', () => {
   });
 });
 
-describe('synchronization', () => {
-  it('correctly synchronizes content between hook instances', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatStreamPart({ type: 'text', text: 'Hello' }),
-        formatStreamPart({ type: 'text', text: ',' }),
-        formatStreamPart({ type: 'text', text: ' world' }),
-        formatStreamPart({ type: 'text', text: '.' }),
-      ],
-    };
-
-    const {
-      component: { chat1, chat2 },
-    } = render(ChatSynchronization, { chatId: crypto.randomUUID() });
-
-    await chat1.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-
-    expect(chat1.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-      }),
-    );
-    expect(chat2.messages.at(0)).toStrictEqual(chat1.messages.at(0));
-
-    expect(chat1.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        parts: [{ text: 'Hello, world.', type: 'text' }],
-      }),
-    );
-    expect(chat2.messages.at(1)).toStrictEqual(chat1.messages.at(1));
-  });
-
-  it('correctly synchronizes loading and error state between hook instances', async () => {
-    const controller = new TestResponseController();
-    server.urls['/api/chat'].response = {
-      type: 'controlled-stream',
-      controller,
-    };
-
-    const {
-      component: { chat1, chat2 },
-    } = render(ChatSynchronization, { chatId: crypto.randomUUID() });
-
-    const appendOperation = chat1.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-
-    await vi.waitFor(() => {
-      expect(chat1.status).toBe('submitted');
-      expect(chat2.status).toBe('submitted');
-    });
-
-    controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
-    await vi.waitFor(() => {
-      expect(chat1.status).toBe('streaming');
-      expect(chat2.status).toBe('streaming');
-    });
-
-    controller.error(new Error('Failed to be cool enough'));
-    await appendOperation;
-
-    expect(chat1.status).toBe('error');
-    expect(chat2.status).toBe('error');
-    expect(chat1.error).toBeInstanceOf(Error);
-    expect(chat1.error?.message).toBe('Failed to be cool enough');
-    expect(chat2.error).toBeInstanceOf(Error);
-    expect(chat2.error?.message).toBe('Failed to be cool enough');
-  });
-});
-
 describe('generateId function', () => {
   it('should use the provided generateId function for both user and assistant messages', async () => {
     server.urls['/api/chat'].response = {
@@ -1579,9 +1413,9 @@ describe('generateId function', () => {
       ],
     };
 
-    const chatWithCustomId = new Chat(() => ({
+    const chatWithCustomId = new Chat({
       generateId: mockId({ prefix: 'testid' }),
-    }));
+    });
 
     await chatWithCustomId.append({
       role: 'user',
@@ -1618,7 +1452,7 @@ describe('generateId function', () => {
 
 describe('reactivity', () => {
   it('should be able to render as a derived', () => {
-    const chat = $derived(new Chat());
+    const chat = $derived(new Chat({}));
     // If this isn't handled correctly, it'd show a `state_unsafe_mutation` error.
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     chat.messages;

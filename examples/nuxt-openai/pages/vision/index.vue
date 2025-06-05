@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 
 const { messages, input, handleSubmit } = useChat({
-  chatStore: defaultChatStoreOptions({
+  transport: new DefaultChatTransport({
     api: '/api/chat-with-vision',
   }),
 });

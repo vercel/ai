@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { z } from 'zod';
 
 export default function Chat() {
@@ -15,16 +15,16 @@ export default function Chat() {
     reload,
     stop,
   } = useChat({
-    chatStore: defaultChatStoreOptions({
+    transport: new DefaultChatTransport({
       api: '/api/use-chat-data-ui-parts',
-      dataPartSchemas: {
-        weather: z.object({
-          city: z.string(),
-          weather: z.string(),
-          status: z.enum(['loading', 'success']),
-        }),
-      },
     }),
+    dataPartSchemas: {
+      weather: z.object({
+        city: z.string(),
+        weather: z.string(),
+        status: z.enum(['loading', 'success']),
+      }),
+    },
   });
 
   return (
