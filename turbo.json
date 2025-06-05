@@ -43,7 +43,8 @@
         "TOGETHER_AI_API_KEY",
         "VERCEL_API_KEY",
         "VERCEL_URL",
-        "XAI_API_KEY"
+        "XAI_API_KEY",
+        "AIMLAPI_API_KEY"
       ],
       "outputs": [
         "dist/**",

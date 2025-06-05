@@ -1,0 +1,40 @@
+---
+title: AIMLAPI
+description: Learn how to use the AIMLAPI provider for the AI SDK.
+---
+
+# AIMLAPI Provider
+
+The **[AIMLAPI provider](https://github.com/aimlapi/aimlapi-ai-provider)** allows using models via the AIMLAPI service.
+
+## Setup
+
+The AIMLAPI provider is available in the `@ai-sdk/aimlapi` module. You can install it with
+
+```bash
+npm i @ai-sdk/aimlapi
+```
+
+## Provider Instance
+
+You can import `aimlapi` from `@ai-sdk/aimlapi` to create a provider instance:
+
+```ts
+import { aimlapi } from '@ai-sdk/aimlapi';
+```
+
+## Example
+
+```ts
+import { aimlapi } from '@ai-sdk/aimlapi';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: aimlapi('gpt-3.5-turbo'),
+  prompt: 'Hello from AIMLAPI!',
+});
+```
+
+## Documentation
+
+Please check out the **[AIMLAPI provider documentation](https://github.com/aimlapi/aimlapi-ai-provider)** for more information.
