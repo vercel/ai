@@ -13,7 +13,7 @@ import {
   type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
-import { Chat2 } from './react-chat';
+import { Chat2, ChatInit } from './react-chat';
 import { throttle } from './throttle';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
@@ -80,27 +80,30 @@ export type UseChatHelpers2<
 export type UseChatOptions2<
   MESSAGE_METADATA = unknown,
   DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = {
-  chat: Chat2<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>;
-
+> = (
+  | {
+      chat: Chat2<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>;
+    }
+  | ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
+) & {
   /**
   /**
    * Initial input of the chat.
    */
   initialInput?: string;
 } & Pick<
-  AbstractChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>,
-  'onToolCall' | 'onFinish' | 'onError' | 'generateId'
->;
+    AbstractChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>,
+    'onToolCall' | 'onFinish' | 'onError' | 'generateId'
+  >;
 
 export function useChat2<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
-  chat,
   initialInput = '',
   generateId = generateIdFunc,
   experimental_throttle: throttleWaitMs,
+  ...options
 }: UseChatOptions2<MESSAGE_METADATA, DATA_PART_SCHEMAS> & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
@@ -108,7 +111,7 @@ Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
 }): UseChatHelpers2<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
-  const chatRef = useRef(chat);
+  const chatRef = useRef('chat' in options ? options.chat : new Chat2(options));
 
   const subscribe = useCallback(
     ({

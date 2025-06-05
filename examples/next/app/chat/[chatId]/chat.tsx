@@ -28,19 +28,19 @@ export default function Chat({
         }),
       }),
       messageMetadataSchema: myMessageMetadataSchema,
-    }),
-    onFinish() {
-      // for new chats, the router cache needs to be invalidated so
-      // navigation to the previous page triggers SSR correctly
-      if (isNewChat) {
-        invalidateRouterCache();
-      }
+      onFinish() {
+        // for new chats, the router cache needs to be invalidated so
+        // navigation to the previous page triggers SSR correctly
+        if (isNewChat) {
+          invalidateRouterCache();
+        }
 
-      // focus the input field again after the response is finished
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
-    },
+        // focus the input field again after the response is finished
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
+      },
+    }),
   });
 
   // activate the input field
