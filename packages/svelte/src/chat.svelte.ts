@@ -81,8 +81,8 @@ class SvelteChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   status = $state<ChatStatus>('ready');
   error = $state<Error | undefined>(undefined);
 
-  constructor(messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
-    this.messages = $state(messages ?? []);
+  constructor(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[] = []) {
+    this.messages = $state(messages);
   }
 
   setMessages = (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => {

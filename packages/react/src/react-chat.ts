@@ -16,8 +16,8 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   status: ChatStatus = 'ready';
   error: Error | undefined = undefined;
 
-  constructor(messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
-    this.#messages = messages ?? [];
+  constructor(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[] = []) {
+    this.#messages = messages;
   }
 
   get messages() {
@@ -47,7 +47,7 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     ];
   };
 
-  snapshot = structuredClone;
+  snapshot = <T>(value: T): T => structuredClone(value);
 }
 
 export type ChatInit<
@@ -56,10 +56,10 @@ export type ChatInit<
 > = Readonly<
   Omit<AbstractChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>, 'state'>
 > & {
-  messages: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
+  messages?: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
 };
 
-export class Chat2<
+export class Chat<
   MESSAGE_METADATA,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > extends AbstractChat<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {

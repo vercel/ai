@@ -9,14 +9,13 @@ import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
-  defaultChatStoreOptions,
+  DefaultChatTransport,
   getToolInvocations,
   TextStreamChatTransport,
   UIMessage,
   UIMessageStreamPart,
 } from 'ai';
 import React, { act, useEffect, useRef, useState } from 'react';
-import { createChatStore } from './chat-store';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 
@@ -32,16 +31,16 @@ describe('data protocol stream', () => {
   let onFinishCalls: Array<{ message: UIMessage }> = [];
 
   setupTestComponent(
-    ({ chatId: idParam }: { chatId: string }) => {
-      const [chatId, setChatId] = React.useState<string>(idParam);
+    ({ id: idParam }: { id: string }) => {
+      const [id, setId] = React.useState<string>(idParam);
       const {
         messages,
         append,
         error,
         status,
-        chatId: idKey,
+        id: idKey,
       } = useChat({
-        chatId,
+        id,
         onFinish: options => {
           onFinishCalls.push(options);
         },
@@ -66,7 +65,7 @@ describe('data protocol stream', () => {
           <button
             data-testid="do-change-id"
             onClick={() => {
-              setChatId('second-id');
+              setId('second-id');
             }}
           />
         </div>
@@ -107,10 +106,10 @@ describe('data protocol stream', () => {
               type: 'text',
             },
           ],
-          id: 'id-1',
+          id: 'id-0',
         },
         {
-          id: 'id-2',
+          id: 'id-1',
           role: 'assistant',
           metadata: {},
           parts: [
@@ -145,7 +144,7 @@ describe('data protocol stream', () => {
               type: 'text',
             },
           ],
-          id: 'id-1',
+          id: 'id-0',
         },
       ]);
     });
@@ -260,10 +259,10 @@ describe('data protocol stream', () => {
               type: 'text',
             },
           ],
-          id: 'id-1',
+          id: 'id-0',
         },
         {
-          id: 'id-2',
+          id: 'id-1',
           role: 'assistant',
           metadata: {
             example: 'metadata',
@@ -282,7 +281,7 @@ describe('data protocol stream', () => {
       [
         {
           "message": {
-            "id": "id-2",
+            "id": "id-1",
             "metadata": {
               "example": "metadata",
             },
@@ -315,10 +314,10 @@ describe('data protocol stream', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "chatId": "id-0",
+          "chatId": "first-id-0",
           "messages": [
             {
-              "id": "id-1",
+              "id": "id-0",
               "parts": [
                 {
                   "text": "hi",
@@ -360,7 +359,7 @@ describe('data protocol stream', () => {
             role: 'user',
           },
           {
-            id: 'id-2',
+            id: 'id-1',
             metadata: {},
             parts: [
               {
@@ -388,11 +387,8 @@ describe('text stream', () => {
         onFinishCalls.push(options);
       },
       generateId: mockId(),
-      chatStore: createChatStore({
-        transport: new TextStreamChatTransport({
-          api: '/api/chat',
-        }),
-        generateId: mockId(),
+      transport: new TextStreamChatTransport({
+        api: '/api/chat',
       }),
     });
 
@@ -485,7 +481,7 @@ describe('text stream', () => {
       [
         {
           "message": {
-            "id": "id-1",
+            "id": "id-2",
             "metadata": {},
             "parts": [
               {
@@ -508,12 +504,10 @@ describe('form actions', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({
-        chatStore: createChatStore({
-          transport: new TextStreamChatTransport({
-            api: '/api/chat',
-          }),
-          generateId: mockId(),
+        transport: new TextStreamChatTransport({
+          api: '/api/chat',
         }),
+        generateId: mockId(),
       });
 
     return (
@@ -576,9 +570,7 @@ describe('prepareRequestBody', () => {
 
   setupTestComponent(() => {
     const { messages, append, status } = useChat({
-      chatStore: defaultChatStoreOptions({
-        api: '/api/chat',
-        generateId: mockId({ prefix: 'msg' }),
+      transport: new DefaultChatTransport({
         prepareRequestBody(options) {
           bodyOptions = options;
           return 'test-request-body';
@@ -642,7 +634,7 @@ describe('prepareRequestBody', () => {
         "chatId": "id-0",
         "messages": [
           {
-            "id": "msg-0",
+            "id": "id-1",
             "parts": [
               {
                 "text": "hi",
@@ -755,11 +747,7 @@ describe('onToolCall', () => {
 describe('tool invocations', () => {
   setupTestComponent(() => {
     const { messages, append, addToolResult } = useChat({
-      chatStore: defaultChatStoreOptions({
-        api: '/api/chat',
-        maxSteps: 5,
-        generateId: mockId(),
-      }),
+      maxSteps: 5,
       generateId: mockId(),
     });
 
@@ -1029,7 +1017,7 @@ describe('tool invocations', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          id: 'id-0',
+          id: 'id-1',
           parts: [
             {
               text: 'hi',
@@ -1039,7 +1027,7 @@ describe('tool invocations', () => {
           role: 'user',
         },
         {
-          id: 'id-1',
+          id: 'id-2',
           metadata: {},
           parts: [
             {
@@ -1157,6 +1145,7 @@ describe('tool invocations', () => {
         args: { testArg: 'test-value' },
       }),
     );
+
     // finish stream
     controller1.write(formatStreamPart({ type: 'finish-step' }));
     controller1.write(formatStreamPart({ type: 'finish' }));
@@ -1224,11 +1213,8 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatStore: defaultChatStoreOptions({
-          api: '/api/chat',
-          generateId: mockId(),
-          maxSteps: 5,
-        }),
+        generateId: mockId(),
+        maxSteps: 5,
       });
 
       return (
@@ -1297,11 +1283,8 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatStore: defaultChatStoreOptions({
-          api: '/api/chat',
-          generateId: mockId(),
-          maxSteps: 5,
-        }),
+        generateId: mockId(),
+        maxSteps: 5,
       });
 
       return (
@@ -1448,7 +1431,7 @@ describe('file attachments with data url', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          id: 'id-0',
+          id: 'id-1',
           role: 'user',
           parts: [
             {
@@ -1464,7 +1447,7 @@ describe('file attachments with data url', () => {
           ],
         },
         {
-          id: 'id-1',
+          id: 'id-2',
           metadata: {},
           parts: [
             {
@@ -1482,7 +1465,7 @@ describe('file attachments with data url', () => {
         "chatId": "id-0",
         "messages": [
           {
-            "id": "id-0",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.txt",
@@ -1532,7 +1515,7 @@ describe('file attachments with data url', () => {
       ).toStrictEqual([
         {
           role: 'user',
-          id: 'id-0',
+          id: 'id-1',
           parts: [
             {
               type: 'file',
@@ -1548,7 +1531,7 @@ describe('file attachments with data url', () => {
         },
         {
           role: 'assistant',
-          id: 'id-1',
+          id: 'id-2',
           metadata: {},
           parts: [
             {
@@ -1565,7 +1548,7 @@ describe('file attachments with data url', () => {
         "chatId": "id-0",
         "messages": [
           {
-            "id": "id-0",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.png",
@@ -1648,7 +1631,7 @@ describe('file attachments with url', () => {
       ).toStrictEqual([
         {
           role: 'user',
-          id: 'id-0',
+          id: 'id-1',
           parts: [
             {
               type: 'file',
@@ -1663,7 +1646,7 @@ describe('file attachments with url', () => {
         },
         {
           role: 'assistant',
-          id: 'id-1',
+          id: 'id-2',
           metadata: {},
           parts: [
             {
@@ -1680,7 +1663,7 @@ describe('file attachments with url', () => {
         "chatId": "id-0",
         "messages": [
           {
-            "id": "id-0",
+            "id": "id-1",
             "parts": [
               {
                 "mediaType": "image/png",
@@ -2081,24 +2064,16 @@ describe('resume ongoing stream and return assistant message', () => {
 
   setupTestComponent(
     () => {
-      const chatStore = createChatStore(
-        defaultChatStoreOptions({
-          api: '/api/chat',
-          generateId: mockId(),
-        })(),
-      );
-
-      chatStore.addChat('123', [
-        {
-          id: 'msg_123',
-          role: 'user',
-          parts: [{ type: 'text', text: 'hi' }],
-        },
-      ]);
-
       const { messages, status, experimental_resume } = useChat({
-        chatId: '123',
-        chatStore,
+        id: '123',
+        messages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
       });
 
       useEffect(() => {

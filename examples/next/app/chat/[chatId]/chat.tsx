@@ -2,11 +2,11 @@
 
 import { invalidateRouterCache } from '@/app/actions';
 import { myMessageMetadataSchema, MyUIMessage } from '@/util/chat-schema';
-import { Chat2, useChat2 } from '@ai-sdk/react';
+import { Chat, useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
 
-export default function Chat({
+export default function ChatComponent({
   chatData,
   isNewChat = false,
 }: {
@@ -15,8 +15,8 @@ export default function Chat({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, append, messages } = useChat2({
-    chat: new Chat2({
+  const { status, append, messages } = useChat({
+    chat: new Chat({
       id: chatData.id,
       messages: chatData.messages,
       transport: new DefaultChatTransport({

@@ -74,7 +74,7 @@ export interface AbstractChatInit<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
-  id: string;
+  id?: string;
 
   /**
    * A way to provide a function that is going to be used for ids for messages and the chat.
@@ -166,8 +166,8 @@ export abstract class AbstractChat<
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
-    id,
     generateId = generateIdFunc,
+    id = generateId(),
     transport = new DefaultChatTransport(),
     maxSteps = 1,
     messageMetadataSchema,
@@ -273,6 +273,7 @@ export abstract class AbstractChat<
   ) => {
     this.state.pushMessage({ ...message, id: message.id ?? this.generateId() });
     this.emit({ type: 'messages-changed' });
+
     await this.triggerRequest({
       headers,
       body,
@@ -456,6 +457,8 @@ export abstract class AbstractChat<
 
       this.setStatus({ status: 'ready' });
     } catch (err) {
+      console.error(err);
+
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
         this.setStatus({ status: 'ready' });
