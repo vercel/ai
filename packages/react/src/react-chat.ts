@@ -1,67 +1,49 @@
-import { StandardSchemaV1, Validator } from '@ai-sdk/provider-utils';
 import {
   AbstractChat,
+  AbstractChatInit,
   ChatState,
   ChatStatus,
-  ChatTransport,
   InferUIDataParts,
   UIDataPartSchemas,
   UIDataTypes,
   UIMessage,
-  UseChatOptions,
 } from 'ai';
 
 class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   implements ChatState<MESSAGE_METADATA, DATA_TYPES>
 {
-  private messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-  private status: ChatStatus = 'ready';
-  private error: Error | undefined = undefined;
+  #messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  status: ChatStatus = 'ready';
+  error: Error | undefined = undefined;
 
   constructor(messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
-    this.messages = messages ?? [];
+    this.#messages = messages ?? [];
   }
 
-  getStatus = () => {
-    return this.status;
-  };
+  get messages() {
+    return this.#messages;
+  }
 
-  setStatus = (status: ChatStatus) => {
-    this.status = status;
-  };
-
-  getError = () => {
-    return this.error;
-  };
-
-  setError = (error: Error | undefined) => {
-    this.error = error;
-  };
-
-  getMessages = () => {
-    return this.messages;
-  };
-
-  setMessages = (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => {
-    this.messages = [...messages];
-  };
+  set messages(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
+    this.#messages = [...messages];
+  }
 
   pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
-    this.messages = this.messages.concat(message);
+    this.#messages = this.messages.concat(message);
   };
 
   popMessage = () => {
-    this.messages = this.messages.slice(0, -1);
+    this.#messages = this.messages.slice(0, -1);
   };
 
   replaceMessage = (
     index: number,
     message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
   ) => {
-    this.messages = [
-      ...this.messages.slice(0, index),
+    this.#messages = [
+      ...this.#messages.slice(0, index),
       message,
-      ...this.messages.slice(index + 1),
+      ...this.#messages.slice(index + 1),
     ];
   };
 
@@ -69,6 +51,15 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     return structuredClone(value);
   };
 }
+
+export type ChatInit<
+  MESSAGE_METADATA = unknown,
+  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> = Readonly<
+  Omit<AbstractChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>, 'state'>
+> & {
+  messages: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
+};
 
 export class Chat2<
   MESSAGE_METADATA,
@@ -82,23 +73,7 @@ export class Chat2<
     messageMetadataSchema,
     dataPartSchemas,
     messages,
-  }: {
-    id: string;
-    messages?: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >[];
-    generateId?: UseChatOptions['generateId'];
-    transport: ChatTransport<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >;
-    maxSteps?: number;
-    messageMetadataSchema?:
-      | Validator<MESSAGE_METADATA>
-      | StandardSchemaV1<MESSAGE_METADATA>;
-    dataPartSchemas?: UI_DATA_PART_SCHEMAS;
-  }) {
+  }: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
     super({
       id,
       generateId,
@@ -108,16 +83,5 @@ export class Chat2<
       dataPartSchemas,
       state: new ReactChatState(messages),
     });
-  }
-
-  get status(): ChatStatus {
-    return this.state.getStatus();
-  }
-
-  get messages(): UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >[] {
-    return this.state.getMessages();
   }
 }

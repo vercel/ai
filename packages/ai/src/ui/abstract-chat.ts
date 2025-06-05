@@ -23,7 +23,7 @@ import type {
   UIDataTypes,
   UIMessage,
 } from './ui-messages';
-import { ChatRequestOptions, UseChatOptions } from './use-chat';
+import { ChatRequestOptions } from './use-chat';
 
 export interface ChatSubscriber {
   onChange: (event: ChatEvent) => void;
@@ -40,35 +40,6 @@ export type ActiveResponse<MESSAGE_METADATA> = {
   abortController: AbortController | undefined;
 };
 
-type ExtendedCallOptions<
-  MESSAGE_METADATA,
-  DATA_TYPES extends UIDataTypes,
-> = ChatRequestOptions & {
-  onError?: (error: Error) => void;
-
-  /**
-Optional callback function that is invoked when a tool call is received.
-Intended for automatic client-side tool execution.
-
-You can optionally return a result for the tool call,
-either synchronously or asynchronously.
-   */
-  onToolCall?: ({
-    toolCall,
-  }: {
-    toolCall: ToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
-
-  /**
-   * Optional callback function that is called when the assistant message is finished streaming.
-   *
-   * @param message The message that was streamed.
-   */
-  onFinish?: (options: {
-    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>;
-  }) => void;
-};
-
 export type UIDataPartSchemas = Record<
   string,
   Validator<any> | StandardSchemaV1<any>
@@ -83,14 +54,11 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
 };
 
 export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
-  getStatus: () => ChatStatus;
-  setStatus: (status: ChatStatus) => void;
+  status: ChatStatus;
 
-  getError: () => Error | undefined;
-  setError: (error: Error | undefined) => void;
+  error: Error | undefined;
 
-  getMessages: () => UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-  setMessages: (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => void;
+  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
   pushMessage: (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => void;
   popMessage: () => void;
   replaceMessage: (
@@ -99,6 +67,59 @@ export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
   ) => void;
 
   snapshot?: <T>(thing: T) => T;
+}
+
+export interface AbstractChatInit<
+  MESSAGE_METADATA = unknown,
+  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+> {
+  id: string;
+
+  /**
+   * A way to provide a function that is going to be used for ids for messages and the chat.
+   * If not provided the default AI SDK `generateId` is used.
+   */
+  generateId?: IdGenerator;
+  transport: ChatTransport<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  >;
+  maxSteps?: number;
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
+  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
+  state: ChatState<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
+
+  /**
+   * Callback function to be called when an error is encountered.
+   */
+  onError?: (error: Error) => void;
+
+  /**
+  Optional callback function that is invoked when a tool call is received.
+  Intended for automatic client-side tool execution.
+  
+  You can optionally return a result for the tool call,
+  either synchronously or asynchronously.
+     */
+  onToolCall?: ({
+    toolCall,
+  }: {
+    toolCall: ToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
+
+  /**
+   * Optional callback function that is called when the assistant message is finished streaming.
+   *
+   * @param message The message that was streamed.
+   */
+  onFinish?: (options: {
+    message: UIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >;
+  }) => void;
 }
 
 export abstract class AbstractChat<
@@ -123,6 +144,18 @@ export abstract class AbstractChat<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
+  private onError?: AbstractChatInit<
+    MESSAGE_METADATA,
+    UI_DATA_PART_SCHEMAS
+  >['onError'];
+  private onToolCall?: AbstractChatInit<
+    MESSAGE_METADATA,
+    UI_DATA_PART_SCHEMAS
+  >['onToolCall'];
+  private onFinish?: AbstractChatInit<
+    MESSAGE_METADATA,
+    UI_DATA_PART_SCHEMAS
+  >['onFinish'];
 
   private activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined =
     undefined;
@@ -136,20 +169,10 @@ export abstract class AbstractChat<
     messageMetadataSchema,
     dataPartSchemas,
     state,
-  }: {
-    id: string;
-    generateId?: UseChatOptions['generateId'];
-    transport: ChatTransport<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >;
-    maxSteps?: number;
-    messageMetadataSchema?:
-      | Validator<MESSAGE_METADATA>
-      | StandardSchemaV1<MESSAGE_METADATA>;
-    dataPartSchemas?: UI_DATA_PART_SCHEMAS;
-    state: ChatState<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
-  }) {
+    onError,
+    onToolCall,
+    onFinish,
+  }: AbstractChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
     this.id = id;
     this.maxSteps = maxSteps;
     this.transport = transport;
@@ -158,31 +181,50 @@ export abstract class AbstractChat<
     this.messageMetadataSchema = messageMetadataSchema;
     this.dataPartSchemas = dataPartSchemas;
     this.state = state;
+    this.onError = onError;
+    this.onToolCall = onToolCall;
+    this.onFinish = onFinish;
   }
 
-  getStatus(): ChatStatus {
-    return this.state.getStatus();
+  /**
+   * Hook status:
+   *
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  get status(): ChatStatus {
+    return this.state.status;
   }
 
-  setStatus({ status, error }: { status: ChatStatus; error?: Error }) {
-    if (this.getStatus() === status) return;
+  protected setStatus({
+    status,
+    error,
+  }: {
+    status: ChatStatus;
+    error?: Error;
+  }) {
+    if (this.status === status) return;
 
-    this.state.setStatus(status);
-    this.state.setError(error);
+    this.state.status = status;
+    this.state.error = error;
 
     this.emit({ type: 'status-changed' });
   }
 
-  getError() {
-    return this.state.getError();
+  get error() {
+    return this.state.error;
   }
 
-  getMessages() {
-    return this.state.getMessages();
+  get messages() {
+    return this.state.messages;
   }
 
-  getLastMessage() {
-    return this.state.getMessages()[this.state.getMessages().length - 1];
+  get lastMessage():
+    | UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
+    | undefined {
+    return this.state.messages[this.state.messages.length - 1];
   }
 
   subscribe(subscriber: ChatSubscriber): () => void {
@@ -190,21 +232,18 @@ export abstract class AbstractChat<
     return () => this.subscribers.delete(subscriber);
   }
 
-  async setMessages({
-    messages,
-  }: {
+  set messages(
     messages: UIMessage<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >[];
-  }): Promise<void> {
-    this.state.setMessages(messages);
+    >[],
+  ) {
+    this.state.messages = messages;
     this.emit({ type: 'messages-changed' });
   }
 
-  removeAssistantResponse() {
-    const lastMessage =
-      this.state.getMessages()[this.state.getMessages().length - 1];
+  removeAssistantResponse = () => {
+    const lastMessage = this.state.messages[this.state.messages.length - 1];
 
     if (lastMessage == null) {
       throw new Error('Cannot remove assistant response from empty chat');
@@ -216,117 +255,90 @@ export abstract class AbstractChat<
 
     this.state.popMessage();
     this.emit({ type: 'messages-changed' });
-  }
+  };
 
-  async submitMessage({
-    message,
-    headers,
-    body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  > & {
+  /**
+   * Append a user message to the chat list. This triggers the API call to fetch
+   * the assistant's response.
+   */
+  append = async (
     message: CreateUIMessage<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >;
-  }) {
+    >,
+    { headers, body }: ChatRequestOptions = {},
+  ) => {
     this.state.pushMessage({ ...message, id: message.id ?? this.generateId() });
     this.emit({ type: 'messages-changed' });
     await this.triggerRequest({
       headers,
       body,
       requestType: 'generate',
-      onError,
-      onToolCall,
-      onFinish,
     });
-  }
+  };
 
-  async resubmitLastUserMessage({
+  /**
+   * Reload the last AI chat response for the given chat history. If the last
+   * message isn't from the assistant, it will request the API to generate a
+   * new response.
+   */
+  reload = async ({
     headers,
     body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  > & {}): Promise<void> {
-    if (
-      this.state.getMessages()[this.state.getMessages().length - 1].role ===
-      'assistant'
-    ) {
-      this.state.popMessage();
-      this.emit({ type: 'messages-changed' });
+  }: ChatRequestOptions = {}): Promise<void> => {
+    if (this.lastMessage === undefined) {
+      return;
     }
 
-    if (this.state.getMessages().length === 0) {
-      return;
+    if (this.lastMessage.role === 'assistant') {
+      this.state.popMessage();
+      this.emit({ type: 'messages-changed' });
     }
 
     await this.triggerRequest({
       requestType: 'generate',
       headers,
       body,
-      onError,
-      onToolCall,
-      onFinish,
     });
-  }
+  };
 
-  async resumeStream({
+  /**
+   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
+   */
+  experimental_resume = async ({
     headers,
     body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >): Promise<void> {
+  }: ChatRequestOptions = {}): Promise<void> => {
     await this.triggerRequest({
       requestType: 'resume',
       headers,
       body,
-      onError,
-      onToolCall,
-      onFinish,
     });
-  }
+  };
 
-  async addToolResult({
+  addToolResult = async ({
     toolCallId,
     result,
   }: {
     toolCallId: string;
     result: unknown;
-  }) {
+  }) => {
     this.jobExecutor.run(async () => {
       updateToolCallResult({
-        messages: this.state.getMessages(),
+        messages: this.state.messages,
         toolCallId,
         toolResult: result,
       });
 
-      this.setMessages({
-        messages: this.state.getMessages(),
-      });
+      this.messages = this.state.messages;
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
-      if (
-        this.getStatus() === 'submitted' ||
-        this.getStatus() === 'streaming'
-      ) {
+      if (this.status === 'submitted' || this.status === 'streaming') {
         return;
       }
 
       // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage =
-        this.state.getMessages()[this.state.getMessages().length - 1];
+      const lastMessage = this.lastMessage;
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
         // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
         this.triggerRequest({
@@ -334,17 +346,19 @@ export abstract class AbstractChat<
         });
       }
     });
-  }
+  };
 
-  async stopStream() {
-    if (this.getStatus() !== 'streaming' && this.getStatus() !== 'submitted')
-      return;
+  /**
+   * Abort the current request immediately, keep the generated tokens if any.
+   */
+  stop = async () => {
+    if (this.status !== 'streaming' && this.status !== 'submitted') return;
 
     if (this.activeResponse?.abortController) {
       this.activeResponse.abortController.abort();
       this.activeResponse.abortController = undefined;
     }
-  }
+  };
 
   private emit(event: ChatEvent) {
     for (const subscriber of this.subscribers) {
@@ -356,23 +370,15 @@ export abstract class AbstractChat<
     requestType,
     headers,
     body,
-    onError,
-    onToolCall,
-    onFinish,
-  }: ExtendedCallOptions<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  > & {
+  }: ChatRequestOptions & {
     requestType: 'generate' | 'resume';
   }) {
     this.setStatus({ status: 'submitted', error: undefined });
 
-    const messageCount = this.state.getMessages().length;
-    const lastMessage =
-      this.state.getMessages()[this.state.getMessages().length - 1];
-    const maxStep = lastMessage.parts.filter(
-      part => part.type === 'step-start',
-    ).length;
+    const messageCount = this.state.messages.length;
+    const lastMessage = this.lastMessage;
+    const maxStep =
+      lastMessage?.parts.filter(part => part.type === 'step-start').length ?? 0; // TODO: should this be 1?
 
     try {
       const activeResponse = {
@@ -389,7 +395,7 @@ export abstract class AbstractChat<
 
       const stream = await this.transport.submitMessages({
         chatId: this.id,
-        messages: this.state.getMessages(),
+        messages: this.state.messages,
         body,
         headers,
         abortController: activeResponse.abortController,
@@ -414,13 +420,11 @@ export abstract class AbstractChat<
               this.setStatus({ status: 'streaming' });
 
               const replaceLastMessage =
-                activeResponse.state.message.id ===
-                this.state.getMessages()[this.state.getMessages().length - 1]
-                  .id;
+                activeResponse.state.message.id === this.lastMessage?.id;
 
               if (replaceLastMessage) {
                 this.state.replaceMessage(
-                  this.state.getMessages().length - 1,
+                  this.state.messages.length - 1,
                   activeResponse.state.message,
                 );
               } else {
@@ -437,7 +441,7 @@ export abstract class AbstractChat<
       await consumeStream({
         stream: processUIMessageStream({
           stream,
-          onToolCall,
+          onToolCall: this.onToolCall,
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
@@ -447,7 +451,7 @@ export abstract class AbstractChat<
         },
       });
 
-      onFinish?.({ message: activeResponse.state.message });
+      this.onFinish?.({ message: activeResponse.state.message });
 
       this.setStatus({ status: 'ready' });
     } catch (err) {
@@ -457,8 +461,8 @@ export abstract class AbstractChat<
         return null;
       }
 
-      if (onError && err instanceof Error) {
-        onError(err);
+      if (this.onError && err instanceof Error) {
+        this.onError(err);
       }
 
       this.setStatus({ status: 'error', error: err as Error });
@@ -473,14 +477,11 @@ export abstract class AbstractChat<
         originalMaxToolInvocationStep: maxStep,
         originalMessageCount: messageCount,
         maxSteps: this.maxSteps,
-        messages: this.state.getMessages(),
+        messages: this.state.messages,
       })
     ) {
       await this.triggerRequest({
         requestType,
-        onError,
-        onToolCall,
-        onFinish,
         headers,
         body,
       });

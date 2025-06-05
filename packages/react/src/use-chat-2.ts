@@ -1,10 +1,10 @@
 import {
+  AbstractChat,
+  AbstractChatInit,
   ChatEvent,
   convertFileListToFileUIParts,
   generateId as generateIdFunc,
-  IdGenerator,
   InferUIDataParts,
-  ToolCall,
   UIDataPartSchemas,
   type ChatRequestOptions,
   type CreateUIMessage,
@@ -26,54 +26,6 @@ export type UseChatHelpers2<
    * The id of the chat.
    */
   readonly chatId: string;
-
-  /**
-   * Hook status:
-   *
-   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
-   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
-   * - `ready`: The full response has been received and processed; a new user message can be submitted.
-   * - `error`: An error occurred during the API request, preventing successful completion.
-   */
-  readonly status: 'submitted' | 'streaming' | 'ready' | 'error';
-
-  /** Current messages in the chat */
-  readonly messages: UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<DATA_PART_SCHEMAS>
-  >[];
-
-  /**
-   * Append a user message to the chat list. This triggers the API call to fetch
-   * the assistant's response.
-   *
-   * @param message The message to append
-   * @param options Additional options to pass to the API call
-   */
-  append: (
-    message: CreateUIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<DATA_PART_SCHEMAS>
-    >,
-    options?: ChatRequestOptions,
-  ) => Promise<void>;
-
-  /**
-   * Reload the last AI chat response for the given chat history. If the last
-   * message isn't from the assistant, it will request the API to generate a
-   * new response.
-   */
-  reload: (chatRequestOptions?: ChatRequestOptions) => Promise<void>;
-
-  /**
-   * Abort the current request immediately, keep the generated tokens if any.
-   */
-  stop: () => void;
-
-  /**
-   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
-   */
-  experimental_resume: () => void;
 
   /**
    * Update the `messages` state locally. This is useful when you want to
@@ -114,15 +66,16 @@ export type UseChatHelpers2<
       files?: FileList | FileUIPart[];
     },
   ) => void;
-
-  addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => void;
-};
+} & Pick<
+  AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
+  | 'append'
+  | 'reload'
+  | 'stop'
+  | 'experimental_resume'
+  | 'addToolResult'
+  | 'status'
+  | 'messages'
+>;
 
 export type UseChatOptions2<
   MESSAGE_METADATA = unknown,
@@ -135,40 +88,10 @@ export type UseChatOptions2<
    * Initial input of the chat.
    */
   initialInput?: string;
-
-  /**
-  Optional callback function that is invoked when a tool call is received.
-  Intended for automatic client-side tool execution.
-
-  You can optionally return a result for the tool call,
-  either synchronously or asynchronously.
-     */
-  onToolCall?: ({
-    toolCall,
-  }: {
-    toolCall: ToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
-
-  /**
-   * Optional callback function that is called when the assistant message is finished streaming.
-   *
-   * @param message The message that was streamed.
-   */
-  onFinish?: (options: {
-    message: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_TYPE_SCHEMAS>>;
-  }) => void;
-
-  /**
-   * Callback function to be called when an error is encountered.
-   */
-  onError?: (error: Error) => void;
-
-  /**
-   * A way to provide a function that is going to be used for ids for messages and the chat.
-   * If not provided the default AI SDK `generateId` is used.
-   */
-  generateId?: IdGenerator;
-};
+} & Pick<
+  AbstractChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>,
+  'onToolCall' | 'onFinish' | 'onError' | 'generateId'
+>;
 
 export function useChat2<
   MESSAGE_METADATA = unknown,
@@ -176,9 +99,6 @@ export function useChat2<
 >({
   chat,
   initialInput = '',
-  onToolCall,
-  onFinish,
-  onError,
   generateId = generateIdFunc,
   experimental_throttle: throttleWaitMs,
 }: UseChatOptions2<MESSAGE_METADATA, DATA_PART_SCHEMAS> & {
@@ -216,10 +136,6 @@ Default is undefined, which disables throttling.
     [chatRef],
   );
 
-  const stopStream = useCallback(() => {
-    chatRef.current.stopStream();
-  }, [chatRef]);
-
   const status = useSyncExternalStore(
     callback =>
       subscribe({
@@ -248,48 +164,6 @@ Default is undefined, which disables throttling.
     () => chatRef.current.messages,
   );
 
-  const append = useCallback(
-    (
-      message: CreateUIMessage<
-        MESSAGE_METADATA,
-        InferUIDataParts<DATA_PART_SCHEMAS>
-      >,
-      { headers, body }: ChatRequestOptions = {},
-    ) =>
-      chatRef.current.submitMessage({
-        message,
-        headers,
-        body,
-        onError,
-        onToolCall,
-        onFinish,
-      }),
-    [chatRef, onError, onToolCall, onFinish],
-  );
-
-  const reload = useCallback(
-    async ({ headers, body }: ChatRequestOptions = {}) =>
-      chatRef.current.resubmitLastUserMessage({
-        headers,
-        body,
-        onError,
-        onToolCall,
-        onFinish,
-      }),
-    [chatRef, onError, onToolCall, onFinish],
-  );
-  const stop = useCallback(() => stopStream(), [stopStream]);
-
-  const experimental_resume = useCallback(
-    async () =>
-      chatRef.current.resumeStream({
-        onError,
-        onToolCall,
-        onFinish,
-      }),
-    [chatRef, onError, onToolCall, onFinish],
-  );
-
   const setMessages = useCallback(
     (
       messagesParam:
@@ -308,9 +182,7 @@ Default is undefined, which disables throttling.
         messagesParam = messagesParam(messages);
       }
 
-      chatRef.current.setMessages({
-        messages: messagesParam,
-      });
+      chatRef.current.messages = messagesParam;
     },
     [chatRef, messages],
   );
@@ -333,7 +205,7 @@ Default is undefined, which disables throttling.
 
       if (!input && fileParts.length === 0) return;
 
-      append(
+      chatRef.current.append(
         {
           id: generateId(),
           role: 'user',
@@ -348,7 +220,7 @@ Default is undefined, which disables throttling.
 
       setInput('');
     },
-    [input, generateId, append],
+    [input, generateId, chatRef.current.append],
   );
 
   const handleInputChange = (e: any) => {
@@ -359,10 +231,10 @@ Default is undefined, which disables throttling.
     messages,
     chatId: chatRef.current.id,
     setMessages,
-    append,
-    reload,
-    stop,
-    experimental_resume,
+    append: chatRef.current.append,
+    reload: chatRef.current.reload,
+    stop: chatRef.current.stop,
+    experimental_resume: chatRef.current.experimental_resume,
     input,
     setInput,
     handleInputChange,
