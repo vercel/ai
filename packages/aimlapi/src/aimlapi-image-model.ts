@@ -113,7 +113,7 @@ export class AimlapiImageModel implements ImageModelV1 {
         aspect_ratio: aspectRatio,
         seed,
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-        ...(providerOptions.fireworks ?? {}),
+        ...(providerOptions.aimlapi ?? {}),
       },
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
