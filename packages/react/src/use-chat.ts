@@ -12,7 +12,7 @@ import {
   type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
-import { Chat, ChatInit } from './react-chat';
+import { Chat, ChatInit } from './chat.react';
 import { throttle } from './throttle';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
