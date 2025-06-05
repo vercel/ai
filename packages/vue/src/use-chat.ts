@@ -1,5 +1,5 @@
 import type {
-  AbstractChatInit,
+  BaseChatInit,
   ChatRequestOptions,
   ChatStatus,
   CreateUIMessage,
@@ -7,30 +7,26 @@ import type {
   InferUIDataParts,
   UIDataPartSchemas,
   UIMessage,
-  UseChatOptions,
 } from 'ai';
 import { convertFileListToFileUIParts } from 'ai';
 import type { Ref } from 'vue';
 import { computed, ref } from 'vue';
-import { Chat, ChatInit } from './chat.vue';
+import { Chat } from './chat.vue';
 
-export type { CreateUIMessage, UIMessage, UseChatOptions };
+export type { CreateUIMessage, UIMessage };
 
-export type UseChatOptions2<
+export type UseChatOptions<
   MESSAGE_METADATA = unknown,
   DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = (
   | { chat: Chat<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> }
-  | ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
+  | BaseChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
 ) & {
   /**
    * Initial input of the chat.
    */
   initialInput?: string;
-} & Pick<
-    AbstractChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>,
-    'onToolCall' | 'onFinish' | 'onError'
-  >;
+};
 
 export type UseChatHelpers<
   MESSAGE_METADATA = unknown,
@@ -131,7 +127,7 @@ export function useChat<
 >({
   initialInput = '',
   ...options
-}: UseChatOptions2<MESSAGE_METADATA, DATA_PART_SCHEMAS> = {}): UseChatHelpers<
+}: UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> = {}): UseChatHelpers<
   MESSAGE_METADATA,
   DATA_PART_SCHEMAS
 > {

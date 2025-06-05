@@ -1,5 +1,6 @@
 import {
   StandardSchemaV1,
+  ToolCall,
   validateTypes,
   Validator,
 } from '@ai-sdk/provider-utils';
@@ -20,7 +21,6 @@ import type {
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
-import { UseChatOptions } from './use-chat';
 
 export type StreamingUIMessageState<
   MESSAGE_METADATA = unknown,
@@ -85,7 +85,9 @@ export function processUIMessageStream<
     | Validator<MESSAGE_METADATA>
     | StandardSchemaV1<MESSAGE_METADATA>;
   dataPartSchemas?: UI_DATA_PART_SCHEMAS;
-  onToolCall?: UseChatOptions['onToolCall'];
+  onToolCall?: (options: {
+    toolCall: ToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
   runUpdateMessageJob: (
     job: (options: {
       state: StreamingUIMessageState<

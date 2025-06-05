@@ -1,9 +1,8 @@
 import {
   AbstractChat,
-  AbstractChatInit,
+  BaseChatInit,
   ChatState,
   ChatStatus,
-  InferUIDataParts,
   UIDataPartSchemas,
   UIDataTypes,
   UIMessage,
@@ -50,15 +49,6 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   snapshot = <T>(value: T): T => structuredClone(value);
 }
 
-export type ChatInit<
-  MESSAGE_METADATA = unknown,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = Readonly<
-  Omit<AbstractChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>, 'state'>
-> & {
-  messages?: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
-};
-
 export class Chat<
   MESSAGE_METADATA,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
@@ -66,10 +56,7 @@ export class Chat<
   constructor({
     messages,
     ...init
-  }: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
-    super({
-      ...init,
-      state: new ReactChatState(messages),
-    });
+  }: BaseChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
+    super({ ...init, state: new ReactChatState(messages) });
   }
 }

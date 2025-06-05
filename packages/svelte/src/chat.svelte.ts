@@ -1,11 +1,10 @@
 import {
   AbstractChat,
-  type AbstractChatInit,
+  type BaseChatInit,
   type ChatRequestOptions,
   type ChatState,
   type ChatStatus,
   type CreateUIMessage,
-  type InferUIDataParts,
   type UIDataPartSchemas,
   type UIDataTypes,
   type UIMessage,
@@ -15,15 +14,11 @@ import {
 export type ChatInit<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = Readonly<
-  Omit<AbstractChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>, 'state'>
-> & {
+> = Readonly<BaseChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>> & {
   /**
    * Initial input of the chat.
    */
   initialInput?: string;
-
-  messages?: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
 };
 
 export type { CreateUIMessage, UIMessage };

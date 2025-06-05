@@ -1,7 +1,7 @@
 export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
-  type AbstractChatInit,
+  type BaseChatInit,
   type ChatEvent,
   type ChatStatus,
   type ChatState,
@@ -31,7 +31,7 @@ export {
   type ReasoningUIPart,
   type ToolInvocationUIPart,
 } from './ui-messages';
-export { type ChatRequestOptions, type UseChatOptions } from './use-chat';
+export { type ChatRequestOptions } from './use-chat';
 export {
   type CompletionRequestOptions,
   type UseCompletionOptions,

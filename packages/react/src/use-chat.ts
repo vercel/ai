@@ -1,6 +1,6 @@
 import {
   AbstractChat,
-  AbstractChatInit,
+  BaseChatInit,
   ChatEvent,
   convertFileListToFileUIParts,
   InferUIDataParts,
@@ -9,13 +9,12 @@ import {
   type CreateUIMessage,
   type FileUIPart,
   type UIMessage,
-  type UseChatOptions,
 } from 'ai';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
-import { Chat, ChatInit } from './chat.react';
+import { Chat } from './chat.react';
 import { throttle } from './throttle';
 
-export type { CreateUIMessage, UIMessage, UseChatOptions };
+export type { CreateUIMessage, UIMessage };
 
 export type UseChatHelpers<
   MESSAGE_METADATA = unknown,
@@ -78,22 +77,25 @@ export type UseChatHelpers<
   | 'messages'
 >;
 
-export type UseChatOptions2<
+export type UseChatOptions<
   MESSAGE_METADATA = unknown,
   DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = (
   | { chat: Chat<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> }
-  | ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
+  | BaseChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
 ) & {
   /**
   /**
    * Initial input of the chat.
    */
   initialInput?: string;
-} & Pick<
-    AbstractChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>,
-    'onToolCall' | 'onFinish' | 'onError'
-  >;
+
+  /**
+Custom throttle wait in ms for the chat messages and data updates.
+Default is undefined, which disables throttling.
+   */
+  experimental_throttle?: number;
+};
 
 export function useChat<
   MESSAGE_METADATA = unknown,
@@ -102,13 +104,10 @@ export function useChat<
   initialInput = '',
   experimental_throttle: throttleWaitMs,
   ...options
-}: UseChatOptions2<MESSAGE_METADATA, DATA_PART_SCHEMAS> & {
-  /**
-Custom throttle wait in ms for the chat messages and data updates.
-Default is undefined, which disables throttling.
-   */
-  experimental_throttle?: number;
-} = {}): UseChatHelpers<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
+}: UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> = {}): UseChatHelpers<
+  MESSAGE_METADATA,
+  DATA_PART_SCHEMAS
+> {
   const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
 
   const subscribe = useCallback(

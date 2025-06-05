@@ -59,17 +59,27 @@ export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
   snapshot: <T>(thing: T) => T;
 }
 
-export interface AbstractChatInit<
+export interface BaseChatInit<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
+  /**
+   * A unique identifier for the chat. If not provided, a random one will be
+   * generated.
+   */
   id?: string;
+
+  messages?: UIMessage<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  >[];
 
   /**
    * A way to provide a function that is going to be used for ids for messages and the chat.
    * If not provided the default AI SDK `generateId` is used.
    */
   generateId?: IdGenerator;
+
   transport?: ChatTransport<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
@@ -80,7 +90,6 @@ export interface AbstractChatInit<
     | Validator<MESSAGE_METADATA>
     | StandardSchemaV1<MESSAGE_METADATA>;
   dataPartSchemas?: UI_DATA_PART_SCHEMAS;
-  state: ChatState<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
 
   /**
    * Callback function to be called when an error is encountered.
@@ -137,15 +146,15 @@ export abstract class AbstractChat<
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
   private maxSteps: number;
-  private onError?: AbstractChatInit<
+  private onError?: BaseChatInit<
     MESSAGE_METADATA,
     UI_DATA_PART_SCHEMAS
   >['onError'];
-  private onToolCall?: AbstractChatInit<
+  private onToolCall?: BaseChatInit<
     MESSAGE_METADATA,
     UI_DATA_PART_SCHEMAS
   >['onToolCall'];
-  private onFinish?: AbstractChatInit<
+  private onFinish?: BaseChatInit<
     MESSAGE_METADATA,
     UI_DATA_PART_SCHEMAS
   >['onFinish'];
@@ -165,7 +174,9 @@ export abstract class AbstractChat<
     onError,
     onToolCall,
     onFinish,
-  }: AbstractChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
+  }: Omit<BaseChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'messages'> & {
+    state: ChatState<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
+  }) {
     this.id = id;
     this.maxSteps = maxSteps;
     this.transport = transport;
