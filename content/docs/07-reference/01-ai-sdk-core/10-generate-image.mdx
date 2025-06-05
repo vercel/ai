@@ -76,7 +76,7 @@ console.log(images);
     },
     {
       name: 'providerOptions',
-      type: 'Record<string, Record<string, JSONValue>>',
+      type: 'ProviderOptions',
       isOptional: true,
       description: 'Additional provider-specific options.',
     },
@@ -167,7 +167,7 @@ console.log(images);
     },
     {
       name: 'providerMetadata',
-      type: 'ImageModelV2ProviderMetadata',
+      type: 'ImageModelProviderMetadata',
       isOptional: true,
       description:
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. An `images` key is always present in the metadata and is an array with the same length as the top level `images` key. Details depend on the provider.',
