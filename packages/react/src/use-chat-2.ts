@@ -25,7 +25,7 @@ export type UseChatHelpers2<
   /**
    * The id of the chat.
    */
-  readonly chatId: string;
+  readonly id: string;
 
   /**
    * Update the `messages` state locally. This is useful when you want to
@@ -220,7 +220,7 @@ Default is undefined, which disables throttling.
 
       setInput('');
     },
-    [input, generateId, chatRef.current.append],
+    [input, generateId, chatRef],
   );
 
   const handleInputChange = (e: any) => {
@@ -229,7 +229,7 @@ Default is undefined, which disables throttling.
 
   return {
     messages,
-    chatId: chatRef.current.id,
+    id: chatRef.current.id,
     setMessages,
     append: chatRef.current.append,
     reload: chatRef.current.reload,
