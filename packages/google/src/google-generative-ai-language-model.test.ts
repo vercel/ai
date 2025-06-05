@@ -1296,8 +1296,7 @@ describe('doGenerate', () => {
         },
         {
           "text": "This is a thought process.",
-          "thought": true,
-          "type": "text",
+          "type": "reasoning",
         },
         {
           "text": "Visible text part 2.",
@@ -1305,8 +1304,7 @@ describe('doGenerate', () => {
         },
         {
           "text": "Another internal thought.",
-          "thought": true,
-          "type": "text",
+          "type": "reasoning",
         },
       ]
     `);
@@ -1577,7 +1575,15 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "test",
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "text": ", ",
+          "type": "text",
+        },
+        {
+          "text": "world!",
           "type": "text",
         },
         {
