@@ -8,34 +8,34 @@ description: Message types for AI SDK Core (API Reference)
 `ModelMessage` represents the fundamental message structure used with AI SDK Core functions.
 It encompasses various message types that can be used in the `messages` field of any AI SDK Core functions.
 
-You can access the Zod schema for `ModelMessage` with the `coreMessageSchema` export.
+You can access the Zod schema for `ModelMessage` with the `modelMessageSchema` export.
 
 ## `ModelMessage` Types
 
-### `CoreSystemMessage`
+### `SystemModelMessage`
 
 A system message that can contain system information.
 
 ```typescript
-type CoreSystemMessage = {
+type SystemModelMessage = {
   role: 'system';
   content: string;
 };
 ```
 
-You can access the Zod schema for `CoreSystemMessage` with the `coreSystemMessageSchema` export.
+You can access the Zod schema for `SystemModelMessage` with the `systemModelMessageSchema` export.
 
 <Note>
   Using the "system" property instead of a system message is recommended to
   enhance resilience against prompt injection attacks.
 </Note>
 
-### `CoreUserMessage`
+### `UserModelMessage`
 
 A user message that can contain text or a combination of text, images, and files.
 
 ```typescript
-type CoreUserMessage = {
+type UserModelMessage = {
   role: 'user';
   content: UserContent;
 };
@@ -43,14 +43,14 @@ type CoreUserMessage = {
 type UserContent = string | Array<TextPart | ImagePart | FilePart>;
 ```
 
-You can access the Zod schema for `CoreUserMessage` with the `coreUserMessageSchema` export.
+You can access the Zod schema for `UserModelMessage` with the `userModelMessageSchema` export.
 
-### `CoreAssistantMessage`
+### `AssistantModelMessage`
 
 An assistant message that can contain text, tool calls, or a combination of both.
 
 ```typescript
-type CoreAssistantMessage = {
+type AssistantModelMessage = {
   role: 'assistant';
   content: AssistantContent;
 };
@@ -58,14 +58,14 @@ type CoreAssistantMessage = {
 type AssistantContent = string | Array<TextPart | ToolCallPart>;
 ```
 
-You can access the Zod schema for `CoreAssistantMessage` with the `coreAssistantMessageSchema` export.
+You can access the Zod schema for `AssistantModelMessage` with the `assistantModelMessageSchema` export.
 
-### `CoreToolMessage`
+### `ToolModelMessage`
 
 A tool message that contains the result of one or more tool calls.
 
 ```typescript
-type CoreToolMessage = {
+type ToolModelMessage = {
   role: 'tool';
   content: ToolContent;
 };
@@ -73,7 +73,7 @@ type CoreToolMessage = {
 type ToolContent = Array<ToolResultPart>;
 ```
 
-You can access the Zod schema for `CoreToolMessage` with the `coreToolMessageSchema` export.
+You can access the Zod schema for `ToolModelMessage` with the `toolModelMessageSchema` export.
 
 ## `ModelMessage` Parts
 
@@ -128,6 +128,11 @@ export interface FilePart {
    * - URL: a URL that points to the file
    */
   data: DataContent | URL;
+
+  /**
+   * Optional filename of the file.
+   */
+  filename?: string;
 
   /**
    * IANA media type of the file.
