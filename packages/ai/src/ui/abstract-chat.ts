@@ -66,7 +66,7 @@ export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
     message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
   ) => void;
 
-  snapshot?: <T>(thing: T) => T;
+  snapshot: <T>(thing: T) => T;
 }
 
 export interface AbstractChatInit<
@@ -383,9 +383,7 @@ export abstract class AbstractChat<
     try {
       const activeResponse = {
         state: createStreamingUIMessageState({
-          lastMessage: this.state.snapshot
-            ? this.state.snapshot(lastMessage)
-            : lastMessage,
+          lastMessage: this.state.snapshot(lastMessage),
           newMessageId: this.generateId(),
         }),
         abortController: new AbortController(),

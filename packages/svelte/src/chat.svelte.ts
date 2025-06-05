@@ -128,7 +128,5 @@ class SvelteChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     this.messages[index] = message;
   };
 
-  snapshot = <T>(thing: T): T => {
-    return $state.snapshot(thing) as T;
-  };
+  snapshot = <T>(thing: T): T => $state.snapshot(thing) as T;
 }

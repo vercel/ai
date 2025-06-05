@@ -47,9 +47,7 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     ];
   };
 
-  snapshot = <T>(value: T): T => {
-    return structuredClone(value);
-  };
+  snapshot = structuredClone;
 }
 
 export type ChatInit<
