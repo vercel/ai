@@ -223,14 +223,24 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-      ]
+    const text = content
+      .filter(
+        (item): item is { type: 'text'; text: string } =>
+          item.type === 'text' && (item as any).thought !== true,
+      )
+      .map(item => item.text)
+      .join('');
+    const reasoning = content
+      .filter(
+        (item): item is { type: 'text'; text: string; thought?: boolean } =>
+          item.type === 'text' && (item as any).thought === true,
+      )
+      .map(item => ({ type: 'text', text: item.text }));
+
+    expect(text).toMatchInlineSnapshot(`
+      "Hello, World!"
     `);
+    expect(reasoning).toStrictEqual([]);
   });
 
   it('should extract usage', async () => {
@@ -1284,11 +1294,23 @@ describe('doGenerate', () => {
       },
     };
 
-    const { text, reasoning } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
+
+    const text = content
+      .filter(
+        (item): item is { type: 'text'; text: string } =>
+          item.type === 'text' && (item as any).thought !== true,
+      )
+      .map(item => item.text)
+      .join('');
+    const reasoning = content
+      .filter(
+        (item): item is { type: 'text'; text: string; thought?: boolean } =>
+          item.type === 'text' && (item as any).thought === true,
+      )
+      .map(item => ({ type: 'text', text: item.text }));
 
     expect(text).toStrictEqual('Visible text part 1. Visible text part 2.');
     expect(reasoning).toStrictEqual([
@@ -1301,23 +1323,17 @@ describe('doGenerate', () => {
       prepareJsonResponse({ content: 'test' }); // Mock API response
 
       // Manually create a model instance to control the provider string
-      const nonVertexModel = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: {},
-          generateId: () => 'test-id',
-          isSupportedUrl: () => false, // Dummy implementation
-        },
-      );
+      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+        supportedUrls: () => ({}), // Dummy implementation
+      });
 
       const { warnings } = await nonVertexModel.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        providerMetadata: {
+        providerOptions: {
           google: {
             thinkingConfig: {
               includeThoughts: true,
@@ -1339,23 +1355,17 @@ describe('doGenerate', () => {
     it('should NOT generate a warning if includeThoughts is true for a Vertex provider', async () => {
       prepareJsonResponse({ content: 'test' }); // Mock API response
 
-      const vertexModel = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.vertex.chat', // Simulate Vertex provider
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: {},
-          generateId: () => 'test-id',
-          isSupportedUrl: () => false,
-        },
-      );
+      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat', // Simulate Vertex provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+        supportedUrls: () => ({}),
+      });
 
       const { warnings } = await vertexModel.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        providerMetadata: {
+        providerOptions: {
           google: {
             thinkingConfig: {
               includeThoughts: true,
@@ -1380,23 +1390,17 @@ describe('doGenerate', () => {
     it('should NOT generate a warning if includeThoughts is false for a non-Vertex provider', async () => {
       prepareJsonResponse({ content: 'test' }); // Mock API response
 
-      const nonVertexModel = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: {},
-          generateId: () => 'test-id',
-          isSupportedUrl: () => false,
-        },
-      );
+      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+        supportedUrls: () => ({}),
+      });
 
       const { warnings } = await nonVertexModel.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        providerMetadata: {
+        providerOptions: {
           google: {
             thinkingConfig: {
               includeThoughts: false,
@@ -1419,23 +1423,17 @@ describe('doGenerate', () => {
 
     it('should NOT generate a warning if thinkingConfig is not provided for a non-Vertex provider', async () => {
       prepareJsonResponse({ content: 'test' }); // Mock API response
-      const nonVertexModel = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: {},
-          generateId: () => 'test-id',
-          isSupportedUrl: () => false,
-        },
-      );
+      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+        supportedUrls: () => ({}),
+      });
 
       const { warnings } = await nonVertexModel.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        providerMetadata: {
+        providerOptions: {
           google: {
             // No thinkingConfig
           },
@@ -2094,19 +2092,6 @@ describe('doStream', () => {
       ],
     };
     const { stream } = await model.doStream({
-      tools: [
-        {
-          type: 'function',
-          name: 'test-tool',
-          parameters: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      ],
       prompt: TEST_PROMPT,
     });
 
@@ -2199,22 +2184,20 @@ describe('doStream', () => {
       ],
     };
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
     const events = await convertReadableStreamToArray(stream);
 
     const relevantEvents = events.filter(
-      event => event.type === 'text-delta' || event.type === 'reasoning',
+      event => event.type === 'text' || event.type === 'reasoning',
     );
 
     expect(relevantEvents).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Text delta 1. ' },
-      { type: 'reasoning', textDelta: 'Reasoning delta 1.' },
-      { type: 'text-delta', textDelta: 'Text delta 2.' },
-      { type: 'reasoning', textDelta: 'Reasoning delta 2.' },
+      { type: 'text', text: 'Text delta 1. ' },
+      { type: 'reasoning', text: 'Reasoning delta 1.' },
+      { type: 'text', text: 'Text delta 2.' },
+      { type: 'reasoning', text: 'Reasoning delta 2.' },
     ]);
 
     const finishEvent = events.find(event => event.type === 'finish');
@@ -2223,8 +2206,11 @@ describe('doStream', () => {
       'stop',
     );
     expect(finishEvent?.type === 'finish' && finishEvent.usage).toStrictEqual({
-      promptTokens: 15,
-      completionTokens: 25,
+      inputTokens: 15,
+      outputTokens: 25,
+      totalTokens: 40,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     });
   });
 });

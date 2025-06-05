@@ -241,18 +241,38 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const usageMetadata = response.usageMetadata;
 
     // Build content array from all parts
-    const textContent = getTextFromParts(parts);
-    const reasoningContent = getReasoningDetailsFromParts(parts);
-    const fileContent = getInlineDataParts(parts)?.map(part => ({
-      type: 'file' as const,
-      data: part.inlineData.data,
-      mediaType: part.inlineData.mimeType,
-    }));
+    for (const part of parts) {
+      if ('text' in part && part.text.length > 0) {
+        if ((part as any).thought === true) {
+          content.push({ type: 'text', text: part.text, thought: true } as any);
+        } else {
+          content.push({ type: 'text', text: part.text });
+        }
+      } else if ('functionCall' in part) {
+        content.push({
+          type: 'tool-call' as const,
+          toolCallType: 'function' as const,
+          toolCallId: this.config.generateId(),
+          toolName: part.functionCall.name,
+          args: JSON.stringify(part.functionCall.args),
+        });
+      } else if ('inlineData' in part) {
+        content.push({
+          type: 'file' as const,
+          data: part.inlineData.data,
+          mediaType: part.inlineData.mimeType,
+        });
+      }
+    }
 
-    if (textContent) content.push(textContent);
-    if (reasoningContent) content.push(...reasoningContent);
-    if (fileContent) content.push(...fileContent);
-    if (toolCalls) content.push(...toolCalls);
+    const sources =
+      extractSources({
+        groundingMetadata: candidate.groundingMetadata,
+        generateId: this.config.generateId,
+      }) ?? [];
+    for (const source of sources) {
+      content.push(source);
+    }
 
     return {
       content,
@@ -359,20 +379,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
-              const deltaText = getTextFromParts(content.parts);
-              if (deltaText != null) {
-                controller.enqueue(deltaText);
-              }
-
-              const reasoningDeltaText = getReasoningDetailsFromParts(
-                content.parts,
-              );
-              if (reasoningDeltaText != null) {
-                for (const part of reasoningDeltaText) {
-                  controller.enqueue({
-                    type: 'reasoning',
-                    text: part.text,
-                  });
+              for (const part of content.parts ?? []) {
+                if ('text' in part && part.text.length > 0) {
+                  if ((part as any).thought === true) {
+                    controller.enqueue({
+                      type: 'reasoning',
+                      text: part.text,
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'text',
+                      text: part.text,
+                    });
+                  }
                 }
               }
 
