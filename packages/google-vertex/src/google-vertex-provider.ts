@@ -117,7 +117,7 @@ export function createVertex(
     const project = loadVertexProject();
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`
+      `https://${region === 'global' ? '' : `${region}-`}aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google`
     );
   };
 
