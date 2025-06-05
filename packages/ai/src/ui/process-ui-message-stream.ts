@@ -9,13 +9,14 @@ import {
 } from '../ui-message-stream/ui-message-stream-parts';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
-import { InferUIDataParts, UIDataPartSchemas } from './abstract-chat';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
+  InferUIDataParts,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
+  UIDataPartSchemas,
   UIMessage,
   UIMessagePart,
 } from './ui-messages';

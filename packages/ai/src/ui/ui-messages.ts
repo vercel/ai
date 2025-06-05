@@ -1,4 +1,9 @@
-import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import {
+  StandardSchemaV1,
+  ToolCall,
+  ToolResult,
+  Validator,
+} from '@ai-sdk/provider-utils';
 import { ValueOf } from '../util/value-of';
 
 /**
@@ -71,6 +76,19 @@ export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
     data: DATA_TYPES[NAME];
   };
 }>;
+
+export type UIDataPartSchemas = Record<
+  string,
+  Validator<any> | StandardSchemaV1<any>
+>;
+
+export type InferUIDataParts<T extends UIDataPartSchemas> = {
+  [K in keyof T]: T[K] extends Validator<infer U>
+    ? U
+    : T[K] extends StandardSchemaV1<infer U>
+      ? U
+      : unknown;
+};
 
 /**
  * A text part of a message.

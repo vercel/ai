@@ -24,7 +24,6 @@ export type UseChatOptions2<
   | ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
 ) & {
   /**
-  /**
    * Initial input of the chat.
    */
   initialInput?: string;

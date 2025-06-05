@@ -22,6 +22,8 @@ import type {
   ToolInvocationUIPart,
   UIDataTypes,
   UIMessage,
+  UIDataPartSchemas,
+  InferUIDataParts,
 } from './ui-messages';
 import { ChatRequestOptions } from './use-chat';
 import { DefaultChatTransport } from './default-chat-transport';
@@ -35,19 +37,6 @@ export interface ChatEvent {
 }
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
-
-export type UIDataPartSchemas = Record<
-  string,
-  Validator<any> | StandardSchemaV1<any>
->;
-
-export type InferUIDataParts<T extends UIDataPartSchemas> = {
-  [K in keyof T]: T[K] extends Validator<infer U>
-    ? U
-    : T[K] extends StandardSchemaV1<infer U>
-      ? U
-      : unknown;
-};
 
 type ActiveResponse<MESSAGE_METADATA> = {
   state: StreamingUIMessageState<MESSAGE_METADATA>;

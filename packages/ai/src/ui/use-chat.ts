@@ -1,6 +1,5 @@
 import { IdGenerator, ToolCall } from '@ai-sdk/provider-utils';
-import { InferUIDataParts, UIDataPartSchemas } from './abstract-chat';
-import { UIMessage } from './ui-messages';
+import { InferUIDataParts, UIDataPartSchemas, UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
   /**
