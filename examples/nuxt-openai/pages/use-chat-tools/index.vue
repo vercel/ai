@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 
 const { input, handleSubmit, messages, addToolResult } = useChat({
   // run client-side tools that are automatically executed:
@@ -13,11 +13,10 @@ const { input, handleSubmit, messages, addToolResult } = useChat({
       return cities[Math.floor(Math.random() * cities.length)];
     }
   },
-
-  chatStore: defaultChatStoreOptions({
+  transport: new DefaultChatTransport({
     api: '/api/use-chat-tools',
-    maxSteps: 5,
   }),
+  maxSteps: 5,
 });
 
 const messageList = computed(() => messages.value); // computer property for type inference

@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue';
-import { createIdGenerator, defaultChatStoreOptions } from 'ai';
+import { createIdGenerator, DefaultChatTransport } from 'ai';
 
 const { input, handleSubmit, messages } = useChat({
   generateId: createIdGenerator({ prefix: 'msgc', size: 16 }),
-  chatStore: defaultChatStoreOptions({
+  transport: new DefaultChatTransport({
     api: '/api/use-chat-request',
     // only send the last message to the server:
     prepareRequestBody({ messages, chatId }) {
       return { message: messages[messages.length - 1], id: chatId };
     },
-    generateId: createIdGenerator({ prefix: 'msgc', size: 16 }),
   }),
 });
 
@@ -25,7 +24,11 @@ const messageList = computed(() => messages.value); // computed property for typ
       class="whitespace-pre-wrap"
     >
       <strong>{{ `${message.role}: ` }}</strong>
-      {{ message.parts.map(part => (part.type === 'text' ? part.text : '')).join('') }}
+      {{
+        message.parts
+          .map(part => (part.type === 'text' ? part.text : ''))
+          .join('')
+      }}
     </div>
 
     <form @submit="handleSubmit">
