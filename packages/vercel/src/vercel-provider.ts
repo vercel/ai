@@ -9,7 +9,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { VercelChatModelId } from './vercel-chat-options';
+import { VercelChatModelId, VercelChatSettings } from './vercel-chat-settings';
 
 export interface VercelProviderSettings {
   /**
@@ -35,12 +35,23 @@ export interface VercelProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (modelId: VercelChatModelId): LanguageModelV2;
+  (modelId: VercelChatModelId, settings?: VercelChatSettings): LanguageModelV2;
 
   /**
 Creates a language model for text generation.
 */
-  languageModel(modelId: VercelChatModelId): LanguageModelV2;
+  languageModel(
+    modelId: VercelChatModelId,
+    settings?: VercelChatSettings,
+  ): LanguageModelV2;
+
+  /**
+Creates a chat model for text generation.
+*/
+  chatModel(
+    modelId: VercelChatModelId,
+    settings?: VercelChatSettings,
+  ): LanguageModelV2;
 }
 
 export function createVercel(
@@ -72,15 +83,23 @@ export function createVercel(
     fetch: options.fetch,
   });
 
-  const createChatModel = (modelId: VercelChatModelId) => {
+  const createChatModel = (
+    modelId: VercelChatModelId,
+    settings: VercelChatSettings = {},
+  ) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
+      ...settings,
     });
   };
 
-  const provider = (modelId: VercelChatModelId) => createChatModel(modelId);
+  const provider = (
+    modelId: VercelChatModelId,
+    settings?: VercelChatSettings,
+  ) => createChatModel(modelId, settings);
 
   provider.languageModel = createChatModel;
+  provider.chatModel = createChatModel;
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
