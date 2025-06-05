@@ -3,7 +3,6 @@ import {
   AbstractChatInit,
   ChatEvent,
   convertFileListToFileUIParts,
-  generateId as generateIdFunc,
   InferUIDataParts,
   UIDataPartSchemas,
   type ChatRequestOptions,
@@ -93,7 +92,7 @@ export type UseChatOptions2<
   initialInput?: string;
 } & Pick<
     AbstractChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>,
-    'onToolCall' | 'onFinish' | 'onError' | 'generateId'
+    'onToolCall' | 'onFinish' | 'onError'
   >;
 
 export function useChat2<
@@ -101,7 +100,6 @@ export function useChat2<
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
   initialInput = '',
-  generateId = generateIdFunc,
   experimental_throttle: throttleWaitMs,
   ...options
 }: UseChatOptions2<MESSAGE_METADATA, DATA_PART_SCHEMAS> & {
@@ -210,7 +208,7 @@ Default is undefined, which disables throttling.
 
       chatRef.current.append(
         {
-          id: generateId(),
+          id: chatRef.current.generateId(),
           role: 'user',
           metadata: undefined,
           parts: [...fileParts, { type: 'text', text: input }],
@@ -223,7 +221,7 @@ Default is undefined, which disables throttling.
 
       setInput('');
     },
-    [input, generateId, chatRef],
+    [input, chatRef],
   );
 
   const handleInputChange = (e: any) => {

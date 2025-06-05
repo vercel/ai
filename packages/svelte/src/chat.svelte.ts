@@ -5,41 +5,26 @@ import {
   type ChatState,
   type ChatStatus,
   type CreateUIMessage,
-  DefaultChatTransport,
-  type IdGenerator,
   type InferUIDataParts,
   type UIDataPartSchemas,
   type UIDataTypes,
   type UIMessage,
   convertFileListToFileUIParts,
-  generateId as generateIdFunc,
 } from 'ai';
 
 export type ChatInit<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = Readonly<
-  Omit<
-    AbstractChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
-    'state' | 'id' | 'transport'
-  >
-> &
-  Partial<
-    Pick<
-      AbstractChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
-      'id' | 'transport'
-    >
-  > & {
-    /**
-     * Initial input of the chat.
-     */
-    initialInput?: string;
+  Omit<AbstractChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>, 'state'>
+> & {
+  /**
+   * Initial input of the chat.
+   */
+  initialInput?: string;
 
-    messages?: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<DATA_PART_SCHEMAS>
-    >[];
-  };
+  messages?: UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[];
+};
 
 export type { CreateUIMessage, UIMessage };
 
@@ -47,25 +32,16 @@ export class Chat<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > extends AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
-  #generateId: IdGenerator;
-
   /** The current value of the input. Writable, so it can be bound to form inputs. */
   input: string;
 
   constructor(init: ChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>) {
     super({
       ...init,
-      id: init.id ?? init.generateId?.() ?? generateIdFunc(),
-      transport:
-        init.transport ??
-        new DefaultChatTransport({
-          api: '/api/chat',
-        }),
       state: new SvelteChatState(init.messages),
     });
 
     this.input = $state(init.initialInput ?? '');
-    this.#generateId = init.generateId ?? generateIdFunc;
   }
 
   /** Form submission handler to automatically reset input and append a user message */
@@ -83,7 +59,7 @@ export class Chat<
 
     const request = this.append(
       {
-        id: this.#generateId(),
+        id: this.generateId(),
         role: 'user',
         parts: [...fileParts, { type: 'text', text: this.input }],
       },

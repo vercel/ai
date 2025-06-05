@@ -64,21 +64,11 @@ export class Chat2<
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > extends AbstractChat<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
   constructor({
-    id,
-    generateId,
-    transport,
-    maxSteps = 1,
-    messageMetadataSchema,
-    dataPartSchemas,
     messages,
+    ...init
   }: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
     super({
-      id,
-      generateId,
-      transport,
-      maxSteps,
-      messageMetadataSchema,
-      dataPartSchemas,
+      ...init,
       state: new ReactChatState(messages),
     });
   }

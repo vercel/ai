@@ -24,6 +24,7 @@ import type {
   UIMessage,
 } from './ui-messages';
 import { ChatRequestOptions } from './use-chat';
+import { DefaultChatTransport } from './default-chat-transport';
 
 export interface ChatSubscriber {
   onChange: (event: ChatEvent) => void;
@@ -80,10 +81,11 @@ export interface AbstractChatInit<
    * If not provided the default AI SDK `generateId` is used.
    */
   generateId?: IdGenerator;
-  transport: ChatTransport<
+  transport?: ChatTransport<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
+
   maxSteps?: number;
   messageMetadataSchema?:
     | Validator<MESSAGE_METADATA>
@@ -127,23 +129,25 @@ export abstract class AbstractChat<
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
   readonly id: string;
+  readonly generateId: IdGenerator;
 
-  private subscribers: Set<ChatSubscriber>;
-  private generateId: IdGenerator;
+  protected state: ChatState<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+  >;
+
+  private readonly subscribers: Set<ChatSubscriber> = new Set();
+
   private messageMetadataSchema:
     | Validator<MESSAGE_METADATA>
     | StandardSchemaV1<MESSAGE_METADATA>
     | undefined;
   private dataPartSchemas: UI_DATA_PART_SCHEMAS | undefined;
-  private transport: ChatTransport<
+  private readonly transport: ChatTransport<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
   private maxSteps: number;
-  protected state: ChatState<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >;
   private onError?: AbstractChatInit<
     MESSAGE_METADATA,
     UI_DATA_PART_SCHEMAS
@@ -163,8 +167,8 @@ export abstract class AbstractChat<
 
   constructor({
     id,
-    generateId,
-    transport,
+    generateId = generateIdFunc,
+    transport = new DefaultChatTransport(),
     maxSteps = 1,
     messageMetadataSchema,
     dataPartSchemas,
@@ -176,8 +180,7 @@ export abstract class AbstractChat<
     this.id = id;
     this.maxSteps = maxSteps;
     this.transport = transport;
-    this.subscribers = new Set();
-    this.generateId = generateId ?? generateIdFunc;
+    this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
     this.dataPartSchemas = dataPartSchemas;
     this.state = state;

@@ -94,14 +94,14 @@ export class DefaultChatTransport<
   }) => unknown;
 
   constructor({
-    api,
+    api = '/api/chat',
     credentials,
     headers,
     body,
     fetch,
     prepareRequestBody,
   }: {
-    api: string;
+    api?: string;
 
     /**
      * The credentials mode to be used for the fetch request.
@@ -149,7 +149,7 @@ export class DefaultChatTransport<
       messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
       requestBody?: object;
     }) => unknown;
-  }) {
+  } = {}) {
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;
