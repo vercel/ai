@@ -1,15 +1,15 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      chatStore: defaultChatStoreOptions({
+      transport: new DefaultChatTransport({
         api: '/api/use-chat-reasoning-tools',
-        maxSteps: 5,
       }),
+      maxSteps: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {

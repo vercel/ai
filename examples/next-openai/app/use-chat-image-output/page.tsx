@@ -1,13 +1,11 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
   const { input, status, handleInputChange, handleSubmit, messages } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/api/use-chat-image-output',
-    }),
+    transport: new DefaultChatTransport({ api: '/api/use-chat-image-output' }),
   });
 
   return (

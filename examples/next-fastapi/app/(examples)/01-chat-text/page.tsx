@@ -6,10 +6,8 @@ import { TextStreamChatTransport } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    chatStore: () => ({
-      transport: new TextStreamChatTransport({
-        api: '/api/chat?protocol=text',
-      }),
+    transport: new TextStreamChatTransport({
+      api: '/api/chat?protocol=text',
     }),
   });
 

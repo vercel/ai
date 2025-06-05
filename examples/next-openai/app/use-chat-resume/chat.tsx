@@ -1,16 +1,16 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions, type UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
 export function Chat({
-  chatId,
+  id,
   autoResume,
   initialMessages = [],
 }: {
-  chatId: string;
+  id: string;
   autoResume: boolean;
   initialMessages: UIMessage[];
 }) {
@@ -25,15 +25,9 @@ export function Chat({
     stop,
     experimental_resume,
   } = useChat({
-    chatId,
-    chatStore: defaultChatStoreOptions({
-      api: '/api/use-chat-resume',
-      chats: {
-        [chatId]: {
-          messages: initialMessages,
-        },
-      },
-    }),
+    id,
+    messages: initialMessages,
+    transport: new DefaultChatTransport({ api: '/api/use-chat-resume' }),
     onError: error => {
       console.error('Error streaming text:', error);
     },
@@ -49,8 +43,8 @@ export function Chat({
 
   return (
     <div className="flex flex-col w-full max-w-md gap-8 py-24 mx-auto stretch">
-      <Link href={`/use-chat-resume/${chatId}`} target="_noblank">
-        Chat Id: {chatId}
+      <Link href={`/use-chat-resume/${id}`} target="_noblank">
+        Chat Id: {id}
       </Link>
 
       <div>Status: {status}</div>

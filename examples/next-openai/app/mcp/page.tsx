@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
   const {
@@ -14,9 +14,7 @@ export default function Chat() {
     reload,
     stop,
   } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/mcp/chat',
-    }),
+    transport: new DefaultChatTransport({ api: '/mcp/chat' }),
   });
 
   return (

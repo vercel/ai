@@ -108,7 +108,7 @@ Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-}): UseChatHelpers<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
+} = {}): UseChatHelpers<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
   const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
 
   const subscribe = useCallback(
