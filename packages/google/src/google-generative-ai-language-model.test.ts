@@ -1655,6 +1655,7 @@ describe('doStream', () => {
         providerMetadata: {
           google: {
             groundingMetadata: null,
+            cachedContentTokenCount: null,
             safetyRatings: [
               {
                 category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
@@ -1803,6 +1804,7 @@ describe('doStream', () => {
         providerMetadata: {
           google: {
             groundingMetadata: null,
+            cachedContentTokenCount: null,
             safetyRatings: [
               {
                 category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
