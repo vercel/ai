@@ -106,6 +106,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       modelId: this.modelId,
     });
 
+    // Add warning if includeThoughts is used with a non-Vertex Google provider
+    if (
+      googleOptions?.thinkingConfig?.includeThoughts === true &&
+      !this.config.provider.startsWith('google.vertex.')
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          `(${this.config.provider}).`,
+      });
+    }
+
     return {
       args: {
         generationConfig: {
@@ -189,7 +203,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         : (candidate.content.parts ?? []);
 
     for (const part of parts) {
-      if ('text' in part && part.text.length > 0) {
+      if (
+        'text' in part &&
+        part.text.length > 0 &&
+        (!('thought' in part) || ('thought' in part && part.thought === false))
+      ) {
         content.push({ type: 'text', text: part.text });
       } else if ('functionCall' in part) {
         content.push({
@@ -204,6 +222,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           type: 'file' as const,
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
+        });
+      } else if ('thought' in part && part.thought === true) {
+        content.push({
+          type: 'reasoning' as const,
+          text: part.text,
         });
       }
     }
@@ -330,6 +353,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 controller.enqueue(deltaText);
               }
 
+              const reasoningDeltaText = getReasoningDetailsFromParts(
+                content.parts,
+              );
+              if (reasoningDeltaText != null) {
+                for (const part of reasoningDeltaText) {
+                  controller.enqueue({
+                    type: 'reasoning',
+                    text: part.text,
+                  });
+                }
+              }
+
               const inlineDataParts = getInlineDataParts(content.parts);
               if (inlineDataParts != null) {
                 for (const part of inlineDataParts) {
@@ -437,9 +472,9 @@ function getToolCallsFromParts({
 }
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts?.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
+  const textParts = parts?.filter(
+    part => 'text' in part && (part as any).thought !== true,
+  ) as Array<GoogleGenerativeAIContentPart & { text: string }>;
 
   return textParts == null || textParts.length === 0
     ? undefined
@@ -447,6 +482,20 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
         type: 'text' as const,
         text: textParts.map(part => part.text).join(''),
       };
+}
+
+function getReasoningDetailsFromParts(
+  parts: z.infer<typeof contentSchema>['parts'],
+): Array<{ type: 'text'; text: string }> | undefined {
+  const reasoningParts = parts?.filter(
+    part => 'text' in part && (part as any).thought === true,
+  ) as Array<
+    GoogleGenerativeAIContentPart & { text: string; thought?: boolean }
+  >;
+
+  return reasoningParts == null || reasoningParts.length === 0
+    ? undefined
+    : reasoningParts.map(part => ({ type: 'text', text: part.text }));
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -490,6 +539,7 @@ const contentSchema = z.object({
       z.union([
         z.object({
           text: z.string(),
+          thought: z.boolean().nullish(),
         }),
         z.object({
           functionCall: z.object({
