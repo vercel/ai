@@ -34,7 +34,18 @@ describe('AnthropicMessagesLanguageModel', () => {
       headers = {},
     }: {
       content?: Array<
-        | { type: 'text'; text: string }
+        | {
+            type: 'text';
+            text: string;
+            citations?: Array<{
+              type: 'page_location';
+              cited_text: string;
+              document_index: number;
+              document_title: string;
+              start_page_number: number;
+              end_page_number: number;
+            }>;
+          }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
       >;
@@ -647,6 +658,78 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         }
       `);
+    });
+
+    it('should process PDF citation responses', async () => {
+      // Mock response with PDF citations
+      prepareJsonResponse({
+        content: [
+          {
+            type: 'text',
+            text: 'Based on the document, the results show positive growth.',
+            citations: [
+              {
+                type: 'page_location',
+                cited_text: 'Revenue increased by 25% year over year',
+                document_index: 0,
+                document_title: 'Financial Report 2023',
+                start_page_number: 5,
+                end_page_number: 6,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'base64PDFdata',
+                mediaType: 'application/pdf',
+                filename: 'financial-report.pdf',
+              },
+              {
+                type: 'text',
+                text: 'What do the results show?',
+              },
+            ],
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            citations: { enabled: true },
+          },
+        },
+      });
+
+      // Verify text content
+      expect(result.content[0]).toEqual({
+        type: 'text',
+        text: 'Based on the document, the results show positive growth.',
+      });
+
+      // Verify citation source
+      expect(result.content[1]).toEqual({
+        type: 'source',
+        sourceType: 'document',
+        id: expect.any(String),
+        mediaType: 'application/pdf',
+        title: 'Financial Report 2023',
+        filename: 'financial-report.pdf',
+        providerMetadata: {
+          anthropic: {
+            citedText: 'Revenue increased by 25% year over year',
+            startPageNumber: 5,
+            endPageNumber: 6,
+          },
+        },
+      });
+
+      expect(result.content).toHaveLength(2);
     });
   });
 

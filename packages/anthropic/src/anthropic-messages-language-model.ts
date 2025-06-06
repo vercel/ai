@@ -5,6 +5,7 @@ import {
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2FunctionTool,
+  LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -291,11 +292,63 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return this.config.transformRequestBody?.(args) ?? args;
   }
 
+  private extractCitationDocuments(
+    prompt: LanguageModelV2Prompt,
+    citationsEnabled?: boolean,
+  ): Array<{
+    title: string;
+    filename?: string;
+    mediaType: string;
+  }> {
+    const documents: Array<{
+      title: string;
+      filename?: string;
+      mediaType: string;
+    }> = [];
+
+    for (const message of prompt) {
+      if (message.role === 'user') {
+        for (const part of message.content) {
+          if (part.type === 'file' && part.mediaType === 'application/pdf') {
+            // Check if citations are enabled for this file
+            const anthropic = part.providerOptions?.anthropic;
+            const citationsConfig = anthropic?.citations as
+              | { enabled?: boolean }
+              | undefined;
+            const fileHasCitations = citationsConfig?.enabled;
+            const shouldEnableCitations = fileHasCitations ?? citationsEnabled;
+
+            if (shouldEnableCitations) {
+              documents.push({
+                title: part.filename ?? 'Untitled Document',
+                filename: part.filename,
+                mediaType: part.mediaType,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return documents;
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings, betas, jsonResponseTool } =
       await this.getArgs(options);
+
+    // Extract citation documents for response processing
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: options.providerOptions,
+      schema: anthropicProviderOptions,
+    });
+    const citationDocuments = this.extractCitationDocuments(
+      options.prompt,
+      anthropicOptions?.citations?.enabled,
+    );
 
     const {
       responseHeaders,
@@ -323,6 +376,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           // so we ignore the text content:
           if (jsonResponseTool == null) {
             content.push({ type: 'text', text: part.text });
+
+            // Process citations if present
+            if (part.citations) {
+              for (const citation of part.citations) {
+                if (citation.type === 'page_location') {
+                  const documentInfo =
+                    citationDocuments[citation.document_index];
+                  if (documentInfo) {
+                    content.push({
+                      type: 'source',
+                      sourceType: 'document',
+                      id: this.generateId(),
+                      mediaType: documentInfo.mediaType,
+                      title: citation.document_title || documentInfo.title,
+                      filename: documentInfo.filename,
+                      providerMetadata: {
+                        anthropic: {
+                          citedText: citation.cited_text,
+                          startPageNumber: citation.start_page_number,
+                          endPageNumber: citation.end_page_number,
+                        },
+                      },
+                    });
+                  }
+                }
+              }
+            }
           }
           break;
         }
@@ -438,6 +518,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings, betas, jsonResponseTool } =
       await this.getArgs(options);
+
+    // Extract citation documents for response processing
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: options.providerOptions,
+      schema: anthropicProviderOptions,
+    });
+    const citationDocuments = this.extractCitationDocuments(
+      options.prompt,
+      anthropicOptions?.citations?.enabled,
+    );
 
     const body = { ...args, stream: true };
 
@@ -688,8 +779,31 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   }
 
                   case 'citations_delta': {
-                    // citations are included in the final web_search_tool_result content block
-                    // we don't need to process them separately in the stream
+                    const citation = value.delta.citation;
+
+                    if (citation.type === 'page_location') {
+                      // Handle PDF citations - convert to document source
+                      const documentInfo =
+                        citationDocuments[citation.document_index];
+                      if (documentInfo) {
+                        controller.enqueue({
+                          type: 'source',
+                          sourceType: 'document',
+                          id: generateId(),
+                          mediaType: documentInfo.mediaType,
+                          title: citation.document_title || documentInfo.title,
+                          filename: documentInfo.filename,
+                          providerMetadata: {
+                            anthropic: {
+                              citedText: citation.cited_text,
+                              startPageNumber: citation.start_page_number,
+                              endPageNumber: citation.end_page_number,
+                            },
+                          },
+                        });
+                      }
+                    }
+                    // Web search citations are handled in web_search_tool_result content block
                     return;
                   }
 
@@ -775,6 +889,20 @@ const anthropicMessagesResponseSchema = z.object({
       z.object({
         type: z.literal('text'),
         text: z.string(),
+        citations: z
+          .array(
+            z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('page_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string(),
+                start_page_number: z.number(),
+                end_page_number: z.number(),
+              }),
+            ]),
+          )
+          .optional(),
       }),
       z.object({
         type: z.literal('thinking'),
@@ -918,13 +1046,23 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       }),
       z.object({
         type: z.literal('citations_delta'),
-        citation: z.object({
-          type: z.literal('web_search_result_location'),
-          cited_text: z.string(),
-          url: z.string(),
-          title: z.string(),
-          encrypted_index: z.string(),
-        }),
+        citation: z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('web_search_result_location'),
+            cited_text: z.string(),
+            url: z.string(),
+            title: z.string(),
+            encrypted_index: z.string(),
+          }),
+          z.object({
+            type: z.literal('page_location'),
+            cited_text: z.string(),
+            document_index: z.number(),
+            document_title: z.string(),
+            start_page_number: z.number(),
+            end_page_number: z.number(),
+          }),
+        ]),
       }),
     ]),
   }),
