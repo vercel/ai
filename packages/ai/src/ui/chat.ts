@@ -293,6 +293,10 @@ export abstract class AbstractChat<
           text: string;
           files?: FileList | FileUIPart[];
           metadata?: MESSAGE_METADATA;
+        }
+      | {
+          files: FileList | FileUIPart[];
+          metadata?: MESSAGE_METADATA;
         },
     options: ChatRequestOptions = {},
   ): Promise<void> => {
@@ -301,13 +305,18 @@ export abstract class AbstractChat<
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >;
 
-    if ('text' in message) {
+    if ('text' in message || 'files' in message) {
       const fileParts = Array.isArray(message.files)
         ? message.files
         : await convertFileListToFileUIParts(message.files);
 
       uiMessage = {
-        parts: [...fileParts, { type: 'text', text: message.text }],
+        parts: [
+          ...fileParts,
+          ...('text' in message
+            ? [{ type: 'text' as const, text: message.text }]
+            : []),
+        ],
       };
     } else {
       uiMessage = message;

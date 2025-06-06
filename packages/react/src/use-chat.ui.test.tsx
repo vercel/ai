@@ -1306,21 +1306,21 @@ describe('maxSteps', () => {
 
 describe('file attachments with data url', () => {
   setupTestComponent(() => {
-    const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat({
-        generateId: mockId(),
-      });
+    const { messages, status, sendMessage } = useChat({
+      generateId: mockId(),
+    });
 
     const [files, setFiles] = useState<FileList | undefined>(undefined);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [input, setInput] = useState('');
 
     return (
       <div>
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={event => {
-            handleSubmit(event, { files });
+          onSubmit={() => {
+            sendMessage({ text: input, files });
             setFiles(undefined);
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
@@ -1341,7 +1341,7 @@ describe('file attachments with data url', () => {
           />
           <input
             value={input}
-            onChange={handleInputChange}
+            onChange={e => setInput(e.target.value)}
             disabled={status !== 'ready'}
             data-testid="message-input"
           />
@@ -1522,18 +1522,20 @@ describe('file attachments with data url', () => {
 
 describe('file attachments with url', () => {
   setupTestComponent(() => {
-    const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat({
-        generateId: mockId(),
-      });
+    const { messages, sendMessage, status } = useChat({
+      generateId: mockId(),
+    });
+
+    const [input, setInput] = useState('');
 
     return (
       <div>
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={event => {
-            handleSubmit(event, {
+          onSubmit={() => {
+            sendMessage({
+              text: input,
               files: [
                 {
                   type: 'file',
@@ -1547,7 +1549,7 @@ describe('file attachments with url', () => {
         >
           <input
             value={input}
-            onChange={handleInputChange}
+            onChange={e => setInput(e.target.value)}
             disabled={status !== 'ready'}
             data-testid="message-input"
           />
@@ -1636,7 +1638,7 @@ describe('file attachments with url', () => {
 
 describe('attachments with empty submit', () => {
   setupTestComponent(() => {
-    const { messages, handleSubmit } = useChat({
+    const { messages, sendMessage } = useChat({
       generateId: mockId(),
     });
 
@@ -1645,8 +1647,8 @@ describe('attachments with empty submit', () => {
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={event => {
-            handleSubmit(event, {
+          onSubmit={() => {
+            sendMessage({
               files: [
                 {
                   type: 'file',
@@ -1695,10 +1697,6 @@ describe('attachments with empty submit', () => {
               filename: 'test.png',
               url: 'https://example.com/image.png',
             },
-            {
-              type: 'text',
-              text: '',
-            },
           ],
         },
         {
@@ -1728,10 +1726,6 @@ describe('attachments with empty submit', () => {
                 "type": "file",
                 "url": "https://example.com/image.png",
               },
-              {
-                "text": "",
-                "type": "text",
-              },
             ],
             "role": "user",
           },
@@ -1741,7 +1735,7 @@ describe('attachments with empty submit', () => {
   });
 });
 
-describe('should append message with attachments', () => {
+describe('should send message with attachments', () => {
   setupTestComponent(() => {
     const { messages, sendMessage } = useChat({
       generateId: mockId(),
