@@ -287,6 +287,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
+          cachedContentTokenCount:
+            usageMetadata?.cachedContentTokenCount ?? null,
         },
       },
       sources: extractSources({
@@ -446,6 +448,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
+                  cachedContentTokenCount:
+                    usageMetadata?.cachedContentTokenCount ?? null,
                 },
               };
             }
@@ -640,6 +644,7 @@ const responseSchema = z.object({
       promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number().nullish(),
+      cachedContentTokenCount: z.number().nullish(),
     })
     .nullish(),
 });
@@ -662,6 +667,7 @@ const chunkSchema = z.object({
       promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number().nullish(),
+      cachedContentTokenCount: z.number().nullish(),
     })
     .nullish(),
 });
