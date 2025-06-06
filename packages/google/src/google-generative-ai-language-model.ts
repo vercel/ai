@@ -472,7 +472,7 @@ function getToolCallsFromParts({
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
   const textParts = parts?.filter(
-    part => 'text' in part && !('thought' in part),
+    part => 'text' in part && !!part.text && !('thought' in part),
   ) as Array<GoogleGenerativeAIContentPart & { text: string }>;
 
   return textParts == null || textParts.length === 0
@@ -482,7 +482,7 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
 
 function getReasoningFromParts(parts: z.infer<typeof contentSchema>['parts']) {
   const reasoningParts = parts?.filter(
-    part => 'text' in part && 'thought' in part && part.thought,
+    part => 'text' in part && !!part.text && 'thought' in part && part.thought,
   ) as Array<GoogleGenerativeAIContentPart & { text: string; thought: true }>;
 
   return reasoningParts == null || reasoningParts.length === 0
@@ -533,7 +533,11 @@ const contentSchema = z.object({
       z.union([
         z.object({
           text: z.string(),
-          thought: z.boolean().nullish(),
+          thought: z.undefined().optional(),
+        }),
+        z.object({
+          text: z.string().optional(),
+          thought: z.literal(true),
         }),
         z.object({
           functionCall: z.object({

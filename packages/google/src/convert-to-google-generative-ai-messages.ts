@@ -86,6 +86,12 @@ export function convertToGoogleGenerativeAIMessages(
                     : { text: part.text };
                 }
 
+                case "reasoning": {
+                  return !part.text
+                    ? undefined
+                    : { thought: true, text: part.text };
+                }
+
                 case "file": {
                   // if (part.mediaType !== 'image/png') {
                   //   throw new UnsupportedFunctionalityError({
