@@ -126,6 +126,7 @@ const ToolSchema = z
         properties: z.optional(z.object({}).passthrough()),
       })
       .passthrough(),
+    outputSchema: z.optional(z.object({}).passthrough()),
   })
   .passthrough();
 export type MCPTool = z.infer<typeof ToolSchema>;
@@ -172,14 +173,26 @@ const EmbeddedResourceSchema = z
   })
   .passthrough();
 
-export const CallToolResultSchema = ResultSchema.extend({
+const CallToolUnstructuredResultSchema = ResultSchema.extend({
   content: z.array(
     z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
   ),
   isError: z.boolean().default(false).optional(),
-}).or(
-  ResultSchema.extend({
-    toolResult: z.unknown(),
-  }),
-);
-export type CallToolResult = z.infer<typeof CallToolResultSchema>;
+});
+
+const CallToolStructuredResultSchema = ResultSchema.extend({
+  structuredContent: z.object({}).passthrough(),
+  content: z.optional(z.array(
+    z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
+  )),
+  isError: z.boolean().default(false).optional(),
+});
+
+export const CallToolResultSchema = z.union([
+  CallToolUnstructuredResultSchema,
+  CallToolStructuredResultSchema,
+]);
+
+export type CallToolUnstructuredResult = z.infer<typeof CallToolUnstructuredResultSchema>;
+export type CallToolStructuredResult = z.infer<typeof CallToolStructuredResultSchema>;
+export type CallToolResult = CallToolUnstructuredResult | CallToolStructuredResult;

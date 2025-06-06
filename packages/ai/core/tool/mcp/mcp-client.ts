@@ -315,7 +315,12 @@ class MCPClient {
     try {
       const listToolsResult = await this.listTools();
 
-      for (const { name, description, inputSchema } of listToolsResult.tools) {
+      for (const {
+        name,
+        description,
+        inputSchema,
+        outputSchema,
+      } of listToolsResult.tools) {
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
@@ -326,6 +331,7 @@ class MCPClient {
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
                 additionalProperties: false,
+                ...(outputSchema && { outputSchema }),
               } as JSONSchema7)
             : schemas[name].parameters;
 
@@ -339,11 +345,17 @@ class MCPClient {
           ): Promise<CallToolResult> => {
             options?.abortSignal?.throwIfAborted();
 
-            return self.callTool({
+            const result = await self.callTool({
               name,
               args,
               options,
             });
+
+            if (outputSchema && 'structuredContent' in result) {
+              // TODO: might want to add schema validation here
+            }
+
+            return result;
           },
         });
 
