@@ -91,6 +91,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       schema: googleGenerativeAIProviderOptions,
     });
 
+    // Add warning if includeThoughts is used with a non-Vertex Google provider
+    if (
+      googleOptions?.thinkingConfig?.includeThoughts === true &&
+      !this.config.provider.startsWith('google.vertex.')
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          `(${this.config.provider}).`,
+      });
+    }
+
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
 
@@ -188,9 +202,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         ? []
         : (candidate.content.parts ?? []);
 
+    const usageMetadata = response.usageMetadata;
+
+    // Build content array from all parts
     for (const part of parts) {
       if ('text' in part && part.text.length > 0) {
-        content.push({ type: 'text', text: part.text });
+        if (part.thought === true) {
+          content.push({ type: 'reasoning', text: part.text });
+        } else {
+          content.push({ type: 'text', text: part.text });
+        }
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
@@ -208,7 +229,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       }
     }
 
-    // sources
     const sources =
       extractSources({
         groundingMetadata: candidate.groundingMetadata,
@@ -217,8 +237,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     for (const source of sources) {
       content.push(source);
     }
-
-    const usageMetadata = response.usageMetadata;
 
     return {
       content,
@@ -325,9 +343,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
-              const deltaText = getTextFromParts(content.parts);
-              if (deltaText != null) {
-                controller.enqueue(deltaText);
+              // Process text parts individually to handle reasoning parts
+              const parts = content.parts ?? [];
+              for (const part of parts) {
+                if ('text' in part && part.text.length > 0) {
+                  if (part.thought === true) {
+                    controller.enqueue({ type: 'reasoning', text: part.text });
+                  } else {
+                    controller.enqueue({ type: 'text', text: part.text });
+                  }
+                }
               }
 
               const inlineDataParts = getInlineDataParts(content.parts);
@@ -490,6 +515,7 @@ const contentSchema = z.object({
       z.union([
         z.object({
           text: z.string(),
+          thought: z.boolean().nullish(),
         }),
         z.object({
           functionCall: z.object({
