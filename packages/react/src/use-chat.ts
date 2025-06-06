@@ -73,8 +73,7 @@ export function useChat<
   MESSAGE_METADATA,
   DATA_PART_SCHEMAS
 > {
-  // TODO: throttle should probably be implemented in here
-  const chatStateManager = useChatState(initialMessages);
+  const chatStateManager = useChatState(initialMessages, throttleWaitMs);
   const chatRef = useRef(new Chat({ ...options, state: chatStateManager }));
 
   const messages = useSyncExternalStore(

@@ -7,6 +7,7 @@ import {
   UIMessage,
 } from 'ai';
 import { useRef } from 'react';
+import { throttle } from './throttle';
 
 type SubscriptionRegistrars = {
   registerMessagesCallback: (onChange: () => void) => () => void;
@@ -14,9 +15,9 @@ type SubscriptionRegistrars = {
   registerErrorCallback: (onChange: () => void) => () => void;
 };
 
-// TODO: Throttle needs to be implemented in here
 export function useChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>(
   initialMessages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[] = [],
+  throttleWaitMs?: number,
 ): ChatState<MESSAGE_METADATA, DATA_TYPES> & SubscriptionRegistrars {
   const messagesRef =
     useRef<UIMessage<MESSAGE_METADATA, DATA_TYPES>[]>(initialMessages);
@@ -69,7 +70,9 @@ export function useChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>(
     },
     snapshot: <T>(value: T): T => structuredClone(value),
     registerMessagesCallback: (onChange: () => void) => {
-      messagesUpdatedRef.current = onChange;
+      messagesUpdatedRef.current = throttleWaitMs
+        ? throttle(onChange, throttleWaitMs)
+        : onChange;
       return () => void 0;
     },
     registerStatusCallback: (onChange: () => void) => {
