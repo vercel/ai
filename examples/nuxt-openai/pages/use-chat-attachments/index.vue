@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { useChat, type Message } from '@ai-sdk/vue';
+import { Chat } from '@ai-sdk/vue';
+import { computed, ref } from 'vue';
 
-const { input, messages, handleSubmit } = useChat();
+const chat = new Chat({});
 
 const files = ref<FileList | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const submit = (event: Event) => {
-  handleSubmit(event, {
+const input = ref('');
+
+const submit = (e: Event) => {
+  e.preventDefault();
+
+  chat.sendMessage({
+    text: input.value,
     files: files.value ?? undefined,
   });
 
@@ -27,21 +33,27 @@ const filesWithUrl = computed(() => {
 <template>
   <div class="flex flex-col w-full max-w-md py-24 mx-auto stretch">
     <div
-      v-for="message in messages"
+      v-for="message in chat.messages"
       :key="message.id"
       class="whitespace-pre-wrap"
     >
       <strong>{{ `${message.role}: ` }}</strong>
-      {{ message.parts.map(part => (part.type === 'text' ? part.text : '')).join('') }}
+      {{
+        message.parts
+          .map(part => (part.type === 'text' ? part.text : ''))
+          .join('')
+      }}
 
       <div
-        v-if="(message as Message).parts.some(part => part.type === 'file')"
+        v-if="message.parts.some(part => part.type === 'file')"
         class="flex flex-row gap-2"
       >
         <img
-          v-for="(attachment, index) in message.parts.filter(part => part.type === 'file')"
+          v-for="(attachment, index) in message.parts.filter(
+            part => part.type === 'file',
+          )"
           :key="`${message.id}-${index}`"
-          :src="attachment.file.url"
+          :src="attachment.url"
           class="rounded-md size-20"
         />
       </div>
