@@ -43,18 +43,21 @@ describe('prepareRequestBody', () => {
     await userEvent.click(screen.getByTestId('do-append'));
 
     await waitFor(() => {
-      const element = screen.getByTestId('on-body-options');
+      const element = screen.getByTestId('on-options');
       expect(element.textContent?.trim() ?? '').not.toBe('');
     });
 
     const value = JSON.parse(
-      screen.getByTestId('on-body-options').textContent ?? '',
+      screen.getByTestId('on-options').textContent ?? '',
     );
 
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     expect(value).toStrictEqual({
-      chatId: expect.any(String),
+      id: expect.any(String),
+      body: { 'request-body-key': 'request-body-value' },
+      headers: { 'request-header-key': 'request-header-value' },
+      requestMetadata: { 'request-metadata-key': 'request-metadata-value' },
       messages: [
         {
           role: 'user',
@@ -62,10 +65,15 @@ describe('prepareRequestBody', () => {
           parts: [{ type: 'text', text: 'hi' }],
         },
       ],
-      'request-body-key': 'request-body-value',
     });
 
-    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      'body-key': 'body-value',
+    });
+    expect(server.calls[0].requestHeaders).toStrictEqual({
+      'content-type': 'application/json',
+      'header-key': 'header-value',
+    });
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -402,7 +410,7 @@ describe('reload', () => {
     await userEvent.click(screen.getByTestId('do-reload'));
 
     expect(await server.calls[1].requestBodyJson).toStrictEqual({
-      chatId: expect.any(String),
+      id: expect.any(String),
       messages: [
         {
           id: 'id-0',

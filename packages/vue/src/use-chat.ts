@@ -142,11 +142,11 @@ export function useChat<
       MESSAGE_METADATA,
       InferUIDataParts<DATA_PART_SCHEMAS>
     >,
-    { headers, body }: ChatRequestOptions = {},
-  ) => chat.append(message, { headers, body });
+    options: ChatRequestOptions = {},
+  ) => chat.append(message, options);
 
-  const reload = async ({ headers, body }: ChatRequestOptions = {}) =>
-    chat.reload({ headers, body });
+  const reload = async (options: ChatRequestOptions = {}) =>
+    chat.reload(options);
 
   const stop = () => chat.stop();
 
@@ -193,10 +193,7 @@ export function useChat<
         metadata: undefined,
         parts: [...fileParts, { type: 'text', text: inputValue }],
       },
-      {
-        headers: options.headers,
-        body: options.body,
-      },
+      { ...options },
     );
 
     input.value = '';
