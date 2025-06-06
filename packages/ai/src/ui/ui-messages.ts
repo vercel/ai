@@ -177,6 +177,7 @@ export type StepStartUIPart = {
 export type CreateUIMessage<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
-> = Omit<UIMessage<METADATA, DATA_TYPES>, 'id'> & {
+> = Omit<UIMessage<METADATA, DATA_TYPES>, 'id' | 'role'> & {
   id?: UIMessage<METADATA, DATA_TYPES>['id'];
+  role?: UIMessage<METADATA, DATA_TYPES>['role'];
 };

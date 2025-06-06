@@ -69,6 +69,7 @@ export type UseChatHelpers<
 } & Pick<
   AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
   | 'append'
+  | 'sendMessage'
   | 'reload'
   | 'stop'
   | 'experimental_resume'
@@ -231,6 +232,7 @@ export function useChat<
     id: chatRef.current.id,
     messages,
     setMessages,
+    sendMessage: chatRef.current.sendMessage,
     append: chatRef.current.append,
     reload: chatRef.current.reload,
     stop: chatRef.current.stop,

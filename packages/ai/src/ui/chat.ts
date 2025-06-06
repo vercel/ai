@@ -24,8 +24,10 @@ import type {
   UIMessage,
   UIDataPartSchemas,
   InferUIDataParts,
+  FileUIPart,
 } from './ui-messages';
 import { DefaultChatTransport } from './default-chat-transport';
+import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 
 export type ChatRequestOptions = {
   /**
@@ -288,9 +290,53 @@ export abstract class AbstractChat<
     >,
     options: ChatRequestOptions = {},
   ) => {
-    this.state.pushMessage({ ...message, id: message.id ?? this.generateId() });
+    this.state.pushMessage({
+      ...message,
+      id: message.id ?? this.generateId(),
+      role: message.role ?? 'user',
+    });
     this.emit({ type: 'messages-changed' });
 
+    await this.triggerRequest({ requestType: 'generate', ...options });
+  };
+
+  sendMessage = async (
+    message:
+      | CreateUIMessage<
+          MESSAGE_METADATA,
+          InferUIDataParts<UI_DATA_PART_SCHEMAS>
+        >
+      | {
+          text: string;
+          files?: FileList | FileUIPart[];
+          metadata?: MESSAGE_METADATA;
+        },
+    options: ChatRequestOptions = {},
+  ) => {
+    let uiMessage: CreateUIMessage<
+      MESSAGE_METADATA,
+      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    >;
+
+    if ('text' in message) {
+      const fileParts = Array.isArray(message.files)
+        ? message.files
+        : await convertFileListToFileUIParts(message.files);
+
+      uiMessage = {
+        parts: [...fileParts, { type: 'text', text: message.text }],
+      };
+    } else {
+      uiMessage = message;
+    }
+
+    this.state.pushMessage({
+      ...uiMessage,
+      id: uiMessage.id ?? this.generateId(),
+      role: uiMessage.role ?? 'user',
+    });
+
+    this.emit({ type: 'messages-changed' });
     await this.triggerRequest({ requestType: 'generate', ...options });
   };
 

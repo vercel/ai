@@ -2,7 +2,7 @@
 
 import { invalidateRouterCache } from '@/app/actions';
 import { myMessageMetadataSchema, MyUIMessage } from '@/util/chat-schema';
-import { Chat, useChat } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
 
@@ -15,29 +15,27 @@ export default function ChatComponent({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, append, messages } = useChat({
-    chat: new Chat({
-      id: chatData.id,
-      messages: chatData.messages,
-      messageMetadataSchema: myMessageMetadataSchema,
-      transport: new DefaultChatTransport({
-        prepareRequest: ({ id, messages }) => ({
-          body: { id, message: messages[messages.length - 1] },
-        }),
+  const { status, sendMessage, messages } = useChat({
+    id: chatData.id,
+    messages: chatData.messages,
+    messageMetadataSchema: myMessageMetadataSchema,
+    transport: new DefaultChatTransport({
+      prepareRequest: ({ id, messages }) => ({
+        body: { id, message: messages[messages.length - 1] },
       }),
-      onFinish() {
-        // for new chats, the router cache needs to be invalidated so
-        // navigation to the previous page triggers SSR correctly
-        if (isNewChat) {
-          invalidateRouterCache();
-        }
-
-        // focus the input field again after the response is finished
-        requestAnimationFrame(() => {
-          inputRef.current?.focus();
-        });
-      },
     }),
+    onFinish() {
+      // for new chats, the router cache needs to be invalidated so
+      // navigation to the previous page triggers SSR correctly
+      if (isNewChat) {
+        invalidateRouterCache();
+      }
+
+      // focus the input field again after the response is finished
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    },
   });
 
   // activate the input field
@@ -75,11 +73,9 @@ export default function ChatComponent({
 
           if (!inputRef.current) return;
 
-          // TODO submit a user message
-          append({
-            role: 'user',
+          sendMessage({
+            text: inputRef.current.value,
             metadata: { createdAt: Date.now() },
-            parts: [{ type: 'text', text: inputRef.current.value }],
           });
 
           // clear the input
