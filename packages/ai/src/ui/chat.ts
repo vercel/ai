@@ -283,23 +283,6 @@ export abstract class AbstractChat<
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
    */
-  append = async (
-    message: CreateUIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >,
-    options: ChatRequestOptions = {},
-  ) => {
-    this.state.pushMessage({
-      ...message,
-      id: message.id ?? this.generateId(),
-      role: message.role ?? 'user',
-    });
-    this.emit({ type: 'messages-changed' });
-
-    await this.triggerRequest({ requestType: 'generate', ...options });
-  };
-
   sendMessage = async (
     message:
       | CreateUIMessage<
@@ -312,7 +295,7 @@ export abstract class AbstractChat<
           metadata?: MESSAGE_METADATA;
         },
     options: ChatRequestOptions = {},
-  ) => {
+  ): Promise<void> => {
     let uiMessage: CreateUIMessage<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
