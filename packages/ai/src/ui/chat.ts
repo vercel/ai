@@ -282,18 +282,20 @@ export abstract class AbstractChat<
    */
   sendMessage = async (
     message:
-      | CreateUIMessage<
+      | (CreateUIMessage<
           MESSAGE_METADATA,
           InferUIDataParts<UI_DATA_PART_SCHEMAS>
-        >
+        > & { text?: never; files?: never })
       | {
           text: string;
           files?: FileList | FileUIPart[];
           metadata?: MESSAGE_METADATA;
+          parts?: never;
         }
       | {
           files: FileList | FileUIPart[];
           metadata?: MESSAGE_METADATA;
+          parts?: never;
         },
     options: ChatRequestOptions = {},
   ): Promise<void> => {
@@ -310,7 +312,7 @@ export abstract class AbstractChat<
       uiMessage = {
         parts: [
           ...fileParts,
-          ...('text' in message
+          ...('text' in message && message.text != null
             ? [{ type: 'text' as const, text: message.text }]
             : []),
         ],

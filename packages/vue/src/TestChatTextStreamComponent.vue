@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import { TextStreamChatTransport } from 'ai';
-import { UIMessage, useChat } from './use-chat';
+import { Chat } from './chat.vue';
+import { UIMessage } from 'ai';
 
 const onFinishCalls: Array<{ message: UIMessage }> = reactive([]);
 
-const { messages, append } = useChat({
+const chat = new Chat({
   onFinish: options => {
     onFinishCalls.push(options);
   },
@@ -18,7 +19,7 @@ const { messages, append } = useChat({
 <template>
   <div>
     <div
-      v-for="(m, idx) in messages"
+      v-for="(m, idx) in chat.messages"
       key="m.id"
       :data-testid="`message-${idx}`"
     >
@@ -31,9 +32,8 @@ const { messages, append } = useChat({
     <button
       data-testid="do-append"
       @click="
-        append({
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
+        chat.sendMessage({
+          text: 'hi',
         })
       "
     />

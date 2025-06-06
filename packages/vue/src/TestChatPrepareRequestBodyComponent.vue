@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { DefaultChatTransport } from 'ai';
 import { computed, ref } from 'vue';
-import { useChat } from './use-chat';
+import { Chat } from './chat.vue';
 
 const options = ref<any>();
 
-const { messages, append, status } = useChat({
+const chat = new Chat({
   transport: new DefaultChatTransport({
     api: '/api/chat',
     prepareRequest(optionsArg) {
@@ -18,14 +18,14 @@ const { messages, append, status } = useChat({
   }),
 });
 
-const isLoading = computed(() => status.value !== 'ready');
+const isLoading = computed(() => chat.status !== 'ready');
 </script>
 
 <template>
   <div>
     <div data-testid="loading">{{ isLoading?.toString() }}</div>
     <div
-      v-for="(m, idx) in messages"
+      v-for="(m, idx) in chat.messages"
       :key="m.id"
       :data-testid="`message-${idx}`"
     >
@@ -38,7 +38,7 @@ const isLoading = computed(() => status.value !== 'ready');
     <button
       data-testid="do-append"
       @click="
-        append(
+        chat.sendMessage(
           {
             role: 'user',
             parts: [{ text: 'hi', type: 'text' }],

@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { UIMessage } from 'ai';
 import { reactive } from 'vue';
-import { UIMessage, useChat } from './use-chat';
+import { Chat } from './chat.vue';
 
 const onFinishCalls: Array<{ message: UIMessage }> = reactive([]);
 
-const { messages, append, error, status } = useChat({
+const chat = new Chat({
   onFinish: options => {
     onFinishCalls.push(options);
   },
@@ -13,10 +14,10 @@ const { messages, append, error, status } = useChat({
 
 <template>
   <div>
-    <div data-testid="status">{{ status }}</div>
-    <div data-testid="error">{{ error?.toString() }}</div>
+    <div data-testid="status">{{ chat.status }}</div>
+    <div data-testid="error">{{ chat.error?.toString() }}</div>
     <div
-      v-for="(m, idx) in messages"
+      v-for="(m, idx) in chat.messages"
       key="m.id"
       :data-testid="`message-${idx}`"
     >
@@ -26,16 +27,7 @@ const { messages, append, error, status } = useChat({
       }}
     </div>
 
-    <button
-      data-testid="do-append"
-      @click="
-        append({
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
-        })
-      "
-    />
-
+    <button data-testid="do-append" @click="chat.sendMessage({ text: 'hi' })" />
     <div data-testid="on-finish-calls">{{ JSON.stringify(onFinishCalls) }}</div>
   </div>
 </template>

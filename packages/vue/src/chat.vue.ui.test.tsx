@@ -10,8 +10,6 @@ import { setupTestComponent } from './setup-test-component';
 import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatComponent from './TestChatComponent.vue';
-import TestChatFormComponent from './TestChatFormComponent.vue';
-import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
 import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
 import TestChatReloadComponent from './TestChatReloadComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
@@ -297,93 +295,6 @@ describe('text stream', () => {
   });
 });
 
-describe('form actions', () => {
-  setupTestComponent(TestChatFormComponent);
-
-  it('should show streamed response using handleSubmit', async () => {
-    server.urls['/api/chat'].response = [
-      {
-        type: 'stream-chunks',
-        chunks: ['Hello', ',', ' world', '.'].map(token =>
-          formatStreamPart({ type: 'text', text: token }),
-        ),
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-          formatStreamPart({ type: 'text', text: token }),
-        ),
-      },
-    ];
-
-    const firstInput = screen.getByTestId('do-input');
-    await userEvent.type(firstInput, 'hi');
-    await userEvent.keyboard('{Enter}');
-
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
-    await screen.findByTestId('message-1');
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        'AI: Hello, world.',
-      );
-    });
-
-    const secondInput = screen.getByTestId('do-input');
-    await userEvent.type(secondInput, '{Enter}');
-
-    expect(screen.queryByTestId('message-2')).not.toBeInTheDocument();
-  });
-});
-
-describe('form actions (with options)', () => {
-  setupTestComponent(TestChatFormOptionsComponent);
-
-  it('should show streamed response using handleSubmit', async () => {
-    server.urls['/api/chat'].response = [
-      {
-        type: 'stream-chunks',
-        chunks: ['Hello', ',', ' world', '.'].map(token =>
-          formatStreamPart({ type: 'text', text: token }),
-        ),
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
-          formatStreamPart({ type: 'text', text: token }),
-        ),
-      },
-    ];
-
-    const firstInput = screen.getByTestId('do-input');
-    await userEvent.type(firstInput, 'hi');
-    await userEvent.keyboard('{Enter}');
-
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Hello, world.',
-    );
-
-    const thirdInput = screen.getByTestId('do-input');
-    await userEvent.type(thirdInput, 'what color is the sky?');
-    await userEvent.keyboard('{Enter}');
-
-    await screen.findByTestId('message-2');
-    expect(screen.getByTestId('message-2')).toHaveTextContent(
-      'User: what color is the sky?',
-    );
-
-    await screen.findByTestId('message-3');
-    expect(screen.getByTestId('message-3')).toHaveTextContent(
-      'AI: The sky is blue.',
-    );
-  });
-});
-
 describe('reload', () => {
   setupTestComponent(TestChatReloadComponent);
 
@@ -434,32 +345,6 @@ describe('reload', () => {
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
       'AI: second response',
-    );
-  });
-});
-
-describe('onToolCall', () => {
-  setupTestComponent(TestChatFormComponent);
-
-  it('should invoke onToolCall when a tool call is received from the servers response', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatStreamPart({
-          type: 'tool-call',
-          toolCallId: 'tool-call-0',
-          toolName: 'client-tool',
-          args: { testArg: 'test-value' },
-        }),
-      ],
-    };
-
-    const firstInput = screen.getByTestId('do-input');
-    await userEvent.type(firstInput, 'hi');
-    await userEvent.keyboard('{Enter}');
-
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'test-tool-response: client-tool tool-call-0 {"testArg":"test-value"}',
     );
   });
 });
