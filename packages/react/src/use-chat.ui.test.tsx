@@ -607,6 +607,7 @@ describe('prepareChatRequest', () => {
               {
                 body: { 'request-body-key': 'request-body-value' },
                 headers: { 'request-header-key': 'request-header-value' },
+                metadata: { 'request-metadata-key': 'request-metadata-value' },
               },
             );
           }}
@@ -659,7 +660,9 @@ describe('prepareChatRequest', () => {
             "role": "user",
           },
         ],
-        "requestMetadata": undefined,
+        "requestMetadata": {
+          "request-metadata-key": "request-metadata-value",
+        },
       }
     `);
 
