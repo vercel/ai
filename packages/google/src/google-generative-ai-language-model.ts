@@ -206,7 +206,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     // Build content array from all parts
     for (const part of parts) {
-      if ('text' in part && part.text.length > 0) {
+      if ('text' in part && part.text != null && part.text.length > 0) {
         if (part.thought === true) {
           content.push({ type: 'reasoning', text: part.text });
         } else {
@@ -346,7 +346,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               // Process text parts individually to handle reasoning parts
               const parts = content.parts ?? [];
               for (const part of parts) {
-                if ('text' in part && part.text.length > 0) {
+                if (
+                  'text' in part &&
+                  part.text != null &&
+                  part.text.length > 0
+                ) {
                   if (part.thought === true) {
                     controller.enqueue({ type: 'reasoning', text: part.text });
                   } else {
@@ -468,10 +472,7 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
 
   return textParts == null || textParts.length === 0
     ? undefined
-    : {
-        type: 'text' as const,
-        text: textParts.map(part => part.text).join(''),
-      };
+    : textParts.map(part => part.text).join('');
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -509,14 +510,10 @@ function extractSources({
 }
 
 const contentSchema = z.object({
-  role: z.string(),
   parts: z
     .array(
       z.union([
-        z.object({
-          text: z.string(),
-          thought: z.boolean().nullish(),
-        }),
+        // note: order matters since text can be fully empty
         z.object({
           functionCall: z.object({
             name: z.string(),
@@ -528,6 +525,10 @@ const contentSchema = z.object({
             mimeType: z.string(),
             data: z.string(),
           }),
+        }),
+        z.object({
+          text: z.string().nullish(),
+          thought: z.boolean().nullish(),
         }),
       ]),
     )
