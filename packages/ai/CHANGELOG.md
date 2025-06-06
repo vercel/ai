@@ -1,5 +1,19 @@
 # ai
 
+## 5.0.0-alpha.10
+
+### Major Changes
+
+- 98f25e5: chore (ui): remove managed chat inputs
+- 7bb58d4: chore (ai): restructure prepareRequest
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/gateway@1.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
 ## 5.0.0-alpha.9
 
 ### Major Changes

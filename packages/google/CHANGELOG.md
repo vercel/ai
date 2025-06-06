@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- 581a9be: fix (provider/google): prevent error when thinking signature is used
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
 ## 2.0.0-alpha.9
 
 ### Patch Changes
