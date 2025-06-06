@@ -21,7 +21,7 @@ export default function ChatComponent({
       messages: chatData.messages,
       messageMetadataSchema: myMessageMetadataSchema,
       transport: new DefaultChatTransport({
-        prepareChatRequest: ({ id, messages }) => ({
+        prepareRequest: ({ id, messages }) => ({
           body: { id, message: messages[messages.length - 1] },
         }),
       }),
