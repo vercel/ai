@@ -187,7 +187,7 @@ export abstract class AbstractChat<
     onError,
     onToolCall,
     onFinish,
-  }: Omit<BaseChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'messages'> & {
+  }: Omit<ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'messages'> & {
     state: ChatState<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
   }) {
     this.id = id;

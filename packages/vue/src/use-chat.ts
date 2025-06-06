@@ -1,5 +1,5 @@
 import type {
-  BaseChatInit,
+  ChatInit as BaseChatInit,
   ChatRequestOptions,
   ChatStatus,
   CreateUIMessage,
@@ -143,7 +143,7 @@ export function useChat<
       InferUIDataParts<DATA_PART_SCHEMAS>
     >,
     options: ChatRequestOptions = {},
-  ) => chat.append(message, options);
+  ) => chat.sendMessage(message, options);
 
   const reload = async (options: ChatRequestOptions = {}) =>
     chat.reload(options);

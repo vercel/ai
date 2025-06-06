@@ -1,6 +1,6 @@
 import {
   AbstractChat,
-  BaseChatInit,
+  ChatInit,
   ChatState,
   ChatStatus,
   UIDataPartSchemas,
@@ -56,7 +56,7 @@ export class Chat<
   constructor({
     messages,
     ...init
-  }: BaseChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
+  }: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
     super({ ...init, state: new ReactChatState(messages) });
   }
 }

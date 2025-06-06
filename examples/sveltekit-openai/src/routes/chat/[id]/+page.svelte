@@ -27,6 +27,8 @@
       ? 'bg-primary text-secondary rounded-md'
       : 'bg-secondary text-primary rounded-md justify-self-end';
   }
+
+  let input = $state('');
 </script>
 
 <main class="flex flex-col items-center h-dvh w-dvw">
@@ -104,7 +106,7 @@
         </div>
       {/each}
     </div>
-    <form class="relative" onsubmit={chat.handleSubmit}>
+    <form class="relative" onsubmit={() => chat.sendMessage({ text: input })}>
       <p>{chat.status}</p>
       <div>
         <a href="/chat/1">chat 1</a>
@@ -112,13 +114,13 @@
         <a href="/chat/3">chat 3</a>
       </div>
       <Textarea
-        bind:value={chat.input}
+        bind:value={input}
         placeholder="Send a message..."
         class="h-full"
         onkeydown={event => {
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            chat.handleSubmit();
+            chat.sendMessage({ text: input });
           }
         }}
       />
