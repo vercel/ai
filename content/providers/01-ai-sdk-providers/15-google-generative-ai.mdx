@@ -247,6 +247,7 @@ Google Generative AI supports both explicit and implicit caching to help reduce 
 Gemini 2.5 models automatically provide cache cost savings without needing to create an explicit cache. When you send requests that share common prefixes with previous requests, you'll receive a 75% token discount on cached content.
 
 To maximize cache hits with implicit caching:
+
 - Keep content at the beginning of requests consistent
 - Add variable content (like user questions) at the end of prompts
 - Ensure requests meet minimum token requirements:
@@ -258,7 +259,8 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 // Structure prompts with consistent content at the beginning
-const baseContext = "You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...";
+const baseContext =
+  'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
 
 const { text: veggieLasagna, usage } = await generateText({
   model: google('gemini-2.5-pro'),
