@@ -184,6 +184,8 @@ describe('doGenerate', () => {
       promptTokenCount: number;
       candidatesTokenCount: number;
       totalTokenCount: number;
+      cachedContentTokenCount?: number;
+      thoughtsTokenCount?: number;
     };
     headers?: Record<string, string>;
     groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
@@ -231,6 +233,86 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should extract reasoning content', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'This is a reasoning step.', thought: true },
+                { text: 'This is a normal response.' },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 5,
+          candidatesTokenCount: 2,
+          totalTokenCount: 12,
+          thoughtsTokenCount: 5,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "This is a reasoning step.",
+          "type": "reasoning",
+        },
+        {
+          "text": "This is a normal response.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should extract cachedContent token usage and send cachedContent in request', async () => {
+    prepareJsonResponse({
+      usage: {
+        promptTokenCount: 10,
+        candidatesTokenCount: 3,
+        totalTokenCount: 13,
+        cachedContentTokenCount: 7,
+      },
+    });
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          cachedContent: 'cached-content-id',
+        },
+      },
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": 7,
+        "inputTokens": 10,
+        "outputTokens": 3,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      }
+    `);
+    // Check that the request body includes cachedContent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      cachedContent: 'cached-content-id',
+    });
   });
 
   it('should extract usage', async () => {
