@@ -1,4 +1,5 @@
 import { UIMessageStreamPart } from '../ui-message-stream';
+import { ChatRequestOptions } from './chat';
 import { UIDataTypes, UIMessage } from './ui-messages';
 
 export interface ChatTransport<
@@ -6,11 +7,12 @@ export interface ChatTransport<
   DATA_TYPES extends UIDataTypes,
 > {
   // TODO better name
-  submitMessages: (options: {
-    chatId: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-    abortController: AbortController;
-    requestMetadata: unknown;
-    requestType: 'generate' | 'resume'; // TODO have separate functions
-  }) => Promise<ReadableStream<UIMessageStreamPart>>;
+  submitMessages: (
+    options: {
+      chatId: string;
+      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+      abortController: AbortController;
+      requestType: 'generate' | 'resume'; // TODO have separate functions
+    } & ChatRequestOptions,
+  ) => Promise<ReadableStream<UIMessageStreamPart>>;
 }

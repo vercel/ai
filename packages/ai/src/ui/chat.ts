@@ -286,29 +286,18 @@ export abstract class AbstractChat<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >,
-    {
-      metadata,
-    }: {
-      metadata?: unknown;
-    } = {},
+    options: ChatRequestOptions = {},
   ) => {
     this.state.pushMessage({ ...message, id: message.id ?? this.generateId() });
     this.emit({ type: 'messages-changed' });
 
-    await this.triggerRequest({
-      requestMetadata: metadata,
-      requestType: 'generate',
-    });
+    await this.triggerRequest({ requestType: 'generate', ...options });
   };
 
   /**
    * Regenerate the last assistant message.
    */
-  reload = async ({
-    metadata,
-  }: {
-    metadata?: unknown;
-  } = {}): Promise<void> => {
+  reload = async (options: ChatRequestOptions = {}): Promise<void> => {
     // TODO stop any ongoing request
     if (this.lastMessage === undefined) {
       return;
@@ -319,24 +308,16 @@ export abstract class AbstractChat<
       this.emit({ type: 'messages-changed' });
     }
 
-    await this.triggerRequest({
-      requestType: 'generate',
-      requestMetadata: metadata,
-    });
+    await this.triggerRequest({ requestType: 'generate', ...options });
   };
 
   /**
    * Resume an ongoing chat generation stream. This does not resume an aborted generation.
    */
-  experimental_resume = async ({
-    metadata,
-  }: {
-    metadata?: unknown;
-  } = {}): Promise<void> => {
-    await this.triggerRequest({
-      requestType: 'resume',
-      requestMetadata: metadata,
-    });
+  experimental_resume = async (
+    options: ChatRequestOptions = {},
+  ): Promise<void> => {
+    await this.triggerRequest({ requestType: 'resume', ...options });
   };
 
   addToolResult = async ({
@@ -366,7 +347,6 @@ export abstract class AbstractChat<
         // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
         this.triggerRequest({
           requestType: 'generate',
-          requestMetadata: undefined,
         });
       }
     });
@@ -392,11 +372,12 @@ export abstract class AbstractChat<
 
   private async triggerRequest({
     requestType,
-    requestMetadata,
+    metadata,
+    headers,
+    body,
   }: {
     requestType: 'generate' | 'resume';
-    requestMetadata: unknown;
-  }) {
+  } & ChatRequestOptions) {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const messageCount = this.state.messages.length;
@@ -419,7 +400,9 @@ export abstract class AbstractChat<
         chatId: this.id,
         messages: this.state.messages,
         abortController: activeResponse.abortController,
-        requestMetadata,
+        metadata,
+        headers,
+        body,
         requestType,
       });
 
@@ -505,7 +488,9 @@ export abstract class AbstractChat<
     ) {
       await this.triggerRequest({
         requestType,
-        requestMetadata,
+        metadata,
+        headers,
+        body,
       });
     }
   }

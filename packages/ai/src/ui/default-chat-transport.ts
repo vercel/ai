@@ -8,8 +8,8 @@ import {
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { ChatTransport } from './chat-transport';
-import { UIDataTypes, UIMessage } from './ui-messages';
 import { PrepareChatRequestFunction } from './prepare-chat-request';
+import { UIDataTypes } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -88,7 +88,7 @@ export class DefaultChatTransport<
   private headers?: Record<string, string> | Headers;
   private body?: object;
   private fetch?: FetchFunction;
-  private prepareChatRequest: PrepareChatRequestFunction<
+  private prepareChatRequest?: PrepareChatRequestFunction<
     MESSAGE_METADATA,
     DATA_TYPES
   >;
@@ -99,9 +99,7 @@ export class DefaultChatTransport<
     headers,
     body,
     fetch,
-    prepareChatRequest = ({ id, messages, body }) => ({
-      body: { id, messages, ...body },
-    }),
+    prepareChatRequest,
   }: {
     api?: string;
 
@@ -163,28 +161,33 @@ export class DefaultChatTransport<
     chatId,
     messages,
     abortController,
-    requestMetadata,
+    metadata,
+    headers,
+    body,
     requestType,
   }: Parameters<
     ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
   >[0]) {
-    const { headers, body, credentials } = this.prepareChatRequest({
+    const preparedRequest = this.prepareChatRequest?.({
       id: chatId,
       messages,
-      requestMetadata,
-      body: this.body,
+      body: { ...this.body, ...body },
+      headers: { ...this.headers, ...headers },
       credentials: this.credentials,
-      headers: this.headers,
+      requestMetadata: metadata,
     });
 
     return fetchUIMessageStream({
       api: this.api,
-
-      // overriding headers and credentials in prepareChatRequest is optional
-      headers: headers !== undefined ? headers : this.headers,
-      credentials: credentials !== undefined ? credentials : this.credentials,
-
-      body,
+      body:
+        preparedRequest?.body !== undefined
+          ? preparedRequest.body
+          : { ...this.body, ...body, id: chatId, messages },
+      headers:
+        preparedRequest?.headers !== undefined
+          ? preparedRequest.headers
+          : { ...this.headers, ...headers },
+      credentials: preparedRequest?.credentials ?? this.credentials,
       abortController: () => abortController, // TODO: why is this a function?
       fetch: this.fetch,
       requestType,

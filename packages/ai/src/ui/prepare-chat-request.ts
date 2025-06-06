@@ -11,7 +11,7 @@ export type PrepareChatRequestFunction<
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
 }) => {
-  body: Record<string, any>;
+  body: object;
   headers?: HeadersInit;
   credentials?: RequestCredentials;
 };
