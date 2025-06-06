@@ -1,8 +1,9 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
 import { ChatTransport } from './chat-transport';
+import { PrepareRequest } from './prepare-request';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
-import { UIDataTypes, UIMessage } from './ui-messages';
+import { UIDataTypes } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -71,11 +72,7 @@ export class TextStreamChatTransport<
   private headers?: Record<string, string> | Headers;
   private body?: object;
   private fetch?: FetchFunction;
-  private prepareRequestBody?: (options: {
-    chatId: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-    requestBody?: object;
-  }) => unknown;
+  private prepareRequest?: PrepareRequest<MESSAGE_METADATA, DATA_TYPES>;
 
   constructor({
     api,
@@ -83,7 +80,7 @@ export class TextStreamChatTransport<
     headers,
     body,
     fetch,
-    prepareRequestBody,
+    prepareRequest,
   }: {
     api: string;
 
@@ -128,49 +125,49 @@ export class TextStreamChatTransport<
      * @param messages The current messages in the chat.
      * @param requestBody The request body object passed in the chat request.
      */
-    prepareRequestBody?: (options: {
-      chatId: string;
-      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-      requestBody?: object;
-    }) => unknown;
+    prepareRequest?: NoInfer<PrepareRequest<MESSAGE_METADATA, DATA_TYPES>>;
   }) {
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;
     this.body = body;
     this.fetch = fetch;
-    this.prepareRequestBody = prepareRequestBody;
+    this.prepareRequest = prepareRequest;
   }
 
   submitMessages({
     chatId,
     messages,
     abortController,
-    body,
+    metadata,
     headers,
+    body,
     requestType,
   }: Parameters<
     ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
   >[0]) {
+    const preparedRequest = this.prepareRequest?.({
+      id: chatId,
+      messages,
+      body: { ...this.body, ...body },
+      headers: { ...this.headers, ...headers },
+      credentials: this.credentials,
+      requestMetadata: metadata,
+    });
+
     return fetchTextStream({
       api: this.api,
-      headers: {
-        ...this.headers,
-        ...headers,
-      },
-      body: this.prepareRequestBody?.({
-        chatId,
-        messages,
-        ...this.body,
-        ...body,
-      }) ?? {
-        chatId,
-        messages,
-        ...this.body,
-        ...body,
-      },
-      credentials: this.credentials,
-      abortController: () => abortController,
+
+      body:
+        preparedRequest?.body !== undefined
+          ? preparedRequest.body
+          : { ...this.body, ...body },
+      headers:
+        preparedRequest?.headers !== undefined
+          ? preparedRequest.headers
+          : { ...this.headers, ...headers },
+      credentials: preparedRequest?.credentials ?? this.credentials,
+      abortController: () => abortController, // TODO: why is this a function?
       fetch: this.fetch,
       requestType,
     });

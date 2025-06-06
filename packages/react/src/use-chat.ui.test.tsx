@@ -314,7 +314,7 @@ describe('data protocol stream', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "chatId": "first-id-0",
+          "id": "first-id-0",
           "messages": [
             {
               "id": "id-0",
@@ -565,15 +565,20 @@ describe('form actions', () => {
   });
 });
 
-describe('prepareRequestBody', () => {
-  let bodyOptions: any;
+describe('prepareChatRequest', () => {
+  let options: any;
 
   setupTestComponent(() => {
     const { messages, append, status } = useChat({
       transport: new DefaultChatTransport({
-        prepareRequestBody(options) {
-          bodyOptions = options;
-          return 'test-request-body';
+        body: { 'body-key': 'body-value' },
+        headers: { 'header-key': 'header-value' },
+        prepareRequest(optionsArg) {
+          options = optionsArg;
+          return {
+            body: { 'request-body-key': 'request-body-value' },
+            headers: { 'header-key': 'header-value' },
+          };
         },
       }),
       generateId: mockId(),
@@ -601,6 +606,8 @@ describe('prepareRequestBody', () => {
               },
               {
                 body: { 'request-body-key': 'request-body-value' },
+                headers: { 'request-header-key': 'request-header-value' },
+                metadata: { 'request-metadata-key': 'request-metadata-value' },
               },
             );
           }}
@@ -610,7 +617,7 @@ describe('prepareRequestBody', () => {
   });
 
   afterEach(() => {
-    bodyOptions = undefined;
+    options = undefined;
   });
 
   it('should show streamed response', async () => {
@@ -629,9 +636,18 @@ describe('prepareRequestBody', () => {
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-    expect(bodyOptions).toMatchInlineSnapshot(`
+    expect(options).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "body": {
+          "body-key": "body-value",
+          "request-body-key": "request-body-value",
+        },
+        "credentials": undefined,
+        "headers": {
+          "header-key": "header-value",
+          "request-header-key": "request-header-value",
+        },
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -644,11 +660,23 @@ describe('prepareRequestBody', () => {
             "role": "user",
           },
         ],
-        "request-body-key": "request-body-value",
+        "requestMetadata": {
+          "request-metadata-key": "request-metadata-value",
+        },
       }
     `);
 
-    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "request-body-key": "request-body-value",
+      }
+    `);
+    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "content-type": "application/json",
+        "header-key": "header-value",
+      }
+    `);
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -1462,7 +1490,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1545,7 +1573,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1660,7 +1688,7 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1766,7 +1794,7 @@ describe('attachments with empty submit', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1878,7 +1906,7 @@ describe('should append message with attachments', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1965,7 +1993,7 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -2038,7 +2066,7 @@ describe('test sending additional fields during message submission', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -2143,7 +2171,7 @@ describe('resume ongoing stream and return assistant message', () => {
 
       const { requestMethod, requestUrl } = mostRecentCall;
       expect(requestMethod).toBe('GET');
-      expect(requestUrl).toBe('http://localhost:3000/api/chat?chatId=123');
+      expect(requestUrl).toBe('http://localhost:3000/api/chat?id=123');
     });
   });
 });

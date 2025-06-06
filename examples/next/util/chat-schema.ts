@@ -1,4 +1,4 @@
-import { UIDataPartSchemas, UIMessage } from 'ai';
+import { UIDataTypes, UIMessage } from 'ai';
 import { z } from 'zod';
 
 export const myMessageMetadataSchema = z.object({
@@ -7,7 +7,7 @@ export const myMessageMetadataSchema = z.object({
 
 export type MyMessageMetadata = z.infer<typeof myMessageMetadataSchema>;
 
-export type MyUIMessage = UIMessage<MyMessageMetadata, UIDataPartSchemas>;
+export type MyUIMessage = UIMessage<MyMessageMetadata, UIDataTypes>;
 
 export type ChatData = {
   id: string;

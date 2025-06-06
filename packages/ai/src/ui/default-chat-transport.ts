@@ -8,7 +8,8 @@ import {
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { ChatTransport } from './chat-transport';
-import { UIDataTypes, UIMessage } from './ui-messages';
+import { PrepareRequest } from './prepare-request';
+import { UIDataTypes } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -32,7 +33,7 @@ async function fetchUIMessageStream({
 }): Promise<ReadableStream<UIMessageStreamPart>> {
   const response =
     requestType === 'resume'
-      ? await fetch(`${api}?chatId=${body.chatId}`, {
+      ? await fetch(`${api}?id=${body.id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -87,11 +88,7 @@ export class DefaultChatTransport<
   private headers?: Record<string, string> | Headers;
   private body?: object;
   private fetch?: FetchFunction;
-  private prepareRequestBody?: (options: {
-    chatId: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-    requestBody?: object;
-  }) => unknown;
+  private prepareRequest?: PrepareRequest<MESSAGE_METADATA, DATA_TYPES>;
 
   constructor({
     api = '/api/chat',
@@ -99,7 +96,7 @@ export class DefaultChatTransport<
     headers,
     body,
     fetch,
-    prepareRequestBody,
+    prepareRequest,
   }: {
     api?: string;
 
@@ -144,49 +141,48 @@ export class DefaultChatTransport<
      * @param messages The current messages in the chat.
      * @param requestBody The request body object passed in the chat request.
      */
-    prepareRequestBody?: (options: {
-      chatId: string;
-      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-      requestBody?: object;
-    }) => unknown;
+    prepareRequest?: PrepareRequest<MESSAGE_METADATA, DATA_TYPES>;
   } = {}) {
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;
     this.body = body;
     this.fetch = fetch;
-    this.prepareRequestBody = prepareRequestBody;
+    this.prepareRequest = prepareRequest;
   }
 
   submitMessages({
     chatId,
     messages,
     abortController,
-    body,
+    metadata,
     headers,
+    body,
     requestType,
   }: Parameters<
     ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
   >[0]) {
+    const preparedRequest = this.prepareRequest?.({
+      id: chatId,
+      messages,
+      body: { ...this.body, ...body },
+      headers: { ...this.headers, ...headers },
+      credentials: this.credentials,
+      requestMetadata: metadata,
+    });
+
     return fetchUIMessageStream({
       api: this.api,
-      headers: {
-        ...this.headers,
-        ...headers,
-      },
-      body: this.prepareRequestBody?.({
-        chatId,
-        messages,
-        ...this.body,
-        ...body,
-      }) ?? {
-        chatId,
-        messages,
-        ...this.body,
-        ...body,
-      },
-      credentials: this.credentials,
-      abortController: () => abortController,
+      body:
+        preparedRequest?.body !== undefined
+          ? preparedRequest.body
+          : { ...this.body, ...body, id: chatId, messages },
+      headers:
+        preparedRequest?.headers !== undefined
+          ? preparedRequest.headers
+          : { ...this.headers, ...headers },
+      credentials: preparedRequest?.credentials ?? this.credentials,
+      abortController: () => abortController, // TODO: why is this a function?
       fetch: this.fetch,
       requestType,
     });

@@ -1,23 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { DefaultChatTransport } from 'ai';
-import { UIMessage, useChat } from './use-chat';
+import { computed, ref } from 'vue';
+import { useChat } from './use-chat';
 
-const bodyOptions = ref<{
-  chatId: string;
-  messages: UIMessage[];
-  [key: string]: string;
-}>();
+const options = ref<any>();
 
 const { messages, append, status } = useChat({
   transport: new DefaultChatTransport({
     api: '/api/chat',
-    prepareRequestBody(options) {
-      bodyOptions.value = {
-        ...options,
-        messages: [...options.messages],
+    prepareRequest(optionsArg) {
+      options.value = JSON.parse(JSON.stringify(optionsArg));
+      return {
+        body: { 'body-key': 'body-value' },
+        headers: { 'header-key': 'header-value' },
       };
-      return 'test-request-body';
     },
   }),
 });
@@ -49,13 +45,15 @@ const isLoading = computed(() => status.value !== 'ready');
           },
           {
             body: { 'request-body-key': 'request-body-value' },
+            headers: { 'request-header-key': 'request-header-value' },
+            metadata: { 'request-metadata-key': 'request-metadata-value' },
           },
         )
       "
     />
 
-    <div v-if="bodyOptions" data-testid="on-body-options">
-      {{ bodyOptions }}
+    <div v-if="options" data-testid="on-options">
+      {{ options }}
     </div>
   </div>
 </template>

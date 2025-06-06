@@ -202,7 +202,7 @@ describe('data protocol stream', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "chatId": "id-0",
+          "id": "id-0",
           "messages": [
             {
               "id": "id-1",
@@ -994,7 +994,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1072,7 +1072,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1160,7 +1160,7 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1248,7 +1248,7 @@ describe('file attachments with empty text content', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1319,7 +1319,7 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1379,7 +1379,7 @@ describe('test sending additional fields during message submission', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",

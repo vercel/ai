@@ -25,8 +25,21 @@ import type {
   UIDataPartSchemas,
   InferUIDataParts,
 } from './ui-messages';
-import { ChatRequestOptions } from './use-chat';
 import { DefaultChatTransport } from './default-chat-transport';
+
+export type ChatRequestOptions = {
+  /**
+  Additional headers that should be to be passed to the API endpoint.
+   */
+  headers?: Record<string, string> | Headers;
+
+  /**
+  Additional body JSON properties that should be sent to the API endpoint.
+   */
+  body?: object; // TODO JSONStringifyable
+
+  metadata?: unknown;
+};
 
 export interface ChatSubscriber {
   onChange: (event: ChatEvent) => void;
@@ -69,6 +82,11 @@ export interface BaseChatInit<
    */
   id?: string;
 
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
+  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
+
   messages?: UIMessage<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
@@ -81,15 +99,11 @@ export interface BaseChatInit<
   generateId?: IdGenerator;
 
   transport?: ChatTransport<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    NoInfer<MESSAGE_METADATA>,
+    NoInfer<InferUIDataParts<UI_DATA_PART_SCHEMAS>>
   >;
 
   maxSteps?: number;
-  messageMetadataSchema?:
-    | Validator<MESSAGE_METADATA>
-    | StandardSchemaV1<MESSAGE_METADATA>;
-  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
 
   /**
    * Callback function to be called when an error is encountered.
@@ -116,8 +130,8 @@ export interface BaseChatInit<
    */
   onFinish?: (options: {
     message: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+      NoInfer<MESSAGE_METADATA>,
+      NoInfer<InferUIDataParts<UI_DATA_PART_SCHEMAS>>
     >;
   }) => void;
 }
@@ -272,27 +286,19 @@ export abstract class AbstractChat<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >,
-    { headers, body }: ChatRequestOptions = {},
+    options: ChatRequestOptions = {},
   ) => {
     this.state.pushMessage({ ...message, id: message.id ?? this.generateId() });
     this.emit({ type: 'messages-changed' });
 
-    await this.triggerRequest({
-      headers,
-      body,
-      requestType: 'generate',
-    });
+    await this.triggerRequest({ requestType: 'generate', ...options });
   };
 
   /**
-   * Reload the last AI chat response for the given chat history. If the last
-   * message isn't from the assistant, it will request the API to generate a
-   * new response.
+   * Regenerate the last assistant message.
    */
-  reload = async ({
-    headers,
-    body,
-  }: ChatRequestOptions = {}): Promise<void> => {
+  reload = async (options: ChatRequestOptions = {}): Promise<void> => {
+    // TODO stop any ongoing request
     if (this.lastMessage === undefined) {
       return;
     }
@@ -302,25 +308,16 @@ export abstract class AbstractChat<
       this.emit({ type: 'messages-changed' });
     }
 
-    await this.triggerRequest({
-      requestType: 'generate',
-      headers,
-      body,
-    });
+    await this.triggerRequest({ requestType: 'generate', ...options });
   };
 
   /**
    * Resume an ongoing chat generation stream. This does not resume an aborted generation.
    */
-  experimental_resume = async ({
-    headers,
-    body,
-  }: ChatRequestOptions = {}): Promise<void> => {
-    await this.triggerRequest({
-      requestType: 'resume',
-      headers,
-      body,
-    });
+  experimental_resume = async (
+    options: ChatRequestOptions = {},
+  ): Promise<void> => {
+    await this.triggerRequest({ requestType: 'resume', ...options });
   };
 
   addToolResult = async ({
@@ -375,11 +372,12 @@ export abstract class AbstractChat<
 
   private async triggerRequest({
     requestType,
+    metadata,
     headers,
     body,
-  }: ChatRequestOptions & {
+  }: {
     requestType: 'generate' | 'resume';
-  }) {
+  } & ChatRequestOptions) {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const messageCount = this.state.messages.length;
@@ -401,9 +399,10 @@ export abstract class AbstractChat<
       const stream = await this.transport.submitMessages({
         chatId: this.id,
         messages: this.state.messages,
-        body,
-        headers,
         abortController: activeResponse.abortController,
+        metadata,
+        headers,
+        body,
         requestType,
       });
 
@@ -489,6 +488,7 @@ export abstract class AbstractChat<
     ) {
       await this.triggerRequest({
         requestType,
+        metadata,
         headers,
         body,
       });

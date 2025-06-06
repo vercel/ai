@@ -19,15 +19,12 @@ export default function ChatComponent({
     chat: new Chat({
       id: chatData.id,
       messages: chatData.messages,
+      messageMetadataSchema: myMessageMetadataSchema,
       transport: new DefaultChatTransport({
-        api: '/api/chat',
-        // TODO fix type safety
-        prepareRequestBody: ({ chatId, messages }) => ({
-          id: chatId,
-          message: messages[messages.length - 1],
+        prepareRequest: ({ id, messages }) => ({
+          body: { id, message: messages[messages.length - 1] },
         }),
       }),
-      messageMetadataSchema: myMessageMetadataSchema,
       onFinish() {
         // for new chats, the router cache needs to be invalidated so
         // navigation to the previous page triggers SSR correctly

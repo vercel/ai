@@ -5,7 +5,6 @@ import {
   convertFileListToFileUIParts,
   InferUIDataParts,
   UIDataPartSchemas,
-  type ChatRequestOptions,
   type CreateUIMessage,
   type FileUIPart,
   type UIMessage,
@@ -60,7 +59,8 @@ export type UseChatHelpers<
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions & {
+    options?: {
+      metadata?: unknown;
       files?: FileList | FileUIPart[];
     },
   ) => void;
@@ -193,7 +193,8 @@ export function useChat<
   const handleSubmit = useCallback(
     async (
       event?: { preventDefault?: () => void },
-      options: ChatRequestOptions & {
+      options: {
+        metadata?: unknown;
         files?: FileList | FileUIPart[];
       } = {},
     ) => {
@@ -213,8 +214,7 @@ export function useChat<
           parts: [...fileParts, { type: 'text', text: input }],
         },
         {
-          headers: options.headers,
-          body: options.body,
+          metadata: options.metadata,
         },
       );
 
