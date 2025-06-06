@@ -1,8 +1,8 @@
 export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
-  type BaseChatInit,
   type ChatEvent,
+  type ChatInit,
   type ChatRequestOptions,
   type ChatState,
   type ChatStatus,

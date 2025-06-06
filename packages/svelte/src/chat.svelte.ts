@@ -1,6 +1,6 @@
 import {
   AbstractChat,
-  type BaseChatInit,
+  type ChatInit,
   type ChatState,
   type ChatStatus,
   type CreateUIMessage,
@@ -8,11 +8,6 @@ import {
   type UIDataTypes,
   type UIMessage,
 } from 'ai';
-
-export type ChatInit<
-  MESSAGE_METADATA = unknown,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = Readonly<BaseChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>>;
 
 export type { CreateUIMessage, UIMessage };
 

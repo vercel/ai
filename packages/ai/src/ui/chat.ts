@@ -74,7 +74,7 @@ export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
   snapshot: <T>(thing: T) => T;
 }
 
-export interface BaseChatInit<
+export interface ChatInit<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
@@ -162,15 +162,12 @@ export abstract class AbstractChat<
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
   private maxSteps: number;
-  private onError?: BaseChatInit<
-    MESSAGE_METADATA,
-    UI_DATA_PART_SCHEMAS
-  >['onError'];
-  private onToolCall?: BaseChatInit<
+  private onError?: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>['onError'];
+  private onToolCall?: ChatInit<
     MESSAGE_METADATA,
     UI_DATA_PART_SCHEMAS
   >['onToolCall'];
-  private onFinish?: BaseChatInit<
+  private onFinish?: ChatInit<
     MESSAGE_METADATA,
     UI_DATA_PART_SCHEMAS
   >['onFinish'];

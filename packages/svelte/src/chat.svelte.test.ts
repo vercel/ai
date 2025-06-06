@@ -56,8 +56,7 @@ describe('data protocol stream', () => {
       ],
     };
 
-    await chat.append({
-      role: 'user',
+    await chat.sendMessage({
       parts: [{ text: 'hi', type: 'text' }],
     });
     expect(chat.messages.at(0)).toStrictEqual(
