@@ -27,6 +27,20 @@ import type {
 } from './ui-messages';
 import { DefaultChatTransport } from './default-chat-transport';
 
+export type ChatRequestOptions = {
+  /**
+  Additional headers that should be to be passed to the API endpoint.
+   */
+  headers?: Record<string, string> | Headers;
+
+  /**
+  Additional body JSON properties that should be sent to the API endpoint.
+   */
+  body?: object; // TODO JSONStringifyable
+
+  metadata?: unknown;
+};
+
 export interface ChatSubscriber {
   onChange: (event: ChatEvent) => void;
 }
@@ -288,15 +302,14 @@ export abstract class AbstractChat<
   };
 
   /**
-   * Reload the last AI chat response for the given chat history. If the last
-   * message isn't from the assistant, it will request the API to generate a
-   * new response.
+   * Regenerate the last assistant message.
    */
   reload = async ({
     metadata,
   }: {
     metadata?: unknown;
   } = {}): Promise<void> => {
+    // TODO stop any ongoing request
     if (this.lastMessage === undefined) {
       return;
     }
