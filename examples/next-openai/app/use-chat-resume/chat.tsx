@@ -4,6 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import ChatInput from '@component/chat-input';
 
 export function Chat({
   id,
@@ -16,10 +17,8 @@ export function Chat({
 }) {
   const {
     error,
-    input,
     status,
-    handleInputChange,
-    handleSubmit,
+    sendMessage,
     messages,
     reload,
     stop,
@@ -94,15 +93,7 @@ export function Chat({
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-          disabled={status !== 'ready'}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

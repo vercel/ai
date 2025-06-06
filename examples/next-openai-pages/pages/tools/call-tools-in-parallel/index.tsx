@@ -1,8 +1,11 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
+  const [input, setInput] = useState('');
+
+  const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({ api: '/api/call-tools-in-parallel' }),
     maxSteps: 2,
   });
@@ -31,11 +34,18 @@ export default function Page() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="fixed bottom-0 w-full p-2">
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+        className="fixed bottom-0 w-full p-2"
+      >
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-2 bg-zinc-100"
         />
       </form>
