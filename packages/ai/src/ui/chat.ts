@@ -399,7 +399,7 @@ export abstract class AbstractChat<
       const stream = await this.transport.submitMessages({
         chatId: this.id,
         messages: this.state.messages,
-        abortController: activeResponse.abortController,
+        abortSignal: activeResponse.abortController.signal,
         metadata,
         headers,
         body,
