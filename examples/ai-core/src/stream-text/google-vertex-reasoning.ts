@@ -1,22 +1,19 @@
-import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { stepCountIs, streamText } from 'ai';
-import 'dotenv/config';
-import { weatherTool } from '../tools/weather-tool';
+import { vertex } from '@ai-sdk/google-vertex';
+import { streamText } from 'ai';
 
 async function main() {
   const result = streamText({
-    model: google('gemini-2.5-flash-preview-05-20'),
-    tools: { weather: weatherTool },
-    prompt: 'What is the weather in San Francisco?',
-    stopWhen: stepCountIs(2),
+    model: vertex('gemini-2.5-flash-preview-04-17'),
+    prompt:
+      "Describe the most unusual or striking architectural feature you've ever seen in a building or structure.",
     providerOptions: {
       google: {
         thinkingConfig: {
-          thinkingBudget: 1024,
+          thinkingBudget: 2048,
+          includeThoughts: true,
         },
-      } satisfies GoogleGenerativeAIProviderOptions,
+      },
     },
-    onError: console.error,
   });
 
   for await (const part of result.fullStream) {
@@ -35,4 +32,4 @@ async function main() {
   console.log('Finish reason:', await result.finishReason);
 }
 
-main().catch(console.error);
+main().catch(console.log);
