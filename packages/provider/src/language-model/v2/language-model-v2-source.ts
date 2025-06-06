@@ -7,24 +7,36 @@ export type LanguageModelV2Source = {
   type: 'source';
 
   /**
-   * A URL source. This is return by web search RAG models.
+   * The type of source.
    */
-  sourceType: 'url';
+  sourceType: 'url' | 'document';
 
   /**
    * The ID of the source.
    */
   id: string;
 
+  // URL source fields
   /**
-   * The URL of the source.
+   * The URL of the source. Only present for URL sources.
    */
-  url: string;
+  url?: string;
+
+  // Document source fields
+  /**
+   * IANA media type of the file. Only present for document sources.
+   */
+  mediaType?: string;
 
   /**
    * The title of the source.
    */
   title?: string;
+
+  /**
+   * Optional filename of the file. Only present for document sources.
+   */
+  filename?: string;
 
   /**
    * Additional provider metadata for the source.

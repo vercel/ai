@@ -18,10 +18,12 @@ export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
+  citationsEnabled,
 }: {
   prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
   warnings: LanguageModelV2CallWarning[];
+  citationsEnabled?: boolean;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -44,6 +46,21 @@ export async function convertToAnthropicMessagesPrompt({
     // Pass through value assuming it is of the correct type.
     // The Anthropic API will validate the value.
     return cacheControlValue as AnthropicCacheControl | undefined;
+  }
+
+  function shouldEnableCitations(
+    providerMetadata: SharedV2ProviderMetadata | undefined,
+  ): boolean {
+    const anthropic = providerMetadata?.anthropic;
+
+    // Check if citations are enabled in provider options on the file part
+    const citationsConfig = anthropic?.citations as
+      | { enabled?: boolean }
+      | undefined;
+    const filePartCitations = citationsConfig?.enabled;
+
+    // Use file part settings first, then fall back to global citation setting
+    return filePartCitations ?? citationsEnabled ?? false;
   }
 
   for (let i = 0; i < blocks.length; i++) {
@@ -124,6 +141,10 @@ export async function convertToAnthropicMessagesPrompt({
                     } else if (part.mediaType === 'application/pdf') {
                       betas.add('pdfs-2024-09-25');
 
+                      const enableCitations = shouldEnableCitations(
+                        part.providerOptions,
+                      );
+
                       anthropicContent.push({
                         type: 'document',
                         source:
@@ -137,6 +158,10 @@ export async function convertToAnthropicMessagesPrompt({
                                 media_type: 'application/pdf',
                                 data: convertToBase64(part.data),
                               },
+                        title: part.filename,
+                        ...(enableCitations && {
+                          citations: { enabled: true },
+                        }),
                         cache_control: cacheControl,
                       });
                     } else {

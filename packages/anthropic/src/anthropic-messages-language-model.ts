@@ -151,6 +151,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
+        citationsEnabled: anthropicOptions?.citations?.enabled,
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
