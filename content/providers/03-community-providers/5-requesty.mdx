@@ -21,33 +21,31 @@ Learn more about Requesty's capabilities in the [Requesty Documentation](https:/
 
 The Requesty provider is available in the `@requesty/ai-sdk` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
-  <Tab>
-    <Snippet text="pnpm add @requesty/ai-sdk" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @requesty/ai-sdk" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @requesty/ai-sdk" dark />
-  </Tab>
-</Tabs>
+```bash
+# pnpm
+pnpm add @requesty/ai-sdk
+
+# npm
+npm install @requesty/ai-sdk
+
+# yarn
+yarn add @requesty/ai-sdk
+```
 
 ## API Key Setup
 
 For security, you should set your API key as an environment variable named exactly `REQUESTY_API_KEY`:
 
-<Tabs items={['Linux/Mac', 'Windows CMD', 'Windows PowerShell']}>
-  <Tab>
-    <Snippet text="export REQUESTY_API_KEY=your_api_key_here" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="set REQUESTY_API_KEY=your_api_key_here" dark />
-  </Tab>
-  <Tab>
-    <Snippet text='$env:REQUESTY_API_KEY="your_api_key_here"' dark />
-  </Tab>
-</Tabs>
+```bash
+# Linux/Mac
+export REQUESTY_API_KEY=your_api_key_here
+
+# Windows Command Prompt
+set REQUESTY_API_KEY=your_api_key_here
+
+# Windows PowerShell
+$env:REQUESTY_API_KEY="your_api_key_here"
+```
 
 You can obtain your Requesty API key from the [Requesty Dashboard](https://app.requesty.ai/api-keys).
 
