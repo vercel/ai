@@ -27,7 +27,7 @@ export default function ChatInput({
         value={text}
         onChange={e => setText(e.target.value)}
       />
-      {stop && status === 'streaming' && (
+      {stop && (status === 'streaming' || status === 'submitted') && (
         <button
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           type="submit"
