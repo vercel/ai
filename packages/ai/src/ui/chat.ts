@@ -43,14 +43,6 @@ export type ChatRequestOptions = {
   metadata?: unknown;
 };
 
-export interface ChatSubscriber {
-  onChange: (event: ChatEvent) => void;
-}
-
-export interface ChatEvent {
-  type: 'messages-changed' | 'status-changed';
-}
-
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
 type ActiveResponse<MESSAGE_METADATA> = {
@@ -150,8 +142,6 @@ export abstract class AbstractChat<
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
 
-  private readonly subscribers: Set<ChatSubscriber> = new Set();
-
   private messageMetadataSchema:
     | Validator<MESSAGE_METADATA>
     | StandardSchemaV1<MESSAGE_METADATA>
@@ -225,8 +215,6 @@ export abstract class AbstractChat<
 
     this.state.status = status;
     this.state.error = error;
-
-    this.emit({ type: 'status-changed' });
   }
 
   get error() {
@@ -246,11 +234,6 @@ export abstract class AbstractChat<
     return this.state.messages[this.state.messages.length - 1];
   }
 
-  subscribe(subscriber: ChatSubscriber): () => void {
-    this.subscribers.add(subscriber);
-    return () => this.subscribers.delete(subscriber);
-  }
-
   set messages(
     messages: UIMessage<
       MESSAGE_METADATA,
@@ -258,7 +241,6 @@ export abstract class AbstractChat<
     >[],
   ) {
     this.state.messages = messages;
-    this.emit({ type: 'messages-changed' });
   }
 
   removeAssistantResponse = () => {
@@ -273,7 +255,6 @@ export abstract class AbstractChat<
     }
 
     this.state.popMessage();
-    this.emit({ type: 'messages-changed' });
   };
 
   /**
@@ -327,7 +308,6 @@ export abstract class AbstractChat<
       role: uiMessage.role ?? 'user',
     });
 
-    this.emit({ type: 'messages-changed' });
     await this.triggerRequest({ requestType: 'generate', ...options });
   };
 
@@ -342,7 +322,6 @@ export abstract class AbstractChat<
 
     if (this.lastMessage.role === 'assistant') {
       this.state.popMessage();
-      this.emit({ type: 'messages-changed' });
     }
 
     await this.triggerRequest({ requestType: 'generate', ...options });
@@ -400,12 +379,6 @@ export abstract class AbstractChat<
       this.activeResponse.abortController = undefined;
     }
   };
-
-  private emit(event: ChatEvent) {
-    for (const subscriber of this.subscribers) {
-      subscriber.onChange(event);
-    }
-  }
 
   private async triggerRequest({
     requestType,
@@ -471,10 +444,6 @@ export abstract class AbstractChat<
               } else {
                 this.state.pushMessage(activeResponse.state.message);
               }
-
-              this.emit({
-                type: 'messages-changed',
-              });
             },
           }),
         );
