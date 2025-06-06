@@ -8,7 +8,7 @@ const options = ref<any>();
 const { messages, append, status } = useChat({
   transport: new DefaultChatTransport({
     api: '/api/chat',
-    prepareChatRequest(optionsArg) {
+    prepareRequest(optionsArg) {
       options.value = JSON.parse(JSON.stringify(optionsArg));
       return {
         body: { 'body-key': 'body-value' },

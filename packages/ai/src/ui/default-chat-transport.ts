@@ -8,7 +8,7 @@ import {
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { ChatTransport } from './chat-transport';
-import { PrepareChatRequestFunction } from './prepare-chat-request';
+import { PrepareRequest } from './prepare-request';
 import { UIDataTypes } from './ui-messages';
 
 // use function to allow for mocking in tests:
@@ -88,10 +88,7 @@ export class DefaultChatTransport<
   private headers?: Record<string, string> | Headers;
   private body?: object;
   private fetch?: FetchFunction;
-  private prepareChatRequest?: PrepareChatRequestFunction<
-    MESSAGE_METADATA,
-    DATA_TYPES
-  >;
+  private prepareRequest?: PrepareRequest<MESSAGE_METADATA, DATA_TYPES>;
 
   constructor({
     api = '/api/chat',
@@ -99,7 +96,7 @@ export class DefaultChatTransport<
     headers,
     body,
     fetch,
-    prepareChatRequest,
+    prepareRequest,
   }: {
     api?: string;
 
@@ -144,17 +141,14 @@ export class DefaultChatTransport<
      * @param messages The current messages in the chat.
      * @param requestBody The request body object passed in the chat request.
      */
-    prepareChatRequest?: PrepareChatRequestFunction<
-      MESSAGE_METADATA,
-      DATA_TYPES
-    >;
+    prepareRequest?: PrepareRequest<MESSAGE_METADATA, DATA_TYPES>;
   } = {}) {
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;
     this.body = body;
     this.fetch = fetch;
-    this.prepareChatRequest = prepareChatRequest;
+    this.prepareRequest = prepareRequest;
   }
 
   submitMessages({
@@ -168,7 +162,7 @@ export class DefaultChatTransport<
   }: Parameters<
     ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
   >[0]) {
-    const preparedRequest = this.prepareChatRequest?.({
+    const preparedRequest = this.prepareRequest?.({
       id: chatId,
       messages,
       body: { ...this.body, ...body },

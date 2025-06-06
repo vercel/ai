@@ -1,6 +1,6 @@
 import { UIDataTypes, UIMessage } from './ui-messages';
 
-export type PrepareChatRequestFunction<
+export type PrepareRequest<
   MESSAGE_METADATA,
   DATA_TYPES extends UIDataTypes,
 > = (options: {

@@ -1,9 +1,9 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
 import { ChatTransport } from './chat-transport';
+import { PrepareRequest } from './prepare-request';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
-import { UIDataTypes, UIMessage } from './ui-messages';
-import { PrepareChatRequestFunction } from './prepare-chat-request';
+import { UIDataTypes } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -72,10 +72,7 @@ export class TextStreamChatTransport<
   private headers?: Record<string, string> | Headers;
   private body?: object;
   private fetch?: FetchFunction;
-  private prepareChatRequest: PrepareChatRequestFunction<
-    MESSAGE_METADATA,
-    DATA_TYPES
-  >;
+  private prepareRequest?: PrepareRequest<MESSAGE_METADATA, DATA_TYPES>;
 
   constructor({
     api,
@@ -83,11 +80,7 @@ export class TextStreamChatTransport<
     headers,
     body,
     fetch,
-    prepareChatRequest = ({ id, messages, body, credentials, headers }) => ({
-      headers: { ...headers },
-      credentials,
-      body: { id, messages, ...body },
-    }),
+    prepareRequest,
   }: {
     api: string;
 
@@ -132,16 +125,14 @@ export class TextStreamChatTransport<
      * @param messages The current messages in the chat.
      * @param requestBody The request body object passed in the chat request.
      */
-    prepareChatRequest?: NoInfer<
-      PrepareChatRequestFunction<MESSAGE_METADATA, DATA_TYPES>
-    >;
+    prepareRequest?: NoInfer<PrepareRequest<MESSAGE_METADATA, DATA_TYPES>>;
   }) {
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;
     this.body = body;
     this.fetch = fetch;
-    this.prepareChatRequest = prepareChatRequest;
+    this.prepareRequest = prepareRequest;
   }
 
   submitMessages({
@@ -155,7 +146,7 @@ export class TextStreamChatTransport<
   }: Parameters<
     ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
   >[0]) {
-    const preparedRequest = this.prepareChatRequest?.({
+    const preparedRequest = this.prepareRequest?.({
       id: chatId,
       messages,
       body: { ...this.body, ...body },
