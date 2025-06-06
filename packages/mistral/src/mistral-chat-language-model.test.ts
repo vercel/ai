@@ -267,6 +267,115 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass schema', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-json',
+      },
+      responseFormat: {
+        type: 'json',
+        description: '',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                },
+                ingredients: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: {
+                        type: 'string',
+                      },
+                      amount: {
+                        type: 'string',
+                      },
+                    },
+                    required: ['name', 'amount'],
+                    additionalProperties: false,
+                  },
+                },
+                steps: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                  },
+                },
+              },
+              required: ['name', 'ingredients', 'steps'],
+              additionalProperties: false,
+            },
+          },
+          required: ['recipe'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          schema: {
+            type: 'object',
+            properties: {
+              recipe: {
+                type: 'object',
+                properties: {
+                  name: {
+                    type: 'string',
+                  },
+                  ingredients: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: {
+                          type: 'string',
+                        },
+                        amount: {
+                          type: 'string',
+                        },
+                      },
+                      required: ['name', 'amount'],
+                      additionalProperties: false,
+                    },
+                  },
+                  steps: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                    },
+                  },
+                },
+                required: ['name', 'ingredients', 'steps'],
+                additionalProperties: false,
+              },
+            },
+            required: ['recipe'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+          strict: true,
+          name: 'response',
+          description: '',
+        },
+      },
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse({ content: '' });
 
