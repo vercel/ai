@@ -19,7 +19,7 @@ async function fetchUIMessageStream({
   body,
   credentials,
   headers,
-  abortController,
+  abortSignal,
   fetch = getOriginalFetch(),
   requestType = 'generate',
 }: {
@@ -27,7 +27,7 @@ async function fetchUIMessageStream({
   body: Record<string, any>;
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
-  abortController: (() => AbortController | null) | undefined;
+  abortSignal: AbortSignal | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   requestType?: 'generate' | 'resume';
 }): Promise<ReadableStream<UIMessageStreamPart>> {
@@ -39,7 +39,7 @@ async function fetchUIMessageStream({
             'Content-Type': 'application/json',
             ...headers,
           },
-          signal: abortController?.()?.signal,
+          signal: abortSignal,
           credentials,
         })
       : await fetch(api, {
@@ -49,7 +49,7 @@ async function fetchUIMessageStream({
             'Content-Type': 'application/json',
             ...headers,
           },
-          signal: abortController?.()?.signal,
+          signal: abortSignal,
           credentials,
         });
 
@@ -154,7 +154,7 @@ export class DefaultChatTransport<
   submitMessages({
     chatId,
     messages,
-    abortController,
+    abortSignal,
     metadata,
     headers,
     body,
@@ -182,7 +182,7 @@ export class DefaultChatTransport<
           ? preparedRequest.headers
           : { ...this.headers, ...headers },
       credentials: preparedRequest?.credentials ?? this.credentials,
-      abortController: () => abortController, // TODO: why is this a function?
+      abortSignal,
       fetch: this.fetch,
       requestType,
     });

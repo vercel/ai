@@ -11,7 +11,7 @@ export interface ChatTransport<
     options: {
       chatId: string;
       messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-      abortController: AbortController;
+      abortSignal: AbortSignal | undefined;
       requestType: 'generate' | 'resume'; // TODO have separate functions
     } & ChatRequestOptions,
   ) => Promise<ReadableStream<UIMessageStreamPart>>;
