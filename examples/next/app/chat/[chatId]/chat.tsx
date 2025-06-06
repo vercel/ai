@@ -1,7 +1,7 @@
 'use client';
 
 import { invalidateRouterCache } from '@/app/actions';
-import { myMessageMetadataSchema, MyUIMessage } from '@/util/chat-schema';
+import { MyUIMessage } from '@/util/chat-schema';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
@@ -18,7 +18,6 @@ export default function ChatComponent({
   const { status, sendMessage, messages } = useChat({
     id: chatData.id,
     messages: chatData.messages,
-    messageMetadataSchema: myMessageMetadataSchema,
     transport: new DefaultChatTransport({
       prepareRequest: ({ id, messages }) => ({
         body: { id, message: messages[messages.length - 1] },
