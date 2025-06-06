@@ -57,4 +57,23 @@ export type OpenAIResponsesTool =
         city: string;
         region: string;
       };
+    }
+  | {
+      type: 'mcp';
+      server_label: string;
+      server_url: string;
+      allowed_tools: string[];
+      headers?: Record<string, string> | null;
+      require_approval?:
+        | 'always'
+        | 'never'
+        | {
+            always?: {
+              tool_names?: string[];
+            };
+            never?: {
+              tool_names?: string[];
+            };
+          };
     };
+    
