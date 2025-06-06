@@ -9,6 +9,7 @@ import {
 } from '../ui-message-stream/ui-message-stream-parts';
 import { ChatTransport } from './chat-transport';
 import { UIDataTypes, UIMessage } from './ui-messages';
+import { PrepareChatRequestFunction } from './prepare-chat-request';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -87,11 +88,10 @@ export class DefaultChatTransport<
   private headers?: Record<string, string> | Headers;
   private body?: object;
   private fetch?: FetchFunction;
-  private prepareRequestBody?: (options: {
-    chatId: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-    requestBody?: object;
-  }) => unknown;
+  private prepareChatRequest: PrepareChatRequestFunction<
+    MESSAGE_METADATA,
+    DATA_TYPES
+  >;
 
   constructor({
     api = '/api/chat',
@@ -99,7 +99,9 @@ export class DefaultChatTransport<
     headers,
     body,
     fetch,
-    prepareRequestBody,
+    prepareChatRequest = ({ id, messages, body }) => ({
+      body: { id, messages, ...body },
+    }),
   }: {
     api?: string;
 
@@ -144,49 +146,46 @@ export class DefaultChatTransport<
      * @param messages The current messages in the chat.
      * @param requestBody The request body object passed in the chat request.
      */
-    prepareRequestBody?: (options: {
-      chatId: string;
-      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-      requestBody?: object;
-    }) => unknown;
+    prepareChatRequest?: PrepareChatRequestFunction<
+      MESSAGE_METADATA,
+      DATA_TYPES
+    >;
   } = {}) {
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;
     this.body = body;
     this.fetch = fetch;
-    this.prepareRequestBody = prepareRequestBody;
+    this.prepareChatRequest = prepareChatRequest;
   }
 
   submitMessages({
     chatId,
     messages,
     abortController,
-    body,
-    headers,
+    requestMetadata,
     requestType,
   }: Parameters<
     ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
   >[0]) {
+    const { headers, body, credentials } = this.prepareChatRequest({
+      id: chatId,
+      messages,
+      requestMetadata,
+      body: this.body,
+      credentials: this.credentials,
+      headers: this.headers,
+    });
+
     return fetchUIMessageStream({
       api: this.api,
-      headers: {
-        ...this.headers,
-        ...headers,
-      },
-      body: this.prepareRequestBody?.({
-        chatId,
-        messages,
-        ...this.body,
-        ...body,
-      }) ?? {
-        chatId,
-        messages,
-        ...this.body,
-        ...body,
-      },
-      credentials: this.credentials,
-      abortController: () => abortController,
+
+      // overriding headers and credentials in prepareChatRequest is optional
+      headers: headers !== undefined ? headers : this.headers,
+      credentials: credentials !== undefined ? credentials : this.credentials,
+
+      body,
+      abortController: () => abortController, // TODO: why is this a function?
       fetch: this.fetch,
       requestType,
     });

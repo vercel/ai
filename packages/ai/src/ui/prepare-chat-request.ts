@@ -1,0 +1,17 @@
+import { UIDataTypes, UIMessage } from './ui-messages';
+
+export type PrepareChatRequestFunction<
+  MESSAGE_METADATA,
+  DATA_TYPES extends UIDataTypes,
+> = (options: {
+  id: string;
+  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  requestMetadata: unknown;
+  body: Record<string, any> | undefined;
+  credentials: RequestCredentials | undefined;
+  headers: HeadersInit | undefined;
+}) => {
+  body: Record<string, any>;
+  headers?: HeadersInit;
+  credentials?: RequestCredentials;
+};

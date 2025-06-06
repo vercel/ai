@@ -31,7 +31,6 @@ export {
   type ReasoningUIPart,
   type ToolInvocationUIPart,
 } from './ui-messages';
-export { type ChatRequestOptions } from './use-chat';
 export {
   type CompletionRequestOptions,
   type UseCompletionOptions,

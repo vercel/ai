@@ -25,7 +25,6 @@ import type {
   UIDataPartSchemas,
   InferUIDataParts,
 } from './ui-messages';
-import { ChatRequestOptions } from './use-chat';
 import { DefaultChatTransport } from './default-chat-transport';
 
 export interface ChatSubscriber {
@@ -69,6 +68,11 @@ export interface BaseChatInit<
    */
   id?: string;
 
+  messageMetadataSchema?:
+    | Validator<MESSAGE_METADATA>
+    | StandardSchemaV1<MESSAGE_METADATA>;
+  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
+
   messages?: UIMessage<
     MESSAGE_METADATA,
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
@@ -81,15 +85,11 @@ export interface BaseChatInit<
   generateId?: IdGenerator;
 
   transport?: ChatTransport<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    NoInfer<MESSAGE_METADATA>,
+    NoInfer<InferUIDataParts<UI_DATA_PART_SCHEMAS>>
   >;
 
   maxSteps?: number;
-  messageMetadataSchema?:
-    | Validator<MESSAGE_METADATA>
-    | StandardSchemaV1<MESSAGE_METADATA>;
-  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
 
   /**
    * Callback function to be called when an error is encountered.
@@ -116,8 +116,8 @@ export interface BaseChatInit<
    */
   onFinish?: (options: {
     message: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+      NoInfer<MESSAGE_METADATA>,
+      NoInfer<InferUIDataParts<UI_DATA_PART_SCHEMAS>>
     >;
   }) => void;
 }
@@ -272,14 +272,17 @@ export abstract class AbstractChat<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
     >,
-    { headers, body }: ChatRequestOptions = {},
+    {
+      metadata,
+    }: {
+      metadata?: unknown;
+    } = {},
   ) => {
     this.state.pushMessage({ ...message, id: message.id ?? this.generateId() });
     this.emit({ type: 'messages-changed' });
 
     await this.triggerRequest({
-      headers,
-      body,
+      requestMetadata: metadata,
       requestType: 'generate',
     });
   };
@@ -290,9 +293,10 @@ export abstract class AbstractChat<
    * new response.
    */
   reload = async ({
-    headers,
-    body,
-  }: ChatRequestOptions = {}): Promise<void> => {
+    metadata,
+  }: {
+    metadata?: unknown;
+  } = {}): Promise<void> => {
     if (this.lastMessage === undefined) {
       return;
     }
@@ -304,8 +308,7 @@ export abstract class AbstractChat<
 
     await this.triggerRequest({
       requestType: 'generate',
-      headers,
-      body,
+      requestMetadata: metadata,
     });
   };
 
@@ -313,13 +316,13 @@ export abstract class AbstractChat<
    * Resume an ongoing chat generation stream. This does not resume an aborted generation.
    */
   experimental_resume = async ({
-    headers,
-    body,
-  }: ChatRequestOptions = {}): Promise<void> => {
+    metadata,
+  }: {
+    metadata?: unknown;
+  } = {}): Promise<void> => {
     await this.triggerRequest({
       requestType: 'resume',
-      headers,
-      body,
+      requestMetadata: metadata,
     });
   };
 
@@ -350,6 +353,7 @@ export abstract class AbstractChat<
         // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
         this.triggerRequest({
           requestType: 'generate',
+          requestMetadata: undefined,
         });
       }
     });
@@ -375,10 +379,10 @@ export abstract class AbstractChat<
 
   private async triggerRequest({
     requestType,
-    headers,
-    body,
-  }: ChatRequestOptions & {
+    requestMetadata,
+  }: {
     requestType: 'generate' | 'resume';
+    requestMetadata: unknown;
   }) {
     this.setStatus({ status: 'submitted', error: undefined });
 
@@ -401,9 +405,8 @@ export abstract class AbstractChat<
       const stream = await this.transport.submitMessages({
         chatId: this.id,
         messages: this.state.messages,
-        body,
-        headers,
         abortController: activeResponse.abortController,
+        requestMetadata,
         requestType,
       });
 
@@ -489,8 +492,7 @@ export abstract class AbstractChat<
     ) {
       await this.triggerRequest({
         requestType,
-        headers,
-        body,
+        requestMetadata,
       });
     }
   }
