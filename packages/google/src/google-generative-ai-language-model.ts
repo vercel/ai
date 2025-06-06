@@ -475,21 +475,6 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
     : textParts.map(part => part.text).join('');
 }
 
-function getReasoningDetailsFromParts(
-  parts: z.infer<typeof contentSchema>['parts'],
-): Array<{ type: 'text'; text: string }> | undefined {
-  const reasoningParts = parts?.filter(
-    part =>
-      'text' in part && (part as any).thought === true && part.text != null,
-  ) as Array<
-    GoogleGenerativeAIContentPart & { text: string; thought?: boolean }
-  >;
-
-  return reasoningParts == null || reasoningParts.length === 0
-    ? undefined
-    : reasoningParts.map(part => ({ type: 'text', text: part.text }));
-}
-
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
   return parts?.filter(
     (
