@@ -1,62 +1,97 @@
 import {
   AbstractChat,
-  ChatInit,
   ChatState,
   ChatStatus,
   UIDataPartSchemas,
   UIDataTypes,
   UIMessage,
 } from 'ai';
+import { useRef } from 'react';
 
-class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
-  implements ChatState<MESSAGE_METADATA, DATA_TYPES>
-{
-  #messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-  status: ChatStatus = 'ready';
-  error: Error | undefined = undefined;
+type SubscriptionRegistrars = {
+  registerMessagesCallback: (onChange: () => void) => () => void;
+  registerStatusCallback: (onChange: () => void) => () => void;
+  registerErrorCallback: (onChange: () => void) => () => void;
+};
 
-  constructor(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[] = []) {
-    this.#messages = messages;
-  }
+// TODO: Throttle needs to be implemented in here
+export function useChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>(
+  initialMessages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[] = [],
+): ChatState<MESSAGE_METADATA, DATA_TYPES> & SubscriptionRegistrars {
+  const messagesRef =
+    useRef<UIMessage<MESSAGE_METADATA, DATA_TYPES>[]>(initialMessages);
+  const messagesUpdatedRef = useRef<() => void>(() => void 0);
+  const statusRef = useRef<ChatStatus>('ready');
+  const statusUpdatedRef = useRef<() => void>(() => void 0);
+  const errorRef = useRef<Error | undefined>(undefined);
+  const errorUpdatedRef = useRef<() => void>(() => void 0);
 
-  get messages() {
-    return this.#messages;
-  }
-
-  set messages(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
-    this.#messages = [...messages];
-  }
-
-  pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
-    this.#messages = this.messages.concat(message);
+  return {
+    get status() {
+      return statusRef.current;
+    },
+    set status(newStatus: ChatStatus) {
+      statusRef.current = newStatus;
+      statusUpdatedRef.current();
+    },
+    get error() {
+      return errorRef.current;
+    },
+    set error(newError: Error | undefined) {
+      errorRef.current = newError;
+      errorUpdatedRef.current();
+    },
+    get messages() {
+      return messagesRef.current;
+    },
+    set messages(newMessages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
+      messagesRef.current = [...newMessages];
+      messagesUpdatedRef.current();
+    },
+    pushMessage: (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
+      messagesRef.current = messagesRef.current.concat(message);
+      messagesUpdatedRef.current();
+    },
+    popMessage: () => {
+      messagesRef.current = messagesRef.current.slice(0, -1);
+      messagesUpdatedRef.current();
+    },
+    replaceMessage: (
+      index: number,
+      message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
+    ) => {
+      messagesRef.current = [
+        ...messagesRef.current.slice(0, index),
+        message,
+        ...messagesRef.current.slice(index + 1),
+      ];
+      messagesUpdatedRef.current();
+    },
+    snapshot: <T>(value: T): T => structuredClone(value),
+    registerMessagesCallback: (onChange: () => void) => {
+      messagesUpdatedRef.current = onChange;
+      return () => void 0;
+    },
+    registerStatusCallback: (onChange: () => void) => {
+      statusUpdatedRef.current = onChange;
+      return () => void 0;
+    },
+    registerErrorCallback: (onChange: () => void) => {
+      errorUpdatedRef.current = onChange;
+      return () => void 0;
+    },
   };
-
-  popMessage = () => {
-    this.#messages = this.messages.slice(0, -1);
-  };
-
-  replaceMessage = (
-    index: number,
-    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
-  ) => {
-    this.#messages = [
-      ...this.#messages.slice(0, index),
-      message,
-      ...this.#messages.slice(index + 1),
-    ];
-  };
-
-  snapshot = <T>(value: T): T => structuredClone(value);
 }
 
 export class Chat<
   MESSAGE_METADATA,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > extends AbstractChat<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
-  constructor({
-    messages,
-    ...init
-  }: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
-    super({ ...init, state: new ReactChatState(messages) });
+  constructor(
+    init: ConstructorParameters<
+      typeof AbstractChat<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
+    >[0],
+  ) {
+    super(init);
   }
 }
