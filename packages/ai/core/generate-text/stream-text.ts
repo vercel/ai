@@ -1467,7 +1467,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'source': {
-              if (sendSources) {
+              if (sendSources && part.sourceType === 'url') {
                 controller.enqueue({
                   type: 'source-url',
                   sourceId: part.id,

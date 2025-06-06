@@ -41,6 +41,19 @@ If you are experiencing issues with the model handling requests involving
     .optional(),
 
   /**
+   * Citation configuration for documents.
+   * When enabled, documents will generate citations in the response.
+   */
+  citations: z
+    .object({
+      /**
+       * Enable citations for documents
+       */
+      enabled: z.boolean(),
+    })
+    .optional(),
+
+  /**
    * Web search tool configuration for Claude models that support it.
    * When provided, automatically adds the web search tool to the request.
    */

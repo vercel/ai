@@ -68,6 +68,9 @@ export interface AnthropicImageContent {
 export interface AnthropicDocumentContent {
   type: 'document';
   source: AnthropicContentSource;
+  title?: string;
+  context?: string;
+  citations?: { enabled: boolean };
   cache_control: AnthropicCacheControl | undefined;
 }
 
