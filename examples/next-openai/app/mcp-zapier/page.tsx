@@ -2,9 +2,11 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({ api: '/api/mcp-zapier' }),
   });
 
@@ -36,14 +38,14 @@ export default function Page() {
       <div className="flex flex-col items-center gap-2 p-4">
         <textarea
           value={input}
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           placeholder="Start chatting"
           className="h-32 p-2 border-2 border-gray-300 rounded-md w-96"
         />
         <button
           className="w-full p-2 px-4 text-white bg-blue-500 rounded-md"
           type="button"
-          onClick={handleSubmit}
+          onClick={() => sendMessage({ text: input })}
         >
           Send
         </button>

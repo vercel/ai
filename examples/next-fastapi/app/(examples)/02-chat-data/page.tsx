@@ -3,10 +3,11 @@
 import { Card } from '@/app/components';
 import { useChat } from '@ai-sdk/react';
 import { GeistMono } from 'geist/font/mono';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } =
-    useChat();
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat();
 
   return (
     <div className="flex flex-col gap-2">
@@ -44,13 +45,17 @@ export default function Page() {
       {messages.length === 0 && <Card type="chat-data" />}
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
         className="fixed bottom-0 flex flex-col w-full border-t"
       >
         <input
           value={input}
           placeholder="What's the weather in San Francisco?"
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-4 bg-transparent outline-none"
           disabled={status !== 'ready'}
         />
