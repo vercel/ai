@@ -29,6 +29,14 @@
   }
 
   let input = $state('');
+
+  function handleSubmit(e: Event) {
+    console.log('handleSubmit', e);
+    console.log('input', input);
+    e.preventDefault();
+    chat.sendMessage({ text: input });
+    input = '';
+  }
 </script>
 
 <main class="flex flex-col items-center h-dvh w-dvw">
@@ -106,7 +114,7 @@
         </div>
       {/each}
     </div>
-    <form class="relative" onsubmit={() => chat.sendMessage({ text: input })}>
+    <form class="relative" onsubmit={handleSubmit}>
       <p>{chat.status}</p>
       <div>
         <a href="/chat/1">chat 1</a>
@@ -120,7 +128,7 @@
         onkeydown={event => {
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            chat.sendMessage({ text: input });
+            handleSubmit(event);
           }
         }}
       />
