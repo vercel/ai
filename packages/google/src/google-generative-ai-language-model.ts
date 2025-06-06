@@ -343,9 +343,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
-              const deltaText = getTextFromParts(content.parts);
-              if (deltaText != null) {
-                controller.enqueue(deltaText);
+              // Process text parts individually to handle reasoning parts
+              const parts = content.parts ?? [];
+              for (const part of parts) {
+                if ('text' in part && part.text.length > 0) {
+                  if (part.thought === true) {
+                    controller.enqueue({ type: 'reasoning', text: part.text });
+                  } else {
+                    controller.enqueue({ type: 'text', text: part.text });
+                  }
+                }
               }
 
               const inlineDataParts = getInlineDataParts(content.parts);

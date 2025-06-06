@@ -1955,4 +1955,96 @@ describe('doStream', () => {
       },
     });
   });
+
+  it('should stream reasoning parts separately from text parts', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Visible text part 1. ' }],
+                role: 'model',
+              },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'This is a thought process.', thought: true }],
+                role: 'model',
+              },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Visible text part 2.' }],
+                role: 'model',
+              },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Another internal thought.', thought: true }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const contentEvents = events.filter(
+      event => event.type === 'text' || event.type === 'reasoning',
+    );
+
+    expect(contentEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Visible text part 1. ",
+          "type": "text",
+        },
+        {
+          "text": "This is a thought process.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Visible text part 2.",
+          "type": "text",
+        },
+        {
+          "text": "Another internal thought.",
+          "type": "reasoning",
+        },
+      ]
+    `);
+  });
 });
