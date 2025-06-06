@@ -7,8 +7,8 @@ import { FileUIPart } from 'ai';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } =
-    useChat();
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat();
 
   const [files, setFiles] = useState<FileUIPart[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -53,8 +53,8 @@ export default function Page() {
             return;
           }
 
-          handleSubmit(event, { files });
-
+          sendMessage({ text: input, files });
+          setInput('');
           setFiles([]);
 
           if (fileInputRef.current) {
@@ -109,7 +109,7 @@ export default function Page() {
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-2 bg-zinc-100"
           disabled={status !== 'ready'}
         />

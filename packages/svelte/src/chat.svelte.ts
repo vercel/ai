@@ -1,25 +1,18 @@
 import {
   AbstractChat,
   type BaseChatInit,
-  type ChatRequestOptions,
   type ChatState,
   type ChatStatus,
   type CreateUIMessage,
   type UIDataPartSchemas,
   type UIDataTypes,
   type UIMessage,
-  convertFileListToFileUIParts,
 } from 'ai';
 
 export type ChatInit<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = Readonly<BaseChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>> & {
-  /**
-   * Initial input of the chat.
-   */
-  initialInput?: string;
-};
+> = Readonly<BaseChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>>;
 
 export type { CreateUIMessage, UIMessage };
 
@@ -27,46 +20,12 @@ export class Chat<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > extends AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
-  /** The current value of the input. Writable, so it can be bound to form inputs. */
-  input: string;
-
   constructor(init: ChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>) {
     super({
       ...init,
       state: new SvelteChatState(init.messages),
     });
-
-    this.input = $state(init.initialInput ?? '');
   }
-
-  /** Form submission handler to automatically reset input and append a user message */
-  handleSubmit = async (
-    event?: { preventDefault?: () => void },
-    options: ChatRequestOptions & { files?: FileList } = {},
-  ) => {
-    event?.preventDefault?.();
-
-    const fileParts = Array.isArray(options?.files)
-      ? options.files
-      : await convertFileListToFileUIParts(options?.files);
-
-    if (!this.input && fileParts.length === 0) return;
-
-    const request = this.append(
-      {
-        id: this.generateId(),
-        role: 'user',
-        parts: [...fileParts, { type: 'text', text: this.input }],
-      },
-      {
-        headers: options.headers,
-        body: options.body,
-      },
-    );
-
-    this.input = '';
-    await request;
-  };
 }
 
 class SvelteChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>

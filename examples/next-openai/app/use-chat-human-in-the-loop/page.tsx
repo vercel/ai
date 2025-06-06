@@ -7,15 +7,16 @@ import {
   APPROVAL,
   getToolsRequiringConfirmation,
 } from '../api/use-chat-human-in-the-loop/utils';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat({
-      transport: new DefaultChatTransport({
-        api: '/api/use-chat-human-in-the-loop',
-      }),
-      maxSteps: 5,
-    });
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, addToolResult } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/use-chat-human-in-the-loop',
+    }),
+    maxSteps: 5,
+  });
 
   const toolsRequiringConfirmation = getToolsRequiringConfirmation(tools);
 
@@ -92,13 +93,19 @@ export default function Chat() {
         </div>
       ))}
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
         <input
           disabled={pendingToolCallConfirmation}
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
           placeholder="Say something..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
         />
       </form>
     </div>

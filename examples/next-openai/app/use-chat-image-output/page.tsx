@@ -1,10 +1,11 @@
 'use client';
 
+import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
-  const { input, status, handleInputChange, handleSubmit, messages } = useChat({
+  const { status, sendMessage, messages } = useChat({
     transport: new DefaultChatTransport({ api: '/api/use-chat-image-output' }),
   });
 
@@ -29,15 +30,7 @@ export default function Chat() {
         </div>
       ))}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-          disabled={status !== 'ready'}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }
