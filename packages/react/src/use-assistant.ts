@@ -263,10 +263,13 @@ export function useAssistant({
     append({ role: 'user', content: input, parts: [] }, requestOptions);
   };
 
-  const setThreadId = (threadId: string | undefined) => {
-    setCurrentThreadId(threadId);
-    setMessages([]);
-  };
+  const setThreadId = useCallback(
+    (threadId: string | undefined) => {
+      setCurrentThreadId(threadId);
+      setMessages([]);
+    },
+    [setCurrentThreadId, setMessages],
+  );
 
   return {
     append,
