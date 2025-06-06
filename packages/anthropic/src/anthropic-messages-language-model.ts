@@ -33,6 +33,44 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
+function createCitationSource(
+  citation: {
+    type: 'page_location';
+    cited_text: string;
+    document_index: number;
+    document_title: string;
+    start_page_number: number;
+    end_page_number: number;
+  },
+  citationDocuments: Array<{
+    title: string;
+    filename?: string;
+    mediaType: string;
+  }>,
+  generateId: () => string,
+) {
+  const documentInfo = citationDocuments[citation.document_index];
+  if (!documentInfo) {
+    return null;
+  }
+
+  return {
+    type: 'source' as const,
+    sourceType: 'document' as const,
+    id: generateId(),
+    mediaType: documentInfo.mediaType,
+    title: citation.document_title ?? documentInfo.title,
+    filename: documentInfo.filename,
+    providerMetadata: {
+      anthropic: {
+        citedText: citation.cited_text,
+        startPageNumber: citation.start_page_number,
+        endPageNumber: citation.end_page_number,
+      },
+    },
+  };
+}
+
 type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
@@ -381,24 +419,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             if (part.citations) {
               for (const citation of part.citations) {
                 if (citation.type === 'page_location') {
-                  const documentInfo =
-                    citationDocuments[citation.document_index];
-                  if (documentInfo) {
-                    content.push({
-                      type: 'source',
-                      sourceType: 'document',
-                      id: this.generateId(),
-                      mediaType: documentInfo.mediaType,
-                      title: citation.document_title || documentInfo.title,
-                      filename: documentInfo.filename,
-                      providerMetadata: {
-                        anthropic: {
-                          citedText: citation.cited_text,
-                          startPageNumber: citation.start_page_number,
-                          endPageNumber: citation.end_page_number,
-                        },
-                      },
-                    });
+                  const source = createCitationSource(
+                    citation,
+                    citationDocuments,
+                    this.generateId,
+                  );
+                  if (source) {
+                    content.push(source);
                   }
                 }
               }
@@ -783,24 +810,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                     if (citation.type === 'page_location') {
                       // Handle PDF citations - convert to document source
-                      const documentInfo =
-                        citationDocuments[citation.document_index];
-                      if (documentInfo) {
-                        controller.enqueue({
-                          type: 'source',
-                          sourceType: 'document',
-                          id: generateId(),
-                          mediaType: documentInfo.mediaType,
-                          title: citation.document_title || documentInfo.title,
-                          filename: documentInfo.filename,
-                          providerMetadata: {
-                            anthropic: {
-                              citedText: citation.cited_text,
-                              startPageNumber: citation.start_page_number,
-                              endPageNumber: citation.end_page_number,
-                            },
-                          },
-                        });
+                      const source = createCitationSource(
+                        citation,
+                        citationDocuments,
+                        generateId,
+                      );
+                      if (source) {
+                        controller.enqueue(source);
                       }
                     }
                     // Web search citations are handled in web_search_tool_result content block
@@ -892,6 +908,13 @@ const anthropicMessagesResponseSchema = z.object({
         citations: z
           .array(
             z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('web_search_result_location'),
+                cited_text: z.string(),
+                url: z.string(),
+                title: z.string(),
+                encrypted_index: z.string(),
+              }),
               z.object({
                 type: z.literal('page_location'),
                 cited_text: z.string(),

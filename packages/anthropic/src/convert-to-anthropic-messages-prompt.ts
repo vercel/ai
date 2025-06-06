@@ -57,10 +57,9 @@ export async function convertToAnthropicMessagesPrompt({
     const citationsConfig = anthropic?.citations as
       | { enabled?: boolean }
       | undefined;
-    const filePartCitations = citationsConfig?.enabled;
 
     // Use file part settings first, then fall back to global citation setting
-    return filePartCitations ?? citationsEnabled ?? false;
+    return citationsConfig?.enabled ?? citationsEnabled ?? false;
   }
 
   for (let i = 0; i < blocks.length; i++) {
