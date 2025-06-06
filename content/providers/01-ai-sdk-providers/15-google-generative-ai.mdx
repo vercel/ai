@@ -431,6 +431,49 @@ The `dynamicRetrievalConfig` describes the options to customize dynamic retrieva
   supported with 8B variants.
 </Note>
 
+### URL Context
+
+The URL context tool allows the you to provide specific URLs that you want the model to analyze directly in your prompt.
+
+```ts highlight="6"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google('gemini-2.0-flash-001', {
+    urlContext: true,
+  }),
+  prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
+          Answer this question: How many links we can consume in one request?`,
+});
+```
+
+<Note>You can add up to 20 URLs per request.</Note>
+
+<Note>
+  The URL context tool is only supported for Gemini 2.0 Flash models and above.
+  Check the [supported models for URL context
+  tool](https://ai.google.dev/gemini-api/docs/url-context#supported-models).
+</Note>
+
+#### Combine URL Context with Search Grounding
+
+You can combine the URL context tool with search grounding to provide the model with the latest information from the web.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: google('gemini-2.0-flash-001', {
+    urlContext: true,
+    useSearchGrounding: true,
+  }),
+  prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK.
+    Also, provide the latest news about AI SDK V5.`,
+});
+```
+
 ### Sources
 
 When you use [Search Grounding](#search-grounding), the model will include sources in the response.
