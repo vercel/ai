@@ -219,7 +219,7 @@ Try asking something like "What's the weather in New York?" and see how the mode
 
 Notice the blank "assistant" response? This is because instead of generating a text response, the model generated a tool call. You can access the tool call and subsequent tool result in the `toolCall` and `toolResult` keys of the result object.
 
-```typescript highlight="47-48"
+```typescript highlight="49-50"
 import { openai } from '@ai-sdk/openai';
 import { CoreMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';
