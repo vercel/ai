@@ -20,6 +20,7 @@ export type GoogleGenerativeAIContent = {
 
 export type GoogleGenerativeAIContentPart =
   | { text: string }
+  | { text: string; thought: true }
   | { inlineData: { mimeType: string; data: string } }
   | { functionCall: { name: string; args: unknown } }
   | { functionResponse: { name: string; response: unknown } }

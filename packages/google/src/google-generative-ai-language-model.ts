@@ -154,10 +154,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           thinkingConfig: googleOptions?.thinkingConfig,
         },
         contents,
-        systemInstruction,
+        ...(googleOptions?.cachedContent
+          ? {
+              cachedContent: googleOptions.cachedContent,
+            }
+          : {
+              tools: googleTools,
+              toolConfig: googleToolConfig,
+              systemInstruction,
+            }),
         safetySettings: googleOptions?.safetySettings,
-        tools: googleTools,
-        toolConfig: googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
       },
       warnings: [...warnings, ...toolWarnings],
@@ -343,7 +349,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
-              // Process text parts individually to handle reasoning parts
               const parts = content.parts ?? [];
               for (const part of parts) {
                 if (
@@ -466,13 +471,26 @@ function getToolCallsFromParts({
 }
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts?.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
+  const textParts = parts?.filter(
+    part => 'text' in part && !('thought' in part),
+  ) as Array<GoogleGenerativeAIContentPart & { text: string }>;
 
   return textParts == null || textParts.length === 0
     ? undefined
     : textParts.map(part => part.text).join('');
+}
+
+function getReasoningFromParts(parts: z.infer<typeof contentSchema>['parts']) {
+  const reasoningParts = parts?.filter(
+    part => 'text' in part && 'thought' in part && part.thought,
+  ) as Array<GoogleGenerativeAIContentPart & { text: string; thought: true }>;
+
+  return reasoningParts == null || reasoningParts.length === 0
+    ? undefined
+    : {
+        type: 'reasoning' as const,
+        text: reasoningParts.map(part => part.text).join(''),
+      };
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -513,7 +531,10 @@ const contentSchema = z.object({
   parts: z
     .array(
       z.union([
-        // note: order matters since text can be fully empty
+        z.object({
+          text: z.string(),
+          thought: z.boolean().nullish(),
+        }),
         z.object({
           functionCall: z.object({
             name: z.string(),

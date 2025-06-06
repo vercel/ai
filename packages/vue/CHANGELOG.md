@@ -1,5 +1,19 @@
 # @ai-sdk/vue
 
+## 2.0.0-alpha.10
+
+### Major Changes
+
+- 98f25e5: chore (ui): remove managed chat inputs
+- 98f25e5: chore (ui/vue): replace useChat with new Chat
+
+### Patch Changes
+
+- Updated dependencies [98f25e5]
+- Updated dependencies [7bb58d4]
+  - ai@5.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
 ## 2.0.0-alpha.9
 
 ### Patch Changes
