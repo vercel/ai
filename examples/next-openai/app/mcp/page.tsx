@@ -1,19 +1,11 @@
 'use client';
 
+import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
-  const {
-    error,
-    input,
-    status,
-    handleInputChange,
-    handleSubmit,
-    messages,
-    reload,
-    stop,
-  } = useChat({
+  const { error, status, sendMessage, messages, reload, stop } = useChat({
     transport: new DefaultChatTransport({ api: '/mcp/chat' }),
   });
 
@@ -54,15 +46,7 @@ export default function Chat() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Ask me a basic arithmetic problem"
-          onChange={handleInputChange}
-          disabled={status !== 'ready'}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

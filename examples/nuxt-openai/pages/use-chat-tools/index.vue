@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useChat } from '@ai-sdk/vue';
+import { Chat } from '@ai-sdk/vue';
 import { DefaultChatTransport } from 'ai';
+import { computed, ref } from 'vue';
 
-const { input, handleSubmit, messages, addToolResult } = useChat({
+const chat = new Chat({
   // run client-side tools that are automatically executed:
   async onToolCall({ toolCall }) {
     // artificial 2 second delay
@@ -19,7 +20,14 @@ const { input, handleSubmit, messages, addToolResult } = useChat({
   maxSteps: 5,
 });
 
-const messageList = computed(() => messages.value); // computer property for type inference
+const messageList = computed(() => chat.messages); // computer property for type inference
+const input = ref('');
+
+const handleSubmit = (e: Event) => {
+  e.preventDefault();
+  chat.sendMessage({ text: input.value });
+  input.value = '';
+};
 </script>
 
 <template>
@@ -48,7 +56,7 @@ const messageList = computed(() => messages.value); // computer property for typ
                   <button
                     class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                     @click="
-                      addToolResult({
+                      chat.addToolResult({
                         toolCallId: part.toolInvocation.toolCallId,
                         result: 'Yes, confirmed.',
                       })
@@ -59,7 +67,7 @@ const messageList = computed(() => messages.value); // computer property for typ
                   <button
                     class="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                     @click="
-                      addToolResult({
+                      chat.addToolResult({
                         toolCallId: part.toolInvocation.toolCallId,
                         result: 'No, denied',
                       })

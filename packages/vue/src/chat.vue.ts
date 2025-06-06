@@ -1,6 +1,6 @@
 import {
   AbstractChat,
-  BaseChatInit,
+  ChatInit as BaseChatInit,
   ChatState,
   ChatStatus,
   UIDataPartSchemas,

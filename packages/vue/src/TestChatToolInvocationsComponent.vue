@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { getToolInvocations } from 'ai';
-import { useChat } from './use-chat';
+import { Chat } from './chat.vue';
 
-const { messages, append, addToolResult } = useChat({
+const chat = new Chat({
   maxSteps: 5,
 });
 </script>
@@ -10,7 +10,7 @@ const { messages, append, addToolResult } = useChat({
 <template>
   <div>
     <div
-      v-for="(m, idx) in messages"
+      v-for="(m, idx) in chat.messages"
       :key="m.id"
       :data-testid="`message-${idx}`"
     >
@@ -23,7 +23,7 @@ const { messages, append, addToolResult } = useChat({
           v-if="toolInvocation.state === 'call'"
           :data-testid="`add-result-${toolIdx}`"
           @click="
-            addToolResult({
+            chat.addToolResult({
               toolCallId: toolInvocation.toolCallId,
               result: 'test-result',
             })
@@ -40,9 +40,8 @@ const { messages, append, addToolResult } = useChat({
     <button
       data-testid="do-append"
       @click="
-        append({
-          role: 'user',
-          parts: [{ type: 'text', text: 'hi' }],
+        chat.sendMessage({
+          text: 'hi',
         })
       "
     />

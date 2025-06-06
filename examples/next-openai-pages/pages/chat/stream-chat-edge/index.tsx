@@ -1,8 +1,10 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, status } = useChat({
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat-edge' }),
   });
 
@@ -21,11 +23,18 @@ export default function Chat() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="fixed bottom-0 w-full p-2">
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+        className="fixed bottom-0 w-full p-2"
+      >
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-2 bg-zinc-100"
           disabled={status !== 'ready'}
         />

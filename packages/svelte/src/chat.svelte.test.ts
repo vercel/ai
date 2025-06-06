@@ -56,8 +56,7 @@ describe('data protocol stream', () => {
       ],
     };
 
-    await chat.append({
-      role: 'user',
+    await chat.sendMessage({
       parts: [{ text: 'hi', type: 'text' }],
     });
     expect(chat.messages.at(0)).toStrictEqual(
@@ -82,9 +81,8 @@ describe('data protocol stream', () => {
       body: 'Not found',
     };
 
-    await chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
+    await chat.sendMessage({
+      text: 'hi',
     });
     expect(chat.error).toBeInstanceOf(Error);
     expect(chat.error?.message).toBe('Not found');
@@ -101,7 +99,7 @@ describe('data protocol stream', () => {
       ],
     };
 
-    await chat.append({
+    await chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -117,7 +115,7 @@ describe('data protocol stream', () => {
         controller,
       };
 
-      const appendOperation = chat.append({
+      const appendOperation = chat.sendMessage({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       });
@@ -136,7 +134,7 @@ describe('data protocol stream', () => {
         body: 'Not found',
       };
 
-      chat.append({
+      chat.sendMessage({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       });
@@ -166,7 +164,7 @@ describe('data protocol stream', () => {
       onFinish,
       generateId: mockId(),
     });
-    await chatWithOnFinish.append({
+    await chatWithOnFinish.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -195,7 +193,7 @@ describe('data protocol stream', () => {
         chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
       };
 
-      await chat.append({
+      await chat.sendMessage({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       });
@@ -241,7 +239,7 @@ describe('text stream', () => {
       chunks: ['Hello', ',', ' world', '.'],
     };
 
-    await chat.append({
+    await chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -283,7 +281,7 @@ describe('text stream', () => {
       controller,
     };
 
-    const appendOperation = chat.append({
+    const appendOperation = chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -327,7 +325,7 @@ describe('text stream', () => {
         api: '/api/chat',
       }),
     });
-    await chatWithOnFinish.append({
+    await chatWithOnFinish.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -343,69 +341,6 @@ describe('text stream', () => {
         ],
       },
     });
-  });
-});
-
-describe('form actions', () => {
-  let chat: Chat;
-
-  beforeEach(() => {
-    const generateId = mockId();
-    chat = new Chat({
-      generateId,
-      transport: new TextStreamChatTransport({
-        api: '/api/chat',
-      }),
-    });
-  });
-
-  it('should show streamed response using handleSubmit', async () => {
-    server.urls['/api/chat'].response = [
-      {
-        type: 'stream-chunks',
-        chunks: ['Hello', ',', ' world', '.'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['How', ' can', ' I', ' help', ' you', '?'],
-      },
-    ];
-
-    chat.input = 'hi';
-    await chat.handleSubmit();
-
-    expect(chat.input).toBe('');
-    expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "id-1",
-          "parts": [
-            {
-              "text": "hi",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-2",
-          "metadata": {},
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
-
-    await chat.handleSubmit();
-    expect(chat.messages.at(2)).toBeUndefined();
   });
 });
 
@@ -440,10 +375,8 @@ describe('onToolCall', () => {
       ],
     };
 
-    const appendOperation = chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
+    const appendOperation = chat.sendMessage({ text: 'hi' });
+
     await vi.waitFor(() => {
       expect(
         getToolInvocations(chat.messages.at(1) as UIMessage),
@@ -494,7 +427,7 @@ describe('tool invocations', () => {
       controller,
     };
 
-    const appendOperation = chat.append({
+    const appendOperation = chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -612,10 +545,7 @@ describe('tool invocations', () => {
       controller,
     };
 
-    const appendOperation = chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
+    const appendOperation = chat.sendMessage({ text: 'hi' });
 
     controller.write(
       formatStreamPart({
@@ -647,6 +577,7 @@ describe('tool invocations', () => {
       }),
     );
     controller.close();
+
     await appendOperation;
 
     expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
@@ -673,9 +604,8 @@ describe('tool invocations', () => {
       ],
     };
 
-    await chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
+    await chat.sendMessage({
+      text: 'hi',
     });
 
     await vi.waitFor(() => {
@@ -720,7 +650,7 @@ describe('tool invocations', () => {
       { type: 'controlled-stream', controller: controller2 },
     ];
 
-    chat.append({
+    chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -831,7 +761,7 @@ describe('maxSteps', () => {
         },
       ];
 
-      await chat.append({
+      await chat.sendMessage({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       });
@@ -918,9 +848,8 @@ describe('maxSteps', () => {
         },
       ];
 
-      await chat.append({
-        role: 'user',
-        parts: [{ text: 'hi', type: 'text' }],
+      await chat.sendMessage({
+        text: 'hi',
       });
 
       expect(chat.error).toBeInstanceOf(Error);
@@ -950,9 +879,8 @@ describe('file attachments with data url', () => {
       ],
     };
 
-    chat.input = 'Message with text attachment';
-
-    await chat.handleSubmit(undefined, {
+    await chat.sendMessage({
+      text: 'Message with text attachment',
       files: createFileList(
         new File(['test file content'], 'test.txt', {
           type: 'text/plain',
@@ -1028,9 +956,8 @@ describe('file attachments with data url', () => {
       ],
     };
 
-    chat.input = 'Message with image attachment';
-
-    await chat.handleSubmit(undefined, {
+    await chat.sendMessage({
+      text: 'Message with image attachment',
       files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
@@ -1116,9 +1043,8 @@ describe('file attachments with url', () => {
       ],
     };
 
-    chat.input = 'Message with image attachment';
-
-    await chat.handleSubmit(undefined, {
+    await chat.sendMessage({
+      text: 'Message with image attachment',
       files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
@@ -1204,7 +1130,7 @@ describe('file attachments with empty text content', () => {
       ],
     };
 
-    await chat.handleSubmit(undefined, {
+    await chat.sendMessage({
       files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
@@ -1224,10 +1150,6 @@ describe('file attachments with empty text content', () => {
               "mediaType": "image/png",
               "type": "file",
               "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
-            },
-            {
-              "text": "",
-              "type": "text",
             },
           ],
           "role": "user",
@@ -1259,10 +1181,6 @@ describe('file attachments with empty text content', () => {
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
               },
-              {
-                "text": "",
-                "type": "text",
-              },
             ],
             "role": "user",
           },
@@ -1293,7 +1211,7 @@ describe('reload', () => {
       },
     ];
 
-    await chat.append({
+    await chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -1365,7 +1283,7 @@ describe('test sending additional fields during message submission', () => {
       chunks: ['0:"first response"\n'],
     };
 
-    await chat.append({
+    await chat.sendMessage({
       role: 'user',
       metadata: { test: 'example' },
       parts: [{ text: 'hi', type: 'text' }],
@@ -1417,7 +1335,7 @@ describe('generateId function', () => {
       generateId: mockId({ prefix: 'testid' }),
     });
 
-    await chatWithCustomId.append({
+    await chatWithCustomId.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });

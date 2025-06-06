@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { generateId } from 'ai';
 import { mockId } from 'ai/test';
-import { useChat } from './use-chat';
+import { Chat } from './chat.vue';
 
-const { messages, append } = useChat({
+const chat = new Chat({
   id: generateId(),
   generateId: mockId(),
 });
@@ -11,13 +11,14 @@ const { messages, append } = useChat({
 
 <template>
   <div>
-    <div data-testid="messages">{{ JSON.stringify(messages, null, 2) }}</div>
+    <div data-testid="messages">
+      {{ JSON.stringify(chat.messages, null, 2) }}
+    </div>
 
     <button
       data-testid="do-append"
       @click="
-        append({
-          role: 'user',
+        chat.sendMessage({
           parts: [
             {
               type: 'file',

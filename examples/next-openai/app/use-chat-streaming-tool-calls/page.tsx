@@ -7,9 +7,10 @@ import {
   UIMessage,
 } from 'ai';
 import { useChat } from '@ai-sdk/react';
+import ChatInput from '@component/chat-input';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
+  const { messages, status, sendMessage } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/use-chat-streaming-tool-calls',
     }),
@@ -72,14 +73,7 @@ export default function Chat() {
         );
       })}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

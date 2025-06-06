@@ -1,15 +1,13 @@
 import {
   AbstractChat,
-  BaseChatInit,
+  ChatInit as BaseChatInit,
   ChatEvent,
-  convertFileListToFileUIParts,
   InferUIDataParts,
   UIDataPartSchemas,
   type CreateUIMessage,
-  type FileUIPart,
   type UIMessage,
 } from 'ai';
-import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 import { throttle } from './throttle';
 
@@ -43,32 +41,10 @@ export type UseChatHelpers<
         >[]),
   ) => void;
 
-  /** The current value of the input */
-  input: string;
-
-  /** setState-powered method to update the input value */
-  setInput: React.Dispatch<React.SetStateAction<string>>;
-
-  /** An input/textarea-ready onChange handler to control the value of the input */
-  handleInputChange: (
-    e:
-      | React.ChangeEvent<HTMLInputElement>
-      | React.ChangeEvent<HTMLTextAreaElement>,
-  ) => void;
-
-  /** Form submission handler to automatically reset input and append a user message */
-  handleSubmit: (
-    event?: { preventDefault?: () => void },
-    options?: {
-      metadata?: unknown;
-      files?: FileList | FileUIPart[];
-    },
-  ) => void;
-
   error: Error | undefined;
 } & Pick<
   AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
-  | 'append'
+  | 'sendMessage'
   | 'reload'
   | 'stop'
   | 'experimental_resume'
@@ -85,12 +61,6 @@ export type UseChatOptions<
   | BaseChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
 ) & {
   /**
-  /**
-   * Initial input of the chat.
-   */
-  initialInput?: string;
-
-  /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
@@ -101,7 +71,6 @@ export function useChat<
   MESSAGE_METADATA = unknown,
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
-  initialInput = '',
   experimental_throttle: throttleWaitMs,
   ...options
 }: UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> = {}): UseChatHelpers<
@@ -187,59 +156,15 @@ export function useChat<
     [chatRef, messages],
   );
 
-  // Input state and handlers.
-  const [input, setInput] = useState(initialInput);
-
-  const handleSubmit = useCallback(
-    async (
-      event?: { preventDefault?: () => void },
-      options: {
-        metadata?: unknown;
-        files?: FileList | FileUIPart[];
-      } = {},
-    ) => {
-      event?.preventDefault?.();
-
-      const fileParts = Array.isArray(options?.files)
-        ? options.files
-        : await convertFileListToFileUIParts(options?.files);
-
-      if (!input && fileParts.length === 0) return;
-
-      chatRef.current.append(
-        {
-          id: chatRef.current.generateId(),
-          role: 'user',
-          metadata: undefined,
-          parts: [...fileParts, { type: 'text', text: input }],
-        },
-        {
-          metadata: options.metadata,
-        },
-      );
-
-      setInput('');
-    },
-    [input, chatRef],
-  );
-
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value);
-  };
-
   return {
     id: chatRef.current.id,
     messages,
     setMessages,
-    append: chatRef.current.append,
+    sendMessage: chatRef.current.sendMessage,
     reload: chatRef.current.reload,
     stop: chatRef.current.stop,
     error: chatRef.current.error,
     experimental_resume: chatRef.current.experimental_resume,
-    input,
-    setInput,
-    handleInputChange,
-    handleSubmit,
     status,
     addToolResult,
   };

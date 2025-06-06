@@ -24,8 +24,10 @@ import type {
   UIMessage,
   UIDataPartSchemas,
   InferUIDataParts,
+  FileUIPart,
 } from './ui-messages';
 import { DefaultChatTransport } from './default-chat-transport';
+import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 
 export type ChatRequestOptions = {
   /**
@@ -72,7 +74,7 @@ export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
   snapshot: <T>(thing: T) => T;
 }
 
-export interface BaseChatInit<
+export interface ChatInit<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > {
@@ -160,15 +162,12 @@ export abstract class AbstractChat<
     InferUIDataParts<UI_DATA_PART_SCHEMAS>
   >;
   private maxSteps: number;
-  private onError?: BaseChatInit<
-    MESSAGE_METADATA,
-    UI_DATA_PART_SCHEMAS
-  >['onError'];
-  private onToolCall?: BaseChatInit<
+  private onError?: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>['onError'];
+  private onToolCall?: ChatInit<
     MESSAGE_METADATA,
     UI_DATA_PART_SCHEMAS
   >['onToolCall'];
-  private onFinish?: BaseChatInit<
+  private onFinish?: ChatInit<
     MESSAGE_METADATA,
     UI_DATA_PART_SCHEMAS
   >['onFinish'];
@@ -188,7 +187,7 @@ export abstract class AbstractChat<
     onError,
     onToolCall,
     onFinish,
-  }: Omit<BaseChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'messages'> & {
+  }: Omit<ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'messages'> & {
     state: ChatState<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
   }) {
     this.id = id;
@@ -281,16 +280,54 @@ export abstract class AbstractChat<
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
    */
-  append = async (
-    message: CreateUIMessage<
+  sendMessage = async (
+    message:
+      | (CreateUIMessage<
+          MESSAGE_METADATA,
+          InferUIDataParts<UI_DATA_PART_SCHEMAS>
+        > & { text?: never; files?: never })
+      | {
+          text: string;
+          files?: FileList | FileUIPart[];
+          metadata?: MESSAGE_METADATA;
+          parts?: never;
+        }
+      | {
+          files: FileList | FileUIPart[];
+          metadata?: MESSAGE_METADATA;
+          parts?: never;
+        },
+    options: ChatRequestOptions = {},
+  ): Promise<void> => {
+    let uiMessage: CreateUIMessage<
       MESSAGE_METADATA,
       InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >,
-    options: ChatRequestOptions = {},
-  ) => {
-    this.state.pushMessage({ ...message, id: message.id ?? this.generateId() });
-    this.emit({ type: 'messages-changed' });
+    >;
 
+    if ('text' in message || 'files' in message) {
+      const fileParts = Array.isArray(message.files)
+        ? message.files
+        : await convertFileListToFileUIParts(message.files);
+
+      uiMessage = {
+        parts: [
+          ...fileParts,
+          ...('text' in message && message.text != null
+            ? [{ type: 'text' as const, text: message.text }]
+            : []),
+        ],
+      };
+    } else {
+      uiMessage = message;
+    }
+
+    this.state.pushMessage({
+      ...uiMessage,
+      id: uiMessage.id ?? this.generateId(),
+      role: uiMessage.role ?? 'user',
+    });
+
+    this.emit({ type: 'messages-changed' });
     await this.triggerRequest({ requestType: 'generate', ...options });
   };
 
