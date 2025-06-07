@@ -19,13 +19,20 @@ import type {
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
+
+import { ToolSet } from '../../core';
 import { UseChatOptions } from './use-chat';
 
 export type StreamingUIMessageState<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+  TOOLS extends ToolSet = ToolSet,
 > = {
-  message: UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
+  message: UIMessage<
+    MESSAGE_METADATA,
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>,
+    TOOLS
+  >;
   activeTextPart: TextUIPart | undefined;
   activeReasoningPart: ReasoningUIPart | undefined;
   partialToolCalls: Record<
@@ -37,21 +44,28 @@ export type StreamingUIMessageState<
 export function createStreamingUIMessageState<
   MESSAGE_METADATA = unknown,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+  TOOLS extends ToolSet = ToolSet,
 >({
   lastMessage,
   newMessageId = '',
 }: {
   lastMessage?: UIMessage<
     MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>,
+    TOOLS
   >;
   newMessageId?: string;
-} = {}): StreamingUIMessageState<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+} = {}): StreamingUIMessageState<
+  MESSAGE_METADATA,
+  UI_DATA_PART_SCHEMAS,
+  TOOLS
+> {
   const isContinuation = lastMessage?.role === 'assistant';
 
   const message: UIMessage<
     MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
+    InferUIDataParts<UI_DATA_PART_SCHEMAS>,
+    TOOLS
   > = isContinuation
     ? lastMessage
     : {
@@ -72,6 +86,7 @@ export function createStreamingUIMessageState<
 export function processUIMessageStream<
   MESSAGE_METADATA,
   UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
+  TOOLS extends ToolSet = Record<string, any>,
 >({
   stream,
   onToolCall,
@@ -89,7 +104,8 @@ export function processUIMessageStream<
     job: (options: {
       state: StreamingUIMessageState<
         NoInfer<MESSAGE_METADATA>,
-        NoInfer<UI_DATA_PART_SCHEMAS>
+        NoInfer<UI_DATA_PART_SCHEMAS>,
+        TOOLS
       >;
       write: () => void;
     }) => Promise<void>,
@@ -101,13 +117,13 @@ export function processUIMessageStream<
         await runUpdateMessageJob(async ({ state, write }) => {
           function updateToolInvocationPart(
             toolCallId: string,
-            invocation: ToolInvocation,
+            invocation: ToolInvocation<TOOLS>,
           ) {
             const part = state.message.parts.find(
               part =>
                 isToolInvocationUIPart(part) &&
                 part.toolInvocation.toolCallId === toolCallId,
-            ) as ToolInvocationUIPart | undefined;
+            ) as ToolInvocationUIPart<TOOLS> | undefined;
 
             if (part != null) {
               part.toolInvocation = invocation;
@@ -216,7 +232,7 @@ export function processUIMessageStream<
                 state: 'partial-call',
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
-                args: undefined,
+                args: undefined as any,
               } as const);
 
               write();
@@ -236,7 +252,7 @@ export function processUIMessageStream<
                 state: 'partial-call',
                 toolCallId: part.toolCallId,
                 toolName: partialToolCall.toolName,
-                args: partialArgs,
+                args: partialArgs as any,
               } as const);
 
               write();
@@ -248,7 +264,7 @@ export function processUIMessageStream<
                 state: 'call',
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
-                args: part.args,
+                args: part.args as any,
               } as const);
 
               write();
@@ -265,8 +281,8 @@ export function processUIMessageStream<
                     state: 'result',
                     toolCallId: part.toolCallId,
                     toolName: part.toolName,
-                    args: part.args,
-                    result,
+                    args: part.args as any,
+                    result: result as any,
                   } as const);
 
                   write();
@@ -392,9 +408,9 @@ export function processUIMessageStream<
 }
 
 // helper function to narrow the type of a UIMessagePart
-function isToolInvocationUIPart(
-  part: UIMessagePart<any>,
-): part is ToolInvocationUIPart {
+function isToolInvocationUIPart<TOOLS extends ToolSet>(
+  part: UIMessagePart<any, TOOLS>,
+): part is ToolInvocationUIPart<TOOLS> {
   return part.type === 'tool-invocation';
 }
 
