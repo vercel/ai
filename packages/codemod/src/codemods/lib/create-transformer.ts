@@ -46,8 +46,10 @@ export function createTransformer(transformFn: TransformerFunction) {
     // Execute the transformation
     transformFn(fileInfo, api, options, context);
 
-    // Report any messages
-    context.messages.forEach(message => api.report(message));
+    // Report any messages (if api.report is available)
+    if (typeof api.report === 'function') {
+      context.messages.forEach(message => api.report(message));
+    }
 
     // Return the transformed source code if changes were made
     return context.hasChanges ? root.toSource({ quote: 'single' }) : null;
