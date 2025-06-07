@@ -86,6 +86,22 @@ export function prepareTools(
               type: 'bash_20241022',
             });
             break;
+          case 'anthropic.web_search_20250305':
+            anthropicTools.push({
+              name: tool.name,
+              type: 'web_search_20250305',
+              blocked_domains: tool.args.blocked_domains as string[],
+              allowed_domains: tool.args.allowed_domains as string[],
+              user_location: tool.args.user_location as {
+                type?: 'approximate';
+                city?: string;
+                region?: string;
+                country?: string;
+                timezone?: string;
+              },
+              max_uses: tool.args.max_uses as number,
+            });
+            break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;

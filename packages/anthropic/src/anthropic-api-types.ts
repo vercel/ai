@@ -107,6 +107,20 @@ export type AnthropicTool =
   | {
       name: string;
       type: 'bash_20250124' | 'bash_20241022';
+    }
+  | {
+      name: string;
+      type: 'web_search_20250305';
+      max_uses?: number;
+      allowed_domains?: string[];
+      blocked_domains?: string[];
+      user_location?: {
+        type?: 'approximate';
+        city?: string;
+        region?: string;
+        country?: string;
+        timezone?: string;
+      };
     };
 
 export type AnthropicToolChoice =

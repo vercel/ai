@@ -65,6 +65,23 @@ it('should correctly prepare provider-defined tools', () => {
         name: 'bash',
         args: {},
       },
+      {
+        type: 'provider-defined',
+        id: 'anthropic.web_search_20250305',
+        name: 'web_search',
+        args: {
+          max_uses: 4,
+          allowed_domains: ['docs.anthropic.com'],
+          blocked_domains: ['example.com'],
+          user_location: {
+            type: 'approximate',
+            city: 'San Francisco',
+            region: 'CA',
+            country: 'US',
+            timezone: 'America/Los_Angeles',
+          },
+        },
+      },
     ],
   });
   expect(result.tools).toEqual([
@@ -82,6 +99,20 @@ it('should correctly prepare provider-defined tools', () => {
     {
       name: 'bash',
       type: 'bash_20241022',
+    },
+    {
+      name: 'web_search',
+      type: 'web_search_20250305',
+      max_uses: 4,
+      allowed_domains: ['docs.anthropic.com'],
+      blocked_domains: ['example.com'],
+      user_location: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'CA',
+        country: 'US',
+        timezone: 'America/Los_Angeles',
+      },
     },
   ]);
   expect(result.tool_choice).toBeUndefined();

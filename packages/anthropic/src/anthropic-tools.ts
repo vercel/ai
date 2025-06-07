@@ -510,6 +510,49 @@ function computerTool_20250124<RESULT>(options: {
   };
 }
 
+// Empty parameters for web search as it doesn't take any input parameters
+const WebSearch20250305Parameters = z.object({});
+
+/**
+ * Creates a tool for web search. Must have name "web_search".
+ *
+ * @param max_uses - Limits the number of searches (e.g., 5).
+ * @param allowed_domains - Restrict results to specific domains.
+ * @param blocked_domains - Exclude results from certain domains.
+ * @param user_location - Localize search results.
+ */
+function webSearchTool_20250305(
+  options: {
+    max_uses?: number;
+    allowed_domains?: string[];
+    blocked_domains?: string[];
+    user_location?: {
+      type?: 'approximate';
+      city?: string;
+      region?: string;
+      country?: string;
+      timezone?: string;
+    };
+  } = {},
+): {
+  type: 'provider-defined';
+  id: 'anthropic.web_search_20250305';
+  args: {};
+  parameters: typeof WebSearch20250305Parameters;
+} {
+  return {
+    type: 'provider-defined',
+    id: 'anthropic.web_search_20250305',
+    args: {
+      max_uses: options.max_uses,
+      allowed_domains: options.allowed_domains,
+      blocked_domains: options.blocked_domains,
+      user_location: options.user_location,
+    },
+    parameters: WebSearch20250305Parameters,
+  };
+}
+
 export const anthropicTools = {
   bash_20241022: bashTool_20241022,
   bash_20250124: bashTool_20250124,
@@ -517,4 +560,5 @@ export const anthropicTools = {
   textEditor_20250124: textEditorTool_20250124,
   computer_20241022: computerTool_20241022,
   computer_20250124: computerTool_20250124,
+  webSearch_20250305: webSearchTool_20250305,
 };

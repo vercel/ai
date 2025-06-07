@@ -292,10 +292,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     // extract tool calls
     let toolCalls: LanguageModelV1FunctionToolCall[] | undefined = undefined;
-    if (response.content.some(content => content.type === 'tool_use')) {
+    if (
+      response.content.some(
+        content =>
+          content.type === 'tool_use' || content.type === 'server_tool_use',
+      )
+    ) {
       toolCalls = [];
       for (const content of response.content) {
-        if (content.type === 'tool_use') {
+        if (content.type === 'tool_use' || content.type === 'server_tool_use') {
           toolCalls.push({
             toolCallType: 'function',
             toolCallId: content.id,
@@ -604,6 +609,15 @@ const anthropicMessagesResponseSchema = z.object({
       z.object({
         type: z.literal('text'),
         text: z.string(),
+        citations: z.optional(z.array(
+          z.object({
+            type: z.literal('web_search_result_location'),
+            url: z.string(),
+            title: z.string(),
+            encrypted_index: z.string(),
+            cited_text: z.string(),
+          }),
+        )),
       }),
       z.object({
         type: z.literal('thinking'),
@@ -619,6 +633,25 @@ const anthropicMessagesResponseSchema = z.object({
         id: z.string(),
         name: z.string(),
         input: z.unknown(),
+      }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.unknown(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.array(
+          z.object({
+            type: z.literal('web_search_result'),
+            url: z.string(),
+            title: z.string(),
+            encrypted_content: z.string(),
+            page_age: z.string().nullable(),
+          }),
+        ),
       }),
     ]),
   ),
