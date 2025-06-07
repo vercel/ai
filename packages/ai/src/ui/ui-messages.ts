@@ -31,14 +31,14 @@ export type ToolInvocation<TOOLS extends ToolSet = any> =
         NAME & string,
         TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never
       >;
-    }> & {})
+    }>)
   | ({ state: 'result' } & ValueOf<{
       [NAME in keyof TOOLS]: ToolResult<
         NAME & string,
         TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never,
         TOOLS[NAME] extends Tool<any, infer RESULT> ? RESULT : any
       >;
-    }> & {});
+    }>);
 
 /**
 The data types that can be used in the UI message for the UI message data parts.
