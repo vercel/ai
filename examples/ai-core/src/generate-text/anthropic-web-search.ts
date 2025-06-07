@@ -4,7 +4,6 @@ import 'dotenv/config';
 
 async function main() {
 
-  try {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-latest'),
     tools: {
@@ -13,27 +12,26 @@ async function main() {
         user_location: {
           type: 'approximate',
           city: 'San Francisco',
-          region: 'CA',
+          region: 'California',
           country: 'US',
           timezone: 'America/Los_Angeles',
         },
         // Optional: restrict to specific domains
-        // allowedDomains: ['wikipedia.org', 'docs.anthropic.com'],
+        // allowed_domains: ['wikipedia.org', 'docs.anthropic.com'],
         // Optional: block certain domains
-        // blockedDomains: ['example.com'],
+        // blocked_domains: ['example.com'],
       }),
     },
-    prompt: 'Should I expect rain today?',
+    prompt: 'What local concerts are happening next week?',
   });
+
 
   console.log(result.toolCalls);
 
   console.log(result.toolResults);
 
-    console.log(result.text);
-  } catch (error) {
-    console.error(error);
-  }
+  console.log(result.text);
+
 }
 
 main().catch(console.error);
