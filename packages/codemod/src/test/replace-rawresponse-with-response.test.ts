@@ -30,7 +30,7 @@ export async function testBasic() {
   return result.response.body;
 }
 `,
-  'should transform rawResponse to response for generateText'
+  'should transform rawResponse to response for generateText',
 );
 
 defineInlineTest(
@@ -62,7 +62,7 @@ export async function testDestructuring() {
   return response.body;
 }
 `,
-  'should transform destructured rawResponse to response'
+  'should transform destructured rawResponse to response',
 );
 
 defineInlineTest(
@@ -110,7 +110,7 @@ export async function testMultiple() {
   };
 }
 `,
-  'should transform rawResponse for multiple AI methods'
+  'should transform rawResponse for multiple AI methods',
 );
 
 defineInlineTest(
@@ -142,7 +142,5 @@ export async function testAssignment() {
   return result.response;
 }
 `,
-  'should transform rawResponse for assignment expressions'
+  'should transform rawResponse for assignment expressions',
 );
-
- 

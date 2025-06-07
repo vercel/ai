@@ -44,7 +44,7 @@ export async function test3() {
   });
   return text;
 }
-      `.trim()
+      `.trim(),
     };
 
     const messages: string[] = [];
@@ -52,7 +52,7 @@ export async function test3() {
       jscodeshift: require('jscodeshift'),
       report: (message: string) => {
         messages.push(message);
-      }
+      },
     } as any;
 
     const result = transform(fileInfo, api, {});
@@ -63,15 +63,27 @@ export async function test3() {
     // Should have captured messages via api.report
     expect(messages).toHaveLength(10);
 
-    expect(messages[0]).toContain('Found 3 AI method call(s) that need provider options migration:');
-    expect(messages[1]).toContain('Line 6: embed() - move provider options to providerOptions: { openai: { ... } }');
-    expect(messages[2]).toContain('Line 15: generateText() - move provider options to providerOptions: { anthropic: { ... } }');
-    expect(messages[3]).toContain('Line 25: generateText() - add "openai: { ... }" to existing providerOptions');
+    expect(messages[0]).toContain(
+      'Found 3 AI method call(s) that need provider options migration:',
+    );
+    expect(messages[1]).toContain(
+      'Line 6: embed() - move provider options to providerOptions: { openai: { ... } }',
+    );
+    expect(messages[2]).toContain(
+      'Line 15: generateText() - move provider options to providerOptions: { anthropic: { ... } }',
+    );
+    expect(messages[3]).toContain(
+      'Line 25: generateText() - add "openai: { ... }" to existing providerOptions',
+    );
     expect(messages[4]).toBe('');
     expect(messages[5]).toContain('Migration example:');
-    expect(messages[6]).toContain('Before: model: openai("gpt-4o", { dimensions: 10 })');
+    expect(messages[6]).toContain(
+      'Before: model: openai("gpt-4o", { dimensions: 10 })',
+    );
     expect(messages[7]).toContain('After:  model: openai("gpt-4o"),');
-    expect(messages[8]).toContain('providerOptions: { openai: { dimensions: 10 } }');
+    expect(messages[8]).toContain(
+      'providerOptions: { openai: { dimensions: 10 } }',
+    );
     expect(messages[9]).toBe('');
   });
 
@@ -89,7 +101,7 @@ export async function test() {
   });
   return text;
 }
-      `.trim()
+      `.trim(),
     };
 
     const messages: string[] = [];
@@ -97,7 +109,7 @@ export async function test() {
       jscodeshift: require('jscodeshift'),
       report: (message: string) => {
         messages.push(message);
-      }
+      },
     } as any;
 
     const result = transform(fileInfo, api, {});
@@ -108,4 +120,4 @@ export async function test() {
     // Should not have any messages
     expect(messages).toHaveLength(0);
   });
-}); 
+});

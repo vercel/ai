@@ -6,4 +6,4 @@ describe('replace-llamaindex-adapter', () => {
   it('transforms correctly', () => {
     testTransform(transformer, 'replace-llamaindex-adapter');
   });
-}); 
+});

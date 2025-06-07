@@ -25,7 +25,7 @@ export function handleMessage(msg: UIMessage): CreateUIMessage {
   };
 }
     `,
-    'should rename Message and CreateMessage imports and usage'
+    'should rename Message and CreateMessage imports and usage',
   );
 
   defineInlineTest(
@@ -45,7 +45,7 @@ export function process(msg: MessageType): CreateMessageType {
   return msg;
 }
     `,
-    'should handle aliased imports'
+    'should handle aliased imports',
   );
 
   defineInlineTest(
@@ -69,7 +69,7 @@ interface CustomMessage extends UIMessage {
   id: string;
 }
     `,
-    'should handle type aliases and interface extensions'
+    'should handle type aliases and interface extensions',
   );
 
   defineInlineTest(
@@ -91,6 +91,6 @@ export function test(msg: Message): CreateUIMessage {
   return msg;
 }
     `,
-    'should only rename imports from ai package'
+    'should only rename imports from ai package',
   );
-}); 
+});

@@ -6,4 +6,4 @@ describe('replace-oncompletion-with-onfinal', () => {
   it('transforms correctly', () => {
     testTransform(transformer, 'replace-oncompletion-with-onfinal');
   });
-}); 
+});
