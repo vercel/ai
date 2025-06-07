@@ -5,3 +5,5 @@
 ---
 
 core (ai): change transcription model mimeType to mediaType
+
+Commit: https://github.com/vercel/ai/pull/6172

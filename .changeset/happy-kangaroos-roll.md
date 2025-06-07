@@ -6,3 +6,5 @@
 ---
 
 feat: add transcription with experimental_transcribe
+
+Commit: https://github.com/vercel/ai/pull/5593
