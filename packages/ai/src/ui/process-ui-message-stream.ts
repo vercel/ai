@@ -1,25 +1,25 @@
 import {
-    StandardSchemaV1,
-    ToolCall,
-    validateTypes,
-    Validator,
+  StandardSchemaV1,
+  ToolCall,
+  validateTypes,
+  Validator,
 } from '@ai-sdk/provider-utils';
 import {
-    isDataUIMessageStreamPart,
-    UIMessageStreamPart,
+  isDataUIMessageStreamPart,
+  UIMessageStreamPart,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
-    InferUIDataParts,
-    ReasoningUIPart,
-    TextUIPart,
-    ToolInvocation,
-    ToolInvocationUIPart,
-    UIDataPartSchemas,
-    UIMessage,
-    UIMessagePart,
+  InferUIDataParts,
+  ReasoningUIPart,
+  TextUIPart,
+  ToolInvocation,
+  ToolInvocationUIPart,
+  UIDataPartSchemas,
+  UIMessage,
+  UIMessagePart,
 } from './ui-messages';
 
 import { ToolSet } from '../../core';

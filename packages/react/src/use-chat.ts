@@ -1,11 +1,11 @@
 import {
-    AbstractChat,
-    ChatInit as BaseChatInit,
-    ChatEvent,
-    InferUIDataParts,
-    UIDataPartSchemas,
-    type CreateUIMessage,
-    type UIMessage,
+  AbstractChat,
+  ChatInit as BaseChatInit,
+  ChatEvent,
+  InferUIDataParts,
+  UIDataPartSchemas,
+  type CreateUIMessage,
+  type UIMessage,
 } from 'ai';
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
