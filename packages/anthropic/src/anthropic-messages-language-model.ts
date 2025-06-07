@@ -609,15 +609,17 @@ const anthropicMessagesResponseSchema = z.object({
       z.object({
         type: z.literal('text'),
         text: z.string(),
-        citations: z.optional(z.array(
-          z.object({
-            type: z.literal('web_search_result_location'),
-            url: z.string(),
-            title: z.string(),
-            encrypted_index: z.string(),
-            cited_text: z.string(),
-          }),
-        )),
+        citations: z.optional(
+          z.array(
+            z.object({
+              type: z.literal('web_search_result_location'),
+              url: z.string(),
+              title: z.string(),
+              encrypted_index: z.string(),
+              cited_text: z.string(),
+            }),
+          ),
+        ),
       }),
       z.object({
         type: z.literal('thinking'),
