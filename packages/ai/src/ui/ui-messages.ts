@@ -1,3 +1,4 @@
+import { Tool, ToolSet } from '../../core';
 import {
   StandardSchemaV1,
   ToolCall,
@@ -15,10 +16,29 @@ The step is used to track how to map an assistant UI message with many tool invo
 back to a sequence of LLM assistant/tool result message pairs.
 It is optional for backwards compatibility.
  */
-export type ToolInvocation =
-  | ({ state: 'partial-call' } & ToolCall<string, any>)
-  | ({ state: 'call' } & ToolCall<string, any>)
-  | ({ state: 'result' } & ToolResult<string, any, any>);
+
+export type ToolInvocation<TOOLS extends ToolSet = any> =
+  | ({ state: 'partial-call' } & ValueOf<{
+      [NAME in keyof TOOLS]: ToolCall<
+        NAME & string,
+        TOOLS[NAME] extends Tool<infer PARAMETERS>
+          ? PARAMETERS | undefined
+          : never
+      >;
+    }>)
+  | ({ state: 'call' } & ValueOf<{
+      [NAME in keyof TOOLS]: ToolCall<
+        NAME & string,
+        TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never
+      >;
+    }>)
+  | ({ state: 'result' } & ValueOf<{
+      [NAME in keyof TOOLS]: ToolResult<
+        NAME & string,
+        TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never,
+        TOOLS[NAME] extends Tool<any, infer RESULT> ? RESULT : any
+      >;
+    }>);
 
 /**
 The data types that can be used in the UI message for the UI message data parts.
@@ -31,6 +51,7 @@ AI SDK UI Messages. They are used in the client and to communicate between the f
 export interface UIMessage<
   METADATA = unknown,
   DATA_PARTS extends UIDataTypes = UIDataTypes,
+  TOOLS extends ToolSet = ToolSet,
 > {
   /**
 A unique identifier for the message.
@@ -57,13 +78,16 @@ User messages can have text parts and file parts.
 
 Assistant messages can have text, reasoning, tool invocation, and file parts.
    */
-  parts: Array<UIMessagePart<DATA_PARTS>>;
+  parts: Array<UIMessagePart<DATA_PARTS, TOOLS>>;
 }
 
-export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
+export type UIMessagePart<
+  DATA_TYPES extends UIDataTypes,
+  TOOLS extends ToolSet = ToolSet,
+> =
   | TextUIPart
   | ReasoningUIPart
-  | ToolInvocationUIPart
+  | ToolInvocationUIPart<TOOLS>
   | SourceUrlUIPart
   | FileUIPart
   | DataUIPart<DATA_TYPES>
@@ -122,13 +146,13 @@ export type ReasoningUIPart = {
 /**
  * A tool invocation part of a message.
  */
-export type ToolInvocationUIPart = {
+export type ToolInvocationUIPart<TOOLS extends ToolSet = ToolSet> = {
   type: 'tool-invocation';
 
   /**
    * The tool invocation.
    */
-  toolInvocation: ToolInvocation;
+  toolInvocation: ToolInvocation<TOOLS>;
 };
 
 /**
@@ -177,7 +201,8 @@ export type StepStartUIPart = {
 export type CreateUIMessage<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
-> = Omit<UIMessage<METADATA, DATA_TYPES>, 'id' | 'role'> & {
+  TOOLS extends ToolSet = ToolSet,
+> = Omit<UIMessage<METADATA, DATA_TYPES, TOOLS>, 'id' | 'role'> & {
   id?: UIMessage<METADATA, DATA_TYPES>['id'];
   role?: UIMessage<METADATA, DATA_TYPES>['role'];
 };
