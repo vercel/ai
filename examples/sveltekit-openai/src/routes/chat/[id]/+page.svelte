@@ -4,13 +4,10 @@
   import Button from '$lib/components/ui/button/button.svelte';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
   import { Chat } from '@ai-sdk/svelte';
-  import { defaultChatStoreOptions } from 'ai';
 
-  const chat = new Chat(() => ({
-    chatId: page.params.id,
-    chatStore: defaultChatStoreOptions({
-      maxSteps: 5,
-    }),
+  const chat = new Chat({
+    id: page.params.id,
+    maxSteps: 5,
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
       // artificial 2 second delay
@@ -21,7 +18,7 @@
         return cities[Math.floor(Math.random() * cities.length)];
       }
     },
-  }));
+  });
 
   const disabled = $derived(chat.status !== 'ready');
 
@@ -29,6 +26,16 @@
     return role === 'assistant'
       ? 'bg-primary text-secondary rounded-md'
       : 'bg-secondary text-primary rounded-md justify-self-end';
+  }
+
+  let input = $state('');
+
+  function handleSubmit(e: Event) {
+    console.log('handleSubmit', e);
+    console.log('input', input);
+    e.preventDefault();
+    chat.sendMessage({ text: input });
+    input = '';
   }
 </script>
 
@@ -107,7 +114,7 @@
         </div>
       {/each}
     </div>
-    <form class="relative" onsubmit={chat.handleSubmit}>
+    <form class="relative" onsubmit={handleSubmit}>
       <p>{chat.status}</p>
       <div>
         <a href="/chat/1">chat 1</a>
@@ -115,13 +122,13 @@
         <a href="/chat/3">chat 3</a>
       </div>
       <Textarea
-        bind:value={chat.input}
+        bind:value={input}
         placeholder="Send a message..."
         class="h-full"
         onkeydown={event => {
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            chat.handleSubmit();
+            handleSubmit(event);
           }
         }}
       />

@@ -25,6 +25,9 @@
       "path": "examples/nest"
     },
     {
+      "path": "examples/next"
+    },
+    {
       "path": "examples/next-fastapi"
     },
     {

@@ -1,5 +1,40 @@
 # @ai-sdk/rsc
 
+## 1.0.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [98f25e5]
+- Updated dependencies [7bb58d4]
+- Updated dependencies [c4df419]
+  - ai@5.0.0-alpha.10
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [8255639]
+- Updated dependencies [9ae327d]
+- Updated dependencies [811dff3]
+  - ai@5.0.0-alpha.9
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 1.0.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+- Updated dependencies [6b1c55c]
+- Updated dependencies [2e4f9e4]
+- Updated dependencies [c25cbce]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - ai@5.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
 ## 1.0.0-alpha.7
 
 ### Patch Changes

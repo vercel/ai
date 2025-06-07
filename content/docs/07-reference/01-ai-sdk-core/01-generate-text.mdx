@@ -51,12 +51,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'messages',
-      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage> | Array<UIMessage>',
+      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage> | Array<UIMessage>',
       description:
         'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
         {
-          type: 'CoreSystemMessage',
+          type: 'SystemModelMessage',
           parameters: [
             {
               name: 'role',
@@ -71,7 +71,7 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
         {
-          type: 'CoreUserMessage',
+          type: 'UserModelMessage',
           parameters: [
             {
               name: 'role',
@@ -147,7 +147,7 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
         {
-          type: 'CoreAssistantMessage',
+          type: 'AssistantModelMessage',
           parameters: [
             {
               name: 'role',
@@ -156,7 +156,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ReasoningPart | RedactedReasoningPart | ToolCallPart>',
+              type: 'string | Array<TextPart | FilePart | ReasoningPart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -180,31 +180,39 @@ To see `generateText` in action, check out [these examples](#examples).
                     {
                       name: 'type',
                       type: "'reasoning'",
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'text',
                       type: 'string',
                       description: 'The reasoning text.',
                     },
-                    {
-                      name: 'signature',
-                      type: 'string',
-                      isOptional: true,
-                      description: 'The signature for the reasoning.',
-                    },
                   ],
                 },
                 {
-                  type: 'RedactedReasoningPart',
+                  type: 'FilePart',
                   parameters: [
                     {
                       name: 'type',
-                      type: "'redacted-reasoning'",
+                      type: "'file'",
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mediaType',
                       type: 'string',
-                      description: 'The redacted data.',
+                      description: 'The IANA media type of the file.',
+                    },
+                    {
+                      name: 'filename',
+                      type: 'string',
+                      description: 'The name of the file.',
+                      isOptional: true,
                     },
                   ],
                 },
@@ -240,7 +248,7 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
         {
-          type: 'CoreToolMessage',
+          type: 'ToolModelMessage',
           parameters: [
             {
               name: 'role',
@@ -511,8 +519,57 @@ To see `generateText` in action, check out [these examples](#examples).
         'The tools that are currently active. All tools are active by default.',
     },
     {
+      name: 'stopWhen',
+      type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
+      isOptional: true,
+      description:
+        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: stepCountIs(1).',
+    },
+    {
+      name: 'prepareStep',
+      type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
+      isOptional: true,
+      description:
+        'Optional function that you can use to provide different settings for a step.',
+      properties: [
+        {
+          type: 'PrepareStepFunction<TOOLS>',
+          parameters: [
+            {
+              name: 'options',
+              type: 'object',
+              description: 'The options for the step.',
+              properties: [
+                {
+                  type: 'PrepareStepOptions',
+                  parameters: [
+                    {
+                      name: 'steps',
+                      type: 'Array<StepResult<TOOLS>>',
+                      description: 'The steps that have been executed so far.',
+                    },
+                    {
+                      name: 'stepNumber',
+                      type: 'number',
+                      description:
+                        'The number of the step that is being executed.',
+                    },
+                    {
+                      name: 'model',
+                      type: 'LanguageModel',
+                      description: 'The model that is being used.',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'experimental_repairToolCall',
-      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV1FunctionToolCall | null>',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV2ToolCall | null>',
       isOptional: true,
       description:
         'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
@@ -532,7 +589,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolCall',
-              type: 'LanguageModelV1FunctionToolCall',
+              type: 'LanguageModelV2ToolCall',
               description: 'The tool call that failed to parse.',
             },
             {
@@ -729,60 +786,43 @@ To see `generateText` in action, check out [these examples](#examples).
 <PropertiesTable
   content={[
     {
+      name: 'content',
+      type: 'Array<ContentPart<TOOLS>>',
+      description: 'The content that was generated in the last step.',
+    },
+    {
       name: 'text',
       type: 'string',
       description: 'The generated text by the model.',
     },
     {
       name: 'reasoning',
-      type: 'string | undefined',
+      type: 'Array<ReasoningPart>',
       description:
-        'The reasoning text of the model (only available for some models).',
-    },
-    {
-      name: 'reasoningDetails',
-      type: 'Array<ReasoningDetail>',
-      description:
-        'The reasoning details of the model (only available for some models).',
+        'The full reasoning that the model has generated in the last step.',
       properties: [
         {
-          type: 'ReasoningDetail',
+          type: 'ReasoningPart',
           parameters: [
             {
               name: 'type',
-              type: "'text'",
-              description: 'The type of the reasoning detail.',
+              type: "'reasoning'",
+              description: 'The type of the message part.',
             },
             {
               name: 'text',
               type: 'string',
-              description: 'The text content (only for type "text").',
-            },
-            {
-              name: 'signature',
-              type: 'string',
-              isOptional: true,
-              description: 'Optional signature (only for type "text").',
-            },
-          ],
-        },
-        {
-          type: 'ReasoningDetail',
-          parameters: [
-            {
-              name: 'type',
-              type: "'redacted'",
-              description: 'The type of the reasoning detail.',
-            },
-            {
-              name: 'data',
-              type: 'string',
-              description:
-                'The redacted data content (only for type "redacted").',
+              description: 'The reasoning text.',
             },
           ],
         },
       ],
+    },
+    {
+      name: 'reasoningText',
+      type: 'string | undefined',
+      description:
+        'The reasoning text that the model has generated in the last step. Can be undefined if the model has only generated text.',
     },
     {
       name: 'sources',
@@ -817,7 +857,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'providerMetadata',
-              type: 'LanguageModelV1ProviderMetadata',
+              type: 'SharedV2ProviderMetadata',
               isOptional: true,
               description: 'Additional provider metadata for the source.',
             },
@@ -854,14 +894,13 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'toolCalls',
-      type: 'array',
-      description: 'A list of tool calls made by the model.',
+      type: 'ToolCallArray<TOOLS>',
+      description: 'The tool calls that were made in the last step.',
     },
     {
       name: 'toolResults',
-      type: 'array',
-      description:
-        'A list of tool results returned as responses to earlier tool calls.',
+      type: 'ToolResultArray<TOOLS>',
+      description: 'The results of the tool calls from the last step.',
     },
     {
       name: 'finishReason',
@@ -870,26 +909,80 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'usage',
-      type: 'CompletionTokenUsage',
-      description: 'The token usage of the generated text.',
+      type: 'LanguageModelUsage',
+      description: 'The token usage of the last step.',
       properties: [
         {
-          type: 'CompletionTokenUsage',
+          type: 'LanguageModelUsage',
           parameters: [
             {
-              name: 'promptTokens',
-              type: 'number',
-              description: 'The total number of tokens in the prompt.',
+              name: 'inputTokens',
+              type: 'number | undefined',
+              description: 'The number of input (prompt) tokens used.',
             },
             {
-              name: 'completionTokens',
-              type: 'number',
-              description: 'The total number of tokens in the completion.',
+              name: 'outputTokens',
+              type: 'number | undefined',
+              description: 'The number of output (completion) tokens used.',
             },
             {
               name: 'totalTokens',
-              type: 'number',
-              description: 'The total number of tokens generated.',
+              type: 'number | undefined',
+              description:
+                'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+            },
+            {
+              name: 'reasoningTokens',
+              type: 'number | undefined',
+              isOptional: true,
+              description: 'The number of reasoning tokens used.',
+            },
+            {
+              name: 'cachedInputTokens',
+              type: 'number | undefined',
+              isOptional: true,
+              description: 'The number of cached input tokens.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'totalUsage',
+      type: 'CompletionTokenUsage',
+      description:
+        'The total token usage of all steps. When there are multiple steps, the usage is the sum of all step usages.',
+      properties: [
+        {
+          type: 'LanguageModelUsage',
+          parameters: [
+            {
+              name: 'inputTokens',
+              type: 'number | undefined',
+              description: 'The number of input (prompt) tokens used.',
+            },
+            {
+              name: 'outputTokens',
+              type: 'number | undefined',
+              description: 'The number of output (completion) tokens used.',
+            },
+            {
+              name: 'totalTokens',
+              type: 'number | undefined',
+              description:
+                'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+            },
+            {
+              name: 'reasoningTokens',
+              type: 'number | undefined',
+              isOptional: true,
+              description: 'The number of reasoning tokens used.',
+            },
+            {
+              name: 'cachedInputTokens',
+              type: 'number | undefined',
+              isOptional: true,
+              description: 'The number of cached input tokens.',
             },
           ],
         },
@@ -897,12 +990,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'request',
-      type: 'RequestMetadata',
+      type: 'LanguageModelRequestMetadata',
       isOptional: true,
       description: 'Request metadata.',
       properties: [
         {
-          type: 'RequestMetadata',
+          type: 'LanguageModelRequestMetadata',
           parameters: [
             {
               name: 'body',
@@ -916,12 +1009,12 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'response',
-      type: 'ResponseMetadata',
+      type: 'LanguageModelResponseMetadata',
       isOptional: true,
       description: 'Response metadata.',
       properties: [
         {
-          type: 'ResponseMetadata',
+          type: 'LanguageModelResponseMetadata',
           parameters: [
             {
               name: 'id',
@@ -930,7 +1023,7 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
             },
             {
-              name: 'model',
+              name: 'modelId',
               type: 'string',
               description:
                 'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -965,13 +1058,13 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'warnings',
-      type: 'Warning[] | undefined',
+      type: 'CallWarning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },
     {
       name: 'providerMetadata',
-      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      type: 'ProviderMetadata | undefined',
       description:
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
@@ -983,7 +1076,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'steps',
-      type: 'Array<StepResult>',
+      type: 'Array<StepResult<TOOLS>>',
       description:
         'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
       properties: [
@@ -991,62 +1084,67 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'StepResult',
           parameters: [
             {
-              name: 'stepType',
-              type: '"initial" | "continue" | "tool-result"',
-              description:
-                'The type of step. The first step is always an "initial" step, and subsequent steps are either "continue" steps or "tool-result" steps.',
+              name: 'content',
+              type: 'Array<ContentPart<TOOLS>>',
+              description: 'The content that was generated in the last step.',
             },
             {
               name: 'text',
               type: 'string',
-              description: 'The generated text by the model.',
+              description: 'The generated text.',
             },
             {
               name: 'reasoning',
-              type: 'string | undefined',
+              type: 'Array<ReasoningPart>',
               description:
-                'The reasoning text of the model (only available for some models).',
-            },
-            {
-              name: 'reasoningDetails',
-              type: 'Array<ReasoningDetail>',
-              description:
-                'The reasoning details of the model (only available for some models).',
+                'The reasoning that was generated during the generation.',
               properties: [
                 {
-                  type: 'ReasoningDetail',
+                  type: 'ReasoningPart',
                   parameters: [
                     {
                       name: 'type',
-                      type: "'text'",
-                      description: 'The type of the reasoning detail.',
+                      type: "'reasoning'",
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'text',
                       type: 'string',
-                      description: 'The text content (only for type "text").',
-                    },
-                    {
-                      name: 'signature',
-                      type: 'string',
-                      isOptional: true,
-                      description: 'Optional signature (only for type "text").',
+                      description: 'The reasoning text.',
                     },
                   ],
                 },
+              ],
+            },
+            {
+              name: 'reasoningText',
+              type: 'string | undefined',
+              description:
+                'The reasoning text that was generated during the generation.',
+            },
+            {
+              name: 'files',
+              type: 'Array<GeneratedFile>',
+              description:
+                'The files that were generated during the generation.',
+              properties: [
                 {
-                  type: 'ReasoningDetail',
+                  type: 'GeneratedFile',
                   parameters: [
                     {
-                      name: 'type',
-                      type: "'redacted'",
-                      description: 'The type of the reasoning detail.',
+                      name: 'base64',
+                      type: 'string',
+                      description: 'File as a base64 encoded string.',
                     },
                     {
-                      name: 'data',
+                      name: 'uint8Array',
+                      type: 'Uint8Array',
+                      description: 'File as a Uint8Array.',
+                    },
+                    {
+                      name: 'mediaType',
                       type: 'string',
-                      description:
-                        'The redacted data content (only for type "redacted").',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -1055,8 +1153,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              description: 'The sources that were used to generate the text.',
               properties: [
                 {
                   type: 'Source',
@@ -1085,7 +1182,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'providerMetadata',
-                      type: 'LanguageModelV1ProviderMetadata',
+                      type: 'SharedV2ProviderMetadata',
                       isOptional: true,
                       description:
                         'Additional provider metadata for the source.',
@@ -1095,84 +1192,75 @@ To see `generateText` in action, check out [these examples](#examples).
               ],
             },
             {
-              name: 'files',
-              type: 'Array<GeneratedFile>',
-              description: 'Files that were generated in this step.',
-              properties: [
-                {
-                  type: 'GeneratedFile',
-                  parameters: [
-                    {
-                      name: 'base64',
-                      type: 'string',
-                      description: 'File as a base64 encoded string.',
-                    },
-                    {
-                      name: 'uint8Array',
-                      type: 'Uint8Array',
-                      description: 'File as a Uint8Array.',
-                    },
-                    {
-                      name: 'mediaType',
-                      type: 'string',
-                      description: 'The IANA media type of the file.',
-                    },
-                  ],
-                },
-              ],
-            },
-            {
               name: 'toolCalls',
-              type: 'array',
-              description: 'A list of tool calls made by the model.',
+              type: 'ToolCallArray<TOOLS>',
+              description:
+                'The tool calls that were made during the generation.',
             },
             {
               name: 'toolResults',
-              type: 'array',
-              description:
-                'A list of tool results returned as responses to earlier tool calls.',
+              type: 'ToolResultArray<TOOLS>',
+              description: 'The results of the tool calls.',
             },
             {
               name: 'finishReason',
               type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
-              description: 'The reason the model finished generating the text.',
+              description: 'The reason why the generation finished.',
             },
             {
               name: 'usage',
-              type: 'CompletionTokenUsage',
+              type: 'LanguageModelUsage',
               description: 'The token usage of the generated text.',
               properties: [
                 {
-                  type: 'CompletionTokenUsage',
+                  type: 'LanguageModelUsage',
                   parameters: [
                     {
-                      name: 'promptTokens',
-                      type: 'number',
-                      description: 'The total number of tokens in the prompt.',
+                      name: 'inputTokens',
+                      type: 'number | undefined',
+                      description: 'The number of input (prompt) tokens used.',
                     },
                     {
-                      name: 'completionTokens',
-                      type: 'number',
+                      name: 'outputTokens',
+                      type: 'number | undefined',
                       description:
-                        'The total number of tokens in the completion.',
+                        'The number of output (completion) tokens used.',
                     },
                     {
                       name: 'totalTokens',
-                      type: 'number',
-                      description: 'The total number of tokens generated.',
+                      type: 'number | undefined',
+                      description:
+                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+                    },
+                    {
+                      name: 'reasoningTokens',
+                      type: 'number | undefined',
+                      isOptional: true,
+                      description: 'The number of reasoning tokens used.',
+                    },
+                    {
+                      name: 'cachedInputTokens',
+                      type: 'number | undefined',
+                      isOptional: true,
+                      description: 'The number of cached input tokens.',
                     },
                   ],
                 },
               ],
             },
             {
+              name: 'warnings',
+              type: 'CallWarning[] | undefined',
+              description:
+                'Warnings from the model provider (e.g. unsupported settings).',
+            },
+            {
               name: 'request',
-              type: 'RequestMetadata',
-              isOptional: true,
-              description: 'Request metadata.',
+              type: 'LanguageModelRequestMetadata',
+              description: 'Additional request information.',
               properties: [
                 {
-                  type: 'RequestMetadata',
+                  type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
                       name: 'body',
@@ -1186,12 +1274,11 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'response',
-              type: 'ResponseMetadata',
-              isOptional: true,
-              description: 'Response metadata.',
+              type: 'LanguageModelResponseMetadata',
+              description: 'Additional response information.',
               properties: [
                 {
-                  type: 'ResponseMetadata',
+                  type: 'LanguageModelResponseMetadata',
                   parameters: [
                     {
                       name: 'id',
@@ -1200,7 +1287,7 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -1221,36 +1308,24 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'body',
                       isOptional: true,
                       type: 'unknown',
-                      description: 'Optional response body.',
+                      description:
+                        'Response body (available only for providers that use HTTP requests).',
                     },
                     {
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
-                        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                        'The response messages that were generated during the call. Response messages can be either assistant messages or tool messages. They contain a generated id.',
                     },
                   ],
                 },
               ],
             },
             {
-              name: 'warnings',
-              type: 'Warning[] | undefined',
-              description:
-                'Warnings from the model provider (e.g. unsupported settings).',
-            },
-            {
-              name: 'isContinued',
-              type: 'boolean',
-              description:
-                'True when there will be a continuation step with a continuation text.',
-            },
-            {
               name: 'providerMetadata',
-              type: 'Record<string,Record<string,JSONValue>> | undefined',
-              isOptional: true,
+              type: 'ProviderMetadata | undefined',
               description:
-                'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+                'Additional provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific results that can be fully encapsulated in the provider.',
             },
           ],
         },

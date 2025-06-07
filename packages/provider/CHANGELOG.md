@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- c4df419: release alpha.10
+
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- 811dff3: release alpha.9
+
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- 9222aeb: release alpha.8
+
 ## 2.0.0-alpha.7
 
 ### Patch Changes

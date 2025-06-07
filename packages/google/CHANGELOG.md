@@ -1,5 +1,32 @@
 # @ai-sdk/google
 
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- 581a9be: fix (provider/google): prevent error when thinking signature is used
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- 1a635b5: update supportedUrls to only support native URL
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
 ## 2.0.0-alpha.7
 
 ### Patch Changes

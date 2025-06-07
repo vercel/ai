@@ -3,9 +3,8 @@ import {
   mockId,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { render } from '@testing-library/svelte';
 import {
-  defaultChatStoreOptions,
+  DefaultChatTransport,
   getToolInvocations,
   TextStreamChatTransport,
   type UIMessage,
@@ -13,9 +12,7 @@ import {
 } from 'ai';
 import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
-import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
-import { createChatStore } from './chat-store.svelte.js';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -43,9 +40,9 @@ describe('data protocol stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should correctly manage streamed response in messages', async () => {
@@ -59,8 +56,7 @@ describe('data protocol stream', () => {
       ],
     };
 
-    await chat.append({
-      role: 'user',
+    await chat.sendMessage({
       parts: [{ text: 'hi', type: 'text' }],
     });
     expect(chat.messages.at(0)).toStrictEqual(
@@ -85,9 +81,8 @@ describe('data protocol stream', () => {
       body: 'Not found',
     };
 
-    await chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
+    await chat.sendMessage({
+      text: 'hi',
     });
     expect(chat.error).toBeInstanceOf(Error);
     expect(chat.error?.message).toBe('Not found');
@@ -104,7 +99,7 @@ describe('data protocol stream', () => {
       ],
     };
 
-    await chat.append({
+    await chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -120,7 +115,7 @@ describe('data protocol stream', () => {
         controller,
       };
 
-      const appendOperation = chat.append({
+      const appendOperation = chat.sendMessage({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       });
@@ -139,7 +134,7 @@ describe('data protocol stream', () => {
         body: 'Not found',
       };
 
-      chat.append({
+      chat.sendMessage({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       });
@@ -165,11 +160,11 @@ describe('data protocol stream', () => {
     };
 
     const onFinish = vi.fn();
-    const chatWithOnFinish = new Chat(() => ({
+    const chatWithOnFinish = new Chat({
       onFinish,
       generateId: mockId(),
-    }));
-    await chatWithOnFinish.append({
+    });
+    await chatWithOnFinish.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -198,14 +193,14 @@ describe('data protocol stream', () => {
         chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
       };
 
-      await chat.append({
+      await chat.sendMessage({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "chatId": "id-0",
+          "id": "id-0",
           "messages": [
             {
               "id": "id-1",
@@ -221,83 +216,6 @@ describe('data protocol stream', () => {
         }
       `);
     });
-
-    it('should clear out messages when the id changes', async () => {
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatStreamPart({ type: 'text', text: 'Hello' }),
-          formatStreamPart({ type: 'text', text: ',' }),
-          formatStreamPart({ type: 'text', text: ' world' }),
-          formatStreamPart({ type: 'text', text: '.' }),
-        ],
-      };
-
-      let chatId = $state(crypto.randomUUID());
-      const chatWithId = new Chat(() => ({
-        chatId,
-      }));
-      await chatWithId.append({
-        role: 'user',
-        parts: [{ text: 'hi', type: 'text' }],
-      });
-
-      expect(chatWithId.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
-        }),
-      );
-
-      chatId = crypto.randomUUID();
-
-      flushSync();
-
-      expect(chatWithId.messages).toHaveLength(0);
-    });
-
-    it('should restore messages when the id changes back to an existing id', async () => {
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatStreamPart({ type: 'text', text: 'Hello' }),
-          formatStreamPart({ type: 'text', text: ',' }),
-          formatStreamPart({ type: 'text', text: ' world' }),
-          formatStreamPart({ type: 'text', text: '.' }),
-        ],
-      };
-
-      let chatId = $state(crypto.randomUUID());
-      const originalId = chatId;
-      const chatWithId = new Chat(() => ({
-        chatId,
-      }));
-      await chatWithId.append({
-        role: 'user',
-        parts: [{ text: 'hi', type: 'text' }],
-      });
-
-      expect(chatWithId.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
-        }),
-      );
-
-      chatId = crypto.randomUUID();
-      flushSync();
-
-      expect(chatWithId.messages).toHaveLength(0);
-      chatId = originalId;
-      flushSync();
-
-      expect(chatWithId.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          role: 'assistant',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
-        }),
-      );
-    });
   });
 });
 
@@ -307,15 +225,12 @@ describe('text stream', () => {
   beforeEach(() => {
     const generateId = mockId();
 
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId,
-      chatStore: createChatStore({
-        transport: new TextStreamChatTransport({
-          api: '/api/chat',
-        }),
-        generateId,
+      transport: new TextStreamChatTransport({
+        api: '/api/chat',
       }),
-    }));
+    });
   });
 
   it('should show streamed response', async () => {
@@ -324,7 +239,7 @@ describe('text stream', () => {
       chunks: ['Hello', ',', ' world', '.'],
     };
 
-    await chat.append({
+    await chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -366,7 +281,7 @@ describe('text stream', () => {
       controller,
     };
 
-    const appendOperation = chat.append({
+    const appendOperation = chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -404,15 +319,13 @@ describe('text stream', () => {
     };
 
     const onFinish = vi.fn();
-    const chatWithOnFinish = new Chat(() => ({
+    const chatWithOnFinish = new Chat({
       onFinish,
-      chatStore: createChatStore({
-        transport: new TextStreamChatTransport({
-          api: '/api/chat',
-        }),
+      transport: new TextStreamChatTransport({
+        api: '/api/chat',
       }),
-    }));
-    await chatWithOnFinish.append({
+    });
+    await chatWithOnFinish.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -431,72 +344,6 @@ describe('text stream', () => {
   });
 });
 
-describe('form actions', () => {
-  let chat: Chat;
-
-  beforeEach(() => {
-    const generateId = mockId();
-    chat = new Chat(() => ({
-      generateId,
-      chatStore: createChatStore({
-        transport: new TextStreamChatTransport({
-          api: '/api/chat',
-        }),
-        generateId,
-      }),
-    }));
-  });
-
-  it('should show streamed response using handleSubmit', async () => {
-    server.urls['/api/chat'].response = [
-      {
-        type: 'stream-chunks',
-        chunks: ['Hello', ',', ' world', '.'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['How', ' can', ' I', ' help', ' you', '?'],
-      },
-    ];
-
-    chat.input = 'hi';
-    await chat.handleSubmit();
-
-    expect(chat.input).toBe('');
-    expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "id-1",
-          "parts": [
-            {
-              "text": "hi",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-2",
-          "metadata": {},
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
-
-    await chat.handleSubmit();
-    expect(chat.messages.at(2)).toBeUndefined();
-  });
-});
-
 describe('onToolCall', () => {
   let resolve: () => void;
   let toolCallPromise: Promise<void>;
@@ -505,14 +352,14 @@ describe('onToolCall', () => {
   beforeEach(() => {
     ({ resolve, promise: toolCallPromise } = promiseWithResolvers<void>());
 
-    chat = new Chat(() => ({
+    chat = new Chat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
         } ${JSON.stringify(toolCall.args)}`;
       },
-    }));
+    });
   });
 
   it("should invoke onToolCall when a tool call is received from the server's response", async () => {
@@ -528,10 +375,8 @@ describe('onToolCall', () => {
       ],
     };
 
-    const appendOperation = chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
+    const appendOperation = chat.sendMessage({ text: 'hi' });
+
     await vi.waitFor(() => {
       expect(
         getToolInvocations(chat.messages.at(1) as UIMessage),
@@ -566,14 +411,13 @@ describe('tool invocations', () => {
 
   beforeEach(() => {
     const generateId = mockId();
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId,
-      chatStore: defaultChatStoreOptions({
+      maxSteps: 5,
+      transport: new DefaultChatTransport({
         api: '/api/chat',
-        maxSteps: 5,
-        generateId,
       }),
-    }));
+    });
   });
 
   it('should display partial tool call, tool call, and tool result', async () => {
@@ -583,7 +427,7 @@ describe('tool invocations', () => {
       controller,
     };
 
-    const appendOperation = chat.append({
+    const appendOperation = chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -701,10 +545,7 @@ describe('tool invocations', () => {
       controller,
     };
 
-    const appendOperation = chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
+    const appendOperation = chat.sendMessage({ text: 'hi' });
 
     controller.write(
       formatStreamPart({
@@ -736,6 +577,7 @@ describe('tool invocations', () => {
       }),
     );
     controller.close();
+
     await appendOperation;
 
     expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
@@ -762,9 +604,8 @@ describe('tool invocations', () => {
       ],
     };
 
-    await chat.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
+    await chat.sendMessage({
+      text: 'hi',
     });
 
     await vi.waitFor(() => {
@@ -809,7 +650,7 @@ describe('tool invocations', () => {
       { type: 'controlled-stream', controller: controller2 },
     ];
 
-    chat.append({
+    chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -884,20 +725,20 @@ describe('maxSteps', () => {
     let chat: Chat;
 
     beforeEach(() => {
-      chat = new Chat(() => ({
+      chat = new Chat({
         async onToolCall({ toolCall }) {
           onToolCallInvoked = true;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatId: 'test-id',
-        chatStore: defaultChatStoreOptions({
+        id: 'test-id',
+        maxSteps: 5,
+        transport: new DefaultChatTransport({
           api: '/api/chat',
-          generateId: mockId(),
-          maxSteps: 5,
         }),
-      }));
+        generateId: mockId(),
+      });
       onToolCallInvoked = false;
     });
 
@@ -920,7 +761,7 @@ describe('maxSteps', () => {
         },
       ];
 
-      await chat.append({
+      await chat.sendMessage({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       });
@@ -972,19 +813,18 @@ describe('maxSteps', () => {
     let chat: Chat;
 
     beforeEach(() => {
-      chat = new Chat(() => ({
+      chat = new Chat({
         async onToolCall({ toolCall }) {
           onToolCallCounter++;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatStore: defaultChatStoreOptions({
+        maxSteps: 5,
+        transport: new DefaultChatTransport({
           api: '/api/chat',
-          generateId: mockId(),
-          maxSteps: 5,
         }),
-      }));
+      });
       onToolCallCounter = 0;
     });
 
@@ -1008,9 +848,8 @@ describe('maxSteps', () => {
         },
       ];
 
-      await chat.append({
-        role: 'user',
-        parts: [{ text: 'hi', type: 'text' }],
+      await chat.sendMessage({
+        text: 'hi',
       });
 
       expect(chat.error).toBeInstanceOf(Error);
@@ -1024,9 +863,9 @@ describe('file attachments with data url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should handle text file attachment and submission', async () => {
@@ -1040,9 +879,8 @@ describe('file attachments with data url', () => {
       ],
     };
 
-    chat.input = 'Message with text attachment';
-
-    await chat.handleSubmit(undefined, {
+    await chat.sendMessage({
+      text: 'Message with text attachment',
       files: createFileList(
         new File(['test file content'], 'test.txt', {
           type: 'text/plain',
@@ -1084,7 +922,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1118,9 +956,8 @@ describe('file attachments with data url', () => {
       ],
     };
 
-    chat.input = 'Message with image attachment';
-
-    await chat.handleSubmit(undefined, {
+    await chat.sendMessage({
+      text: 'Message with image attachment',
       files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
@@ -1162,7 +999,7 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1190,9 +1027,9 @@ describe('file attachments with url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1206,9 +1043,8 @@ describe('file attachments with url', () => {
       ],
     };
 
-    chat.input = 'Message with image attachment';
-
-    await chat.handleSubmit(undefined, {
+    await chat.sendMessage({
+      text: 'Message with image attachment',
       files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
@@ -1250,7 +1086,7 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1278,9 +1114,9 @@ describe('file attachments with empty text content', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1294,7 +1130,7 @@ describe('file attachments with empty text content', () => {
       ],
     };
 
-    await chat.handleSubmit(undefined, {
+    await chat.sendMessage({
       files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
@@ -1315,10 +1151,6 @@ describe('file attachments with empty text content', () => {
               "type": "file",
               "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
             },
-            {
-              "text": "",
-              "type": "text",
-            },
           ],
           "role": "user",
         },
@@ -1338,7 +1170,7 @@ describe('file attachments with empty text content', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1348,10 +1180,6 @@ describe('file attachments with empty text content', () => {
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
-              },
-              {
-                "text": "",
-                "type": "text",
               },
             ],
             "role": "user",
@@ -1366,9 +1194,9 @@ describe('reload', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should show streamed response', async () => {
@@ -1383,7 +1211,7 @@ describe('reload', () => {
       },
     ];
 
-    await chat.append({
+    await chat.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -1409,7 +1237,7 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1444,9 +1272,9 @@ describe('test sending additional fields during message submission', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat(() => ({
+    chat = new Chat({
       generateId: mockId(),
-    }));
+    });
   });
 
   it('should send metadata with the message', async () => {
@@ -1455,7 +1283,7 @@ describe('test sending additional fields during message submission', () => {
       chunks: ['0:"first response"\n'],
     };
 
-    await chat.append({
+    await chat.sendMessage({
       role: 'user',
       metadata: { test: 'example' },
       parts: [{ text: 'hi', type: 'text' }],
@@ -1469,7 +1297,7 @@ describe('test sending additional fields during message submission', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1490,82 +1318,6 @@ describe('test sending additional fields during message submission', () => {
   });
 });
 
-describe('synchronization', () => {
-  it('correctly synchronizes content between hook instances', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatStreamPart({ type: 'text', text: 'Hello' }),
-        formatStreamPart({ type: 'text', text: ',' }),
-        formatStreamPart({ type: 'text', text: ' world' }),
-        formatStreamPart({ type: 'text', text: '.' }),
-      ],
-    };
-
-    const {
-      component: { chat1, chat2 },
-    } = render(ChatSynchronization, { chatId: crypto.randomUUID() });
-
-    await chat1.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-
-    expect(chat1.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-      }),
-    );
-    expect(chat2.messages.at(0)).toStrictEqual(chat1.messages.at(0));
-
-    expect(chat1.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        parts: [{ text: 'Hello, world.', type: 'text' }],
-      }),
-    );
-    expect(chat2.messages.at(1)).toStrictEqual(chat1.messages.at(1));
-  });
-
-  it('correctly synchronizes loading and error state between hook instances', async () => {
-    const controller = new TestResponseController();
-    server.urls['/api/chat'].response = {
-      type: 'controlled-stream',
-      controller,
-    };
-
-    const {
-      component: { chat1, chat2 },
-    } = render(ChatSynchronization, { chatId: crypto.randomUUID() });
-
-    const appendOperation = chat1.append({
-      role: 'user',
-      parts: [{ text: 'hi', type: 'text' }],
-    });
-
-    await vi.waitFor(() => {
-      expect(chat1.status).toBe('submitted');
-      expect(chat2.status).toBe('submitted');
-    });
-
-    controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
-    await vi.waitFor(() => {
-      expect(chat1.status).toBe('streaming');
-      expect(chat2.status).toBe('streaming');
-    });
-
-    controller.error(new Error('Failed to be cool enough'));
-    await appendOperation;
-
-    expect(chat1.status).toBe('error');
-    expect(chat2.status).toBe('error');
-    expect(chat1.error).toBeInstanceOf(Error);
-    expect(chat1.error?.message).toBe('Failed to be cool enough');
-    expect(chat2.error).toBeInstanceOf(Error);
-    expect(chat2.error?.message).toBe('Failed to be cool enough');
-  });
-});
-
 describe('generateId function', () => {
   it('should use the provided generateId function for both user and assistant messages', async () => {
     server.urls['/api/chat'].response = {
@@ -1579,11 +1331,11 @@ describe('generateId function', () => {
       ],
     };
 
-    const chatWithCustomId = new Chat(() => ({
+    const chatWithCustomId = new Chat({
       generateId: mockId({ prefix: 'testid' }),
-    }));
+    });
 
-    await chatWithCustomId.append({
+    await chatWithCustomId.sendMessage({
       role: 'user',
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -1618,7 +1370,7 @@ describe('generateId function', () => {
 
 describe('reactivity', () => {
   it('should be able to render as a derived', () => {
-    const chat = $derived(new Chat());
+    const chat = $derived(new Chat({}));
     // If this isn't handled correctly, it'd show a `state_unsafe_mutation` error.
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     chat.messages;

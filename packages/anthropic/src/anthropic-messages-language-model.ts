@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -16,6 +17,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -38,6 +40,7 @@ type AnthropicMessagesConfig = {
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
   supportedUrls?: () => LanguageModelV2['supportedUrls'];
+  generateId?: () => string;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
@@ -46,6 +49,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly modelId: AnthropicMessagesModelId;
 
   private readonly config: AnthropicMessagesConfig;
+  private readonly generateId: () => string;
 
   constructor(
     modelId: AnthropicMessagesModelId,
@@ -53,6 +57,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   ) {
     this.modelId = modelId;
     this.config = config;
+    this.generateId = config.generateId ?? generateId;
   }
 
   supportsUrl(url: URL): boolean {
@@ -210,6 +215,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
     }
 
+    let modifiedTools = tools;
+    let modifiedToolChoice = toolChoice;
+
+    if (anthropicOptions?.webSearch) {
+      const webSearchTool: any = {
+        type: 'web_search_20250305',
+        name: 'web_search',
+        max_uses: anthropicOptions.webSearch.maxUses,
+        allowed_domains: anthropicOptions.webSearch.allowedDomains,
+        blocked_domains: anthropicOptions.webSearch.blockedDomains,
+        ...(anthropicOptions.webSearch.userLocation && {
+          user_location: {
+            type: anthropicOptions.webSearch.userLocation.type,
+            country: anthropicOptions.webSearch.userLocation.country,
+            city: anthropicOptions.webSearch.userLocation.city,
+            region: anthropicOptions.webSearch.userLocation.region,
+            timezone: anthropicOptions.webSearch.userLocation.timezone,
+          },
+        }),
+      };
+
+      modifiedTools = tools ? [...tools, webSearchTool] : [webSearchTool];
+    }
+
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -221,7 +250,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
           }
-        : { tools, toolChoice },
+        : { tools: modifiedTools, toolChoice: modifiedToolChoice },
     );
 
     return {
@@ -339,6 +368,38 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
           break;
         }
+        case 'server_tool_use': {
+          continue;
+        }
+        case 'web_search_tool_result': {
+          if (Array.isArray(part.content)) {
+            for (const result of part.content) {
+              if (result.type === 'web_search_result') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: this.generateId(),
+                  url: result.url,
+                  title: result.title,
+                  providerMetadata: {
+                    anthropic: {
+                      encryptedContent: result.encrypted_content,
+                      pageAge: result.page_age ?? null,
+                    },
+                  },
+                });
+              }
+            }
+          } else if (part.content.type === 'web_search_tool_result_error') {
+            throw new APICallError({
+              message: `Web search failed: ${part.content.error_code}`,
+              url: 'web_search_api',
+              requestBodyValues: { tool_use_id: part.tool_use_id },
+              data: { error_code: part.content.error_code },
+            });
+          }
+          break;
+        }
       }
     }
 
@@ -414,7 +475,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'thinking'
       | 'tool_use'
       | 'redacted_thinking'
+      | 'server_tool_use'
+      | 'web_search_tool_result'
       | undefined = undefined;
+
+    const config = this.config;
+    const generateId = this.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -470,6 +536,47 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       toolName: value.content_block.name,
                       jsonText: '',
                     };
+                    return;
+                  }
+
+                  case 'server_tool_use': {
+                    // server_tool_use is just metadata about the tool usage
+                    // We don't generate synthetic content for it
+                    return;
+                  }
+
+                  case 'web_search_tool_result': {
+                    if (Array.isArray(value.content_block.content)) {
+                      for (const result of value.content_block.content) {
+                        if (result.type === 'web_search_result') {
+                          controller.enqueue({
+                            type: 'source',
+                            sourceType: 'url',
+                            id: generateId(),
+                            url: result.url,
+                            title: result.title,
+                            providerMetadata: {
+                              anthropic: {
+                                encryptedContent: result.encrypted_content,
+                                pageAge: result.page_age ?? null,
+                              },
+                            },
+                          });
+                        }
+                      }
+                    } else if (
+                      value.content_block.content.type ===
+                      'web_search_tool_result_error'
+                    ) {
+                      controller.enqueue({
+                        type: 'error',
+                        error: {
+                          type: 'web-search-error',
+                          message: `Web search failed: ${value.content_block.content.error_code}`,
+                          code: value.content_block.content.error_code,
+                        },
+                      });
+                    }
                     return;
                   }
 
@@ -555,6 +662,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'input_json_delta': {
                     const contentBlock = toolCallContentBlocks[value.index];
 
+                    if (!contentBlock) {
+                      return;
+                    }
+
                     controller.enqueue(
                       jsonResponseTool != null
                         ? {
@@ -572,6 +683,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                     contentBlock.jsonText += value.delta.partial_json;
 
+                    return;
+                  }
+
+                  case 'citations_delta': {
+                    // citations are included in the final web_search_tool_result content block
+                    // we don't need to process them separately in the stream
                     return;
                   }
 
@@ -673,6 +790,31 @@ const anthropicMessagesResponseSchema = z.object({
         name: z.string(),
         input: z.unknown(),
       }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.record(z.unknown()).nullish(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.array(
+            z.object({
+              type: z.literal('web_search_result'),
+              url: z.string(),
+              title: z.string(),
+              encrypted_content: z.string(),
+              page_age: z.string().nullish(),
+            }),
+          ),
+          z.object({
+            type: z.literal('web_search_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
     ]),
   ),
   stop_reason: z.string().nullish(),
@@ -681,6 +823,11 @@ const anthropicMessagesResponseSchema = z.object({
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
+    server_tool_use: z
+      .object({
+        web_search_requests: z.number(),
+      })
+      .nullish(),
   }),
 });
 
@@ -721,6 +868,31 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         type: z.literal('redacted_thinking'),
         data: z.string(),
       }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.record(z.unknown()).nullish(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.array(
+            z.object({
+              type: z.literal('web_search_result'),
+              url: z.string(),
+              title: z.string(),
+              encrypted_content: z.string(),
+              page_age: z.string().nullish(),
+            }),
+          ),
+          z.object({
+            type: z.literal('web_search_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
     ]),
   }),
   z.object({
@@ -742,6 +914,16 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       z.object({
         type: z.literal('signature_delta'),
         signature: z.string(),
+      }),
+      z.object({
+        type: z.literal('citations_delta'),
+        citation: z.object({
+          type: z.literal('web_search_result_location'),
+          cited_text: z.string(),
+          url: z.string(),
+          title: z.string(),
+          encrypted_index: z.string(),
+        }),
       }),
     ]),
   }),

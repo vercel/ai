@@ -1,30 +1,22 @@
 import { useChat } from '@ai-sdk/react';
-import {
-  defaultChatStoreOptions,
-  getToolInvocations,
-  ToolInvocation,
-} from 'ai';
+import { DefaultChatTransport, getToolInvocations, ToolInvocation } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat({
-      chatStore: defaultChatStoreOptions({
-        api: '/api/generative-ui-route',
-        maxSteps: 5,
-      }),
-      async onToolCall({ toolCall }) {
-        if (toolCall.toolName === 'getLocation') {
-          const cities = [
-            'New York',
-            'Los Angeles',
-            'Chicago',
-            'San Francisco',
-          ];
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, addToolResult } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/generative-ui-route',
+    }),
+    maxSteps: 5,
+    async onToolCall({ toolCall }) {
+      if (toolCall.toolName === 'getLocation') {
+        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
-          return cities[Math.floor(Math.random() * cities.length)];
-        }
-      },
-    });
+        return cities[Math.floor(Math.random() * cities.length)];
+      }
+    },
+  });
 
   const renderToolResult = (tool: ToolInvocation) => {
     const toolCallId = tool.toolCallId;
@@ -133,11 +125,18 @@ export default function Page() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="fixed bottom-0 w-full p-2">
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+        className="fixed bottom-0 w-full p-2"
+      >
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-2 bg-zinc-100"
         />
       </form>

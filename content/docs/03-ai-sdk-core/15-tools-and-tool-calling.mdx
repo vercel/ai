@@ -115,7 +115,7 @@ It contains all the text, tool calls, tool results, and more from each step.
 import { generateText } from 'ai';
 
 const { steps } = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   maxSteps: 10,
   // ...
 });
@@ -281,7 +281,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse({ data });
+  return result.toUIMessageStreamResponse({ data });
 }
 ```
 
@@ -429,7 +429,7 @@ const result = streamText({
   // ...
 });
 
-return result.toDataStreamResponse({
+return result.toUIMessageStreamResponse({
   getErrorMessage: error => {
     if (NoSuchToolError.isInstance(error)) {
       return 'The model tried to call a unknown tool.';

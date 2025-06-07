@@ -5,7 +5,6 @@ async function main() {
   const result = streamText({
     model: 'openai/gpt-4.1',
     prompt: 'Invent a new holiday and describe its traditions.',
-    onError: console.error,
   });
 
   for await (const textPart of result.textStream) {

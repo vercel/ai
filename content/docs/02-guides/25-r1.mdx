@@ -135,23 +135,23 @@ Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK,
 
 In a new Next.js application, first install the AI SDK and the DeepSeek provider:
 
-<Snippet text="npm install ai @ai-sdk/deepseek" />
+<Snippet text="pnpm install ai@alpha @ai-sdk/deepseek@alpha @ai-sdk/react@alpha" />
 
 Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { deepseek } from '@ai-sdk/deepseek';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: deepseek('deepseek-reasoner'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     sendReasoning: true,
   });
 }

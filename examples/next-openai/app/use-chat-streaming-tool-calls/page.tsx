@@ -1,19 +1,20 @@
 'use client';
 
 import {
-  defaultChatStoreOptions,
+  DefaultChatTransport,
   getToolInvocations,
   ToolInvocation,
   UIMessage,
 } from 'ai';
 import { useChat } from '@ai-sdk/react';
+import ChatInput from '@component/chat-input';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStoreOptions({
+  const { messages, status, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
       api: '/api/use-chat-streaming-tool-calls',
-      maxSteps: 5,
     }),
+    maxSteps: 5,
 
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
@@ -72,14 +73,7 @@ export default function Chat() {
         );
       })}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }
