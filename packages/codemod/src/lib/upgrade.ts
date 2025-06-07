@@ -1,9 +1,9 @@
-import debug from 'debug';
 import { transform, TransformErrors } from './transform';
 import { TransformOptions } from './transform-options';
 import { SingleBar, Presets } from 'cli-progress';
 
 const bundle = [
+  'import-LanguageModelV2-from-provider-package',
   'remove-ai-stream-methods-from-stream-text-result',
   'remove-anthropic-facade',
   'remove-await-streamobject',
@@ -21,6 +21,7 @@ const bundle = [
   'remove-openai-facade',
   'rename-format-stream-part',
   'rename-parse-stream-part',
+  'rename-reasoning-to-reasoningText',
   'replace-baseurl',
   'replace-continuation-steps',
   'replace-langchain-toaistream',
@@ -28,10 +29,15 @@ const bundle = [
   'replace-roundtrips-with-maxsteps',
   'replace-token-usage-types',
   'rewrite-framework-imports',
+  'rsc-package',
 ];
 
-const log = debug('codemod:upgrade');
-const error = debug('codemod:upgrade:error');
+const log = (message: string) => {
+  console.error(`codemod:upgrade ${process.pid}: ${message}`);
+};
+const errorLog = (message: string) => {
+  console.error(`codemod:upgrade:error ${process.pid}: ${message}`);
+};
 
 export function upgrade(options: TransformOptions) {
   const cwd = process.cwd();
@@ -46,7 +52,7 @@ export function upgrade(options: TransformOptions) {
   );
   bar.start(modCount, 0, { codemod: 'Starting...' });
   const allErrors: TransformErrors = [];
-  for (const [index, codemod] of bundle.entries()) {
+  for (const codemod of bundle) {
     const errors = transform(codemod, cwd, options, { logStatus: false });
     allErrors.push(...errors);
     bar.increment(1, { codemod });
@@ -56,7 +62,7 @@ export function upgrade(options: TransformOptions) {
   if (allErrors.length > 0) {
     log('Some codemods did not apply successfully to all files. Details:');
     allErrors.forEach(({ transform, filename, summary }) => {
-      error(`codemod=${transform}, path=${filename}, summary=${summary}`);
+      errorLog(`codemod=${transform}, path=${filename}, summary=${summary}`);
     });
   }
 
