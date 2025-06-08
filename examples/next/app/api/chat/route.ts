@@ -5,6 +5,7 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  stepCountIs,
   streamText,
   tool,
 } from 'ai';
@@ -29,6 +30,7 @@ export async function POST(req: Request) {
             execute: callWeatherApi,
           }),
         },
+        stopWhen: stepCountIs(5),
       });
 
       result.consumeStream(); // TODO always consume the stream even when the client disconnects
