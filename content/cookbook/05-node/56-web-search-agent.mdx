@@ -17,7 +17,40 @@ instead, by creating a tool, you can achieve more flexibility and greater contro
 
 ## Using native web-search
 
-There are several models that offer native web-searching capabilities (Perplexity, OpenAI, Gemini). Let's look at how you could build a Web Search Agent across providers.
+There are several models that offer native web-searching capabilities (Anthropic, Perplexity, OpenAI, Gemini). Let's look at how you could build a Web Search Agent across providers.
+
+### Anthropic Web Search
+
+Anthropic's Claude models support native web search through the `web_search` tool. Claude can autonomously determine when web search would improve a response and generates targeted search queries to retrieve relevant, up-to-date information.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: anthropic('claude-3-5-sonnet-latest'),
+  tools: {
+    web_search: anthropic.tools.webSearch_20250305({
+      max_uses: 5,
+      user_location: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+        country: 'US',
+        timezone: 'America/Los_Angeles',
+      },
+      // Optional: restrict to specific domains
+      // allowed_domains: ['wikipedia.org', 'docs.anthropic.com'],
+      // Optional: block certain domains  
+      // blocked_domains: ['example.com'],
+    }),
+  },
+  prompt: 'What are the latest developments in quantum computing?',
+});
+
+console.log(text);
+console.log(sources);
+```
 
 ### OpenAI Responses API
 
