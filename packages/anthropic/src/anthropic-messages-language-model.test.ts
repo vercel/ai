@@ -18,8 +18,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     'https://api.anthropic.com/v1/messages': {},
   });
 
-  describe('doGenerate', () => {
-    function prepareJsonResponse({
+  function prepareJsonResponse({
       content = [{ type: 'text', text: '' }],
       usage = {
         input_tokens: 4,
@@ -31,15 +30,20 @@ describe('AnthropicMessagesLanguageModel', () => {
       headers = {},
     }: {
       content?: Array<
-        | { type: 'text'; text: string }
+        | { type: 'text'; text: string; citations?: Array<{ type: 'web_search_result_location'; url: string; title: string; encrypted_index: string; cited_text: string }> }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
+        | { type: 'server_tool_use'; id: string; name: string; input: unknown }
+        | { type: 'web_search_tool_result'; tool_use_id: string; content: Array<{ type: 'web_search_result'; url: string; title: string; encrypted_content: string; page_age: string | null }> }
       >;
       usage?: {
         input_tokens: number;
         output_tokens: number;
         cache_creation_input_tokens?: number;
         cache_read_input_tokens?: number;
+        server_tool_use?: {
+          web_search_requests?: number;
+        };
       };
       stopReason?: string;
       id?: string;
@@ -62,6 +66,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
     }
 
+  describe('doGenerate', () => {
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
         prepareJsonResponse({
@@ -1034,6 +1039,443 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(request).toStrictEqual({
         body: '{"model":"claude-3-haiku-20240307","max_tokens":4096,"messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}],"stream":true}',
+      });
+    });
+  });
+
+  describe('web search functionality', () => {
+    describe('doGenerate', () => {
+      it('should extract server_tool_use calls', async () => {
+        prepareJsonResponse({
+          content: [
+            { type: 'text', text: "I'll search for information about Claude Shannon." },
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_01WYG3ziw53XMcoyKL4XcZmE',
+              name: 'web_search',
+              input: { query: 'claude shannon birth date' },
+            },
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'srvtoolu_01WYG3ziw53XMcoyKL4XcZmE',
+              content: [
+                {
+                  type: 'web_search_result',
+                  url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
+                  title: 'Claude Shannon - Wikipedia',
+                  encrypted_content: 'EqgfCioIARgBIiQ3YTAwMjY1Mi1mZjM5LTQ1NGUtODgxNC1kNjNjNTk1ZWI3Y...',
+                  page_age: 'April 30, 2025',
+                },
+              ],
+            },
+            { type: 'text', text: 'Based on the search results, ' },
+            {
+              type: 'text',
+              text: 'Claude Shannon was born on April 30, 1916.',
+              citations: [
+                {
+                  type: 'web_search_result_location',
+                  url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
+                  title: 'Claude Shannon - Wikipedia',
+                  encrypted_index: 'Eo8BCioIAhgBIiQyYjQ0OWJmZi1lNm..',
+                  cited_text: 'Claude Elwood Shannon (April 30, 1916 – February 24, 2001) was an American mathematician...',
+                },
+              ],
+            },
+          ],
+          stopReason: 'end_turn',
+          usage: {
+            input_tokens: 6039,
+            output_tokens: 931,
+            server_tool_use: {
+              web_search_requests: 1,
+            },
+          },
+        });
+
+        const { toolCalls, finishReason, text, usage } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(toolCalls).toStrictEqual([
+          {
+            toolCallId: 'srvtoolu_01WYG3ziw53XMcoyKL4XcZmE',
+            toolCallType: 'function',
+            toolName: 'web_search',
+            args: '{"query":"claude shannon birth date"}',
+          },
+        ]);
+        expect(text).toStrictEqual(
+          "I'll search for information about Claude Shannon.Based on the search results, Claude Shannon was born on April 30, 1916."
+        );
+        expect(finishReason).toStrictEqual('stop');
+        expect(usage.promptTokens).toStrictEqual(6039);
+        expect(usage.completionTokens).toStrictEqual(931);
+      });
+
+      it('should handle web search results with null page_age', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_01test',
+              name: 'web_search',
+              input: { query: 'test query' },
+            },
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'srvtoolu_01test',
+              content: [
+                {
+                  type: 'web_search_result',
+                  url: 'https://example.com',
+                  title: 'Test Result',
+                  encrypted_content: 'encrypted_content_here',
+                  page_age: null,
+                },
+              ],
+            },
+            { type: 'text', text: 'Found some results!' },
+          ],
+        });
+
+        const { toolCalls, text } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(toolCalls).toStrictEqual([
+          {
+            toolCallId: 'srvtoolu_01test',
+            toolCallType: 'function',
+            toolName: 'web_search',
+            args: '{"query":"test query"}',
+          },
+        ]);
+        expect(text).toStrictEqual('Found some results!');
+      });
+
+      it('should handle text with citations', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'text',
+              text: 'Shannon founded information theory.',
+              citations: [
+                {
+                  type: 'web_search_result_location',
+                  url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
+                  title: 'Claude Shannon - Wikipedia',
+                  encrypted_index: 'test_index',
+                  cited_text: 'Shannon founded the field of information theory...',
+                },
+                {
+                  type: 'web_search_result_location',
+                  url: 'https://example.com/shannon',
+                  title: 'Shannon Biography',
+                  encrypted_index: 'test_index_2',
+                  cited_text: 'Claude Shannon was a pioneer...',
+                },
+              ],
+            },
+          ],
+        });
+
+        const { text } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toStrictEqual('Shannon founded information theory.');
+      });
+
+      it('should handle multiple web searches', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_01first',
+              name: 'web_search',
+              input: { query: 'first search' },
+            },
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'srvtoolu_01first',
+              content: [
+                {
+                  type: 'web_search_result',
+                  url: 'https://first.com',
+                  title: 'First Result',
+                  encrypted_content: 'first_content',
+                  page_age: '1 day ago',
+                },
+              ],
+            },
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_02second',
+              name: 'web_search',
+              input: { query: 'second search' },
+            },
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'srvtoolu_02second',
+              content: [
+                {
+                  type: 'web_search_result',
+                  url: 'https://second.com',
+                  title: 'Second Result',
+                  encrypted_content: 'second_content',
+                  page_age: null,
+                },
+              ],
+            },
+            { type: 'text', text: 'Found multiple results!' },
+          ],
+          usage: {
+            input_tokens: 100,
+            output_tokens: 200,
+            server_tool_use: {
+              web_search_requests: 2,
+            },
+          },
+        });
+
+        const { toolCalls, text, usage } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(toolCalls).toStrictEqual([
+          {
+            toolCallId: 'srvtoolu_01first',
+            toolCallType: 'function',
+            toolName: 'web_search',
+            args: '{"query":"first search"}',
+          },
+          {
+            toolCallId: 'srvtoolu_02second',
+            toolCallType: 'function',
+            toolName: 'web_search',
+            args: '{"query":"second search"}',
+          },
+        ]);
+        expect(text).toStrictEqual('Found multiple results!');
+        expect(usage.promptTokens).toStrictEqual(100);
+        expect(usage.completionTokens).toStrictEqual(200);
+      });
+
+      it('should handle mixed regular and server tool calls', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_01regular',
+              name: 'calculate',
+              input: { expression: '2 + 2' },
+            },
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_01search',
+              name: 'web_search',
+              input: { query: 'math calculator' },
+            },
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'srvtoolu_01search',
+              content: [
+                {
+                  type: 'web_search_result',
+                  url: 'https://calculator.com',
+                  title: 'Calculator',
+                  encrypted_content: 'calc_content',
+                  page_age: '2 hours ago',
+                },
+              ],
+            },
+            { type: 'text', text: 'I can help with math!' },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        const { toolCalls, finishReason } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'calculate',
+                parameters: {
+                  type: 'object',
+                  properties: { expression: { type: 'string' } },
+                  required: ['expression'],
+                  additionalProperties: false,
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                },
+              },
+            ],
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(toolCalls).toStrictEqual([
+          {
+            toolCallId: 'toolu_01regular',
+            toolCallType: 'function',
+            toolName: 'calculate',
+            args: '{"expression":"2 + 2"}',
+          },
+          {
+            toolCallId: 'srvtoolu_01search',
+            toolCallType: 'function',
+            toolName: 'web_search',
+            args: '{"query":"math calculator"}',
+          },
+        ]);
+        expect(finishReason).toStrictEqual('tool-calls');
+      });
+    });
+
+    describe('doStream', () => {
+      it('should handle streaming web search events', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          headers: {},
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":20,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"I'll search for information."}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"content_block_start","index":1,"content_block":{"type":"server_tool_use","id":"srvtoolu_01test","name":"web_search"}}\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"query\\":\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"test search\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":1}\n\n`,
+            `data: {"type":"content_block_start","index":2,"content_block":{"type":"web_search_tool_result","tool_use_id":"srvtoolu_01test","content":[{"type":"web_search_result","url":"https://example.com","title":"Test","encrypted_content":"content","page_age":null}]}}\n\n`,
+            `data: {"type":"content_block_stop","index":2}\n\n`,
+            `data: {"type":"content_block_start","index":3,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"Found results!"}}\n\n`,
+            `data: {"type":"content_block_stop","index":3}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":50}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        // Check for text deltas
+        expect(events).toContainEqual({
+          type: 'text-delta',
+          textDelta: "I'll search for information.",
+        });
+        expect(events).toContainEqual({
+          type: 'text-delta',
+          textDelta: 'Found results!',
+        });
+
+        // Check for tool call
+        expect(events).toContainEqual({
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'srvtoolu_01test',
+          toolName: 'web_search',
+          args: '{"query":"test search"}',
+        });
+
+        // Check for finish event
+        expect(events).toContainEqual({
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 20, completionTokens: 50 },
+          providerMetadata: expect.any(Object),
+        });
+      });
+
+      it('should handle citations_delta events', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          headers: {},
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":20,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Shannon was born in 1916"}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","cited_text":"Claude Elwood Shannon (April 30, 1916...","url":"https://en.wikipedia.org/wiki/Claude_Shannon","title":"Claude Shannon - Wikipedia","encrypted_index":"test123"}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":25}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        // Should handle citations_delta without errors
+        expect(events).toContainEqual({
+          type: 'text-delta',
+          textDelta: 'Shannon was born in 1916',
+        });
+
+        expect(events).toContainEqual({
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 20, completionTokens: 25 },
+          providerMetadata: expect.any(Object),
+        });
+      });
+
+      it('should handle server_tool_use without content_block tracking errors', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          headers: {},
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":20,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"server_tool_use","id":"srvtoolu_01test","name":"web_search"}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"query\\":\\"test\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":10}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        // Should emit tool call
+        expect(events).toContainEqual({
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'srvtoolu_01test',
+          toolName: 'web_search',
+          args: '{"query":"test"}',
+        });
+
+        expect(events).toContainEqual({
+          type: 'finish',
+          finishReason: 'tool-calls',
+          usage: { promptTokens: 20, completionTokens: 10 },
+          providerMetadata: expect.any(Object),
+        });
       });
     });
   });
