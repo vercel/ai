@@ -1,7 +1,7 @@
 'use client';
 
 import { invalidateRouterCache } from '@/app/actions';
-import { MyUIMessage } from '@/util/chat-schema';
+import { MyUIMessage, weatherDataPartSchema } from '@/util/chat-schema';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
@@ -20,6 +20,9 @@ export default function ChatComponent({
   const { status, sendMessage, messages } = useChat({
     id: chatData.id,
     messages: chatData.messages,
+    dataPartSchemas: {
+      weather: weatherDataPartSchema,
+    },
     transport: new DefaultChatTransport({
       // only send the last message to the server to limit the request size:
       prepareRequest: ({ id, messages }) => ({

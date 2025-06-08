@@ -5,6 +5,7 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  generateId,
   stepCountIs,
   streamText,
   tool,
@@ -20,14 +21,28 @@ export async function POST(req: Request) {
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
+      const prompt = convertToModelMessages(messages);
+
+      console.log('prompt', JSON.stringify(prompt, null, 2));
+
       const result = streamText({
         model: 'openai/gpt-4o',
-        messages: convertToModelMessages(messages),
+        prompt,
         tools: {
           getWeather: tool({
             description: 'show the weather in a given city to the user',
             parameters: z.object({ city: z.string() }),
-            execute: callWeatherApi,
+            async execute({ city }) {
+              const result = await callWeatherApi({ city });
+
+              // TODO: type safety
+              writer.write({
+                type: 'data-weather',
+                data: result,
+              });
+
+              return result;
+            },
           }),
         },
         stopWhen: stepCountIs(5),
@@ -36,18 +51,37 @@ export async function POST(req: Request) {
       result.consumeStream(); // TODO always consume the stream even when the client disconnects
 
       writer.merge(
-        result.toUIMessageStream({
-          messageMetadata: ({ part }) => {
-            if (part.type === 'start') {
-              return { createdAt: Date.now() };
-            }
-          },
-        }),
+        result
+          .toUIMessageStream({
+            newMessageId: generateId(), // TODO simplify
+            messageMetadata: ({ part }) => {
+              if (part.type === 'start') {
+                return { createdAt: Date.now() };
+              }
+            },
+          })
+          .pipeThrough(
+            new TransformStream({
+              transform(chunk, controller) {
+                // filter out tool related information
+                if (
+                  chunk.type === 'tool-result' ||
+                  chunk.type === 'tool-call' ||
+                  chunk.type === 'tool-call-delta' ||
+                  chunk.type === 'tool-call-streaming-start'
+                ) {
+                  return;
+                }
+
+                controller.enqueue(chunk);
+              },
+            }),
+          ),
       );
     },
 
     // save the chat when the stream is finished
-    originalMessages: messages,
+    originalMessages: messages, // TODO BUG MESSAGE ID IS MISSING
     onFinish: ({ messages }) => {
       // TODO fix type safety
       saveChat({ id, messages: messages as MyUIMessage[] });

@@ -14,22 +14,31 @@ export default function Message({ message }: { message: MyUIMessage }) {
       <div className="mb-1 text-xs text-gray-500">{date}</div>
       <div className="font-semibold">{isUser ? 'User:' : 'AI:'}</div>
       <div>
-        {message.parts
-          .map(part => {
-            if (part.type === 'text') {
-              return part.text;
-            }
+        {message.parts.map((part, index) => {
+          if (part.type === 'text') {
+            return part.text;
+          }
 
-            if (
-              part.type === 'tool-invocation' &&
-              part.toolInvocation.state === 'result'
-            ) {
-              return JSON.stringify(part.toolInvocation.result);
-            }
+          if (part.type === 'data-weather') {
+            const { temperatureInCelsius, weather, city } = part.data;
+            return (
+              <div
+                key={index}
+                className="p-2 mt-2 border border-blue-200 rounded bg-blue-50"
+              >
+                <div className="font-medium text-blue-800">
+                  Weather in {city}
+                </div>
+                <div className="text-blue-600">{weather}</div>
+                <div className="font-semibold text-blue-700">
+                  {temperatureInCelsius}°C
+                </div>
+              </div>
+            );
+          }
 
-            return '';
-          })
-          .join('')}
+          return '';
+        })}
       </div>
     </div>
   );

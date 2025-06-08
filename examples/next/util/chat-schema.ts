@@ -7,7 +7,17 @@ export const myMessageMetadataSchema = z.object({
 
 export type MyMessageMetadata = z.infer<typeof myMessageMetadataSchema>;
 
-export type MyUIMessage = UIMessage<MyMessageMetadata, UIDataTypes>;
+export const weatherDataPartSchema = z.object({
+  city: z.string(),
+  weather: z.string(),
+  temperatureInCelsius: z.number(),
+});
+
+export type MyDataPartSchemas = {
+  weather: z.infer<typeof weatherDataPartSchema>;
+};
+
+export type MyUIMessage = UIMessage<MyMessageMetadata, MyDataPartSchemas>;
 
 export type ChatData = {
   id: string;
