@@ -3,7 +3,6 @@ import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-latest'),
     tools: {
@@ -25,7 +24,6 @@ async function main() {
     prompt: 'What is the best burrito near the Vercel office in San Francisco?',
   });
 
-
   console.log(result.toolCalls);
 
   console.log(result.toolResults);
@@ -34,7 +32,6 @@ async function main() {
 
   console.log('\nSources:', result.sources);
   console.log('Number of sources:', result.sources.length);
-
 }
 
 main().catch(console.error);

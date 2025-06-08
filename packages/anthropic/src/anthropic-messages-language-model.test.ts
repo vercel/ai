@@ -19,52 +19,72 @@ describe('AnthropicMessagesLanguageModel', () => {
   });
 
   function prepareJsonResponse({
-      content = [{ type: 'text', text: '' }],
-      usage = {
-        input_tokens: 4,
-        output_tokens: 30,
+    content = [{ type: 'text', text: '' }],
+    usage = {
+      input_tokens: 4,
+      output_tokens: 30,
+    },
+    stopReason = 'end_turn',
+    id = 'msg_017TfcQ4AgGxKyBduUpqYPZn',
+    model = 'claude-3-haiku-20240307',
+    headers = {},
+  }: {
+    content?: Array<
+      | {
+          type: 'text';
+          text: string;
+          citations?: Array<{
+            type: 'web_search_result_location';
+            url: string;
+            title: string;
+            encrypted_index: string;
+            cited_text: string;
+          }>;
+        }
+      | { type: 'thinking'; thinking: string; signature: string }
+      | { type: 'tool_use'; id: string; name: string; input: unknown }
+      | { type: 'server_tool_use'; id: string; name: string; input: unknown }
+      | {
+          type: 'web_search_tool_result';
+          tool_use_id: string;
+          content: Array<{
+            type: 'web_search_result';
+            url: string;
+            title: string;
+            encrypted_content: string;
+            page_age: string | null;
+          }>;
+        }
+    >;
+    usage?: {
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+      server_tool_use?: {
+        web_search_requests?: number;
+      };
+    };
+    stopReason?: string;
+    id?: string;
+    model?: string;
+    headers?: Record<string, string>;
+  }) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        id,
+        type: 'message',
+        role: 'assistant',
+        content,
+        model,
+        stop_reason: stopReason,
+        stop_sequence: null,
+        usage,
       },
-      stopReason = 'end_turn',
-      id = 'msg_017TfcQ4AgGxKyBduUpqYPZn',
-      model = 'claude-3-haiku-20240307',
-      headers = {},
-    }: {
-      content?: Array<
-        | { type: 'text'; text: string; citations?: Array<{ type: 'web_search_result_location'; url: string; title: string; encrypted_index: string; cited_text: string }> }
-        | { type: 'thinking'; thinking: string; signature: string }
-        | { type: 'tool_use'; id: string; name: string; input: unknown }
-        | { type: 'server_tool_use'; id: string; name: string; input: unknown }
-        | { type: 'web_search_tool_result'; tool_use_id: string; content: Array<{ type: 'web_search_result'; url: string; title: string; encrypted_content: string; page_age: string | null }> }
-      >;
-      usage?: {
-        input_tokens: number;
-        output_tokens: number;
-        cache_creation_input_tokens?: number;
-        cache_read_input_tokens?: number;
-        server_tool_use?: {
-          web_search_requests?: number;
-        };
-      };
-      stopReason?: string;
-      id?: string;
-      model?: string;
-      headers?: Record<string, string>;
-    }) {
-      server.urls['https://api.anthropic.com/v1/messages'].response = {
-        type: 'json-value',
-        headers,
-        body: {
-          id,
-          type: 'message',
-          role: 'assistant',
-          content,
-          model,
-          stop_reason: stopReason,
-          stop_sequence: null,
-          usage,
-        },
-      };
-    }
+    };
+  }
 
   describe('doGenerate', () => {
     describe('reasoning (thinking enabled)', () => {
@@ -1048,7 +1068,10 @@ describe('AnthropicMessagesLanguageModel', () => {
       it('should extract server_tool_use calls', async () => {
         prepareJsonResponse({
           content: [
-            { type: 'text', text: "I'll search for information about Claude Shannon." },
+            {
+              type: 'text',
+              text: "I'll search for information about Claude Shannon.",
+            },
             {
               type: 'server_tool_use',
               id: 'srvtoolu_01WYG3ziw53XMcoyKL4XcZmE',
@@ -1063,7 +1086,8 @@ describe('AnthropicMessagesLanguageModel', () => {
                   type: 'web_search_result',
                   url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
                   title: 'Claude Shannon - Wikipedia',
-                  encrypted_content: 'EqgfCioIARgBIiQ3YTAwMjY1Mi1mZjM5LTQ1NGUtODgxNC1kNjNjNTk1ZWI3Y...',
+                  encrypted_content:
+                    'EqgfCioIARgBIiQ3YTAwMjY1Mi1mZjM5LTQ1NGUtODgxNC1kNjNjNTk1ZWI3Y...',
                   page_age: 'April 30, 2025',
                 },
               ],
@@ -1078,7 +1102,8 @@ describe('AnthropicMessagesLanguageModel', () => {
                   url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
                   title: 'Claude Shannon - Wikipedia',
                   encrypted_index: 'Eo8BCioIAhgBIiQyYjQ0OWJmZi1lNm..',
-                  cited_text: 'Claude Elwood Shannon (April 30, 1916 – February 24, 2001) was an American mathematician...',
+                  cited_text:
+                    'Claude Elwood Shannon (April 30, 1916 – February 24, 2001) was an American mathematician...',
                 },
               ],
             },
@@ -1093,11 +1118,13 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         });
 
-        const { toolCalls, finishReason, text, usage } = await model.doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
-          prompt: TEST_PROMPT,
-        });
+        const { toolCalls, finishReason, text, usage } = await model.doGenerate(
+          {
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          },
+        );
 
         expect(toolCalls).toStrictEqual([
           {
@@ -1108,7 +1135,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]);
         expect(text).toStrictEqual(
-          "I'll search for information about Claude Shannon.Based on the search results, Claude Shannon was born on April 30, 1916."
+          "I'll search for information about Claude Shannon.Based on the search results, Claude Shannon was born on April 30, 1916.",
         );
         expect(finishReason).toStrictEqual('stop');
         expect(usage.promptTokens).toStrictEqual(6039);
@@ -1157,7 +1184,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         ]);
         expect(text).toStrictEqual('Found some results!');
       });
-      
+
       it('should extract sources from web search results', async () => {
         prepareJsonResponse({
           content: [
@@ -1211,7 +1238,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
         expect(sources[1].id).toBeDefined();
       });
-      
+
       it('should extract sources from citations in text', async () => {
         prepareJsonResponse({
           content: [
@@ -1224,7 +1251,8 @@ describe('AnthropicMessagesLanguageModel', () => {
                   url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
                   title: 'Claude Shannon - Wikipedia',
                   encrypted_index: 'test_index',
-                  cited_text: 'Shannon founded the field of information theory...',
+                  cited_text:
+                    'Shannon founded the field of information theory...',
                 },
               ],
             },
@@ -1258,7 +1286,8 @@ describe('AnthropicMessagesLanguageModel', () => {
                   url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
                   title: 'Claude Shannon - Wikipedia',
                   encrypted_index: 'test_index',
-                  cited_text: 'Shannon founded the field of information theory...',
+                  cited_text:
+                    'Shannon founded the field of information theory...',
                 },
                 {
                   type: 'web_search_result_location',
@@ -1565,7 +1594,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerMetadata: expect.any(Object),
         });
       });
-      
+
       it('should emit source events from web search results', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'stream-chunks',
@@ -1608,7 +1637,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerMetadata: expect.any(Object),
         });
       });
-      
+
       it('should emit source events from citations_delta', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'stream-chunks',

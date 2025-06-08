@@ -261,9 +261,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     return this.config.transformRequestBody?.(args) ?? args;
   }
 
-  private extractSources(response: any, generateId: () => string): LanguageModelV1Source[] {
+  private extractSources(
+    response: any,
+    generateId: () => string,
+  ): LanguageModelV1Source[] {
     const sources: LanguageModelV1Source[] = [];
-    
+
     // Extract sources from web search tool results
     for (const content of response.content) {
       if (content.type === 'web_search_tool_result' && content.content) {
@@ -278,7 +281,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
           }
         }
       }
-      
+
       // Also extract sources from citations in text blocks
       if (content.type === 'text' && content.citations) {
         for (const citation of content.citations) {
@@ -293,7 +296,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         }
       }
     }
-    
+
     return sources;
   }
 
@@ -581,7 +584,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
                     // Guard against missing content block (shouldn't happen with our fixes)
                     if (!contentBlock) {
-                      console.warn('Missing content block for input_json_delta at index', value.index);
+                      console.warn(
+                        'Missing content block for input_json_delta at index',
+                        value.index,
+                      );
                       return;
                     }
 
@@ -600,7 +606,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
                   case 'citations_delta': {
                     // Emit source events for citations
-                    if (value.delta.citation && value.delta.citation.type === 'web_search_result_location') {
+                    if (
+                      value.delta.citation &&
+                      value.delta.citation.type === 'web_search_result_location'
+                    ) {
                       controller.enqueue({
                         type: 'source',
                         source: {
@@ -748,9 +757,11 @@ const anthropicMessagesResponseSchema = z.object({
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
-    server_tool_use: z.object({
-      web_search_requests: z.number().optional(),
-    }).optional(),
+    server_tool_use: z
+      .object({
+        web_search_requests: z.number().optional(),
+      })
+      .optional(),
   }),
 });
 
@@ -767,9 +778,11 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
-        server_tool_use: z.object({
-          web_search_requests: z.number().optional(),
-        }).optional(),
+        server_tool_use: z
+          .object({
+            web_search_requests: z.number().optional(),
+          })
+          .optional(),
       }),
     }),
   }),

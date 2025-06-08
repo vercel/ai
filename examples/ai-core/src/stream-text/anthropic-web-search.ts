@@ -4,23 +4,23 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-  model: anthropic('claude-3-5-sonnet-latest'),
+    model: anthropic('claude-3-5-sonnet-latest'),
     tools: {
-        web_search: anthropic.tools.webSearch_20250305({
-          max_uses: 5,
-          user_location: {
-            type: 'approximate',
-            city: 'San Francisco',
-            region: 'California',
-            country: 'US',
-            timezone: 'America/Los_Angeles',
-          },
-          // Optional: restrict to specific domains
-          // allowed_domains: ['wikipedia.org', 'docs.anthropic.com'],
-          // Optional: block certain domains
-          // blocked_domains: ['example.com'],
-        }),
-      },
+      web_search: anthropic.tools.webSearch_20250305({
+        max_uses: 5,
+        user_location: {
+          type: 'approximate',
+          city: 'San Francisco',
+          region: 'California',
+          country: 'US',
+          timezone: 'America/Los_Angeles',
+        },
+        // Optional: restrict to specific domains
+        // allowed_domains: ['wikipedia.org', 'docs.anthropic.com'],
+        // Optional: block certain domains
+        // blocked_domains: ['example.com'],
+      }),
+    },
     prompt: 'What is the best burrito near the Vercel office in San Francisco?',
     // experimental_transform: smoothStream(),
   });
@@ -47,9 +47,7 @@ async function main() {
       }
 
       case 'source': {
-        console.log(
-          `SOURCE: ${chunk.source.url} - ${chunk.source.title}`,
-        );
+        console.log(`SOURCE: ${chunk.source.url} - ${chunk.source.title}`);
         break;
       }
 
@@ -79,7 +77,7 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-  
+
   const finalResult = await result;
   console.log('\nSources:', finalResult.sources);
   console.log('Number of sources:', finalResult.sources.length);
