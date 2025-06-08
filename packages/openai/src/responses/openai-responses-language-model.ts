@@ -295,6 +295,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 type: z.literal('web_search_call'),
               }),
               z.object({
+                type: z.literal('image_generation_call'),
+                id: z.string(),
+                status: z.string(),
+                background: z
+                  .enum(['transparent', 'opaque', 'auto'])
+                  .optional(),
+                output_format: z.enum(['png', 'webp', 'jpeg']),
+                quality: z.enum(['low', 'medium', 'high', 'auto']),
+                result: z.string(),
+              }),
+              z.object({
                 type: z.literal('computer_call'),
               }),
               z.object({
@@ -343,6 +354,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
           title: annotation.title,
         })),
       ),
+      files: response.output
+        .filter(output => output.type === 'image_generation_call')
+        .map(output => ({
+          data: output.result,
+          mimeType: output.output_format,
+        })),
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
         hasToolCalls: toolCalls.length > 0,

@@ -1,4 +1,5 @@
 import {
+  LanguageModelV1,
   LanguageModelV1FunctionTool,
   LanguageModelV1Prompt,
 } from '@ai-sdk/provider';
@@ -1182,6 +1183,141 @@ describe('OpenAIResponsesLanguageModel', () => {
             title: "San Francisco's spring seasons are getting warmer",
           },
         ]);
+      });
+    });
+
+    describe('image generation', () => {
+      beforeEach(() => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o',
+            output: [
+              {
+                type: 'image_generation_call',
+                id: 'call_0NdsJqOS8N3J9l2p0p4WpYU9',
+                status: 'completed',
+                background: 'transparent',
+                output_format: 'png',
+                quality: 'high',
+                result: 'base64-encoded-image-data',
+              },
+              {
+                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: "I'll generate an image of a sunset over a calm ocean for you.",
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
+            },
+            store: true,
+            temperature: 0.3,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 10,
+              output_tokens: 12,
+              total_tokens: 22,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+      });
+
+      it('should send image_generation tool', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.image_generation',
+                name: 'image_generation',
+                args: {
+                  model: 'gpt-image-1',
+                  size: '1024x1024',
+                  quality: 'high',
+                  output_format: 'png',
+                  background: 'transparent',
+                },
+              },
+            ],
+          },
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Generate an image of a sunset over a calm ocean',
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          input: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: 'Generate an image of a sunset over a calm ocean',
+                },
+              ],
+            },
+          ],
+          model: 'gpt-4o',
+          tools: [
+            {
+              type: 'image_generation',
+              model: 'gpt-image-1',
+              size: '1024x1024',
+              quality: 'high',
+              background: 'transparent',
+            },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+
+        // expect(server.calls[0].requestBody.files).toBeInstanceOf(Array);
+        // expect(server.calls[0].requestBody.files.length).toBeGreaterThan(0);
+
+        // const generatedFile = server.calls[0].requestBody.files[0];
+        // expect(generatedFile.base64).toBeTruthy();
+        // expect(generatedFile.mimeType).toBe('png');
       });
     });
   });

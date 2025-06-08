@@ -63,6 +63,45 @@ export function prepareResponsesTools({
               },
             });
             break;
+          case 'openai.image_generation':
+            openaiTools.push({
+              type: 'image_generation',
+              quality: tool.args.quality as
+                | 'low'
+                | 'medium'
+                | 'high'
+                | 'auto'
+                | undefined,
+              model: tool.args.model as string | undefined,
+              background: tool.args.background as
+                | 'transparent'
+                | 'opaque'
+                | 'auto'
+                | undefined,
+              input_image_mask: tool.args.inputImageMask as
+                | {
+                    image_url?: string;
+                    file_id?: string;
+                  }
+                | undefined,
+              moderation: tool.args.moderation as string | undefined,
+              output_compression: tool.args.outputCompression as
+                | number
+                | undefined,
+              output_format: tool.args.outputFormat as
+                | 'png'
+                | 'webp'
+                | 'jpeg'
+                | undefined,
+              partial_images: tool.args.partialImages as number | undefined,
+              size: tool.args.size as
+                | '1024x1024'
+                | '1024x1536'
+                | '1536x1024'
+                | 'auto'
+                | undefined,
+            });
+            break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;

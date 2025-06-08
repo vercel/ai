@@ -57,4 +57,19 @@ export type OpenAIResponsesTool =
         city: string;
         region: string;
       };
+    }
+  | {
+      type: 'image_generation';
+      model?: string;
+      background?: 'transparent' | 'opaque' | 'auto';
+      input_image_mask?: {
+        image_url?: string;
+        file_id?: string;
+      };
+      moderation?: string;
+      output_compression?: number;
+      output_format?: 'png' | 'webp' | 'jpeg';
+      partial_images?: number;
+      quality?: 'low' | 'medium' | 'high' | 'auto';
+      size?: '1024x1024' | '1024x1536' | '1536x1024' | 'auto';
     };
