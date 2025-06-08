@@ -15,7 +15,20 @@ export default function Message({ message }: { message: MyUIMessage }) {
       <div className="font-semibold">{isUser ? 'User:' : 'AI:'}</div>
       <div>
         {message.parts
-          .map(part => (part.type === 'text' ? part.text : ''))
+          .map(part => {
+            if (part.type === 'text') {
+              return part.text;
+            }
+
+            if (
+              part.type === 'tool-invocation' &&
+              part.toolInvocation.state === 'result'
+            ) {
+              return JSON.stringify(part.toolInvocation.result);
+            }
+
+            return '';
+          })
           .join('')}
       </div>
     </div>
