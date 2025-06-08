@@ -22,7 +22,7 @@ async function main() {
         // blocked_domains: ['example.com'],
       }),
     },
-    prompt: 'What local concerts are happening next week?',
+    prompt: 'What is the best burrito near the Vercel office in San Francisco?',
   });
 
 
