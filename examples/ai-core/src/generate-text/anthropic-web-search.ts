@@ -32,6 +32,9 @@ async function main() {
 
   console.log(result.text);
 
+  console.log('\nSources:', result.sources);
+  console.log('Number of sources:', result.sources.length);
+
 }
 
 main().catch(console.error);

@@ -1157,6 +1157,94 @@ describe('AnthropicMessagesLanguageModel', () => {
         ]);
         expect(text).toStrictEqual('Found some results!');
       });
+      
+      it('should extract sources from web search results', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_01test',
+              name: 'web_search',
+              input: { query: 'test query' },
+            },
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'srvtoolu_01test',
+              content: [
+                {
+                  type: 'web_search_result',
+                  url: 'https://example.com',
+                  title: 'Example Title',
+                  encrypted_content: 'content',
+                  page_age: '1 day ago',
+                },
+                {
+                  type: 'web_search_result',
+                  url: 'https://test.com',
+                  title: 'Test Title',
+                  encrypted_content: 'test content',
+                  page_age: null,
+                },
+              ],
+            },
+            { type: 'text', text: 'Found results!' },
+          ],
+        });
+
+        const { sources } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(sources).toHaveLength(2);
+        expect(sources[0]).toMatchObject({
+          sourceType: 'url',
+          url: 'https://example.com',
+          title: 'Example Title',
+        });
+        expect(sources[0].id).toBeDefined();
+        expect(sources[1]).toMatchObject({
+          sourceType: 'url',
+          url: 'https://test.com',
+          title: 'Test Title',
+        });
+        expect(sources[1].id).toBeDefined();
+      });
+      
+      it('should extract sources from citations in text', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'text',
+              text: 'Claude Shannon founded information theory.',
+              citations: [
+                {
+                  type: 'web_search_result_location',
+                  url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
+                  title: 'Claude Shannon - Wikipedia',
+                  encrypted_index: 'test_index',
+                  cited_text: 'Shannon founded the field of information theory...',
+                },
+              ],
+            },
+          ],
+        });
+
+        const { sources } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(sources).toHaveLength(1);
+        expect(sources[0]).toMatchObject({
+          sourceType: 'url',
+          url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
+          title: 'Claude Shannon - Wikipedia',
+        });
+        expect(sources[0].id).toBeDefined();
+      });
 
       it('should handle text with citations', async () => {
         prepareJsonResponse({
@@ -1475,6 +1563,89 @@ describe('AnthropicMessagesLanguageModel', () => {
           finishReason: 'tool-calls',
           usage: { promptTokens: 20, completionTokens: 10 },
           providerMetadata: expect.any(Object),
+        });
+      });
+      
+      it('should emit source events from web search results', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          headers: {},
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":20,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"server_tool_use","id":"srvtoolu_01test","name":"web_search"}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"query\\":\\"test search\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"content_block_start","index":1,"content_block":{"type":"web_search_tool_result","tool_use_id":"srvtoolu_01test","content":[{"type":"web_search_result","url":"https://example.com","title":"Example Result","encrypted_content":"content","page_age":"1 day ago"}]}}\n\n`,
+            `data: {"type":"content_block_stop","index":1}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":25}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        // Should emit source event for web search result
+        expect(events).toContainEqual({
+          type: 'source',
+          source: {
+            sourceType: 'url',
+            id: expect.any(String),
+            url: 'https://example.com',
+            title: 'Example Result',
+          },
+        });
+
+        expect(events).toContainEqual({
+          type: 'finish',
+          finishReason: 'stop',
+          usage: { promptTokens: 20, completionTokens: 25 },
+          providerMetadata: expect.any(Object),
+        });
+      });
+      
+      it('should emit source events from citations_delta', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          headers: {},
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":20,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Shannon was born in 1916"}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","cited_text":"Claude Elwood Shannon (April 30, 1916...","url":"https://en.wikipedia.org/wiki/Claude_Shannon","title":"Claude Shannon - Wikipedia","encrypted_index":"test123"}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":25}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        // Should emit source event for citation
+        expect(events).toContainEqual({
+          type: 'source',
+          source: {
+            sourceType: 'url',
+            id: expect.any(String),
+            url: 'https://en.wikipedia.org/wiki/Claude_Shannon',
+            title: 'Claude Shannon - Wikipedia',
+          },
+        });
+
+        expect(events).toContainEqual({
+          type: 'text-delta',
+          textDelta: 'Shannon was born in 1916',
         });
       });
     });

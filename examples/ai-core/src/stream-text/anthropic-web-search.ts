@@ -46,6 +46,13 @@ async function main() {
         break;
       }
 
+      case 'source': {
+        console.log(
+          `SOURCE: ${chunk.source.url} - ${chunk.source.title}`,
+        );
+        break;
+      }
+
       case 'step-finish': {
         console.log();
         console.log();
@@ -72,6 +79,10 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
+  
+  const finalResult = await result;
+  console.log('\nSources:', finalResult.sources);
+  console.log('Number of sources:', finalResult.sources.length);
 }
 
 main().catch(console.error);

@@ -4,6 +4,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1FunctionToolCall,
   LanguageModelV1ProviderMetadata,
+  LanguageModelV1Source,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -14,6 +15,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -259,6 +261,42 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     return this.config.transformRequestBody?.(args) ?? args;
   }
 
+  private extractSources(response: any, generateId: () => string): LanguageModelV1Source[] {
+    const sources: LanguageModelV1Source[] = [];
+    
+    // Extract sources from web search tool results
+    for (const content of response.content) {
+      if (content.type === 'web_search_tool_result' && content.content) {
+        for (const result of content.content) {
+          if (result.type === 'web_search_result') {
+            sources.push({
+              sourceType: 'url',
+              id: generateId(),
+              url: result.url,
+              title: result.title,
+            });
+          }
+        }
+      }
+      
+      // Also extract sources from citations in text blocks
+      if (content.type === 'text' && content.citations) {
+        for (const citation of content.citations) {
+          if (citation.type === 'web_search_result_location') {
+            sources.push({
+              sourceType: 'url',
+              id: generateId(),
+              url: citation.url,
+              title: citation.title,
+            });
+          }
+        }
+      }
+    }
+    
+    return sources;
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
@@ -338,6 +376,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
       },
+      sources: this.extractSources(response, generateId),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: {
         headers: responseHeaders,
@@ -455,7 +494,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                   }
 
                   case 'web_search_tool_result': {
-                    // Web search results are handled by the server, we don't need to emit them
+                    // Emit source events for web search results
+                    if (value.content_block.content) {
+                      for (const result of value.content_block.content) {
+                        if (result.type === 'web_search_result') {
+                          controller.enqueue({
+                            type: 'source',
+                            source: {
+                              sourceType: 'url',
+                              id: generateId(),
+                              url: result.url,
+                              title: result.title,
+                            },
+                          });
+                        }
+                      }
+                    }
                     return;
                   }
 
@@ -545,10 +599,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                   }
 
                   case 'citations_delta': {
-                    // Citations are part of the web search feature
-                    // We'll emit them as part of the text with citation markers
-                    // For now, we'll ignore them to prevent errors
-                    // TODO: handle citations
+                    // Emit source events for citations
+                    if (value.delta.citation && value.delta.citation.type === 'web_search_result_location') {
+                      controller.enqueue({
+                        type: 'source',
+                        source: {
+                          sourceType: 'url',
+                          id: generateId(),
+                          url: value.delta.citation.url,
+                          title: value.delta.citation.title,
+                        },
+                      });
+                    }
 
                     return;
                   }
