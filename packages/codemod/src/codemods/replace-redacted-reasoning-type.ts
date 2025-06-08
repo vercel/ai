@@ -12,21 +12,27 @@ export default createTransformer((fileInfo, api, options, context) => {
   root.find(j.Literal).forEach(path => {
     if (path.node.value === 'redacted-reasoning') {
       const lineNumber = path.node.loc?.start?.line || 0;
-      
+
       // Try to determine the context (e.g., if condition, switch case, etc.)
       let context = 'unknown context';
-      
+
       // Check if this is in a comparison (e.g., part.type === 'redacted-reasoning')
       const parent = path.parent.node;
-      if (parent && parent.type === 'BinaryExpression' && parent.operator === '===') {
+      if (
+        parent &&
+        parent.type === 'BinaryExpression' &&
+        parent.operator === '==='
+      ) {
         const left = parent.left;
-        if (left.type === 'MemberExpression' && 
-            left.property.type === 'Identifier' && 
-            left.property.name === 'type') {
+        if (
+          left.type === 'MemberExpression' &&
+          left.property.type === 'Identifier' &&
+          left.property.name === 'type'
+        ) {
           context = 'type comparison';
         }
       }
-      
+
       // Check if this is in a switch case
       let currentPath = path.parent;
       while (currentPath && currentPath.node) {
@@ -64,14 +70,14 @@ export default createTransformer((fileInfo, api, options, context) => {
     );
 
     foundUsages.forEach(usage => {
-      context.messages.push(
-        `  Line ${usage.line}: ${usage.context}`,
-      );
+      context.messages.push(`  Line ${usage.line}: ${usage.context}`);
     });
 
     context.messages.push('');
     context.messages.push('Migration required:');
-    context.messages.push('  The redacted-reasoning part type has been removed.');
+    context.messages.push(
+      '  The redacted-reasoning part type has been removed.',
+    );
     context.messages.push('  Use provider-specific metadata instead:');
     context.messages.push('');
     context.messages.push('  Before:');
@@ -80,11 +86,17 @@ export default createTransformer((fileInfo, api, options, context) => {
     context.messages.push('    }');
     context.messages.push('');
     context.messages.push('  After:');
-    context.messages.push('    if (part.providerMetadata?.anthropic?.redactedData != null) {');
+    context.messages.push(
+      '    if (part.providerMetadata?.anthropic?.redactedData != null) {',
+    );
     context.messages.push('      console.log("<redacted>");');
     context.messages.push('    }');
     context.messages.push('');
-    context.messages.push('  Note: The exact metadata path depends on your provider.');
-    context.messages.push('  Check your provider documentation for the correct path.');
+    context.messages.push(
+      '  Note: The exact metadata path depends on your provider.',
+    );
+    context.messages.push(
+      '  Check your provider documentation for the correct path.',
+    );
   }
-}); 
+});

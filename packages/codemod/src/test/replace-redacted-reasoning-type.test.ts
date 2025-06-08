@@ -68,9 +68,9 @@ function handlePart(type) {
     expect(messages.length).toBeGreaterThan(0);
 
     expect(messages[0]).toContain(
-      'Found 3 usage(s) of \'redacted-reasoning\' part type that need migration:',
+      "Found 3 usage(s) of 'redacted-reasoning' part type that need migration:",
     );
-    
+
     const allMessages = messages.join('\n');
     expect(allMessages).toContain('type comparison');
     expect(allMessages).toContain('switch case');
@@ -78,8 +78,12 @@ function handlePart(type) {
 
     // Check migration guidance is present
     expect(allMessages).toContain('Migration required:');
-    expect(allMessages).toContain('The redacted-reasoning part type has been removed.');
-    expect(allMessages).toContain('part.providerMetadata?.anthropic?.redactedData != null');
+    expect(allMessages).toContain(
+      'The redacted-reasoning part type has been removed.',
+    );
+    expect(allMessages).toContain(
+      'part.providerMetadata?.anthropic?.redactedData != null',
+    );
   });
 
   it('should not report anything for code without redacted-reasoning usage', () => {
@@ -120,4 +124,4 @@ for await (const part of result.fullStream) {
     // Should not have any messages
     expect(messages).toHaveLength(0);
   });
-}); 
+});
