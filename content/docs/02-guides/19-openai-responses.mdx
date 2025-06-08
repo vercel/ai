@@ -11,7 +11,7 @@ The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications wi
 
 ## OpenAI Responses API
 
-OpenAI recently released the Responses API, a brand new way to build applications on OpenAI's platform. The new API offers a way to persist chat history, a web search tool for grounding LLM responses, file search tool for finding relevant files, and a computer use tool for building agents that can interact with and operate computers. Let's explore how to use the Responses API with the AI SDK.
+OpenAI recently released the Responses API, a brand new way to build applications on OpenAI's platform. The new API offers a way to persist chat history, a web search tool for grounding LLM responses, an image generation tool, file search tool for finding relevant files, and a computer use tool for building agents that can interact with and operate computers. Let's explore how to use the Responses API with the AI SDK.
 
 ## Getting Started with the AI SDK
 
@@ -127,7 +127,73 @@ console.log(result.text);
 console.log(result.sources);
 ```
 
-## Using Persistence
+### Image Generation Tool
+
+The Responses API includes a built-in image generation tool that allows you to create images using OpenAI's image models. Here's how to use it:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-4o'),
+  prompt: 'Generate an image of a sunset over a calm ocean',
+  tools: {
+    image_generation: openai.tools.imageGeneration({
+      model: 'gpt-image-1',
+      size: '1024x1024',
+      quality: 'high',
+      output_format: 'png',
+      background: 'transparent',
+    }),
+  },
+});
+
+// The generated image will be available in the response
+console.log(result.files);
+```
+
+The image generation tool supports various configuration options:
+
+- `model`: The image generation model to use (e.g., 'gpt-image-1')
+- `size`: The dimensions of the generated image (e.g., '1024x1024', '1024x1536', '1536x1024', 'auto')
+- `quality`: The quality of the generated image ('low', 'medium', 'high', 'auto')
+- `output_format`: The format of the output image ('png', 'webp', 'jpeg')
+- `background`: The background type ('transparent', 'opaque', 'auto')
+
+You can also specify the tool as a required choice for the model:
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-4o'),
+  prompt: 'Generate an image of a sunset over a calm ocean',
+  mode: {
+    type: 'regular',
+    toolChoice: {
+      type: 'tool',
+      toolName: 'image_generation',
+    },
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'openai.image_generation',
+        name: 'image_generation',
+        args: {
+          model: 'gpt-image-1',
+          size: '1024x1024',
+          quality: 'high',
+          output_format: 'png',
+          background: 'transparent',
+        },
+      },
+    ],
+  },
+});
+```
+
+The generated images will be returned in the response's `files` array, containing the image data and metadata.
+
+### Using Persistence
 
 With the Responses API, you can persist chat history with OpenAI across requests. This allows you to send just the user's last message and OpenAI can access the entire chat history:
 
