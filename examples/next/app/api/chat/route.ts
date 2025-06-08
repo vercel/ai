@@ -26,20 +26,26 @@ export async function POST(req: Request) {
       const mappedMessages = messages.map(message => {
         return {
           ...message,
-          parts: message.parts.map(part => {
+          parts: message.parts.flatMap(part => {
             if (part.type === 'data-weather') {
-              return {
-                type: 'tool-invocation' as const,
-                toolInvocation: {
-                  toolCallId: part.id!,
-                  toolName: 'getWeather',
-                  state: 'result' as const,
-                  args: { city: part.data.city },
-                  result: part.data,
+              return [
+                {
+                  type: 'tool-invocation' as const,
+                  toolInvocation: {
+                    toolCallId: part.id!,
+                    toolName: 'getWeather',
+                    state: 'result' as const,
+                    args: { city: part.data.city },
+                    result: part.data,
+                  },
                 },
-              };
+                {
+                  type: 'text' as const,
+                  text: `The weather in ${part.data.city} is currently ${part.data.weather}, with a temperature of ${part.data.temperatureInCelsius}°C.`,
+                },
+              ];
             }
-            return part;
+            return [part];
           }),
         };
       });
@@ -70,7 +76,6 @@ export async function POST(req: Request) {
             },
           }),
         },
-        stopWhen: stepCountIs(5),
       });
 
       result.consumeStream(); // TODO always consume the stream even when the client disconnects
