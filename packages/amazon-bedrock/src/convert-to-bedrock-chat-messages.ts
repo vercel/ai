@@ -5,11 +5,7 @@ import {
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  convertToBase64,
-  createIdGenerator,
-  parseProviderOptions,
-} from '@ai-sdk/provider-utils';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
   BEDROCK_CACHE_POINT,
   BedrockAssistantMessage,
@@ -21,8 +17,6 @@ import {
   BedrockUserMessage,
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
-
-const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
 function getCachePoint(
   providerMetadata: SharedV2ProviderMetadata | undefined,
@@ -40,6 +34,10 @@ export async function convertToBedrockChatMessages(
 
   let system: BedrockSystemMessages = [];
   const messages: BedrockMessages = [];
+
+  let documentCounter = 0;
+  const generateDocumentName = () =>
+    `document-${String(++documentCounter).padStart(2, '0')}`;
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -109,7 +107,7 @@ export async function convertToBedrockChatMessages(
                           format: part.mediaType?.split(
                             '/',
                           )?.[1] as BedrockDocumentFormat,
-                          name: generateFileId(),
+                          name: generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                         },
                       });

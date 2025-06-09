@@ -87,23 +87,114 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(messages).toEqual([
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+            },
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-01",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should use consistent document names for prompt cache effectiveness', async () => {
+    const fileData1 = new Uint8Array([0, 1, 2, 3]);
+    const fileData2 = new Uint8Array([4, 5, 6, 7]);
+
+    const { messages } = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [
-          { text: 'Hello' },
           {
-            document: {
-              format: 'pdf',
-              name: expect.any(String),
-              source: {
-                bytes: 'AAECAw==',
-              },
-            },
+            type: 'file',
+            data: Buffer.from(fileData1).toString('base64'),
+            mediaType: 'application/pdf',
+          },
+          {
+            type: 'file',
+            data: Buffer.from(fileData2).toString('base64'),
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'OK' }],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(fileData1).toString('base64'),
+            mediaType: 'application/pdf',
           },
         ],
       },
     ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-01",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-02",
+                "source": {
+                  "bytes": "BAUGBw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "content": [
+            {
+              "text": "OK",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-03",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should extract the system message', async () => {
