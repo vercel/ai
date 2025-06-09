@@ -65,6 +65,7 @@ export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
   | ReasoningUIPart
   | ToolInvocationUIPart
   | SourceUrlUIPart
+  | SourceDocumentUIPart
   | FileUIPart
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
@@ -139,6 +140,18 @@ export type SourceUrlUIPart = {
   sourceId: string;
   url: string;
   title?: string;
+  providerMetadata?: Record<string, any>;
+};
+
+/**
+ * A document source part of a message.
+ */
+export type SourceDocumentUIPart = {
+  type: 'source-document';
+  sourceId: string;
+  mediaType: string;
+  title: string;
+  filename?: string;
   providerMetadata?: Record<string, any>;
 };
 

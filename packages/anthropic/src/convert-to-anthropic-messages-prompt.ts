@@ -13,6 +13,7 @@ import {
 } from './anthropic-api-types';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
+import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 
 export async function convertToAnthropicMessagesPrompt({
   prompt,
@@ -44,6 +45,33 @@ export async function convertToAnthropicMessagesPrompt({
     // Pass through value assuming it is of the correct type.
     // The Anthropic API will validate the value.
     return cacheControlValue as AnthropicCacheControl | undefined;
+  }
+
+  async function shouldEnableCitations(
+    providerMetadata: SharedV2ProviderMetadata | undefined,
+  ): Promise<boolean> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return anthropicOptions?.citations?.enabled ?? false;
+  }
+
+  async function getDocumentMetadata(
+    providerMetadata: SharedV2ProviderMetadata | undefined,
+  ): Promise<{ title?: string; context?: string }> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return {
+      title: anthropicOptions?.title,
+      context: anthropicOptions?.context,
+    };
   }
 
   for (let i = 0; i < blocks.length; i++) {
@@ -124,6 +152,14 @@ export async function convertToAnthropicMessagesPrompt({
                     } else if (part.mediaType === 'application/pdf') {
                       betas.add('pdfs-2024-09-25');
 
+                      const enableCitations = await shouldEnableCitations(
+                        part.providerOptions,
+                      );
+
+                      const metadata = await getDocumentMetadata(
+                        part.providerOptions,
+                      );
+
                       anthropicContent.push({
                         type: 'document',
                         source:
@@ -137,6 +173,11 @@ export async function convertToAnthropicMessagesPrompt({
                                 media_type: 'application/pdf',
                                 data: convertToBase64(part.data),
                               },
+                        title: metadata.title ?? part.filename,
+                        ...(metadata.context && { context: metadata.context }),
+                        ...(enableCitations && {
+                          citations: { enabled: true },
+                        }),
                         cache_control: cacheControl,
                       });
                     } else {

@@ -119,6 +119,36 @@ const modelWithSources = new MockLanguageModelV2({
   }),
 });
 
+const modelWithDocumentSources = new MockLanguageModelV2({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'source',
+        sourceType: 'document',
+        id: 'doc-123',
+        mediaType: 'application/pdf',
+        title: 'Document Example',
+        filename: 'example.pdf',
+        providerMetadata: { provider: { custom: 'doc-value' } },
+      },
+      { type: 'text', text: 'Hello from document!' },
+      {
+        type: 'source',
+        sourceType: 'document',
+        id: 'doc-456',
+        mediaType: 'text/plain',
+        title: 'Text Document',
+        providerMetadata: { provider: { custom: 'doc-value2' } },
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
 const modelWithFiles = new MockLanguageModelV2({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
@@ -1491,6 +1521,19 @@ describe('streamText', () => {
     it('should send source content when sendSources is true', async () => {
       const result = streamText({
         model: modelWithSources,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({ sendSources: true });
+
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
+    });
+
+    it('should send document source content when sendSources is true', async () => {
+      const result = streamText({
+        model: modelWithDocumentSources,
         ...defaultSettings(),
       });
 
