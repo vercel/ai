@@ -179,6 +179,7 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
+          onError: () => {},
         });
 
         expect(

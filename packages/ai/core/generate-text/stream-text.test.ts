@@ -37,6 +37,7 @@ const defaultSettings = () =>
       generateId: mockId({ prefix: 'id' }),
       currentDate: () => new Date(0),
     },
+    onError: () => {},
   }) as const;
 
 const testUsage = {
@@ -313,6 +314,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
+        onError: () => {},
       });
 
       expect(
@@ -829,6 +831,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
+        onError: () => {},
       });
 
       expect(
@@ -979,6 +982,7 @@ describe('streamText', () => {
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
+        onError: () => {},
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse);
@@ -1001,6 +1005,7 @@ describe('streamText', () => {
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
+        onError: () => {},
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse, {
@@ -1431,6 +1436,7 @@ describe('streamText', () => {
           ]),
         }),
         ...defaultSettings(),
+        onError: () => {},
       });
 
       const uiMessageStream = result.toUIMessageStream();
@@ -1448,6 +1454,7 @@ describe('streamText', () => {
           ]),
         }),
         ...defaultSettings(),
+        onError: () => {},
       });
 
       const uiMessageStream = result.toUIMessageStream({
@@ -1685,6 +1692,7 @@ describe('streamText', () => {
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
+        onError: () => {},
       });
 
       const response = result.toUIMessageStreamResponse();
@@ -1703,6 +1711,7 @@ describe('streamText', () => {
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
+        onError: () => {},
       });
 
       const response = result.toUIMessageStreamResponse({
@@ -2461,6 +2470,7 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
         onFinish() {}, // just defined; do nothing
+        onError: () => {},
       });
 
       expect(
