@@ -29,8 +29,6 @@ type CohereChatConfig = {
   fetch?: FetchFunction;
 };
 
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
 const cohereChatResponseSchema = z.object({
   generation_id: z.string().nullish(),
   message: z.object({

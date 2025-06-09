@@ -71,7 +71,6 @@ export function convertToCohereChatPrompt(
         break;
       }
       case 'tool': {
-        // Cohere uses one tool message per tool result
         messages.push(
           ...content.map(toolResult => ({
             role: 'tool' as const,

@@ -3,7 +3,6 @@ import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  // Example demonstrating Cohere citations with text documents
   const result = await generateText({
     model: cohere('command-r-plus'),
     messages: [

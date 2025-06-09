@@ -4,6 +4,7 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
+import { vi } from 'vitest';
 import { createCohere } from './cohere-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -441,6 +442,346 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  describe('citations', () => {
+    it('should extract text documents and send to API', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What does this say?' },
+              {
+                type: 'file',
+                data: 'This is a test document.',
+                mediaType: 'text/plain',
+                filename: 'test.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "data": {
+                "text": "This is a test document.",
+                "title": "test.txt",
+              },
+            },
+          ],
+          "messages": [
+            {
+              "content": "What does this say?",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
+    });
+
+    it('should extract multiple text documents', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What do these documents say?' },
+              {
+                type: 'file',
+                data: Buffer.from('First document content'),
+                mediaType: 'text/plain',
+                filename: 'doc1.txt',
+              },
+              {
+                type: 'file',
+                data: Buffer.from('Second document content'),
+                mediaType: 'text/plain',
+                filename: 'doc2.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "data": {
+                "text": "First document content",
+                "title": "doc1.txt",
+              },
+            },
+            {
+              "data": {
+                "text": "Second document content",
+                "title": "doc2.txt",
+              },
+            },
+          ],
+          "messages": [
+            {
+              "content": "What do these documents say?",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
+    });
+
+    it('should support JSON files', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is in this JSON?' },
+              {
+                type: 'file',
+                data: Buffer.from('{"key": "value"}'),
+                mediaType: 'application/json',
+                filename: 'data.json',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "data": {
+                "text": "{"key": "value"}",
+                "title": "data.json",
+              },
+            },
+          ],
+          "messages": [
+            {
+              "content": "What is in this JSON?",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
+    });
+
+    it('should skip non-text files with warning', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is this?' },
+              {
+                type: 'file',
+                data: Buffer.from('PDF binary data'),
+                mediaType: 'application/pdf',
+                filename: 'document.pdf',
+              },
+              {
+                type: 'file',
+                data: Buffer.from('Text content'),
+                mediaType: 'text/plain',
+                filename: 'text.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Skipping non-text file: document.pdf (application/pdf)',
+      );
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "data": {
+                "text": "Text content",
+                "title": "text.txt",
+              },
+            },
+          ],
+          "messages": [
+            {
+              "content": "What is this?",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle URL data', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is this URL?' },
+              {
+                type: 'file',
+                data: new URL('https://example.com/document'),
+                mediaType: 'text/plain',
+                filename: 'url.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "data": {
+                "text": "https://example.com/document",
+                "title": "url.txt",
+              },
+            },
+          ],
+          "messages": [
+            {
+              "content": "What is this URL?",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
+    });
+
+    it('should extract citations from response', async () => {
+      // Extend existing prepareJsonResponse to support citations
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          response_id: '0cf61ae0-1f60-4c18-9802-be7be809e712',
+          generation_id: 'test-id',
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'AI has many benefits including automation.',
+              },
+            ],
+            citations: [
+              {
+                start: 31,
+                end: 41,
+                text: 'automation',
+                sources: [
+                  {
+                    type: 'document',
+                    id: 'doc:0',
+                    document: {
+                      id: 'doc:0',
+                      text: 'AI provides automation and efficiency.',
+                      title: 'ai-benefits.txt',
+                    },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+            ],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: { input_tokens: 9, output_tokens: 415 },
+            tokens: { input_tokens: 4, output_tokens: 30 },
+          },
+        },
+      };
+
+      const { content } = await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What are AI benefits?' },
+              {
+                type: 'file',
+                data: 'AI provides automation and efficiency.',
+                mediaType: 'text/plain',
+                filename: 'ai-benefits.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "AI has many benefits including automation.",
+            "type": "text",
+          },
+          {
+            "id": "p3x7ph1q14s",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "cohere": {
+                "citationType": "TEXT_CONTENT",
+                "end": 41,
+                "sources": [
+                  {
+                    "document": {
+                      "id": "doc:0",
+                      "text": "AI provides automation and efficiency.",
+                      "title": "ai-benefits.txt",
+                    },
+                    "id": "doc:0",
+                    "type": "document",
+                  },
+                ],
+                "start": 31,
+                "text": "automation",
+              },
+            },
+            "sourceType": "document",
+            "title": "ai-benefits.txt",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should not include documents parameter when no files present', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.documents).toBeUndefined();
+    });
   });
 });
 
