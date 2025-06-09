@@ -183,11 +183,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             const tool = tools![toolCall.toolName];
 
-            const args = toolCall.args;
-
             if (tool.onArgsComplete != null) {
               await tool.onArgsComplete({
-                args: args,
+                args: toolCall.args,
                 toolCallId: toolCall.toolCallId,
                 messages,
                 abortSignal,
@@ -213,13 +211,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     'ai.toolCall.name': toolCall.toolName,
                     'ai.toolCall.id': toolCall.toolCallId,
                     'ai.toolCall.args': {
-                      output: () => JSON.stringify(args),
+                      output: () => JSON.stringify(toolCall.args),
                     },
                   },
                 }),
                 tracer,
                 fn: async span =>
-                  tool.execute!(args, {
+                  tool.execute!(toolCall.args, {
                     toolCallId: toolCall.toolCallId,
                     messages,
                     abortSignal,
@@ -260,7 +258,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                         error: new ToolExecutionError({
                           toolCallId: toolCall.toolCallId,
                           toolName: toolCall.toolName,
-                          toolArgs: args,
+                          toolArgs: toolCall.args,
                           cause: error,
                         }),
                       });
