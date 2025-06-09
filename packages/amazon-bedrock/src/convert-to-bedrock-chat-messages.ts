@@ -36,8 +36,7 @@ export async function convertToBedrockChatMessages(
   const messages: BedrockMessages = [];
 
   let documentCounter = 0;
-  const generateDocumentName = () =>
-    `document-${String(++documentCounter).padStart(2, '0')}`;
+  const generateDocumentName = () => `document-${++documentCounter}`;
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];

@@ -97,7 +97,7 @@ describe('user messages', () => {
             {
               "document": {
                 "format": "pdf",
-                "name": "document-01",
+                "name": "document-1",
                 "source": {
                   "bytes": "AAECAw==",
                 },
@@ -153,7 +153,7 @@ describe('user messages', () => {
             {
               "document": {
                 "format": "pdf",
-                "name": "document-01",
+                "name": "document-1",
                 "source": {
                   "bytes": "AAECAw==",
                 },
@@ -162,7 +162,7 @@ describe('user messages', () => {
             {
               "document": {
                 "format": "pdf",
-                "name": "document-02",
+                "name": "document-2",
                 "source": {
                   "bytes": "BAUGBw==",
                 },
@@ -184,7 +184,7 @@ describe('user messages', () => {
             {
               "document": {
                 "format": "pdf",
-                "name": "document-03",
+                "name": "document-3",
                 "source": {
                   "bytes": "AAECAw==",
                 },
