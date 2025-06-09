@@ -176,6 +176,7 @@ try {
   const response = await generateText({
     model: openai('gpt-4o-mini'),
     tools,
+    maxSteps: 5,
     messages: [{ role: 'user', content: 'Query the data' }],
   });
 

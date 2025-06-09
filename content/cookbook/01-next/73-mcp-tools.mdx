@@ -63,6 +63,7 @@ export async function POST(req: Request) {
     const response = await streamText({
       model: openai('gpt-4o'),
       tools,
+      maxSteps: 5,
       prompt,
       // When streaming, the client should be closed after the response is finished:
       onFinish: async () => {
