@@ -198,6 +198,7 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
               height: image.height,
               width: image.width,
             })) ?? null,
+          relatedQuestions: response.related_questions ?? [],
           usage: {
             citationTokens: response.usage?.citation_tokens ?? null,
             numSearchQueries: response.usage?.num_search_queries ?? null,
