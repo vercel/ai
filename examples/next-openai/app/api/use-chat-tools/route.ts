@@ -28,6 +28,10 @@ export async function POST(req: Request) {
             Math.floor(Math.random() * weatherOptions.length)
           ];
         },
+
+        onArgsComplete: ({ args }) => {
+          console.log('onArgsComplete', args);
+        },
       }),
       // client-side tool that starts user interaction:
       askForConfirmation: tool({
