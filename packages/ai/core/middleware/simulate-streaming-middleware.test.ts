@@ -1,3 +1,4 @@
+import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,
   mockId,
@@ -5,6 +6,7 @@ import {
 import { streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { tool } from '../tool/tool';
 import { simulateStreamingMiddleware } from './simulate-streaming-middleware';
 
 const DEFAULT_SETTINGs = {
@@ -259,6 +261,18 @@ describe('simulateStreamingMiddleware', () => {
         model: mockModel,
         middleware: simulateStreamingMiddleware(),
       }),
+      tools: {
+        calculator: tool({
+          parameters: jsonSchema<{ expression: string }>({
+            type: 'object',
+          }),
+        }),
+        weather: tool({
+          parameters: jsonSchema<{ location: string }>({
+            type: 'object',
+          }),
+        }),
+      },
       ...DEFAULT_SETTINGs,
     });
 
