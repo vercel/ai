@@ -13,17 +13,16 @@ import {
 } from './anthropic-api-types';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
+import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 
 export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
-  citationsEnabled,
 }: {
   prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
   warnings: LanguageModelV2CallWarning[];
-  citationsEnabled?: boolean;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -48,16 +47,31 @@ export async function convertToAnthropicMessagesPrompt({
     return cacheControlValue as AnthropicCacheControl | undefined;
   }
 
-  function shouldEnableCitations(
+  async function shouldEnableCitations(
     providerMetadata: SharedV2ProviderMetadata | undefined,
-  ): boolean {
-    // Check if citations are enabled in provider options on the file part
-    const citationsConfig = providerMetadata?.anthropic?.citations as
-      | { enabled?: boolean }
-      | undefined;
+  ): Promise<boolean> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
 
-    // Use file part settings first, then fall back to global citation setting
-    return citationsConfig?.enabled ?? citationsEnabled ?? false;
+    return anthropicOptions?.citations?.enabled ?? false;
+  }
+
+  async function getDocumentMetadata(
+    providerMetadata: SharedV2ProviderMetadata | undefined,
+  ): Promise<{ title?: string; context?: string }> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return {
+      title: anthropicOptions?.title,
+      context: anthropicOptions?.context,
+    };
   }
 
   for (let i = 0; i < blocks.length; i++) {
@@ -138,7 +152,11 @@ export async function convertToAnthropicMessagesPrompt({
                     } else if (part.mediaType === 'application/pdf') {
                       betas.add('pdfs-2024-09-25');
 
-                      const enableCitations = shouldEnableCitations(
+                      const enableCitations = await shouldEnableCitations(
+                        part.providerOptions,
+                      );
+
+                      const metadata = await getDocumentMetadata(
                         part.providerOptions,
                       );
 
@@ -155,7 +173,8 @@ export async function convertToAnthropicMessagesPrompt({
                                 media_type: 'application/pdf',
                                 data: convertToBase64(part.data),
                               },
-                        title: part.filename,
+                        title: metadata.title ?? part.filename,
+                        ...(metadata.context && { context: metadata.context }),
                         ...(enableCitations && {
                           citations: { enabled: true },
                         }),

@@ -698,6 +698,11 @@ describe('AnthropicMessagesLanguageModel', () => {
                 data: 'base64PDFdata',
                 mediaType: 'application/pdf',
                 filename: 'financial-report.pdf',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
               },
               {
                 type: 'text',
@@ -706,11 +711,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
           },
         ],
-        providerOptions: {
-          anthropic: {
-            citations: { enabled: true },
-          },
-        },
       });
 
       expect(result.content).toMatchInlineSnapshot(`
@@ -771,6 +771,11 @@ describe('AnthropicMessagesLanguageModel', () => {
                 data: 'base64PDFdata',
                 mediaType: 'application/pdf',
                 filename: 'financial-report.pdf',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
               },
               {
                 type: 'text',
@@ -779,11 +784,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
           },
         ],
-        providerOptions: {
-          anthropic: {
-            citations: { enabled: true },
-          },
-        },
       });
 
       const result = await convertReadableStreamToArray(stream);

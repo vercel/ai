@@ -1154,70 +1154,33 @@ describe('citations', () => {
       warnings: [],
     });
 
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
-                  data: 'base64PDFdata',
-                },
-              },
-            ],
-          },
-        ],
-        system: undefined,
-      },
-      betas: new Set(['pdfs-2024-09-25']),
-    });
-  });
-
-  it('should include citations when enabled globally', async () => {
-    const result = await convertToAnthropicMessagesPrompt({
-      prompt: [
-        {
-          role: 'user',
-          content: [
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
             {
-              type: 'file',
-              data: 'base64PDFdata',
-              mediaType: 'application/pdf',
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "source": {
+                    "data": "base64PDFdata",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": undefined,
+                  "type": "document",
+                },
+              ],
+              "role": "user",
             },
           ],
+          "system": undefined,
         },
-      ],
-      sendReasoning: true,
-      warnings: [],
-      citationsEnabled: true,
-    });
-
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
-                  data: 'base64PDFdata',
-                },
-                citations: { enabled: true },
-              },
-            ],
-          },
-        ],
-        system: undefined,
-      },
-      betas: new Set(['pdfs-2024-09-25']),
-    });
+      }
+    `);
   });
 
   it('should include citations when enabled on file part', async () => {
@@ -1243,31 +1206,39 @@ describe('citations', () => {
       warnings: [],
     });
 
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
-                  data: 'base64PDFdata',
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "citations": {
+                    "enabled": true,
+                  },
+                  "source": {
+                    "data": "base64PDFdata",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": undefined,
+                  "type": "document",
                 },
-                citations: { enabled: true },
-              },
-            ],
-          },
-        ],
-        system: undefined,
-      },
-      betas: new Set(['pdfs-2024-09-25']),
-    });
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
   });
 
-  it('should prioritize file-level citations over global setting', async () => {
+  it('should include custom title and context when provided', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1277,9 +1248,12 @@ describe('citations', () => {
               type: 'file',
               data: 'base64PDFdata',
               mediaType: 'application/pdf',
+              filename: 'original-name.pdf',
               providerOptions: {
                 anthropic: {
-                  citations: { enabled: false },
+                  title: 'Custom Document Title',
+                  context: 'This is metadata about the document',
+                  citations: { enabled: true },
                 },
               },
             },
@@ -1288,33 +1262,42 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
-      citationsEnabled: true,
     });
 
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
-                  data: 'base64PDFdata',
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "citations": {
+                    "enabled": true,
+                  },
+                  "context": "This is metadata about the document",
+                  "source": {
+                    "data": "base64PDFdata",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": "Custom Document Title",
+                  "type": "document",
                 },
-              },
-            ],
-          },
-        ],
-        system: undefined,
-      },
-      betas: new Set(['pdfs-2024-09-25']),
-    });
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
   });
 
-  it('should not include citations for non-PDF files', async () => {
+  it('should handle multiple documents with consistent citation settings', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1322,37 +1305,88 @@ describe('citations', () => {
           content: [
             {
               type: 'file',
-              data: 'base64ImageData',
-              mediaType: 'image/png',
+              data: 'base64PDFdata1',
+              mediaType: 'application/pdf',
+              filename: 'doc1.pdf',
+              providerOptions: {
+                anthropic: {
+                  citations: { enabled: true },
+                  title: 'Custom Title 1',
+                },
+              },
+            },
+            {
+              type: 'file',
+              data: 'base64PDFdata2',
+              mediaType: 'application/pdf',
+              filename: 'doc2.pdf',
+              providerOptions: {
+                anthropic: {
+                  citations: { enabled: true },
+                  title: 'Custom Title 2',
+                  context: 'Additional context for document 2',
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Analyze both documents',
             },
           ],
         },
       ],
       sendReasoning: true,
       warnings: [],
-      citationsEnabled: true,
     });
 
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  data: 'base64ImageData',
-                  media_type: 'image/png',
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "citations": {
+                    "enabled": true,
+                  },
+                  "source": {
+                    "data": "base64PDFdata1",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": "Custom Title 1",
+                  "type": "document",
                 },
-              },
-            ],
-          },
-        ],
-        system: undefined,
-      },
-      betas: new Set(),
-    });
+                {
+                  "cache_control": undefined,
+                  "citations": {
+                    "enabled": true,
+                  },
+                  "context": "Additional context for document 2",
+                  "source": {
+                    "data": "base64PDFdata2",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": "Custom Title 2",
+                  "type": "document",
+                },
+                {
+                  "cache_control": undefined,
+                  "text": "Analyze both documents",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
   });
 });

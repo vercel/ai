@@ -25,6 +25,42 @@ const webSearchLocationSchema = z.object({
   timezone: z.string().optional(),
 });
 
+/**
+ * Anthropic file part provider options for document-specific features.
+ * These options apply to individual file parts (documents).
+ */
+export const anthropicFilePartProviderOptions = z.object({
+  /**
+   * Citation configuration for this document.
+   * When enabled, this document will generate citations in the response.
+   */
+  citations: z
+    .object({
+      /**
+       * Enable citations for this document
+       */
+      enabled: z.boolean(),
+    })
+    .optional(),
+
+  /**
+   * Custom title for the document.
+   * If not provided, the filename will be used.
+   */
+  title: z.string().optional(),
+
+  /**
+   * Context about the document that will be passed to the model
+   * but not used towards cited content.
+   * Useful for storing document metadata as text or stringified JSON.
+   */
+  context: z.string().optional(),
+});
+
+export type AnthropicFilePartProviderOptions = z.infer<
+  typeof anthropicFilePartProviderOptions
+>;
+
 export const anthropicProviderOptions = z.object({
   /**
 Include reasoning content in requests sent to the model. Defaults to `true`.
@@ -37,19 +73,6 @@ If you are experiencing issues with the model handling requests involving
     .object({
       type: z.union([z.literal('enabled'), z.literal('disabled')]),
       budgetTokens: z.number().optional(),
-    })
-    .optional(),
-
-  /**
-   * Citation configuration for documents.
-   * When enabled, documents will generate citations in the response.
-   */
-  citations: z
-    .object({
-      /**
-       * Enable citations for documents
-       */
-      enabled: z.boolean(),
     })
     .optional(),
 

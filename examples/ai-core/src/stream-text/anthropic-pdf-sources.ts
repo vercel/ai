@@ -18,15 +18,18 @@ async function main() {
             type: 'file',
             data: fs.readFileSync('./data/ai.pdf'),
             mediaType: 'application/pdf',
+            providerOptions: {
+              anthropic: {
+                citations: { enabled: true },
+                title: 'AI Handbook',
+                context:
+                  'Technical documentation about AI models and embeddings',
+              },
+            },
           },
         ],
       },
     ],
-    providerOptions: {
-      anthropic: {
-        citations: { enabled: true },
-      },
-    },
   });
 
   for await (const part of result.fullStream) {

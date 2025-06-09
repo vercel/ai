@@ -227,7 +227,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
-        citationsEnabled: anthropicOptions?.citations?.enabled,
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
@@ -367,10 +366,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return this.config.transformRequestBody?.(args) ?? args;
   }
 
-  private extractCitationDocuments(
-    prompt: LanguageModelV2Prompt,
-    citationsEnabled?: boolean,
-  ): Array<{
+  private extractCitationDocuments(prompt: LanguageModelV2Prompt): Array<{
     title: string;
     filename?: string;
     mediaType: string;
@@ -381,8 +377,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       const citationsConfig = anthropic?.citations as
         | { enabled?: boolean }
         | undefined;
-      const fileHasCitations = citationsConfig?.enabled;
-      return fileHasCitations ?? citationsEnabled;
+      return citationsConfig?.enabled ?? false;
     };
 
     return prompt
@@ -412,15 +407,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       await this.getArgs(options);
 
     // Extract citation documents for response processing
-    const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions: options.providerOptions,
-      schema: anthropicProviderOptions,
-    });
-    const citationDocuments = this.extractCitationDocuments(
-      options.prompt,
-      anthropicOptions?.citations?.enabled,
-    );
+    const citationDocuments = this.extractCitationDocuments(options.prompt);
 
     const {
       responseHeaders,
@@ -577,15 +564,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       await this.getArgs(options);
 
     // Extract citation documents for response processing
-    const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions: options.providerOptions,
-      schema: anthropicProviderOptions,
-    });
-    const citationDocuments = this.extractCitationDocuments(
-      options.prompt,
-      anthropicOptions?.citations?.enabled,
-    );
+    const citationDocuments = this.extractCitationDocuments(options.prompt);
 
     const body = { ...args, stream: true };
 
