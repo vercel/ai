@@ -51,10 +51,8 @@ export async function convertToAnthropicMessagesPrompt({
   function shouldEnableCitations(
     providerMetadata: SharedV2ProviderMetadata | undefined,
   ): boolean {
-    const anthropic = providerMetadata?.anthropic;
-
     // Check if citations are enabled in provider options on the file part
-    const citationsConfig = anthropic?.citations as
+    const citationsConfig = providerMetadata?.anthropic?.citations as
       | { enabled?: boolean }
       | undefined;
 

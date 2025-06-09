@@ -1476,6 +1476,17 @@ However, the LLM results are expected to be small enough to not cause issues.
                   providerMetadata: part.providerMetadata,
                 });
               }
+
+              if (sendSources && part.sourceType === 'document') {
+                controller.enqueue({
+                  type: 'source-document',
+                  sourceId: part.id,
+                  mediaType: part.mediaType,
+                  title: part.title,
+                  filename: part.filename,
+                  providerMetadata: part.providerMetadata,
+                });
+              }
               break;
             }
 

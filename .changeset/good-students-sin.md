@@ -2,4 +2,4 @@
 '@ai-sdk/anthropic': patch
 ---
 
-feat(anthropic/citation): request processing
+feat(provider/anthropic): add PDF citation support with document sources for streamText

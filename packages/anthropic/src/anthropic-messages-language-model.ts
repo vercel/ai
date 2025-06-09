@@ -33,12 +33,49 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
+function processPageLocationCitation(
+  citation:
+    | {
+        type: 'web_search_result_location';
+        url: string;
+        cited_text: string;
+        title: string;
+        encrypted_index: string;
+      }
+    | {
+        type: 'page_location';
+        cited_text: string;
+        document_index: number;
+        document_title: string | null;
+        start_page_number: number;
+        end_page_number: number;
+      },
+  citationDocuments: Array<{
+    title: string;
+    filename?: string;
+    mediaType: string;
+  }>,
+  generateId: () => string,
+  onSource: (source: any) => void,
+) {
+  if (citation.type === 'page_location') {
+    const source = createCitationSource(
+      citation,
+      citationDocuments,
+      generateId,
+    );
+    if (source) {
+      onSource(source);
+    }
+  }
+}
+
 function createCitationSource(
   citation: {
     type: 'page_location';
     cited_text: string;
     document_index: number;
-    document_title: string;
+    document_title: string | null;
     start_page_number: number;
     end_page_number: number;
   },
@@ -338,37 +375,34 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     filename?: string;
     mediaType: string;
   }> {
-    const documents: Array<{
-      title: string;
-      filename?: string;
-      mediaType: string;
-    }> = [];
+    // Helper function to check if citations are enabled for a file part
+    const isCitationEnabled = (part: any) => {
+      const anthropic = part.providerOptions?.anthropic;
+      const citationsConfig = anthropic?.citations as
+        | { enabled?: boolean }
+        | undefined;
+      const fileHasCitations = citationsConfig?.enabled;
+      return fileHasCitations ?? citationsEnabled;
+    };
 
-    for (const message of prompt) {
-      if (message.role === 'user') {
-        for (const part of message.content) {
-          if (part.type === 'file' && part.mediaType === 'application/pdf') {
-            // Check if citations are enabled for this file
-            const anthropic = part.providerOptions?.anthropic;
-            const citationsConfig = anthropic?.citations as
-              | { enabled?: boolean }
-              | undefined;
-            const fileHasCitations = citationsConfig?.enabled;
-            const shouldEnableCitations = fileHasCitations ?? citationsEnabled;
-
-            if (shouldEnableCitations) {
-              documents.push({
-                title: part.filename ?? 'Untitled Document',
-                filename: part.filename,
-                mediaType: part.mediaType,
-              });
-            }
-          }
-        }
-      }
-    }
-
-    return documents;
+    return prompt
+      .filter(message => message.role === 'user')
+      .flatMap(message => message.content)
+      .filter(
+        part =>
+          part.type === 'file' &&
+          part.mediaType === 'application/pdf' &&
+          isCitationEnabled(part),
+      )
+      .map(part => {
+        // TypeScript knows this is a file part due to our filter
+        const filePart = part as Extract<typeof part, { type: 'file' }>;
+        return {
+          title: filePart.filename ?? 'Untitled Document',
+          filename: filePart.filename,
+          mediaType: filePart.mediaType,
+        };
+      });
   }
 
   async doGenerate(
@@ -418,16 +452,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             // Process citations if present
             if (part.citations) {
               for (const citation of part.citations) {
-                if (citation.type === 'page_location') {
-                  const source = createCitationSource(
-                    citation,
-                    citationDocuments,
-                    this.generateId,
-                  );
-                  if (source) {
-                    content.push(source);
-                  }
-                }
+                processPageLocationCitation(
+                  citation,
+                  citationDocuments,
+                  this.generateId,
+                  source => content.push(source),
+                );
               }
             }
           }
@@ -808,17 +838,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'citations_delta': {
                     const citation = value.delta.citation;
 
-                    if (citation.type === 'page_location') {
-                      // Handle PDF citations - convert to document source
-                      const source = createCitationSource(
-                        citation,
-                        citationDocuments,
-                        generateId,
-                      );
-                      if (source) {
-                        controller.enqueue(source);
-                      }
-                    }
+                    processPageLocationCitation(
+                      citation,
+                      citationDocuments,
+                      generateId,
+                      source => controller.enqueue(source),
+                    );
                     // Web search citations are handled in web_search_tool_result content block
                     return;
                   }
@@ -919,7 +944,7 @@ const anthropicMessagesResponseSchema = z.object({
                 type: z.literal('page_location'),
                 cited_text: z.string(),
                 document_index: z.number(),
-                document_title: z.string(),
+                document_title: z.string().nullable(),
                 start_page_number: z.number(),
                 end_page_number: z.number(),
               }),
@@ -1081,7 +1106,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
             type: z.literal('page_location'),
             cited_text: z.string(),
             document_index: z.number(),
-            document_title: z.string(),
+            document_title: z.string().nullable(),
             start_page_number: z.number(),
             end_page_number: z.number(),
           }),
