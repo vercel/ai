@@ -205,6 +205,20 @@ export function processUIMessageStream<
               break;
             }
 
+            case 'source-document': {
+              state.message.parts.push({
+                type: 'source-document',
+                sourceId: part.sourceId,
+                mediaType: part.mediaType,
+                title: part.title,
+                filename: part.filename,
+                providerMetadata: part.providerMetadata,
+              });
+
+              write();
+              break;
+            }
+
             case 'tool-call-streaming-start': {
               const toolInvocations = getToolInvocations(state.message);
 

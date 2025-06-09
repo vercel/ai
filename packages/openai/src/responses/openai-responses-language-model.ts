@@ -132,6 +132,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       store: openaiOptions?.store,
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
+      service_tier: openaiOptions?.serviceTier,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -171,6 +172,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           details: 'topP is not supported for reasoning models',
         });
       }
+    }
+
+    // Validate flex processing support
+    if (
+      openaiOptions?.serviceTier === 'flex' &&
+      !supportsFlexProcessing(this.modelId)
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'serviceTier',
+        details: 'flex processing is only available for o3 and o4-mini models',
+      });
+      // Remove from args if not supported
+      delete (baseArgs as any).service_tier;
     }
 
     const {
@@ -694,6 +709,10 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
+function supportsFlexProcessing(modelId: string): boolean {
+  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+}
+
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
@@ -704,6 +723,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   strictSchemas: z.boolean().nullish(),
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
+  serviceTier: z.enum(['auto', 'flex']).nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

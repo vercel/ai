@@ -266,6 +266,7 @@ describe('doGenerate', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
+          "service_tier": undefined,
           "stop": undefined,
           "store": undefined,
           "temperature": undefined,
@@ -1349,6 +1350,77 @@ describe('doGenerate', () => {
         'temperature is not supported for the search preview models and has been removed.',
     });
   });
+
+  it('should send serviceTier flex processing setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o3-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "o3-mini",
+        "service_tier": "flex",
+      }
+    `);
+  });
+
+  it('should show warning when using flex processing with unsupported model', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o-mini');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'serviceTier',
+      details: 'flex processing is only available for o3 and o4-mini models',
+    });
+  });
+
+  it('should allow flex processing with o4-mini model without warnings', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o4-mini');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBe('flex');
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe('doStream', () => {
@@ -2185,6 +2257,7 @@ describe('doStream', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
+          "service_tier": undefined,
           "stop": undefined,
           "store": undefined,
           "stream": true,
@@ -2400,6 +2473,38 @@ describe('doStream', () => {
         custom: 'value',
       },
     });
+  });
+
+  it('should send serviceTier flex processing setting in streaming', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const model = provider.chat('o3-mini');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "o3-mini",
+        "service_tier": "flex",
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
   });
 
   describe('reasoning models', () => {
