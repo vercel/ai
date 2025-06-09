@@ -4913,6 +4913,69 @@ describe('streamText', () => {
     });
   });
 
+  describe('tool callbacks', () => {
+    it('should call onArgsComplete when args are complete', async () => {
+      const recordedArgs: unknown[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async ({ prompt, tools, toolChoice }) => {
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  args: `{ "value": "value" }`,
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            parameters: jsonSchema<{ value: string }>({
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+            }),
+            onArgsComplete: ({ args }) => {
+              recordedArgs.push(args);
+            },
+          }),
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+        _internal: {
+          now: mockValues(0, 100, 500),
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(recordedArgs).toMatchInlineSnapshot(`
+        [
+          {
+            "value": "value",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('tools with custom schema', () => {
     it('should send tool calls', async () => {
       const result = streamText({

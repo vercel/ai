@@ -10,6 +10,7 @@ export type ToolParameters<T = JSONObject> =
   | z3.Schema<T>
   | Schema<T>;
 
+// TODO rename to ToolCallOptions
 export interface ToolExecutionOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
@@ -80,6 +81,16 @@ If not provided, the tool will not be executed automatically.
   Optional conversion function that maps the tool result to multi-part tool content for LLMs.
       */
       experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+
+      /**
+       * Optional function that is called when a tool call can be started,
+       * even if the execute function is not provided.
+       */
+      onArgsComplete?: (
+        options: {
+          args: [PARAMETERS] extends [never] ? undefined : PARAMETERS;
+        } & ToolExecutionOptions,
+      ) => void | PromiseLike<void>;
     }
   > &
   (
