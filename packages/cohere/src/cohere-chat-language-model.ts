@@ -27,6 +27,7 @@ type CohereChatConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
+  generateId: () => string;
 };
 
 const cohereChatResponseSchema = z.object({
@@ -99,12 +100,10 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   };
 
   private readonly config: CohereChatConfig;
-  private readonly generateId: () => string;
 
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {
     this.modelId = modelId;
     this.config = config;
-    this.generateId = () => Math.random().toString(36).substring(2, 15);
   }
 
   get provider(): string {
@@ -261,7 +260,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         content.push({
           type: 'source',
           sourceType: 'document',
-          id: this.generateId(),
+          id: this.config.generateId(),
           mediaType: 'text/plain',
           title: documentTitle,
           providerMetadata: {

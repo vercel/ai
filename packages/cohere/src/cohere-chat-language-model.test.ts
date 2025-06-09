@@ -677,12 +677,18 @@ describe('doGenerate', () => {
     });
 
     it('should extract citations from response', async () => {
-      // Extend existing prepareJsonResponse to support citations
+      const mockGenerateId = vi.fn().mockReturnValue('test-citation-id');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-r-plus');
+
       server.urls['https://api.cohere.com/v2/chat'].response = {
         type: 'json-value',
         body: {
           response_id: '0cf61ae0-1f60-4c18-9802-be7be809e712',
-          generation_id: 'test-id',
+          generation_id: 'dad0c7cd-7982-42a7-acfb-706ccf598291',
           message: {
             role: 'assistant',
             content: [
@@ -696,6 +702,7 @@ describe('doGenerate', () => {
                 start: 31,
                 end: 41,
                 text: 'automation',
+                type: 'TEXT_CONTENT',
                 sources: [
                   {
                     type: 'document',
@@ -707,7 +714,6 @@ describe('doGenerate', () => {
                     },
                   },
                 ],
-                type: 'TEXT_CONTENT',
               },
             ],
           },
@@ -719,7 +725,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const { content } = await model.doGenerate({
+      const { content } = await testModel.doGenerate({
         prompt: [
           {
             role: 'user',
@@ -743,7 +749,7 @@ describe('doGenerate', () => {
             "type": "text",
           },
           {
-            "id": "b1lbdxsabel",
+            "id": "test-citation-id",
             "mediaType": "text/plain",
             "providerMetadata": {
               "cohere": {

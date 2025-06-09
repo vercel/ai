@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
@@ -50,6 +51,11 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  /**
+Optional function to generate a unique ID for each request.
+     */
+  generateId?: () => string;
 }
 
 /**
@@ -76,6 +82,7 @@ export function createCohere(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      generateId: options.generateId ?? generateId,
     });
 
   const createTextEmbeddingModel = (modelId: CohereEmbeddingModelId) =>
