@@ -26,9 +26,9 @@ export function convertToCohereChatPrompt(
                   return part.text;
                 }
                 case 'file': {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'File URL data',
-                  });
+                  // Files are handled separately via the documents parameter
+                  // Return empty string to not include file content in message text
+                  return '';
                 }
               }
             })
