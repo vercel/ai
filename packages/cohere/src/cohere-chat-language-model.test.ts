@@ -743,7 +743,7 @@ describe('doGenerate', () => {
             "type": "text",
           },
           {
-            "id": "p3x7ph1q14s",
+            "id": "b1lbdxsabel",
             "mediaType": "text/plain",
             "providerMetadata": {
               "cohere": {
