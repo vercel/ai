@@ -110,14 +110,15 @@ The arguments for configuring the tool. Must match the expected arguments define
 /**
 Helper function for inferring the execute args of a tool.
  */
-export function tool(tool: Tool<never, never>): Tool<never, never>;
+// Note: overload order is important for auto-completion
+export function tool<PARAMETERS, RESULT>(
+  tool: Tool<PARAMETERS, RESULT>,
+): Tool<PARAMETERS, RESULT>;
 export function tool<PARAMETERS>(
   tool: Tool<PARAMETERS, never>,
 ): Tool<PARAMETERS, never>;
 export function tool<RESULT>(tool: Tool<never, RESULT>): Tool<never, RESULT>;
-export function tool<PARAMETERS, RESULT>(
-  tool: Tool<PARAMETERS, RESULT>,
-): Tool<PARAMETERS, RESULT>;
+export function tool(tool: Tool<never, never>): Tool<never, never>;
 export function tool(tool: any): any {
   return tool;
 }
