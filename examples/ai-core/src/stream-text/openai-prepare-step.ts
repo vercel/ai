@@ -25,7 +25,7 @@ async function main() {
     prepareStep({ stepNumber }) {
       if (stepNumber === 0) {
         return {
-          toolChoice: { type: 'tool', toolName: 'retrieveInformation' },
+          toolChoice: 'none',
           activeTools: ['retrieveInformation'],
         };
       }

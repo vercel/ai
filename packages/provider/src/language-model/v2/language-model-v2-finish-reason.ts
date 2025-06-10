@@ -17,4 +17,6 @@ export type LanguageModelV2FinishReason =
   | 'tool-calls' // model triggered tool calls
   | 'error' // model stopped because of an error
   | 'other' // model stopped for other reasons
+  | 'human-approval-required' // hitl
+  | 'tool-confirmation-required' // tool execution requires confirmation before proceeding
   | 'unknown'; // the model has not transmitted a finish reason

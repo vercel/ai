@@ -268,6 +268,7 @@ A function that attempts to repair a tool call that failed to parse.
         > & { response: { id: string; timestamp: Date; modelId: string } };
         let currentToolCalls: ToolCallArray<TOOLS> = [];
         let currentToolResults: ToolResultArray<TOOLS> = [];
+        let hasToolRequiringConfirmation = false;
         const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
@@ -277,11 +278,60 @@ A function that attempts to repair a tool call that failed to parse.
             ...responseMessages,
           ];
 
-          const prepareStepResult = await prepareStep?.({
-            model,
-            steps,
-            stepNumber: steps.length,
-          });
+          // Check if the last message is an assistant message with tool calls that need execution
+          const lastMessage = stepInputMessages[stepInputMessages.length - 1];
+          const hasPendingToolCalls =
+            lastMessage?.role === 'assistant' &&
+            Array.isArray(lastMessage.content) &&
+            lastMessage.content.some(part => part.type === 'tool-call');
+
+          if (hasPendingToolCalls && tools != null) {
+            // Extract tool calls from the last assistant message
+            const toolCallParts = (lastMessage.content as Array<any>).filter(
+              part => part.type === 'tool-call'
+            );
+
+            // Tool calls are already parsed from the message content, just convert to the expected format
+            currentToolCalls = toolCallParts.map((toolCallPart: any) => ({
+              type: 'tool-call' as const,
+              toolCallId: toolCallPart.toolCallId,
+              toolName: toolCallPart.toolName,
+              args: toolCallPart.args, // already parsed
+            }));
+
+            // Execute tools directly (skip LLM call)
+            currentToolResults = await executeTools({
+              toolCalls: currentToolCalls,
+              tools,
+              tracer,
+              telemetry,
+              messages: stepInputMessages.slice(0, -1), // exclude the assistant message
+              abortSignal,
+            });
+
+            // Create a mock model response for the tool execution step
+            currentModelResponse = {
+              content: [],
+              finishReason: 'tool-calls' as const,
+              usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              warnings: [],
+              providerMetadata: undefined,
+              request: {},
+              response: {
+                id: generateId(),
+                timestamp: currentDate(),
+                modelId: model.modelId,
+              },
+            };
+
+            hasToolRequiringConfirmation = false;
+          } else {
+            // Normal flow: call the LLM
+            const prepareStepResult = await prepareStep?.({
+              model,
+              steps,
+              stepNumber: steps.length,
+            });
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
@@ -407,36 +457,42 @@ A function that attempts to repair a tool call that failed to parse.
             }),
           );
 
-          // parse tool calls:
-          currentToolCalls = await Promise.all(
-            currentModelResponse.content
-              .filter(
-                (part): part is LanguageModelV2ToolCall =>
-                  part.type === 'tool-call',
-              )
-              .map(toolCall =>
-                parseToolCall({
-                  toolCall,
-                  tools,
-                  repairToolCall,
-                  system,
-                  messages: stepInputMessages,
-                }),
-              ),
-          );
+            // parse tool calls:
+            currentToolCalls = await Promise.all(
+              currentModelResponse.content
+                .filter(
+                  (part): part is LanguageModelV2ToolCall =>
+                    part.type === 'tool-call',
+                )
+                .map(toolCall =>
+                  parseToolCall({
+                    toolCall,
+                    tools,
+                    repairToolCall,
+                    system,
+                    messages: stepInputMessages,
+                  }),
+                ),
+            );
 
-          // execute tools:
-          currentToolResults =
-            tools == null
-              ? []
-              : await executeTools({
-                  toolCalls: currentToolCalls,
-                  tools,
-                  tracer,
-                  telemetry,
-                  messages: stepInputMessages,
-                  abortSignal,
-                });
+            // check if any tool requires confirmation:
+            hasToolRequiringConfirmation = currentToolCalls.some(
+              toolCall => tools?.[toolCall.toolName]?.requiresConfirmation === true
+            );
+
+            // execute tools (unless they require confirmation):
+            currentToolResults =
+              tools == null || hasToolRequiringConfirmation
+                ? []
+                : await executeTools({
+                    toolCalls: currentToolCalls,
+                    tools,
+                    tracer,
+                    telemetry,
+                    messages: stepInputMessages,
+                    abortSignal,
+                  });
+          }
 
           // content:
           const stepContent = asContent({
@@ -456,7 +512,9 @@ A function that attempts to repair a tool call that failed to parse.
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
-            finishReason: currentModelResponse.finishReason,
+            finishReason: hasToolRequiringConfirmation
+              ? 'tool-confirmation-required'
+              : currentModelResponse.finishReason,
             usage: currentModelResponse.usage,
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
@@ -475,6 +533,8 @@ A function that attempts to repair a tool call that failed to parse.
           currentToolCalls.length > 0 &&
           // all current tool calls have results:
           currentToolResults.length === currentToolCalls.length &&
+          // no tool requires confirmation:
+          !hasToolRequiringConfirmation &&
           // continue until a stop condition is met:
           !(await isStopConditionMet({ stopConditions, steps }))
         );
@@ -484,7 +544,9 @@ A function that attempts to repair a tool call that failed to parse.
           selectTelemetryAttributes({
             telemetry,
             attributes: {
-              'ai.response.finishReason': currentModelResponse.finishReason,
+              'ai.response.finishReason': hasToolRequiringConfirmation
+                ? 'tool-confirmation-required'
+                : currentModelResponse.finishReason,
               'ai.response.text': {
                 output: () => extractContentText(currentModelResponse.content),
               },

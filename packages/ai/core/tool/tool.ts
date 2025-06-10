@@ -50,6 +50,19 @@ Will be used by the language model to decide whether to use the tool.
 Not used for provider-defined tools.
    */
   description?: string;
+
+  /**
+Whether human approval is required before executing this tool.
+If true, the tool execution will require human approval before proceeding.
+   */
+  requiresHumanApproval?: boolean;
+
+  /**
+Whether confirmation is required before executing this tool.
+If true, the generation will stop after the tool call is generated but before execution,
+allowing for manual confirmation before proceeding.
+   */
+  requiresConfirmation?: boolean;
 } & NeverOptional<
   PARAMETERS,
   {
