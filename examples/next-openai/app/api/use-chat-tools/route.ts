@@ -29,8 +29,8 @@ export async function POST(req: Request) {
           ];
         },
 
-        onArgsComplete: ({ args }) => {
-          console.log('onArgsComplete', args);
+        onArgsAvailable: ({ args }) => {
+          console.log('onArgsAvailable', args);
         },
       }),
       // client-side tool that starts user interaction:
