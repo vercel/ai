@@ -5,6 +5,7 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
+  InferUIMessageStreamPart,
   isDataUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../ui-message-stream/ui-message-stream-parts';
@@ -12,21 +13,20 @@ import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
-  InferUIDataParts,
+  InferUIMessageData,
+  InferUIMessageMetadata,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
-  UIDataPartSchemas,
+  UIDataTypes,
+  UIDataTypesToSchemas,
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
 
-export type StreamingUIMessageState<
-  MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = {
-  message: UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
+export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
+  message: UI_MESSAGE;
   activeTextPart: TextUIPart | undefined;
   activeReasoningPart: ReasoningUIPart | undefined;
   partialToolCalls: Record<
@@ -37,23 +37,17 @@ export type StreamingUIMessageState<
 
 export function createStreamingUIMessageState<
   MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
+  UI_DATA_TYPES extends UIDataTypes = UIDataTypes,
 >({
   lastMessage,
   newMessageId = '',
 }: {
-  lastMessage?: UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >;
+  lastMessage?: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES>;
   newMessageId?: string;
-} = {}): StreamingUIMessageState<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
+} = {}): StreamingUIMessageState<UIMessage<MESSAGE_METADATA, UI_DATA_TYPES>> {
   const isContinuation = lastMessage?.role === 'assistant';
 
-  const message: UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  > = isContinuation
+  const message: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES> = isContinuation
     ? lastMessage
     : {
         id: newMessageId,
@@ -70,36 +64,39 @@ export function createStreamingUIMessageState<
   };
 }
 
-export function processUIMessageStream<
-  MESSAGE_METADATA,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
->({
+export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   stream,
   onToolCall,
   messageMetadataSchema,
   dataPartSchemas,
   runUpdateMessageJob,
 }: {
+  // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageStreamPart>;
   messageMetadataSchema?:
-    | Validator<MESSAGE_METADATA>
-    | StandardSchemaV1<MESSAGE_METADATA>;
-  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
+    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
+    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
+  dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: ToolCall<string, unknown>;
   }) => void | Promise<unknown> | unknown;
   runUpdateMessageJob: (
     job: (options: {
       state: StreamingUIMessageState<
-        NoInfer<MESSAGE_METADATA>,
-        NoInfer<UI_DATA_PART_SCHEMAS>
+        UIMessage<
+          InferUIMessageMetadata<UI_MESSAGE>,
+          InferUIMessageData<UI_MESSAGE>
+        >
       >;
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
-}): ReadableStream<UIMessageStreamPart> {
+}): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
   return stream.pipeThrough(
-    new TransformStream<UIMessageStreamPart, UIMessageStreamPart>({
+    new TransformStream<
+      UIMessageStreamPart,
+      InferUIMessageStreamPart<UI_MESSAGE>
+    >({
       async transform(part, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function updateToolInvocationPart(
@@ -136,7 +133,8 @@ export function processUIMessageStream<
                 });
               }
 
-              state.message.metadata = mergedMetadata as MESSAGE_METADATA;
+              state.message.metadata =
+                mergedMetadata as InferUIMessageMetadata<UI_MESSAGE>;
             }
           }
 
@@ -401,7 +399,7 @@ export function processUIMessageStream<
             }
           }
 
-          controller.enqueue(part);
+          controller.enqueue(part as InferUIMessageStreamPart<UI_MESSAGE>);
         });
       },
     }),
