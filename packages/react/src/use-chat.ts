@@ -1,7 +1,6 @@
 import {
   AbstractChat,
-  ChatInit as BaseChatInit,
-  ChatEvent,
+  ChatInit,
   InferUIDataParts,
   UIDataPartSchemas,
   type CreateUIMessage,
@@ -9,7 +8,6 @@ import {
 } from 'ai';
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
-import { throttle } from './throttle';
 
 export type { CreateUIMessage, UIMessage };
 
@@ -58,7 +56,7 @@ export type UseChatOptions<
   DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 > = (
   | { chat: Chat<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> }
-  | BaseChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
+  | ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
 ) & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
@@ -79,58 +77,28 @@ export function useChat<
 > {
   const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
 
-  const subscribe = useCallback(
-    ({
-      onStoreChange,
-      eventType,
-    }: {
-      onStoreChange: () => void;
-      eventType: ChatEvent['type'];
-    }) =>
-      chatRef.current.subscribe({
-        onChange: event => {
-          if (event.type !== eventType) return;
-          onStoreChange();
-        },
-      }),
-    [chatRef],
-  );
-
-  const addToolResult = useCallback(
-    (
-      options: Parameters<
-        Chat<MESSAGE_METADATA, DATA_PART_SCHEMAS>['addToolResult']
-      >[0],
-    ) => chatRef.current.addToolResult(options),
-    [chatRef],
-  );
-
-  const status = useSyncExternalStore(
-    callback =>
-      subscribe({
-        onStoreChange: callback,
-        eventType: 'status-changed',
-      }),
-    () => chatRef.current.status,
-    () => chatRef.current.status,
-  );
-
-  const subscribeToChatStoreForMessages = useCallback(
-    (callback: () => void) => {
-      return subscribe({
-        onStoreChange: throttleWaitMs
-          ? throttle(callback, throttleWaitMs)
-          : callback,
-        eventType: 'messages-changed',
-      });
-    },
-    [subscribe, throttleWaitMs],
+  const subscribeToMessages = useCallback(
+    (update: () => void) =>
+      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
+    [throttleWaitMs],
   );
 
   const messages = useSyncExternalStore(
-    callback => subscribeToChatStoreForMessages(callback),
+    subscribeToMessages,
     () => chatRef.current.messages,
     () => chatRef.current.messages,
+  );
+
+  const status = useSyncExternalStore(
+    chatRef.current['~registerStatusCallback'],
+    () => chatRef.current.status,
+    () => chatRef.current.status,
+  );
+
+  const error = useSyncExternalStore(
+    chatRef.current['~registerErrorCallback'],
+    () => chatRef.current.error,
+    () => chatRef.current.error,
   );
 
   const setMessages = useCallback(
@@ -153,7 +121,7 @@ export function useChat<
 
       chatRef.current.messages = messagesParam;
     },
-    [chatRef, messages],
+    [messages],
   );
 
   return {
@@ -163,9 +131,9 @@ export function useChat<
     sendMessage: chatRef.current.sendMessage,
     reload: chatRef.current.reload,
     stop: chatRef.current.stop,
-    error: chatRef.current.error,
+    error,
     experimental_resume: chatRef.current.experimental_resume,
     status,
-    addToolResult,
+    addToolResult: chatRef.current.addToolResult,
   };
 }
