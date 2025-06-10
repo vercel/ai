@@ -1,5 +1,5 @@
-import { UIDataTypes, UIMessage } from 'ai';
-import { z } from 'zod';
+import { UIMessage } from 'ai';
+import { z } from 'zod/v4';
 
 export const myMessageMetadataSchema = z.object({
   createdAt: z.number(),
@@ -7,16 +7,19 @@ export const myMessageMetadataSchema = z.object({
 
 export type MyMessageMetadata = z.infer<typeof myMessageMetadataSchema>;
 
-export const weatherDataPartSchema = z.object({
-  status: z.enum(['generating', 'available']),
-  result: z
-    .object({
+export const weatherDataPartSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('generating'),
+  }),
+  z.object({
+    status: z.literal('available'),
+    weather: z.object({
       city: z.string(),
       weather: z.string(),
       temperatureInCelsius: z.number(),
-    })
-    .optional(),
-});
+    }),
+  }),
+]);
 
 export type MyDataPartSchemas = {
   weather: z.infer<typeof weatherDataPartSchema>;

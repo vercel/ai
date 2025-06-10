@@ -27,8 +27,12 @@ export async function POST(req: Request) {
           ...message,
           parts: message.parts.flatMap(part => {
             if (part.type === 'data-weather') {
-              // TODO what if generating?
-              const result2 = part.data.result!;
+              if (part.data.status === 'generating') {
+                return []; // ignore generating parts
+              }
+
+              const weather = part.data.weather;
+
               return [
                 {
                   type: 'tool-invocation' as const,
@@ -36,13 +40,13 @@ export async function POST(req: Request) {
                     toolCallId: part.id!,
                     toolName: 'getWeather',
                     state: 'result' as const,
-                    args: { city: result2.city },
+                    args: { city: weather.city },
                     result: part.data,
                   },
                 },
                 {
                   type: 'text' as const,
-                  text: `The weather in ${result2.city} is currently ${result2.weather}, with a temperature of ${result2.temperatureInCelsius}°C.`,
+                  text: `The weather in ${weather.city} is currently ${weather.weather}, with a temperature of ${weather.temperatureInCelsius}°C.`,
                 },
               ];
             }
@@ -74,15 +78,15 @@ export async function POST(req: Request) {
             },
 
             async execute({ city }, { toolCallId }) {
-              const result = await callWeatherApi({ city });
+              const weather = await callWeatherApi({ city });
 
               writer.write({
                 type: 'data-weather',
                 id: toolCallId,
-                data: { status: 'available', result },
+                data: { status: 'available', weather },
               });
 
-              return result;
+              return weather;
             },
           }),
         },

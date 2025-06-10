@@ -33,7 +33,7 @@ export default function Message({ message }: { message: MyUIMessage }) {
               );
             }
 
-            const { temperatureInCelsius, weather, city } = part.data.result!;
+            const { temperatureInCelsius, weather, city } = part.data.weather;
             return (
               <div
                 key={index}
