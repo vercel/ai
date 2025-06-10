@@ -6,7 +6,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   isDataUIMessageStreamPart,
-  InferUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../ui-message-stream/ui-message-stream-parts';
 import { mergeObjects } from '../util/merge-objects';
@@ -20,7 +19,6 @@ import type {
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
-  UIDataPartSchemas,
   UIDataTypes,
   UIDataTypesToSchemas,
   UIMessage,
