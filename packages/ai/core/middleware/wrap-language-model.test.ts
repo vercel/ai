@@ -118,7 +118,7 @@ describe('wrapLanguageModel', () => {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
-    await wrappedModel.doStream(params);
+    await wrappedModel.doStream({ ...params, includeRawChunks: false });
 
     expect(transformParams).toHaveBeenCalledWith({
       params,
@@ -148,7 +148,7 @@ describe('wrapLanguageModel', () => {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
-    await wrappedModel.doStream(params);
+    await wrappedModel.doStream({ ...params, includeRawChunks: false });
 
     expect(wrapStream).toHaveBeenCalledWith({
       doGenerate: expect.any(Function),
@@ -291,7 +291,7 @@ describe('wrapLanguageModel', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
-      await wrappedModel.doStream(params);
+      await wrappedModel.doStream({ ...params, includeRawChunks: false });
 
       expect(transformParams1).toHaveBeenCalledWith({
         params,
@@ -391,7 +391,10 @@ describe('wrapLanguageModel', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
-      const result = await wrappedModel.doStream(params);
+      const result = await wrappedModel.doStream({
+        ...params,
+        includeRawChunks: false,
+      });
 
       // The middlewares should wrap in order, applying wrapStream2 last
       expect(result).toBe('wrapStream1(wrapStream2(final stream result))');
