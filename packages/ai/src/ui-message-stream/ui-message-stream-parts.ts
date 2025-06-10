@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { ProviderMetadata } from '../../core';
+import { ValueOf } from '../util/value-of';
+import { UIDataTypes } from '../ui';
 
 export const uiMessageStreamPartSchema = z.union([
   z.object({
@@ -88,13 +90,15 @@ export const uiMessageStreamPartSchema = z.union([
   }),
 ]);
 
-export type DataUIMessageStreamPart = {
-  type: `data-${string}`;
-  id?: string;
-  data: unknown;
-};
+export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
+  [NAME in keyof DATA_TYPES & string]: {
+    type: `data-${NAME}`;
+    id?: string;
+    data: DATA_TYPES[NAME];
+  };
+}>;
 
-export type UIMessageStreamPart =
+export type UIMessageStreamPart<DATA_TYPES extends UIDataTypes = UIDataTypes> =
   | {
       type: 'text';
       text: string;
@@ -150,7 +154,7 @@ export type UIMessageStreamPart =
       url: string;
       mediaType: string;
     }
-  | DataUIMessageStreamPart
+  | DataUIMessageStreamPart<DATA_TYPES>
   | {
       type: 'metadata';
       metadata: unknown;
@@ -178,6 +182,6 @@ export type UIMessageStreamPart =
 
 export function isDataUIMessageStreamPart(
   part: UIMessageStreamPart,
-): part is DataUIMessageStreamPart {
+): part is DataUIMessageStreamPart<UIDataTypes> {
   return part.type.startsWith('data-');
 }
