@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
   result.consumeStream(); // TODO always consume the stream even when the client disconnects
 
-  return result.toUIMessageStreamResponse<MyUIMessage>({
+  return result.toUIMessageStreamResponse({
     originalMessages: messages,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
