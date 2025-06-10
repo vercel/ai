@@ -5,6 +5,7 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
+  InferUIMessageStreamPart,
   isDataUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../ui-message-stream/ui-message-stream-parts';
@@ -90,19 +91,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
-}): ReadableStream<
-  UIMessageStreamPart<
-    InferUIMessageMetadata<UI_MESSAGE>,
-    InferUIMessageData<UI_MESSAGE>
-  >
-> {
+}): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
   return stream.pipeThrough(
     new TransformStream<
       UIMessageStreamPart,
-      UIMessageStreamPart<
-        InferUIMessageMetadata<UI_MESSAGE>,
-        InferUIMessageData<UI_MESSAGE>
-      >
+      InferUIMessageStreamPart<UI_MESSAGE>
     >({
       async transform(part, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
@@ -406,12 +399,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
           }
 
-          controller.enqueue(
-            part as UIMessageStreamPart<
-              InferUIMessageMetadata<UI_MESSAGE>,
-              InferUIMessageData<UI_MESSAGE>
-            >,
-          );
+          controller.enqueue(part as InferUIMessageStreamPart<UI_MESSAGE>);
         });
       },
     }),
