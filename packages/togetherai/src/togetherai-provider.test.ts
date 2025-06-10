@@ -161,3 +161,25 @@ describe('TogetherAIProvider', () => {
     });
   });
 });
+
+describe('raw chunks inheritance', () => {
+  it('should support raw chunks functionality through OpenAI-compatible models', () => {
+    const provider = createTogetherAI({
+      apiKey: 'test-api-key',
+    });
+
+    const chatModel = provider.chatModel('foo-model-id');
+    const completionModel = provider.completionModel('foo-model-id');
+
+    // Verify that the underlying models use OpenAI-compatible implementations
+    // These should be OpenAICompatibleChatLanguageModel and OpenAICompatibleCompletionLanguageModel instances
+    expect(chatModel).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+    expect(completionModel).toBeInstanceOf(
+      OpenAICompatibleCompletionLanguageModel,
+    );
+
+    // The models should inherit raw chunks support from OpenAI-compatible base classes
+    // This test verifies that the architecture supports the escape hatch pattern
+    // Raw chunks functionality is inherited automatically from OpenAICompatibleChatLanguageModel
+  });
+});

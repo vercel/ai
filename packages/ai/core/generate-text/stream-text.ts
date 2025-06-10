@@ -939,6 +939,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     providerOptions,
                     abortSignal,
                     headers,
+                    includeRawChunks: false,
                   }),
                 };
               },

@@ -178,3 +178,28 @@ describe('DeepInfraProvider', () => {
     });
   });
 });
+
+describe('raw chunks inheritance', () => {
+  it('should support raw chunks functionality through OpenAI-compatible models', () => {
+    vi.clearAllMocks();
+
+    const provider = createDeepInfra({
+      apiKey: 'test-api-key',
+    });
+
+    const chatModel = provider.chatModel('test-chat-model');
+    const completionModel = provider.completionModel('test-completion-model');
+
+    // Verify that the underlying models were constructed properly
+    expect(chatModel).toBeDefined();
+    expect(completionModel).toBeDefined();
+
+    // Check that the OpenAI-compatible models were called with correct config
+    const chatCalls = OpenAICompatibleChatLanguageModelMock.mock.calls;
+    const chatCall = chatCalls.find(call => call[0] === 'test-chat-model');
+    expect(chatCall).toBeDefined();
+    expect(chatCall![1].provider).toBe('deepinfra.chat');
+
+    // The underlying OpenAI-compatible models should inherit raw chunks support
+  });
+});

@@ -810,6 +810,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -884,6 +885,7 @@ describe('doStream', () => {
           },
         },
       ],
+      includeRawChunks: false,
     });
 
     const responseArray = await convertReadableStreamToArray(stream);
@@ -1016,6 +1018,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1051,6 +1054,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -1069,6 +1073,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1102,6 +1107,7 @@ describe('doStream', () => {
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
+      includeRawChunks: false,
     });
 
     expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -1117,6 +1123,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -1177,6 +1184,7 @@ describe('doStream', () => {
           },
         },
       ],
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1214,5 +1222,95 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should include raw chunks when includeRawChunks is enabled', async () => {
+    prepareStreamResponse({
+      content: ['Hello', ' World!'],
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    // Filter to just the raw chunks for easier testing
+    const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
+
+    // Should have raw chunks for each server-sent event
+    expect(rawChunks.length).toBeGreaterThan(0);
+
+    // Verify the raw chunks structure
+    expect(rawChunks).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "raw",
+          "value": {
+            "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+            "type": "message-start",
+          },
+        },
+        {
+          "type": "raw",
+          "value": {
+            "delta": {
+              "message": {
+                "content": {
+                  "text": "Hello",
+                },
+              },
+            },
+            "type": "content-delta",
+          },
+        },
+        {
+          "type": "raw",
+          "value": {
+            "delta": {
+              "message": {
+                "content": {
+                  "text": " World!",
+                },
+              },
+            },
+            "type": "content-delta",
+          },
+        },
+        {
+          "type": "raw",
+          "value": {
+            "delta": {
+              "finish_reason": "COMPLETE",
+              "usage": {
+                "tokens": {
+                  "input_tokens": 17,
+                  "output_tokens": 244,
+                },
+              },
+            },
+            "type": "message-end",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should not include raw chunks when includeRawChunks is false', async () => {
+    prepareStreamResponse({
+      content: ['Hello', ' World!'],
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    // Should have no raw chunks
+    const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
+    expect(rawChunks).toHaveLength(0);
   });
 });

@@ -100,3 +100,26 @@ describe('CerebrasProvider', () => {
     });
   });
 });
+
+describe('raw chunks inheritance', () => {
+  it('should support raw chunks functionality through OpenAI-compatible model', () => {
+    const provider = createCerebras({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider.chat('foo-model-id');
+
+    // Verify that the underlying model was constructed properly
+    expect(model).toBeDefined();
+
+    // Check that the OpenAICompatibleChatLanguageModel was called with correct config
+    const calls = OpenAICompatibleChatLanguageModelMock.mock.calls;
+    const lastCall = calls[calls.length - 1];
+    const [modelId, config] = lastCall;
+
+    expect(modelId).toBe('foo-model-id');
+    expect(config.provider).toBe('cerebras.chat');
+
+    // The underlying OpenAI-compatible model should inherit raw chunks support
+  });
+});

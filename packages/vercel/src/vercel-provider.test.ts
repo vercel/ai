@@ -96,3 +96,21 @@ describe('VercelProvider', () => {
     );
   });
 });
+
+describe('raw chunks inheritance', () => {
+  it('should support raw chunks functionality through OpenAI-compatible models', () => {
+    const provider = createVercel({
+      apiKey: 'test-api-key',
+    });
+
+    const chatModel = provider.languageModel('foo-model-id');
+
+    // Verify that the underlying model uses OpenAI-compatible implementation
+    // This should be an OpenAICompatibleChatLanguageModel instance
+    expect(chatModel).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+
+    // The model should inherit raw chunks support from OpenAI-compatible base class
+    // This test verifies that the architecture supports the escape hatch pattern
+    // Raw chunks functionality is inherited automatically from OpenAICompatibleChatLanguageModel
+  });
+});

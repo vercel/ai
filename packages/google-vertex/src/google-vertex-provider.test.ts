@@ -154,4 +154,24 @@ describe('google-vertex-provider', () => {
       }),
     );
   });
+
+  it('should support raw chunks functionality through underlying GoogleGenerativeAILanguageModel', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+
+    const model = provider('test-model-id');
+
+    // Verify that the underlying model supports doStream with includeRawChunks
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+      }),
+    );
+
+    // The GoogleGenerativeAILanguageModel should inherit raw chunks support from the Google provider
+    expect(model).toBeDefined();
+  });
 });

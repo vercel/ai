@@ -593,6 +593,7 @@ describe('GatewayLanguageModel', () => {
 
       const { stream } = await createTestModel().doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toEqual([
@@ -617,6 +618,7 @@ describe('GatewayLanguageModel', () => {
 
       await createTestModel().doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const headers = server.calls[0].requestHeaders;
@@ -638,6 +640,7 @@ describe('GatewayLanguageModel', () => {
       await createTestModel().doStream({
         prompt: TEST_PROMPT,
         abortSignal: signal,
+        includeRawChunks: false,
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
@@ -659,6 +662,7 @@ describe('GatewayLanguageModel', () => {
       }).doStream({
         prompt: TEST_PROMPT,
         abortSignal: signal,
+        includeRawChunks: false,
       });
 
       expect(mockFetch).toHaveBeenCalled();
@@ -677,6 +681,7 @@ describe('GatewayLanguageModel', () => {
         fetch: mockFetch,
       }).doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(mockFetch).toHaveBeenCalled();
@@ -697,6 +702,7 @@ describe('GatewayLanguageModel', () => {
 
       await createTestModel({ o11yHeaders }).doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const headers = server.calls[0].requestHeaders;
@@ -718,7 +724,7 @@ describe('GatewayLanguageModel', () => {
       const model = createTestModel();
 
       try {
-        await model.doStream({ prompt: TEST_PROMPT });
+        await model.doStream({ prompt: TEST_PROMPT, includeRawChunks: false });
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(GatewayRateLimitError.isInstance(error)).toBe(true);
@@ -744,7 +750,7 @@ describe('GatewayLanguageModel', () => {
       const model = createTestModel();
 
       try {
-        await model.doStream({ prompt: TEST_PROMPT });
+        await model.doStream({ prompt: TEST_PROMPT, includeRawChunks: false });
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
@@ -770,7 +776,7 @@ describe('GatewayLanguageModel', () => {
       const model = createTestModel();
 
       try {
-        await model.doStream({ prompt: TEST_PROMPT });
+        await model.doStream({ prompt: TEST_PROMPT, includeRawChunks: false });
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(GatewayInvalidRequestError.isInstance(error)).toBe(true);
@@ -791,7 +797,7 @@ describe('GatewayLanguageModel', () => {
       const model = createTestModel();
 
       try {
-        await model.doStream({ prompt: TEST_PROMPT });
+        await model.doStream({ prompt: TEST_PROMPT, includeRawChunks: false });
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(GatewayResponseError.isInstance(error)).toBe(true);
@@ -807,6 +813,7 @@ describe('GatewayLanguageModel', () => {
 
         await createTestModel().doStream({
           prompt: TEST_PROMPT,
+          includeRawChunks: false,
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
@@ -829,6 +836,7 @@ describe('GatewayLanguageModel', () => {
 
         await createTestModel().doStream({
           prompt: imagePrompt,
+          includeRawChunks: false,
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
@@ -857,6 +865,7 @@ describe('GatewayLanguageModel', () => {
 
         await createTestModel().doStream({
           prompt: imagePrompt,
+          includeRawChunks: false,
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
@@ -885,6 +894,7 @@ describe('GatewayLanguageModel', () => {
 
         await createTestModel().doStream({
           prompt: imagePrompt,
+          includeRawChunks: false,
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
@@ -915,6 +925,7 @@ describe('GatewayLanguageModel', () => {
 
         await createTestModel().doStream({
           prompt: imagePrompt,
+          includeRawChunks: false,
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
@@ -984,7 +995,10 @@ describe('GatewayLanguageModel', () => {
         const model = createTestModel({ fetch: mockFetch });
 
         try {
-          await model.doStream({ prompt: TEST_PROMPT });
+          await model.doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          });
           expect.fail('Should have thrown an error');
         } catch (error: unknown) {
           expect(GatewayResponseError.isInstance(error)).toBe(true);
@@ -1019,6 +1033,108 @@ describe('GatewayLanguageModel', () => {
           expect(authError.cause).toBeDefined();
         }
       });
+    });
+  });
+
+  describe('raw chunks filtering', () => {
+    it('should filter raw chunks based on includeRawChunks option', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"raw","value":{"id":"test-chunk","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}}\n\n`,
+          `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
+          `data: {"type":"raw","value":{"id":"test-chunk-2","object":"chat.completion.chunk","choices":[{"delta":{"content":" world"}}]}}\n\n`,
+          `data: {"type":"text-delta","textDelta":" world"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false, // Raw chunks should be filtered out
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "textDelta": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": " world",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should include raw chunks when includeRawChunks is true', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"raw","value":{"id":"test-chunk","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}}\n\n`,
+          `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true, // Raw chunks should be included
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "type": "raw",
+            "value": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "Hello",
+                  },
+                },
+              ],
+              "id": "test-chunk",
+              "object": "chat.completion.chunk",
+            },
+          },
+          {
+            "textDelta": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+            },
+          },
+        ]
+      `);
     });
   });
 });

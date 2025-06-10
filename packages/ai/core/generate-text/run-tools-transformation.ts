@@ -134,6 +134,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        // skip raw chunks - they are not forwarded in the tools transformation
+        case 'raw': {
+          break;
+        }
+
         case 'file': {
           controller.enqueue({
             type: 'file',

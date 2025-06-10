@@ -72,7 +72,8 @@ const doWrap = ({
     ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
       const transformedParams = await doTransform({ params, type: 'generate' });
       const doGenerate = async () => model.doGenerate(transformedParams);
-      const doStream = async () => model.doStream(transformedParams);
+      const doStream = async () =>
+        model.doStream({ ...transformedParams, includeRawChunks: false });
       return wrapGenerate
         ? wrapGenerate({
             doGenerate,
@@ -88,7 +89,8 @@ const doWrap = ({
     ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
       const transformedParams = await doTransform({ params, type: 'stream' });
       const doGenerate = async () => model.doGenerate(transformedParams);
-      const doStream = async () => model.doStream(transformedParams);
+      const doStream = async () =>
+        model.doStream({ ...transformedParams, includeRawChunks: false });
       return wrapStream
         ? wrapStream({ doGenerate, doStream, params: transformedParams, model })
         : doStream();

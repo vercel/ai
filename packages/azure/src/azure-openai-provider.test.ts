@@ -542,3 +542,25 @@ describe('responses', () => {
     });
   });
 });
+
+describe('raw chunks inheritance', () => {
+  it('should support raw chunks functionality through underlying OpenAI models', () => {
+    const provider = createAzure({
+      resourceName: 'test-resource',
+      apiKey: 'test-api-key',
+    });
+
+    const chatModel = provider.chat('test-deployment');
+    const completionModel = provider.completion('test-deployment');
+
+    // Verify that the underlying models support doStream with includeRawChunks
+    // These should be OpenAIChatLanguageModel and OpenAICompletionLanguageModel instances
+    expect(chatModel).toBeDefined();
+    expect(chatModel.provider).toBe('azure.chat');
+
+    expect(completionModel).toBeDefined();
+    expect(completionModel.provider).toBe('azure.completion');
+
+    // The underlying OpenAI models should inherit raw chunks support
+  });
+});

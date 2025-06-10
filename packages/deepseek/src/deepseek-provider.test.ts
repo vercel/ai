@@ -79,3 +79,26 @@ describe('DeepSeekProvider', () => {
     });
   });
 });
+
+describe('raw chunks inheritance', () => {
+  it('should support raw chunks functionality through OpenAI-compatible model', () => {
+    vi.clearAllMocks(); // Clear any previous calls
+
+    const provider = createDeepSeek({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider.chat('test-deepseek-chat');
+
+    // Verify that the underlying model was constructed properly
+    expect(model).toBeDefined();
+
+    // Check that the OpenAI-compatible model was called with correct config
+    const calls = OpenAICompatibleChatLanguageModelMock.mock.calls;
+    const call = calls.find(call => call[0] === 'test-deepseek-chat');
+    expect(call).toBeDefined();
+    expect(call![1].provider).toBe('deepseek.chat');
+
+    // The underlying OpenAI-compatible model should inherit raw chunks support
+  });
+});

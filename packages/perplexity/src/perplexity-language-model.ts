@@ -266,6 +266,11 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
 
             const value = chunk.value;
 
+            // Emit raw chunk if requested
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', value });
+            }
+
             if (isFirstChunk) {
               controller.enqueue({
                 type: 'response-metadata',

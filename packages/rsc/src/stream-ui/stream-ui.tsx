@@ -182,7 +182,7 @@ functionality that can be fully encapsulated in the provider.
       if ('render' in tool) {
         throw new Error(
           'Tool definition in `streamUI` should not have `render` property. Use `generate` instead. Found in tool: ' +
-            name,
+          name,
         );
       }
     }
@@ -276,6 +276,7 @@ functionality that can be fully encapsulated in the provider.
       providerOptions,
       abortSignal,
       headers,
+      includeRawChunks: false,
     }),
   );
 

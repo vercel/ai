@@ -285,6 +285,11 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
             const value = chunk.value;
 
+            // Emit raw chunk if requested
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', value });
+            }
+
             // handle error chunks:
             if ('error' in value) {
               finishReason = 'error';

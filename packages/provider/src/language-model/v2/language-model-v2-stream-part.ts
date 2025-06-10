@@ -34,6 +34,12 @@ export type LanguageModelV2StreamPart =
       providerMetadata?: SharedV2ProviderMetadata;
     }
 
+  // raw chunks if enabled
+  | {
+      type: 'raw';
+      value: unknown;
+    }
+
   // error parts are streamed, allowing for multiple errors
   | {
       type: 'error';

@@ -701,6 +701,7 @@ describe('XaiChatLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -752,6 +753,7 @@ describe('XaiChatLanguageModel', () => {
             content: [{ type: 'text', text: 'prefix ' }],
           },
         ],
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -821,6 +823,7 @@ describe('XaiChatLanguageModel', () => {
           },
         ],
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -871,6 +874,7 @@ describe('XaiChatLanguageModel', () => {
 
       const { response } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(response?.headers).toStrictEqual({
@@ -889,6 +893,7 @@ describe('XaiChatLanguageModel', () => {
 
       await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -916,6 +921,7 @@ describe('XaiChatLanguageModel', () => {
 
       await modelWithHeaders.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
@@ -934,6 +940,7 @@ describe('XaiChatLanguageModel', () => {
 
       const { request } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(request).toMatchInlineSnapshot(`
@@ -982,6 +989,7 @@ describe('XaiChatLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
         providerOptions: {
           xai: {
             searchParameters: {
@@ -1179,6 +1187,7 @@ describe('XaiChatLanguageModel', () => {
 
       const { stream } = await reasoningModel.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
         providerOptions: {
           xai: { reasoningEffort: 'low' },
         },
@@ -1221,5 +1230,123 @@ describe('XaiChatLanguageModel', () => {
         ]
       `);
     });
+  });
+});
+
+describe('doStream with raw chunks', () => {
+  it('should stream raw chunks when includeRawChunks is true', async () => {
+    server.urls['https://api.x.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-456","object":"chat.completion.chunk","created":1234567890,"model":"grok-beta","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-789","object":"chat.completion.chunk","created":1234567890,"model":"grok-beta","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15},"citations":["https://example.com"]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "type": "raw",
+          "value": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                  "role": "assistant",
+                },
+                "finish_reason": null,
+                "index": 0,
+              },
+            ],
+            "created": 1234567890,
+            "id": "chatcmpl-123",
+            "model": "grok-beta",
+          },
+        },
+        {
+          "id": "chatcmpl-123",
+          "modelId": "grok-beta",
+          "timestamp": 2009-02-13T23:31:30.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "type": "raw",
+          "value": {
+            "choices": [
+              {
+                "delta": {
+                  "content": " world",
+                },
+                "finish_reason": null,
+                "index": 0,
+              },
+            ],
+            "created": 1234567890,
+            "id": "chatcmpl-456",
+            "model": "grok-beta",
+          },
+        },
+        {
+          "text": " world",
+          "type": "text",
+        },
+        {
+          "type": "raw",
+          "value": {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+                "index": 0,
+              },
+            ],
+            "citations": [
+              "https://example.com",
+            ],
+            "created": 1234567890,
+            "id": "chatcmpl-789",
+            "model": "grok-beta",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
+          },
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "type": "source",
+          "url": "https://example.com",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 5,
+            "reasoningTokens": undefined,
+            "totalTokens": 15,
+          },
+        },
+      ]
+    `);
   });
 });
