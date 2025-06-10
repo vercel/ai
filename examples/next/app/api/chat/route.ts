@@ -27,6 +27,8 @@ export async function POST(req: Request) {
           ...message,
           parts: message.parts.flatMap(part => {
             if (part.type === 'data-weather') {
+              // TODO what if generating?
+              const result2 = part.data.result!;
               return [
                 {
                   type: 'tool-invocation' as const,
@@ -34,13 +36,13 @@ export async function POST(req: Request) {
                     toolCallId: part.id!,
                     toolName: 'getWeather',
                     state: 'result' as const,
-                    args: { city: part.data.city },
+                    args: { city: result2.city },
                     result: part.data,
                   },
                 },
                 {
                   type: 'text' as const,
-                  text: `The weather in ${part.data.city} is currently ${part.data.weather}, with a temperature of ${part.data.temperatureInCelsius}°C.`,
+                  text: `The weather in ${result2.city} is currently ${result2.weather}, with a temperature of ${result2.temperatureInCelsius}°C.`,
                 },
               ];
             }
@@ -57,18 +59,27 @@ export async function POST(req: Request) {
       const result = streamText({
         model: 'openai/gpt-4o',
         prompt,
+        toolCallStreaming: true, // TODO remove
         tools: {
           getWeather: tool({
             description: 'show the weather in a given city to the user',
             parameters: z.object({ city: z.string() }),
+
+            onArgsStreamingStart(options) {
+              writer.write({
+                type: 'data-weather',
+                id: options.toolCallId,
+                data: { status: 'generating' },
+              });
+            },
+
             async execute({ city }, { toolCallId }) {
               const result = await callWeatherApi({ city });
 
-              // TODO: type safety
               writer.write({
                 type: 'data-weather',
                 id: toolCallId,
-                data: result,
+                data: { status: 'available', result },
               });
 
               return result;

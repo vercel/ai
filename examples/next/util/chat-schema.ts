@@ -8,9 +8,14 @@ export const myMessageMetadataSchema = z.object({
 export type MyMessageMetadata = z.infer<typeof myMessageMetadataSchema>;
 
 export const weatherDataPartSchema = z.object({
-  city: z.string(),
-  weather: z.string(),
-  temperatureInCelsius: z.number(),
+  status: z.enum(['generating', 'available']),
+  result: z
+    .object({
+      city: z.string(),
+      weather: z.string(),
+      temperatureInCelsius: z.number(),
+    })
+    .optional(),
 });
 
 export type MyDataPartSchemas = {
