@@ -52,7 +52,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  private async getArgs({
+  private getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -69,7 +69,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     const {
       messages: chatPrompt,
       documents: cohereDocuments,
-      warnings: documentWarnings,
+      warnings: promptWarnings,
     } = convertToCohereChatPrompt(prompt);
 
     const {
@@ -109,14 +109,14 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         // documents for RAG:
         ...(cohereDocuments.length > 0 && { documents: cohereDocuments }),
       },
-      warnings: [...toolWarnings, ...documentWarnings],
+      warnings: [...toolWarnings, ...promptWarnings],
     };
   }
 
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const {
       responseHeaders,
@@ -137,30 +137,28 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // text content:
-    const text = response.message.content?.[0]?.text;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
+    if (
+      response.message.content?.[0]?.text != null &&
+      response.message.content?.[0]?.text.length > 0
+    ) {
+      content.push({ type: 'text', text: response.message.content[0].text });
     }
 
     // citations:
     for (const citation of response.message.citations ?? []) {
-      // Get the first source document for the title
-      const firstSource = citation.sources[0];
-      const documentTitle = firstSource?.document?.title;
-
       content.push({
         type: 'source',
         sourceType: 'document',
         id: this.config.generateId(),
         mediaType: 'text/plain',
-        title: documentTitle,
+        title: citation.sources[0]?.document?.title || 'Document',
         providerMetadata: {
           cohere: {
             start: citation.start,
             end: citation.end,
             text: citation.text,
             sources: citation.sources,
-            citationType: citation.type,
+            ...(citation.type && { citationType: citation.type }),
           },
         },
       });
@@ -203,7 +201,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
@@ -401,16 +399,16 @@ const cohereChatResponseSchema = z.object({
           text: z.string(),
           sources: z.array(
             z.object({
-              type: z.string(),
-              id: z.string(),
+              type: z.string().optional(),
+              id: z.string().optional(),
               document: z.object({
-                id: z.string(),
+                id: z.string().optional(),
                 text: z.string(),
                 title: z.string(),
               }),
             }),
           ),
-          type: z.string(),
+          type: z.string().optional(),
         }),
       )
       .nullish(),

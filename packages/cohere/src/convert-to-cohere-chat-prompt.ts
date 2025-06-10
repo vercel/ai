@@ -5,23 +5,6 @@ import {
 } from '@ai-sdk/provider';
 import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
 
-function isSupportedTextMediaType(mediaType?: string): boolean {
-  if (!mediaType) return false;
-
-  switch (mediaType) {
-    // Basic text formats that can be processed as documents
-    case 'text/plain':
-    case 'text/markdown':
-    case 'text/csv':
-    case 'application/json':
-      return true;
-
-    default:
-      // Also support any other text/* media types
-      return mediaType.startsWith('text/');
-  }
-}
-
 export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
   messages: CohereChatPrompt;
   documents: Array<{
@@ -58,10 +41,12 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
                     textContent = part.data;
                   } else if (part.data instanceof Uint8Array) {
                     // Check if the media type is supported for text extraction
-                    const isSupported = isSupportedTextMediaType(
-                      part.mediaType,
-                    );
-                    if (!isSupported) {
+                    if (
+                      !(
+                        part.mediaType?.startsWith('text/') ||
+                        part.mediaType === 'application/json'
+                      )
+                    ) {
                       throw new UnsupportedFunctionalityError({
                         functionality: `document media type: ${part.mediaType}`,
                         message: `Media type '${part.mediaType}' is not supported. Supported media types are: text/plain, text/markdown, text/csv, application/json, and other text/* types.`,
@@ -69,7 +54,11 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
                     }
                     textContent = new TextDecoder().decode(part.data);
                   } else {
-                    textContent = String(part.data);
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'File URL data',
+                      message:
+                        'URLs should be downloaded by the AI SDK and not reach this point. This indicates a configuration issue.',
+                    });
                   }
 
                   documents.push({
