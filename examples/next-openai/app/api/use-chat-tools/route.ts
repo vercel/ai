@@ -29,6 +29,12 @@ export async function POST(req: Request) {
           ];
         },
 
+        onArgsStreamingStart: () => {
+          console.log('onArgsStreamingStart');
+        },
+        onArgsStreamingDelta: ({ argsTextDelta }) => {
+          console.log('onArgsStreamingDelta', argsTextDelta);
+        },
         onArgsAvailable: ({ args }) => {
           console.log('onArgsAvailable', args);
         },
