@@ -71,7 +71,8 @@ describe('config', () => {
 describe('doGenerate', () => {
   function prepareJsonResponse({
     content = '',
-    reasoning_content = '',
+    reasoning_content,
+    reasoning,
     tool_calls,
     function_call,
     usage = {
@@ -87,6 +88,7 @@ describe('doGenerate', () => {
   }: {
     content?: string;
     reasoning_content?: string;
+    reasoning?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -133,6 +135,7 @@ describe('doGenerate', () => {
               role: 'assistant',
               content,
               reasoning_content,
+              reasoning,
               tool_calls,
               function_call,
             },
@@ -172,7 +175,7 @@ describe('doGenerate', () => {
     expect(text).toStrictEqual('Hello, World!');
   });
 
-  it('should extract reasoning content', async () => {
+  it('should extract reasoning content when incomming reasoning_content field', async () => {
     prepareJsonResponse({
       content: 'Hello, World!',
       reasoning_content: 'This is the reasoning behind the response',
@@ -188,6 +191,41 @@ describe('doGenerate', () => {
     expect(reasoning).toStrictEqual(
       'This is the reasoning behind the response',
     );
+  });
+
+  it('should extract reasoning content when incomming reasoning field', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning: 'This is the reasoning behind the response',
+    });
+
+    const { text, reasoning } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Hello, World!');
+    expect(reasoning).toStrictEqual(
+      'This is the reasoning behind the response',
+    );
+  });
+
+  it('should extract reasoning content when incomming reasoning_content and reasoning fields', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning_content: '123',
+      reasoning: '456',
+    });
+
+    const { text, reasoning } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Hello, World!');
+    expect(reasoning).toStrictEqual('123');
   });
 
   it('should extract usage', async () => {
@@ -289,7 +327,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '335',
+      'content-length': '312',
       'content-type': 'application/json',
 
       // custom header
