@@ -6,9 +6,11 @@ import {
   processUIMessageStream,
   StreamingUIMessageState,
 } from './process-ui-message-stream';
-import { UIMessage } from './ui-messages';
+import { UIDataTypes, UIMessage } from './ui-messages';
 
-function createUIMessageStream(parts: UIMessageStreamPart[]) {
+function createUIMessageStream(
+  parts: UIMessageStreamPart<unknown, UIDataTypes>[],
+) {
   return convertArrayToReadableStream(parts);
 }
 

@@ -12,7 +12,7 @@ export function handleUIMessageStreamFinish({
   onFinish,
   stream,
 }: {
-  stream: ReadableStream<UIMessageStreamPart<UIDataTypes>>;
+  stream: ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>;
 
   newMessageId: string;
 

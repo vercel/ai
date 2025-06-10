@@ -5,7 +5,7 @@ import { createUIMessageStream } from './create-ui-message-stream';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 import { consumeStream } from '../util/consume-stream';
-import { UIDataTypes } from '../ui';
+import { UIDataTypes, UIMessage } from '../ui';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
@@ -78,10 +78,10 @@ describe('createUIMessageStream', () => {
 
   it('should forward elements from multiple streams and data parts', async () => {
     let controller1: ReadableStreamDefaultController<
-      UIMessageStreamPart<UIDataTypes>
+      UIMessageStreamPart<unknown, UIDataTypes>
     >;
     let controller2: ReadableStreamDefaultController<
-      UIMessageStreamPart<UIDataTypes>
+      UIMessageStreamPart<unknown, UIDataTypes>
     >;
 
     const stream = createUIMessageStream({
@@ -168,10 +168,10 @@ describe('createUIMessageStream', () => {
 
   it('should add error parts when stream errors', async () => {
     let controller1: ReadableStreamDefaultController<
-      UIMessageStreamPart<UIDataTypes>
+      UIMessageStreamPart<unknown, UIDataTypes>
     >;
     let controller2: ReadableStreamDefaultController<
-      UIMessageStreamPart<UIDataTypes>
+      UIMessageStreamPart<unknown, UIDataTypes>
     >;
 
     const stream = createUIMessageStream({
@@ -259,7 +259,7 @@ describe('createUIMessageStream', () => {
   });
 
   it('should suppress error when writing to closed stream', async () => {
-    let uiMessageStreamWriter: UIMessageStreamWriter;
+    let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -278,12 +278,12 @@ describe('createUIMessageStream', () => {
   });
 
   it('should support writing from delayed merged streams', async () => {
-    let uiMessageStreamWriter: UIMessageStreamWriter;
+    let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
     let controller1: ReadableStreamDefaultController<
-      UIMessageStreamPart<UIDataTypes>
+      UIMessageStreamPart<unknown, UIDataTypes>
     >;
     let controller2: ReadableStreamDefaultController<
-      UIMessageStreamPart<UIDataTypes>
+      UIMessageStreamPart<unknown, UIDataTypes>
     >;
     let done = false;
 
@@ -302,7 +302,7 @@ describe('createUIMessageStream', () => {
       },
     });
 
-    const result: UIMessageStreamPart<UIDataTypes>[] = [];
+    const result: UIMessageStreamPart<unknown, UIDataTypes>[] = [];
     const reader = stream.getReader();
     async function pull() {
       const { value, done } = await reader.read();

@@ -14,5 +14,5 @@ export interface ChatTransport<
       abortSignal: AbortSignal | undefined;
       requestType: 'generate' | 'resume'; // TODO have separate functions
     } & ChatRequestOptions,
-  ) => Promise<ReadableStream<UIMessageStreamPart>>;
+  ) => Promise<ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>>;
 }

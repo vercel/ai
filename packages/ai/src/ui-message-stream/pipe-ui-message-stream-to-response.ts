@@ -4,6 +4,7 @@ import { writeToServerResponse } from '../util/write-to-server-response';
 import { uiMessageStreamHeaders } from './ui-message-stream-headers';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
+import { UIDataTypes } from '../ui';
 
 export function pipeUIMessageStreamToResponse({
   response,
@@ -13,7 +14,7 @@ export function pipeUIMessageStreamToResponse({
   stream,
 }: {
   response: ServerResponse;
-  stream: ReadableStream<UIMessageStreamPart>;
+  stream: ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>;
 } & ResponseInit): void {
   writeToServerResponse({
     response,

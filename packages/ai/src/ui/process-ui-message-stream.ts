@@ -18,6 +18,7 @@ import type {
   ToolInvocation,
   ToolInvocationUIPart,
   UIDataPartSchemas,
+  UIDataTypes,
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
@@ -80,7 +81,8 @@ export function processUIMessageStream<
   dataPartSchemas,
   runUpdateMessageJob,
 }: {
-  stream: ReadableStream<UIMessageStreamPart>;
+  // input stream is not fully typed yet:
+  stream: ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>;
   messageMetadataSchema?:
     | Validator<MESSAGE_METADATA>
     | StandardSchemaV1<MESSAGE_METADATA>;
@@ -97,9 +99,17 @@ export function processUIMessageStream<
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
-}): ReadableStream<UIMessageStreamPart> {
+}): ReadableStream<
+  UIMessageStreamPart<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
+> {
   return stream.pipeThrough(
-    new TransformStream<UIMessageStreamPart, UIMessageStreamPart>({
+    new TransformStream<
+      UIMessageStreamPart<unknown, UIDataTypes>,
+      UIMessageStreamPart<
+        MESSAGE_METADATA,
+        InferUIDataParts<UI_DATA_PART_SCHEMAS>
+      >
+    >({
       async transform(part, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function updateToolInvocationPart(
@@ -401,7 +411,12 @@ export function processUIMessageStream<
             }
           }
 
-          controller.enqueue(part);
+          controller.enqueue(
+            part as UIMessageStreamPart<
+              MESSAGE_METADATA,
+              InferUIDataParts<UI_DATA_PART_SCHEMAS>
+            >,
+          );
         });
       },
     }),

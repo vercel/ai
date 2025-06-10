@@ -10,7 +10,7 @@ export function createUIMessageStreamResponse({
   headers,
   stream,
 }: ResponseInit & {
-  stream: ReadableStream<UIMessageStreamPart<UIDataTypes>>;
+  stream: ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>;
 }): Response {
   return new Response(
     stream
