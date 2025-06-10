@@ -1,13 +1,37 @@
 import {
+  LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
 
-export function convertToCohereChatPrompt(
-  prompt: LanguageModelV2Prompt,
-): CohereChatPrompt {
+function isSupportedTextMediaType(mediaType?: string): boolean {
+  if (!mediaType) return false;
+
+  switch (mediaType) {
+    // Basic text formats that can be processed as documents
+    case 'text/plain':
+    case 'text/markdown':
+    case 'text/csv':
+    case 'application/json':
+      return true;
+
+    default:
+      // Also support any other text/* media types
+      return mediaType.startsWith('text/');
+  }
+}
+
+export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
+  messages: CohereChatPrompt;
+  documents: Array<{
+    data: { text: string; title?: string };
+  }>;
+  warnings: LanguageModelV2CallWarning[];
+} {
   const messages: CohereChatPrompt = [];
+  const documents: Array<{ data: { text: string; title?: string } }> = [];
+  const warnings: LanguageModelV2CallWarning[] = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -26,6 +50,35 @@ export function convertToCohereChatPrompt(
                   return part.text;
                 }
                 case 'file': {
+                  // Extract documents for RAG
+                  let textContent: string;
+
+                  if (typeof part.data === 'string') {
+                    // Base64 or text data
+                    textContent = part.data;
+                  } else if (part.data instanceof Uint8Array) {
+                    // Check if the media type is supported for text extraction
+                    const isSupported = isSupportedTextMediaType(
+                      part.mediaType,
+                    );
+                    if (!isSupported) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `document media type: ${part.mediaType}`,
+                        message: `Media type '${part.mediaType}' is not supported. Supported media types are: text/plain, text/markdown, text/csv, application/json, and other text/* types.`,
+                      });
+                    }
+                    textContent = new TextDecoder().decode(part.data);
+                  } else {
+                    textContent = String(part.data);
+                  }
+
+                  documents.push({
+                    data: {
+                      text: textContent,
+                      title: part.filename,
+                    },
+                  });
+
                   // Files are handled separately via the documents parameter
                   // Return empty string to not include file content in message text
                   return '';
@@ -88,5 +141,5 @@ export function convertToCohereChatPrompt(
     }
   }
 
-  return messages;
+  return { messages, documents, warnings };
 }

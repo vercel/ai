@@ -1,10 +1,12 @@
 import {
   LanguageModelV2,
+  LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -30,66 +32,6 @@ type CohereChatConfig = {
   generateId: () => string;
 };
 
-const cohereChatResponseSchema = z.object({
-  generation_id: z.string().nullish(),
-  message: z.object({
-    role: z.string(),
-    content: z
-      .array(
-        z.object({
-          type: z.string(),
-          text: z.string(),
-        }),
-      )
-      .nullish(),
-    tool_plan: z.string().nullish(),
-    tool_calls: z
-      .array(
-        z.object({
-          id: z.string(),
-          type: z.literal('function'),
-          function: z.object({
-            name: z.string(),
-            arguments: z.string(),
-          }),
-        }),
-      )
-      .nullish(),
-    citations: z
-      .array(
-        z.object({
-          start: z.number(),
-          end: z.number(),
-          text: z.string(),
-          sources: z.array(
-            z.object({
-              type: z.string(),
-              id: z.string(),
-              document: z.object({
-                id: z.string(),
-                text: z.string(),
-                title: z.string(),
-              }),
-            }),
-          ),
-          type: z.string(),
-        }),
-      )
-      .nullish(),
-  }),
-  finish_reason: z.string(),
-  usage: z.object({
-    billed_units: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
-    tokens: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
-  }),
-});
-
 export class CohereChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
@@ -110,57 +52,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  private async extractDocuments(prompt: LanguageModelV2Prompt): Promise<
-    Array<{
-      data: { text: string; title?: string };
-    }>
-  > {
-    const documents: Array<{ data: { text: string; title?: string } }> = [];
-
-    for (const message of prompt) {
-      if (message.role === 'user') {
-        for (const part of message.content) {
-          if (part.type === 'file') {
-            let textContent: string;
-
-            if (typeof part.data === 'string') {
-              // Base64 or text data
-              textContent = part.data;
-            } else if (part.data instanceof Uint8Array) {
-              // For text files, use TextDecoder
-              if (
-                part.mediaType?.startsWith('text/') ||
-                part.mediaType === 'application/json'
-              ) {
-                textContent = new TextDecoder().decode(part.data);
-              } else {
-                // Skip non-text files for Cohere (PDFs, images, etc.)
-                console.warn(
-                  `Skipping non-text file: ${part.filename || 'unknown'} (${part.mediaType})`,
-                );
-                continue;
-              }
-            } else if (part.data instanceof URL) {
-              // For URLs, we'll use the URL string as content
-              textContent = part.data.toString();
-            } else {
-              textContent = String(part.data);
-            }
-
-            documents.push({
-              data: {
-                text: textContent,
-                title: part.filename || 'Document',
-              },
-            });
-          }
-        }
-      }
-    }
-
-    return documents;
-  }
-
   private async getArgs({
     prompt,
     maxOutputTokens,
@@ -175,16 +66,17 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const chatPrompt = convertToCohereChatPrompt(prompt);
+    const {
+      messages: chatPrompt,
+      documents: cohereDocuments,
+      warnings: documentWarnings,
+    } = convertToCohereChatPrompt(prompt);
 
     const {
       tools: cohereTools,
       toolChoice: cohereToolChoice,
       toolWarnings,
     } = prepareTools({ tools, toolChoice });
-
-    // Extract documents from prompt for RAG
-    const cohereDocuments = await this.extractDocuments(prompt);
 
     return {
       args: {
@@ -217,7 +109,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         // documents for RAG:
         ...(cohereDocuments.length > 0 && { documents: cohereDocuments }),
       },
-      warnings: toolWarnings,
+      warnings: [...toolWarnings, ...documentWarnings],
     };
   }
 
@@ -251,44 +143,40 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     }
 
     // citations:
-    if (response.message.citations != null) {
-      for (const citation of response.message.citations) {
-        // Get the first source document for the title
-        const firstSource = citation.sources[0];
-        const documentTitle = firstSource?.document?.title || 'Document';
+    for (const citation of response.message.citations ?? []) {
+      // Get the first source document for the title
+      const firstSource = citation.sources[0];
+      const documentTitle = firstSource?.document?.title;
 
-        content.push({
-          type: 'source',
-          sourceType: 'document',
-          id: this.config.generateId(),
-          mediaType: 'text/plain',
-          title: documentTitle,
-          providerMetadata: {
-            cohere: {
-              start: citation.start,
-              end: citation.end,
-              text: citation.text,
-              sources: citation.sources,
-              citationType: citation.type,
-            },
+      content.push({
+        type: 'source',
+        sourceType: 'document',
+        id: this.config.generateId(),
+        mediaType: 'text/plain',
+        title: documentTitle,
+        providerMetadata: {
+          cohere: {
+            start: citation.start,
+            end: citation.end,
+            text: citation.text,
+            sources: citation.sources,
+            citationType: citation.type,
           },
-        });
-      }
+        },
+      });
     }
 
     // tool calls:
-    if (response.message.tool_calls != null) {
-      for (const toolCall of response.message.tool_calls) {
-        content.push({
-          type: 'tool-call' as const,
-          toolCallId: toolCall.id,
-          toolName: toolCall.function.name,
-          // Cohere sometimes returns `null` for tool call arguments for tools
-          // defined as having no arguments.
-          args: toolCall.function.arguments.replace(/^null$/, '{}'),
-          toolCallType: 'function',
-        });
-      }
+    for (const toolCall of response.message.tool_calls ?? []) {
+      content.push({
+        type: 'tool-call' as const,
+        toolCallId: toolCall.id,
+        toolName: toolCall.function.name,
+        // Cohere sometimes returns `null` for tool call arguments for tools
+        // defined as having no arguments.
+        args: toolCall.function.arguments.replace(/^null$/, '{}'),
+        toolCallType: 'function',
+      });
     }
 
     return {
@@ -479,6 +367,66 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     };
   }
 }
+
+const cohereChatResponseSchema = z.object({
+  generation_id: z.string().nullish(),
+  message: z.object({
+    role: z.string(),
+    content: z
+      .array(
+        z.object({
+          type: z.string(),
+          text: z.string(),
+        }),
+      )
+      .nullish(),
+    tool_plan: z.string().nullish(),
+    tool_calls: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.literal('function'),
+          function: z.object({
+            name: z.string(),
+            arguments: z.string(),
+          }),
+        }),
+      )
+      .nullish(),
+    citations: z
+      .array(
+        z.object({
+          start: z.number(),
+          end: z.number(),
+          text: z.string(),
+          sources: z.array(
+            z.object({
+              type: z.string(),
+              id: z.string(),
+              document: z.object({
+                id: z.string(),
+                text: z.string(),
+                title: z.string(),
+              }),
+            }),
+          ),
+          type: z.string(),
+        }),
+      )
+      .nullish(),
+  }),
+  finish_reason: z.string(),
+  usage: z.object({
+    billed_units: z.object({
+      input_tokens: z.number(),
+      output_tokens: z.number(),
+    }),
+    tokens: z.object({
+      input_tokens: z.number(),
+      output_tokens: z.number(),
+    }),
+  }),
+});
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency

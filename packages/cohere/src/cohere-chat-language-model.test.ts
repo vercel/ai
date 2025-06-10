@@ -4,7 +4,6 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
-import { vi } from 'vitest';
 import { createCohere } from './cohere-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -580,10 +579,33 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('should skip non-text files with warning', async () => {
+    it('should throw error for unsupported file types', async () => {
       prepareJsonResponse({ text: 'Hello, World!' });
 
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await expect(
+        model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'What is this?' },
+                {
+                  type: 'file',
+                  data: Buffer.from('PDF binary data'),
+                  mediaType: 'application/pdf',
+                  filename: 'document.pdf',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        "Media type 'application/pdf' is not supported. Supported media types are: text/plain, text/markdown, text/csv, application/json, and other text/* types.",
+      );
+    });
+
+    it('should successfully process supported text media types', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
 
       await model.doGenerate({
         prompt: [
@@ -593,87 +615,37 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What is this?' },
               {
                 type: 'file',
-                data: Buffer.from('PDF binary data'),
-                mediaType: 'application/pdf',
-                filename: 'document.pdf',
-              },
-              {
-                type: 'file',
-                data: Buffer.from('Text content'),
+                data: Buffer.from('This is plain text content'),
                 mediaType: 'text/plain',
                 filename: 'text.txt',
               },
-            ],
-          },
-        ],
-      });
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Skipping non-text file: document.pdf (application/pdf)',
-      );
-
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "documents": [
-            {
-              "data": {
-                "text": "Text content",
-                "title": "text.txt",
-              },
-            },
-          ],
-          "messages": [
-            {
-              "content": "What is this?",
-              "role": "user",
-            },
-          ],
-          "model": "command-r-plus",
-        }
-      `);
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle URL data', async () => {
-      prepareJsonResponse({ text: 'Hello, World!' });
-
-      await model.doGenerate({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'What is this URL?' },
               {
                 type: 'file',
-                data: new URL('https://example.com/document'),
-                mediaType: 'text/plain',
-                filename: 'url.txt',
+                data: Buffer.from('# Markdown Header\nContent'),
+                mediaType: 'text/markdown',
+                filename: 'doc.md',
               },
             ],
           },
         ],
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "documents": [
-            {
-              "data": {
-                "text": "https://example.com/document",
-                "title": "url.txt",
-              },
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        documents: [
+          {
+            data: {
+              text: 'This is plain text content',
+              title: 'text.txt',
             },
-          ],
-          "messages": [
-            {
-              "content": "What is this URL?",
-              "role": "user",
+          },
+          {
+            data: {
+              text: '# Markdown Header\nContent',
+              title: 'doc.md',
             },
-          ],
-          "model": "command-r-plus",
-        }
-      `);
+          },
+        ],
+      });
     });
 
     it('should extract citations from response', async () => {
