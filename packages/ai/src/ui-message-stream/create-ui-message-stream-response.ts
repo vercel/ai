@@ -1,7 +1,7 @@
 import { prepareHeaders } from '../util/prepare-headers';
+import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { uiMessageStreamHeaders } from './ui-message-stream-headers';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
-import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 
 export function createUIMessageStreamResponse({
   status,

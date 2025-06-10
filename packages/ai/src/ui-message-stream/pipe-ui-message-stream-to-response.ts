@@ -1,9 +1,9 @@
 import { ServerResponse } from 'node:http';
 import { prepareHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
+import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { uiMessageStreamHeaders } from './ui-message-stream-headers';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
-import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 
 export function pipeUIMessageStreamToResponse({
   response,

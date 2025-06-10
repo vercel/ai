@@ -24,7 +24,7 @@ async function fetchTextStream({
   abortSignal: AbortSignal | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   requestType?: 'generate' | 'resume';
-}): Promise<ReadableStream<UIMessageStreamPart>> {
+}): Promise<ReadableStream<UIMessageStreamPart<never, never>>> {
   const response =
     requestType === 'resume'
       ? await fetch(`${api}?chatId=${body.chatId}`, {

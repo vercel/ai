@@ -5,6 +5,7 @@ import { createUIMessageStream } from './create-ui-message-stream';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 import { consumeStream } from '../util/consume-stream';
+import { UIDataTypes, UIMessage } from '../ui';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
@@ -250,7 +251,7 @@ describe('createUIMessageStream', () => {
   });
 
   it('should suppress error when writing to closed stream', async () => {
-    let uiMessageStreamWriter: UIMessageStreamWriter;
+    let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -269,7 +270,7 @@ describe('createUIMessageStream', () => {
   });
 
   it('should support writing from delayed merged streams', async () => {
-    let uiMessageStreamWriter: UIMessageStreamWriter;
+    let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
     let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
     let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
     let done = false;
