@@ -121,11 +121,12 @@ describe('wrapLanguageModel', () => {
     await wrappedModel.doStream({ ...params, includeRawChunks: false });
 
     expect(transformParams).toHaveBeenCalledWith({
-      params,
+      params: { ...params, includeRawChunks: false },
       type: 'stream',
     });
     expect(mockModel.doStreamCalls[0]).toStrictEqual({
       ...params,
+      includeRawChunks: false,
       transformed: true,
     });
   });
@@ -153,7 +154,7 @@ describe('wrapLanguageModel', () => {
     expect(wrapStream).toHaveBeenCalledWith({
       doGenerate: expect.any(Function),
       doStream: expect.any(Function),
-      params,
+      params: { ...params, includeRawChunks: false },
       model: mockModel,
     });
   });
@@ -294,7 +295,7 @@ describe('wrapLanguageModel', () => {
       await wrappedModel.doStream({ ...params, includeRawChunks: false });
 
       expect(transformParams1).toHaveBeenCalledWith({
-        params,
+        params: { ...params, includeRawChunks: false },
         type: 'stream',
       });
       expect(transformParams2).toHaveBeenCalledWith({
