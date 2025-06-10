@@ -98,7 +98,10 @@ export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   };
 }>;
 
-export type UIMessageStreamPart<METADATA, DATA_TYPES extends UIDataTypes> =
+export type UIMessageStreamPart<
+  METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> =
   | {
       type: 'text';
       text: string;

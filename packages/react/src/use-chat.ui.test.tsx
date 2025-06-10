@@ -12,6 +12,7 @@ import {
   DefaultChatTransport,
   getToolInvocations,
   TextStreamChatTransport,
+  UIDataTypes,
   UIMessage,
   UIMessageStreamPart,
 } from 'ai';
@@ -19,7 +20,7 @@ import React, { act, useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 
-function formatStreamPart(part: UIMessageStreamPart) {
+function formatStreamPart(part: UIMessageStreamPart<unknown, UIDataTypes>) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 

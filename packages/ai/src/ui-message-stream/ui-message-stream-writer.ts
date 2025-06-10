@@ -2,7 +2,10 @@ import { UIDataTypes, UIMessage } from '../ui';
 import { InferUIMessageStreamPart } from './ui-message-stream-parts';
 
 export interface UIMessageStreamWriter<
-  UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
+  UI_MESSAGE extends UIMessage<unknown, UIDataTypes> = UIMessage<
+    unknown,
+    UIDataTypes
+  >,
 > {
   /**
    * Appends a data stream part to the stream.

@@ -68,7 +68,7 @@ export type UIMessageStreamOptions<
     part: TextStreamPart<ToolSet> & {
       type: 'start' | 'finish' | 'start-step' | 'finish-step';
     };
-  }) => InferUIMessageMetadata<UI_MESSAGE>;
+  }) => InferUIMessageMetadata<UI_MESSAGE> | undefined;
 
   /**
    * Send reasoning parts to the client.
