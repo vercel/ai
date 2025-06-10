@@ -12,7 +12,6 @@ import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
-  InferUIDataParts,
   InferUIMessageData,
   InferUIMessageMetadata,
   ReasoningUIPart,
@@ -98,8 +97,7 @@ export function processUIMessageStream<
 }): ReadableStream<
   UIMessageStreamPart<
     InferUIMessageMetadata<UI_MESSAGE>,
-    // TODO WHY
-    InferUIDataParts<UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>>
+    InferUIMessageData<UI_MESSAGE>
   >
 > {
   return stream.pipeThrough(
@@ -107,7 +105,7 @@ export function processUIMessageStream<
       UIMessageStreamPart<unknown, UIDataTypes>,
       UIMessageStreamPart<
         InferUIMessageMetadata<UI_MESSAGE>,
-        InferUIDataParts<UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>>
+        InferUIMessageData<UI_MESSAGE>
       >
     >({
       async transform(part, controller) {
@@ -415,9 +413,7 @@ export function processUIMessageStream<
           controller.enqueue(
             part as UIMessageStreamPart<
               InferUIMessageMetadata<UI_MESSAGE>,
-              InferUIDataParts<
-                UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
-              >
+              InferUIMessageData<UI_MESSAGE>
             >,
           );
         });
