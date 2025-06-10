@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
@@ -91,6 +92,7 @@ export function createAnthropic(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         'image/*': [/^https?:\/\/.*$/],
       }),

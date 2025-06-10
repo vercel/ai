@@ -47,6 +47,14 @@ export const uiMessageStreamPartSchema = z.union([
     providerMetadata: z.any().optional(), // Use z.any() for generic metadata
   }),
   z.object({
+    type: z.literal('source-document'),
+    sourceId: z.string(),
+    mediaType: z.string(),
+    title: z.string(),
+    filename: z.string().optional(),
+    providerMetadata: z.any().optional(), // Use z.any() for generic metadata
+  }),
+  z.object({
     type: z.literal('file'),
     url: z.string(),
     mediaType: z.string(),
@@ -131,6 +139,14 @@ export type UIMessageStreamPart<DATA_TYPES extends UIDataTypes = UIDataTypes> =
       sourceId: string;
       url: string;
       title?: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'source-document';
+      sourceId: string;
+      mediaType: string;
+      title: string;
+      filename?: string;
       providerMetadata?: ProviderMetadata;
     }
   | {

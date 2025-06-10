@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/cerebras",
-  "version": "1.0.0-alpha.7",
+  "version": "1.0.0-alpha.11",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -41,10 +41,10 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "zod": "3.24.4"
+    "zod": "3.25.49"
   },
   "peerDependencies": {
-    "zod": "^3.24.0"
+    "zod": "^3.25.49"
   },
   "engines": {
     "node": ">=18"

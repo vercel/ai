@@ -12,12 +12,13 @@ const server = createTestServer({
 });
 
 describe('text stream', () => {
-  let structuredObject: StructuredObject<{ content: string }>;
+  const schema = z.object({ content: z.string() });
+  let structuredObject: StructuredObject<typeof schema>;
 
   beforeEach(() => {
     structuredObject = new StructuredObject({
       api: '/api/object',
-      schema: z.object({ content: z.string() }),
+      schema,
     });
   });
 

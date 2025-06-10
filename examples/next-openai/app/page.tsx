@@ -1,18 +1,10 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import ChatInput from '@/component/chat-input';
 
 export default function Chat() {
-  const {
-    error,
-    input,
-    status,
-    handleInputChange,
-    handleSubmit,
-    messages,
-    reload,
-    stop,
-  } = useChat();
+  const { error, status, sendMessage, messages, reload, stop } = useChat();
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -53,15 +45,7 @@ export default function Chat() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-          disabled={status !== 'ready'}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

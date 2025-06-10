@@ -157,15 +157,15 @@ Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-m
 <Note>
   Implementing language model middleware is advanced functionality and requires
   a solid understanding of the [language model
-  specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts).
+  specification](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v2/language-model-v2.ts).
 </Note>
 
 You can implement any of the following three function to modify the behavior of the language model:
 
 1. `transformParams`: Transforms the parameters before they are passed to the language model, for both `doGenerate` and `doStream`.
-2. `wrapGenerate`: Wraps the `doGenerate` method of the [language model](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts).
+2. `wrapGenerate`: Wraps the `doGenerate` method of the [language model](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v2/language-model-v2.ts).
    You can modify the parameters, call the language model, and modify the result.
-3. `wrapStream`: Wraps the `doStream` method of the [language model](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts).
+3. `wrapStream`: Wraps the `doStream` method of the [language model](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v2/language-model-v2.ts).
    You can modify the parameters, call the language model, and modify the result.
 
 Here are some examples of how to implement language model middleware:
@@ -182,7 +182,7 @@ Here are some examples of how to implement language model middleware:
 This example shows how to log the parameters and generated text of a language model call.
 
 ```ts
-import type { LanguageModelV2Middleware, LanguageModelV1StreamPart } from 'ai';
+import type { LanguageModelV2Middleware, LanguageModelV2StreamPart } from 'ai';
 
 export const yourLogMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
@@ -206,12 +206,12 @@ export const yourLogMiddleware: LanguageModelV2Middleware = {
     let generatedText = '';
 
     const transformStream = new TransformStream<
-      LanguageModelV1StreamPart,
-      LanguageModelV1StreamPart
+      LanguageModelV2StreamPart,
+      LanguageModelV2StreamPart
     >({
       transform(chunk, controller) {
-        if (chunk.type === 'text-delta') {
-          generatedText += chunk.textDelta;
+        if (chunk.type === 'text') {
+          generatedText += chunk.text;
         }
 
         controller.enqueue(chunk);
@@ -323,9 +323,9 @@ To send and access custom metadata in Middleware, you can use `providerOptions`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateText, wrapLanguageModel, LanguageModelV1Middleware } from 'ai';
+import { generateText, wrapLanguageModel, LanguageModelV2Middleware } from 'ai';
 
-export const yourLogMiddleware: LanguageModelV1Middleware = {
+export const yourLogMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('METADATA', params?.providerMetadata?.yourLogMiddleware);
     const result = await doGenerate();

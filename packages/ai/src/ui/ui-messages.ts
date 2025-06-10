@@ -1,4 +1,9 @@
-import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import {
+  StandardSchemaV1,
+  ToolCall,
+  ToolResult,
+  Validator,
+} from '@ai-sdk/provider-utils';
 import { ValueOf } from '../util/value-of';
 
 /**
@@ -60,6 +65,7 @@ export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
   | ReasoningUIPart
   | ToolInvocationUIPart
   | SourceUrlUIPart
+  | SourceDocumentUIPart
   | FileUIPart
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
@@ -71,6 +77,19 @@ export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
     data: DATA_TYPES[NAME];
   };
 }>;
+
+export type UIDataPartSchemas = Record<
+  string,
+  Validator<any> | StandardSchemaV1<any>
+>;
+
+export type InferUIDataParts<T extends UIDataPartSchemas> = {
+  [K in keyof T]: T[K] extends Validator<infer U>
+    ? U
+    : T[K] extends StandardSchemaV1<infer U>
+      ? U
+      : unknown;
+};
 
 /**
  * A text part of a message.
@@ -125,6 +144,18 @@ export type SourceUrlUIPart = {
 };
 
 /**
+ * A document source part of a message.
+ */
+export type SourceDocumentUIPart = {
+  type: 'source-document';
+  sourceId: string;
+  mediaType: string;
+  title: string;
+  filename?: string;
+  providerMetadata?: Record<string, any>;
+};
+
+/**
  * A file part of a message.
  */
 export type FileUIPart = {
@@ -159,6 +190,7 @@ export type StepStartUIPart = {
 export type CreateUIMessage<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
-> = Omit<UIMessage<METADATA, DATA_TYPES>, 'id'> & {
+> = Omit<UIMessage<METADATA, DATA_TYPES>, 'id' | 'role'> & {
   id?: UIMessage<METADATA, DATA_TYPES>['id'];
+  role?: UIMessage<METADATA, DATA_TYPES>['role'];
 };

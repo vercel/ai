@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { generateId } from 'ai';
 import { mockId } from 'ai/test';
-import { useChat } from './use-chat';
+import { Chat } from './chat.vue';
 
-const { messages, append, reload } = useChat({
-  chatId: generateId(),
+const chat = new Chat({
+  id: generateId(),
   generateId: mockId(),
 });
 </script>
@@ -12,7 +12,7 @@ const { messages, append, reload } = useChat({
 <template>
   <div>
     <div
-      v-for="(m, idx) in messages"
+      v-for="(m, idx) in chat.messages"
       key="m.id"
       :data-testid="`message-${idx}`"
     >
@@ -22,20 +22,12 @@ const { messages, append, reload } = useChat({
       }}
     </div>
 
-    <button
-      data-testid="do-append"
-      @click="
-        append({
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
-        })
-      "
-    />
+    <button data-testid="do-append" @click="chat.sendMessage({ text: 'hi' })" />
 
     <button
       data-testid="do-reload"
       @click="
-        reload({
+        chat.reload({
           body: { 'request-body-key': 'request-body-value' },
           headers: { 'header-key': 'header-value' },
         })

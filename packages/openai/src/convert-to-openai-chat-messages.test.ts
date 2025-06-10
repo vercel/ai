@@ -276,6 +276,42 @@ describe('user messages', () => {
       ]);
     });
 
+    it('should convert messages with binary PDF file parts', async () => {
+      const data = Uint8Array.from([1, 2, 3, 4, 5]);
+
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data,
+                filename: 'document.pdf',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'document.pdf',
+                file_data: 'data:application/pdf;base64,AQIDBAU=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should use default filename for PDF file parts when not provided', async () => {
       const base64Data = 'AQIDBAU=';
 

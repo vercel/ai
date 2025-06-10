@@ -428,7 +428,7 @@ const result = streamText({
 
 result.toDataStream();
 result.pipeDataStreamToResponse(response);
-result.toDataStreamResponse();
+result.toUIMessageStreamResponse();
 ```
 
 ### Renamed "formatStreamPart" to "formatDataStreamPart"
@@ -561,7 +561,7 @@ const result = await streamText({
   // ...
 });
 
-result.toDataStreamResponse(response, {
+result.toUIMessageStreamResponse(response, {
   init: {
     headers: {
       'X-Custom-Header': 'value',
@@ -576,7 +576,7 @@ const result = streamText({
   // ...
 });
 
-result.toDataStreamResponse(response, {
+result.toUIMessageStreamResponse(response, {
   headers: {
     'X-Custom-Header': 'value',
   },

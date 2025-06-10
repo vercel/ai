@@ -277,12 +277,20 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
     "type": "text",
   },
   {
-    "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'calculator'. No tools are available.],
-    "type": "error",
+    "args": {
+      "expression": "2+2",
+    },
+    "toolCallId": "tool-1",
+    "toolName": "calculator",
+    "type": "tool-call",
   },
   {
-    "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. No tools are available.],
-    "type": "error",
+    "args": {
+      "location": "New York",
+    },
+    "toolCallId": "tool-2",
+    "toolName": "weather",
+    "type": "tool-call",
   },
   {
     "finishReason": "tool-calls",

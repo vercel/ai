@@ -1,32 +1,25 @@
 'use client';
 
+import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat({
-      chatStore: defaultChatStoreOptions({
-        api: '/api/use-chat-tools',
-        maxSteps: 5,
-      }),
+  const { messages, sendMessage, addToolResult, status } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
+    maxSteps: 5,
 
-      // run client-side tools that are automatically executed:
-      async onToolCall({ toolCall }) {
-        // artificial 2 second delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall }) {
+      // artificial 2 second delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-        if (toolCall.toolName === 'getLocation') {
-          const cities = [
-            'New York',
-            'Los Angeles',
-            'Chicago',
-            'San Francisco',
-          ];
-          return cities[Math.floor(Math.random() * cities.length)];
-        }
-      },
-    });
+      if (toolCall.toolName === 'getLocation') {
+        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+        return cities[Math.floor(Math.random() * cities.length)];
+      }
+    },
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -140,14 +133,7 @@ export default function Chat() {
         </div>
       ))}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

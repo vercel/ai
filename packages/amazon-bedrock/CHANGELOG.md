@@ -1,5 +1,40 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0-alpha.11
+
+### Patch Changes
+
+- d546725: fix(provider/amazon-bedrock): use consistent document names for prompt cache effectiveness
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 3.0.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 3.0.0-alpha.9
+
+### Patch Changes
+
+- c87b7e4: feat (provider/amazon-bedrock): add Claude 4 model ids (claude-sonnet-4-20250514-v1:0, claude-opus-4-20250514-v1:0)
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 3.0.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
 ## 3.0.0-alpha.7
 
 ### Patch Changes

@@ -1,5 +1,6 @@
 import {
   StandardSchemaV1,
+  ToolCall,
   validateTypes,
   Validator,
 } from '@ai-sdk/provider-utils';
@@ -9,17 +10,17 @@ import {
 } from '../ui-message-stream/ui-message-stream-parts';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
-import { InferUIDataParts, UIDataPartSchemas } from './chat-store';
 import { getToolInvocations } from './get-tool-invocations';
 import type {
+  InferUIDataParts,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
+  UIDataPartSchemas,
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
-import { UseChatOptions } from './use-chat';
 
 export type StreamingUIMessageState<
   MESSAGE_METADATA = unknown,
@@ -84,7 +85,9 @@ export function processUIMessageStream<
     | Validator<MESSAGE_METADATA>
     | StandardSchemaV1<MESSAGE_METADATA>;
   dataPartSchemas?: UI_DATA_PART_SCHEMAS;
-  onToolCall?: UseChatOptions['onToolCall'];
+  onToolCall?: (options: {
+    toolCall: ToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
   runUpdateMessageJob: (
     job: (options: {
       state: StreamingUIMessageState<
@@ -195,6 +198,20 @@ export function processUIMessageStream<
                 sourceId: part.sourceId,
                 url: part.url,
                 title: part.title,
+                providerMetadata: part.providerMetadata,
+              });
+
+              write();
+              break;
+            }
+
+            case 'source-document': {
+              state.message.parts.push({
+                type: 'source-document',
+                sourceId: part.sourceId,
+                mediaType: part.mediaType,
+                title: part.title,
+                filename: part.filename,
                 providerMetadata: part.providerMetadata,
               });
 

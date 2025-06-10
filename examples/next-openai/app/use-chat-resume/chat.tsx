@@ -1,39 +1,32 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions, type UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import ChatInput from '@component/chat-input';
 
 export function Chat({
-  chatId,
+  id,
   autoResume,
   initialMessages = [],
 }: {
-  chatId: string;
+  id: string;
   autoResume: boolean;
   initialMessages: UIMessage[];
 }) {
   const {
     error,
-    input,
     status,
-    handleInputChange,
-    handleSubmit,
+    sendMessage,
     messages,
     reload,
     stop,
     experimental_resume,
   } = useChat({
-    chatId,
-    chatStore: defaultChatStoreOptions({
-      api: '/api/use-chat-resume',
-      chats: {
-        [chatId]: {
-          messages: initialMessages,
-        },
-      },
-    }),
+    id,
+    messages: initialMessages,
+    transport: new DefaultChatTransport({ api: '/api/use-chat-resume' }),
     onError: error => {
       console.error('Error streaming text:', error);
     },
@@ -49,8 +42,8 @@ export function Chat({
 
   return (
     <div className="flex flex-col w-full max-w-md gap-8 py-24 mx-auto stretch">
-      <Link href={`/use-chat-resume/${chatId}`} target="_noblank">
-        Chat Id: {chatId}
+      <Link href={`/use-chat-resume/${id}`} target="_noblank">
+        Chat Id: {id}
       </Link>
 
       <div>Status: {status}</div>
@@ -100,15 +93,7 @@ export function Chat({
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-          disabled={status !== 'ready'}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

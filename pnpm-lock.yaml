@@ -189,11 +189,11 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(typescript@5.8.3)
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
       zod-to-json-schema:
         specifier: 3.23.5
-        version: 3.23.5(zod@3.24.4)
+        version: 3.23.5(zod@3.25.49)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -316,8 +316,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
     devDependencies:
       '@types/express':
         specifier: 5.0.0
@@ -425,6 +425,70 @@ importers:
       typescript:
         specifier: ^5.1.3
         version: 5.5.4
+
+  examples/next:
+    dependencies:
+      '@ai-sdk/react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      '@vercel/blob':
+        specifier: ^0.26.0
+        version: 0.26.0
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+      next:
+        specifier: latest
+        version: 15.3.3(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18
+        version: 18.3.1
+      react-dom:
+        specifier: ^18
+        version: 18.3.1(react@18.3.1)
+      react-markdown:
+        specifier: 9.0.1
+        version: 9.0.1(@types/react@18.3.3)(react@18.3.1)
+      redis:
+        specifier: ^4.7.0
+        version: 4.7.0
+      resumable-stream:
+        specifier: ^2.0.0
+        version: 2.0.0
+      zod:
+        specifier: 3.25.49
+        version: 3.25.49
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@types/react':
+        specifier: ^18
+        version: 18.3.3
+      '@types/react-dom':
+        specifier: ^18
+        version: 18.3.0
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      autoprefixer:
+        specifier: ^10.4.14
+        version: 10.4.20(postcss@8.5.3)
+      eslint:
+        specifier: 8.57.1
+        version: 8.57.1
+      eslint-config-next:
+        specifier: 14.2.3
+        version: 14.2.3(eslint@8.57.1)(typescript@5.8.3)
+      postcss:
+        specifier: ^8.4.49
+        version: 8.5.3
+      tailwindcss:
+        specifier: ^3.4.15
+        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   examples/next-fastapi:
     dependencies:
@@ -648,8 +712,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -761,8 +825,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -828,8 +892,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -898,8 +962,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1005,11 +1069,11 @@ importers:
         specifier: 16.4.5
         version: 16.4.5
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
       zod-to-json-schema:
         specifier: 3.23.5
-        version: 3.23.5(zod@3.24.4)
+        version: 3.23.5(zod@3.25.49)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1036,8 +1100,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ai
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
     devDependencies:
       '@nuxt/devtools':
         specifier: 1.6.3
@@ -1163,8 +1227,8 @@ importers:
         specifier: ^6.0.0
         version: 6.0.3(@types/node@22.7.4)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0)
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/ai:
     dependencies:
@@ -1206,8 +1270,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/amazon-bedrock:
     dependencies:
@@ -1240,8 +1304,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/anthropic:
     dependencies:
@@ -1265,8 +1329,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/assemblyai:
     dependencies:
@@ -1290,8 +1354,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/azure:
     dependencies:
@@ -1318,8 +1382,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/cerebras:
     dependencies:
@@ -1346,8 +1410,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/codemod:
     dependencies:
@@ -1423,8 +1487,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/deepgram:
     dependencies:
@@ -1448,8 +1512,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/deepinfra:
     dependencies:
@@ -1476,8 +1540,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/deepseek:
     dependencies:
@@ -1504,8 +1568,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/elevenlabs:
     dependencies:
@@ -1529,8 +1593,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/fal:
     dependencies:
@@ -1554,8 +1618,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/fireworks:
     dependencies:
@@ -1582,8 +1646,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/gateway:
     dependencies:
@@ -1607,8 +1671,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/gladia:
     dependencies:
@@ -1632,8 +1696,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/google:
     dependencies:
@@ -1657,8 +1721,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/google-vertex:
     dependencies:
@@ -1691,8 +1755,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/groq:
     dependencies:
@@ -1716,8 +1780,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/hume:
     dependencies:
@@ -1741,8 +1805,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/langchain:
     dependencies:
@@ -1804,8 +1868,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/luma:
     dependencies:
@@ -1829,8 +1893,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/mistral:
     dependencies:
@@ -1854,8 +1918,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/openai:
     dependencies:
@@ -1879,8 +1943,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/openai-compatible:
     dependencies:
@@ -1904,8 +1968,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/perplexity:
     dependencies:
@@ -1929,8 +1993,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/provider:
     dependencies:
@@ -1964,7 +2028,7 @@ importers:
         version: 1.0.0
       zod-to-json-schema:
         specifier: ^3.24.1
-        version: 3.24.1(zod@3.24.4)
+        version: 3.24.1(zod@3.25.49)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1982,8 +2046,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/react:
     dependencies:
@@ -2046,8 +2110,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/replicate:
     dependencies:
@@ -2071,8 +2135,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/revai:
     dependencies:
@@ -2096,8 +2160,8 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/rsc:
     dependencies:
@@ -2166,8 +2230,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/rsc/tests/e2e/next-server:
     dependencies:
@@ -2251,8 +2315,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.7(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@20.17.24)(jiti@2.4.0)(jsdom@26.0.0)(msw@2.7.0(@types/node@20.17.24)(typescript@5.6.3))(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0)
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/togetherai:
     dependencies:
@@ -2279,8 +2343,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/valibot:
     dependencies:
@@ -2332,8 +2396,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   packages/vue:
     dependencies:
@@ -2415,8 +2479,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 3.25.49
+        version: 3.25.49
 
   tools/analyze-downloads:
     devDependencies:
@@ -5317,6 +5381,9 @@ packages:
   '@next/env@15.3.0-canary.43':
     resolution: {integrity: sha512-ogryUGufxhtidxr/42NY6+ADlvxt9Hq6Q/DOMS/20vGuePZ70wO6Z5m1RP3Q397RGgpe1gSWyYdlg+Mt7H4KeQ==}
 
+  '@next/env@15.3.3':
+    resolution: {integrity: sha512-OdiMrzCl2Xi0VTjiQQUK0Xh7bJHnOuET2s+3V+Y40WJBAXrJeGA3f+I8MZJ/YQ3mVGi5XGR1L66oFlgqXhQ4Vw==}
+
   '@next/eslint-plugin-next@14.2.3':
     resolution: {integrity: sha512-L3oDricIIjgj1AVnRdRor21gI7mShlSwU/1ZGHmqM3LzHhXXhdkrfeNY5zif25Bi5Dd7fiJHsbhoZCHfXYvlAw==}
 
@@ -5334,6 +5401,12 @@ packages:
 
   '@next/swc-darwin-arm64@15.3.0-canary.43':
     resolution: {integrity: sha512-eXrs8CyIBgdnMTNjku+h/xm61gmRCcKAT+tM2CjpEXbEqXBux5hRIakOk5kJJDu2fA2P3pzQGt5PRD1hg4srXA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@next/swc-darwin-arm64@15.3.3':
+    resolution: {integrity: sha512-WRJERLuH+O3oYB4yZNVahSVFmtxRNjNF1I1c34tYMoJb0Pve+7/RaLAJJizyYiFhjYNGHRAE1Ri2Fd23zgDqhg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -5356,6 +5429,12 @@ packages:
     cpu: [x64]
     os: [darwin]
 
+  '@next/swc-darwin-x64@15.3.3':
+    resolution: {integrity: sha512-XHdzH/yBc55lu78k/XwtuFR/ZXUTcflpRXcsu0nKmF45U96jt1tsOZhVrn5YH+paw66zOANpOnFQ9i6/j+UYvw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
   '@next/swc-linux-arm64-gnu@15.0.0-canary.23':
     resolution: {integrity: sha512-VceywUaF8xg9zZ2PnElzMOI1CjmKFSV1EJ0O1V/OSnf8RPtD+yisXvaFSvMH1b1aZsb1wBhYFZSjVSDNFsQrzA==}
     engines: {node: '>= 10'}
@@ -5370,6 +5449,12 @@ packages:
 
   '@next/swc-linux-arm64-gnu@15.3.0-canary.43':
     resolution: {integrity: sha512-IqknHGNxpL03uIutIuv7FPjGHuD/AnJVC5exi5g+C7P3f6JVvOjFLS264eqi91tVCXhN2LpcKNGwTlK81bJVVg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@next/swc-linux-arm64-gnu@15.3.3':
+    resolution: {integrity: sha512-VZ3sYL2LXB8znNGcjhocikEkag/8xiLgnvQts41tq6i+wql63SMS1Q6N8RVXHw5pEUjiof+II3HkDd7GFcgkzw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -5392,6 +5477,12 @@ packages:
     cpu: [arm64]
     os: [linux]
 
+  '@next/swc-linux-arm64-musl@15.3.3':
+    resolution: {integrity: sha512-h6Y1fLU4RWAp1HPNJWDYBQ+e3G7sLckyBXhmH9ajn8l/RSMnhbuPBV/fXmy3muMcVwoJdHL+UtzRzs0nXOf9SA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
   '@next/swc-linux-x64-gnu@15.0.0-canary.23':
     resolution: {integrity: sha512-3CY4UcqOc3LPJ9iIXRN8/UHNZ96f5VKNaWWLq+EYqDOKRx5RBwedNSoaap/fx3+MHIw+lUpizWxHFx+amlMVZQ==}
     engines: {node: '>= 10'}
@@ -5406,6 +5497,12 @@ packages:
 
   '@next/swc-linux-x64-gnu@15.3.0-canary.43':
     resolution: {integrity: sha512-MAaLEm8eO6Xir3YC3xLYDHDjLGogAAGRrxhuflvaqAtGQZ6NIMG4YjvAyramYTq/SwrUIDobggKxdQLtu8/pPQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  '@next/swc-linux-x64-gnu@15.3.3':
+    resolution: {integrity: sha512-jJ8HRiF3N8Zw6hGlytCj5BiHyG/K+fnTKVDEKvUCyiQ/0r5tgwO7OgaRiOjjRoIx2vwLR+Rz8hQoPrnmFbJdfw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -5428,6 +5525,12 @@ packages:
     cpu: [x64]
     os: [linux]
 
+  '@next/swc-linux-x64-musl@15.3.3':
+    resolution: {integrity: sha512-HrUcTr4N+RgiiGn3jjeT6Oo208UT/7BuTr7K0mdKRBtTbT4v9zJqCDKO97DUqqoBK1qyzP1RwvrWTvU6EPh/Cw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
   '@next/swc-win32-arm64-msvc@15.0.0-canary.23':
     resolution: {integrity: sha512-FM2RSVvVOnOWriLZhsZUbXGdBQQErLE1BDObnPQ7T5AtISpjtFXIHt6Oh/bmJ5HmB4logtUGDJYT8kW94E2Wew==}
     engines: {node: '>= 10'}
@@ -5442,6 +5545,12 @@ packages:
 
   '@next/swc-win32-arm64-msvc@15.3.0-canary.43':
     resolution: {integrity: sha512-5WYne3jvo1478kUfe901wFxvPMdC8tRKundKIgU5Upe1HafMMS7ymm1hQ7CUpp3/1vY/R1TV1oKHHJfqDubiNg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@next/swc-win32-arm64-msvc@15.3.3':
+    resolution: {integrity: sha512-SxorONgi6K7ZUysMtRF3mIeHC5aA3IQLmKFQzU0OuhuUYwpOBc1ypaLJLP5Bf3M9k53KUUUj4vTPwzGvl/NwlQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -5466,6 +5575,12 @@ packages:
 
   '@next/swc-win32-x64-msvc@15.3.0-canary.43':
     resolution: {integrity: sha512-xE3WZhwjb91eezecVsmXn/OtdISfMsIfS3t0ZXsS/+bMvO/LZLdcVBtl0Zy5yR+XJyKfXXmwpdYbL6WH4dGuQg==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@next/swc-win32-x64-msvc@15.3.3':
+    resolution: {integrity: sha512-4QZG6F8enl9/S2+yIiOiju0iCTFd93d8VC1q9LZS4p/Xuk81W2QDjCFeoogmrWWkAD59z8ZxepBQap2dKS5ruw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -12078,6 +12193,27 @@ packages:
       sass:
         optional: true
 
+  next@15.3.3:
+    resolution: {integrity: sha512-JqNj29hHNmCLtNvd090SyRbXJiivQ+58XjCcrC50Crb5g5u2zi7Y2YivbsEfzk6AtVI80akdOQbaMZwWB1Hthw==}
+    engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
+    hasBin: true
+    peerDependencies:
+      '@opentelemetry/api': ^1.1.0
+      '@playwright/test': ^1.41.2
+      babel-plugin-react-compiler: '*'
+      react: ^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0
+      react-dom: ^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0
+      sass: ^1.3.0
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      '@playwright/test':
+        optional: true
+      babel-plugin-react-compiler:
+        optional: true
+      sass:
+        optional: true
+
   nitropack@2.10.4:
     resolution: {integrity: sha512-sJiG/MIQlZCVSw2cQrFG1H6mLeSqHlYfFerRjLKz69vUfdu0EL2l0WdOxlQbzJr3mMv/l4cOlCCLzVRzjzzF/g==}
     engines: {node: ^16.11.0 || >=17.0.0}
@@ -15194,8 +15330,8 @@ packages:
     peerDependencies:
       zod: ^3.24.1
 
-  zod@3.24.4:
-    resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
+  zod@3.25.49:
+    resolution: {integrity: sha512-JMMPMy9ZBk3XFEdbM3iL1brx4NUSejd6xr3ELrrGEfGb355gjhiAWtG3K5o+AViV/3ZfkIrCzXsZn6SbLwTR8Q==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -17987,8 +18123,8 @@ snapshots:
       flat: 5.0.2
       langsmith: 0.1.23(openai@4.52.6)
       uuid: 9.0.1
-      zod: 3.24.4
-      zod-to-json-schema: 3.24.1(zod@3.24.4)
+      zod: 3.25.49
+      zod-to-json-schema: 3.24.1(zod@3.25.49)
     optionalDependencies:
       '@aws-crypto/sha256-js': 5.2.0
       '@aws-sdk/client-bedrock-runtime': 3.663.0
@@ -18017,8 +18153,8 @@ snapshots:
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 9.0.1
-      zod: 3.24.4
-      zod-to-json-schema: 3.23.5(zod@3.24.4)
+      zod: 3.25.49
+      zod-to-json-schema: 3.23.5(zod@3.25.49)
     transitivePeerDependencies:
       - openai
 
@@ -18027,8 +18163,8 @@ snapshots:
       '@langchain/core': 0.1.63(openai@4.52.6)
       js-tiktoken: 1.0.12
       openai: 4.52.6
-      zod: 3.24.4
-      zod-to-json-schema: 3.23.5(zod@3.24.4)
+      zod: 3.25.49
+      zod-to-json-schema: 3.23.5(zod@3.25.49)
     transitivePeerDependencies:
       - encoding
 
@@ -18099,8 +18235,8 @@ snapshots:
       express-rate-limit: 7.5.0(express@5.0.1)
       pkce-challenge: 5.0.0
       raw-body: 3.0.0
-      zod: 3.24.4
-      zod-to-json-schema: 3.24.1(zod@3.24.4)
+      zod: 3.25.49
+      zod-to-json-schema: 3.24.1(zod@3.25.49)
     transitivePeerDependencies:
       - supports-color
 
@@ -18231,6 +18367,8 @@ snapshots:
 
   '@next/env@15.3.0-canary.43': {}
 
+  '@next/env@15.3.3': {}
+
   '@next/eslint-plugin-next@14.2.3':
     dependencies:
       glob: 10.3.10
@@ -18244,6 +18382,9 @@ snapshots:
   '@next/swc-darwin-arm64@15.3.0-canary.43':
     optional: true
 
+  '@next/swc-darwin-arm64@15.3.3':
+    optional: true
+
   '@next/swc-darwin-x64@15.0.0-canary.23':
     optional: true
 
@@ -18251,6 +18392,9 @@ snapshots:
     optional: true
 
   '@next/swc-darwin-x64@15.3.0-canary.43':
+    optional: true
+
+  '@next/swc-darwin-x64@15.3.3':
     optional: true
 
   '@next/swc-linux-arm64-gnu@15.0.0-canary.23':
@@ -18262,6 +18406,9 @@ snapshots:
   '@next/swc-linux-arm64-gnu@15.3.0-canary.43':
     optional: true
 
+  '@next/swc-linux-arm64-gnu@15.3.3':
+    optional: true
+
   '@next/swc-linux-arm64-musl@15.0.0-canary.23':
     optional: true
 
@@ -18269,6 +18416,9 @@ snapshots:
     optional: true
 
   '@next/swc-linux-arm64-musl@15.3.0-canary.43':
+    optional: true
+
+  '@next/swc-linux-arm64-musl@15.3.3':
     optional: true
 
   '@next/swc-linux-x64-gnu@15.0.0-canary.23':
@@ -18280,6 +18430,9 @@ snapshots:
   '@next/swc-linux-x64-gnu@15.3.0-canary.43':
     optional: true
 
+  '@next/swc-linux-x64-gnu@15.3.3':
+    optional: true
+
   '@next/swc-linux-x64-musl@15.0.0-canary.23':
     optional: true
 
@@ -18289,6 +18442,9 @@ snapshots:
   '@next/swc-linux-x64-musl@15.3.0-canary.43':
     optional: true
 
+  '@next/swc-linux-x64-musl@15.3.3':
+    optional: true
+
   '@next/swc-win32-arm64-msvc@15.0.0-canary.23':
     optional: true
 
@@ -18296,6 +18452,9 @@ snapshots:
     optional: true
 
   '@next/swc-win32-arm64-msvc@15.3.0-canary.43':
+    optional: true
+
+  '@next/swc-win32-arm64-msvc@15.3.3':
     optional: true
 
   '@next/swc-win32-ia32-msvc@15.0.0-canary.23':
@@ -18308,6 +18467,9 @@ snapshots:
     optional: true
 
   '@next/swc-win32-x64-msvc@15.3.0-canary.43':
+    optional: true
+
+  '@next/swc-win32-x64-msvc@15.3.3':
     optional: true
 
   '@nodelib/fs.scandir@2.1.5':
@@ -18522,10 +18684,10 @@ snapshots:
       '@rollup/plugin-replace': 6.0.1(rollup@4.34.9)
       '@vitejs/plugin-vue': 5.2.0(vite@5.4.11(@types/node@20.17.24)(terser@5.31.3))(vue@3.5.13(typescript@5.8.3))
       '@vitejs/plugin-vue-jsx': 4.1.0(vite@5.4.11(@types/node@20.17.24)(terser@5.31.3))(vue@3.5.13(typescript@5.8.3))
-      autoprefixer: 10.4.20(postcss@8.4.49)
+      autoprefixer: 10.4.20(postcss@8.5.3)
       clear: 0.1.0
       consola: 3.2.3
-      cssnano: 7.0.6(postcss@8.4.49)
+      cssnano: 7.0.6(postcss@8.5.3)
       defu: 6.1.4
       esbuild: 0.24.2
       escape-string-regexp: 5.0.0
@@ -18541,7 +18703,7 @@ snapshots:
       pathe: 1.1.2
       perfect-debounce: 1.0.0
       pkg-types: 1.2.1
-      postcss: 8.4.49
+      postcss: 8.5.3
       rollup-plugin-visualizer: 5.12.0(rollup@4.34.9)
       std-env: 3.8.0
       strip-literal: 2.1.0
@@ -18587,16 +18749,16 @@ snapshots:
   '@nuxtjs/tailwindcss@6.12.2(magicast@0.3.5)(rollup@4.34.9)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))':
     dependencies:
       '@nuxt/kit': 3.14.159(magicast@0.3.5)(rollup@4.34.9)
-      autoprefixer: 10.4.20(postcss@8.4.49)
+      autoprefixer: 10.4.20(postcss@8.5.3)
       consola: 3.2.3
       defu: 6.1.4
       h3: 1.13.0
       klona: 2.0.6
       pathe: 1.1.2
-      postcss: 8.4.49
-      postcss-nesting: 13.0.1(postcss@8.4.49)
-      tailwind-config-viewer: 2.0.4(tailwindcss@3.4.15(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3)))
-      tailwindcss: 3.4.15(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
+      postcss: 8.5.3
+      postcss-nesting: 13.0.1(postcss@8.5.3)
+      tailwind-config-viewer: 2.0.4(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3)))
+      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
       ufo: 1.5.4
       unctx: 2.3.1
     transitivePeerDependencies:
@@ -21789,7 +21951,7 @@ snapshots:
       '@vue/shared': 3.5.13
       estree-walker: 2.0.2
       magic-string: 0.30.17
-      postcss: 8.4.49
+      postcss: 8.5.3
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.3.8':
@@ -23058,9 +23220,9 @@ snapshots:
 
   crypto-js@4.2.0: {}
 
-  css-declaration-sorter@7.2.0(postcss@8.4.49):
+  css-declaration-sorter@7.2.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
 
   css-select@5.1.0:
     dependencies:
@@ -23086,49 +23248,49 @@ snapshots:
 
   cssesc@3.0.0: {}
 
-  cssnano-preset-default@7.0.6(postcss@8.4.49):
+  cssnano-preset-default@7.0.6(postcss@8.5.3):
     dependencies:
       browserslist: 4.24.0
-      css-declaration-sorter: 7.2.0(postcss@8.4.49)
-      cssnano-utils: 5.0.0(postcss@8.4.49)
-      postcss: 8.4.49
-      postcss-calc: 10.0.2(postcss@8.4.49)
-      postcss-colormin: 7.0.2(postcss@8.4.49)
-      postcss-convert-values: 7.0.4(postcss@8.4.49)
-      postcss-discard-comments: 7.0.3(postcss@8.4.49)
-      postcss-discard-duplicates: 7.0.1(postcss@8.4.49)
-      postcss-discard-empty: 7.0.0(postcss@8.4.49)
-      postcss-discard-overridden: 7.0.0(postcss@8.4.49)
-      postcss-merge-longhand: 7.0.4(postcss@8.4.49)
-      postcss-merge-rules: 7.0.4(postcss@8.4.49)
-      postcss-minify-font-values: 7.0.0(postcss@8.4.49)
-      postcss-minify-gradients: 7.0.0(postcss@8.4.49)
-      postcss-minify-params: 7.0.2(postcss@8.4.49)
-      postcss-minify-selectors: 7.0.4(postcss@8.4.49)
-      postcss-normalize-charset: 7.0.0(postcss@8.4.49)
-      postcss-normalize-display-values: 7.0.0(postcss@8.4.49)
-      postcss-normalize-positions: 7.0.0(postcss@8.4.49)
-      postcss-normalize-repeat-style: 7.0.0(postcss@8.4.49)
-      postcss-normalize-string: 7.0.0(postcss@8.4.49)
-      postcss-normalize-timing-functions: 7.0.0(postcss@8.4.49)
-      postcss-normalize-unicode: 7.0.2(postcss@8.4.49)
-      postcss-normalize-url: 7.0.0(postcss@8.4.49)
-      postcss-normalize-whitespace: 7.0.0(postcss@8.4.49)
-      postcss-ordered-values: 7.0.1(postcss@8.4.49)
-      postcss-reduce-initial: 7.0.2(postcss@8.4.49)
-      postcss-reduce-transforms: 7.0.0(postcss@8.4.49)
-      postcss-svgo: 7.0.1(postcss@8.4.49)
-      postcss-unique-selectors: 7.0.3(postcss@8.4.49)
+      css-declaration-sorter: 7.2.0(postcss@8.5.3)
+      cssnano-utils: 5.0.0(postcss@8.5.3)
+      postcss: 8.5.3
+      postcss-calc: 10.0.2(postcss@8.5.3)
+      postcss-colormin: 7.0.2(postcss@8.5.3)
+      postcss-convert-values: 7.0.4(postcss@8.5.3)
+      postcss-discard-comments: 7.0.3(postcss@8.5.3)
+      postcss-discard-duplicates: 7.0.1(postcss@8.5.3)
+      postcss-discard-empty: 7.0.0(postcss@8.5.3)
+      postcss-discard-overridden: 7.0.0(postcss@8.5.3)
+      postcss-merge-longhand: 7.0.4(postcss@8.5.3)
+      postcss-merge-rules: 7.0.4(postcss@8.5.3)
+      postcss-minify-font-values: 7.0.0(postcss@8.5.3)
+      postcss-minify-gradients: 7.0.0(postcss@8.5.3)
+      postcss-minify-params: 7.0.2(postcss@8.5.3)
+      postcss-minify-selectors: 7.0.4(postcss@8.5.3)
+      postcss-normalize-charset: 7.0.0(postcss@8.5.3)
+      postcss-normalize-display-values: 7.0.0(postcss@8.5.3)
+      postcss-normalize-positions: 7.0.0(postcss@8.5.3)
+      postcss-normalize-repeat-style: 7.0.0(postcss@8.5.3)
+      postcss-normalize-string: 7.0.0(postcss@8.5.3)
+      postcss-normalize-timing-functions: 7.0.0(postcss@8.5.3)
+      postcss-normalize-unicode: 7.0.2(postcss@8.5.3)
+      postcss-normalize-url: 7.0.0(postcss@8.5.3)
+      postcss-normalize-whitespace: 7.0.0(postcss@8.5.3)
+      postcss-ordered-values: 7.0.1(postcss@8.5.3)
+      postcss-reduce-initial: 7.0.2(postcss@8.5.3)
+      postcss-reduce-transforms: 7.0.0(postcss@8.5.3)
+      postcss-svgo: 7.0.1(postcss@8.5.3)
+      postcss-unique-selectors: 7.0.3(postcss@8.5.3)
 
-  cssnano-utils@5.0.0(postcss@8.4.49):
+  cssnano-utils@5.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
 
-  cssnano@7.0.6(postcss@8.4.49):
+  cssnano@7.0.6(postcss@8.5.3):
     dependencies:
-      cssnano-preset-default: 7.0.6(postcss@8.4.49)
+      cssnano-preset-default: 7.0.6(postcss@8.5.3)
       lilconfig: 3.1.3
-      postcss: 8.4.49
+      postcss: 8.5.3
 
   csso@5.0.5:
     dependencies:
@@ -26419,8 +26581,8 @@ snapshots:
       p-retry: 4.6.2
       uuid: 9.0.1
       yaml: 2.4.2
-      zod: 3.24.4
-      zod-to-json-schema: 3.23.5(zod@3.24.4)
+      zod: 3.25.49
+      zod-to-json-schema: 3.23.5(zod@3.25.49)
     optionalDependencies:
       '@aws-sdk/credential-provider-node': 3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0)
       '@vercel/kv': 0.2.4
@@ -27407,6 +27569,33 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
+  next@15.3.3(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      '@next/env': 15.3.3
+      '@swc/counter': 0.1.3
+      '@swc/helpers': 0.5.15
+      busboy: 1.6.0
+      caniuse-lite: 1.0.30001666
+      postcss: 8.4.31
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      styled-jsx: 5.1.6(react@18.3.1)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 15.3.3
+      '@next/swc-darwin-x64': 15.3.3
+      '@next/swc-linux-arm64-gnu': 15.3.3
+      '@next/swc-linux-arm64-musl': 15.3.3
+      '@next/swc-linux-x64-gnu': 15.3.3
+      '@next/swc-linux-x64-musl': 15.3.3
+      '@next/swc-win32-arm64-msvc': 15.3.3
+      '@next/swc-win32-x64-msvc': 15.3.3
+      '@opentelemetry/api': 1.9.0
+      '@playwright/test': 1.50.1
+      sharp: 0.34.1
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+
   nitropack@2.10.4(@upstash/redis@1.34.3)(typescript@5.8.3):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.3.4
@@ -28170,49 +28359,42 @@ snapshots:
 
   possible-typed-array-names@1.0.0: {}
 
-  postcss-calc@10.0.2(postcss@8.4.49):
+  postcss-calc@10.0.2(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-selector-parser: 6.1.2
       postcss-value-parser: 4.2.0
 
-  postcss-colormin@7.0.2(postcss@8.4.49):
+  postcss-colormin@7.0.2(postcss@8.5.3):
     dependencies:
       browserslist: 4.24.0
       caniuse-api: 3.0.0
       colord: 2.9.3
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-convert-values@7.0.4(postcss@8.4.49):
+  postcss-convert-values@7.0.4(postcss@8.5.3):
     dependencies:
       browserslist: 4.24.0
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-discard-comments@7.0.3(postcss@8.4.49):
+  postcss-discard-comments@7.0.3(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-selector-parser: 6.1.2
 
-  postcss-discard-duplicates@7.0.1(postcss@8.4.49):
+  postcss-discard-duplicates@7.0.1(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
 
-  postcss-discard-empty@7.0.0(postcss@8.4.49):
+  postcss-discard-empty@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
 
-  postcss-discard-overridden@7.0.0(postcss@8.4.49):
+  postcss-discard-overridden@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
-
-  postcss-import@15.1.0(postcss@8.4.49):
-    dependencies:
-      postcss: 8.4.49
-      postcss-value-parser: 4.2.0
-      read-cache: 1.0.0
-      resolve: 1.22.8
+      postcss: 8.5.3
 
   postcss-import@15.1.0(postcss@8.5.3):
     dependencies:
@@ -28220,11 +28402,6 @@ snapshots:
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
       resolve: 1.22.8
-
-  postcss-js@4.0.1(postcss@8.4.49):
-    dependencies:
-      camelcase-css: 2.0.1
-      postcss: 8.4.49
 
   postcss-js@4.0.1(postcss@8.5.3):
     dependencies:
@@ -28255,29 +28432,21 @@ snapshots:
       postcss: 8.5.3
       ts-node: 10.9.2(@types/node@20.17.24)(typescript@5.8.3)
 
-  postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.4.5)):
+  postcss-load-config@4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.4.5)):
     dependencies:
       lilconfig: 3.1.3
       yaml: 2.7.0
     optionalDependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       ts-node: 10.9.2(@types/node@20.17.24)(typescript@5.4.5)
 
-  postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.6.3)):
+  postcss-load-config@4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.6.3)):
     dependencies:
       lilconfig: 3.1.3
       yaml: 2.7.0
     optionalDependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       ts-node: 10.9.2(@types/node@20.17.24)(typescript@5.6.3)
-
-  postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3)):
-    dependencies:
-      lilconfig: 3.1.3
-      yaml: 2.7.0
-    optionalDependencies:
-      postcss: 8.4.49
-      ts-node: 10.9.2(@types/node@20.17.24)(typescript@5.8.3)
 
   postcss-load-config@4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3)):
     dependencies:
@@ -28304,48 +28473,43 @@ snapshots:
       tsx: 4.19.2
       yaml: 2.7.0
 
-  postcss-merge-longhand@7.0.4(postcss@8.4.49):
+  postcss-merge-longhand@7.0.4(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
-      stylehacks: 7.0.4(postcss@8.4.49)
+      stylehacks: 7.0.4(postcss@8.5.3)
 
-  postcss-merge-rules@7.0.4(postcss@8.4.49):
+  postcss-merge-rules@7.0.4(postcss@8.5.3):
     dependencies:
       browserslist: 4.24.0
       caniuse-api: 3.0.0
-      cssnano-utils: 5.0.0(postcss@8.4.49)
-      postcss: 8.4.49
+      cssnano-utils: 5.0.0(postcss@8.5.3)
+      postcss: 8.5.3
       postcss-selector-parser: 6.1.2
 
-  postcss-minify-font-values@7.0.0(postcss@8.4.49):
+  postcss-minify-font-values@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-minify-gradients@7.0.0(postcss@8.4.49):
+  postcss-minify-gradients@7.0.0(postcss@8.5.3):
     dependencies:
       colord: 2.9.3
-      cssnano-utils: 5.0.0(postcss@8.4.49)
-      postcss: 8.4.49
+      cssnano-utils: 5.0.0(postcss@8.5.3)
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-minify-params@7.0.2(postcss@8.4.49):
+  postcss-minify-params@7.0.2(postcss@8.5.3):
     dependencies:
       browserslist: 4.24.0
-      cssnano-utils: 5.0.0(postcss@8.4.49)
-      postcss: 8.4.49
+      cssnano-utils: 5.0.0(postcss@8.5.3)
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-minify-selectors@7.0.4(postcss@8.4.49):
+  postcss-minify-selectors@7.0.4(postcss@8.5.3):
     dependencies:
       cssesc: 3.0.0
-      postcss: 8.4.49
-      postcss-selector-parser: 6.1.2
-
-  postcss-nested@6.2.0(postcss@8.4.49):
-    dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-selector-parser: 6.1.2
 
   postcss-nested@6.2.0(postcss@8.5.3):
@@ -28353,73 +28517,73 @@ snapshots:
       postcss: 8.5.3
       postcss-selector-parser: 6.1.2
 
-  postcss-nesting@13.0.1(postcss@8.4.49):
+  postcss-nesting@13.0.1(postcss@8.5.3):
     dependencies:
       '@csstools/selector-resolve-nested': 3.0.0(postcss-selector-parser@7.0.0)
       '@csstools/selector-specificity': 5.0.0(postcss-selector-parser@7.0.0)
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-selector-parser: 7.0.0
 
-  postcss-normalize-charset@7.0.0(postcss@8.4.49):
+  postcss-normalize-charset@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
 
-  postcss-normalize-display-values@7.0.0(postcss@8.4.49):
+  postcss-normalize-display-values@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-positions@7.0.0(postcss@8.4.49):
+  postcss-normalize-positions@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-repeat-style@7.0.0(postcss@8.4.49):
+  postcss-normalize-repeat-style@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-string@7.0.0(postcss@8.4.49):
+  postcss-normalize-string@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-timing-functions@7.0.0(postcss@8.4.49):
+  postcss-normalize-timing-functions@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-unicode@7.0.2(postcss@8.4.49):
+  postcss-normalize-unicode@7.0.2(postcss@8.5.3):
     dependencies:
       browserslist: 4.24.0
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-url@7.0.0(postcss@8.4.49):
+  postcss-normalize-url@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-whitespace@7.0.0(postcss@8.4.49):
+  postcss-normalize-whitespace@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-ordered-values@7.0.1(postcss@8.4.49):
+  postcss-ordered-values@7.0.1(postcss@8.5.3):
     dependencies:
-      cssnano-utils: 5.0.0(postcss@8.4.49)
-      postcss: 8.4.49
+      cssnano-utils: 5.0.0(postcss@8.5.3)
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
-  postcss-reduce-initial@7.0.2(postcss@8.4.49):
+  postcss-reduce-initial@7.0.2(postcss@8.5.3):
     dependencies:
       browserslist: 4.24.0
       caniuse-api: 3.0.0
-      postcss: 8.4.49
+      postcss: 8.5.3
 
-  postcss-reduce-transforms@7.0.0(postcss@8.4.49):
+  postcss-reduce-transforms@7.0.0(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
 
   postcss-safe-parser@7.0.1(postcss@8.5.3):
@@ -28440,15 +28604,15 @@ snapshots:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
 
-  postcss-svgo@7.0.1(postcss@8.4.49):
+  postcss-svgo@7.0.1(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-value-parser: 4.2.0
       svgo: 3.3.2
 
-  postcss-unique-selectors@7.0.3(postcss@8.4.49):
+  postcss-unique-selectors@7.0.3(postcss@8.5.3):
     dependencies:
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-selector-parser: 6.1.2
 
   postcss-value-parser@4.2.0: {}
@@ -29542,10 +29706,10 @@ snapshots:
       client-only: 0.0.1
       react: 19.0.0-rc.1
 
-  stylehacks@7.0.4(postcss@8.4.49):
+  stylehacks@7.0.4(postcss@8.5.3):
     dependencies:
       browserslist: 4.24.0
-      postcss: 8.4.49
+      postcss: 8.5.3
       postcss-selector-parser: 6.1.2
 
   sucrase@3.34.0:
@@ -29698,7 +29862,7 @@ snapshots:
 
   tabbable@6.2.0: {}
 
-  tailwind-config-viewer@2.0.4(tailwindcss@3.4.15(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))):
+  tailwind-config-viewer@2.0.4(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))):
     dependencies:
       '@koa/router': 12.0.1
       commander: 6.2.1
@@ -29708,7 +29872,7 @@ snapshots:
       open: 7.4.2
       portfinder: 1.0.32
       replace-in-file: 6.3.5
-      tailwindcss: 3.4.15(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
+      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
     transitivePeerDependencies:
       - supports-color
 
@@ -29739,11 +29903,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.4.49
-      postcss-import: 15.1.0(postcss@8.4.49)
-      postcss-js: 4.0.1(postcss@8.4.49)
-      postcss-load-config: 4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.4.5))
-      postcss-nested: 6.2.0(postcss@8.4.49)
+      postcss: 8.5.3
+      postcss-import: 15.1.0(postcss@8.5.3)
+      postcss-js: 4.0.1(postcss@8.5.3)
+      postcss-load-config: 4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.4.5))
+      postcss-nested: 6.2.0(postcss@8.5.3)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -29766,11 +29930,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.4.49
-      postcss-import: 15.1.0(postcss@8.4.49)
-      postcss-js: 4.0.1(postcss@8.4.49)
-      postcss-load-config: 4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.6.3))
-      postcss-nested: 6.2.0(postcss@8.4.49)
+      postcss: 8.5.3
+      postcss-import: 15.1.0(postcss@8.5.3)
+      postcss-js: 4.0.1(postcss@8.5.3)
+      postcss-load-config: 4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.6.3))
+      postcss-nested: 6.2.0(postcss@8.5.3)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -29793,11 +29957,38 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.4.49
-      postcss-import: 15.1.0(postcss@8.4.49)
-      postcss-js: 4.0.1(postcss@8.4.49)
-      postcss-load-config: 4.0.2(postcss@8.4.49)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
-      postcss-nested: 6.2.0(postcss@8.4.49)
+      postcss: 8.5.3
+      postcss-import: 15.1.0(postcss@8.5.3)
+      postcss-js: 4.0.1(postcss@8.5.3)
+      postcss-load-config: 4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
+      postcss-nested: 6.2.0(postcss@8.5.3)
+      postcss-selector-parser: 6.1.2
+      resolve: 1.22.8
+      sucrase: 3.35.0
+    transitivePeerDependencies:
+      - ts-node
+
+  tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3)):
+    dependencies:
+      '@alloc/quick-lru': 5.2.0
+      arg: 5.0.2
+      chokidar: 3.6.0
+      didyoumean: 1.2.2
+      dlv: 1.1.3
+      fast-glob: 3.3.2
+      glob-parent: 6.0.2
+      is-glob: 4.0.3
+      jiti: 1.21.6
+      lilconfig: 3.1.3
+      micromatch: 4.0.8
+      normalize-path: 3.0.0
+      object-hash: 3.0.0
+      picocolors: 1.1.1
+      postcss: 8.5.3
+      postcss-import: 15.1.0(postcss@8.5.3)
+      postcss-js: 4.0.1(postcss@8.5.3)
+      postcss-load-config: 4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))
+      postcss-nested: 6.2.0(postcss@8.5.3)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -30845,7 +31036,7 @@ snapshots:
   vite@5.4.11(@types/node@20.17.24)(terser@5.31.3):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.4.49
+      postcss: 8.5.3
       rollup: 4.34.9
     optionalDependencies:
       '@types/node': 20.17.24
@@ -30855,7 +31046,7 @@ snapshots:
   vite@5.4.11(@types/node@22.7.4)(terser@5.31.3):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.4.49
+      postcss: 8.5.3
       rollup: 4.34.9
     optionalDependencies:
       '@types/node': 22.7.4
@@ -31365,14 +31556,14 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.5.2
 
-  zod-to-json-schema@3.23.5(zod@3.24.4):
+  zod-to-json-schema@3.23.5(zod@3.25.49):
     dependencies:
-      zod: 3.24.4
+      zod: 3.25.49
 
-  zod-to-json-schema@3.24.1(zod@3.24.4):
+  zod-to-json-schema@3.24.1(zod@3.25.49):
     dependencies:
-      zod: 3.24.4
+      zod: 3.25.49
 
-  zod@3.24.4: {}
+  zod@3.25.49: {}
 
   zwitch@2.0.4: {}

@@ -1,5 +1,81 @@
 # ai
 
+## 5.0.0-alpha.11
+
+### Major Changes
+
+- e8324c5: feat (ai): add args callbacks to tools
+
+### Patch Changes
+
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/gateway@1.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 5.0.0-alpha.10
+
+### Major Changes
+
+- 98f25e5: chore (ui): remove managed chat inputs
+- 7bb58d4: chore (ai): restructure prepareRequest
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/gateway@1.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 5.0.0-alpha.9
+
+### Major Changes
+
+- 9ae327d: chore (ui): replace chat store concept with chat instances
+
+### Patch Changes
+
+- 8255639: ### Fix use with Google APIs + zod v4's `.literal()` schema
+
+  Before [zod@3.25.49](https://github.com/colinhacks/zod/releases/tag/v3.25.49), requests to Google's APIs failed due to a missing `type` in the provided schema. The problem has been resolved for the `ai` SDK by bumping our `zod` peer dependencies to `^3.25.49`.
+
+  pull request: https://github.com/vercel/ai/pull/6609
+
+- Updated dependencies [26b6dd0]
+- Updated dependencies [811dff3]
+  - @ai-sdk/gateway@1.0.0-alpha.9
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 5.0.0-alpha.8
+
+### Major Changes
+
+- c25cbce: feat (ai): use console.error as default error handler for streamText and streamObject
+
+### Patch Changes
+
+- 4fef487: feat: support for zod v4 for schema validation
+
+  All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
+  - `generateObject()`
+  - `streamObject()`
+  - `generateText()`
+  - `experimental_useObject()` from `@ai-sdk/react`
+  - `streamUI()` from `@ai-sdk/rsc`
+
+- 6b1c55c: feat (ai): introduce GLOBAL_DEFAULT_PROVIDER
+- 2e4f9e4: feat (ai): improved error messages when using gateway
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+- Updated dependencies [3cbcbb7]
+- Updated dependencies [989ac75]
+- Updated dependencies [7742ba3]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+  - @ai-sdk/gateway@1.0.0-alpha.8
+
 ## 5.0.0-alpha.7
 
 ### Major Changes

@@ -1,5 +1,7 @@
 // https://fal.ai/models
 export type FalImageModelId =
+  | 'fal-ai/flux-pro/kontext/max'
+  | 'fal-ai/flux-pro/kontext'
   | 'fal-ai/aura-flow'
   | 'fal-ai/aura-sr'
   | 'fal-ai/bria/eraser'

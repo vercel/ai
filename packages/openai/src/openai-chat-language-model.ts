@@ -170,6 +170,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
       reasoning_effort: openaiOptions.reasoningEffort,
+      service_tier: openaiOptions.serviceTier,
 
       // messages:
       messages,
@@ -253,6 +254,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         });
       }
     }
+
+    // Validate flex processing support
+    if (
+      openaiOptions.serviceTier === 'flex' &&
+      !supportsFlexProcessing(this.modelId)
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'serviceTier',
+        details: 'flex processing is only available for o3 and o4-mini models',
+      });
+      baseArgs.service_tier = undefined;
+    }
+
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
@@ -744,6 +759,10 @@ function isReasoningModel(modelId: string) {
 
 function isAudioModel(modelId: string) {
   return modelId.startsWith('gpt-4o-audio-preview');
+}
+
+function supportsFlexProcessing(modelId: string) {
+  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
 }
 
 function getSystemMessageMode(modelId: string) {

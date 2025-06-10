@@ -24,7 +24,9 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
+import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -66,7 +68,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -216,7 +217,9 @@ export function streamText<
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   onChunk,
-  onError,
+  onError = ({ error }) => {
+    console.error(error);
+  },
   onFinish,
   onStepFinish,
   _internal: {
@@ -545,7 +548,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
-    onError: undefined | StreamTextOnErrorCallback;
+    onError: StreamTextOnErrorCallback;
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
@@ -593,7 +596,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'error') {
-          await onError?.({ error: part.error });
+          await onError({ error: wrapGatewayError(part.error) });
         }
 
         if (part.type === 'text') {
@@ -1119,9 +1122,33 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
-                    // forward:
-                    case 'tool-call-streaming-start':
+                    case 'tool-call-streaming-start': {
+                      const tool = tools?.[chunk.toolName];
+
+                      if (tool?.onArgsStreamingStart != null) {
+                        await tool.onArgsStreamingStart({
+                          toolCallId: chunk.toolCallId,
+                          messages: stepInputMessages,
+                          abortSignal,
+                        });
+                      }
+
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'tool-call-delta': {
+                      const tool = tools?.[chunk.toolName];
+
+                      if (tool?.onArgsStreamingDelta != null) {
+                        await tool.onArgsStreamingDelta({
+                          argsTextDelta: chunk.argsTextDelta,
+                          toolCallId: chunk.toolCallId,
+                          messages: stepInputMessages,
+                          abortSignal,
+                        });
+                      }
+
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1464,12 +1491,23 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'source': {
-              if (sendSources) {
+              if (sendSources && part.sourceType === 'url') {
                 controller.enqueue({
                   type: 'source-url',
                   sourceId: part.id,
                   url: part.url,
                   title: part.title,
+                  providerMetadata: part.providerMetadata,
+                });
+              }
+
+              if (sendSources && part.sourceType === 'document') {
+                controller.enqueue({
+                  type: 'source-document',
+                  sourceId: part.id,
+                  mediaType: part.mediaType,
+                  title: part.title,
+                  filename: part.filename,
                   providerMetadata: part.providerMetadata,
                 });
               }

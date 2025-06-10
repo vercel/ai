@@ -28,6 +28,16 @@ export async function POST(req: Request) {
             Math.floor(Math.random() * weatherOptions.length)
           ];
         },
+
+        onArgsStreamingStart: () => {
+          console.log('onArgsStreamingStart');
+        },
+        onArgsStreamingDelta: ({ argsTextDelta }) => {
+          console.log('onArgsStreamingDelta', argsTextDelta);
+        },
+        onArgsAvailable: ({ args }) => {
+          console.log('onArgsAvailable', args);
+        },
       }),
       // client-side tool that starts user interaction:
       askForConfirmation: tool({

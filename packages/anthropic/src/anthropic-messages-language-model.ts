@@ -1,9 +1,11 @@
 import {
+  APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2FunctionTool,
+  LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -16,6 +18,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -30,6 +33,81 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
+function processPageLocationCitation(
+  citation:
+    | {
+        type: 'web_search_result_location';
+        url: string;
+        cited_text: string;
+        title: string;
+        encrypted_index: string;
+      }
+    | {
+        type: 'page_location';
+        cited_text: string;
+        document_index: number;
+        document_title: string | null;
+        start_page_number: number;
+        end_page_number: number;
+      },
+  citationDocuments: Array<{
+    title: string;
+    filename?: string;
+    mediaType: string;
+  }>,
+  generateId: () => string,
+  onSource: (source: any) => void,
+) {
+  if (citation.type === 'page_location') {
+    const source = createCitationSource(
+      citation,
+      citationDocuments,
+      generateId,
+    );
+    if (source) {
+      onSource(source);
+    }
+  }
+}
+
+function createCitationSource(
+  citation: {
+    type: 'page_location';
+    cited_text: string;
+    document_index: number;
+    document_title: string | null;
+    start_page_number: number;
+    end_page_number: number;
+  },
+  citationDocuments: Array<{
+    title: string;
+    filename?: string;
+    mediaType: string;
+  }>,
+  generateId: () => string,
+) {
+  const documentInfo = citationDocuments[citation.document_index];
+  if (!documentInfo) {
+    return null;
+  }
+
+  return {
+    type: 'source' as const,
+    sourceType: 'document' as const,
+    id: generateId(),
+    mediaType: documentInfo.mediaType,
+    title: citation.document_title ?? documentInfo.title,
+    filename: documentInfo.filename,
+    providerMetadata: {
+      anthropic: {
+        citedText: citation.cited_text,
+        startPageNumber: citation.start_page_number,
+        endPageNumber: citation.end_page_number,
+      },
+    },
+  };
+}
+
 type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
@@ -38,6 +116,7 @@ type AnthropicMessagesConfig = {
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
   supportedUrls?: () => LanguageModelV2['supportedUrls'];
+  generateId?: () => string;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
@@ -46,6 +125,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly modelId: AnthropicMessagesModelId;
 
   private readonly config: AnthropicMessagesConfig;
+  private readonly generateId: () => string;
 
   constructor(
     modelId: AnthropicMessagesModelId,
@@ -53,6 +133,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   ) {
     this.modelId = modelId;
     this.config = config;
+    this.generateId = config.generateId ?? generateId;
   }
 
   supportsUrl(url: URL): boolean {
@@ -210,6 +291,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
     }
 
+    let modifiedTools = tools;
+    let modifiedToolChoice = toolChoice;
+
+    if (anthropicOptions?.webSearch) {
+      const webSearchTool: any = {
+        type: 'web_search_20250305',
+        name: 'web_search',
+        max_uses: anthropicOptions.webSearch.maxUses,
+        allowed_domains: anthropicOptions.webSearch.allowedDomains,
+        blocked_domains: anthropicOptions.webSearch.blockedDomains,
+        ...(anthropicOptions.webSearch.userLocation && {
+          user_location: {
+            type: anthropicOptions.webSearch.userLocation.type,
+            country: anthropicOptions.webSearch.userLocation.country,
+            city: anthropicOptions.webSearch.userLocation.city,
+            region: anthropicOptions.webSearch.userLocation.region,
+            timezone: anthropicOptions.webSearch.userLocation.timezone,
+          },
+        }),
+      };
+
+      modifiedTools = tools ? [...tools, webSearchTool] : [webSearchTool];
+    }
+
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -221,7 +326,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
           }
-        : { tools, toolChoice },
+        : { tools: modifiedTools, toolChoice: modifiedToolChoice },
     );
 
     return {
@@ -261,11 +366,48 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return this.config.transformRequestBody?.(args) ?? args;
   }
 
+  private extractCitationDocuments(prompt: LanguageModelV2Prompt): Array<{
+    title: string;
+    filename?: string;
+    mediaType: string;
+  }> {
+    // Helper function to check if citations are enabled for a file part
+    const isCitationEnabled = (part: any) => {
+      const anthropic = part.providerOptions?.anthropic;
+      const citationsConfig = anthropic?.citations as
+        | { enabled?: boolean }
+        | undefined;
+      return citationsConfig?.enabled ?? false;
+    };
+
+    return prompt
+      .filter(message => message.role === 'user')
+      .flatMap(message => message.content)
+      .filter(
+        part =>
+          part.type === 'file' &&
+          part.mediaType === 'application/pdf' &&
+          isCitationEnabled(part),
+      )
+      .map(part => {
+        // TypeScript knows this is a file part due to our filter
+        const filePart = part as Extract<typeof part, { type: 'file' }>;
+        return {
+          title: filePart.filename ?? 'Untitled Document',
+          filename: filePart.filename,
+          mediaType: filePart.mediaType,
+        };
+      });
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings, betas, jsonResponseTool } =
       await this.getArgs(options);
+
+    // Extract citation documents for response processing
+    const citationDocuments = this.extractCitationDocuments(options.prompt);
 
     const {
       responseHeaders,
@@ -293,6 +435,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           // so we ignore the text content:
           if (jsonResponseTool == null) {
             content.push({ type: 'text', text: part.text });
+
+            // Process citations if present
+            if (part.citations) {
+              for (const citation of part.citations) {
+                processPageLocationCitation(
+                  citation,
+                  citationDocuments,
+                  this.generateId,
+                  source => content.push(source),
+                );
+              }
+            }
           }
           break;
         }
@@ -339,12 +493,47 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
           break;
         }
+        case 'server_tool_use': {
+          continue;
+        }
+        case 'web_search_tool_result': {
+          if (Array.isArray(part.content)) {
+            for (const result of part.content) {
+              if (result.type === 'web_search_result') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: this.generateId(),
+                  url: result.url,
+                  title: result.title,
+                  providerMetadata: {
+                    anthropic: {
+                      encryptedContent: result.encrypted_content,
+                      pageAge: result.page_age ?? null,
+                    },
+                  },
+                });
+              }
+            }
+          } else if (part.content.type === 'web_search_tool_result_error') {
+            throw new APICallError({
+              message: `Web search failed: ${part.content.error_code}`,
+              url: 'web_search_api',
+              requestBodyValues: { tool_use_id: part.tool_use_id },
+              data: { error_code: part.content.error_code },
+            });
+          }
+          break;
+        }
       }
     }
 
     return {
       content,
-      finishReason: mapAnthropicStopReason(response.stop_reason),
+      finishReason: mapAnthropicStopReason({
+        finishReason: response.stop_reason,
+        isJsonResponseFromTool: jsonResponseTool != null,
+      }),
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
@@ -373,6 +562,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings, betas, jsonResponseTool } =
       await this.getArgs(options);
+
+    // Extract citation documents for response processing
+    const citationDocuments = this.extractCitationDocuments(options.prompt);
 
     const body = { ...args, stream: true };
 
@@ -411,7 +603,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'thinking'
       | 'tool_use'
       | 'redacted_thinking'
+      | 'server_tool_use'
+      | 'web_search_tool_result'
       | undefined = undefined;
+
+    const config = this.config;
+    const generateId = this.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -467,6 +664,47 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       toolName: value.content_block.name,
                       jsonText: '',
                     };
+                    return;
+                  }
+
+                  case 'server_tool_use': {
+                    // server_tool_use is just metadata about the tool usage
+                    // We don't generate synthetic content for it
+                    return;
+                  }
+
+                  case 'web_search_tool_result': {
+                    if (Array.isArray(value.content_block.content)) {
+                      for (const result of value.content_block.content) {
+                        if (result.type === 'web_search_result') {
+                          controller.enqueue({
+                            type: 'source',
+                            sourceType: 'url',
+                            id: generateId(),
+                            url: result.url,
+                            title: result.title,
+                            providerMetadata: {
+                              anthropic: {
+                                encryptedContent: result.encrypted_content,
+                                pageAge: result.page_age ?? null,
+                              },
+                            },
+                          });
+                        }
+                      }
+                    } else if (
+                      value.content_block.content.type ===
+                      'web_search_tool_result_error'
+                    ) {
+                      controller.enqueue({
+                        type: 'error',
+                        error: {
+                          type: 'web-search-error',
+                          message: `Web search failed: ${value.content_block.content.error_code}`,
+                          code: value.content_block.content.error_code,
+                        },
+                      });
+                    }
                     return;
                   }
 
@@ -552,6 +790,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'input_json_delta': {
                     const contentBlock = toolCallContentBlocks[value.index];
 
+                    if (!contentBlock) {
+                      return;
+                    }
+
                     controller.enqueue(
                       jsonResponseTool != null
                         ? {
@@ -569,6 +811,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                     contentBlock.jsonText += value.delta.partial_json;
 
+                    return;
+                  }
+
+                  case 'citations_delta': {
+                    const citation = value.delta.citation;
+
+                    processPageLocationCitation(
+                      citation,
+                      citationDocuments,
+                      generateId,
+                      source => controller.enqueue(source),
+                    );
+                    // Web search citations are handled in web_search_tool_result content block
                     return;
                   }
 
@@ -607,7 +862,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 usage.totalTokens =
                   (usage.inputTokens ?? 0) + (value.usage.output_tokens ?? 0);
 
-                finishReason = mapAnthropicStopReason(value.delta.stop_reason);
+                finishReason = mapAnthropicStopReason({
+                  finishReason: value.delta.stop_reason,
+                  isJsonResponseFromTool: jsonResponseTool != null,
+                });
                 return;
               }
 
@@ -651,6 +909,27 @@ const anthropicMessagesResponseSchema = z.object({
       z.object({
         type: z.literal('text'),
         text: z.string(),
+        citations: z
+          .array(
+            z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('web_search_result_location'),
+                cited_text: z.string(),
+                url: z.string(),
+                title: z.string(),
+                encrypted_index: z.string(),
+              }),
+              z.object({
+                type: z.literal('page_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                start_page_number: z.number(),
+                end_page_number: z.number(),
+              }),
+            ]),
+          )
+          .optional(),
       }),
       z.object({
         type: z.literal('thinking'),
@@ -667,6 +946,31 @@ const anthropicMessagesResponseSchema = z.object({
         name: z.string(),
         input: z.unknown(),
       }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.record(z.unknown()).nullish(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.array(
+            z.object({
+              type: z.literal('web_search_result'),
+              url: z.string(),
+              title: z.string(),
+              encrypted_content: z.string(),
+              page_age: z.string().nullish(),
+            }),
+          ),
+          z.object({
+            type: z.literal('web_search_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
     ]),
   ),
   stop_reason: z.string().nullish(),
@@ -675,6 +979,11 @@ const anthropicMessagesResponseSchema = z.object({
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
+    server_tool_use: z
+      .object({
+        web_search_requests: z.number(),
+      })
+      .nullish(),
   }),
 });
 
@@ -715,6 +1024,31 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         type: z.literal('redacted_thinking'),
         data: z.string(),
       }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.record(z.unknown()).nullish(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.union([
+          z.array(
+            z.object({
+              type: z.literal('web_search_result'),
+              url: z.string(),
+              title: z.string(),
+              encrypted_content: z.string(),
+              page_age: z.string().nullish(),
+            }),
+          ),
+          z.object({
+            type: z.literal('web_search_tool_result_error'),
+            error_code: z.string(),
+          }),
+        ]),
+      }),
     ]),
   }),
   z.object({
@@ -736,6 +1070,26 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       z.object({
         type: z.literal('signature_delta'),
         signature: z.string(),
+      }),
+      z.object({
+        type: z.literal('citations_delta'),
+        citation: z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('web_search_result_location'),
+            cited_text: z.string(),
+            url: z.string(),
+            title: z.string(),
+            encrypted_index: z.string(),
+          }),
+          z.object({
+            type: z.literal('page_location'),
+            cited_text: z.string(),
+            document_index: z.number(),
+            document_title: z.string().nullable(),
+            start_page_number: z.number(),
+            end_page_number: z.number(),
+          }),
+        ]),
       }),
     ]),
   }),

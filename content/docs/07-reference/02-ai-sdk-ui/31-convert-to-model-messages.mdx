@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
 ### Returns
 
-An array of [`ModelMessage`](/docs/reference/ai-sdk-core/core-message) objects.
+An array of [`ModelMessage`](/docs/reference/ai-sdk-core/model-message) objects.
 
 <PropertiesTable
   content={[

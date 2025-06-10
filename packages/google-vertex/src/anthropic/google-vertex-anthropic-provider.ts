@@ -98,6 +98,8 @@ export function createVertexAnthropic(
           anthropic_version: 'vertex-2023-10-16',
         };
       },
+      // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion
+      supportedUrls: () => ({}),
     });
 
   const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {

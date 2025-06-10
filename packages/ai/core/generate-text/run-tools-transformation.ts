@@ -183,6 +183,15 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             const tool = tools![toolCall.toolName];
 
+            if (tool.onArgsAvailable != null) {
+              await tool.onArgsAvailable({
+                args: toolCall.args,
+                toolCallId: toolCall.toolCallId,
+                messages,
+                abortSignal,
+              });
+            }
+
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
               outstandingToolResults.add(toolExecutionId);
