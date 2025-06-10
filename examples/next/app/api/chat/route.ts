@@ -6,7 +6,6 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   generateId,
-  stepCountIs,
   streamText,
   tool,
 } from 'ai';
@@ -19,7 +18,7 @@ export async function POST(req: Request) {
   const chat = await readChat(id);
   const messages = [...chat.messages, message];
 
-  const stream = createUIMessageStream({
+  const stream = createUIMessageStream<MyUIMessage>({
     execute: async ({ writer }) => {
       // go through all messages, create a copy, replace data parts with
       // tool invocations
@@ -90,6 +89,7 @@ export async function POST(req: Request) {
               }
             },
           })
+          // TODO this will go away in the future:
           .pipeThrough(
             new TransformStream({
               transform(chunk, controller) {
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
                   return;
                 }
 
-                controller.enqueue(chunk);
+                controller.enqueue(chunk as any);
               },
             }),
           ),
