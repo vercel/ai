@@ -49,7 +49,7 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
                     ) {
                       throw new UnsupportedFunctionalityError({
                         functionality: `document media type: ${part.mediaType}`,
-                        message: `Media type '${part.mediaType}' is not supported. Supported media types are: text/plain, text/markdown, text/csv, application/json, and other text/* types.`,
+                        message: `Media type '${part.mediaType}' is not supported. Supported media types are: text/* and application/json.`,
                       });
                     }
                     textContent = new TextDecoder().decode(part.data);
