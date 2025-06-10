@@ -7,12 +7,10 @@ import {
   UIMessage,
 } from 'ai';
 
-type MyUIMessage = UIMessage<{ x: number }, { test: { value: string } }>;
-
 export async function POST(req: Request) {
-  const { messages }: { messages: MyUIMessage[] } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
-  const stream = createUIMessageStream<MyUIMessage>({
+  const stream = createUIMessageStream({
     execute: ({ writer }) => {
       writer.write({ type: 'start' });
 
@@ -24,26 +22,12 @@ export async function POST(req: Request) {
         title: 'Example Source',
       });
 
-      writer.write({
-        type: 'data-test',
-        data: {
-          value: 'test',
-        },
-      });
-
-      writer.write({
-        type: 'metadata',
-        metadata: {
-          x: 12,
-        },
-      });
-
       const result = streamText({
         model: openai('gpt-4o'),
         messages: convertToModelMessages(messages),
       });
 
-      writer.merge(result.toUIMessageStream<MyUIMessage>({ sendStart: false }));
+      writer.merge(result.toUIMessageStream({ sendStart: false }));
     },
     originalMessages: messages,
     onFinish: options => {
