@@ -1,18 +1,18 @@
-import { UIMessageStreamPart } from './ui-message-stream-parts';
-import { UIDataTypes } from '../ui';
+import { UIDataTypes, UIMessage } from '../ui';
+import { InferUIMessageStreamPart } from './ui-message-stream-parts';
 
 export interface UIMessageStreamWriter<
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
+  UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
 > {
   /**
    * Appends a data stream part to the stream.
    */
-  write(part: UIMessageStreamPart<DATA_TYPES>): void;
+  write(part: InferUIMessageStreamPart<UI_MESSAGE>): void;
 
   /**
    * Merges the contents of another stream to this stream.
    */
-  merge(stream: ReadableStream<UIMessageStreamPart<DATA_TYPES>>): void;
+  merge(stream: ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>): void;
 
   /**
    * Error handler that is used by the data stream writer.

@@ -6,7 +6,7 @@ export function transformTextToUiMessageStream({
   stream: ReadableStream<string>;
 }) {
   return stream.pipeThrough(
-    new TransformStream<string, UIMessageStreamPart>({
+    new TransformStream<string, UIMessageStreamPart<never, never>>({
       start(controller) {
         controller.enqueue({ type: 'start' });
         controller.enqueue({ type: 'start-step' });

@@ -3,7 +3,7 @@ import {
   processUIMessageStream,
   StreamingUIMessageState,
 } from '../ui/process-ui-message-stream';
-import { UIMessage } from '../ui/ui-messages';
+import { UIDataTypes, UIMessage } from '../ui/ui-messages';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 
 export function handleUIMessageStreamFinish({
@@ -12,7 +12,7 @@ export function handleUIMessageStreamFinish({
   onFinish,
   stream,
 }: {
-  stream: ReadableStream<UIMessageStreamPart>;
+  stream: ReadableStream<UIMessageStreamPart<UIDataTypes>>;
 
   newMessageId: string;
 

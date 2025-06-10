@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProviderMetadata } from '../../core';
 import { ValueOf } from '../util/value-of';
-import { UIDataTypes } from '../ui';
+import { UIDataTypes, UIMessage } from '../ui';
 
 export const uiMessageStreamPartSchema = z.union([
   z.object({
@@ -98,7 +98,7 @@ export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   };
 }>;
 
-export type UIMessageStreamPart<DATA_TYPES extends UIDataTypes = UIDataTypes> =
+export type UIMessageStreamPart<METADATA, DATA_TYPES extends UIDataTypes> =
   | {
       type: 'text';
       text: string;
@@ -157,31 +157,38 @@ export type UIMessageStreamPart<DATA_TYPES extends UIDataTypes = UIDataTypes> =
   | DataUIMessageStreamPart<DATA_TYPES>
   | {
       type: 'metadata';
-      metadata: unknown;
+      metadata: METADATA;
     }
   | {
       type: 'start-step';
-      metadata?: unknown;
+      metadata?: METADATA;
     }
   | {
       type: 'finish-step';
-      metadata?: unknown;
+      metadata?: METADATA;
     }
   | {
       type: 'start';
       messageId?: string;
-      metadata?: unknown;
+      metadata?: METADATA;
     }
   | {
       type: 'finish';
-      metadata?: unknown;
+      metadata?: METADATA;
     }
   | {
       type: 'reasoning-part-finish';
     };
 
 export function isDataUIMessageStreamPart(
-  part: UIMessageStreamPart,
+  part: UIMessageStreamPart<unknown, UIDataTypes>,
 ): part is DataUIMessageStreamPart<UIDataTypes> {
   return part.type.startsWith('data-');
 }
+
+export type InferUIMessageStreamPart<
+  T extends UIMessage<unknown, UIDataTypes>,
+> =
+  T extends UIMessage<infer METADATA, infer DATA_TYPES>
+    ? UIMessageStreamPart<METADATA, DATA_TYPES>
+    : UIMessageStreamPart<unknown, UIDataTypes>;

@@ -5,6 +5,7 @@ import {
 } from '../ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
 import { processTextStream } from './process-text-stream';
+import { UIDataTypes } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -94,8 +95,8 @@ export async function callCompletionApi({
             schema: uiMessageStreamPartSchema,
           }).pipeThrough(
             new TransformStream<
-              ParseResult<UIMessageStreamPart>,
-              UIMessageStreamPart
+              ParseResult<UIMessageStreamPart<UIDataTypes>>,
+              UIMessageStreamPart<UIDataTypes>
             >({
               async transform(part) {
                 if (!part.success) {

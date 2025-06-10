@@ -1,5 +1,6 @@
 import { ServerResponse } from 'node:http';
-import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { InferUIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { UIDataTypes, UIMessage } from '../../src/ui/ui-messages';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { ReasoningPart } from '../prompt/content-part';
 import {
@@ -18,7 +19,6 @@ import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { UIMessage } from '../../src/ui/ui-messages';
 
 export type UIMessageStreamOptions = {
   /**
@@ -274,9 +274,9 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   @return A UI message stream.
      */
-  toUIMessageStream(
+  toUIMessageStream<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>>(
     options?: UIMessageStreamOptions,
-  ): ReadableStream<UIMessageStreamPart>;
+  ): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
 
   /**
   Writes UI message stream output to a Node.js response-like object.
