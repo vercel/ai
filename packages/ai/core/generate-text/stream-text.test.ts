@@ -4967,10 +4967,8 @@ describe('streamText', () => {
   });
 
   describe('tool callbacks', () => {
-    let recordedCalls: unknown[];
-
-    beforeEach(async () => {
-      recordedCalls = [];
+    it('should invoke callbacks in the correct order', async () => {
+      const recordedCalls: unknown[] = [];
 
       const result = streamText({
         model: createTestModel({
@@ -5058,6 +5056,9 @@ describe('streamText', () => {
             onArgsStreamingStart: options => {
               recordedCalls.push({ type: 'onArgsStreamingStart', options });
             },
+            onArgsStreamingDelta: options => {
+              recordedCalls.push({ type: 'onArgsStreamingDelta', options });
+            },
           }),
         },
         toolCallStreaming: true,
@@ -5069,9 +5070,7 @@ describe('streamText', () => {
       });
 
       await result.consumeStream();
-    });
 
-    it('should invoke callbacks in the correct order', async () => {
       expect(recordedCalls).toMatchInlineSnapshot(`
         [
           {
@@ -5086,6 +5085,104 @@ describe('streamText', () => {
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
             "type": "onArgsStreamingStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "{"",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "value",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "":"",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "Spark",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "le",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": " Day",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": ""}",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
           },
           {
             "options": {

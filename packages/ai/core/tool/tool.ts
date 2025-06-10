@@ -90,6 +90,16 @@ If not provided, the tool will not be executed automatically.
       ) => void | PromiseLike<void>;
 
       /**
+       * Optional function that is called when an argument streaming delta is available.
+       * Only called when the tool is used in a streaming context.
+       */
+      onArgsStreamingDelta?: (
+        options: {
+          argsTextDelta: string;
+        } & ToolCallOptions,
+      ) => void | PromiseLike<void>;
+
+      /**
        * Optional function that is called when a tool call can be started,
        * even if the execute function is not provided.
        */

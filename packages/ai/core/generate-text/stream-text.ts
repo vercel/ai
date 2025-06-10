@@ -1138,6 +1138,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'tool-call-delta': {
+                      const tool = tools?.[chunk.toolName];
+
+                      if (tool?.onArgsStreamingDelta != null) {
+                        await tool.onArgsStreamingDelta({
+                          argsTextDelta: chunk.argsTextDelta,
+                          toolCallId: chunk.toolCallId,
+                          messages: stepInputMessages,
+                          abortSignal,
+                        });
+                      }
+
                       controller.enqueue(chunk);
                       break;
                     }
