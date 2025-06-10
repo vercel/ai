@@ -63,6 +63,12 @@ export function prepareResponsesTools({
               },
             });
             break;
+          case 'openai.file_search':
+            openaiTools.push({
+              type: 'file_search',
+              vector_store_ids: tool.args.vectorStoreIds as string[],
+            });
+            break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
