@@ -4973,34 +4973,79 @@ describe('streamText', () => {
       recordedArgsCompleteCalls = [];
 
       const result = streamText({
-        model: new MockLanguageModelV2({
-          doStream: async ({ prompt, tools, toolChoice }) => {
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
-                  toolName: 'tool1',
-                  args: `{ "value": "value" }`,
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            };
-          },
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '{"',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'value',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '":"',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'Spark',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'le',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: ' Day',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '"}',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              args: '{"value":"Sparkle Day"}',
+            },
+            {
+              type: 'finish',
+              finishReason: 'tool-calls',
+              usage: testUsage,
+            },
+          ]),
         }),
         tools: {
-          tool1: tool({
+          'test-tool': tool({
             parameters: jsonSchema<{ value: string }>({
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -5026,7 +5071,7 @@ describe('streamText', () => {
       expect(recordedArgsCompleteCalls).toMatchInlineSnapshot(`
         [
           {
-            "value": "value",
+            "value": "Sparkle Day",
           },
         ]
       `);
