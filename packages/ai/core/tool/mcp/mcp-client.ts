@@ -2,7 +2,7 @@ import { JSONSchema7 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { z, ZodType } from 'zod';
 import { MCPClientError } from '../../../src/error/mcp-client-error';
-import { tool, Tool, ToolExecutionOptions } from '../tool';
+import { tool, Tool, ToolCallOptions } from '../tool';
 import {
   JSONRPCError,
   JSONRPCNotification,
@@ -278,7 +278,7 @@ class MCPClient {
   }: {
     name: string;
     args: Record<string, unknown>;
-    options?: ToolExecutionOptions;
+    options?: ToolCallOptions;
   }): Promise<CallToolResult> {
     try {
       return this.request({
@@ -335,7 +335,7 @@ class MCPClient {
           parameters,
           execute: async (
             args: any,
-            options: ToolExecutionOptions,
+            options: ToolCallOptions,
           ): Promise<CallToolResult> => {
             options?.abortSignal?.throwIfAborted();
 

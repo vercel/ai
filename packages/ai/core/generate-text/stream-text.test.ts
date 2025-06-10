@@ -4967,10 +4967,10 @@ describe('streamText', () => {
   });
 
   describe('tool callbacks', () => {
-    let recordedArgsCompleteCalls: unknown[];
+    let recordedCalls: unknown[];
 
     beforeEach(async () => {
-      recordedArgsCompleteCalls = [];
+      recordedCalls = [];
 
       const result = streamText({
         model: createTestModel({
@@ -5052,11 +5052,15 @@ describe('streamText', () => {
               required: ['value'],
               additionalProperties: false,
             }),
-            onArgsComplete: ({ args }) => {
-              recordedArgsCompleteCalls.push(args);
+            onArgsComplete: options => {
+              recordedCalls.push({ type: 'onArgsComplete', options });
+            },
+            onArgsStreamingStart: options => {
+              recordedCalls.push({ type: 'onArgsStreamingStart', options });
             },
           }),
         },
+        toolCallStreaming: true,
         toolChoice: 'required',
         prompt: 'test-input',
         _internal: {
@@ -5067,11 +5071,37 @@ describe('streamText', () => {
       await result.consumeStream();
     });
 
-    it('should call onArgsComplete when args are complete', async () => {
-      expect(recordedArgsCompleteCalls).toMatchInlineSnapshot(`
+    it('should invoke callbacks in the correct order', async () => {
+      expect(recordedCalls).toMatchInlineSnapshot(`
         [
           {
-            "value": "Sparkle Day",
+            "options": {
+              "abortSignal": undefined,
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "args": {
+                "value": "Sparkle Day",
+              },
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsComplete",
           },
         ]
       `);

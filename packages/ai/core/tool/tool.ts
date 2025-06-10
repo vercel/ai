@@ -10,8 +10,7 @@ export type ToolParameters<T = JSONObject> =
   | z3.Schema<T>
   | Schema<T>;
 
-// TODO rename to ToolCallOptions
-export interface ToolExecutionOptions {
+export interface ToolCallOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -74,7 +73,7 @@ If not provided, the tool will not be executed automatically.
       */
       execute: (
         args: [PARAMETERS] extends [never] ? undefined : PARAMETERS,
-        options: ToolExecutionOptions,
+        options: ToolCallOptions,
       ) => PromiseLike<RESULT>;
 
       /**
@@ -83,13 +82,21 @@ If not provided, the tool will not be executed automatically.
       experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 
       /**
+       * Optional function that is called when the argument streaming starts.
+       * Only called when the tool is used in a streaming context.
+       */
+      onArgsStreamingStart?: (
+        options: ToolCallOptions,
+      ) => void | PromiseLike<void>;
+
+      /**
        * Optional function that is called when a tool call can be started,
        * even if the execute function is not provided.
        */
       onArgsComplete?: (
         options: {
           args: [PARAMETERS] extends [never] ? undefined : PARAMETERS;
-        } & ToolExecutionOptions,
+        } & ToolCallOptions,
       ) => void | PromiseLike<void>;
     }
   > &
