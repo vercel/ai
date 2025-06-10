@@ -216,6 +216,7 @@ export function streamText<
   activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
+  includeRawChunks = false,
   onChunk,
   onError = ({ error }) => {
     console.error(error);
@@ -321,6 +322,14 @@ The stream transformations must maintain the stream structure for streamText to 
       | Array<StreamTextTransform<TOOLS>>;
 
     /**
+Whether to include raw chunks from the provider in the stream.
+When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
+This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
+Defaults to false.
+     */
+    includeRawChunks?: boolean;
+
+    /**
 Callback that is called for each chunk of the stream.
 The stream processing will pause until the callback promise is resolved.
      */
@@ -375,6 +384,7 @@ Internal. For test use only. May change without notice.
     output,
     providerOptions,
     prepareStep,
+    includeRawChunks,
     onChunk,
     onError,
     onFinish,
@@ -493,6 +503,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
 
+  private includeRawChunks: boolean;
+
   private generateId: () => string;
 
   constructor({
@@ -515,6 +527,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     output,
     providerOptions,
     prepareStep,
+    includeRawChunks,
     now,
     currentDate,
     generateId,
@@ -542,6 +555,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
+    includeRawChunks: boolean;
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
@@ -553,6 +567,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
     this.output = output;
+    this.includeRawChunks = includeRawChunks;
     this.generateId = generateId;
 
     // promise to ensure that the step has been fully processed by the event processor
@@ -839,6 +854,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
         }) {
+          const includeRawChunks = self.includeRawChunks;
+
           stepFinish = new DelayedPromise<void>();
 
           const initialPrompt = await standardizePrompt({
@@ -939,7 +956,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     providerOptions,
                     abortSignal,
                     headers,
-                    includeRawChunks: false,
+                    includeRawChunks: includeRawChunks,
                   }),
                 };
               },
@@ -1157,6 +1174,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'error': {
                       controller.enqueue(chunk);
                       stepFinishReason = 'error';
+                      break;
+                    }
+
+                    case 'raw': {
+                      controller.enqueue(chunk);
                       break;
                     }
 
@@ -1599,6 +1621,12 @@ However, the LLM results are expected to be small enough to not cause issues.
                   metadata,
                 });
               }
+              break;
+            }
+
+            case 'raw': {
+              // Raw chunks are not included in UI message streams
+              // as they contain provider-specific data for developer use
               break;
             }
 

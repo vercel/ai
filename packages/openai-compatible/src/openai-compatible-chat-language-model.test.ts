@@ -2066,7 +2066,7 @@ describe('raw chunks', () => {
         },
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "choices": [
               {
                 "delta": {
@@ -2089,7 +2089,7 @@ describe('raw chunks', () => {
         },
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "choices": [
               {
                 "delta": {},

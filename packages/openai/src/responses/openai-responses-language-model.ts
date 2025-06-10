@@ -410,7 +410,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
           transform(chunk, controller) {
             if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', value: chunk.rawValue });
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
             // handle failed chunk parsing / validation:
             if (!chunk.success) {

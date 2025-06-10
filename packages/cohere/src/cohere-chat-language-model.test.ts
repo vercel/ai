@@ -1247,14 +1247,14 @@ describe('doStream', () => {
       [
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
             "type": "message-start",
           },
         },
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "delta": {
               "message": {
                 "content": {
@@ -1267,7 +1267,7 @@ describe('doStream', () => {
         },
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "delta": {
               "message": {
                 "content": {
@@ -1280,7 +1280,7 @@ describe('doStream', () => {
         },
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "delta": {
               "finish_reason": "COMPLETE",
               "usage": {

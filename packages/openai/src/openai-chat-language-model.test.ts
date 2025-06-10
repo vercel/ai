@@ -2659,7 +2659,7 @@ describe('doStream', () => {
         [
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "choices": [
                 {
                   "delta": {
@@ -2679,7 +2679,7 @@ describe('doStream', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "choices": [
                 {
                   "delta": {
@@ -2698,7 +2698,7 @@ describe('doStream', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "choices": [
                 {
                   "delta": {
@@ -2717,7 +2717,7 @@ describe('doStream', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "choices": [
                 {
                   "delta": {},
@@ -2735,7 +2735,7 @@ describe('doStream', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "choices": [],
               "created": 1702657020,
               "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",

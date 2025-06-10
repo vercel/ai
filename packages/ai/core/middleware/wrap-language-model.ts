@@ -5,6 +5,13 @@ import {
 } from '@ai-sdk/provider';
 import { asArray } from '../../src/util/as-array';
 
+// Wrapper interface that makes includeRawChunks optional for backward compatibility
+type WrappedLanguageModelV2 = Omit<LanguageModelV2, 'doStream'> & {
+  doStream(
+    params: LanguageModelV2CallOptions & { includeRawChunks?: boolean },
+  ): PromiseLike<Awaited<ReturnType<LanguageModelV2['doStream']>>>;
+};
+
 /**
  * Wraps a LanguageModelV2 instance with middleware functionality.
  * This function allows you to apply middleware to transform parameters,
@@ -27,7 +34,7 @@ export const wrapLanguageModel = ({
   middleware: LanguageModelV2Middleware | LanguageModelV2Middleware[];
   modelId?: string;
   providerId?: string;
-}): LanguageModelV2 => {
+}): WrappedLanguageModelV2 => {
   return asArray(middlewareArg)
     .reverse()
     .reduce((wrappedModel, middleware) => {
@@ -45,7 +52,7 @@ const doWrap = ({
   middleware: LanguageModelV2Middleware;
   modelId?: string;
   providerId?: string;
-}): LanguageModelV2 => {
+}): WrappedLanguageModelV2 => {
   async function doTransform({
     params,
     type,
@@ -73,7 +80,10 @@ const doWrap = ({
       const transformedParams = await doTransform({ params, type: 'generate' });
       const doGenerate = async () => model.doGenerate(transformedParams);
       const doStream = async () =>
-        model.doStream({ ...transformedParams, includeRawChunks: false });
+        model.doStream({
+          ...transformedParams,
+          includeRawChunks: false,
+        });
       return wrapGenerate
         ? wrapGenerate({
             doGenerate,
@@ -85,12 +95,16 @@ const doWrap = ({
     },
 
     async doStream(
-      params: LanguageModelV2CallOptions,
+      params: LanguageModelV2CallOptions & { includeRawChunks?: boolean },
     ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
       const transformedParams = await doTransform({ params, type: 'stream' });
+      const includeRawChunks = (params as any).includeRawChunks ?? false;
       const doGenerate = async () => model.doGenerate(transformedParams);
       const doStream = async () =>
-        model.doStream({ ...transformedParams, includeRawChunks: false });
+        model.doStream({
+          ...transformedParams,
+          includeRawChunks,
+        });
       return wrapStream
         ? wrapStream({ doGenerate, doStream, params: transformedParams, model })
         : doStream();

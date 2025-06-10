@@ -1042,9 +1042,9 @@ describe('GatewayLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data: {"type":"stream-start","warnings":[]}\n\n`,
-          `data: {"type":"raw","value":{"id":"test-chunk","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}}\n\n`,
+          `data: {"type":"raw","rawValue":{"id":"test-chunk","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}}\n\n`,
           `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
-          `data: {"type":"raw","value":{"id":"test-chunk-2","object":"chat.completion.chunk","choices":[{"delta":{"content":" world"}}]}}\n\n`,
+          `data: {"type":"raw","rawValue":{"id":"test-chunk-2","object":"chat.completion.chunk","choices":[{"delta":{"content":" world"}}]}}\n\n`,
           `data: {"type":"text-delta","textDelta":" world"}\n\n`,
           `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
         ],
@@ -1088,7 +1088,7 @@ describe('GatewayLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data: {"type":"stream-start","warnings":[]}\n\n`,
-          `data: {"type":"raw","value":{"id":"test-chunk","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}}\n\n`,
+          `data: {"type":"raw","rawValue":{"id":"test-chunk","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}}\n\n`,
           `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
           `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
         ],
@@ -1109,7 +1109,7 @@ describe('GatewayLanguageModel', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "choices": [
                 {
                   "delta": {

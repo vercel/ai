@@ -1260,7 +1260,7 @@ describe('doStream with raw chunks', () => {
         },
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "choices": [
               {
                 "delta": {
@@ -1288,7 +1288,7 @@ describe('doStream with raw chunks', () => {
         },
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "choices": [
               {
                 "delta": {
@@ -1309,7 +1309,7 @@ describe('doStream with raw chunks', () => {
         },
         {
           "type": "raw",
-          "value": {
+          "rawValue": {
             "choices": [
               {
                 "delta": {},

@@ -1636,7 +1636,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         [
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "message": {
                 "content": [],
                 "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
@@ -1655,7 +1655,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "content_block": {
                 "text": "",
                 "type": "text",
@@ -1666,7 +1666,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "delta": {
                 "text": "Hello",
                 "type": "text_delta",
@@ -1677,14 +1677,14 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "index": 0,
               "type": "content_block_stop",
             },
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "delta": {
                 "stop_reason": "end_turn",
                 "stop_sequence": null,
@@ -1697,7 +1697,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "type": "message_stop",
             },
           },

@@ -363,4 +363,8 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'error';
       error: unknown;
+    }
+  | {
+      type: 'raw';
+      rawValue: unknown;
     };

@@ -37,7 +37,7 @@ export type LanguageModelV2StreamPart =
   // raw chunks if enabled
   | {
       type: 'raw';
-      value: unknown;
+      rawValue: unknown;
     }
 
   // error parts are streamed, allowing for multiple errors

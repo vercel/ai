@@ -675,7 +675,7 @@ describe('PerplexityLanguageModel', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "choices": [
                 {
                   "delta": {

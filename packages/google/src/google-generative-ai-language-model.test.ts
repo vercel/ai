@@ -2098,7 +2098,7 @@ describe('doStream', () => {
         [
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "candidates": [
                 {
                   "content": {
@@ -2135,7 +2135,7 @@ describe('doStream', () => {
           },
           {
             "type": "raw",
-            "value": {
+            "rawValue": {
               "candidates": [
                 {
                   "content": {

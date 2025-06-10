@@ -192,24 +192,3 @@ describe('FireworksProvider', () => {
     });
   });
 });
-
-describe('raw chunks inheritance', () => {
-  it('should support raw chunks functionality through OpenAI-compatible models', () => {
-    const provider = createFireworks({
-      apiKey: 'test-api-key',
-    });
-
-    const chatModel = provider.chatModel('foo-model-id');
-    const completionModel = provider.completionModel('foo-model-id');
-
-    // Verify that the underlying models support doStream with includeRawChunks
-    // These should be OpenAICompatibleChatLanguageModel and OpenAICompatibleCompletionLanguageModel instances
-    expect(chatModel).toBeDefined();
-    expect(chatModel.provider).toBe('fireworks.chat');
-
-    expect(completionModel).toBeDefined();
-    expect(completionModel.provider).toBe('fireworks.completion');
-
-    // The underlying OpenAI-compatible models should inherit raw chunks support
-  });
-});

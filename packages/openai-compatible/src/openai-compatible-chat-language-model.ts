@@ -392,7 +392,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
             // include raw chunks if requested:
             if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', value });
+              controller.enqueue({ type: 'raw', rawValue: value });
             }
 
             metadataExtractor?.processChunk(chunk.rawValue);

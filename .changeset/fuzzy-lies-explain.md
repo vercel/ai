@@ -18,6 +18,7 @@
 '@ai-sdk/azure': patch
 '@ai-sdk/groq': patch
 '@ai-sdk/xai': patch
+'@ai-sdk/provider': patch
 ---
 
 feat: add raw chunk support

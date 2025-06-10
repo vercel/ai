@@ -47,6 +47,10 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'error';
       error: unknown;
+    }
+  | {
+      type: 'raw';
+      rawValue: unknown;
     };
 
 export function runToolsTransformation<TOOLS extends ToolSet>({
@@ -134,8 +138,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        // skip raw chunks - they are not forwarded in the tools transformation
+        // forward raw chunks to be part of the fullStream
         case 'raw': {
+          controller.enqueue(chunk);
           break;
         }
 

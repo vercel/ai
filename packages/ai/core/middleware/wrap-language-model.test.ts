@@ -118,15 +118,14 @@ describe('wrapLanguageModel', () => {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
-    await wrappedModel.doStream({ ...params, includeRawChunks: false });
+    await wrappedModel.doStream(params);
 
     expect(transformParams).toHaveBeenCalledWith({
-      params: { ...params, includeRawChunks: false },
+      params,
       type: 'stream',
     });
     expect(mockModel.doStreamCalls[0]).toStrictEqual({
       ...params,
-      includeRawChunks: false,
       transformed: true,
     });
   });
@@ -149,12 +148,12 @@ describe('wrapLanguageModel', () => {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
-    await wrappedModel.doStream({ ...params, includeRawChunks: false });
+    await wrappedModel.doStream(params);
 
     expect(wrapStream).toHaveBeenCalledWith({
       doGenerate: expect.any(Function),
       doStream: expect.any(Function),
-      params: { ...params, includeRawChunks: false },
+      params,
       model: mockModel,
     });
   });
@@ -292,10 +291,10 @@ describe('wrapLanguageModel', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
-      await wrappedModel.doStream({ ...params, includeRawChunks: false });
+      await wrappedModel.doStream(params);
 
       expect(transformParams1).toHaveBeenCalledWith({
-        params: { ...params, includeRawChunks: false },
+        params,
         type: 'stream',
       });
       expect(transformParams2).toHaveBeenCalledWith({
@@ -392,10 +391,7 @@ describe('wrapLanguageModel', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
-      const result = await wrappedModel.doStream({
-        ...params,
-        includeRawChunks: false,
-      });
+      const result = await wrappedModel.doStream(params);
 
       // The middlewares should wrap in order, applying wrapStream2 last
       expect(result).toBe('wrapStream1(wrapStream2(final stream result))');
