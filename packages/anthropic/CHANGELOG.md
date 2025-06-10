@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-alpha.11
+
+### Patch Changes
+
+- 25f3454: feat(provider/anthropic): add PDF citation support with document sources for streamText
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
 ## 2.0.0-alpha.10
 
 ### Patch Changes

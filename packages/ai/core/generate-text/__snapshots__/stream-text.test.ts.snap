@@ -3363,6 +3363,56 @@ exports[`streamText > result.toUIMessageStream > should omit message start event
 ]
 `;
 
+exports[`streamText > result.toUIMessageStream > should send document source content when sendSources is true 1`] = `
+[
+  {
+    "messageId": undefined,
+    "metadata": undefined,
+    "type": "start",
+  },
+  {
+    "metadata": undefined,
+    "type": "start-step",
+  },
+  {
+    "filename": "example.pdf",
+    "mediaType": "application/pdf",
+    "providerMetadata": {
+      "provider": {
+        "custom": "doc-value",
+      },
+    },
+    "sourceId": "doc-123",
+    "title": "Document Example",
+    "type": "source-document",
+  },
+  {
+    "text": "Hello from document!",
+    "type": "text",
+  },
+  {
+    "filename": undefined,
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "provider": {
+        "custom": "doc-value2",
+      },
+    },
+    "sourceId": "doc-456",
+    "title": "Text Document",
+    "type": "source-document",
+  },
+  {
+    "metadata": undefined,
+    "type": "finish-step",
+  },
+  {
+    "metadata": undefined,
+    "type": "finish",
+  },
+]
+`;
+
 exports[`streamText > result.toUIMessageStream > should send file content 1`] = `
 [
   {

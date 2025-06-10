@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.11
+
+### Patch Changes
+
+- c1e6647: release alpha.11
+
 ## 2.0.0-alpha.10
 
 ### Patch Changes

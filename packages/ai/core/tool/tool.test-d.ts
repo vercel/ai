@@ -1,7 +1,7 @@
 import { expectTypeOf } from 'vitest';
 import { Tool, tool } from '.';
 import { z } from 'zod';
-import { ToolExecutionOptions, ToolParameters } from './tool';
+import { ToolCallOptions, ToolParameters } from './tool';
 
 describe('tool helper', () => {
   it('should work with no parameters and no output', () => {
@@ -33,7 +33,7 @@ describe('tool helper', () => {
 
     expectTypeOf(toolType).toEqualTypeOf<Tool<never, 'test'>>();
     expectTypeOf(toolType.execute).toMatchTypeOf<
-      (args: undefined, options: ToolExecutionOptions) => PromiseLike<'test'>
+      (args: undefined, options: ToolCallOptions) => PromiseLike<'test'>
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
     expectTypeOf(toolType.parameters).toEqualTypeOf<undefined>();
@@ -53,7 +53,7 @@ describe('tool helper', () => {
     expectTypeOf(toolType.execute).toMatchTypeOf<
       (
         args: { number: number },
-        options: ToolExecutionOptions,
+        options: ToolCallOptions,
       ) => PromiseLike<'test'>
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
