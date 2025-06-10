@@ -1,0 +1,316 @@
+---
+title: VoltOps
+description: Gain full visibility into your AI SDK application with VoltOps
+---
+
+# VoltOps LLM Observability Integration with Vercel AI SDK
+
+[VoltOps](https://voltagent.dev/voltops-llm-observability/) LLM Observability Platform provides comprehensive monitoring capabilities for teams building AI-powered applications. Key capabilities include:
+
+- Complete application traces - Full visibility into your AI system's execution flow
+- Multi-agent monitoring - Track and differentiate between various AI agents
+- Tool execution analytics - Monitor how AI agents utilize tools and functions
+- User interaction tracking - Follow user conversations and session flows
+- Usage and cost monitoring - Track expenses by user, agent, and model
+- Live debugging capabilities - Replay user sessions for issue investigation
+- Performance insights - Monitor latency and error rates
+
+<Note>
+  A version of this guide is also available in the [VoltOps
+  documentation](https://voltagent.dev/voltops-llm-observability-docs/vercel-ai/).
+</Note>
+
+## Example App
+
+Check out the [Vercel AI SDK Example](https://github.com/VoltAgent/vercel-ai-sdk-observability) to see how easily you can add observability to Vercel AI apps built and track calls, tools, and multi-agent workflows.
+
+## Setup
+
+Vercel AI SDK includes tracing support through OpenTelemetry. Using the VoltAgent Exporter allows you to send these traces to VoltOps LLM Observability Platform. Then enable `experimental_telemetry` on each request you want to monitor.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Hello, how are you?',
+  experimental_telemetry: { isEnabled: true },
+});
+```
+
+For sending traces to VoltOps, you must configure the VoltAgent Exporter in your application.
+
+## Installation
+
+Install dependencies:
+
+```bash
+pnpm add @voltagent/vercel-ai-exporter @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node
+```
+
+## Get Your API Keys
+
+To access VoltOps LLM Observability Platform, you'll need API credentials:
+
+1. **Register** at [console.voltagent.dev](https://console.voltagent.dev)
+2. **Set up an organization** for your team/company
+3. **Initialize a project** within your organization
+4. **Retrieve your keys** from project settings:
+   - `VOLTAGENT_PUBLIC_KEY` - For client identification
+   - `VOLTAGENT_SECRET_KEY` - For secure server communication
+
+## Configuration
+
+### Environment Variables
+
+Configure your VoltOps credentials using environment variables:
+
+```env
+VOLTAGENT_PUBLIC_KEY="<your-public-key>"
+VOLTAGENT_SECRET_KEY="<your-secret-key>"
+VOLTAGENT_BASE_URL="https://api.voltagent.dev" # Optional, this is the default
+```
+
+### Configure VoltAgent Exporter
+
+Initialize VoltAgent exporter in your application (usually in your main file or instrumentation file):
+
+```ts
+import { VoltAgentExporter } from '@voltagent/vercel-ai-exporter';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+
+// Initialize VoltAgent exporter
+const voltAgentExporter = new VoltAgentExporter({
+  publicKey: process.env.VOLTAGENT_PUBLIC_KEY,
+  secretKey: process.env.VOLTAGENT_SECRET_KEY,
+  baseUrl: 'https://api.voltagent.dev', // default
+  debug: true, // enable for development
+});
+
+// Setup OpenTelemetry SDK
+const sdk = new NodeSDK({
+  traceExporter: voltAgentExporter,
+  instrumentations: [getNodeAutoInstrumentations()],
+});
+
+sdk.start();
+```
+
+Now, all traces containing AI SDK spans are automatically sent to VoltOps.
+
+## Basic Usage
+
+### Simple Telemetry Configuration
+
+Begin with basic configuration - simply activate telemetry in your current Vercel AI calls:
+
+```typescript
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Hello, how are you?',
+  experimental_telemetry: {
+    isEnabled: true,
+    // VoltAgent will monitor this using a default agent
+  },
+});
+
+console.log('Assistant:', result.text);
+```
+
+![Vercel AI SDK Integration Basic Exampla](https://cdn.voltagent.dev/docs/vercel-ai-observability-demo/vercel-ai-demo-basic.gif)
+
+**What you get:**
+
+- AI interactions monitored in VoltOps LLM Observability Platform
+- Basic execution flow monitoring
+- All operations categorized under "ai-assistant" (default)
+
+### Including Tools
+
+Extend the basic setup with tool integration to monitor AI agent tool execution and interactions:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: "What's the weather like in Tokyo?",
+  tools: {
+    weather: {
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return {
+          location,
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+        };
+      },
+    },
+  },
+  maxSteps: 5,
+  experimental_telemetry: {
+    isEnabled: true,
+    // Continues using default agent, but now includes tools
+  },
+});
+
+console.log('Assistant:', result.text);
+```
+
+![Vercel AI SDK Integration Basic Exampla](https://cdn.voltagent.dev/docs/vercel-ai-observability-demo/vercel-ai-demo-with-tools.gif)
+
+**Additional capabilities you gain:**
+
+- Tool calls tracked and visualized
+- Tool inputs and outputs visible
+- Tool execution flow timeline
+- Continues grouping under default agent
+
+## Advanced Configuration
+
+### Including Agent Identification
+
+Enhance monitoring significantly by adding an agent identifier:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: "What's the weather like in Paris?",
+  tools: {
+    weather: {
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return {
+          location,
+          temperature: 18 + Math.floor(Math.random() * 21) - 10,
+        };
+      },
+    },
+  },
+  maxSteps: 5,
+  experimental_telemetry: {
+    isEnabled: true,
+    metadata: {
+      agentId: 'weather-assistant',
+      instructions: 'You are a helpful weather assistant',
+    },
+  },
+});
+```
+
+**Improvements you'll notice:**
+
+- **Named Agent**: View "weather-assistant" rather than "ai-assistant"
+- **Documentation**: Record agent purpose in the platform
+
+### Complete Metadata Configuration
+
+For production applications, implement comprehensive monitoring:
+
+```typescript
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: "What's the weather like in Berlin?",
+  tools: {
+    weather: {
+      description: 'Get the weather in a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return {
+          location,
+          temperature: 15 + Math.floor(Math.random() * 21) - 10,
+        };
+      },
+    },
+  },
+  maxSteps: 5,
+  experimental_telemetry: {
+    isEnabled: true,
+    metadata: {
+      agentId: 'weather-assistant',
+      instructions: 'You are a helpful weather assistant',
+      userId: 'user-12345',
+      conversationId: 'weather-chat-abc',
+      tags: ['weather', 'production', 'europe'],
+      sessionId: 'session-xyz789',
+    },
+  },
+});
+```
+
+![Vercel AI SDK Integration Basic Example](https://cdn.voltagent.dev/docs/vercel-ai-observability-demo/vercel-ai-demo-with-agentid.gif)
+
+**Extended advantages:**
+
+- **User Monitoring**: Filter and analyze by individual users
+- **Conversation Linking**: Monitor related interactions together
+- **Categorization**: Organize using analytics and filtering tags
+- **Session Organization**: Group related user sessions
+
+### Multi-Agent Example
+
+For systems utilizing multiple specialized agents, use `parentAgentId` to establish relationships between agents:
+
+```typescript
+// Customer support agent
+const supportResult = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Help the user with their billing question',
+  experimental_telemetry: {
+    isEnabled: true,
+    metadata: {
+      agentId: 'customer-support',
+      instructions: 'You are a helpful customer support agent',
+      userId: userId,
+      conversationId: conversationId,
+      tags: ['support', 'billing'],
+    },
+  },
+});
+
+// Technical documentation agent
+const techResult = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Provide technical documentation for the API',
+  experimental_telemetry: {
+    isEnabled: true,
+    metadata: {
+      agentId: 'tech-assistant',
+      parentAgentId: 'customer-support', // Parent relationship
+      instructions: 'You are a technical documentation assistant',
+      userId: userId,
+      conversationId: conversationId,
+      tags: ['technical', 'documentation'],
+    },
+  },
+});
+```
+
+![Vercel AI SDK Integration Basic Example](https://cdn.voltagent.dev/docs/vercel-ai-observability-demo/vercel-ai-demo-with-multi-agent.gif)
+
+**What you get:**
+
+- **Parent-Child Relationships**: Clear agent hierarchies
+- **Event Propagation**: Child agent events appear in parent history too
+- **Cross-Agent Context**: Related agents grouped together
+
+## Learn more
+
+- Once you've configured VoltOps monitoring for your Vercel AI SDK, you can explore the full range of VoltOps platform capabilities [here](https://voltagent.dev/voltops-llm-observability-docs/vercel-ai/).
+
+- Check out our [VoltAgent + Vercel AI SDK Example](https://github.com/VoltAgent/vercel-ai-sdk-observability) repository for a complete working implementation.
