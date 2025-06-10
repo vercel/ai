@@ -600,7 +600,7 @@ describe('doGenerate', () => {
           ],
         }),
       ).rejects.toThrow(
-        "Media type 'application/pdf' is not supported. Supported media types are: text/plain, text/markdown, text/csv, application/json, and other text/* types.",
+        "Media type 'application/pdf' is not supported. Supported media types are: text/* and application/json.",
       );
     });
 
