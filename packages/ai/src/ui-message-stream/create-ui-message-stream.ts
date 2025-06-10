@@ -1,11 +1,9 @@
-import { UIDataTypes, UIMessage } from '../ui/ui-messages';
+import { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { InferUIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
-export function createUIMessageStream<
-  UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
->({
+export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
   originalMessages,

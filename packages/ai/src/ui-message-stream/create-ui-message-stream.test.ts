@@ -77,12 +77,8 @@ describe('createUIMessageStream', () => {
   });
 
   it('should forward elements from multiple streams and data parts', async () => {
-    let controller1: ReadableStreamDefaultController<
-      UIMessageStreamPart<unknown, UIDataTypes>
-    >;
-    let controller2: ReadableStreamDefaultController<
-      UIMessageStreamPart<unknown, UIDataTypes>
-    >;
+    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -167,12 +163,8 @@ describe('createUIMessageStream', () => {
   });
 
   it('should add error parts when stream errors', async () => {
-    let controller1: ReadableStreamDefaultController<
-      UIMessageStreamPart<unknown, UIDataTypes>
-    >;
-    let controller2: ReadableStreamDefaultController<
-      UIMessageStreamPart<unknown, UIDataTypes>
-    >;
+    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -279,12 +271,8 @@ describe('createUIMessageStream', () => {
 
   it('should support writing from delayed merged streams', async () => {
     let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
-    let controller1: ReadableStreamDefaultController<
-      UIMessageStreamPart<unknown, UIDataTypes>
-    >;
-    let controller2: ReadableStreamDefaultController<
-      UIMessageStreamPart<unknown, UIDataTypes>
-    >;
+    let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
+    let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
     let done = false;
 
     const stream = createUIMessageStream({
@@ -302,7 +290,7 @@ describe('createUIMessageStream', () => {
       },
     });
 
-    const result: UIMessageStreamPart<unknown, UIDataTypes>[] = [];
+    const result: UIMessageStreamPart[] = [];
     const reader = stream.getReader();
     async function pull() {
       const { value, done } = await reader.read();

@@ -6,11 +6,9 @@ import {
   processUIMessageStream,
   StreamingUIMessageState,
 } from './process-ui-message-stream';
-import { UIDataTypes, UIMessage } from './ui-messages';
+import { UIMessage } from './ui-messages';
 
-function createUIMessageStream(
-  parts: UIMessageStreamPart<unknown, UIDataTypes>[],
-) {
+function createUIMessageStream(parts: UIMessageStreamPart[]) {
   return convertArrayToReadableStream(parts);
 }
 
@@ -21,9 +19,7 @@ export function mockId(): () => string {
 
 describe('processUIMessageStream', () => {
   let writeCalls: Array<{ message: UIMessage }> = [];
-  let state:
-    | StreamingUIMessageState<UIMessage<unknown, UIDataTypes>>
-    | undefined;
+  let state: StreamingUIMessageState<UIMessage> | undefined;
 
   beforeEach(() => {
     writeCalls = [];
@@ -32,7 +28,7 @@ describe('processUIMessageStream', () => {
 
   const runUpdateMessageJob = async (
     job: (options: {
-      state: StreamingUIMessageState<UIMessage<unknown, UIDataTypes>>;
+      state: StreamingUIMessageState<UIMessage>;
       write: () => void;
     }) => Promise<void>,
   ) => {

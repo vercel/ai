@@ -95,10 +95,10 @@ export type UIDataTypesToSchemas<T extends UIDataTypes> = {
   [K in keyof T]: Validator<T[K]> | StandardSchemaV1<T[K]>;
 };
 
-export type InferUIMessageData<T extends UIMessage<unknown, UIDataTypes>> =
+export type InferUIMessageData<T extends UIMessage> =
   T extends UIMessage<unknown, infer DATA_TYPES> ? DATA_TYPES : UIDataTypes;
 
-export type InferUIMessageMetadata<T extends UIMessage<unknown, UIDataTypes>> =
+export type InferUIMessageMetadata<T extends UIMessage> =
   T extends UIMessage<infer METADATA, UIDataTypes> ? METADATA : unknown;
 
 /**

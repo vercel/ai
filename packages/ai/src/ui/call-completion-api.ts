@@ -95,8 +95,8 @@ export async function callCompletionApi({
             schema: uiMessageStreamPartSchema,
           }).pipeThrough(
             new TransformStream<
-              ParseResult<UIMessageStreamPart<unknown, UIDataTypes>>,
-              UIMessageStreamPart<unknown, UIDataTypes>
+              ParseResult<UIMessageStreamPart>,
+              UIMessageStreamPart
             >({
               async transform(part) {
                 if (!part.success) {

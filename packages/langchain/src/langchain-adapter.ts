@@ -1,4 +1,4 @@
-import { UIDataTypes, UIMessageStreamPart } from 'ai';
+import { UIMessageStreamPart } from 'ai';
 import {
   createCallbacksTransformer,
   StreamCallbacks,
@@ -88,7 +88,7 @@ export function toUIMessageStream(
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(
-      new TransformStream<string, UIMessageStreamPart<unknown, UIDataTypes>>({
+      new TransformStream<string, UIMessageStreamPart>({
         transform: async (chunk, controller) => {
           controller.enqueue({ type: 'text', text: chunk });
         },

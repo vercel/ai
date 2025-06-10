@@ -24,9 +24,7 @@ import type {
   UIMessagePart,
 } from './ui-messages';
 
-export type StreamingUIMessageState<
-  UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
-> = {
+export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextPart: TextUIPart | undefined;
   activeReasoningPart: ReasoningUIPart | undefined;
@@ -65,9 +63,7 @@ export function createStreamingUIMessageState<
   };
 }
 
-export function processUIMessageStream<
-  UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
->({
+export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   stream,
   onToolCall,
   messageMetadataSchema,
@@ -75,7 +71,7 @@ export function processUIMessageStream<
   runUpdateMessageJob,
 }: {
   // input stream is not fully typed yet:
-  stream: ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>;
+  stream: ReadableStream<UIMessageStreamPart>;
   messageMetadataSchema?:
     | Validator<InferUIMessageMetadata<UI_MESSAGE>>
     | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
@@ -102,7 +98,7 @@ export function processUIMessageStream<
 > {
   return stream.pipeThrough(
     new TransformStream<
-      UIMessageStreamPart<unknown, UIDataTypes>,
+      UIMessageStreamPart,
       UIMessageStreamPart<
         InferUIMessageMetadata<UI_MESSAGE>,
         InferUIMessageData<UI_MESSAGE>

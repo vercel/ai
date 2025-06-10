@@ -1,10 +1,6 @@
 import { ServerResponse } from 'node:http';
 import { InferUIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
-import {
-  InferUIMessageMetadata,
-  UIDataTypes,
-  UIMessage,
-} from '../../src/ui/ui-messages';
+import { InferUIMessageMetadata, UIMessage } from '../../src/ui/ui-messages';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { ReasoningPart } from '../prompt/content-part';
 import {
@@ -24,9 +20,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 
-export type UIMessageStreamOptions<
-  UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
-> = {
+export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Message ID that is sent to the client if a new message is created.
    * This is intended to be used for the UI message,
@@ -280,7 +274,7 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   @return A UI message stream.
      */
-  toUIMessageStream<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>>(
+  toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamOptions<UI_MESSAGE>,
   ): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
 
@@ -294,9 +288,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
      */
-  pipeUIMessageStreamToResponse<
-    UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
-  >(
+  pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     options?: ResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): void;
@@ -321,7 +313,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
   @return A response object.
      */
-  toUIMessageStreamResponse<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>>(
+  toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
     options?: ResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): Response;
 

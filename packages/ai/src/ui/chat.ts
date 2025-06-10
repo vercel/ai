@@ -45,7 +45,7 @@ export type ChatRequestOptions = {
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
-type ActiveResponse<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>> = {
+type ActiveResponse<UI_MESSAGE extends UIMessage> = {
   state: StreamingUIMessageState<UI_MESSAGE>;
   abortController: AbortController | undefined;
 };

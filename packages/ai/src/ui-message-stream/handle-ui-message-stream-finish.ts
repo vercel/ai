@@ -6,24 +6,17 @@ import {
 import {
   InferUIMessageData,
   InferUIMessageMetadata,
-  UIDataPartSchemas,
-  UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
-import {
-  InferUIMessageStreamPart,
-  UIMessageStreamPart,
-} from './ui-message-stream-parts';
+import { UIMessageStreamPart } from './ui-message-stream-parts';
 
-export function handleUIMessageStreamFinish<
-  UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
->({
+export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   newMessageId,
   originalMessages = [],
   onFinish,
   stream,
 }: {
-  stream: ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>;
+  stream: ReadableStream<UIMessageStreamPart>;
 
   newMessageId: string;
 

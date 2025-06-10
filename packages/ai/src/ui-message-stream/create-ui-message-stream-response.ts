@@ -1,8 +1,7 @@
 import { prepareHeaders } from '../util/prepare-headers';
+import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { uiMessageStreamHeaders } from './ui-message-stream-headers';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
-import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
-import { UIDataTypes } from '../ui';
 
 export function createUIMessageStreamResponse({
   status,
@@ -10,7 +9,7 @@ export function createUIMessageStreamResponse({
   headers,
   stream,
 }: ResponseInit & {
-  stream: ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>;
+  stream: ReadableStream<UIMessageStreamPart>;
 }): Response {
   return new Response(
     stream

@@ -5,6 +5,7 @@ import { ServerResponse } from 'node:http';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { UIDataTypes, UIMessage } from '../../src/ui';
 import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
 import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
@@ -12,6 +13,7 @@ import {
   InferUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { InferUIMessageMetadata } from '../../src/ui/ui-messages';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -71,8 +73,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { UIDataTypes, UIMessage } from '../../src/ui';
-import { InferUIMessageMetadata } from '../../src/ui/ui-messages';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1440,7 +1440,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  toUIMessageStream<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>>({
+  toUIMessageStream<UI_MESSAGE extends UIMessage>({
     newMessageId,
     originalMessages = [],
     onFinish,
@@ -1628,9 +1628,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  pipeUIMessageStreamToResponse<
-    UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
-  >(
+  pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     {
       newMessageId,
@@ -1670,9 +1668,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toUIMessageStreamResponse<
-    UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
-  >({
+  toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     newMessageId,
     originalMessages,
     onFinish,

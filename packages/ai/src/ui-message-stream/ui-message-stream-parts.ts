@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProviderMetadata } from '../../core';
-import { ValueOf } from '../util/value-of';
 import { UIDataTypes, UIMessage } from '../ui';
+import { ValueOf } from '../util/value-of';
 
 export const uiMessageStreamPartSchema = z.union([
   z.object({
@@ -184,14 +184,12 @@ export type UIMessageStreamPart<
     };
 
 export function isDataUIMessageStreamPart(
-  part: UIMessageStreamPart<unknown, UIDataTypes>,
+  part: UIMessageStreamPart,
 ): part is DataUIMessageStreamPart<UIDataTypes> {
   return part.type.startsWith('data-');
 }
 
-export type InferUIMessageStreamPart<
-  T extends UIMessage<unknown, UIDataTypes>,
-> =
+export type InferUIMessageStreamPart<T extends UIMessage> =
   T extends UIMessage<infer METADATA, infer DATA_TYPES>
     ? UIMessageStreamPart<METADATA, DATA_TYPES>
-    : UIMessageStreamPart<unknown, UIDataTypes>;
+    : UIMessageStreamPart;

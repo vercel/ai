@@ -30,7 +30,7 @@ async function fetchUIMessageStream({
   abortSignal: AbortSignal | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   requestType?: 'generate' | 'resume';
-}): Promise<ReadableStream<UIMessageStreamPart<unknown, UIDataTypes>>> {
+}): Promise<ReadableStream<UIMessageStreamPart>> {
   const response =
     requestType === 'resume'
       ? await fetch(`${api}?id=${body.id}`, {
@@ -67,10 +67,7 @@ async function fetchUIMessageStream({
     stream: response.body,
     schema: uiMessageStreamPartSchema,
   }).pipeThrough(
-    new TransformStream<
-      ParseResult<UIMessageStreamPart<unknown, UIDataTypes>>,
-      UIMessageStreamPart<unknown, UIDataTypes>
-    >({
+    new TransformStream<ParseResult<UIMessageStreamPart>, UIMessageStreamPart>({
       async transform(part, controller) {
         if (!part.success) {
           throw part.error;

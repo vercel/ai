@@ -5,11 +5,11 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { UIDataTypes, UIMessageStreamPart } from 'ai';
+import { UIMessageStreamPart } from 'ai';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
 
-function formatStreamPart(part: UIMessageStreamPart<unknown, UIDataTypes>) {
+function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
