@@ -1259,7 +1259,6 @@ describe('doStream with raw chunks', () => {
           "warnings": [],
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -1275,6 +1274,7 @@ describe('doStream with raw chunks', () => {
             "id": "chatcmpl-123",
             "model": "grok-beta",
           },
+          "type": "raw",
         },
         {
           "id": "chatcmpl-123",
@@ -1287,7 +1287,6 @@ describe('doStream with raw chunks', () => {
           "type": "text",
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -1302,13 +1301,13 @@ describe('doStream with raw chunks', () => {
             "id": "chatcmpl-456",
             "model": "grok-beta",
           },
+          "type": "raw",
         },
         {
           "text": " world",
           "type": "text",
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -1329,6 +1328,7 @@ describe('doStream with raw chunks', () => {
               "total_tokens": 15,
             },
           },
+          "type": "raw",
         },
         {
           "id": "test-id",

@@ -1233,7 +1233,6 @@ describe('doStream with raw chunks', () => {
           "warnings": [],
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -1248,6 +1247,7 @@ describe('doStream with raw chunks', () => {
             "id": "chatcmpl-123",
             "model": "gemma2-9b-it",
           },
+          "type": "raw",
         },
         {
           "id": "chatcmpl-123",
@@ -1260,7 +1260,6 @@ describe('doStream with raw chunks', () => {
           "type": "text",
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -1275,13 +1274,13 @@ describe('doStream with raw chunks', () => {
             "id": "chatcmpl-456",
             "model": "gemma2-9b-it",
           },
+          "type": "raw",
         },
         {
           "text": " world",
           "type": "text",
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -1301,6 +1300,7 @@ describe('doStream with raw chunks', () => {
               },
             },
           },
+          "type": "raw",
         },
         {
           "finishReason": "stop",

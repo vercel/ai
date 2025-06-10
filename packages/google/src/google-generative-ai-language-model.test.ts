@@ -2097,7 +2097,6 @@ describe('doStream', () => {
       expect(rawChunks).toMatchInlineSnapshot(`
         [
           {
-            "type": "raw",
             "rawValue": {
               "candidates": [
                 {
@@ -2132,9 +2131,9 @@ describe('doStream', () => {
                 },
               ],
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "candidates": [
                 {
@@ -2174,6 +2173,7 @@ describe('doStream', () => {
                 "totalTokenCount": 527,
               },
             },
+            "type": "raw",
           },
         ]
       `);

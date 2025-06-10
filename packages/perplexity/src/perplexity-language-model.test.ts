@@ -674,7 +674,6 @@ describe('PerplexityLanguageModel', () => {
             "warnings": [],
           },
           {
-            "type": "raw",
             "rawValue": {
               "choices": [
                 {
@@ -692,6 +691,7 @@ describe('PerplexityLanguageModel', () => {
               "id": "ppl-123",
               "model": "perplexity-001",
             },
+            "type": "raw",
           },
           {
             "id": "ppl-123",

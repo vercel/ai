@@ -781,7 +781,6 @@ describe('doStream with raw chunks', () => {
           "warnings": [],
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -797,6 +796,7 @@ describe('doStream with raw chunks', () => {
             "id": "cmpl-123",
             "model": "mistral-large-latest",
           },
+          "type": "raw",
         },
         {
           "id": "cmpl-123",
@@ -809,7 +809,6 @@ describe('doStream with raw chunks', () => {
           "type": "text",
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -824,13 +823,13 @@ describe('doStream with raw chunks', () => {
             "id": "cmpl-456",
             "model": "mistral-large-latest",
           },
+          "type": "raw",
         },
         {
           "text": " world",
           "type": "text",
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -848,6 +847,7 @@ describe('doStream with raw chunks', () => {
               "total_tokens": 15,
             },
           },
+          "type": "raw",
         },
         {
           "finishReason": "stop",

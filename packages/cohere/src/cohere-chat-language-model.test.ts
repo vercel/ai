@@ -1246,14 +1246,13 @@ describe('doStream', () => {
     expect(rawChunks).toMatchInlineSnapshot(`
       [
         {
-          "type": "raw",
           "rawValue": {
             "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
             "type": "message-start",
           },
+          "type": "raw",
         },
         {
-          "type": "raw",
           "rawValue": {
             "delta": {
               "message": {
@@ -1264,9 +1263,9 @@ describe('doStream', () => {
             },
             "type": "content-delta",
           },
+          "type": "raw",
         },
         {
-          "type": "raw",
           "rawValue": {
             "delta": {
               "message": {
@@ -1277,9 +1276,9 @@ describe('doStream', () => {
             },
             "type": "content-delta",
           },
+          "type": "raw",
         },
         {
-          "type": "raw",
           "rawValue": {
             "delta": {
               "finish_reason": "COMPLETE",
@@ -1292,6 +1291,7 @@ describe('doStream', () => {
             },
             "type": "message-end",
           },
+          "type": "raw",
         },
       ]
     `);

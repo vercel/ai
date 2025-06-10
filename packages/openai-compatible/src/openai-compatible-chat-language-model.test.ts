@@ -2065,7 +2065,6 @@ describe('raw chunks', () => {
           "warnings": [],
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -2076,6 +2075,7 @@ describe('raw chunks', () => {
             ],
             "id": "chat-id",
           },
+          "type": "raw",
         },
         {
           "id": "chat-id",
@@ -2088,7 +2088,6 @@ describe('raw chunks', () => {
           "type": "text",
         },
         {
-          "type": "raw",
           "rawValue": {
             "choices": [
               {
@@ -2097,6 +2096,7 @@ describe('raw chunks', () => {
               },
             ],
           },
+          "type": "raw",
         },
         {
           "finishReason": "stop",

@@ -2658,7 +2658,6 @@ describe('doStream', () => {
       expect(rawChunks).toMatchInlineSnapshot(`
         [
           {
-            "type": "raw",
             "rawValue": {
               "choices": [
                 {
@@ -2676,9 +2675,9 @@ describe('doStream', () => {
               "object": "chat.completion.chunk",
               "system_fingerprint": null,
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "choices": [
                 {
@@ -2695,9 +2694,9 @@ describe('doStream', () => {
               "object": "chat.completion.chunk",
               "system_fingerprint": null,
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "choices": [
                 {
@@ -2714,9 +2713,9 @@ describe('doStream', () => {
               "object": "chat.completion.chunk",
               "system_fingerprint": null,
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "choices": [
                 {
@@ -2732,9 +2731,9 @@ describe('doStream', () => {
               "object": "chat.completion.chunk",
               "system_fingerprint": null,
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "choices": [],
               "created": 1702657020,
@@ -2748,6 +2747,7 @@ describe('doStream', () => {
                 "total_tokens": 244,
               },
             },
+            "type": "raw",
           },
         ]
       `);

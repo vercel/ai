@@ -1258,7 +1258,6 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "type": "raw",
           "rawValue": {
             "contentBlockDelta": {
               "contentBlockIndex": 0,
@@ -1267,18 +1266,19 @@ describe('doStream', () => {
               },
             },
           },
+          "type": "raw",
         },
         {
           "text": "Hello",
           "type": "text",
         },
         {
-          "type": "raw",
           "rawValue": {
             "messageStop": {
               "stopReason": "stop_sequence",
             },
           },
+          "type": "raw",
         },
         {
           "finishReason": "stop",
