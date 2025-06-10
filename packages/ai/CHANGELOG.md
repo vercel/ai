@@ -1,5 +1,18 @@
 # ai
 
+## 5.0.0-alpha.11
+
+### Major Changes
+
+- e8324c5: feat (ai): add args callbacks to tools
+
+### Patch Changes
+
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/gateway@1.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
 ## 5.0.0-alpha.10
 
 ### Major Changes
