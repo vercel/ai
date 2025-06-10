@@ -544,6 +544,15 @@ async function executeTools<TOOLS extends ToolSet>({
     toolCalls.map(async ({ toolCallId, toolName, args }) => {
       const tool = tools[toolName];
 
+      if (tool?.onArgsAvailable != null) {
+        await tool.onArgsAvailable({
+          args,
+          toolCallId,
+          messages,
+          abortSignal,
+        });
+      }
+
       if (tool?.execute == null) {
         return undefined;
       }

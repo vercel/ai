@@ -4966,6 +4966,245 @@ describe('streamText', () => {
     });
   });
 
+  describe('tool callbacks', () => {
+    it('should invoke callbacks in the correct order', async () => {
+      const recordedCalls: unknown[] = [];
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '{"',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'value',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '":"',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'Spark',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'le',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: ' Day',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '"}',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              args: '{"value":"Sparkle Day"}',
+            },
+            {
+              type: 'finish',
+              finishReason: 'tool-calls',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          'test-tool': tool({
+            parameters: jsonSchema<{ value: string }>({
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+            }),
+            onArgsAvailable: options => {
+              recordedCalls.push({ type: 'onArgsAvailable', options });
+            },
+            onArgsStreamingStart: options => {
+              recordedCalls.push({ type: 'onArgsStreamingStart', options });
+            },
+            onArgsStreamingDelta: options => {
+              recordedCalls.push({ type: 'onArgsStreamingDelta', options });
+            },
+          }),
+        },
+        toolCallStreaming: true,
+        toolChoice: 'required',
+        prompt: 'test-input',
+        _internal: {
+          now: mockValues(0, 100, 500),
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(recordedCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "{"",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "value",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "":"",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "Spark",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "le",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": " Day",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": ""}",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "args": {
+                "value": "Sparkle Day",
+              },
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsAvailable",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('tools with custom schema', () => {
     it('should send tool calls', async () => {
       const result = streamText({

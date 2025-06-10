@@ -1122,9 +1122,33 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
-                    // forward:
-                    case 'tool-call-streaming-start':
+                    case 'tool-call-streaming-start': {
+                      const tool = tools?.[chunk.toolName];
+
+                      if (tool?.onArgsStreamingStart != null) {
+                        await tool.onArgsStreamingStart({
+                          toolCallId: chunk.toolCallId,
+                          messages: stepInputMessages,
+                          abortSignal,
+                        });
+                      }
+
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'tool-call-delta': {
+                      const tool = tools?.[chunk.toolName];
+
+                      if (tool?.onArgsStreamingDelta != null) {
+                        await tool.onArgsStreamingDelta({
+                          argsTextDelta: chunk.argsTextDelta,
+                          toolCallId: chunk.toolCallId,
+                          messages: stepInputMessages,
+                          abortSignal,
+                        });
+                      }
+
                       controller.enqueue(chunk);
                       break;
                     }

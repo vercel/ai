@@ -1,7 +1,7 @@
 import {
   convertToModelMessages,
   Tool,
-  ToolExecutionOptions,
+  ToolCallOptions,
   ToolSet,
   UIMessage,
   UIMessageStreamWriter,
@@ -49,7 +49,7 @@ export async function processToolCalls<
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
       args: ExecutableTools[K] extends Tool<infer P> ? P : never,
-      context: ToolExecutionOptions,
+      context: ToolCallOptions,
     ) => Promise<any>;
   },
 ): Promise<UIMessage[]> {
