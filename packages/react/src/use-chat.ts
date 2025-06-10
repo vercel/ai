@@ -7,7 +7,7 @@ import {
   type UIMessage,
 } from 'ai';
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { Chat, useChatState } from './chat.react';
+import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
 
@@ -54,7 +54,10 @@ export type UseChatHelpers<
 export type UseChatOptions<
   MESSAGE_METADATA = unknown,
   DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> & {
+> = (
+  | { chat: Chat<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> }
+  | ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
+) & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
@@ -67,29 +70,33 @@ export function useChat<
   DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
 >({
   experimental_throttle: throttleWaitMs,
-  messages: initialMessages,
   ...options
 }: UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> = {}): UseChatHelpers<
   MESSAGE_METADATA,
   DATA_PART_SCHEMAS
 > {
-  const chatStateManager = useChatState(initialMessages, throttleWaitMs);
-  const chatRef = useRef(new Chat({ ...options, state: chatStateManager }));
+  const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
+
+  const subscribeToMessages = useCallback(
+    (update: () => void) =>
+      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
+    [throttleWaitMs],
+  );
 
   const messages = useSyncExternalStore(
-    update => chatStateManager.registerMessagesCallback(update),
+    subscribeToMessages,
     () => chatRef.current.messages,
     () => chatRef.current.messages,
   );
 
   const status = useSyncExternalStore(
-    update => chatStateManager.registerStatusCallback(update),
+    chatRef.current['~registerStatusCallback'],
     () => chatRef.current.status,
     () => chatRef.current.status,
   );
 
   const error = useSyncExternalStore(
-    update => chatStateManager.registerErrorCallback(update),
+    chatRef.current['~registerErrorCallback'],
     () => chatRef.current.error,
     () => chatRef.current.error,
   );
@@ -124,7 +131,7 @@ export function useChat<
     sendMessage: chatRef.current.sendMessage,
     reload: chatRef.current.reload,
     stop: chatRef.current.stop,
-    error: chatRef.current.error,
+    error,
     experimental_resume: chatRef.current.experimental_resume,
     status,
     addToolResult: chatRef.current.addToolResult,
