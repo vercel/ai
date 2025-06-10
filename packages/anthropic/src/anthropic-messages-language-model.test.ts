@@ -1635,7 +1635,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(rawChunks).toMatchInlineSnapshot(`
         [
           {
-            "type": "raw",
             "rawValue": {
               "message": {
                 "content": [],
@@ -1652,9 +1651,9 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "type": "message_start",
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "content_block": {
                 "text": "",
@@ -1663,9 +1662,9 @@ describe('AnthropicMessagesLanguageModel', () => {
               "index": 0,
               "type": "content_block_start",
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "delta": {
                 "text": "Hello",
@@ -1674,16 +1673,16 @@ describe('AnthropicMessagesLanguageModel', () => {
               "index": 0,
               "type": "content_block_delta",
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "index": 0,
               "type": "content_block_stop",
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "delta": {
                 "stop_reason": "end_turn",
@@ -1694,12 +1693,13 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "output_tokens": 227,
               },
             },
+            "type": "raw",
           },
           {
-            "type": "raw",
             "rawValue": {
               "type": "message_stop",
             },
+            "type": "raw",
           },
         ]
       `);
