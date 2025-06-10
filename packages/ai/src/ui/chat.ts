@@ -25,6 +25,9 @@ import type {
   UIDataPartSchemas,
   InferUIDataParts,
   FileUIPart,
+  UIDataTypesToSchemas,
+  InferUIMessageData,
+  InferUIMessageMetadata,
 } from './ui-messages';
 import { DefaultChatTransport } from './default-chat-transport';
 import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
@@ -45,8 +48,13 @@ export type ChatRequestOptions = {
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
-type ActiveResponse<MESSAGE_METADATA> = {
-  state: StreamingUIMessageState<MESSAGE_METADATA>;
+type ActiveResponse<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>> = {
+  state: StreamingUIMessageState<
+    UIMessage<
+      InferUIMessageMetadata<UI_MESSAGE>,
+      InferUIDataParts<UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>>
+    >
+  >;
   abortController: AbortController | undefined;
 };
 
@@ -162,8 +170,11 @@ export abstract class AbstractChat<
     UI_DATA_PART_SCHEMAS
   >['onFinish'];
 
-  private activeResponse: ActiveResponse<MESSAGE_METADATA> | undefined =
-    undefined;
+  private activeResponse:
+    | ActiveResponse<
+        UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
+      >
+    | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -419,8 +430,24 @@ export abstract class AbstractChat<
       const runUpdateMessageJob = (
         job: (options: {
           state: StreamingUIMessageState<
-            MESSAGE_METADATA,
-            UI_DATA_PART_SCHEMAS
+            UIMessage<
+              InferUIMessageMetadata<
+                UIMessage<
+                  MESSAGE_METADATA,
+                  InferUIDataParts<UI_DATA_PART_SCHEMAS>
+                >
+              >,
+              InferUIDataParts<
+                UIDataTypesToSchemas<
+                  InferUIMessageData<
+                    UIMessage<
+                      MESSAGE_METADATA,
+                      InferUIDataParts<UI_DATA_PART_SCHEMAS>
+                    >
+                  >
+                >
+              >
+            >
           >;
           write: () => void;
         }) => Promise<void>,

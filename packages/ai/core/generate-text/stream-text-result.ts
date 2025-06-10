@@ -1,6 +1,10 @@
 import { ServerResponse } from 'node:http';
 import { InferUIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
-import { UIDataTypes, UIMessage } from '../../src/ui/ui-messages';
+import {
+  InferUIMessageMetadata,
+  UIDataTypes,
+  UIMessage,
+} from '../../src/ui/ui-messages';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { ReasoningPart } from '../prompt/content-part';
 import {
@@ -20,7 +24,9 @@ import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 
-export type UIMessageStreamOptions = {
+export type UIMessageStreamOptions<
+  UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
+> = {
   /**
    * Message ID that is sent to the client if a new message is created.
    * This is intended to be used for the UI message,
@@ -32,13 +38,13 @@ export type UIMessageStreamOptions = {
   /**
    * The original messages.
    */
-  originalMessages?: UIMessage[];
+  originalMessages?: UI_MESSAGE[];
 
   onFinish?: (options: {
     /**
      * The updates list of UI messages.
      */
-    messages: UIMessage[];
+    messages: UI_MESSAGE[];
 
     /**
      * Indicates whether the response message is a continuation of the last original message,
@@ -50,7 +56,7 @@ export type UIMessageStreamOptions = {
      * The message that was sent to the client as a response
      * (including the original message if it was extended).
      */
-    responseMessage: UIMessage;
+    responseMessage: UI_MESSAGE;
   }) => void;
 
   /**
@@ -62,7 +68,7 @@ export type UIMessageStreamOptions = {
     part: TextStreamPart<ToolSet> & {
       type: 'start' | 'finish' | 'start-step' | 'finish-step';
     };
-  }) => unknown;
+  }) => InferUIMessageMetadata<UI_MESSAGE>;
 
   /**
    * Send reasoning parts to the client.
@@ -275,7 +281,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   @return A UI message stream.
      */
   toUIMessageStream<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>>(
-    options?: UIMessageStreamOptions,
+    options?: UIMessageStreamOptions<UI_MESSAGE>,
   ): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
 
   /**
@@ -288,9 +294,11 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
      */
-  pipeUIMessageStreamToResponse(
+  pipeUIMessageStreamToResponse<
+    UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
+  >(
     response: ServerResponse,
-    options?: ResponseInit & UIMessageStreamOptions,
+    options?: ResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): void;
 
   /**
@@ -313,8 +321,8 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
   @return A response object.
      */
-  toUIMessageStreamResponse(
-    options?: ResponseInit & UIMessageStreamOptions,
+  toUIMessageStreamResponse<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>>(
+    options?: ResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): Response;
 
   /**

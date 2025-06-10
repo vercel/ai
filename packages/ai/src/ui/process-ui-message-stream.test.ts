@@ -21,7 +21,9 @@ export function mockId(): () => string {
 
 describe('processUIMessageStream', () => {
   let writeCalls: Array<{ message: UIMessage }> = [];
-  let state: StreamingUIMessageState | undefined;
+  let state:
+    | StreamingUIMessageState<UIMessage<unknown, UIDataTypes>>
+    | undefined;
 
   beforeEach(() => {
     writeCalls = [];
@@ -30,7 +32,7 @@ describe('processUIMessageStream', () => {
 
   const runUpdateMessageJob = async (
     job: (options: {
-      state: StreamingUIMessageState;
+      state: StreamingUIMessageState<UIMessage<unknown, UIDataTypes>>;
       write: () => void;
     }) => Promise<void>,
   ) => {

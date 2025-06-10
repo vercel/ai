@@ -8,7 +8,10 @@ import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream
 import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
 import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
-import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import {
+  InferUIMessageStreamPart,
+  UIMessageStreamPart,
+} from '../../src/ui-message-stream/ui-message-stream-parts';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -68,6 +71,8 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { UIDataTypes, UIMessage } from '../../src/ui';
+import { InferUIMessageMetadata } from '../../src/ui/ui-messages';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1435,7 +1440,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  toUIMessageStream({
+  toUIMessageStream<UI_MESSAGE extends UIMessage<unknown, UIDataTypes>>({
     newMessageId,
     originalMessages = [],
     onFinish,
@@ -1445,13 +1450,18 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendStart = true,
     sendFinish = true,
     onError = () => 'An error occurred.', // mask error messages for safety by default
-  }: UIMessageStreamOptions = {}): ReadableStream<UIMessageStreamPart> {
+  }: UIMessageStreamOptions<UI_MESSAGE> = {}): ReadableStream<
+    InferUIMessageStreamPart<UI_MESSAGE>
+  > {
     const lastMessage = originalMessages[originalMessages.length - 1];
     const isContinuation = lastMessage?.role === 'assistant';
     const messageId = isContinuation ? lastMessage.id : newMessageId;
 
     const baseStream = this.fullStream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, UIMessageStreamPart>({
+      new TransformStream<
+        TextStreamPart<TOOLS>,
+        UIMessageStreamPart<InferUIMessageMetadata<UI_MESSAGE>, UIDataTypes>
+      >({
         transform: async (part, controller) => {
           const partType = part.type;
           switch (partType) {
@@ -1610,7 +1620,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       }),
     );
 
-    return handleUIMessageStreamFinish({
+    return handleUIMessageStreamFinish<UI_MESSAGE>({
       stream: baseStream,
       newMessageId: messageId ?? this.generateId(),
       originalMessages,
@@ -1618,7 +1628,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  pipeUIMessageStreamToResponse(
+  pipeUIMessageStreamToResponse<
+    UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
+  >(
     response: ServerResponse,
     {
       newMessageId,
@@ -1631,7 +1643,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendStart,
       onError,
       ...init
-    }: ResponseInit & UIMessageStreamOptions = {},
+    }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
     pipeUIMessageStreamToResponse({
       response,
@@ -1658,7 +1670,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toUIMessageStreamResponse({
+  toUIMessageStreamResponse<
+    UI_MESSAGE extends UIMessage<unknown, UIDataTypes>,
+  >({
     newMessageId,
     originalMessages,
     onFinish,
@@ -1669,7 +1683,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendStart,
     onError,
     ...init
-  }: ResponseInit & UIMessageStreamOptions = {}): Response {
+  }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
     return createUIMessageStreamResponse({
       stream: this.toUIMessageStream({
         newMessageId,
