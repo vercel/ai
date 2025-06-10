@@ -5052,8 +5052,8 @@ describe('streamText', () => {
               required: ['value'],
               additionalProperties: false,
             }),
-            onArgsComplete: options => {
-              recordedCalls.push({ type: 'onArgsComplete', options });
+            onArgsAvailable: options => {
+              recordedCalls.push({ type: 'onArgsAvailable', options });
             },
             onArgsStreamingStart: options => {
               recordedCalls.push({ type: 'onArgsStreamingStart', options });
@@ -5101,7 +5101,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsComplete",
+            "type": "onArgsAvailable",
           },
         ]
       `);

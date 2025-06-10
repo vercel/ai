@@ -93,7 +93,7 @@ If not provided, the tool will not be executed automatically.
        * Optional function that is called when a tool call can be started,
        * even if the execute function is not provided.
        */
-      onArgsComplete?: (
+      onArgsAvailable?: (
         options: {
           args: [PARAMETERS] extends [never] ? undefined : PARAMETERS;
         } & ToolCallOptions,

@@ -183,8 +183,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             const tool = tools![toolCall.toolName];
 
-            if (tool.onArgsComplete != null) {
-              await tool.onArgsComplete({
+            if (tool.onArgsAvailable != null) {
+              await tool.onArgsAvailable({
                 args: toolCall.args,
                 toolCallId: toolCall.toolCallId,
                 messages,
