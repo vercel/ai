@@ -1108,7 +1108,6 @@ describe('GatewayLanguageModel', () => {
             "warnings": [],
           },
           {
-            "type": "raw",
             "rawValue": {
               "choices": [
                 {
@@ -1120,6 +1119,7 @@ describe('GatewayLanguageModel', () => {
               "id": "test-chunk",
               "object": "chat.completion.chunk",
             },
+            "type": "raw",
           },
           {
             "textDelta": "Hello",
