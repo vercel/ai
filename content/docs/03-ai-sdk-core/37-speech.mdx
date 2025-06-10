@@ -13,7 +13,6 @@ function to generate speech from text using a speech model.
 ```ts
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -37,7 +36,6 @@ You can set model-specific settings with the `providerOptions` parameter.
 ```ts highlight="8-12"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -59,7 +57,6 @@ that you can use to abort the speech generation process or set a timeout.
 ```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -76,7 +73,6 @@ that you can use to add custom headers to the speech generation request.
 ```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -92,7 +88,6 @@ Warnings (e.g. unsupported parameters) are available on the `warnings` property.
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { readFile } from 'fs/promises';
 
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -122,7 +117,6 @@ import {
   AI_NoAudioGeneratedError,
 } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { readFile } from 'fs/promises';
 
 try {
   await generateSpeech({
