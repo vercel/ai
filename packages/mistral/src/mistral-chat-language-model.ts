@@ -337,11 +337,10 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             }
 
             if (textContent != null) {
-              const processedText = trimLeadingSpace
-                ? textContent.trimStart()
-                : textContent;
-
-              controller.enqueue({ type: 'text', text: processedText });
+              controller.enqueue({
+                type: 'text',
+                text: trimLeadingSpace ? textContent.trimStart() : textContent,
+              });
 
               trimLeadingSpace = false;
             }

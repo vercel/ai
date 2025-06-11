@@ -1,19 +1,38 @@
 import { mistral } from '@ai-sdk/mistral';
-import { streamText } from 'ai';
+import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: mistral('magistral-small-2506'),
+    model: wrapLanguageModel({
+      model: mistral('magistral-small-2506'),
+      middleware: extractReasoningMiddleware({
+        tagName: 'think',
+      }),
+    }),
     prompt: 'What is 2 + 2?',
   });
 
-  console.log('Mistral reasoning model returns raw text with <think> tags:');
-  console.log('(Use extract reasoning middleware to parse these if needed)');
+  console.log('Mistral reasoning model with extracted reasoning:');
   console.log();
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
+  let enteredReasoning = false;
+  let enteredText = false;
+
+  for await (const part of result.fullStream) {
+    if (part.type === 'reasoning') {
+      if (!enteredReasoning) {
+        enteredReasoning = true;
+        console.log('REASONING:');
+      }
+      process.stdout.write(part.text);
+    } else if (part.type === 'text') {
+      if (!enteredText) {
+        enteredText = true;
+        console.log('\n\nTEXT:');
+      }
+      process.stdout.write(part.text);
+    }
   }
 
   console.log();

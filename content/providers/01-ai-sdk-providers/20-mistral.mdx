@@ -150,23 +150,34 @@ Mistral offers reasoning models that provide step-by-step thinking capabilities:
 - **magistral-small-2506**: Smaller reasoning model for efficient step-by-step thinking
 - **magistral-medium-2506**: More powerful reasoning model balancing performance and cost
 
-These models return raw text that includes `<think>...</think>` tags containing the reasoning process:
+These models return content that includes `<think>...</think>` tags containing the reasoning process. To properly extract and separate the reasoning from the final answer, use the [extract reasoning middleware](/docs/reference/ai-sdk-core/extract-reasoning-middleware):
 
 ```ts
 import { mistral } from '@ai-sdk/mistral';
-import { generateText } from 'ai';
+import {
+  extractReasoningMiddleware,
+  generateText,
+  wrapLanguageModel,
+} from 'ai';
 
-const { text } = await generateText({
-  model: mistral('magistral-small-2506'),
+const result = await generateText({
+  model: wrapLanguageModel({
+    model: mistral('magistral-small-2506'),
+    middleware: extractReasoningMiddleware({
+      tagName: 'think',
+    }),
+  }),
   prompt: 'What is 15 * 24?',
 });
 
-console.log(text);
-// Output includes: <think>Let me calculate this step by step...</think>
-// followed by the final answer
+console.log('REASONING:', result.reasoningText);
+// Output: "Let me calculate this step by step..."
+
+console.log('ANSWER:', result.text);
+// Output: "360"
 ```
 
-The reasoning content remains in the raw text output. If you need to separate the reasoning from the final answer, you can use the [extract reasoning middleware](/docs/ai-sdk-core/middleware).
+The middleware automatically parses the `<think>` tags and provides separate `reasoningText` and `text` properties in the result.
 
 ### Example
 
