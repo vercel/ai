@@ -398,6 +398,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     > = {};
     let hasToolCalls = false;
 
+    // Track the last summary_index received in reasoning summary chunks.
+    // When the provider switches to a different summary_index we emit a
+    // `reasoning-part-finish` marker so downstream consumers can separate
+    // distinct reasoning parts.
+    let lastReasoningSummaryIndex: number | null = null;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -459,10 +465,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 text: value.delta,
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+              // When the summary_index changes, mark the end of the previous
+              // reasoning part before streaming the new one.
+              if (
+                lastReasoningSummaryIndex !== null &&
+                value.summary_index !== lastReasoningSummaryIndex
+              ) {
+                controller.enqueue({ type: 'reasoning-part-finish' });
+              }
+
+              lastReasoningSummaryIndex = value.summary_index;
+
               controller.enqueue({
                 type: 'reasoning',
                 text: value.delta,
               });
+            } else if (isResponseReasoningSummaryPartDoneChunk(value)) {
+              controller.enqueue({ type: 'reasoning-part-finish' });
             } else if (
               isResponseOutputItemDoneChunk(value) &&
               value.item.type === 'function_call'
@@ -615,6 +634,14 @@ const responseReasoningSummaryTextDeltaSchema = z.object({
   delta: z.string(),
 });
 
+const responseReasoningSummaryPartDoneSchema = z.object({
+  type: z.literal('response.reasoning_summary_part.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  part: z.unknown().optional(),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -624,6 +651,7 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
+  responseReasoningSummaryPartDoneSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -675,6 +703,12 @@ function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
+function isResponseReasoningSummaryPartDoneChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryPartDoneSchema> {
+  return chunk.type === 'response.reasoning_summary_part.done';
 }
 
 type ResponsesModelConfig = {
