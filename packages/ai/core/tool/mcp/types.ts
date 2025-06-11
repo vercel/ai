@@ -171,10 +171,22 @@ const EmbeddedResourceSchema = z
     resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
   })
   .passthrough();
+export const AudioContentSchema = z
+  .object({
+    type: z.literal('audio'),
+    data: z.string().base64(),
+    mimeType: z.string(),
+  })
+  .passthrough();
 
 export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
-    z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
+    z.union([
+      TextContentSchema,
+      ImageContentSchema,
+      EmbeddedResourceSchema,
+      AudioContentSchema,
+    ]),
   ),
   isError: z.boolean().default(false).optional(),
 }).or(
@@ -183,3 +195,41 @@ export const CallToolResultSchema = ResultSchema.extend({
   }),
 );
 export type CallToolResult = z.infer<typeof CallToolResultSchema>;
+
+const PromptArgumentSchema = z
+  .object({
+    name: z.string(),
+    description: z.optional(z.string()),
+    required: z.optional(z.boolean()),
+  })
+  .passthrough();
+type PromptArgument = z.infer<typeof PromptArgumentSchema>;
+export const PromptSchema = z
+  .object({
+    name: z.string(),
+    description: z.optional(z.string()),
+    arguments: z.optional(z.array(PromptArgumentSchema)),
+  })
+  .passthrough();
+export type Prompt = z.infer<typeof PromptSchema>;
+export const ListPromptsResultSchema = PaginatedResultSchema.extend({
+  prompts: z.array(PromptSchema),
+});
+export type ListPromptsResult = z.infer<typeof ListPromptsResultSchema>;
+export const PromptMessageSchema = z
+  .object({
+    role: z.enum(['user', 'assistant']),
+    content: z.union([
+      TextContentSchema,
+      ImageContentSchema,
+      AudioContentSchema,
+      EmbeddedResourceSchema,
+    ]),
+  })
+  .passthrough();
+
+export const GetPromptResultSchema = ResultSchema.extend({
+  description: z.optional(z.string()),
+  messages: z.array(PromptMessageSchema),
+});
+export type GetPromptResult = z.infer<typeof GetPromptResultSchema>;

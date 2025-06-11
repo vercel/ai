@@ -19,13 +19,18 @@ import {
   CallToolResult,
   CallToolResultSchema,
   Configuration as ClientConfiguration,
+  GetPromptResult,
+  GetPromptResultSchema,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
+  ListPromptsResult,
+  ListPromptsResultSchema,
   ListToolsResult,
   ListToolsResultSchema,
   McpToolSet,
   Notification,
   PaginatedRequest,
+  Prompt,
   Request,
   RequestOptions,
   ServerCapabilities,
@@ -179,6 +184,14 @@ class MCPClient {
           });
         }
         break;
+      case 'prompts/get':
+      case 'prompts/list':
+        if (!this.serverCapabilities.prompts) {
+          throw new MCPClientError({
+            message: `Server does not support prompts`,
+          });
+        }
+        break;
       default:
         throw new MCPClientError({
           message: `Unsupported method: ${method}`,
@@ -293,6 +306,46 @@ class MCPClient {
     }
   }
 
+  private async getPrompt({
+    name,
+    args,
+    options,
+  }: {
+    name: string;
+    args: Record<string, string>;
+    options?: RequestOptions;
+  }): Promise<GetPromptResult> {
+    try {
+      return this.request({
+        request: { method: 'prompts/get', params: { name, arguments: args } },
+        resultSchema: GetPromptResultSchema,
+        options: {
+          signal: options?.signal,
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async listPrompts({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListPromptsResult> {
+    try {
+      return this.request({
+        request: { method: 'prompts/list', params },
+        resultSchema: ListPromptsResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   private async notification(notification: Notification): Promise<void> {
     const jsonrpcNotification: JSONRPCNotification = {
       ...notification,
@@ -351,6 +404,54 @@ class MCPClient {
       }
 
       return tools as McpToolSet<TOOL_SCHEMAS>;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Returns available prompts from the MCP server
+   * @returns A record of prompt names to their definitions
+   *
+   * TODO: More useful to return as list or map?
+   */
+  async prompts(): Promise<Record<string, Omit<Prompt, 'name'>>> {
+    try {
+      const listPromptsResult = await this.listPrompts();
+      const prompts: Record<string, Omit<Prompt, 'name'>> = {};
+
+      for (const {
+        name,
+        description,
+        arguments: args,
+      } of listPromptsResult.prompts) {
+        prompts[name] = {
+          description,
+          arguments: args,
+        };
+      }
+
+      return prompts;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Returns a prompt with the given name and arguments from the MCP server
+   * @returns A list of messages
+   */
+  async prompt({
+    name,
+    args,
+  }: {
+    name: string;
+    args: Record<string, string>;
+  }): Promise<GetPromptResult['messages']> {
+    try {
+      const result = await this.getPrompt({ name, args });
+      return result.messages;
+      // TODO: Convert to AI SDK message type
     } catch (error) {
       throw error;
     }
