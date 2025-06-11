@@ -92,10 +92,14 @@ describe('doStream', () => {
           chunks = text
             .split('\n')
             .filter(Boolean)
-            .map(chunk => ({
-              success: true,
-              value: JSON.parse(chunk),
-            }));
+            .map(chunk => {
+              const parsedChunk = JSON.parse(chunk);
+              return {
+                success: true,
+                value: parsedChunk,
+                rawValue: parsedChunk,
+              };
+            });
         }
         const headers = Object.fromEntries<string>([...response.headers]);
 
@@ -1258,7 +1262,14 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "rawValue": undefined,
+          "rawValue": {
+            "contentBlockDelta": {
+              "contentBlockIndex": 0,
+              "delta": {
+                "text": "Hello",
+              },
+            },
+          },
           "type": "raw",
         },
         {
@@ -1266,7 +1277,11 @@ describe('doStream', () => {
           "type": "text",
         },
         {
-          "rawValue": undefined,
+          "rawValue": {
+            "messageStop": {
+              "stopReason": "stop_sequence",
+            },
+          },
           "type": "raw",
         },
         {
