@@ -415,6 +415,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -473,6 +474,7 @@ describe('doStream', () => {
           content: [{ type: 'text', text: 'prefix ' }],
         },
       ],
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -549,6 +551,7 @@ describe('doStream', () => {
           },
         ],
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -602,6 +605,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -620,6 +624,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -641,6 +646,7 @@ describe('doStream', () => {
 
     await provider.chat('mistral-small-latest').doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -659,6 +665,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -707,6 +714,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -740,6 +748,114 @@ describe('doStream', () => {
             "inputTokens": 4,
             "outputTokens": 32,
             "totalTokens": 36,
+          },
+        },
+      ]
+    `);
+  });
+});
+
+describe('doStream with raw chunks', () => {
+  it('should stream raw chunks when includeRawChunks is true', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"cmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"mistral-large-latest","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-456","object":"chat.completion.chunk","created":1234567890,"model":"mistral-large-latest","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-789","object":"chat.completion.chunk","created":1234567890,"model":"mistral-large-latest","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                  "role": "assistant",
+                },
+                "finish_reason": null,
+                "index": 0,
+              },
+            ],
+            "created": 1234567890,
+            "id": "cmpl-123",
+            "model": "mistral-large-latest",
+          },
+          "type": "raw",
+        },
+        {
+          "id": "cmpl-123",
+          "modelId": "mistral-large-latest",
+          "timestamp": 2009-02-13T23:31:30.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": " world",
+                },
+                "finish_reason": null,
+                "index": 0,
+              },
+            ],
+            "created": 1234567890,
+            "id": "cmpl-456",
+            "model": "mistral-large-latest",
+          },
+          "type": "raw",
+        },
+        {
+          "text": " world",
+          "type": "text",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+                "index": 0,
+              },
+            ],
+            "created": 1234567890,
+            "id": "cmpl-789",
+            "model": "mistral-large-latest",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
+          },
+          "type": "raw",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 5,
+            "totalTokens": 15,
           },
         },
       ]

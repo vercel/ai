@@ -281,6 +281,11 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
             const value = chunk.value;
 
+            // Emit raw chunk if requested
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: value });
+            }
+
             if (chunkNumber === 1) {
               controller.enqueue({
                 type: 'response-metadata',

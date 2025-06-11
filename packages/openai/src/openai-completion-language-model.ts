@@ -253,6 +253,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';

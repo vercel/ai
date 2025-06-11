@@ -784,6 +784,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
           },
         ],
+        includeRawChunks: false,
       });
 
       const result = await convertReadableStreamToArray(stream);
@@ -868,6 +869,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
           },
+          includeRawChunks: false,
         });
 
         result = await convertReadableStreamToArray(stream);
@@ -990,6 +992,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1054,6 +1057,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1127,6 +1131,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1191,6 +1196,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1265,6 +1271,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ],
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1367,6 +1374,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1407,6 +1415,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { response } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(response?.headers).toStrictEqual({
@@ -1436,6 +1445,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1474,6 +1484,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
+        includeRawChunks: false,
       });
 
       expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -1506,6 +1517,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1558,6 +1570,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { request } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(request).toMatchInlineSnapshot(`
@@ -1588,6 +1601,135 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         }
       `);
+    });
+  });
+
+  describe('raw chunks', () => {
+    it('should include raw chunks when includeRawChunks is enabled', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      // Filter to just the raw chunks for easier testing
+      const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
+
+      // Should have raw chunks for each server-sent event
+      expect(rawChunks.length).toBeGreaterThan(0);
+
+      // Verify the raw chunks structure
+      expect(rawChunks).toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "message": {
+                "content": [],
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "role": "assistant",
+                "stop_reason": null,
+                "stop_sequence": null,
+                "type": "message",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+              "type": "message_start",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "content_block": {
+                "text": "",
+                "type": "text",
+              },
+              "index": 0,
+              "type": "content_block_start",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "delta": {
+                "text": "Hello",
+                "type": "text_delta",
+              },
+              "index": 0,
+              "type": "content_block_delta",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "index": 0,
+              "type": "content_block_stop",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "delta": {
+                "stop_reason": "end_turn",
+                "stop_sequence": null,
+              },
+              "type": "message_delta",
+              "usage": {
+                "output_tokens": 227,
+              },
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "type": "message_stop",
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+    });
+
+    it('should not include raw chunks when includeRawChunks is false', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      // Filter to just the raw chunks - should be empty
+      const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
+
+      // Should have no raw chunks
+      expect(rawChunks.length).toBe(0);
     });
   });
 });

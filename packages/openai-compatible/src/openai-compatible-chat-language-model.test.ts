@@ -937,6 +937,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const body = await server.calls[0].requestBodyJson;
@@ -953,6 +954,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     // note: space moved to last chunk bc of trimming
@@ -1023,6 +1025,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1123,6 +1126,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1263,6 +1267,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1416,6 +1421,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1525,6 +1531,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1582,6 +1589,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1622,6 +1630,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1661,6 +1670,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -1679,6 +1689,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1702,6 +1713,7 @@ describe('doStream', () => {
 
     await provider('grok-beta').doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -1725,6 +1737,7 @@ describe('doStream', () => {
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1745,6 +1758,7 @@ describe('doStream', () => {
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1759,6 +1773,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -1809,6 +1824,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -1848,6 +1864,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -1872,6 +1889,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -2004,6 +2022,7 @@ describe('metadata extraction', () => {
 
     const result = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const parts = await convertReadableStreamToArray(result.stream);
@@ -2020,5 +2039,80 @@ describe('metadata extraction', () => {
       messages: [{ role: 'user', content: 'Hello' }],
       stream: true,
     });
+  });
+});
+
+describe('raw chunks', () => {
+  it('should include raw chunks when includeRawChunks is true', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+        `data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                },
+              },
+            ],
+            "id": "chat-id",
+          },
+          "type": "raw",
+        },
+        {
+          "id": "chat-id",
+          "modelId": undefined,
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+              },
+            ],
+          },
+          "type": "raw",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 });

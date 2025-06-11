@@ -345,6 +345,7 @@ describe('PerplexityLanguageModel', () => {
 
       const { stream } = await perplexityLM.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const result = await convertReadableStreamToArray(stream);
@@ -403,6 +404,7 @@ describe('PerplexityLanguageModel', () => {
 
       const { stream } = await perplexityLM.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const result = await convertReadableStreamToArray(stream);
@@ -470,6 +472,7 @@ describe('PerplexityLanguageModel', () => {
 
       await perplexityLM.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await streamServer.calls[0].requestBodyJson).toEqual({
@@ -493,6 +496,7 @@ describe('PerplexityLanguageModel', () => {
       });
       const { stream } = await perplexityLM.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const result = await convertReadableStreamToArray(stream);
@@ -563,6 +567,7 @@ describe('PerplexityLanguageModel', () => {
 
       const { stream } = await perplexityLM.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const result = await convertReadableStreamToArray(stream);
@@ -626,6 +631,7 @@ describe('PerplexityLanguageModel', () => {
 
       await lmWithCustomHeaders.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
         headers: { 'Custom-Request-Header': 'request-header-value' },
       });
 
@@ -635,6 +641,104 @@ describe('PerplexityLanguageModel', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+    });
+
+    it('should stream raw chunks when includeRawChunks is true', async () => {
+      streamServer.urls['https://api.perplexity.ai/chat/completions'].response =
+        {
+          type: 'stream-chunks',
+          headers: {
+            'content-type': 'text/event-stream',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+          },
+          chunks: [
+            `data: {"id":"ppl-123","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}],"citations":["https://example.com"]}\n\n`,
+            `data: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}\n\n`,
+            `data: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+      const { stream } = await perplexityLM.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "Hello",
+                    "role": "assistant",
+                  },
+                  "finish_reason": null,
+                },
+              ],
+              "citations": [
+                "https://example.com",
+              ],
+              "created": 1234567890,
+              "id": "ppl-123",
+              "model": "perplexity-001",
+            },
+            "type": "raw",
+          },
+          {
+            "id": "ppl-123",
+            "modelId": "perplexity-001",
+            "timestamp": 2009-02-13T23:31:30.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "id-2",
+            "sourceType": "url",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}.
+        Error message: [{"code":"invalid_literal","expected":"assistant","path":["choices",0,"delta","role"],"message":"Invalid literal value, expected \\"assistant\\""}]],
+            "type": "error",
+          },
+          {
+            "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.
+        Error message: [{"code":"invalid_literal","expected":"assistant","path":["choices",0,"delta","role"],"message":"Invalid literal value, expected \\"assistant\\""},{"code":"invalid_type","expected":"string","received":"undefined","path":["choices",0,"delta","content"],"message":"Required"}]],
+            "type": "error",
+          },
+          {
+            "finishReason": "unknown",
+            "providerMetadata": {
+              "perplexity": {
+                "images": null,
+                "usage": {
+                  "citationTokens": null,
+                  "numSearchQueries": null,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "totalTokens": undefined,
+            },
+          },
+        ]
+      `);
     });
   });
 });

@@ -1,13 +1,20 @@
 import {
+  LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
 
-export function convertToCohereChatPrompt(
-  prompt: LanguageModelV2Prompt,
-): CohereChatPrompt {
+export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
+  messages: CohereChatPrompt;
+  documents: Array<{
+    data: { text: string; title?: string };
+  }>;
+  warnings: LanguageModelV2CallWarning[];
+} {
   const messages: CohereChatPrompt = [];
+  const documents: Array<{ data: { text: string; title?: string } }> = [];
+  const warnings: LanguageModelV2CallWarning[] = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -26,9 +33,44 @@ export function convertToCohereChatPrompt(
                   return part.text;
                 }
                 case 'file': {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'File URL data',
+                  // Extract documents for RAG
+                  let textContent: string;
+
+                  if (typeof part.data === 'string') {
+                    // Base64 or text data
+                    textContent = part.data;
+                  } else if (part.data instanceof Uint8Array) {
+                    // Check if the media type is supported for text extraction
+                    if (
+                      !(
+                        part.mediaType?.startsWith('text/') ||
+                        part.mediaType === 'application/json'
+                      )
+                    ) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `document media type: ${part.mediaType}`,
+                        message: `Media type '${part.mediaType}' is not supported. Supported media types are: text/* and application/json.`,
+                      });
+                    }
+                    textContent = new TextDecoder().decode(part.data);
+                  } else {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'File URL data',
+                      message:
+                        'URLs should be downloaded by the AI SDK and not reach this point. This indicates a configuration issue.',
+                    });
+                  }
+
+                  documents.push({
+                    data: {
+                      text: textContent,
+                      title: part.filename,
+                    },
                   });
+
+                  // Files are handled separately via the documents parameter
+                  // Return empty string to not include file content in message text
+                  return '';
                 }
               }
             })
@@ -71,7 +113,6 @@ export function convertToCohereChatPrompt(
         break;
       }
       case 'tool': {
-        // Cohere uses one tool message per tool result
         messages.push(
           ...content.map(toolResult => ({
             role: 'tool' as const,
@@ -89,5 +130,5 @@ export function convertToCohereChatPrompt(
     }
   }
 
-  return messages;
+  return { messages, documents, warnings };
 }

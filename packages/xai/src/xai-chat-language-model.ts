@@ -351,6 +351,11 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
 
             const value = chunk.value;
 
+            // Emit raw chunk if requested
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: value });
+            }
+
             // emit response metadata on first chunk
             if (isFirstChunk) {
               controller.enqueue({

@@ -364,6 +364,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
             const value = chunk.value;
 
+            // include raw chunks if requested:
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: value });
+            }
+
             // handle errors:
             if (value.internalServerException) {
               enqueueError(value.internalServerException);

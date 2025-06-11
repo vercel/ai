@@ -2962,6 +2962,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": undefined,
+              "includeRawChunks": false,
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
               "prompt": [
@@ -3016,6 +3017,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": undefined,
+              "includeRawChunks": false,
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
               "prompt": [
@@ -6384,6 +6386,7 @@ describe('streamText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": undefined,
+            "includeRawChunks": false,
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,
             "prompt": [
