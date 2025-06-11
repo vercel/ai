@@ -8,11 +8,11 @@ async function main() {
   const result = await generateObject({
     model: openai('gpt-4o-mini'),
     schema: valibotSchema(
-      v.strictObject({
-        recipe: v.strictObject({
+      v.object({
+        recipe: v.object({
           name: v.string(),
           ingredients: v.array(
-            v.strictObject({
+            v.object({
               name: v.string(),
               amount: v.string(),
             }),
