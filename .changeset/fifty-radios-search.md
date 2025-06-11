@@ -17,7 +17,7 @@ import { getDefaultConfig } from './config';
 const modelWithDefaults = wrapLanguageModel({
   model: openai.ChatTextGenerator({ model: 'gpt-4' }),
   middleware: defaultSettingsMiddleware({
-    settings: async (params) => {
+    settings: async params => {
       const config = await getDefaultConfig();
       return {
         temperature: config.temperature,

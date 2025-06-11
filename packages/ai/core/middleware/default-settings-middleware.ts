@@ -17,12 +17,15 @@ type Settings = Partial<
 export function defaultSettingsMiddleware({
   settings,
 }: {
-  settings: Settings | ((params: LanguageModelV1CallOptions) => Promise<Settings>);
+  settings:
+    | Settings
+    | ((params: LanguageModelV1CallOptions) => Promise<Settings>);
 }): LanguageModelV1Middleware {
   return {
     middlewareVersion: 'v1',
     transformParams: async ({ params }) => {
-      const defaultSettings = typeof settings === 'function' ? await settings(params) : settings;
+      const defaultSettings =
+        typeof settings === 'function' ? await settings(params) : settings;
       return {
         ...settings,
         ...params,
