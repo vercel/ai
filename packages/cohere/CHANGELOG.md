@@ -1,5 +1,15 @@
 # @ai-sdk/cohere
 
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+- 4fd442b: feat(cohere): add citations support for text documents
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
 ## 2.0.0-alpha.11
 
 ### Patch Changes

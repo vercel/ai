@@ -1,5 +1,19 @@
 # ai
 
+## 5.0.0-alpha.12
+
+### Major Changes
+
+- 4892798: chore (ai): always stream tool calls
+
+### Patch Changes
+
+- da1e6f0: feat (ui): add generics to ui message stream parts
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/gateway@1.0.0-alpha.12
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
 ## 5.0.0-alpha.11
 
 ### Major Changes
