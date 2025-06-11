@@ -2,4 +2,4 @@
 '@ai-sdk/valibot': patch
 ---
 
-updated valibot package
+chore (valibot): update to valibot 1.1
