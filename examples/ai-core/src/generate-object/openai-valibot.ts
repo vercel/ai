@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { valibotSchema } from '@ai-sdk/valibot';
 import { generateObject } from 'ai';
 import 'dotenv/config';
@@ -6,7 +6,7 @@ import * as v from 'valibot';
 
 async function main() {
   const result = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: anthropic('claude-3-5-sonnet-20240620'),
     schema: valibotSchema(
       v.object({
         recipe: v.object({
