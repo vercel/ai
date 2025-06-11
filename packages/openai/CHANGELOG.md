@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- 2f542fa: Add reasoning-part-finish parts for reasoning models in the responses API
+- e2aceaf: feat: add raw chunk support
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
 ## 2.0.0-alpha.11
 
 ### Patch Changes
