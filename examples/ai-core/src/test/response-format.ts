@@ -25,6 +25,7 @@ async function main() {
         ],
       },
     ],
+    includeRawChunks: false,
   });
 
   const reader = result.stream.getReader();

@@ -2797,6 +2797,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": undefined,
+              "includeRawChunks": false,
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
               "prompt": [
@@ -2851,6 +2852,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": undefined,
+              "includeRawChunks": false,
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
               "prompt": [
@@ -6217,6 +6219,7 @@ describe('streamText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": undefined,
+            "includeRawChunks": false,
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,
             "prompt": [
@@ -6489,6 +6492,145 @@ describe('streamText', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('raw chunks forwarding', () => {
+    it('should forward raw chunks when includeRawChunks is enabled', async () => {
+      const mockRawChunks = [
+        { type: 'stream-start', data: 'start' },
+        { type: 'response-metadata', id: 'test-id', modelId: 'test-model' },
+        { type: 'text-delta', content: 'Hello' },
+        { type: 'text-delta', content: ', world!' },
+        { type: 'finish', reason: 'stop' },
+      ];
+
+      const modelWithRawChunks = new MockLanguageModelV2({
+        doStream: async options => {
+          const chunks = [
+            { type: 'stream-start' as const, warnings: [] },
+            ...(options.includeRawChunks
+              ? mockRawChunks.map(rawChunk => ({
+                  type: 'raw' as const,
+                  rawValue: rawChunk,
+                }))
+              : []),
+            {
+              type: 'response-metadata' as const,
+              id: 'test-id',
+              modelId: 'test-model',
+              timestamp: new Date(0),
+            },
+            { type: 'text' as const, text: 'Hello, world!' },
+            {
+              type: 'finish' as const,
+              finishReason: 'stop' as const,
+              usage: testUsage,
+            },
+          ];
+
+          return {
+            stream: convertArrayToReadableStream(chunks),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "data": "start",
+              "type": "stream-start",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "id": "test-id",
+              "modelId": "test-model",
+              "type": "response-metadata",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "content": "Hello",
+              "type": "text-delta",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "content": ", world!",
+              "type": "text-delta",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "reason": "stop",
+              "type": "finish",
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+    });
+
+    it('should not forward raw chunks when includeRawChunks is disabled', async () => {
+      const modelWithRawChunks = new MockLanguageModelV2({
+        doStream: async options => {
+          const chunks = [
+            { type: 'stream-start' as const, warnings: [] },
+            ...(options.includeRawChunks
+              ? [
+                  {
+                    type: 'raw' as const,
+                    rawValue: {
+                      type: 'raw-data',
+                      content: 'should not appear',
+                    },
+                  },
+                ]
+              : []),
+            {
+              type: 'response-metadata' as const,
+              id: 'test-id',
+              modelId: 'test-model',
+              timestamp: new Date(0),
+            },
+            { type: 'text' as const, text: 'Hello, world!' },
+            {
+              type: 'finish' as const,
+              finishReason: 'stop' as const,
+              usage: testUsage,
+            },
+          ];
+
+          return {
+            stream: convertArrayToReadableStream(chunks),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
   });
 });
