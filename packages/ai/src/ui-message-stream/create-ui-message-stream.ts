@@ -17,13 +17,13 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   /**
    * The original messages.
    */
-  originalMessages?: UIMessage[];
+  originalMessages?: UI_MESSAGE[];
 
   onFinish?: (options: {
     /**
      * The updates list of UI messages.
      */
-    messages: UIMessage[];
+    messages: UI_MESSAGE[];
 
     /**
      * Indicates whether the response message is a continuation of the last original message,
@@ -35,7 +35,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
      * The message that was sent to the client as a response
      * (including the original message if it was extended).
      */
-    responseMessage: UIMessage;
+    responseMessage: UI_MESSAGE;
   }) => void;
 }): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
   let controller!: ReadableStreamDefaultController<
