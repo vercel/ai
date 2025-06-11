@@ -111,11 +111,7 @@ by the user.
    *
 @return A stream of higher-level language model output parts.
    */
-  doStream(
-    options: LanguageModelV2CallOptions & {
-      includeRawChunks: boolean;
-    },
-  ): PromiseLike<{
+  doStream(options: LanguageModelV2CallOptions): PromiseLike<{
     stream: ReadableStream<LanguageModelV2StreamPart>;
 
     /**

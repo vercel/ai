@@ -103,6 +103,11 @@ Specifies how the tool should be selected. Defaults to 'auto'.
   toolChoice?: LanguageModelV2ToolChoice;
 
   /**
+Include raw chunks in the stream. Only applicable for streaming calls.
+ */
+  includeRawChunks?: boolean;
+
+  /**
 Abort signal for cancelling the operation.
  */
   abortSignal?: AbortSignal;
