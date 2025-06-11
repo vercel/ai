@@ -1273,6 +1273,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "chatcmpl-123",
             "model": "grok-beta",
+            "object": "chat.completion.chunk",
           },
           "type": "raw",
         },
@@ -1300,6 +1301,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "chatcmpl-456",
             "model": "grok-beta",
+            "object": "chat.completion.chunk",
           },
           "type": "raw",
         },
@@ -1322,6 +1324,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "chatcmpl-789",
             "model": "grok-beta",
+            "object": "chat.completion.chunk",
             "usage": {
               "completion_tokens": 5,
               "prompt_tokens": 10,

@@ -682,6 +682,7 @@ describe('PerplexityLanguageModel', () => {
                     "role": "assistant",
                   },
                   "finish_reason": null,
+                  "index": 0,
                 },
               ],
               "citations": [
@@ -690,6 +691,7 @@ describe('PerplexityLanguageModel', () => {
               "created": 1234567890,
               "id": "ppl-123",
               "model": "perplexity-001",
+              "object": "chat.completion.chunk",
             },
             "type": "raw",
           },
@@ -710,9 +712,50 @@ describe('PerplexityLanguageModel', () => {
             "type": "text",
           },
           {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": " world",
+                  },
+                  "finish_reason": null,
+                  "index": 0,
+                },
+              ],
+              "created": 1234567890,
+              "id": "ppl-456",
+              "model": "perplexity-001",
+              "object": "chat.completion.chunk",
+            },
+            "type": "raw",
+          },
+          {
             "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}.
         Error message: [{"code":"invalid_literal","expected":"assistant","path":["choices",0,"delta","role"],"message":"Invalid literal value, expected \\"assistant\\""}]],
             "type": "error",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {},
+                  "finish_reason": "stop",
+                  "index": 0,
+                },
+              ],
+              "created": 1234567890,
+              "id": "ppl-789",
+              "model": "perplexity-001",
+              "object": "chat.completion.chunk",
+              "usage": {
+                "citation_tokens": 2,
+                "completion_tokens": 5,
+                "num_search_queries": 1,
+                "prompt_tokens": 10,
+                "total_tokens": 15,
+              },
+            },
+            "type": "raw",
           },
           {
             "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.

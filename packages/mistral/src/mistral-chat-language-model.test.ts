@@ -795,6 +795,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "cmpl-123",
             "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
           },
           "type": "raw",
         },
@@ -822,6 +823,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "cmpl-456",
             "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
           },
           "type": "raw",
         },
@@ -841,6 +843,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "cmpl-789",
             "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
             "usage": {
               "completion_tokens": 5,
               "prompt_tokens": 10,

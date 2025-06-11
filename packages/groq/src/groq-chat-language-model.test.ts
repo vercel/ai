@@ -1246,6 +1246,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "chatcmpl-123",
             "model": "gemma2-9b-it",
+            "object": "chat.completion.chunk",
           },
           "type": "raw",
         },
@@ -1273,6 +1274,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "chatcmpl-456",
             "model": "gemma2-9b-it",
+            "object": "chat.completion.chunk",
           },
           "type": "raw",
         },
@@ -1292,6 +1294,7 @@ describe('doStream with raw chunks', () => {
             "created": 1234567890,
             "id": "chatcmpl-789",
             "model": "gemma2-9b-it",
+            "object": "chat.completion.chunk",
             "x_groq": {
               "usage": {
                 "completion_tokens": 5,
