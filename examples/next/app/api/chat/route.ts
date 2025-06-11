@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const chat = await readChat(id);
   const messages = [...chat.messages, message];
 
-  const stream = createUIMessageStream<MyUIMessage>({
+  const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       // go through all messages, create a copy, replace data parts with
       // tool invocations
@@ -27,7 +27,10 @@ export async function POST(req: Request) {
           ...message,
           parts: message.parts.flatMap(part => {
             if (part.type === 'data-weather') {
-              if (part.data.status === 'generating') {
+              if (
+                part.data.status === 'generating' ||
+                part.data.status === 'calling api'
+              ) {
                 return []; // ignore generating parts
               }
 
@@ -44,10 +47,10 @@ export async function POST(req: Request) {
                     result: part.data,
                   },
                 },
-                {
-                  type: 'text' as const,
-                  text: `The weather in ${weather.city} is currently ${weather.weather}, with a temperature of ${weather.temperatureInCelsius}°C.`,
-                },
+                // {
+                //   type: 'text' as const,
+                //   text: `The weather in ${weather.city} is currently ${weather.weather}, with a temperature of ${weather.temperatureInCelsius}°C.`,
+                // },
               ];
             }
             return [part];
@@ -61,7 +64,7 @@ export async function POST(req: Request) {
       console.log('prompt', JSON.stringify(prompt, null, 2));
 
       const result = streamText({
-        model: 'openai/gpt-4o',
+        model: 'vertex/gemini-2.0-flash-001',
         prompt,
         toolCallStreaming: true, // TODO remove
         tools: {
@@ -74,6 +77,14 @@ export async function POST(req: Request) {
                 type: 'data-weather',
                 id: options.toolCallId,
                 data: { status: 'generating' },
+              });
+            },
+
+            onArgsAvailable(options) {
+              writer.write({
+                type: 'data-weather',
+                id: options.toolCallId,
+                data: { status: 'calling api' },
               });
             },
 
@@ -128,8 +139,7 @@ export async function POST(req: Request) {
     // save the chat when the stream is finished
     originalMessages: messages, // TODO BUG MESSAGE ID IS MISSING
     onFinish: ({ messages }) => {
-      // TODO fix type safety
-      saveChat({ id, messages: messages as MyUIMessage[] });
+      saveChat({ id, messages });
     },
   });
 

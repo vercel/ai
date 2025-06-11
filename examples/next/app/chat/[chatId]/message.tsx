@@ -33,6 +33,17 @@ export default function Message({ message }: { message: MyUIMessage }) {
               );
             }
 
+            if (part.data.status === 'calling api') {
+              return (
+                <div
+                  key={index}
+                  className="p-2 mt-2 border border-gray-200 rounded bg-gray-50"
+                >
+                  <div className="text-gray-600">Calling weather API...</div>
+                </div>
+              );
+            }
+
             const { temperatureInCelsius, weather, city } = part.data.weather;
             return (
               <div

@@ -12,6 +12,9 @@ export const weatherDataPartSchema = z.discriminatedUnion('status', [
     status: z.literal('generating'),
   }),
   z.object({
+    status: z.literal('calling api'),
+  }),
+  z.object({
     status: z.literal('available'),
     weather: z.object({
       city: z.string(),
