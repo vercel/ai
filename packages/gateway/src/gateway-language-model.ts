@@ -107,7 +107,15 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           >({
             transform(chunk, controller) {
               if (chunk.success) {
-                controller.enqueue(chunk.value);
+                const streamPart = chunk.value;
+
+                // Handle raw chunks: if this is a raw chunk from the gateway API,
+                // only emit it if includeRawChunks is true
+                if (streamPart.type === 'raw' && !options.includeRawChunks) {
+                  return; // Skip raw chunks if not requested
+                }
+
+                controller.enqueue(streamPart);
               } else {
                 controller.error(
                   (chunk as { success: false; error: unknown }).error,

@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+
 ## 2.0.0-alpha.11
 
 ### Patch Changes

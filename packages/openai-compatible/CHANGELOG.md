@@ -1,5 +1,14 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
 ## 1.0.0-alpha.11
 
 ### Patch Changes

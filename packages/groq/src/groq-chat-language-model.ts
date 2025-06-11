@@ -276,6 +276,11 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';

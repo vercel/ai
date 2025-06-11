@@ -485,6 +485,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           providerOptions,
           abortSignal,
           headers,
+          includeRawChunks: false,
         };
 
         const transformer: Transformer<

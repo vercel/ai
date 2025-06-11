@@ -1502,6 +1502,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1695,6 +1696,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1835,6 +1837,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1988,6 +1991,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2097,6 +2101,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2155,6 +2160,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2198,6 +2204,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2233,6 +2240,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -2282,6 +2290,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -2300,6 +2309,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2327,6 +2337,7 @@ describe('doStream', () => {
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
+      includeRawChunks: false,
     });
 
     expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -2354,6 +2365,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2398,6 +2410,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2439,6 +2452,7 @@ describe('doStream', () => {
           store: true,
         },
       },
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2462,6 +2476,7 @@ describe('doStream', () => {
           },
         },
       },
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2487,6 +2502,7 @@ describe('doStream', () => {
           serviceTier: 'flex',
         },
       },
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
@@ -2518,6 +2534,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2576,6 +2593,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2614,6 +2632,134 @@ describe('doStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('raw chunks', () => {
+    it('should include raw chunks when includeRawChunks is enabled', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' World!'],
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "",
+                    "role": "assistant",
+                  },
+                  "finish_reason": null,
+                  "index": 0,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "Hello",
+                  },
+                  "finish_reason": null,
+                  "index": 1,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": " World!",
+                  },
+                  "finish_reason": null,
+                  "index": 1,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {},
+                  "finish_reason": "stop",
+                  "index": 0,
+                  "logprobs": null,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": "fp_3bc1b5746c",
+              "usage": {
+                "completion_tokens": 227,
+                "prompt_tokens": 17,
+                "total_tokens": 244,
+              },
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+    });
+
+    it('should not include raw chunks when includeRawChunks is false', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' World!'],
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
   });
 });

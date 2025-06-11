@@ -1151,6 +1151,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-4o').doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1211,6 +1212,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-4o').doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1274,6 +1276,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       const { stream } = await createModel('gpt-4o').doStream({
         tools: TEST_TOOLS,
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1407,6 +1410,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-4o-mini').doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1502,6 +1506,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             reasoningSummary: 'auto',
           },
         },
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1527,10 +1532,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "reasoning",
           },
           {
+            "type": "reasoning-part-finish",
+          },
+          {
             "text": "**Investigating burrito origins**
 
         There's a fascinating debate about who created the Mission burrito.",
             "type": "reasoning",
+          },
+          {
+            "type": "reasoning-part-finish",
           },
           {
             "text": "Taqueria La Cumbre",

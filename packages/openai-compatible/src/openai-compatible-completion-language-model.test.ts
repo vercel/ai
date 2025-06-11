@@ -427,6 +427,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     // note: space moved to last chunk bc of trimming
@@ -483,6 +484,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -523,6 +525,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -555,6 +558,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -594,6 +598,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -612,6 +617,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
@@ -645,6 +651,7 @@ describe('doStream', () => {
 
     await provider.completionModel('gpt-3.5-turbo-instruct').doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -668,6 +675,7 @@ describe('doStream', () => {
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
@@ -698,6 +706,7 @@ describe('doStream', () => {
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`

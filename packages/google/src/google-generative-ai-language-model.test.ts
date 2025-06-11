@@ -1523,6 +1523,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const events = await convertReadableStreamToArray(stream);
@@ -1566,6 +1567,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1637,6 +1639,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const events = await convertReadableStreamToArray(stream);
@@ -1672,6 +1675,7 @@ describe('doStream', () => {
       const gemini2Pro = provider.languageModel('gemini-2.0-pro');
       await gemini2Pro.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
         providerOptions: {
           google: {
             useSearchGrounding: true,
@@ -1694,6 +1698,7 @@ describe('doStream', () => {
 
       await gemini2Flash.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
         providerOptions: {
           google: {
             useSearchGrounding: true,
@@ -1715,6 +1720,7 @@ describe('doStream', () => {
       const geminiPro = provider.languageModel('gemini-1.0-pro');
       await geminiPro.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
         providerOptions: {
           google: {
             useSearchGrounding: true,
@@ -1737,6 +1743,7 @@ describe('doStream', () => {
 
       await geminiPro.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
         providerOptions: {
           google: {
             useSearchGrounding: true,
@@ -1778,6 +1785,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const events = await convertReadableStreamToArray(stream);
@@ -1812,6 +1820,7 @@ describe('doStream', () => {
     };
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const events = await convertReadableStreamToArray(stream);
@@ -1923,6 +1932,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const events = await convertReadableStreamToArray(stream);
@@ -1938,6 +1948,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       providerOptions: {
         google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },
       },
@@ -2033,6 +2044,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const events = await convertReadableStreamToArray(stream);
@@ -2060,5 +2072,120 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  describe('raw chunks', () => {
+    it('should include raw chunks when includeRawChunks is enabled', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' World!'],
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "candidates": [
+                {
+                  "content": {
+                    "parts": [
+                      {
+                        "text": "Hello",
+                      },
+                    ],
+                    "role": "model",
+                  },
+                  "finishReason": "STOP",
+                  "index": 0,
+                  "safetyRatings": [
+                    {
+                      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                      "probability": "NEGLIGIBLE",
+                    },
+                    {
+                      "category": "HARM_CATEGORY_HATE_SPEECH",
+                      "probability": "NEGLIGIBLE",
+                    },
+                    {
+                      "category": "HARM_CATEGORY_HARASSMENT",
+                      "probability": "NEGLIGIBLE",
+                    },
+                    {
+                      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                      "probability": "NEGLIGIBLE",
+                    },
+                  ],
+                },
+              ],
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "candidates": [
+                {
+                  "content": {
+                    "parts": [
+                      {
+                        "text": " World!",
+                      },
+                    ],
+                    "role": "model",
+                  },
+                  "finishReason": "STOP",
+                  "index": 0,
+                  "safetyRatings": [
+                    {
+                      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                      "probability": "NEGLIGIBLE",
+                    },
+                    {
+                      "category": "HARM_CATEGORY_HATE_SPEECH",
+                      "probability": "NEGLIGIBLE",
+                    },
+                    {
+                      "category": "HARM_CATEGORY_HARASSMENT",
+                      "probability": "NEGLIGIBLE",
+                    },
+                    {
+                      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                      "probability": "NEGLIGIBLE",
+                    },
+                  ],
+                },
+              ],
+              "usageMetadata": {
+                "candidatesTokenCount": 233,
+                "promptTokenCount": 294,
+                "totalTokenCount": 527,
+              },
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+    });
+
+    it('should not include raw chunks when includeRawChunks is false', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' World!'],
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
   });
 });
