@@ -36,7 +36,6 @@ export async function POST(req: Request) {
       middleware: extractReasoningMiddleware({ tagName: 'think' }),
     }),
     messages: convertToModelMessages(messages),
-    toolCallStreaming: true,
     stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:

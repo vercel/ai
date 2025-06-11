@@ -52,7 +52,6 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
   generatorStream,
-  toolCallStreaming,
   tracer,
   telemetry,
   system,
@@ -62,7 +61,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV2StreamPart>;
-  toolCallStreaming: boolean;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   system: string | undefined;
@@ -147,24 +145,23 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
         // forward with less information:
         case 'tool-call-delta': {
-          if (toolCallStreaming) {
-            if (!activeToolCalls[chunk.toolCallId]) {
-              controller.enqueue({
-                type: 'tool-call-streaming-start',
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-              });
-
-              activeToolCalls[chunk.toolCallId] = true;
-            }
-
+          if (!activeToolCalls[chunk.toolCallId]) {
             controller.enqueue({
-              type: 'tool-call-delta',
+              type: 'tool-call-streaming-start',
               toolCallId: chunk.toolCallId,
               toolName: chunk.toolName,
-              argsTextDelta: chunk.argsTextDelta,
             });
+
+            activeToolCalls[chunk.toolCallId] = true;
           }
+
+          controller.enqueue({
+            type: 'tool-call-delta',
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            argsTextDelta: chunk.argsTextDelta,
+          });
+
           break;
         }
 
