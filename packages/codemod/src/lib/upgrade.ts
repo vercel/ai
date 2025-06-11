@@ -4,6 +4,7 @@ import { SingleBar, Presets } from 'cli-progress';
 
 const bundle = [
   'import-LanguageModelV2-from-provider-package',
+  'migrate-to-data-stream-protocol-v2',
   'move-image-model-maxImagesPerCall',
   'move-provider-options',
   'remove-ai-stream-methods-from-stream-text-result',
