@@ -272,7 +272,46 @@ See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use
 
 ### Cached Content
 
-You can use Google Generative AI language models to cache content:
+Google Generative AI supports both explicit and implicit caching to help reduce costs on repetitive content.
+
+#### Implicit Caching
+
+Gemini 2.5 models automatically provide cache cost savings without needing to create an explicit cache. When you send requests that share common prefixes with previous requests, you'll receive a 75% token discount on cached content.
+
+To maximize cache hits with implicit caching:
+
+- Keep content at the beginning of requests consistent
+- Add variable content (like user questions) at the end of prompts
+- Ensure requests meet minimum token requirements:
+  - Gemini 2.5 Flash: 1024 tokens minimum
+  - Gemini 2.5 Pro: 2048 tokens minimum
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+// Structure prompts with consistent content at the beginning
+const baseContext =
+  'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
+
+const { text: veggieLasagna } = await generateText({
+  model: google('gemini-2.5-pro'),
+  prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
+});
+
+// Second request with same prefix - eligible for cache hit
+const { text: meatLasagna, response } = await generateText({
+  model: google('gemini-2.5-pro'),
+  prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
+});
+
+// Check cached token count in usage metadata
+console.log('Cached tokens:', response.body.usageMetadata);
+```
+
+#### Explicit Caching
+
+For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 2.0 models:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -283,30 +322,33 @@ const cacheManager = new GoogleAICacheManager(
   process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 );
 
-// As of August 23rd, 2024, these are the only models that support caching
+// Supported models for explicit caching
 type GoogleModelCacheableId =
+  | 'models/gemini-2.5-pro'
+  | 'models/gemini-2.5-flash'
+  | 'models/gemini-2.0-flash'
   | 'models/gemini-1.5-flash-001'
   | 'models/gemini-1.5-pro-001';
 
-const model: GoogleModelCacheableId = 'models/gemini-1.5-pro-001';
+const model: GoogleModelCacheableId = 'models/gemini-2.5-pro';
 
 const { name: cachedContent } = await cacheManager.create({
   model,
   contents: [
     {
       role: 'user',
-      parts: [{ text: '1000 Lasanga Recipes...' }],
+      parts: [{ text: '1000 Lasagna Recipes...' }],
     },
   ],
   ttlSeconds: 60 * 5,
 });
 
-const { text: veggieLasangaRecipe } = await generateText({
+const { text: veggieLasagnaRecipe } = await generateText({
   model: google(model, { cachedContent }),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 
-const { text: meatLasangaRecipe } = await generateText({
+const { text: meatLasagnaRecipe } = await generateText({
   model: google(model, { cachedContent }),
   prompt: 'Write a meat lasagna recipe for 12 people.',
 });
