@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     model: openai('gpt-4o'),
     // model: anthropic('claude-3-5-sonnet-latest'),
     messages: convertToModelMessages(messages),
-    toolCallStreaming: true,
     stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:

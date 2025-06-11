@@ -502,125 +502,8 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
+    it('should send tool call deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
-          doStream: async ({ prompt, tools, toolChoice }) => {
-            expect(tools).toStrictEqual([
-              {
-                type: 'function',
-                name: 'test-tool',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
-              },
-            ]);
-
-            expect(toolChoice).toStrictEqual({ type: 'required' });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'test-input' }],
-                providerOptions: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '{"',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'value',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '":"',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'Spark',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'le',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: ' Day',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '"}',
-                },
-                {
-                  type: 'tool-call',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  args: '{"value":"Sparkle Day"}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'tool-calls',
-                  usage: testUsage2,
-                },
-              ]),
-            };
-          },
-        }),
-        tools: {
-          'test-tool': {
-            parameters: z.object({ value: z.string() }),
-          },
-        },
-        toolChoice: 'required',
-        prompt: 'test-input',
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
-    });
-
-    it('should send tool call deltas when toolCallStreaming is enabled', async () => {
-      const result = streamText({
-        toolCallStreaming: true,
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
@@ -1276,7 +1159,7 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should send tool call and tool result stream parts', async () => {
+    it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
@@ -1314,53 +1197,6 @@ describe('streamText', () => {
             execute: async ({ value }) => `${value}-result`,
           },
         },
-        ...defaultSettings(),
-      });
-
-      expect(
-        await convertReadableStreamToArray(result.toUIMessageStream()),
-      ).toMatchSnapshot();
-    });
-
-    it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '{ "value":',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: ' "value" }',
-            },
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            parameters: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
-        toolCallStreaming: true,
         ...defaultSettings(),
       });
 
@@ -2336,7 +2172,6 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        toolCallStreaming: true,
         onChunk(event) {
           result.push(event.chunk);
         },
@@ -5061,7 +4896,6 @@ describe('streamText', () => {
             },
           }),
         },
-        toolCallStreaming: true,
         toolChoice: 'required',
         prompt: 'test-input',
         _internal: {
@@ -6011,7 +5845,6 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
-          toolCallStreaming: true,
           onChunk(event) {
             result.push(event.chunk);
           },

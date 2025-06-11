@@ -2155,56 +2155,6 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
 ]
 `;
 
-exports[`streamText > result.fullStream > should not send tool call deltas when toolCallStreaming is disabled 1`] = `
-[
-  {
-    "type": "start",
-  },
-  {
-    "request": {},
-    "type": "start-step",
-    "warnings": [],
-  },
-  {
-    "args": {
-      "value": "Sparkle Day",
-    },
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
-    "type": "tool-call",
-  },
-  {
-    "finishReason": "tool-calls",
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-0",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish-step",
-    "usage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": 10,
-      "totalTokens": 23,
-    },
-  },
-  {
-    "finishReason": "tool-calls",
-    "totalUsage": {
-      "cachedInputTokens": 3,
-      "inputTokens": 3,
-      "outputTokens": 10,
-      "reasoningTokens": 10,
-      "totalTokens": 23,
-    },
-    "type": "finish",
-  },
-]
-`;
-
 exports[`streamText > result.fullStream > should send delayed asynchronous tool results 1`] = `
 [
   {
@@ -2554,7 +2504,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
 ]
 `;
 
-exports[`streamText > result.fullStream > should send tool call deltas when toolCallStreaming is enabled 1`] = `
+exports[`streamText > result.fullStream > should send tool call deltas 1`] = `
 [
   {
     "type": "start",
@@ -3583,42 +3533,7 @@ exports[`streamText > result.toUIMessageStream > should send source content when
 ]
 `;
 
-exports[`streamText > result.toUIMessageStream > should send tool call and tool result stream parts 1`] = `
-[
-  {
-    "messageId": undefined,
-    "metadata": undefined,
-    "type": "start",
-  },
-  {
-    "metadata": undefined,
-    "type": "start-step",
-  },
-  {
-    "args": {
-      "value": "value",
-    },
-    "toolCallId": "call-1",
-    "toolName": "tool1",
-    "type": "tool-call",
-  },
-  {
-    "result": "value-result",
-    "toolCallId": "call-1",
-    "type": "tool-result",
-  },
-  {
-    "metadata": undefined,
-    "type": "finish-step",
-  },
-  {
-    "metadata": undefined,
-    "type": "finish",
-  },
-]
-`;
-
-exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
+exports[`streamText > result.toUIMessageStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts 1`] = `
 [
   {
     "messageId": undefined,

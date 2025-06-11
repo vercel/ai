@@ -13,7 +13,6 @@ export default defineLazyEventHandler(async () => {
     const result = streamText({
       model: openai('gpt-4o'),
       messages: convertToModelMessages(messages),
-      toolCallStreaming: true,
       stopWhen: stepCountIs(5), // multi-steps for server-side tools
       tools: {
         // server-side tool with execute function:
