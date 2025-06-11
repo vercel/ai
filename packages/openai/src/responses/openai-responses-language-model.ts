@@ -639,7 +639,7 @@ const responseReasoningSummaryPartDoneSchema = z.object({
   item_id: z.string(),
   output_index: z.number(),
   summary_index: z.number(),
-  part: z.unknown().optional(),
+  part: z.unknown().nullish(),
 });
 
 const openaiResponsesChunkSchema = z.union([
