@@ -162,7 +162,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
               ? 0
               : undefined
             : undefined,
-      user: this.settings.user,
+      user: this.settings.user ?? providerMetadata?.openai?.user,
       parallel_tool_calls: this.settings.parallelToolCalls,
 
       // standardized settings:

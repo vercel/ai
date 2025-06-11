@@ -414,6 +414,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass user setting from provider metadata', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o1-mini');
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        openai: { user: 'test-user-id' },
+      },
+    });
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      model: 'o1-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      user: 'test-user-id',
+    });
+  });
+
+
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonResponse({ content: '' });
 
