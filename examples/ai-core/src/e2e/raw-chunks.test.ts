@@ -28,13 +28,7 @@ describe('Raw Chunks E2E Tests', () => {
           chunks.push(chunk);
         }
 
-        const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
-        expect(rawChunks.length).toBeGreaterThan(0);
-
-        rawChunks.forEach(chunk => {
-          expect(chunk.type).toBe('raw');
-          expect(chunk.rawValue).toBeDefined();
-        });
+        expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(1);
       });
 
       it('should not include raw chunks when includeRawChunks is disabled', async () => {
@@ -49,8 +43,7 @@ describe('Raw Chunks E2E Tests', () => {
           chunks.push(chunk);
         }
 
-        const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
-        expect(rawChunks.length).toBe(0);
+        expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
       });
 
       it('should forward provider-specific raw chunk data', async () => {
@@ -65,13 +58,7 @@ describe('Raw Chunks E2E Tests', () => {
           chunks.push(chunk);
         }
 
-        const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
-        expect(rawChunks.length).toBeGreaterThan(0);
-
-        const firstRawChunk = rawChunks[0];
-        expect(firstRawChunk.rawValue).toBeDefined();
-        expect(typeof firstRawChunk.rawValue).toBe('object');
-        expect(firstRawChunk.rawValue).not.toBeNull();
+        expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(1);
       });
     });
   });

@@ -1236,14 +1236,7 @@ describe('doStream', () => {
 
     const chunks = await convertReadableStreamToArray(stream);
 
-    // Filter to just the raw chunks for easier testing
-    const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
-
-    // Should have raw chunks for each server-sent event
-    expect(rawChunks.length).toBeGreaterThan(0);
-
-    // Verify the raw chunks structure
-    expect(rawChunks).toMatchInlineSnapshot(`
+    expect(chunks.filter(chunk => chunk.type === 'raw')).toMatchInlineSnapshot(`
       [
         {
           "rawValue": {
@@ -1309,8 +1302,6 @@ describe('doStream', () => {
 
     const chunks = await convertReadableStreamToArray(stream);
 
-    // Should have no raw chunks
-    const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
-    expect(rawChunks).toHaveLength(0);
+    expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
   });
 });

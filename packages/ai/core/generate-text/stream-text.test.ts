@@ -6674,35 +6674,30 @@ describe('streamText', () => {
 
       const modelWithRawChunks = new MockLanguageModelV2({
         doStream: async options => {
+          const chunks = [
+            { type: 'stream-start' as const, warnings: [] },
+            ...(options.includeRawChunks
+              ? mockRawChunks.map(rawChunk => ({
+                  type: 'raw' as const,
+                  rawValue: rawChunk,
+                }))
+              : []),
+            {
+              type: 'response-metadata' as const,
+              id: 'test-id',
+              modelId: 'test-model',
+              timestamp: new Date(0),
+            },
+            { type: 'text' as const, text: 'Hello, world!' },
+            {
+              type: 'finish' as const,
+              finishReason: 'stop' as const,
+              usage: testUsage,
+            },
+          ];
+
           return {
-            stream: new ReadableStream({
-              start(controller) {
-                controller.enqueue({ type: 'stream-start', warnings: [] });
-
-                if (options.includeRawChunks) {
-                  mockRawChunks.forEach(rawChunk => {
-                    controller.enqueue({ type: 'raw', rawValue: rawChunk });
-                  });
-                }
-
-                controller.enqueue({
-                  type: 'response-metadata',
-                  id: 'test-id',
-                  modelId: 'test-model',
-                  timestamp: new Date(0),
-                });
-
-                controller.enqueue({ type: 'text', text: 'Hello, world!' });
-
-                controller.enqueue({
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                });
-
-                controller.close();
-              },
-            }),
+            stream: convertArrayToReadableStream(chunks),
           };
         },
       });
@@ -6715,13 +6710,8 @@ describe('streamText', () => {
 
       const chunks = await convertAsyncIterableToArray(result.fullStream);
 
-      const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
-
-      // Should have raw chunks for each mock chunk
-      expect(rawChunks.length).toBe(mockRawChunks.length);
-
-      // Verify the raw chunks structure
-      expect(rawChunks).toMatchInlineSnapshot(`
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
         [
           {
             "rawValue": {
@@ -6766,39 +6756,35 @@ describe('streamText', () => {
     it('should not forward raw chunks when includeRawChunks is disabled', async () => {
       const modelWithRawChunks = new MockLanguageModelV2({
         doStream: async options => {
-          return {
-            stream: new ReadableStream({
-              start(controller) {
-                controller.enqueue({ type: 'stream-start', warnings: [] });
-
-                if (options.includeRawChunks) {
-                  controller.enqueue({
-                    type: 'raw',
+          const chunks = [
+            { type: 'stream-start' as const, warnings: [] },
+            ...(options.includeRawChunks
+              ? [
+                  {
+                    type: 'raw' as const,
                     rawValue: {
                       type: 'raw-data',
                       content: 'should not appear',
                     },
-                  });
-                }
+                  },
+                ]
+              : []),
+            {
+              type: 'response-metadata' as const,
+              id: 'test-id',
+              modelId: 'test-model',
+              timestamp: new Date(0),
+            },
+            { type: 'text' as const, text: 'Hello, world!' },
+            {
+              type: 'finish' as const,
+              finishReason: 'stop' as const,
+              usage: testUsage,
+            },
+          ];
 
-                controller.enqueue({
-                  type: 'response-metadata',
-                  id: 'test-id',
-                  modelId: 'test-model',
-                  timestamp: new Date(0),
-                });
-
-                controller.enqueue({ type: 'text', text: 'Hello, world!' });
-
-                controller.enqueue({
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                });
-
-                controller.close();
-              },
-            }),
+          return {
+            stream: convertArrayToReadableStream(chunks),
           };
         },
       });
@@ -6811,9 +6797,7 @@ describe('streamText', () => {
 
       const chunks = await convertAsyncIterableToArray(result.fullStream);
 
-      const rawChunks = chunks.filter(chunk => chunk.type === 'raw');
-
-      expect(rawChunks).toHaveLength(0);
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
   });
 });
