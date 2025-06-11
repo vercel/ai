@@ -6,4 +6,4 @@ describe('move-image-model-maxImagesPerCall', () => {
   it('transforms correctly', () => {
     testTransform(transformer, 'move-image-model-maxImagesPerCall');
   });
-}); 
+});

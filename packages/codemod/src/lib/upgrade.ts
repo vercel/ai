@@ -22,6 +22,7 @@ const bundle = [
   'remove-metadata-with-headers',
   'remove-mistral-facade',
   'remove-openai-facade',
+  'remove-sendExtraMessageFields',
   'rename-datastream-transform-stream',
   'rename-format-stream-part',
   'rename-languagemodelv1providermetadata',
