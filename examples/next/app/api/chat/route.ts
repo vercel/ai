@@ -66,7 +66,6 @@ export async function POST(req: Request) {
       const result = streamText({
         model: 'vertex/gemini-2.0-flash-001',
         prompt,
-        toolCallStreaming: true, // TODO remove
         tools: {
           getWeather: tool({
             description: 'show the weather in a given city to the user',
