@@ -1527,10 +1527,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "reasoning",
           },
           {
+            "type": "reasoning-part-finish",
+          },
+          {
             "text": "**Investigating burrito origins**
 
         There's a fascinating debate about who created the Mission burrito.",
             "type": "reasoning",
+          },
+          {
+            "type": "reasoning-part-finish",
           },
           {
             "text": "Taqueria La Cumbre",
