@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 0.1.12
+
+### Patch Changes
+
+- 2e6e5d3: feat (@ai-sdk/fal): support new Flux Kontext models
+
 ## 0.1.11
 
 ### Patch Changes
