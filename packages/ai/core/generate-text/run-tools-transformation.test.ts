@@ -31,7 +31,6 @@ it('should forward text deltas correctly', async () => {
   const transformedStream = runToolsTransformation({
     tools: undefined,
     generatorStream: inputStream,
-    toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
     messages: [],
@@ -88,7 +87,6 @@ it('should handle immediate tool execution', async () => {
       },
     },
     generatorStream: inputStream,
-    toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
     messages: [],
@@ -160,7 +158,6 @@ it('should hold off on sending finish until the delayed tool result is received'
       },
     },
     generatorStream: inputStream,
-    toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
     messages: [],
@@ -224,7 +221,6 @@ it('should try to repair tool call when the tool name is not found', async () =>
 
   const transformedStream = runToolsTransformation({
     generatorStream: inputStream,
-    toolCallStreaming: false,
     tracer: new MockTracer(),
     telemetry: undefined,
     messages: [],

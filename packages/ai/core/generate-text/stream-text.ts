@@ -215,8 +215,6 @@ export function streamText<
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
-  experimental_toolCallStreaming = false,
-  toolCallStreaming = experimental_toolCallStreaming,
   experimental_activeTools,
   activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
@@ -307,16 +305,6 @@ A function that attempts to repair a tool call that failed to parse.
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
-Enable streaming of tool call deltas as they are generated. Disabled by default.
-     */
-    toolCallStreaming?: boolean;
-
-    /**
-@deprecated Use `toolCallStreaming` instead.
-     */
-    experimental_toolCallStreaming?: boolean;
-
-    /**
 Optional stream transformations.
 They are applied in the order they are provided.
 The stream transformations must maintain the stream structure for streamText to work correctly.
@@ -372,7 +360,6 @@ Internal. For test use only. May change without notice.
     messages,
     tools,
     toolChoice,
-    toolCallStreaming,
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
@@ -512,7 +499,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     messages,
     tools,
     toolChoice,
-    toolCallStreaming,
     transforms,
     activeTools,
     repairToolCall,
@@ -539,7 +525,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     messages: Prompt['messages'];
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
-    toolCallStreaming: boolean;
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
@@ -953,7 +938,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const streamWithToolResults = runToolsTransformation({
             tools,
             generatorStream: stream,
-            toolCallStreaming,
             tracer,
             telemetry,
             system,
