@@ -356,6 +356,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               controller.enqueue({ type: 'error', error: bedrockError });
             }
 
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               enqueueError(chunk.error);
@@ -363,11 +368,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             }
 
             const value = chunk.value;
-
-            // include raw chunks if requested:
-            if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: value });
-            }
 
             // handle errors:
             if (value.internalServerException) {

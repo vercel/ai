@@ -276,6 +276,11 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -284,11 +289,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
             }
 
             const value = chunk.value;
-
-            // Emit raw chunk if requested
-            if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: value });
-            }
 
             // handle error chunks:
             if ('error' in value) {

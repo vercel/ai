@@ -272,6 +272,11 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
@@ -280,11 +285,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             chunkNumber++;
 
             const value = chunk.value;
-
-            // Emit raw chunk if requested
-            if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: value });
-            }
 
             if (chunkNumber === 1) {
               controller.enqueue({
