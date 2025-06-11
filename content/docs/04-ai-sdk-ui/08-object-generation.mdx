@@ -249,6 +249,10 @@ export default function Page() {
       // error during fetch request:
       console.error('An error occurred:', error);
     },
+    onChunk(currentObject) {
+      // currentObject is a partial object that is being streamed:
+      console.log('Partial object:', currentObject);
+    },
   });
 
   return (
