@@ -377,6 +377,57 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it('should extract reasoning and text content for reasoning models', async () => {
+    const reasoningModel = provider.chat('magistral-small-2506');
+
+    prepareJsonResponse({
+      content:
+        "<think>\nLet me think about this problem step by step.\nFirst, I need to understand what the user is asking.\nThen I can provide a helpful response.\n</think>\n\nHello! I'm ready to help you with your question.",
+    });
+
+    const { content } = await reasoningModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "
+      Let me think about this problem step by step.
+      First, I need to understand what the user is asking.
+      Then I can provide a helpful response.
+      ",
+          "type": "reasoning",
+        },
+        {
+          "text": "Hello! I'm ready to help you with your question.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should handle reasoning models without think tags as regular text', async () => {
+    const reasoningModel = provider.chat('magistral-medium-2506');
+
+    prepareJsonResponse({
+      content: 'This is a regular response without thinking tags.',
+    });
+
+    const { content } = await reasoningModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "This is a regular response without thinking tags.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream', () => {
@@ -753,6 +804,73 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should stream reasoning and text content for reasoning models', async () => {
+    const reasoningModel = provider.chat('magistral-small-2506');
+
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"reasoning-id","object":"chat.completion.chunk","created":1711097175,"model":"magistral-small-2506","choices":[{"index":0,"delta":{"role":"assistant","content":"<think>\\nLet me think"},"finish_reason":null,"logprobs":null}]}\n\n`,
+        `data: {"id":"reasoning-id","object":"chat.completion.chunk","created":1711097175,"model":"magistral-small-2506","choices":[{"index":0,"delta":{"content":" about this step by step.\\n</think>\\n\\nHello! I"},"finish_reason":null,"logprobs":null}]}\n\n`,
+        `data: {"id":"reasoning-id","object":"chat.completion.chunk","created":1711097175,"model":"magistral-small-2506","choices":[{"index":0,"delta":{"content":"'m ready to help."},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
+        `data: [DONE]\n\n`,
+      ],
+    };
+
+    const { stream } = await reasoningModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "reasoning-id",
+          "modelId": "magistral-small-2506",
+          "timestamp": 2024-03-22T08:46:15.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "text": "<think>
+      Let me think",
+          "type": "reasoning",
+        },
+        {
+          "text": "
+      Let me think about this step by step.
+      ",
+          "type": "reasoning",
+        },
+        {
+          "type": "reasoning-part-finish",
+        },
+        {
+          "text": "
+
+      Hello! I",
+          "type": "text",
+        },
+        {
+          "text": "'m ready to help.",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 4,
+            "outputTokens": 32,
+            "totalTokens": 36,
+          },
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream with raw chunks', () => {
@@ -772,9 +890,7 @@ describe('doStream with raw chunks', () => {
       includeRawChunks: true,
     });
 
-    const chunks = await convertReadableStreamToArray(stream);
-
-    expect(chunks).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
           "type": "stream-start",

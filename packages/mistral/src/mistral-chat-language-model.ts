@@ -200,7 +200,20 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     }
 
     if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
+      if (isReasoningModel(this.modelId)) {
+        const { reasoningContent, textContent } =
+          extractReasoningAndTextContent(text);
+
+        if (reasoningContent) {
+          content.push({ type: 'reasoning', text: reasoningContent });
+        }
+
+        if (textContent) {
+          content.push({ type: 'text', text: textContent });
+        }
+      } else {
+        content.push({ type: 'text', text });
+      }
     }
 
     // tool calls:
@@ -260,6 +273,11 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     };
     let chunkNumber = 0;
     let trimLeadingSpace = false;
+
+    let accumulatedText = '';
+    let inReasoningSection = false;
+    let reasoningFinished = false;
+    const isReasoning = isReasoningModel(this.modelId);
 
     return {
       stream: response.pipeThrough(
@@ -337,10 +355,64 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             }
 
             if (textContent != null) {
-              controller.enqueue({
-                type: 'text',
-                text: trimLeadingSpace ? textContent.trimStart() : textContent,
-              });
+              const processedText = trimLeadingSpace
+                ? textContent.trimStart()
+                : textContent;
+
+              if (isReasoning) {
+                accumulatedText += processedText;
+
+                if (
+                  !inReasoningSection &&
+                  accumulatedText.includes('<think>')
+                ) {
+                  inReasoningSection = true;
+                  const beforeThink = accumulatedText.split('<think>')[0];
+                  if (beforeThink) {
+                    controller.enqueue({ type: 'text', text: beforeThink });
+                  }
+                  const afterThink = accumulatedText.split('<think>')[1] || '';
+                  accumulatedText = afterThink;
+                }
+
+                if (inReasoningSection && !reasoningFinished) {
+                  if (accumulatedText.includes('</think>')) {
+                    const parts = accumulatedText.split('</think>');
+                    const reasoningContent = parts[0];
+                    const afterReasoning = parts[1] || '';
+
+                    if (reasoningContent) {
+                      controller.enqueue({
+                        type: 'reasoning',
+                        text: reasoningContent,
+                      });
+                    }
+
+                    controller.enqueue({ type: 'reasoning-part-finish' });
+
+                    inReasoningSection = false;
+                    reasoningFinished = true;
+
+                    if (afterReasoning) {
+                      controller.enqueue({
+                        type: 'text',
+                        text: afterReasoning,
+                      });
+                    }
+
+                    accumulatedText = '';
+                  } else {
+                    controller.enqueue({
+                      type: 'reasoning',
+                      text: processedText,
+                    });
+                  }
+                } else {
+                  controller.enqueue({ type: 'text', text: processedText });
+                }
+              } else {
+                controller.enqueue({ type: 'text', text: processedText });
+              }
 
               trimLeadingSpace = false;
             }
@@ -407,6 +479,31 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
   }
 
   return textContent.length ? textContent.join('') : undefined;
+}
+
+function isReasoningModel(modelId: MistralChatModelId): boolean {
+  return (
+    modelId === 'magistral-small-2506' || modelId === 'magistral-medium-2506'
+  );
+}
+
+function extractReasoningAndTextContent(text: string): {
+  reasoningContent?: string;
+  textContent?: string;
+} {
+  const reasoningMatch = text.match(/<think>(.*?)<\/think>/s);
+
+  if (!reasoningMatch) {
+    return { textContent: text };
+  }
+
+  const reasoningContent = reasoningMatch[1];
+  const textContent = text.replace(/<think>.*?<\/think>/s, '').trim();
+
+  return {
+    reasoningContent: reasoningContent || undefined,
+    textContent: textContent || undefined,
+  };
 }
 
 const mistralContentSchema = z
