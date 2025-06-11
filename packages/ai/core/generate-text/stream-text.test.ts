@@ -2104,7 +2104,8 @@ describe('streamText', () => {
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
-            | 'tool-result';
+            | 'tool-result'
+            | 'raw';
         }
       >
     >;
@@ -5790,7 +5791,8 @@ describe('streamText', () => {
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
-                | 'tool-result';
+                | 'tool-result'
+                | 'raw';
             }
           >
         > = [];
@@ -6631,6 +6633,95 @@ describe('streamText', () => {
       const chunks = await convertAsyncIterableToArray(result.fullStream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should call onChunk with raw chunks when includeRawChunks is enabled', async () => {
+      const onChunkCalls: Array<{ type: string; rawValue?: unknown }> = [];
+
+      const mockRawChunks = [
+        { type: 'stream-start', data: 'start' },
+        { type: 'response-metadata', id: 'test-id', modelId: 'test-model' },
+        { type: 'text-delta', content: 'Hello' },
+        { type: 'text-delta', content: ', world!' },
+        { type: 'finish', reason: 'stop' },
+      ];
+
+      const modelWithRawChunks = new MockLanguageModelV2({
+        doStream: async options => {
+          const chunks = [
+            { type: 'stream-start' as const, warnings: [] },
+            ...(options.includeRawChunks
+              ? mockRawChunks.map(rawChunk => ({
+                  type: 'raw' as const,
+                  rawValue: rawChunk,
+                }))
+              : []),
+            {
+              type: 'response-metadata' as const,
+              id: 'test-id',
+              modelId: 'test-model',
+              timestamp: new Date(0),
+            },
+            { type: 'text' as const, text: 'Hello, world!' },
+            {
+              type: 'finish' as const,
+              finishReason: 'stop' as const,
+              usage: testUsage,
+            },
+          ];
+
+          return {
+            stream: convertArrayToReadableStream(chunks),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+        onChunk({ chunk }) {
+          onChunkCalls.push({
+            type: chunk.type,
+            rawValue: 'rawValue' in chunk ? chunk.rawValue : undefined,
+          });
+        },
+      });
+
+      await result.consumeStream();
+
+      // Should include both raw chunks and text chunks
+      const rawChunkCalls = onChunkCalls.filter(call => call.type === 'raw');
+      const textChunkCalls = onChunkCalls.filter(call => call.type === 'text');
+
+      expect(rawChunkCalls).toHaveLength(5);
+      expect(textChunkCalls).toHaveLength(1);
+
+      expect(rawChunkCalls.map(call => call.rawValue)).toMatchInlineSnapshot(`
+        [
+          {
+            "data": "start",
+            "type": "stream-start",
+          },
+          {
+            "id": "test-id",
+            "modelId": "test-model",
+            "type": "response-metadata",
+          },
+          {
+            "content": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "content": ", world!",
+            "type": "text-delta",
+          },
+          {
+            "reason": "stop",
+            "type": "finish",
+          },
+        ]
+      `);
     });
   });
 });
