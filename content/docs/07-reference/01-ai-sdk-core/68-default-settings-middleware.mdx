@@ -32,17 +32,19 @@ const middleware = defaultSettingsMiddleware({
 
 The middleware accepts a configuration object with the following properties:
 
-- `settings`: An object containing default parameter values to apply to language model calls. These can include any valid `LanguageModelV1CallOptions` properties and optional provider metadata.
+- `settings`: An object or async function returning an object containing default parameter values to apply to language model calls. These can include any valid `LanguageModelV1CallOptions` properties and optional provider metadata.
 
 ### Returns
 
-Returns a middleware object that:
+Returns a middleware object or a async function that returns an object that:
 
 - Merges the default settings with the parameters provided in each model call
 - Ensures that explicitly provided parameters take precedence over defaults
 - Merges provider metadata objects
 
 ### Usage Example
+
+### Example 1: Using a middleware object
 
 ```ts
 import { streamText } from 'ai';
@@ -75,11 +77,43 @@ const result = await streamText({
 });
 ```
 
+### Example 2: Using an async function
+
+```ts
+import { streamText } from 'ai';
+import { wrapLanguageModel } from 'ai';
+import { defaultSettingsMiddleware } from 'ai';
+import { openai } from 'ai';
+import { getDefaultConfig } from './config';
+
+// Create a model with default settings
+const modelWithDefaults = wrapLanguageModel({
+  model: openai.ChatTextGenerator({ model: 'gpt-4' }),
+  middleware: defaultSettingsMiddleware({
+    settings: async (params) => {
+      const config = await getDefaultConfig();
+      return {
+        temperature: config.temperature,
+        maxTokens: config.maxTokens,
+      };
+    },
+  }),
+});
+
+// Use the model - default settings will be applied
+const result = await streamText({
+  model: modelWithDefaults,
+  prompt: 'Your prompt here',
+  // These parameters will override the defaults
+  temperature: 0.8,
+});
+```
+
 ## How It Works
 
 The middleware:
 
-1. Takes a set of default settings as configuration
+1. Takes a set of default settings as configuration or an async function that returns a set of default settings
 2. Merges these defaults with the parameters provided in each model call
 3. Ensures that explicitly provided parameters take precedence over defaults
 4. Merges provider metadata objects from both sources

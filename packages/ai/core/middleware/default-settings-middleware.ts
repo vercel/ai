@@ -5,26 +5,29 @@ import {
 import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
 import { mergeObjects } from '../util/merge-objects';
 
+type Settings = Partial<
+  LanguageModelV1CallOptions & {
+    providerMetadata?: LanguageModelV1ProviderMetadata;
+  }
+>;
+
 /**
  * Applies default settings for a language model.
  */
 export function defaultSettingsMiddleware({
   settings,
 }: {
-  settings: Partial<
-    LanguageModelV1CallOptions & {
-      providerMetadata?: LanguageModelV1ProviderMetadata;
-    }
-  >;
+  settings: Settings | ((params: LanguageModelV1CallOptions) => Promise<Settings>);
 }): LanguageModelV1Middleware {
   return {
     middlewareVersion: 'v1',
     transformParams: async ({ params }) => {
+      const defaultSettings = typeof settings === 'function' ? await settings(params) : settings;
       return {
         ...settings,
         ...params,
         providerMetadata: mergeObjects(
-          settings.providerMetadata,
+          defaultSettings.providerMetadata,
           params.providerMetadata,
         ),
 
@@ -32,7 +35,7 @@ export function defaultSettingsMiddleware({
         // TODO remove when temperature defaults to undefined
         temperature:
           params.temperature === 0 || params.temperature == null
-            ? (settings.temperature ?? 0)
+            ? (defaultSettings.temperature ?? 0)
             : params.temperature,
       };
     },

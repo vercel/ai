@@ -26,6 +26,21 @@ describe('defaultSettingsMiddleware', () => {
       expect(result.temperature).toBe(0.7);
     });
 
+    it('should apply default settings from a function', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: async () => ({ temperature: 0.7 }),
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: {
+          ...BASE_PARAMS,
+        },
+      });
+
+      expect(result.temperature).toBe(0.7);
+    });
+
     it('should give precedence to user-provided settings', async () => {
       const middleware = defaultSettingsMiddleware({
         settings: { temperature: 0.7 },
