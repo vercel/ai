@@ -212,7 +212,9 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: 'sample text content',
+              data: Buffer.from('sample text content', 'utf-8').toString(
+                'base64',
+              ),
               mediaType: 'text/plain',
               filename: 'sample.txt',
             },
