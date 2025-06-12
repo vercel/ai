@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
+import { type DocumentCitation } from './anthropic-messages-language-model';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -37,24 +38,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         | {
             type: 'text';
             text: string;
-            citations?: Array<
-              | {
-                  type: 'page_location';
-                  cited_text: string;
-                  document_index: number;
-                  document_title: string;
-                  start_page_number: number;
-                  end_page_number: number;
-                }
-              | {
-                  type: 'char_location';
-                  cited_text: string;
-                  document_index: number;
-                  document_title: string;
-                  start_char_index: number;
-                  end_char_index: number;
-                }
-            >;
+            citations?: Array<DocumentCitation>;
           }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }

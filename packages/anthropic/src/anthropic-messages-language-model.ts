@@ -71,7 +71,7 @@ const documentCitationSchema = z.discriminatedUnion('type', [
 ]);
 
 type Citation = z.infer<typeof citationSchema>;
-type DocumentCitation = z.infer<typeof documentCitationSchema>;
+export type DocumentCitation = z.infer<typeof documentCitationSchema>;
 
 function processCitation(
   citation: Citation,
@@ -398,7 +398,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     filename?: string;
     mediaType: string;
   }> {
-    const isCitationPart = (part: any) => {
+    const isCitationPart = (part: {
+      type: string;
+      mediaType?: string;
+      providerOptions?: { anthropic?: { citations?: { enabled?: boolean } } };
+    }) => {
       if (part.type !== 'file') {
         return false;
       }
