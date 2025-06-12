@@ -1,5 +1,6 @@
 import {
   LanguageModelV2CallWarning,
+  LanguageModelV2DataContent,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
   SharedV2ProviderMetadata,
@@ -15,9 +16,7 @@ import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 
-function convertToString(
-  data: string | Uint8Array | ArrayBuffer | Buffer,
-): string {
+function convertToString(data: LanguageModelV2DataContent): string {
   if (typeof data === 'string') {
     return data;
   }
@@ -26,12 +25,10 @@ function convertToString(
     return new TextDecoder().decode(data);
   }
 
-  if (data instanceof ArrayBuffer) {
-    return new TextDecoder().decode(new Uint8Array(data));
-  }
-
-  if (globalThis.Buffer?.isBuffer(data)) {
-    return (data as Buffer).toString('utf-8');
+  if (data instanceof URL) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'URL-based text documents are not supported for citations',
+    });
   }
 
   throw new UnsupportedFunctionalityError({

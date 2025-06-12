@@ -398,8 +398,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     filename?: string;
     mediaType: string;
   }> {
-    // Helper function to check if citations are enabled for a file part
-    const isCitationEnabled = (part: any) => {
+    const isCitationPart = (part: any) => {
+      if (part.type !== 'file') {
+        return false;
+      }
+
+      if (
+        part.mediaType !== 'application/pdf' &&
+        part.mediaType !== 'text/plain'
+      ) {
+        return false;
+      }
+
       const anthropic = part.providerOptions?.anthropic;
       const citationsConfig = anthropic?.citations as
         | { enabled?: boolean }
@@ -410,13 +420,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return prompt
       .filter(message => message.role === 'user')
       .flatMap(message => message.content)
-      .filter(
-        part =>
-          part.type === 'file' &&
-          (part.mediaType === 'application/pdf' ||
-            part.mediaType === 'text/plain') &&
-          isCitationEnabled(part),
-      )
+      .filter(isCitationPart)
       .map(part => {
         // TypeScript knows this is a file part due to our filter
         const filePart = part as Extract<typeof part, { type: 'file' }>;
