@@ -6534,45 +6534,16 @@ describe('streamText', () => {
 
       expect(chunks.filter(chunk => chunk.type === 'raw'))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "rawValue": {
-              "data": "start",
-              "type": "stream-start",
+          [
+            {
+              "rawValue": {
+                "content": "should appear",
+                "type": "raw-data",
+              },
+              "type": "raw",
             },
-            "type": "raw",
-          },
-          {
-            "rawValue": {
-              "id": "test-id",
-              "modelId": "test-model",
-              "type": "response-metadata",
-            },
-            "type": "raw",
-          },
-          {
-            "rawValue": {
-              "content": "Hello",
-              "type": "text-delta",
-            },
-            "type": "raw",
-          },
-          {
-            "rawValue": {
-              "content": ", world!",
-              "type": "text-delta",
-            },
-            "type": "raw",
-          },
-          {
-            "rawValue": {
-              "reason": "stop",
-              "type": "finish",
-            },
-            "type": "raw",
-          },
-        ]
-      `);
+          ]
+        `);
     });
 
     it('should not forward raw chunks when includeRawChunks is disabled', async () => {
