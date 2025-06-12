@@ -2518,7 +2518,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        generateId: mockId(),
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2642,7 +2645,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        generateId: mockId(),
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2806,7 +2812,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        generateId: mockId(),
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2898,7 +2907,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        generateId: mockId(),
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -3015,7 +3027,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        generateId: mockId(),
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({

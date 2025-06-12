@@ -1,4 +1,5 @@
 import {
+  IdGenerator,
   StandardSchemaV1,
   ToolCall,
   validateTypes,
@@ -40,17 +41,17 @@ export function createStreamingUIMessageState<
   UI_DATA_TYPES extends UIDataTypes = UIDataTypes,
 >({
   lastMessage,
-  newMessageId = '',
+  generateId,
 }: {
-  lastMessage?: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES>;
-  newMessageId?: string;
-} = {}): StreamingUIMessageState<UIMessage<MESSAGE_METADATA, UI_DATA_TYPES>> {
+  lastMessage: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES> | undefined;
+  generateId: IdGenerator;
+}): StreamingUIMessageState<UIMessage<MESSAGE_METADATA, UI_DATA_TYPES>> {
   const isContinuation = lastMessage?.role === 'assistant';
 
   const message: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES> = isContinuation
     ? lastMessage
     : {
-        id: newMessageId,
+        id: generateId(),
         metadata: {} as MESSAGE_METADATA,
         role: 'assistant',
         parts: [],

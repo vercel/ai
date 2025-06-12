@@ -402,7 +402,7 @@ export abstract class AbstractChat<
       const activeResponse = {
         state: createStreamingUIMessageState({
           lastMessage: this.state.snapshot(lastMessage),
-          newMessageId: this.generateId(),
+          generateId: this.generateId,
         }),
         abortController: new AbortController(),
       };
