@@ -6499,44 +6499,29 @@ describe('streamText', () => {
 
   describe('raw chunks forwarding', () => {
     it('should forward raw chunks when includeRawChunks is enabled', async () => {
-      const modelWithRawChunks = new MockLanguageModelV2({
-        doStream: async options => {
-          const chunks = [
-            { type: 'stream-start' as const, warnings: [] },
-            ...(options.includeRawChunks
-              ? [
-                  { type: 'stream-start', data: 'start' },
-                  {
-                    type: 'response-metadata',
-                    id: 'test-id',
-                    modelId: 'test-model',
-                  },
-                  { type: 'text-delta', content: 'Hello' },
-                  { type: 'text-delta', content: ', world!' },
-                  { type: 'finish', reason: 'stop' },
-                ].map(rawChunk => ({
-                  type: 'raw' as const,
-                  rawValue: rawChunk,
-                }))
-              : []),
-            {
-              type: 'response-metadata' as const,
-              id: 'test-id',
-              modelId: 'test-model',
-              timestamp: new Date(0),
+      const modelWithRawChunks = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'raw',
+            rawValue: {
+              type: 'raw-data',
+              content: 'should appear',
             },
-            { type: 'text' as const, text: 'Hello, world!' },
-            {
-              type: 'finish' as const,
-              finishReason: 'stop' as const,
-              usage: testUsage,
-            },
-          ];
-
-          return {
-            stream: convertArrayToReadableStream(chunks),
-          };
-        },
+          },
+          {
+            type: 'response-metadata',
+            id: 'test-id',
+            modelId: 'test-model',
+            timestamp: new Date(0),
+          },
+          { type: 'text', text: 'Hello, world!' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
       });
 
       const result = streamText({
