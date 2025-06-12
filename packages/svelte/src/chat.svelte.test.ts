@@ -258,7 +258,7 @@ describe('text stream', () => {
         },
         {
           "id": "id-2",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -292,7 +292,7 @@ describe('text stream', () => {
         expect.objectContaining({
           id: expect.any(String),
           role: 'assistant',
-          metadata: {},
+          metadata: undefined,
           parts: [{ type: 'step-start' }, { text: 'He', type: 'text' }],
         }),
       ),
@@ -334,7 +334,7 @@ describe('text stream', () => {
       message: {
         id: expect.any(String),
         role: 'assistant',
-        metadata: {},
+        metadata: undefined,
         parts: [
           { type: 'step-start' },
           { text: 'Hello, world.', type: 'text' },
@@ -782,7 +782,7 @@ describe('maxSteps', () => {
           },
           {
             "id": "id-1",
-            "metadata": {},
+            "metadata": undefined,
             "parts": [
               {
                 "toolInvocation": {
@@ -908,7 +908,7 @@ describe('file attachments with data url', () => {
         },
         {
           "id": "id-2",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "text": "Response to message with text attachment",
@@ -985,7 +985,7 @@ describe('file attachments with data url', () => {
         },
         {
           "id": "id-2",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1072,7 +1072,7 @@ describe('file attachments with url', () => {
         },
         {
           "id": "id-2",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1156,7 +1156,7 @@ describe('file attachments with empty text content', () => {
         },
         {
           "id": "id-2",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "text": "Response to message with image attachment",
@@ -1354,7 +1354,7 @@ describe('generateId function', () => {
         },
         {
           "id": "123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "text": "Hello, world.",
