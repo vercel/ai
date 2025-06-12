@@ -107,7 +107,6 @@ export async function POST(req: Request) {
       writer.merge(
         result
           .toUIMessageStream({
-            newMessageId: generateId(), // TODO simplify
             messageMetadata: ({ part }) => {
               if (part.type === 'start') {
                 return { createdAt: Date.now() };
@@ -136,7 +135,7 @@ export async function POST(req: Request) {
     },
 
     // save the chat when the stream is finished
-    originalMessages: messages, // TODO BUG MESSAGE ID IS MISSING
+    originalMessages: messages,
     onFinish: ({ messages }) => {
       saveChat({ id, messages });
     },
