@@ -29,6 +29,7 @@ To use Clarifai, you can create a custom provider instance with the `createOpenA
 
 ```ts
 const clarifai = createOpenAICompatible({
+  name: 'clarifai',
   baseURL: "https://api.clarifai.com/v2/ext/openai/v1",
   apiKey: process.env.CLARIFAI_PAT,
 });
@@ -59,6 +60,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 
 const clarifai = createOpenAICompatible({
+  name: 'clarifai',
   baseURL: "https://api.clarifai.com/v2/ext/openai/v1",
   apiKey: process.env.CLARIFAI_PAT,
 });
@@ -86,6 +88,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { streamText } from "ai";
 
 const clarifai = createOpenAICompatible({
+  name: 'clarifai',
   baseURL: "https://api.clarifai.com/v2/ext/openai/v1",
   apiKey: process.env.CLARIFAI_PAT,
 });

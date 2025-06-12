@@ -5,6 +5,7 @@ import 'dotenv/config';
 
 async function main() {
   const clarifai = createOpenAICompatible({
+    name: 'clarifai',
     baseURL: 'https://api.clarifai.com/v2/ext/openai/v1',
     apiKey: process.env.CLARIFAI_PAT,
   });
