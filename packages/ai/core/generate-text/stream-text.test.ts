@@ -2651,6 +2651,11 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
+                "providerMetadata": undefined,
+                "text": "thinking",
+                "type": "reasoning",
+              },
+              {
                 "args": {
                   "value": "value",
                 },
@@ -4256,6 +4261,11 @@ describe('streamText', () => {
               {
                 "metadata": undefined,
                 "type": "start-step",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "thinking",
+                "type": "reasoning",
               },
               {
                 "args": {
