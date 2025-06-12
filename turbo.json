@@ -13,6 +13,7 @@
         "AWS_SECRET_ACCESS_KEY",
         "BASETEN_API_KEY",
         "CEREBRAS_API_KEY",
+        "CLARIFAI_PAT",
         "COHERE_API_KEY",
         "DEEPINFRA_API_KEY",
         "DEEPSEEK_API_KEY",
