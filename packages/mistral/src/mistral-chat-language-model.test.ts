@@ -377,6 +377,34 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it('should return raw text with think tags for reasoning models', async () => {
+    const reasoningModel = provider.chat('magistral-small-2506');
+
+    prepareJsonResponse({
+      content:
+        "<think>\nLet me think about this problem step by step.\nFirst, I need to understand what the user is asking.\nThen I can provide a helpful response.\n</think>\n\nHello! I'm ready to help you with your question.",
+    });
+
+    const { content } = await reasoningModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "<think>
+      Let me think about this problem step by step.
+      First, I need to understand what the user is asking.
+      Then I can provide a helpful response.
+      </think>
+
+      Hello! I'm ready to help you with your question.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream', () => {
@@ -772,9 +800,7 @@ describe('doStream with raw chunks', () => {
       includeRawChunks: true,
     });
 
-    const chunks = await convertReadableStreamToArray(stream);
-
-    expect(chunks).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
           "type": "stream-start",
