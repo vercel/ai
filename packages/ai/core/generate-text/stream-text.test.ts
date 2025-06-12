@@ -6499,20 +6499,22 @@ describe('streamText', () => {
 
   describe('raw chunks forwarding', () => {
     it('should forward raw chunks when includeRawChunks is enabled', async () => {
-      const mockRawChunks = [
-        { type: 'stream-start', data: 'start' },
-        { type: 'response-metadata', id: 'test-id', modelId: 'test-model' },
-        { type: 'text-delta', content: 'Hello' },
-        { type: 'text-delta', content: ', world!' },
-        { type: 'finish', reason: 'stop' },
-      ];
-
       const modelWithRawChunks = new MockLanguageModelV2({
         doStream: async options => {
           const chunks = [
             { type: 'stream-start' as const, warnings: [] },
             ...(options.includeRawChunks
-              ? mockRawChunks.map(rawChunk => ({
+              ? [
+                  { type: 'stream-start', data: 'start' },
+                  {
+                    type: 'response-metadata',
+                    id: 'test-id',
+                    modelId: 'test-model',
+                  },
+                  { type: 'text-delta', content: 'Hello' },
+                  { type: 'text-delta', content: ', world!' },
+                  { type: 'finish', reason: 'stop' },
+                ].map(rawChunk => ({
                   type: 'raw' as const,
                   rawValue: rawChunk,
                 }))
@@ -6636,22 +6638,24 @@ describe('streamText', () => {
     });
 
     it('should call onChunk with raw chunks when includeRawChunks is enabled', async () => {
-      const onChunkCalls: Array<{ type: string; rawValue?: unknown }> = [];
-
-      const mockRawChunks = [
-        { type: 'stream-start', data: 'start' },
-        { type: 'response-metadata', id: 'test-id', modelId: 'test-model' },
-        { type: 'text-delta', content: 'Hello' },
-        { type: 'text-delta', content: ', world!' },
-        { type: 'finish', reason: 'stop' },
-      ];
+      const onChunkCalls: Array<any> = [];
 
       const modelWithRawChunks = new MockLanguageModelV2({
         doStream: async options => {
           const chunks = [
             { type: 'stream-start' as const, warnings: [] },
             ...(options.includeRawChunks
-              ? mockRawChunks.map(rawChunk => ({
+              ? [
+                  { type: 'stream-start', data: 'start' },
+                  {
+                    type: 'response-metadata',
+                    id: 'test-id',
+                    modelId: 'test-model',
+                  },
+                  { type: 'text-delta', content: 'Hello' },
+                  { type: 'text-delta', content: ', world!' },
+                  { type: 'finish', reason: 'stop' },
+                ].map(rawChunk => ({
                   type: 'raw' as const,
                   rawValue: rawChunk,
                 }))
@@ -6681,47 +6685,106 @@ describe('streamText', () => {
         prompt: 'test prompt',
         includeRawChunks: true,
         onChunk({ chunk }) {
-          onChunkCalls.push({
-            type: chunk.type,
-            rawValue: 'rawValue' in chunk ? chunk.rawValue : undefined,
-          });
+          onChunkCalls.push(chunk);
         },
       });
 
       await result.consumeStream();
 
-      // Should include both raw chunks and text chunks
-      const rawChunkCalls = onChunkCalls.filter(call => call.type === 'raw');
-      const textChunkCalls = onChunkCalls.filter(call => call.type === 'text');
-
-      expect(rawChunkCalls).toHaveLength(5);
-      expect(textChunkCalls).toHaveLength(1);
-
-      expect(rawChunkCalls.map(call => call.rawValue)).toMatchInlineSnapshot(`
+      expect(onChunkCalls).toMatchInlineSnapshot(`
         [
           {
-            "data": "start",
-            "type": "stream-start",
+            "rawValue": {
+              "data": "start",
+              "type": "stream-start",
+            },
+            "type": "raw",
           },
           {
-            "id": "test-id",
-            "modelId": "test-model",
-            "type": "response-metadata",
+            "rawValue": {
+              "id": "test-id",
+              "modelId": "test-model",
+              "type": "response-metadata",
+            },
+            "type": "raw",
           },
           {
-            "content": "Hello",
-            "type": "text-delta",
+            "rawValue": {
+              "content": "Hello",
+              "type": "text-delta",
+            },
+            "type": "raw",
           },
           {
-            "content": ", world!",
-            "type": "text-delta",
+            "rawValue": {
+              "content": ", world!",
+              "type": "text-delta",
+            },
+            "type": "raw",
           },
           {
-            "reason": "stop",
-            "type": "finish",
+            "rawValue": {
+              "reason": "stop",
+              "type": "finish",
+            },
+            "type": "raw",
+          },
+          {
+            "text": "Hello, world!",
+            "type": "text",
           },
         ]
       `);
+    });
+
+    it('should pass includeRawChunks flag correctly to the model', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV2({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'response-metadata' as const,
+                id: 'test-id',
+                modelId: 'test-model',
+                timestamp: new Date(0),
+              },
+              { type: 'text' as const, text: 'Hello' },
+              {
+                type: 'finish' as const,
+                finishReason: 'stop' as const,
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(true);
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: false,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
     });
   });
 });
