@@ -1169,7 +1169,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'raw': {
-                      controller.enqueue(chunk);
+                      if (includeRawChunks) {
+                        controller.enqueue(chunk);
+                      }
                       break;
                     }
 
