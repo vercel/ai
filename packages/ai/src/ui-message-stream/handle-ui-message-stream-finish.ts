@@ -8,7 +8,10 @@ import {
   InferUIMessageMetadata,
   UIMessage,
 } from '../ui/ui-messages';
-import { InferUIMessageStreamPart } from './ui-message-stream-parts';
+import {
+  InferUIMessageStreamPart,
+  UIMessageStreamPart,
+} from './ui-message-stream-parts';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
@@ -87,12 +90,11 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
           // when there is no messageId in the start chunk,
           // but the user checked for persistence,
           // inject the messageId into the chunk
-          if (
-            chunk.type === 'start' &&
-            'messageId' in chunk &&
-            chunk.messageId == null
-          ) {
-            chunk.messageId = messageId;
+          if (chunk.type === 'start') {
+            const startChunk = chunk as UIMessageStreamPart & { type: 'start' };
+            if (startChunk.messageId == null) {
+              startChunk.messageId = messageId;
+            }
           }
 
           controller.enqueue(chunk);

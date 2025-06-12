@@ -339,6 +339,7 @@ describe('createUIMessageStream', () => {
       onFinish: options => {
         recordedOptions.push(options);
       },
+      generateId: () => 'response-message-id',
     });
 
     await consumeStream({ stream });
@@ -349,7 +350,7 @@ describe('createUIMessageStream', () => {
           "isContinuation": false,
           "messages": [
             {
-              "id": "",
+              "id": "response-message-id",
               "metadata": undefined,
               "parts": [
                 {
@@ -361,7 +362,7 @@ describe('createUIMessageStream', () => {
             },
           ],
           "responseMessage": {
-            "id": "",
+            "id": "response-message-id",
             "metadata": undefined,
             "parts": [
               {
@@ -444,6 +445,122 @@ describe('createUIMessageStream', () => {
                 "type": "text",
               },
             ],
+            "role": "assistant",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should inject a messageId into the stream when originalMessages are provided', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'start' }); // no messageId
+      },
+      originalMessages: [
+        { id: '0', role: 'user', parts: [{ type: 'text', text: '0a' }] },
+        // no assistant message
+      ],
+      onFinish(options) {
+        recordedOptions.push(options);
+      },
+      generateId: () => 'response-message-id',
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "messageId": "response-message-id",
+          "type": "start",
+        },
+      ]
+    `);
+    expect(recordedOptions).toMatchInlineSnapshot(`
+      [
+        {
+          "isContinuation": false,
+          "messages": [
+            {
+              "id": "0",
+              "parts": [
+                {
+                  "text": "0a",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "response-message-id",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          ],
+          "responseMessage": {
+            "id": "response-message-id",
+            "metadata": undefined,
+            "parts": [],
+            "role": "assistant",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should keep existing messageId from start chunk when originalMessages are provided', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'start', messageId: 'existing-message-id' });
+      },
+      originalMessages: [
+        { id: '0', role: 'user', parts: [{ type: 'text', text: '0a' }] },
+        // no assistant message
+      ],
+      onFinish(options) {
+        recordedOptions.push(options);
+      },
+      generateId: () => 'response-message-id',
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "messageId": "existing-message-id",
+          "type": "start",
+        },
+      ]
+    `);
+    expect(recordedOptions).toMatchInlineSnapshot(`
+      [
+        {
+          "isContinuation": false,
+          "messages": [
+            {
+              "id": "0",
+              "parts": [
+                {
+                  "text": "0a",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "existing-message-id",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          ],
+          "responseMessage": {
+            "id": "existing-message-id",
+            "metadata": undefined,
+            "parts": [],
             "role": "assistant",
           },
         },
