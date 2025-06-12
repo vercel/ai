@@ -1,5 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
+import 'dotenv/config';
 
 async function main() {
   const clarifai = createOpenAICompatible({
