@@ -277,6 +277,32 @@ describe('MCPClient', () => {
     ).rejects.toThrow();
   });
 
+  it('should respond to ping requests from the server', async () => {
+    const mockTransport = new MockMCPTransport();
+    const sendSpy = vi.spyOn(mockTransport, 'send');
+
+    createMockTransport.mockImplementation(() => mockTransport);
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    // Simulate a ping request from the server
+    mockTransport.onmessage?.({
+      jsonrpc: '2.0',
+      id: 999,
+      method: 'ping',
+    });
+
+    // Check that the client responds with a ping response
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jsonrpc: '2.0',
+        id: 999,
+        result: {},
+      }),
+    );
+  });
+
   it('should support zero-argument tools', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
