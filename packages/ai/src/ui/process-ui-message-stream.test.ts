@@ -51,7 +51,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -67,7 +70,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -75,7 +78,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -87,7 +90,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -103,7 +106,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -124,7 +127,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -163,7 +166,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -179,7 +185,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -187,7 +193,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -199,7 +205,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -222,7 +228,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -248,7 +254,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -277,7 +283,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -315,7 +321,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -372,6 +378,7 @@ describe('processUIMessageStream', () => {
       ]);
 
       state = createStreamingUIMessageState({
+        messageId: 'msg-123',
         lastMessage: {
           role: 'assistant',
           id: 'original-id',
@@ -685,7 +692,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -701,7 +711,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -709,7 +719,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -721,7 +731,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -737,7 +747,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -753,7 +763,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -780,7 +790,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -810,7 +820,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -843,7 +853,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -880,7 +890,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -922,7 +932,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -999,7 +1009,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -1015,7 +1028,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -1023,7 +1036,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1035,7 +1048,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1052,7 +1065,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1073,7 +1086,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1105,7 +1118,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1140,7 +1153,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1178,7 +1191,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1225,7 +1238,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1281,7 +1294,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -1390,7 +1403,10 @@ describe('processUIMessageStream', () => {
         },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -1625,7 +1641,10 @@ describe('processUIMessageStream', () => {
         },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -1641,7 +1660,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -1649,7 +1668,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1661,7 +1680,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1735,6 +1754,7 @@ describe('processUIMessageStream', () => {
       ]);
 
       state = createStreamingUIMessageState({
+        messageId: 'msg-123',
         lastMessage: {
           role: 'assistant',
           id: 'original-id',
@@ -1867,7 +1887,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -1883,7 +1906,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -1891,7 +1914,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1903,7 +1926,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1924,7 +1947,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1947,7 +1970,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1970,7 +1993,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1993,7 +2016,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2022,7 +2045,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2057,7 +2080,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2073,7 +2099,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2081,7 +2107,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2093,7 +2119,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2109,7 +2135,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2130,7 +2156,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2186,7 +2212,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2202,7 +2231,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2210,7 +2239,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2222,7 +2251,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2239,7 +2268,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2260,7 +2289,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2281,7 +2310,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2298,7 +2327,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2319,7 +2348,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2349,7 +2378,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2389,7 +2418,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2406,7 +2438,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2414,7 +2446,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2426,7 +2458,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2449,7 +2481,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2478,7 +2510,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2519,7 +2551,7 @@ describe('processUIMessageStream', () => {
       ]);
 
       state = createStreamingUIMessageState({
-        generateId: mockId(),
+        messageId: 'msg-123',
         lastMessage: undefined,
       });
 
@@ -2537,7 +2569,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2545,7 +2577,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2557,7 +2589,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2573,7 +2605,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2601,7 +2633,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2646,7 +2678,7 @@ describe('processUIMessageStream', () => {
       ]);
 
       state = createStreamingUIMessageState({
-        generateId: mockId(),
+        messageId: 'msg-123',
         lastMessage: undefined,
       });
 
@@ -2664,7 +2696,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2672,7 +2704,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2684,7 +2716,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2700,7 +2732,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2721,7 +2753,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2742,7 +2774,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2773,7 +2805,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2813,7 +2845,7 @@ describe('processUIMessageStream', () => {
       ]);
 
       state = createStreamingUIMessageState({
-        generateId: mockId(),
+        messageId: 'msg-123',
         lastMessage: undefined,
       });
 
@@ -2831,7 +2863,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2839,7 +2871,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2851,7 +2883,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2872,7 +2904,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2908,7 +2940,7 @@ describe('processUIMessageStream', () => {
       ]);
 
       state = createStreamingUIMessageState({
-        generateId: mockId(),
+        messageId: 'msg-123',
         lastMessage: undefined,
       });
 
@@ -2926,7 +2958,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2934,7 +2966,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2946,7 +2978,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2963,7 +2995,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2985,7 +3017,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -3028,7 +3060,7 @@ describe('processUIMessageStream', () => {
       ]);
 
       state = createStreamingUIMessageState({
-        generateId: mockId(),
+        messageId: 'msg-123',
         lastMessage: undefined,
       });
 
@@ -3046,7 +3078,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -3054,7 +3086,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -3066,7 +3098,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -3086,7 +3118,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -3112,7 +3144,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",

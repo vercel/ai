@@ -350,7 +350,7 @@ describe('createUIMessageStream', () => {
           "messages": [
             {
               "id": "",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "1a",
@@ -362,7 +362,7 @@ describe('createUIMessageStream', () => {
           ],
           "responseMessage": {
             "id": "",
-            "metadata": {},
+            "metadata": undefined,
             "parts": [
               {
                 "text": "1a",

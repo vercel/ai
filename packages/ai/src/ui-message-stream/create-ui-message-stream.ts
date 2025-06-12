@@ -15,7 +15,8 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError?: (error: unknown) => string;
 
   /**
-   * The original messages.
+   * The original messages. If they are provided, persistence mode is assumed,
+   * and a message ID is provided for the response message.
    */
   originalMessages?: UI_MESSAGE[];
 
@@ -121,9 +122,9 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     }
   });
 
-  return handleUIMessageStreamFinish({
+  return handleUIMessageStreamFinish<UI_MESSAGE>({
     stream,
-    newMessageId: '',
+    messageId: '',
     originalMessages,
     onFinish,
   });

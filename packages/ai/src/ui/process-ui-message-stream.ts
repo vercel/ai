@@ -41,24 +41,21 @@ export function createStreamingUIMessageState<
   UI_DATA_TYPES extends UIDataTypes = UIDataTypes,
 >({
   lastMessage,
-  generateId,
+  messageId,
 }: {
   lastMessage: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES> | undefined;
-  generateId: IdGenerator;
+  messageId: string;
 }): StreamingUIMessageState<UIMessage<MESSAGE_METADATA, UI_DATA_TYPES>> {
-  const isContinuation = lastMessage?.role === 'assistant';
-
-  const message: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES> = isContinuation
-    ? lastMessage
-    : {
-        id: generateId(),
-        metadata: {} as MESSAGE_METADATA,
-        role: 'assistant',
-        parts: [],
-      };
-
   return {
-    message,
+    message:
+      lastMessage?.role === 'assistant'
+        ? lastMessage
+        : {
+            id: messageId,
+            metadata: undefined,
+            role: 'assistant',
+            parts: [],
+          },
     activeTextPart: undefined,
     activeReasoningPart: undefined,
     partialToolCalls: {},
