@@ -59,7 +59,7 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
 
   /**
    * Send reasoning parts to the client.
-   * Default to false.
+   * Default to true.
    */
   sendReasoning?: boolean;
 

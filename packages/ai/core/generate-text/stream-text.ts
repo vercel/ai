@@ -1459,7 +1459,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     originalMessages,
     onFinish,
     messageMetadata,
-    sendReasoning = false,
+    sendReasoning = true,
     sendSources = false,
     sendStart = true,
     sendFinish = true,
