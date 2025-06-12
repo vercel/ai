@@ -4,6 +4,7 @@ import {
   LanguageModelV1FinishReason,
   LanguageModelV1FunctionToolCall,
   LanguageModelV1ProviderMetadata,
+  LanguageModelV1Source,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -14,6 +15,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -259,6 +261,45 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     return this.config.transformRequestBody?.(args) ?? args;
   }
 
+  private extractSources(
+    response: any,
+    generateId: () => string,
+  ): LanguageModelV1Source[] {
+    const sources: LanguageModelV1Source[] = [];
+
+    // Extract sources from web search tool results
+    for (const content of response.content) {
+      if (content.type === 'web_search_tool_result' && content.content) {
+        for (const result of content.content) {
+          if (result.type === 'web_search_result') {
+            sources.push({
+              sourceType: 'url',
+              id: generateId(),
+              url: result.url,
+              title: result.title,
+            });
+          }
+        }
+      }
+
+      // Also extract sources from citations in text blocks
+      if (content.type === 'text' && content.citations) {
+        for (const citation of content.citations) {
+          if (citation.type === 'web_search_result_location') {
+            sources.push({
+              sourceType: 'url',
+              id: generateId(),
+              url: citation.url,
+              title: citation.title,
+            });
+          }
+        }
+      }
+    }
+
+    return sources;
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
@@ -292,10 +333,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     // extract tool calls
     let toolCalls: LanguageModelV1FunctionToolCall[] | undefined = undefined;
-    if (response.content.some(content => content.type === 'tool_use')) {
+    if (
+      response.content.some(
+        content =>
+          content.type === 'tool_use' || content.type === 'server_tool_use',
+      )
+    ) {
       toolCalls = [];
       for (const content of response.content) {
-        if (content.type === 'tool_use') {
+        if (content.type === 'tool_use' || content.type === 'server_tool_use') {
           toolCalls.push({
             toolCallType: 'function',
             toolCallId: content.id,
@@ -333,6 +379,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
       },
+      sources: this.extractSources(response, generateId),
       rawCall: { rawPrompt, rawSettings },
       rawResponse: {
         headers: responseHeaders,
@@ -396,6 +443,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       | 'text'
       | 'thinking'
       | 'tool_use'
+      | 'server_tool_use'
+      | 'web_search_tool_result'
       | 'redacted_thinking'
       | undefined = undefined;
 
@@ -437,12 +486,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                     return;
                   }
 
-                  case 'tool_use': {
+                  case 'tool_use':
+                  case 'server_tool_use': {
                     toolCallContentBlocks[value.index] = {
                       toolCallId: value.content_block.id,
                       toolName: value.content_block.name,
                       jsonText: '',
                     };
+                    return;
+                  }
+
+                  case 'web_search_tool_result': {
+                    // Emit source events for web search results
+                    if (value.content_block.content) {
+                      for (const result of value.content_block.content) {
+                        if (result.type === 'web_search_result') {
+                          controller.enqueue({
+                            type: 'source',
+                            source: {
+                              sourceType: 'url',
+                              id: generateId(),
+                              url: result.url,
+                              title: result.title,
+                            },
+                          });
+                        }
+                      }
+                    }
                     return;
                   }
 
@@ -512,6 +582,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                   case 'input_json_delta': {
                     const contentBlock = toolCallContentBlocks[value.index];
 
+                    // Guard against missing content block (shouldn't happen with our fixes)
+                    if (!contentBlock) {
+                      console.warn(
+                        'Missing content block for input_json_delta at index',
+                        value.index,
+                      );
+                      return;
+                    }
+
                     controller.enqueue({
                       type: 'tool-call-delta',
                       toolCallType: 'function',
@@ -521,6 +600,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                     });
 
                     contentBlock.jsonText += value.delta.partial_json;
+
+                    return;
+                  }
+
+                  case 'citations_delta': {
+                    // Emit source events for citations
+                    if (
+                      value.delta.citation &&
+                      value.delta.citation.type === 'web_search_result_location'
+                    ) {
+                      controller.enqueue({
+                        type: 'source',
+                        source: {
+                          sourceType: 'url',
+                          id: generateId(),
+                          url: value.delta.citation.url,
+                          title: value.delta.citation.title,
+                        },
+                      });
+                    }
 
                     return;
                   }
@@ -604,6 +703,17 @@ const anthropicMessagesResponseSchema = z.object({
       z.object({
         type: z.literal('text'),
         text: z.string(),
+        citations: z.optional(
+          z.array(
+            z.object({
+              type: z.literal('web_search_result_location'),
+              url: z.string(),
+              title: z.string(),
+              encrypted_index: z.string(),
+              cited_text: z.string(),
+            }),
+          ),
+        ),
       }),
       z.object({
         type: z.literal('thinking'),
@@ -620,6 +730,25 @@ const anthropicMessagesResponseSchema = z.object({
         name: z.string(),
         input: z.unknown(),
       }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+        input: z.unknown(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.array(
+          z.object({
+            type: z.literal('web_search_result'),
+            url: z.string(),
+            title: z.string(),
+            encrypted_content: z.string(),
+            page_age: z.string().nullable(),
+          }),
+        ),
+      }),
     ]),
   ),
   stop_reason: z.string().nullish(),
@@ -628,6 +757,11 @@ const anthropicMessagesResponseSchema = z.object({
     output_tokens: z.number(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
+    server_tool_use: z
+      .object({
+        web_search_requests: z.number().optional(),
+      })
+      .optional(),
   }),
 });
 
@@ -644,6 +778,11 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        server_tool_use: z
+          .object({
+            web_search_requests: z.number().optional(),
+          })
+          .optional(),
       }),
     }),
   }),
@@ -663,6 +802,24 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         type: z.literal('tool_use'),
         id: z.string(),
         name: z.string(),
+      }),
+      z.object({
+        type: z.literal('server_tool_use'),
+        id: z.string(),
+        name: z.string(),
+      }),
+      z.object({
+        type: z.literal('web_search_tool_result'),
+        tool_use_id: z.string(),
+        content: z.array(
+          z.object({
+            type: z.literal('web_search_result'),
+            title: z.string(),
+            url: z.string(),
+            encrypted_content: z.string(),
+            page_age: z.string().nullable(),
+          }),
+        ),
       }),
       z.object({
         type: z.literal('redacted_thinking'),
@@ -689,6 +846,16 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       z.object({
         type: z.literal('signature_delta'),
         signature: z.string(),
+      }),
+      z.object({
+        type: z.literal('citations_delta'),
+        citation: z.object({
+          type: z.literal('web_search_result_location'),
+          cited_text: z.string(),
+          url: z.string(),
+          title: z.string(),
+          encrypted_index: z.string(),
+        }),
       }),
     ]),
   }),
