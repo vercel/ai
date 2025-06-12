@@ -108,7 +108,6 @@ describe('data protocol stream', () => {
         {
           id: 'id-1',
           role: 'assistant',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -357,7 +356,6 @@ describe('data protocol stream', () => {
           },
           {
             id: 'id-1',
-            metadata: {},
             parts: [
               {
                 text: 'Hello, world.',
@@ -479,7 +477,7 @@ describe('text stream', () => {
         {
           "message": {
             "id": "id-2",
-            "metadata": {},
+            "metadata": undefined,
             "parts": [
               {
                 "type": "step-start",
@@ -985,7 +983,6 @@ describe('tool invocations', () => {
         },
         {
           id: 'id-2',
-          metadata: {},
           parts: [
             {
               type: 'step-start',
@@ -1399,7 +1396,6 @@ describe('file attachments with data url', () => {
         },
         {
           id: 'id-2',
-          metadata: {},
           parts: [
             {
               text: 'Response to message with text attachment',
@@ -1483,7 +1479,6 @@ describe('file attachments with data url', () => {
         {
           role: 'assistant',
           id: 'id-2',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -1600,7 +1595,6 @@ describe('file attachments with url', () => {
         {
           role: 'assistant',
           id: 'id-2',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -1702,7 +1696,6 @@ describe('attachments with empty submit', () => {
         {
           id: 'id-2',
           role: 'assistant',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -1808,7 +1801,6 @@ describe('should send message with attachments', () => {
         },
         {
           id: 'id-2',
-          metadata: {},
           parts: [
             {
               text: 'Response to message with image attachment',
