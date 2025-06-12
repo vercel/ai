@@ -6,8 +6,6 @@ import ChatInput from '@/component/chat-input';
 export default function Chat() {
   const { error, status, sendMessage, messages, reload, stop } = useChat();
 
-  console.log(messages);
-
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(m => (
