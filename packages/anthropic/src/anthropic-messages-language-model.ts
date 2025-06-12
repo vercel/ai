@@ -33,31 +33,48 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
+const citationSchemas = {
+  webSearchResult: z.object({
+    type: z.literal('web_search_result_location'),
+    cited_text: z.string(),
+    url: z.string(),
+    title: z.string(),
+    encrypted_index: z.string(),
+  }),
+  pageLocation: z.object({
+    type: z.literal('page_location'),
+    cited_text: z.string(),
+    document_index: z.number(),
+    document_title: z.string().nullable(),
+    start_page_number: z.number(),
+    end_page_number: z.number(),
+  }),
+  charLocation: z.object({
+    type: z.literal('char_location'),
+    cited_text: z.string(),
+    document_index: z.number(),
+    document_title: z.string().nullable(),
+    start_char_index: z.number(),
+    end_char_index: z.number(),
+  }),
+};
+
+const citationSchema = z.discriminatedUnion('type', [
+  citationSchemas.webSearchResult,
+  citationSchemas.pageLocation,
+  citationSchemas.charLocation,
+]);
+
+const documentCitationSchema = z.discriminatedUnion('type', [
+  citationSchemas.pageLocation,
+  citationSchemas.charLocation,
+]);
+
+type Citation = z.infer<typeof citationSchema>;
+type DocumentCitation = z.infer<typeof documentCitationSchema>;
+
 function processCitation(
-  citation:
-    | {
-        type: 'web_search_result_location';
-        url: string;
-        cited_text: string;
-        title: string;
-        encrypted_index: string;
-      }
-    | {
-        type: 'page_location';
-        cited_text: string;
-        document_index: number;
-        document_title: string | null;
-        start_page_number: number;
-        end_page_number: number;
-      }
-    | {
-        type: 'char_location';
-        cited_text: string;
-        document_index: number;
-        document_title: string | null;
-        start_char_index: number;
-        end_char_index: number;
-      },
+  citation: Citation,
   citationDocuments: Array<{
     title: string;
     filename?: string;
@@ -79,23 +96,7 @@ function processCitation(
 }
 
 function createCitationSource(
-  citation:
-    | {
-        type: 'page_location';
-        cited_text: string;
-        document_index: number;
-        document_title: string | null;
-        start_page_number: number;
-        end_page_number: number;
-      }
-    | {
-        type: 'char_location';
-        cited_text: string;
-        document_index: number;
-        document_title: string | null;
-        start_char_index: number;
-        end_char_index: number;
-      },
+  citation: DocumentCitation,
   citationDocuments: Array<{
     title: string;
     filename?: string;
@@ -940,35 +941,7 @@ const anthropicMessagesResponseSchema = z.object({
       z.object({
         type: z.literal('text'),
         text: z.string(),
-        citations: z
-          .array(
-            z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('web_search_result_location'),
-                cited_text: z.string(),
-                url: z.string(),
-                title: z.string(),
-                encrypted_index: z.string(),
-              }),
-              z.object({
-                type: z.literal('page_location'),
-                cited_text: z.string(),
-                document_index: z.number(),
-                document_title: z.string().nullable(),
-                start_page_number: z.number(),
-                end_page_number: z.number(),
-              }),
-              z.object({
-                type: z.literal('char_location'),
-                cited_text: z.string(),
-                document_index: z.number(),
-                document_title: z.string().nullable(),
-                start_char_index: z.number(),
-                end_char_index: z.number(),
-              }),
-            ]),
-          )
-          .optional(),
+        citations: z.array(citationSchema).optional(),
       }),
       z.object({
         type: z.literal('thinking'),
@@ -1112,31 +1085,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       }),
       z.object({
         type: z.literal('citations_delta'),
-        citation: z.discriminatedUnion('type', [
-          z.object({
-            type: z.literal('web_search_result_location'),
-            cited_text: z.string(),
-            url: z.string(),
-            title: z.string(),
-            encrypted_index: z.string(),
-          }),
-          z.object({
-            type: z.literal('page_location'),
-            cited_text: z.string(),
-            document_index: z.number(),
-            document_title: z.string().nullable(),
-            start_page_number: z.number(),
-            end_page_number: z.number(),
-          }),
-          z.object({
-            type: z.literal('char_location'),
-            cited_text: z.string(),
-            document_index: z.number(),
-            document_title: z.string().nullable(),
-            start_char_index: z.number(),
-            end_char_index: z.number(),
-          }),
-        ]),
+        citation: citationSchema,
       }),
     ]),
   }),
