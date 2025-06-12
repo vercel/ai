@@ -60,7 +60,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
           InferUIMessageData<UI_MESSAGE>
         >)
       : undefined,
-    messageId, // should come from stream instead
+    messageId, // will be overridden by the stream
   });
 
   const runUpdateMessageJob = async (
@@ -78,7 +78,27 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   };
 
   return processUIMessageStream<UI_MESSAGE>({
-    stream,
+    stream: stream.pipeThrough(
+      new TransformStream<
+        InferUIMessageStreamPart<UI_MESSAGE>,
+        InferUIMessageStreamPart<UI_MESSAGE>
+      >({
+        transform(chunk, controller) {
+          // when there is no messageId in the start chunk,
+          // but the user checked for persistence,
+          // inject the messageId into the chunk
+          if (
+            chunk.type === 'start' &&
+            'messageId' in chunk &&
+            chunk.messageId == null
+          ) {
+            chunk.messageId = messageId;
+          }
+
+          controller.enqueue(chunk);
+        },
+      }),
+    ),
     runUpdateMessageJob,
   }).pipeThrough(
     new TransformStream<

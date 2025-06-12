@@ -1642,7 +1642,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return handleUIMessageStreamFinish<UI_MESSAGE>({
       stream: baseStream,
-      messageId: responseMessageId,
+      messageId: responseMessageId ?? this.generateId(),
       originalMessages,
       onFinish,
     });
