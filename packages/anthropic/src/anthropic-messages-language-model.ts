@@ -33,7 +33,7 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
-function processPageLocationCitation(
+function processCitation(
   citation:
     | {
         type: 'web_search_result_location';
@@ -49,6 +49,14 @@ function processPageLocationCitation(
         document_title: string | null;
         start_page_number: number;
         end_page_number: number;
+      }
+    | {
+        type: 'char_location';
+        cited_text: string;
+        document_index: number;
+        document_title: string | null;
+        start_char_index: number;
+        end_char_index: number;
       },
   citationDocuments: Array<{
     title: string;
@@ -58,7 +66,7 @@ function processPageLocationCitation(
   generateId: () => string,
   onSource: (source: any) => void,
 ) {
-  if (citation.type === 'page_location') {
+  if (citation.type === 'page_location' || citation.type === 'char_location') {
     const source = createCitationSource(
       citation,
       citationDocuments,
@@ -71,14 +79,23 @@ function processPageLocationCitation(
 }
 
 function createCitationSource(
-  citation: {
-    type: 'page_location';
-    cited_text: string;
-    document_index: number;
-    document_title: string | null;
-    start_page_number: number;
-    end_page_number: number;
-  },
+  citation:
+    | {
+        type: 'page_location';
+        cited_text: string;
+        document_index: number;
+        document_title: string | null;
+        start_page_number: number;
+        end_page_number: number;
+      }
+    | {
+        type: 'char_location';
+        cited_text: string;
+        document_index: number;
+        document_title: string | null;
+        start_char_index: number;
+        end_char_index: number;
+      },
   citationDocuments: Array<{
     title: string;
     filename?: string;
@@ -91,6 +108,19 @@ function createCitationSource(
     return null;
   }
 
+  const providerMetadata =
+    citation.type === 'page_location'
+      ? {
+          citedText: citation.cited_text,
+          startPageNumber: citation.start_page_number,
+          endPageNumber: citation.end_page_number,
+        }
+      : {
+          citedText: citation.cited_text,
+          startCharIndex: citation.start_char_index,
+          endCharIndex: citation.end_char_index,
+        };
+
   return {
     type: 'source' as const,
     sourceType: 'document' as const,
@@ -99,11 +129,7 @@ function createCitationSource(
     title: citation.document_title ?? documentInfo.title,
     filename: documentInfo.filename,
     providerMetadata: {
-      anthropic: {
-        citedText: citation.cited_text,
-        startPageNumber: citation.start_page_number,
-        endPageNumber: citation.end_page_number,
-      },
+      anthropic: providerMetadata,
     },
   };
 }
@@ -386,7 +412,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       .filter(
         part =>
           part.type === 'file' &&
-          part.mediaType === 'application/pdf' &&
+          (part.mediaType === 'application/pdf' ||
+            part.mediaType === 'text/plain') &&
           isCitationEnabled(part),
       )
       .map(part => {
@@ -439,7 +466,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             // Process citations if present
             if (part.citations) {
               for (const citation of part.citations) {
-                processPageLocationCitation(
+                processCitation(
                   citation,
                   citationDocuments,
                   this.generateId,
@@ -821,7 +848,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'citations_delta': {
                     const citation = value.delta.citation;
 
-                    processPageLocationCitation(
+                    processCitation(
                       citation,
                       citationDocuments,
                       generateId,
@@ -930,6 +957,14 @@ const anthropicMessagesResponseSchema = z.object({
                 document_title: z.string().nullable(),
                 start_page_number: z.number(),
                 end_page_number: z.number(),
+              }),
+              z.object({
+                type: z.literal('char_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                start_char_index: z.number(),
+                end_char_index: z.number(),
               }),
             ]),
           )
@@ -1092,6 +1127,14 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
             document_title: z.string().nullable(),
             start_page_number: z.number(),
             end_page_number: z.number(),
+          }),
+          z.object({
+            type: z.literal('char_location'),
+            cited_text: z.string(),
+            document_index: z.number(),
+            document_title: z.string().nullable(),
+            start_char_index: z.number(),
+            end_char_index: z.number(),
           }),
         ]),
       }),
