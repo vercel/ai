@@ -128,7 +128,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
         | 'tool-call'
         | 'tool-call-streaming-start'
         | 'tool-call-delta'
-        | 'tool-result';
+        | 'tool-result'
+        | 'raw';
     }
   >;
 }) => Promise<void> | void;
@@ -599,7 +600,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
           part.type === 'tool-call-streaming-start' ||
-          part.type === 'tool-call-delta'
+          part.type === 'tool-call-delta' ||
+          part.type === 'raw'
         ) {
           await onChunk?.({ chunk: part });
         }
@@ -1171,7 +1173,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'raw': {
-                      controller.enqueue(chunk);
+                      if (includeRawChunks) {
+                        controller.enqueue(chunk);
+                      }
                       break;
                     }
 
