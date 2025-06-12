@@ -8,22 +8,25 @@ import {
   InferUIMessageMetadata,
   UIMessage,
 } from '../ui/ui-messages';
-import { UIMessageStreamPart } from './ui-message-stream-parts';
+import {
+  InferUIMessageStreamPart,
+  UIMessageStreamPart,
+} from './ui-message-stream-parts';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
-  newMessageId,
+  messageId,
   originalMessages = [],
   onFinish,
   stream,
 }: {
-  stream: ReadableStream<UIMessageStreamPart>;
+  stream: ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
 
-  newMessageId: string;
+  messageId: string;
 
   /**
    * The original messages.
    */
-  originalMessages?: UIMessage[];
+  originalMessages?: UI_MESSAGE[];
 
   onFinish?: (options: {
     /**
@@ -43,21 +46,24 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
      */
     responseMessage: UI_MESSAGE;
   }) => void;
-}) {
+}): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
   if (onFinish == null) {
     return stream;
   }
 
-  const lastMessage = originalMessages[originalMessages.length - 1];
-  const isContinuation = lastMessage?.role === 'assistant';
-  const messageId = isContinuation ? lastMessage.id : newMessageId;
+  const lastMessage = originalMessages?.[originalMessages.length - 1];
 
   const state = createStreamingUIMessageState<
     InferUIMessageMetadata<UI_MESSAGE>,
     InferUIMessageData<UI_MESSAGE>
   >({
-    lastMessage: structuredClone(lastMessage) as any,
-    newMessageId: messageId,
+    lastMessage: lastMessage
+      ? (structuredClone(lastMessage) as UIMessage<
+          InferUIMessageMetadata<UI_MESSAGE>,
+          InferUIMessageData<UI_MESSAGE>
+        >)
+      : undefined,
+    messageId, // will be overridden by the stream
   });
 
   const runUpdateMessageJob = async (
@@ -75,10 +81,32 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   };
 
   return processUIMessageStream<UI_MESSAGE>({
-    stream,
+    stream: stream.pipeThrough(
+      new TransformStream<
+        InferUIMessageStreamPart<UI_MESSAGE>,
+        InferUIMessageStreamPart<UI_MESSAGE>
+      >({
+        transform(chunk, controller) {
+          // when there is no messageId in the start chunk,
+          // but the user checked for persistence,
+          // inject the messageId into the chunk
+          if (chunk.type === 'start') {
+            const startChunk = chunk as UIMessageStreamPart & { type: 'start' };
+            if (startChunk.messageId == null) {
+              startChunk.messageId = messageId;
+            }
+          }
+
+          controller.enqueue(chunk);
+        },
+      }),
+    ),
     runUpdateMessageJob,
   }).pipeThrough(
-    new TransformStream({
+    new TransformStream<
+      InferUIMessageStreamPart<UI_MESSAGE>,
+      InferUIMessageStreamPart<UI_MESSAGE>
+    >({
       transform(chunk, controller) {
         controller.enqueue(chunk);
       },

@@ -233,7 +233,6 @@ describe('data protocol stream', () => {
       {
         message: {
           id: expect.any(String),
-          metadata: {},
           role: 'assistant',
           parts: [{ text: 'Hello, world.', type: 'text' }],
         },
@@ -284,7 +283,6 @@ describe('text stream', () => {
         message: {
           id: expect.any(String),
           role: 'assistant',
-          metadata: {},
           parts: [
             { type: 'step-start' },
             { text: 'Hello, world.', type: 'text' },
@@ -681,7 +679,6 @@ describe('file attachments with data url', () => {
         },
         {
           id: 'id-1',
-          metadata: {},
           parts: [
             {
               text: 'Response to message with text attachment',
@@ -741,7 +738,6 @@ describe('file attachments with data url', () => {
         {
           role: 'assistant',
           id: 'id-1',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -796,7 +792,6 @@ describe('file attachments with url', () => {
         {
           role: 'assistant',
           id: 'id-1',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -856,7 +851,6 @@ describe('attachments with empty submit', () => {
         {
           id: 'id-1',
           role: 'assistant',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -907,7 +901,6 @@ describe('should append message with attachments', () => {
         },
         {
           id: 'id-1',
-          metadata: {},
           parts: [
             {
               text: 'Response to message with image attachment',

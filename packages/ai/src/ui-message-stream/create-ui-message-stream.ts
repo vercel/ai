@@ -1,3 +1,7 @@
+import {
+  generateId as generateIdFunc,
+  IdGenerator,
+} from '@ai-sdk/provider-utils';
 import { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import { InferUIMessageStreamPart } from './ui-message-stream-parts';
@@ -8,6 +12,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError = () => 'An error occurred.', // mask error messages for safety by default
   originalMessages,
   onFinish,
+  generateId = generateIdFunc,
 }: {
   execute: (options: {
     writer: UIMessageStreamWriter<UI_MESSAGE>;
@@ -15,7 +20,8 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError?: (error: unknown) => string;
 
   /**
-   * The original messages.
+   * The original messages. If they are provided, persistence mode is assumed,
+   * and a message ID is provided for the response message.
    */
   originalMessages?: UI_MESSAGE[];
 
@@ -37,6 +43,8 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
      */
     responseMessage: UI_MESSAGE;
   }) => void;
+
+  generateId?: IdGenerator;
 }): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
   let controller!: ReadableStreamDefaultController<
     InferUIMessageStreamPart<UI_MESSAGE>
@@ -121,9 +129,9 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     }
   });
 
-  return handleUIMessageStreamFinish({
+  return handleUIMessageStreamFinish<UI_MESSAGE>({
     stream,
-    newMessageId: '',
+    messageId: generateId(),
     originalMessages,
     onFinish,
   });

@@ -22,15 +22,8 @@ import { ToolSet } from './tool-set';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
-   * Message ID that is sent to the client if a new message is created.
-   * This is intended to be used for the UI message,
-   * if the last original message is not an assistant message
-   * (in which case that message ID is used).
-   */
-  newMessageId?: string;
-
-  /**
-   * The original messages.
+   * The original messages. If they are provided, persistence mode is assumed,
+   * and a message ID is provided for the response message.
    */
   originalMessages?: UI_MESSAGE[];
 

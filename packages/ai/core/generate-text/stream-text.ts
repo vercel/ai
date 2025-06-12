@@ -13,7 +13,10 @@ import {
   InferUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../../src/ui-message-stream/ui-message-stream-parts';
-import { InferUIMessageMetadata } from '../../src/ui/ui-messages';
+import {
+  InferUIMessageData,
+  InferUIMessageMetadata,
+} from '../../src/ui/ui-messages';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -73,6 +76,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1452,8 +1456,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
-    newMessageId,
-    originalMessages = [],
+    originalMessages,
     onFinish,
     messageMetadata,
     sendReasoning = false,
@@ -1464,14 +1467,18 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): ReadableStream<
     InferUIMessageStreamPart<UI_MESSAGE>
   > {
-    const lastMessage = originalMessages[originalMessages.length - 1];
-    const isContinuation = lastMessage?.role === 'assistant';
-    const messageId = isContinuation ? lastMessage.id : newMessageId;
+    const responseMessageId = getResponseUIMessageId({
+      originalMessages,
+      responseMessageId: this.generateId,
+    });
 
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
-        UIMessageStreamPart<InferUIMessageMetadata<UI_MESSAGE>, UIDataTypes>
+        UIMessageStreamPart<
+          InferUIMessageMetadata<UI_MESSAGE>,
+          InferUIMessageData<UI_MESSAGE>
+        >
       >({
         transform: async (part, controller) => {
           const partType = part.type;
@@ -1604,7 +1611,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'start',
-                  messageId,
+                  messageId: responseMessageId,
                   metadata,
                 });
               }
@@ -1639,7 +1646,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return handleUIMessageStreamFinish<UI_MESSAGE>({
       stream: baseStream,
-      newMessageId: messageId ?? this.generateId(),
+      messageId: responseMessageId ?? this.generateId(),
       originalMessages,
       onFinish,
     });
@@ -1648,7 +1655,6 @@ However, the LLM results are expected to be small enough to not cause issues.
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     {
-      newMessageId,
       originalMessages,
       onFinish,
       messageMetadata,
@@ -1663,7 +1669,6 @@ However, the LLM results are expected to be small enough to not cause issues.
     pipeUIMessageStreamToResponse({
       response,
       stream: this.toUIMessageStream({
-        newMessageId,
         originalMessages,
         onFinish,
         messageMetadata,
@@ -1686,7 +1691,6 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
-    newMessageId,
     originalMessages,
     onFinish,
     messageMetadata,
@@ -1699,7 +1703,6 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
     return createUIMessageStreamResponse({
       stream: this.toUIMessageStream({
-        newMessageId,
         originalMessages,
         onFinish,
         messageMetadata,
