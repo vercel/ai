@@ -376,7 +376,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call"}',
       );
     });
 
@@ -390,7 +390,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call","args":{"testArg":"t"}}',
       );
     });
 
@@ -404,7 +404,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call","args":{"testArg":"test-value"}}',
       );
     });
 
@@ -424,7 +424,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -444,7 +444,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -487,7 +487,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -539,7 +539,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"call","args":{"testArg":"test-value"}}',
       );
     });
 
@@ -547,7 +547,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"result","args":{"testArg":"test-value"},"result":"test-result"}',
       );
     });
 
@@ -595,7 +595,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"call","args":{"testArg":"test-value"}}',
       );
     });
 
@@ -605,7 +605,7 @@ describe('tool invocations', () => {
     // UI should show the tool result
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"result","args":{"testArg":"test-value"},"result":"test-result"}',
       );
     });
 
