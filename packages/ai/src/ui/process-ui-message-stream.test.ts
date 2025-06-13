@@ -187,15 +187,14 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -210,18 +209,16 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -236,18 +233,16 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -274,18 +269,16 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": {
-                  "weather": "sunny",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "partialArgs": undefined,
+              "result": {
+                "weather": "sunny",
+              },
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
             {
               "type": "step-start",
@@ -359,16 +352,13 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "args": {},
+                  "result": {
+                    "location": "Berlin",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
                 },
               ],
               "role": "assistant",
@@ -380,30 +370,26 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "args": {},
+                  "result": {
+                    "location": "Berlin",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
                 },
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -415,33 +401,28 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "args": {},
+                  "result": {
+                    "location": "Berlin",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
                 },
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -453,33 +434,28 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "args": {},
+                  "result": {
+                    "location": "Berlin",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
                 },
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -503,33 +479,28 @@ describe('processUIMessageStream', () => {
           "metadata": undefined,
           "parts": [
             {
-              "toolInvocation": {
-                "args": {},
-                "result": {
-                  "location": "Berlin",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id-original",
-                "toolName": "tool-name-original",
+              "args": {},
+              "result": {
+                "location": "Berlin",
               },
-              "type": "tool-invocation",
+              "state": "result",
+              "toolCallId": "tool-call-id-original",
+              "type": "tool-tool-name-original",
             },
             {
               "type": "step-start",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": {
-                  "weather": "sunny",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "partialArgs": undefined,
+              "result": {
+                "weather": "sunny",
+              },
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
             {
               "type": "step-start",
@@ -640,15 +611,14 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -667,18 +637,16 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -697,18 +665,16 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -734,18 +700,16 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -776,18 +740,16 @@ describe('processUIMessageStream', () => {
               "type": "text",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": {
-                  "weather": "sunny",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "partialArgs": undefined,
+              "result": {
+                "weather": "sunny",
+              },
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
             {
               "type": "step-start",
@@ -923,15 +885,14 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -955,18 +916,16 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -990,18 +949,16 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -1037,18 +994,16 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -1093,18 +1048,16 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": {
-                  "weather": "sunny",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "partialArgs": undefined,
+              "result": {
+                "weather": "sunny",
+              },
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
             {
               "type": "step-start",
@@ -1590,13 +1543,12 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": undefined,
-                    "state": "partial-call",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
-                  },
-                  "type": "tool-invocation",
+                  "args": undefined,
+                  "partialArgs": "",
+                  "result": undefined,
+                  "state": "partial-call",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1611,15 +1563,14 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "t",
-                    },
-                    "state": "partial-call",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
+                  "args": undefined,
+                  "partialArgs": {
+                    "testArg": "t",
                   },
-                  "type": "tool-invocation",
+                  "result": undefined,
+                  "state": "partial-call",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1634,15 +1585,14 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "test-value",
-                    },
-                    "state": "partial-call",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
+                  "args": undefined,
+                  "partialArgs": {
+                    "testArg": "test-value",
                   },
-                  "type": "tool-invocation",
+                  "result": undefined,
+                  "state": "partial-call",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1657,15 +1607,14 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "test-value",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
+                  "args": {
+                    "testArg": "test-value",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1680,16 +1629,14 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "test-value",
-                    },
-                    "result": "test-result",
-                    "state": "result",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
+                  "args": {
+                    "testArg": "test-value",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": "test-result",
+                  "state": "result",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1709,16 +1656,14 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "testArg": "test-value",
-                },
-                "result": "test-result",
-                "state": "result",
-                "toolCallId": "tool-call-0",
-                "toolName": "test-tool",
+              "args": {
+                "testArg": "test-value",
               },
-              "type": "tool-invocation",
+              "partialArgs": undefined,
+              "result": "test-result",
+              "state": "result",
+              "toolCallId": "tool-call-0",
+              "type": "tool-test-tool",
             },
           ],
           "role": "assistant",
@@ -2086,15 +2031,14 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -2109,16 +2053,14 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": "test-result",
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "partialArgs": undefined,
+                  "result": "test-result",
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -2138,16 +2080,14 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": "test-result",
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "partialArgs": undefined,
+              "result": "test-result",
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
           ],
           "role": "assistant",
