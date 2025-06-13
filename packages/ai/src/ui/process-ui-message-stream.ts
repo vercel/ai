@@ -96,7 +96,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
               toolCallId: string;
             } & (
-              | { state: 'partial-call'; partialArgs: unknown }
+              | { state: 'partial-call'; args: unknown }
               | { state: 'call'; args: unknown }
               | { state: 'result'; args: unknown; result: unknown }
             ),
@@ -108,7 +108,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             if (part != null) {
               part.state = options.state;
-              (part as any).partialArgs = (options as any).partialArgs;
               (part as any).args = (options as any).args;
               (part as any).result = (options as any).result;
             } else {
@@ -116,7 +115,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 type: `tool-${options.toolName}`,
                 toolCallId: options.toolCallId,
                 state: options.state,
-                partialArgs: (options as any).partialArgs,
                 args: (options as any).args,
                 result: (options as any).result,
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
@@ -235,7 +233,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 state: 'partial-call',
-                partialArgs: '',
+                args: undefined,
               });
 
               write();
@@ -255,7 +253,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolCallId: part.toolCallId,
                 toolName: partialToolCall.toolName,
                 state: 'partial-call',
-                partialArgs: partialArgs,
+                args: partialArgs,
               });
 
               write();

@@ -190,7 +190,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": undefined,
                   "state": "call",
                   "toolCallId": "tool-call-id",
@@ -212,7 +211,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -236,7 +234,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -272,7 +269,6 @@ describe('processUIMessageStream', () => {
               "args": {
                 "city": "London",
               },
-              "partialArgs": undefined,
               "result": {
                 "weather": "sunny",
               },
@@ -385,7 +381,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": undefined,
                   "state": "call",
                   "toolCallId": "tool-call-id",
@@ -416,7 +411,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -449,7 +443,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -494,7 +487,6 @@ describe('processUIMessageStream', () => {
               "args": {
                 "city": "London",
               },
-              "partialArgs": undefined,
               "result": {
                 "weather": "sunny",
               },
@@ -614,7 +606,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": undefined,
                   "state": "call",
                   "toolCallId": "tool-call-id",
@@ -640,7 +631,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -668,7 +658,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -703,7 +692,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -743,7 +731,6 @@ describe('processUIMessageStream', () => {
               "args": {
                 "city": "London",
               },
-              "partialArgs": undefined,
               "result": {
                 "weather": "sunny",
               },
@@ -888,7 +875,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": undefined,
                   "state": "call",
                   "toolCallId": "tool-call-id",
@@ -919,7 +905,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -952,7 +937,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -997,7 +981,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": {
                     "weather": "sunny",
                   },
@@ -1051,7 +1034,6 @@ describe('processUIMessageStream', () => {
               "args": {
                 "city": "London",
               },
-              "partialArgs": undefined,
               "result": {
                 "weather": "sunny",
               },
@@ -1544,7 +1526,6 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "args": undefined,
-                  "partialArgs": "",
                   "result": undefined,
                   "state": "partial-call",
                   "toolCallId": "tool-call-0",
@@ -1563,8 +1544,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": undefined,
-                  "partialArgs": {
+                  "args": {
                     "testArg": "t",
                   },
                   "result": undefined,
@@ -1585,8 +1565,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": undefined,
-                  "partialArgs": {
+                  "args": {
                     "testArg": "test-value",
                   },
                   "result": undefined,
@@ -1610,7 +1589,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "testArg": "test-value",
                   },
-                  "partialArgs": undefined,
                   "result": undefined,
                   "state": "call",
                   "toolCallId": "tool-call-0",
@@ -1632,7 +1610,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "testArg": "test-value",
                   },
-                  "partialArgs": undefined,
                   "result": "test-result",
                   "state": "result",
                   "toolCallId": "tool-call-0",
@@ -1659,7 +1636,6 @@ describe('processUIMessageStream', () => {
               "args": {
                 "testArg": "test-value",
               },
-              "partialArgs": undefined,
               "result": "test-result",
               "state": "result",
               "toolCallId": "tool-call-0",
@@ -2034,7 +2010,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": undefined,
                   "state": "call",
                   "toolCallId": "tool-call-id",
@@ -2056,7 +2031,6 @@ describe('processUIMessageStream', () => {
                   "args": {
                     "city": "London",
                   },
-                  "partialArgs": undefined,
                   "result": "test-result",
                   "state": "result",
                   "toolCallId": "tool-call-id",
@@ -2083,7 +2057,6 @@ describe('processUIMessageStream', () => {
               "args": {
                 "city": "London",
               },
-              "partialArgs": undefined,
               "result": "test-result",
               "state": "result",
               "toolCallId": "tool-call-id",

@@ -162,7 +162,7 @@ export type ToolUIPart<TOOLS extends UITools> = ValueOf<{
   } & (
     | {
         state: 'partial-call';
-        partialArgs: DeepPartial<TOOLS[NAME]['args']>;
+        args: DeepPartial<TOOLS[NAME]['args']>;
       }
     | {
         state: 'call';

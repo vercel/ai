@@ -88,8 +88,6 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                   providerOptions: part.providerMetadata,
                 });
               } else if (isToolUIPart(part)) {
-                console.log('part', part);
-
                 const toolName = getToolName(part);
 
                 if (part.state === 'partial-call') {
