@@ -5,8 +5,8 @@ import {
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import {
-  DynamicRetrievalConfig,
   GoogleGenerativeAIModelId,
+  DynamicRetrievalConfig,
 } from './google-generative-ai-options';
 
 export function prepareTools({
@@ -46,11 +46,21 @@ export function prepareTools({
         };
       };
   toolWarnings: LanguageModelV2CallWarning[];
+  serverTools: Array<{
+    name: string;
+    id: string;
+    args: Record<string, unknown>;
+  }>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
   const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const serverTools: Array<{
+    name: string;
+    id: string;
+    args: Record<string, unknown>;
+  }> = [];
 
   const isGemini2 = modelId.includes('gemini-2');
   const supportsDynamicRetrieval =
@@ -68,17 +78,35 @@ export function prepareTools({
           },
       toolConfig: undefined,
       toolWarnings,
+      serverTools,
     };
   }
 
   if (tools == null) {
-    return { tools: undefined, toolConfig: undefined, toolWarnings };
+    return {
+      tools: undefined,
+      toolConfig: undefined,
+      toolWarnings,
+      serverTools,
+    };
   }
 
   const functionDeclarations = [];
   for (const tool of tools) {
     if (tool.type === 'provider-defined') {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
+      switch (tool.id) {
+        case 'google.search_grounding':
+        case 'google.code_execution':
+          serverTools.push({
+            name: tool.name,
+            id: tool.id,
+            args: tool.args,
+          });
+          break;
+        default:
+          toolWarnings.push({ type: 'unsupported-tool', tool });
+          break;
+      }
     } else {
       functionDeclarations.push({
         name: tool.name,
@@ -93,6 +121,7 @@ export function prepareTools({
       tools: { functionDeclarations },
       toolConfig: undefined,
       toolWarnings,
+      serverTools,
     };
   }
 
@@ -104,18 +133,21 @@ export function prepareTools({
         tools: { functionDeclarations },
         toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
         toolWarnings,
+        serverTools,
       };
     case 'none':
       return {
         tools: { functionDeclarations },
         toolConfig: { functionCallingConfig: { mode: 'NONE' } },
         toolWarnings,
+        serverTools,
       };
     case 'required':
       return {
         tools: { functionDeclarations },
         toolConfig: { functionCallingConfig: { mode: 'ANY' } },
         toolWarnings,
+        serverTools,
       };
     case 'tool':
       return {
@@ -127,6 +159,7 @@ export function prepareTools({
           },
         },
         toolWarnings,
+        serverTools,
       };
     default: {
       const _exhaustiveCheck: never = type;

@@ -14,6 +14,7 @@ import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embeddi
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import { googleTools } from './google-tools';
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
@@ -44,6 +45,11 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV2<string>;
+
+  /**
+Google-specific server-side tools.
+   */
+  tools: typeof googleTools;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -95,20 +101,13 @@ export function createGoogleGenerativeAI(
     ...options.headers,
   });
 
-  const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
+  const createLanguageModel = (modelId: GoogleGenerativeAIModelId) =>
     new GoogleGenerativeAILanguageModel(modelId, {
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
-      generateId: options.generateId ?? generateId,
-      supportedUrls: () => ({
-        '*': [
-          // Only allow requests to the Google Generative Language "files" endpoint
-          // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
-          new RegExp(`^${baseURL}/files/.*$`),
-        ],
-      }),
       fetch: options.fetch,
+      generateId: options.generateId ?? generateId,
     });
 
   const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
@@ -126,21 +125,24 @@ export function createGoogleGenerativeAI(
       );
     }
 
-    return createChatModel(modelId);
+    return createLanguageModel(modelId);
   };
 
-  provider.languageModel = createChatModel;
-  provider.chat = createChatModel;
-  provider.generativeAI = createChatModel;
-  provider.embedding = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
+  provider.languageModel = createLanguageModel;
+  provider.chat = createLanguageModel;
+  provider.generativeAI = createLanguageModel;
+
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
+  provider.embedding = createEmbeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
-  return provider;
+  provider.tools = googleTools;
+
+  return provider as GoogleGenerativeAIProvider;
 }
 
 /**

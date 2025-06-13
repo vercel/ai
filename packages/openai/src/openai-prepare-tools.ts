@@ -30,14 +30,29 @@ export function prepareTools({
     | { type: 'function'; function: { name: string } };
 
   toolWarnings: Array<LanguageModelV2CallWarning>;
+  serverTools: Array<{
+    name: string;
+    id: string;
+    args: Record<string, unknown>;
+  }>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
   const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const serverTools: Array<{
+    name: string;
+    id: string;
+    args: Record<string, unknown>;
+  }> = [];
 
   if (tools == null) {
-    return { tools: undefined, toolChoice: undefined, toolWarnings };
+    return {
+      tools: undefined,
+      toolChoice: undefined,
+      toolWarnings,
+      serverTools,
+    };
   }
 
   const openaiTools: Array<{
@@ -52,7 +67,21 @@ export function prepareTools({
 
   for (const tool of tools) {
     if (tool.type === 'provider-defined') {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
+      // Handle OpenAI server-side tools
+      switch (tool.id) {
+        case 'openai.web_search_preview':
+        case 'openai.code_interpreter':
+        case 'openai.file_search':
+          serverTools.push({
+            name: tool.name,
+            id: tool.id,
+            args: tool.args,
+          });
+          break;
+        default:
+          toolWarnings.push({ type: 'unsupported-tool', tool });
+          break;
+      }
     } else {
       openaiTools.push({
         type: 'function',
@@ -67,7 +96,12 @@ export function prepareTools({
   }
 
   if (toolChoice == null) {
-    return { tools: openaiTools, toolChoice: undefined, toolWarnings };
+    return {
+      tools: openaiTools,
+      toolChoice: undefined,
+      toolWarnings,
+      serverTools,
+    };
   }
 
   const type = toolChoice.type;
@@ -76,17 +110,21 @@ export function prepareTools({
     case 'auto':
     case 'none':
     case 'required':
-      return { tools: openaiTools, toolChoice: type, toolWarnings };
+      return {
+        tools: openaiTools,
+        toolChoice: type,
+        toolWarnings,
+        serverTools,
+      };
     case 'tool':
       return {
         tools: openaiTools,
         toolChoice: {
           type: 'function',
-          function: {
-            name: toolChoice.toolName,
-          },
+          function: { name: toolChoice.toolName },
         },
         toolWarnings,
+        serverTools,
       };
     default: {
       const _exhaustiveCheck: never = type;

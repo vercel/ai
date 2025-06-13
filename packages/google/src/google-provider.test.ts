@@ -36,7 +36,6 @@ describe('google-provider', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: expect.any(Function),
         generateId: expect.any(Function),
-        supportedUrls: expect.any(Function),
       }),
     );
   });

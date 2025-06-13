@@ -18,6 +18,31 @@ export type LanguageModelV2CallWarning =
       details?: string;
     }
   | {
+      type: 'server-tool-execution-timeout';
+      tool: LanguageModelV2ProviderDefinedTool;
+      timeoutMs: number;
+      details?: string;
+    }
+  | {
+      type: 'server-tool-capability-degraded';
+      tool: LanguageModelV2ProviderDefinedTool;
+      degradedCapability: string;
+      fallbackBehavior?: string;
+      details?: string;
+    }
+  | {
+      type: 'server-tool-rate-limited';
+      tool: LanguageModelV2ProviderDefinedTool;
+      retryAfterMs?: number;
+      details?: string;
+    }
+  | {
+      type: 'server-tool-partial-failure';
+      tool: LanguageModelV2ProviderDefinedTool;
+      partialResults?: boolean;
+      details?: string;
+    }
+  | {
       type: 'other';
       message: string;
     };
