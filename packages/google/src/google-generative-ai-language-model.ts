@@ -264,6 +264,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const usageMetadata = response.usageMetadata;
 
+    const accumulatedUsage = accumulateReasoningTokens(usageMetadata);
+
     return {
       text: getTextFromParts(parts),
       reasoning: getReasoningDetailsFromParts(parts),
@@ -277,8 +279,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         hasToolCalls: toolCalls != null && toolCalls.length > 0,
       }),
       usage: {
-        promptTokens: usageMetadata?.promptTokenCount ?? NaN,
-        completionTokens: usageMetadata?.candidatesTokenCount ?? NaN,
+        promptTokens: accumulatedUsage?.promptTokenCount ?? NaN,
+        completionTokens: accumulatedUsage?.candidatesTokenCount ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders, body: rawResponse },
@@ -348,11 +350,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
             const value = chunk.value;
 
             const usageMetadata = value.usageMetadata;
+            const accumulatedUsage = accumulateReasoningTokens(usageMetadata);
 
-            if (usageMetadata != null) {
+            if (accumulatedUsage != null) {
               usage = {
-                promptTokens: usageMetadata.promptTokenCount ?? NaN,
-                completionTokens: usageMetadata.candidatesTokenCount ?? NaN,
+                promptTokens: accumulatedUsage.promptTokenCount ?? NaN,
+                completionTokens: accumulatedUsage.candidatesTokenCount ?? NaN,
               };
             }
 
@@ -550,6 +553,28 @@ function extractSources({
       url: chunk.web.uri,
       title: chunk.web.title,
     }));
+}
+
+function accumulateReasoningTokens(
+  usage: z.infer<typeof chunkSchema>['usageMetadata'],
+) {
+  if (
+    !usage?.totalTokenCount ||
+    !usage?.candidatesTokenCount ||
+    !usage?.promptTokenCount
+  ) {
+    return usage;
+  }
+
+  const reasoningTokenCount =
+    usage.totalTokenCount -
+    (usage.candidatesTokenCount + usage.promptTokenCount);
+
+  return {
+    promptTokenCount: usage.promptTokenCount,
+    candidatesTokenCount: usage.candidatesTokenCount + reasoningTokenCount,
+    totalTokenCount: usage.totalTokenCount,
+  };
 }
 
 const contentSchema = z.object({
