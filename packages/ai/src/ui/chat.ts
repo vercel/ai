@@ -22,12 +22,9 @@ import {
 import type {
   CreateUIMessage,
   FileUIPart,
-  InferUIDataParts,
   InferUIMessageData,
   InferUIMessageMetadata,
   ToolInvocationUIPart,
-  UIDataPartSchemas,
-  UIDataTypes,
   UIDataTypesToSchemas,
   UIMessage,
 } from './ui-messages';

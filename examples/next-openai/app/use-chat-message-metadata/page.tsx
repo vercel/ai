@@ -2,12 +2,17 @@
 
 import { zodSchema } from '@ai-sdk/provider-utils';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { exampleMetadataSchema } from '../api/use-chat-message-metadata/example-metadata-schema';
+import { DefaultChatTransport, UIMessage } from 'ai';
+import {
+  ExampleMetadata,
+  exampleMetadataSchema,
+} from '../api/use-chat-message-metadata/example-metadata-schema';
 import ChatInput from '@/component/chat-input';
 
 export default function Chat() {
-  const { error, status, sendMessage, messages, reload, stop } = useChat({
+  const { error, status, sendMessage, messages, reload, stop } = useChat<
+    UIMessage<ExampleMetadata>
+  >({
     transport: new DefaultChatTransport({
       api: '/api/use-chat-message-metadata',
     }),
