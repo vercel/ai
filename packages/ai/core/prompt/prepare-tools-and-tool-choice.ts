@@ -1,6 +1,6 @@
 import {
   LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV2ProviderDefinedClientTool,
   LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
@@ -18,7 +18,9 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   activeTools: Array<keyof TOOLS> | undefined;
 }): {
   tools:
-    | Array<LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool>
+    | Array<
+        LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedClientTool
+      >
     | undefined;
   toolChoice: LanguageModelV2ToolChoice | undefined;
 } {

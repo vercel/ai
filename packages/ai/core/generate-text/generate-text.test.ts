@@ -1,7 +1,7 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV2ProviderDefinedClientTool,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -1361,7 +1361,10 @@ describe('options.abortSignal', () => {
 describe('options.activeTools', () => {
   it('should filter available tools to only the ones in activeTools', async () => {
     let tools:
-      | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+      | (
+          | LanguageModelV2FunctionTool
+          | LanguageModelV2ProviderDefinedClientTool
+        )[]
       | undefined;
 
     await generateText({

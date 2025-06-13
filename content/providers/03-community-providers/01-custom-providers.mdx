@@ -341,7 +341,7 @@ type LanguageModelV2FunctionTool = {
 Native provider capabilities exposed as tools:
 
 ```ts
-export type LanguageModelV2ProviderDefinedTool = {
+export type LanguageModelV2ProviderClientDefinedTool = {
   type: 'provider-defined';
   id: string; // e.g., 'anthropic.computer-use'
   name: string; // Human-readable name
