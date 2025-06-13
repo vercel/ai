@@ -57,6 +57,11 @@ type AnthropicContentSource =
   | {
       type: 'url';
       url: string;
+    }
+  | {
+      type: 'text';
+      media_type: 'text/plain';
+      data: string;
     };
 
 export interface AnthropicImageContent {
