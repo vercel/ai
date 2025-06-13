@@ -235,7 +235,7 @@ describe('data protocol stream', () => {
     controller.write(
       formatStreamPart({
         type: 'finish',
-        metadata: {
+        messageMetadata: {
           example: 'metadata',
         },
       }),
