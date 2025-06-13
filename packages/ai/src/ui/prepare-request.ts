@@ -1,11 +1,8 @@
-import { UIDataTypes, UIMessage } from './ui-messages';
+import { UIMessage } from './ui-messages';
 
-export type PrepareRequest<
-  MESSAGE_METADATA,
-  DATA_TYPES extends UIDataTypes,
-> = (options: {
+export type PrepareRequest<UI_MESSAGE extends UIMessage> = (options: {
   id: string;
-  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  messages: UI_MESSAGE[];
   requestMetadata: unknown;
   body: Record<string, any> | undefined;
   credentials: RequestCredentials | undefined;

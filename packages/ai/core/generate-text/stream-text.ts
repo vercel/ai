@@ -1459,7 +1459,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     originalMessages,
     onFinish,
     messageMetadata,
-    sendReasoning = false,
+    sendReasoning = true,
     sendSources = false,
     sendStart = true,
     sendFinish = true,
@@ -1481,6 +1481,8 @@ However, the LLM results are expected to be small enough to not cause issues.
         >
       >({
         transform: async (part, controller) => {
+          const messageMetadataValue = messageMetadata?.({ part });
+
           const partType = part.type;
           switch (partType) {
             case 'text': {
@@ -1588,31 +1590,21 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'start-step': {
-              const metadata = messageMetadata?.({ part });
-              controller.enqueue({
-                type: 'start-step',
-                metadata,
-              });
+              controller.enqueue({ type: 'start-step' });
               break;
             }
 
             case 'finish-step': {
-              const metadata = messageMetadata?.({ part });
-              controller.enqueue({
-                type: 'finish-step',
-                metadata,
-              });
-
+              controller.enqueue({ type: 'finish-step' });
               break;
             }
 
             case 'start': {
               if (sendStart) {
-                const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'start',
                   messageId: responseMessageId,
-                  metadata,
+                  messageMetadata: messageMetadataValue,
                 });
               }
               break;
@@ -1620,10 +1612,9 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'finish': {
               if (sendFinish) {
-                const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'finish',
-                  metadata,
+                  messageMetadata: messageMetadataValue,
                 });
               }
               break;
@@ -1639,6 +1630,19 @@ However, the LLM results are expected to be small enough to not cause issues.
               const exhaustiveCheck: never = partType;
               throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
             }
+          }
+
+          // start and finish events already have metadata
+          // so we only need to send metadata for other parts
+          if (
+            messageMetadataValue != null &&
+            partType !== 'start' &&
+            partType !== 'finish'
+          ) {
+            controller.enqueue({
+              type: 'message-metadata',
+              messageMetadata: messageMetadataValue,
+            });
           }
         },
       }),

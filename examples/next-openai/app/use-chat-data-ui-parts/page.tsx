@@ -2,22 +2,26 @@
 
 import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { z } from 'zod';
+import { DefaultChatTransport, UIMessage } from 'ai';
+
+type MyMessage = UIMessage<
+  never,
+  {
+    weather: {
+      city: string;
+      weather: string;
+      status: 'loading' | 'success';
+    };
+  }
+>;
 
 export default function Chat() {
-  const { error, status, sendMessage, messages, reload, stop } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/use-chat-data-ui-parts',
-    }),
-    dataPartSchemas: {
-      weather: z.object({
-        city: z.string(),
-        weather: z.string(),
-        status: z.enum(['loading', 'success']),
+  const { error, status, sendMessage, messages, reload, stop } =
+    useChat<MyMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/use-chat-data-ui-parts',
       }),
-    },
-  });
+    });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

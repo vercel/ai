@@ -235,7 +235,7 @@ describe('data protocol stream', () => {
     controller.write(
       formatStreamPart({
         type: 'finish',
-        metadata: {
+        messageMetadata: {
           example: 'metadata',
         },
       }),
@@ -1929,7 +1929,9 @@ describe('reload', () => {
 
 describe('test sending additional fields during message submission', () => {
   setupTestComponent(() => {
-    const { messages, sendMessage } = useChat({
+    type Message = UIMessage<{ test: string }>;
+
+    const { messages, sendMessage } = useChat<Message>({
       generateId: mockId(),
     });
 

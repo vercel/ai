@@ -1,5 +1,4 @@
 import {
-  IdGenerator,
   StandardSchemaV1,
   ToolCall,
   validateTypes,
@@ -20,7 +19,6 @@ import type {
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
-  UIDataTypes,
   UIDataTypesToSchemas,
   UIMessage,
   UIMessagePart,
@@ -36,26 +34,23 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   >;
 };
 
-export function createStreamingUIMessageState<
-  MESSAGE_METADATA = unknown,
-  UI_DATA_TYPES extends UIDataTypes = UIDataTypes,
->({
+export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
   messageId,
 }: {
-  lastMessage: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES> | undefined;
+  lastMessage: UI_MESSAGE | undefined;
   messageId: string;
-}): StreamingUIMessageState<UIMessage<MESSAGE_METADATA, UI_DATA_TYPES>> {
+}): StreamingUIMessageState<UI_MESSAGE> {
   return {
     message:
       lastMessage?.role === 'assistant'
         ? lastMessage
-        : {
+        : ({
             id: messageId,
             metadata: undefined,
             role: 'assistant',
-            parts: [],
-          },
+            parts: [] as UIMessagePart<InferUIMessageData<UI_MESSAGE>>[],
+          } as UI_MESSAGE),
     activeTextPart: undefined,
     activeReasoningPart: undefined,
     partialToolCalls: {},
@@ -80,12 +75,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   }) => void | Promise<unknown> | unknown;
   runUpdateMessageJob: (
     job: (options: {
-      state: StreamingUIMessageState<
-        UIMessage<
-          InferUIMessageMetadata<UI_MESSAGE>,
-          InferUIMessageData<UI_MESSAGE>
-        >
-      >;
+      state: StreamingUIMessageState<UI_MESSAGE>;
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
@@ -320,9 +310,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'start-step': {
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
-
-              await updateMessageMetadata(part.metadata);
-              write();
               break;
             }
 
@@ -330,11 +317,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // reset the current text and reasoning parts
               state.activeTextPart = undefined;
               state.activeReasoningPart = undefined;
-
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
-                write();
-              }
               break;
             }
 
@@ -343,25 +325,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state.message.id = part.messageId;
               }
 
-              await updateMessageMetadata(part.metadata);
+              await updateMessageMetadata(part.messageMetadata);
 
-              if (part.messageId != null || part.metadata != null) {
+              if (part.messageId != null || part.messageMetadata != null) {
                 write();
               }
               break;
             }
 
             case 'finish': {
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
+              await updateMessageMetadata(part.messageMetadata);
+              if (part.messageMetadata != null) {
                 write();
               }
               break;
             }
 
-            case 'metadata': {
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
+            case 'message-metadata': {
+              await updateMessageMetadata(part.messageMetadata);
+              if (part.messageMetadata != null) {
                 write();
               }
               break;

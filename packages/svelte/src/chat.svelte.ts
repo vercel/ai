@@ -4,18 +4,15 @@ import {
   type ChatState,
   type ChatStatus,
   type CreateUIMessage,
-  type UIDataPartSchemas,
-  type UIDataTypes,
   type UIMessage,
 } from 'ai';
 
 export type { CreateUIMessage, UIMessage };
 
 export class Chat<
-  MESSAGE_METADATA = unknown,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> extends AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS> {
-  constructor(init: ChatInit<MESSAGE_METADATA, DATA_PART_SCHEMAS>) {
+  UI_MESSAGE extends UIMessage = UIMessage,
+> extends AbstractChat<UI_MESSAGE> {
+  constructor(init: ChatInit<UI_MESSAGE>) {
     super({
       ...init,
       state: new SvelteChatState(init.messages),
@@ -23,22 +20,22 @@ export class Chat<
   }
 }
 
-class SvelteChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
-  implements ChatState<MESSAGE_METADATA, DATA_TYPES>
+class SvelteChatState<UI_MESSAGE extends UIMessage>
+  implements ChatState<UI_MESSAGE>
 {
-  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  messages: UI_MESSAGE[];
   status = $state<ChatStatus>('ready');
   error = $state<Error | undefined>(undefined);
 
-  constructor(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[] = []) {
+  constructor(messages: UI_MESSAGE[] = []) {
     this.messages = $state(messages);
   }
 
-  setMessages = (messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) => {
+  setMessages = (messages: UI_MESSAGE[]) => {
     this.messages = messages;
   };
 
-  pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
+  pushMessage = (message: UI_MESSAGE) => {
     this.messages.push(message);
   };
 
@@ -46,10 +43,7 @@ class SvelteChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     this.messages.pop();
   };
 
-  replaceMessage = (
-    index: number,
-    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
-  ) => {
+  replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.messages[index] = message;
   };
 
