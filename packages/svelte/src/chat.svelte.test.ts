@@ -152,7 +152,7 @@ describe('data protocol stream', () => {
         formatStreamPart({ type: 'text', text: '.' }),
         formatStreamPart({
           type: 'finish',
-          metadata: {
+          messageMetadata: {
             example: 'metadata',
           },
         }),

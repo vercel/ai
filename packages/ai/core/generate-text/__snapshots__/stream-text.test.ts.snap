@@ -61,11 +61,10 @@ exports[`streamText > multiple stream consumption > should support text stream, 
   "uiMessageStream": [
     {
       "messageId": undefined,
-      "metadata": undefined,
+      "messageMetadata": undefined,
       "type": "start",
     },
     {
-      "metadata": undefined,
       "type": "start-step",
     },
     {
@@ -81,11 +80,10 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "type": "text",
     },
     {
-      "metadata": undefined,
       "type": "finish-step",
     },
     {
-      "metadata": undefined,
+      "messageMetadata": undefined,
       "type": "finish",
     },
   ],
@@ -3214,11 +3212,10 @@ exports[`streamText > result.toUIMessageStream > should create a data stream 1`]
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3234,11 +3231,10 @@ exports[`streamText > result.toUIMessageStream > should create a data stream 1`]
     "type": "text",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -3248,11 +3244,10 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3260,11 +3255,10 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
     "type": "error",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -3274,11 +3268,10 @@ exports[`streamText > result.toUIMessageStream > should omit message finish even
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3286,7 +3279,6 @@ exports[`streamText > result.toUIMessageStream > should omit message finish even
     "type": "text",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
 ]
@@ -3295,7 +3287,6 @@ exports[`streamText > result.toUIMessageStream > should omit message finish even
 exports[`streamText > result.toUIMessageStream > should omit message start event when sendStart is false 1`] = `
 [
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3303,11 +3294,10 @@ exports[`streamText > result.toUIMessageStream > should omit message start event
     "type": "text",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -3317,11 +3307,10 @@ exports[`streamText > result.toUIMessageStream > should send document source con
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3353,11 +3342,10 @@ exports[`streamText > result.toUIMessageStream > should send document source con
     "type": "source-document",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -3367,11 +3355,10 @@ exports[`streamText > result.toUIMessageStream > should send file content 1`] = 
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3389,11 +3376,10 @@ exports[`streamText > result.toUIMessageStream > should send file content 1`] = 
     "url": "data:image/jpeg;base64,QkFVRw==",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -3403,11 +3389,10 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3475,11 +3460,10 @@ exports[`streamText > result.toUIMessageStream > should send reasoning content w
     "type": "text",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -3489,11 +3473,10 @@ exports[`streamText > result.toUIMessageStream > should send source content when
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3523,11 +3506,10 @@ exports[`streamText > result.toUIMessageStream > should send source content when
     "url": "https://example.com/2",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -3537,11 +3519,10 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3573,11 +3554,10 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "type": "tool-result",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]
@@ -3587,11 +3567,10 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
 [
   {
     "messageId": undefined,
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "start",
   },
   {
-    "metadata": undefined,
     "type": "start-step",
   },
   {
@@ -3599,11 +3578,10 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
     "type": "error",
   },
   {
-    "metadata": undefined,
     "type": "finish-step",
   },
   {
-    "metadata": undefined,
+    "messageMetadata": undefined,
     "type": "finish",
   },
 ]

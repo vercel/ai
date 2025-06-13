@@ -52,9 +52,7 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * Called on `start` and `finish` events.
    */
   messageMetadata?: (options: {
-    part: TextStreamPart<ToolSet> & {
-      type: 'start' | 'finish' | 'start-step' | 'finish-step';
-    };
+    part: TextStreamPart<ToolSet>;
   }) => InferUIMessageMetadata<UI_MESSAGE> | undefined;
 
   /**

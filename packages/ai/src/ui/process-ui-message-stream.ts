@@ -320,9 +320,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'start-step': {
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
-
-              await updateMessageMetadata(part.metadata);
-              write();
               break;
             }
 
@@ -330,11 +327,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // reset the current text and reasoning parts
               state.activeTextPart = undefined;
               state.activeReasoningPart = undefined;
-
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
-                write();
-              }
               break;
             }
 
@@ -343,25 +335,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state.message.id = part.messageId;
               }
 
-              await updateMessageMetadata(part.metadata);
+              await updateMessageMetadata(part.messageMetadata);
 
-              if (part.messageId != null || part.metadata != null) {
+              if (part.messageId != null || part.messageMetadata != null) {
                 write();
               }
               break;
             }
 
             case 'finish': {
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
+              await updateMessageMetadata(part.messageMetadata);
+              if (part.messageMetadata != null) {
                 write();
               }
               break;
             }
 
-            case 'metadata': {
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
+            case 'message-metadata': {
+              await updateMessageMetadata(part.messageMetadata);
+              if (part.messageMetadata != null) {
                 write();
               }
               break;
