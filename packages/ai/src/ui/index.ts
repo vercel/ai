@@ -29,6 +29,7 @@ export {
   type UIMessage,
   type UIMessagePart,
   isToolUIPart,
+  getToolName,
 } from './ui-messages';
 export {
   type CompletionRequestOptions,

@@ -2,6 +2,7 @@
 
 import { Card } from '@/app/components';
 import { useChat } from '@ai-sdk/react';
+import { getToolName, isToolUIPart } from 'ai';
 import { GeistMono } from 'geist/font/mono';
 import { useState } from 'react';
 
@@ -18,23 +19,21 @@ export default function Page() {
 
             <div className="flex flex-col gap-2">
               {message.parts.map((part, index) => {
-                switch (part.type) {
-                  case 'text':
-                    return <div key={index}>{part.text}</div>;
-                  case 'tool-invocation': {
-                    return (
-                      <div
-                        key={index}
-                        className={`${GeistMono.className} text-sm text-zinc-500 bg-zinc-100 p-3 rounded-lg`}
-                      >
-                        {`${part.toolInvocation.toolName}(${JSON.stringify(
-                          part.toolInvocation.args,
-                          null,
-                          2,
-                        )})`}
-                      </div>
-                    );
-                  }
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                } else if (isToolUIPart(part)) {
+                  return (
+                    <div
+                      key={index}
+                      className={`${GeistMono.className} text-sm text-zinc-500 bg-zinc-100 p-3 rounded-lg`}
+                    >
+                      {`${getToolName(part)}(${JSON.stringify(
+                        part.args,
+                        null,
+                        2,
+                      )})`}
+                    </div>
+                  );
                 }
               })}
             </div>
