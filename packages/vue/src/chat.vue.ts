@@ -3,30 +3,26 @@ import {
   ChatInit as BaseChatInit,
   ChatState,
   ChatStatus,
-  UIDataPartSchemas,
-  UIDataTypes,
   UIMessage,
 } from 'ai';
 import { Ref, ref } from 'vue';
 
-class VueChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
-  implements ChatState<MESSAGE_METADATA, DATA_TYPES>
+class VueChatState<UI_MESSAGE extends UIMessage>
+  implements ChatState<UI_MESSAGE>
 {
-  private messagesRef: Ref<UIMessage<MESSAGE_METADATA, DATA_TYPES>[]>;
+  private messagesRef: Ref<UI_MESSAGE[]>;
   private statusRef = ref<ChatStatus>('ready');
   private errorRef = ref<Error | undefined>(undefined);
 
-  constructor(messages?: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
-    this.messagesRef = ref(messages ?? []) as Ref<
-      UIMessage<MESSAGE_METADATA, DATA_TYPES>[]
-    >;
+  constructor(messages?: UI_MESSAGE[]) {
+    this.messagesRef = ref(messages ?? []) as Ref<UI_MESSAGE[]>;
   }
 
-  get messages(): UIMessage<MESSAGE_METADATA, DATA_TYPES>[] {
+  get messages(): UI_MESSAGE[] {
     return this.messagesRef.value;
   }
 
-  set messages(messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
+  set messages(messages: UI_MESSAGE[]) {
     this.messagesRef.value = messages;
   }
 
@@ -46,7 +42,7 @@ class VueChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     this.errorRef.value = error;
   }
 
-  pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
+  pushMessage = (message: UI_MESSAGE) => {
     this.messagesRef.value.push(message);
   };
 
@@ -54,10 +50,7 @@ class VueChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     this.messagesRef.value.pop();
   };
 
-  replaceMessage = (
-    index: number,
-    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
-  ) => {
+  replaceMessage = (index: number, message: UI_MESSAGE) => {
     // message is cloned here because vue's deep reactivity shows unexpected behavior, particularly when updating tool invocation parts
     this.messagesRef.value[index] = { ...message };
   };
@@ -66,13 +59,9 @@ class VueChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
 }
 
 export class Chat<
-  MESSAGE_METADATA,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> extends AbstractChat<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
-  constructor({
-    messages,
-    ...init
-  }: BaseChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
+  UI_MESSAGE extends UIMessage,
+> extends AbstractChat<UI_MESSAGE> {
+  constructor({ messages, ...init }: BaseChatInit<UI_MESSAGE>) {
     super({
       ...init,
       state: new VueChatState(messages),
