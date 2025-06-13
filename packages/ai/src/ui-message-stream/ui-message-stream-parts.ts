@@ -143,6 +143,9 @@ export type UIMessageStreamPart<
       providerMetadata?: ProviderMetadata;
     }
   | {
+      type: 'reasoning-part-finish';
+    }
+  | {
       type: 'source-url';
       sourceId: string;
       url: string;
@@ -164,28 +167,23 @@ export type UIMessageStreamPart<
     }
   | DataUIMessageStreamPart<DATA_TYPES>
   | {
-      type: 'metadata';
-      metadata: METADATA;
-    }
-  | {
       type: 'start-step';
-      metadata?: METADATA;
     }
   | {
       type: 'finish-step';
-      metadata?: METADATA;
     }
   | {
       type: 'start';
       messageId?: string;
-      metadata?: METADATA;
+      messageMetadata?: METADATA;
     }
   | {
       type: 'finish';
-      metadata?: METADATA;
+      messageMetadata?: METADATA;
     }
   | {
-      type: 'reasoning-part-finish';
+      type: 'message-metadata';
+      messageMetadata: METADATA;
     };
 
 export function isDataUIMessageStreamPart(

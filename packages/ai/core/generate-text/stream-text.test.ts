@@ -1217,6 +1217,9 @@ describe('streamText', () => {
           { key2: 'value2' },
           { key3: 'value3' },
           { key4: 'value4' },
+          { key5: 'value5' },
+          { key6: 'value6' },
+          { key7: 'value7' },
         ),
       });
 
@@ -1225,38 +1228,62 @@ describe('streamText', () => {
           [
             {
               "messageId": undefined,
-              "metadata": {
+              "messageMetadata": {
                 "key1": "value1",
               },
               "type": "start",
             },
             {
-              "metadata": {
+              "type": "start-step",
+            },
+            {
+              "messageMetadata": {
                 "key2": "value2",
               },
-              "type": "start-step",
+              "type": "message-metadata",
             },
             {
               "text": "Hello",
               "type": "text",
             },
             {
+              "messageMetadata": {
+                "key3": "value3",
+              },
+              "type": "message-metadata",
+            },
+            {
               "text": ", ",
               "type": "text",
+            },
+            {
+              "messageMetadata": {
+                "key4": "value4",
+              },
+              "type": "message-metadata",
             },
             {
               "text": "world!",
               "type": "text",
             },
             {
-              "metadata": {
-                "key3": "value3",
+              "messageMetadata": {
+                "key5": "value5",
               },
+              "type": "message-metadata",
+            },
+            {
               "type": "finish-step",
             },
             {
-              "metadata": {
-                "key4": "value4",
+              "messageMetadata": {
+                "key6": "value6",
+              },
+              "type": "message-metadata",
+            },
+            {
+              "messageMetadata": {
+                "key7": "value7",
               },
               "type": "finish",
             },
@@ -2643,11 +2670,10 @@ describe('streamText', () => {
             [
               {
                 "messageId": undefined,
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "start",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
               },
               {
@@ -2669,11 +2695,9 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
               },
               {
@@ -2685,11 +2709,10 @@ describe('streamText', () => {
                 "type": "text",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -4255,11 +4278,10 @@ describe('streamText', () => {
             [
               {
                 "messageId": undefined,
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "start",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
               },
               {
@@ -4281,11 +4303,9 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
               },
               {
@@ -4297,11 +4317,10 @@ describe('streamText', () => {
                 "type": "text",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
