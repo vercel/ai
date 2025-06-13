@@ -47,7 +47,7 @@ export type Tool<
   /**
 An optional description of what the tool does.
 Will be used by the language model to decide whether to use the tool.
-Not used for provider-defined tools.
+Not used for provider-defined-client tools.
    */
   description?: string;
 } & NeverOptional<
@@ -119,9 +119,9 @@ Function tool.
       }
     | {
         /**
-Provider-defined tool.
+Provider-defined-client tool.
      */
-        type: 'provider-defined';
+        type: 'provider-defined-client';
 
         /**
 The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.

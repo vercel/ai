@@ -39,7 +39,7 @@ function bashTool_20241022<RESULT>(
     experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
   } = {},
 ): {
-  type: 'provider-defined';
+  type: 'provider-defined-client';
   id: 'anthropic.bash_20241022';
   args: {};
   parameters: typeof Bash20241022Parameters;
@@ -47,7 +47,7 @@ function bashTool_20241022<RESULT>(
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     id: 'anthropic.bash_20241022',
     args: {},
     parameters: Bash20241022Parameters,
@@ -87,7 +87,7 @@ function bashTool_20250124<RESULT>(
     experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
   } = {},
 ): {
-  type: 'provider-defined';
+  type: 'provider-defined-client';
   id: 'anthropic.bash_20250124';
   args: {};
   parameters: typeof Bash20250124Parameters;
@@ -95,7 +95,7 @@ function bashTool_20250124<RESULT>(
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     id: 'anthropic.bash_20250124',
     args: {},
     parameters: Bash20250124Parameters,
@@ -165,7 +165,7 @@ function textEditorTool_20241022<RESULT>(
     experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
   } = {},
 ): {
-  type: 'provider-defined';
+  type: 'provider-defined-client';
   id: 'anthropic.text_editor_20241022';
   args: {};
   parameters: typeof TextEditor20241022Parameters;
@@ -176,7 +176,7 @@ function textEditorTool_20241022<RESULT>(
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     id: 'anthropic.text_editor_20241022',
     args: {},
     parameters: TextEditor20241022Parameters,
@@ -246,7 +246,7 @@ function textEditorTool_20250124<RESULT>(
     experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
   } = {},
 ): {
-  type: 'provider-defined';
+  type: 'provider-defined-client';
   id: 'anthropic.text_editor_20250124';
   args: {};
   parameters: typeof TextEditor20250124Parameters;
@@ -257,7 +257,7 @@ function textEditorTool_20250124<RESULT>(
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     id: 'anthropic.text_editor_20250124',
     args: {},
     parameters: TextEditor20250124Parameters,
@@ -340,7 +340,7 @@ function computerTool_20241022<RESULT>(options: {
   >;
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 }): {
-  type: 'provider-defined';
+  type: 'provider-defined-client';
   id: 'anthropic.computer_20241022';
   args: {};
   parameters: typeof Computer20241022Parameters;
@@ -348,7 +348,7 @@ function computerTool_20241022<RESULT>(options: {
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     id: 'anthropic.computer_20241022',
     args: {
       displayWidthPx: options.displayWidthPx,
@@ -476,7 +476,7 @@ function computerTool_20250124<RESULT>(options: {
   >;
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 }): {
-  type: 'provider-defined';
+  type: 'provider-defined-client';
   id: 'anthropic.computer_20250124';
   args: {};
   parameters: typeof Computer20250124Parameters;
@@ -484,7 +484,7 @@ function computerTool_20250124<RESULT>(options: {
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     id: 'anthropic.computer_20250124',
     args: {
       displayWidthPx: options.displayWidthPx,

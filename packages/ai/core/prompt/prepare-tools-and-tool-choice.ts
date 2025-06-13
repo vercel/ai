@@ -51,9 +51,9 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
             description: tool.description,
             parameters: asSchema(tool.parameters).jsonSchema,
           };
-        case 'provider-defined':
+        case 'provider-defined-client':
           return {
-            type: 'provider-defined' as const,
+            type: 'provider-defined-client' as const,
             name,
             id: tool.id,
             args: tool.args,

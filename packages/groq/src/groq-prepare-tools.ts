@@ -48,7 +48,7 @@ export function prepareTools({
   }> = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
+    if (tool.type === 'provider-defined-client') {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
       groqTools.push({
