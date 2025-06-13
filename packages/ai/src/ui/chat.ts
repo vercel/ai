@@ -253,7 +253,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             ? [{ type: 'text' as const, text: message.text }]
             : []),
         ],
-      };
+      } as UI_MESSAGE;
     } else {
       uiMessage = message;
     }

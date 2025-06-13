@@ -1,8 +1,6 @@
 import {
   AbstractChat,
   ChatInit,
-  InferUIDataParts,
-  UIDataPartSchemas,
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
@@ -11,10 +9,7 @@ import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
 
-export type UseChatHelpers<
-  MESSAGE_METADATA = unknown,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = {
+export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   /**
    * The id of the chat.
    */
@@ -26,22 +21,12 @@ export type UseChatHelpers<
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages:
-      | UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[]
-      | ((
-          messages: UIMessage<
-            MESSAGE_METADATA,
-            InferUIDataParts<DATA_PART_SCHEMAS>
-          >[],
-        ) => UIMessage<
-          MESSAGE_METADATA,
-          InferUIDataParts<DATA_PART_SCHEMAS>
-        >[]),
+    messages: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
   ) => void;
 
   error: Error | undefined;
 } & Pick<
-  AbstractChat<MESSAGE_METADATA, DATA_PART_SCHEMAS>,
+  AbstractChat<UI_MESSAGE>,
   | 'sendMessage'
   | 'reload'
   | 'stop'
@@ -51,12 +36,9 @@ export type UseChatHelpers<
   | 'messages'
 >;
 
-export type UseChatOptions<
-  MESSAGE_METADATA = unknown,
-  DATA_TYPE_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = (
-  | { chat: Chat<MESSAGE_METADATA, DATA_TYPE_SCHEMAS> }
-  | ChatInit<MESSAGE_METADATA, DATA_TYPE_SCHEMAS>
+export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
+  | { chat: Chat<UI_MESSAGE> }
+  | ChatInit<UI_MESSAGE>
 ) & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
@@ -65,16 +47,10 @@ Default is undefined, which disables throttling.
   experimental_throttle?: number;
 };
 
-export function useChat<
-  MESSAGE_METADATA = unknown,
-  DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
->({
+export function useChat<UI_MESSAGE extends UIMessage>({
   experimental_throttle: throttleWaitMs,
   ...options
-}: UseChatOptions<MESSAGE_METADATA, DATA_PART_SCHEMAS> = {}): UseChatHelpers<
-  MESSAGE_METADATA,
-  DATA_PART_SCHEMAS
-> {
+}: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
   const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
 
   const subscribeToMessages = useCallback(
@@ -103,17 +79,7 @@ export function useChat<
 
   const setMessages = useCallback(
     (
-      messagesParam:
-        | UIMessage<MESSAGE_METADATA, InferUIDataParts<DATA_PART_SCHEMAS>>[]
-        | ((
-            messages: UIMessage<
-              MESSAGE_METADATA,
-              InferUIDataParts<DATA_PART_SCHEMAS>
-            >[],
-          ) => UIMessage<
-            MESSAGE_METADATA,
-            InferUIDataParts<DATA_PART_SCHEMAS>
-          >[]),
+      messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
     ) => {
       if (typeof messagesParam === 'function') {
         messagesParam = messagesParam(messages);

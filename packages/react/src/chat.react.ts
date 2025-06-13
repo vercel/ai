@@ -16,10 +16,10 @@ type SubscriptionRegistrars = {
   '~registerErrorCallback': (onChange: () => void) => () => void;
 };
 
-class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
-  implements ChatState<MESSAGE_METADATA, DATA_TYPES>
+class ReactChatState<UI_MESSAGE extends UIMessage>
+  implements ChatState<UI_MESSAGE>
 {
-  #messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
+  #messages: UI_MESSAGE[];
   #status: ChatStatus = 'ready';
   #error: Error | undefined = undefined;
 
@@ -27,7 +27,7 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   #statusCallbacks = new Set<() => void>();
   #errorCallbacks = new Set<() => void>();
 
-  constructor(initialMessages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[] = []) {
+  constructor(initialMessages: UI_MESSAGE[] = []) {
     this.#messages = initialMessages;
   }
 
@@ -49,16 +49,16 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     this.#callErrorCallbacks();
   }
 
-  get messages(): UIMessage<MESSAGE_METADATA, DATA_TYPES>[] {
+  get messages(): UI_MESSAGE[] {
     return this.#messages;
   }
 
-  set messages(newMessages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[]) {
+  set messages(newMessages: UI_MESSAGE[]) {
     this.#messages = [...newMessages];
     this.#callMessagesCallbacks();
   }
 
-  pushMessage = (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => {
+  pushMessage = (message: UI_MESSAGE) => {
     this.#messages = this.#messages.concat(message);
     this.#callMessagesCallbacks();
   };
@@ -68,10 +68,7 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
     this.#callMessagesCallbacks();
   };
 
-  replaceMessage = (
-    index: number,
-    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
-  ) => {
+  replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.#messages = [
       ...this.#messages.slice(0, index),
       message,
@@ -122,22 +119,13 @@ class ReactChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes>
   };
 }
 
-export class Chat<
-    MESSAGE_METADATA,
-    UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-  >
-  extends AbstractChat<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>
+export class Chat<UI_MESSAGE extends UIMessage>
+  extends AbstractChat<UI_MESSAGE>
   implements SubscriptionRegistrars
 {
-  #state: ReactChatState<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >;
+  #state: ReactChatState<UI_MESSAGE>;
 
-  constructor({
-    messages,
-    ...init
-  }: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>) {
+  constructor({ messages, ...init }: ChatInit<UI_MESSAGE>) {
     const state = new ReactChatState(messages);
     super({ ...init, state });
     this.#state = state;

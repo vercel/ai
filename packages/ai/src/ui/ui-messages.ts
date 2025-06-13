@@ -197,10 +197,10 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateUIMessage<
-  METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
-> = Omit<UIMessage<METADATA, DATA_TYPES>, 'id' | 'role'> & {
-  id?: UIMessage<METADATA, DATA_TYPES>['id'];
-  role?: UIMessage<METADATA, DATA_TYPES>['role'];
+export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
+  UI_MESSAGE,
+  'id' | 'role'
+> & {
+  id?: UI_MESSAGE['id'];
+  role?: UI_MESSAGE['role'];
 };
