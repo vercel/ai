@@ -204,7 +204,53 @@ describe('user messages', () => {
     });
   });
 
-  it('should throw error for non-PDF file types', async () => {
+  it('should add text file parts for text/plain documents', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: Buffer.from('sample text content', 'utf-8').toString(
+                'base64',
+              ),
+              mediaType: 'text/plain',
+              filename: 'sample.txt',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'text',
+                  media_type: 'text/plain',
+                  data: 'sample text content',
+                },
+                title: 'sample.txt',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should throw error for unsupported file types', async () => {
     await expect(
       convertToAnthropicMessagesPrompt({
         prompt: [
@@ -214,7 +260,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'base64data',
-                mediaType: 'text/plain',
+                mediaType: 'video/mp4',
               },
             ],
           },
@@ -222,7 +268,7 @@ describe('user messages', () => {
         sendReasoning: true,
         warnings: [],
       }),
-    ).rejects.toThrow('media type: text/plain');
+    ).rejects.toThrow('media type: video/mp4');
   });
 });
 

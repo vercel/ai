@@ -1,5 +1,6 @@
 import {
   LanguageModelV2CallWarning,
+  LanguageModelV2DataContent,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
   SharedV2ProviderMetadata,
@@ -14,6 +15,26 @@ import {
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+
+function convertToString(data: LanguageModelV2DataContent): string {
+  if (typeof data === 'string') {
+    return Buffer.from(data, 'base64').toString('utf-8');
+  }
+
+  if (data instanceof Uint8Array) {
+    return new TextDecoder().decode(data);
+  }
+
+  if (data instanceof URL) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'URL-based text documents are not supported for citations',
+    });
+  }
+
+  throw new UnsupportedFunctionalityError({
+    functionality: `unsupported data type for text documents: ${typeof data}`,
+  });
+}
 
 export async function convertToAnthropicMessagesPrompt({
   prompt,
@@ -172,6 +193,35 @@ export async function convertToAnthropicMessagesPrompt({
                                 type: 'base64',
                                 media_type: 'application/pdf',
                                 data: convertToBase64(part.data),
+                              },
+                        title: metadata.title ?? part.filename,
+                        ...(metadata.context && { context: metadata.context }),
+                        ...(enableCitations && {
+                          citations: { enabled: true },
+                        }),
+                        cache_control: cacheControl,
+                      });
+                    } else if (part.mediaType === 'text/plain') {
+                      const enableCitations = await shouldEnableCitations(
+                        part.providerOptions,
+                      );
+
+                      const metadata = await getDocumentMetadata(
+                        part.providerOptions,
+                      );
+
+                      anthropicContent.push({
+                        type: 'document',
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'text',
+                                media_type: 'text/plain',
+                                data: convertToString(part.data),
                               },
                         title: metadata.title ?? part.filename,
                         ...(metadata.context && { context: metadata.context }),

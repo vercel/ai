@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
+import { type DocumentCitation } from './anthropic-messages-language-model';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -37,14 +38,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         | {
             type: 'text';
             text: string;
-            citations?: Array<{
-              type: 'page_location';
-              cited_text: string;
-              document_index: number;
-              document_title: string;
-              start_page_number: number;
-              end_page_number: number;
-            }>;
+            citations?: Array<DocumentCitation>;
           }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
@@ -732,6 +726,82 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "sourceType": "document",
             "title": "Financial Report 2023",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should process text citation responses', async () => {
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-text-citation-id',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      prepareJsonResponse({
+        content: [
+          {
+            type: 'text',
+            text: 'The text shows important information.',
+            citations: [
+              {
+                type: 'char_location',
+                cited_text: 'important information',
+                document_index: 0,
+                document_title: 'Test Document',
+                start_char_index: 15,
+                end_char_index: 35,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await modelWithMockId.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'VGVzdCBkb2N1bWVudCBjb250ZW50',
+                mediaType: 'text/plain',
+                filename: 'test.txt',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What does this say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "The text shows important information.",
+            "type": "text",
+          },
+          {
+            "filename": "test.txt",
+            "id": "test-text-citation-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "important information",
+                "endCharIndex": 35,
+                "startCharIndex": 15,
+              },
+            },
+            "sourceType": "document",
+            "title": "Test Document",
             "type": "source",
           },
         ]

@@ -1,13 +1,8 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 import 'dotenv/config';
 
 async function main() {
-  const pdfPath = resolve(process.cwd(), 'data', 'ai.pdf');
-  const pdfBase64 = readFileSync(pdfPath).toString('base64');
-
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-20241022'),
     messages: [
@@ -16,16 +11,16 @@ async function main() {
         content: [
           {
             type: 'text',
-            text: 'What is generative AI? Use citations.',
+            text: 'What color is the grass? Use citations.',
           },
           {
             type: 'file',
-            data: `data:application/pdf;base64,${pdfBase64}`,
-            mediaType: 'application/pdf',
+            mediaType: 'text/plain',
+            data: 'The grass is green in spring and summer. The sky is blue during clear weather.',
             providerOptions: {
               anthropic: {
                 citations: { enabled: true },
-                title: 'AI Documentation',
+                title: 'Nature Facts',
               },
             },
           },
@@ -44,7 +39,7 @@ async function main() {
     ) {
       const meta = citation.providerMetadata.anthropic;
       console.log(
-        `\n[${i + 1}] "${meta.citedText}" (Pages: ${meta.startPageNumber}-${meta.endPageNumber})`,
+        `\n[${i + 1}] "${meta.citedText}" (chars: ${meta.startCharIndex}-${meta.endCharIndex})`,
       );
     }
   });
