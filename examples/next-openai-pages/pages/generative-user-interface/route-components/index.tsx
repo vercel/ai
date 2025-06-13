@@ -1,5 +1,5 @@
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, getToolInvocations, ToolInvocation } from 'ai';
+import { DefaultChatTransport, isToolUIPart, ToolUIPart } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
@@ -18,7 +18,7 @@ export default function Page() {
     },
   });
 
-  const renderToolResult = (tool: ToolInvocation) => {
+  const renderToolResult = (tool: ToolUIPart) => {
     const toolCallId = tool.toolCallId;
 
     // render confirmation tool (client-side tool with user interaction)
@@ -113,11 +113,10 @@ export default function Page() {
             }: `}</div>
             <div className="w-full">
               {message.parts.map((part, index) => {
-                switch (part.type) {
-                  case 'text':
-                    return <div key={index}>{part.text}</div>;
-                  case 'tool-invocation':
-                    return renderToolResult(part.toolInvocation);
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                } else if (isToolUIPart(part)) {
+                  return renderToolResult(part);
                 }
               })}
             </div>

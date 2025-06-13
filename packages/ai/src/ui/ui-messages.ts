@@ -155,7 +155,7 @@ export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
   };
 }>;
 
-export type ToolUIPart<TOOLS extends UITools> = ValueOf<{
+export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   [NAME in keyof TOOLS & string]: {
     type: `tool-${NAME}`;
     toolCallId: string;
