@@ -18,6 +18,16 @@ export type Message = UIMessage<
   },
   {
     weather: WeatherDataPart;
+  },
+  {
+    getWeatherInformation: {
+      args: { city: string };
+      result: {
+        city: string;
+        weather: string;
+        temperatureInCelsius: number;
+      };
+    };
   }
 >;
 

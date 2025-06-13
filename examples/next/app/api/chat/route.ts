@@ -36,14 +36,11 @@ export async function POST(req: Request) {
 
               return [
                 {
-                  type: 'tool-invocation' as const,
-                  toolInvocation: {
-                    toolCallId: part.id!,
-                    toolName: 'getWeather',
-                    state: 'result' as const,
-                    args: { city: weather.city },
-                    result: part.data,
-                  },
+                  type: 'tool-getWeatherInformation' as const,
+                  toolCallId: part.id!,
+                  state: 'result' as const,
+                  args: { city: weather.city },
+                  result: part.data.weather,
                 },
                 // {
                 //   type: 'text' as const,
