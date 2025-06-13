@@ -47,7 +47,7 @@ Default is undefined, which disables throttling.
   experimental_throttle?: number;
 };
 
-export function useChat<UI_MESSAGE extends UIMessage>({
+export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   experimental_throttle: throttleWaitMs,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
