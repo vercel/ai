@@ -19,15 +19,41 @@ import {
   isAssistantMessageWithCompletedToolCalls,
   shouldResubmitMessages,
 } from './should-resubmit-messages';
-import type {
-  CreateUIMessage,
-  FileUIPart,
-  InferUIMessageData,
-  InferUIMessageMetadata,
-  ToolInvocationUIPart,
-  UIDataTypesToSchemas,
-  UIMessage,
+import {
+  isToolUIPart,
+  type FileUIPart,
+  type InferUIMessageData,
+  type InferUIMessageMetadata,
+  type InferUIMessageTools,
+  type ToolUIPart,
+  type UIDataTypes,
+  type UIMessage,
 } from './ui-messages';
+
+export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
+  UI_MESSAGE,
+  'id' | 'role'
+> & {
+  id?: UI_MESSAGE['id'];
+  role?: UI_MESSAGE['role'];
+};
+
+export type UIDataPartSchemas = Record<
+  string,
+  Validator<any> | StandardSchemaV1<any>
+>;
+
+export type UIDataTypesToSchemas<T extends UIDataTypes> = {
+  [K in keyof T]: Validator<T[K]> | StandardSchemaV1<T[K]>;
+};
+
+export type InferUIDataParts<T extends UIDataPartSchemas> = {
+  [K in keyof T]: T[K] extends Validator<infer U>
+    ? U
+    : T[K] extends StandardSchemaV1<infer U>
+      ? U
+      : unknown;
+};
 
 export type ChatRequestOptions = {
   /**
@@ -297,7 +323,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     result: unknown;
   }) => {
     this.jobExecutor.run(async () => {
-      updateToolCallResult({
+      updateToolResult({
         messages: this.state.messages,
         toolCallId,
         toolResult: result,
@@ -460,30 +486,30 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
  * @param {unknown} params.toolResult - The result object to attach to the tool invocation.
  * @returns {void} This function does not return anything.
  */
-function updateToolCallResult({
+function updateToolResult<UI_MESSAGE extends UIMessage>({
   messages,
   toolCallId,
   toolResult: result,
 }: {
-  messages: UIMessage[];
+  messages: UI_MESSAGE[];
   toolCallId: string;
   toolResult: unknown;
 }) {
   const lastMessage = messages[messages.length - 1];
 
-  const invocationPart = lastMessage.parts.find(
-    (part): part is ToolInvocationUIPart =>
-      part.type === 'tool-invocation' &&
-      part.toolInvocation.toolCallId === toolCallId,
+  const toolPart = lastMessage.parts.find(
+    (part): part is ToolUIPart<InferUIMessageTools<UI_MESSAGE>> =>
+      isToolUIPart(part) && part.toolCallId === toolCallId,
   );
 
-  if (invocationPart == null) {
+  if (toolPart == null) {
     return;
   }
 
-  invocationPart.toolInvocation = {
-    ...invocationPart.toolInvocation,
-    state: 'result' as const,
-    result,
-  };
+  toolPart.state = 'result';
+  (
+    toolPart as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> & {
+      state: 'result';
+    }
+  ).result = result;
 }

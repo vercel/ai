@@ -1,9 +1,25 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText } from 'ai';
+import { convertToModelMessages, streamText, UIDataTypes, UIMessage } from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+
+export type StreamingToolCallsMessage = UIMessage<
+  never,
+  UIDataTypes,
+  {
+    showWeatherInformation: {
+      args: {
+        city: string;
+        weather: string;
+        temperature: number;
+        typicalWeather: string;
+      };
+      result: string;
+    };
+  }
+>;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
