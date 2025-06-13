@@ -23,9 +23,12 @@ import type {
   CreateUIMessage,
   FileUIPart,
   InferUIDataParts,
+  InferUIMessageData,
+  InferUIMessageMetadata,
   ToolInvocationUIPart,
   UIDataPartSchemas,
   UIDataTypes,
+  UIDataTypesToSchemas,
   UIMessage,
 } from './ui-messages';
 
@@ -47,29 +50,23 @@ export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
 type ActiveResponse<UI_MESSAGE extends UIMessage> = {
   state: StreamingUIMessageState<UI_MESSAGE>;
-  abortController: AbortController | undefined;
+  abortController: AbortController;
 };
 
-export interface ChatState<MESSAGE_METADATA, DATA_TYPES extends UIDataTypes> {
+export interface ChatState<UI_MESSAGE extends UIMessage> {
   status: ChatStatus;
 
   error: Error | undefined;
 
-  messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-  pushMessage: (message: UIMessage<MESSAGE_METADATA, DATA_TYPES>) => void;
+  messages: UI_MESSAGE[];
+  pushMessage: (message: UI_MESSAGE) => void;
   popMessage: () => void;
-  replaceMessage: (
-    index: number,
-    message: UIMessage<MESSAGE_METADATA, DATA_TYPES>,
-  ) => void;
+  replaceMessage: (index: number, message: UI_MESSAGE) => void;
 
   snapshot: <T>(thing: T) => T;
 }
 
-export interface ChatInit<
-  MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> {
+export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
    * generated.
@@ -77,14 +74,11 @@ export interface ChatInit<
   id?: string;
 
   messageMetadataSchema?:
-    | Validator<MESSAGE_METADATA>
-    | StandardSchemaV1<MESSAGE_METADATA>;
-  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
+    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
+    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
+  dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
 
-  messages?: UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >[];
+  messages?: UI_MESSAGE[];
 
   /**
    * A way to provide a function that is going to be used for ids for messages and the chat.
@@ -92,10 +86,7 @@ export interface ChatInit<
    */
   generateId?: IdGenerator;
 
-  transport?: ChatTransport<
-    NoInfer<MESSAGE_METADATA>,
-    NoInfer<InferUIDataParts<UI_DATA_PART_SCHEMAS>>
-  >;
+  transport?: ChatTransport<UI_MESSAGE>;
 
   maxSteps?: number;
 
@@ -122,51 +113,29 @@ export interface ChatInit<
    *
    * @param message The message that was streamed.
    */
-  onFinish?: (options: {
-    message: UIMessage<
-      NoInfer<MESSAGE_METADATA>,
-      NoInfer<InferUIDataParts<UI_DATA_PART_SCHEMAS>>
-    >;
-  }) => void;
+  onFinish?: (options: { message: UI_MESSAGE }) => void;
 }
 
-export abstract class AbstractChat<
-  MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> {
+export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   readonly id: string;
   readonly generateId: IdGenerator;
 
-  protected state: ChatState<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >;
+  protected state: ChatState<UI_MESSAGE>;
 
   private messageMetadataSchema:
-    | Validator<MESSAGE_METADATA>
-    | StandardSchemaV1<MESSAGE_METADATA>
+    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
+    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>
     | undefined;
-  private dataPartSchemas: UI_DATA_PART_SCHEMAS | undefined;
-  private readonly transport: ChatTransport<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >;
+  private dataPartSchemas:
+    | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
+    | undefined;
+  private readonly transport: ChatTransport<UI_MESSAGE>;
   private maxSteps: number;
-  private onError?: ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>['onError'];
-  private onToolCall?: ChatInit<
-    MESSAGE_METADATA,
-    UI_DATA_PART_SCHEMAS
-  >['onToolCall'];
-  private onFinish?: ChatInit<
-    MESSAGE_METADATA,
-    UI_DATA_PART_SCHEMAS
-  >['onFinish'];
+  private onError?: ChatInit<UI_MESSAGE>['onError'];
+  private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
+  private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
 
-  private activeResponse:
-    | ActiveResponse<
-        UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
-      >
-    | undefined = undefined;
+  private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -180,8 +149,8 @@ export abstract class AbstractChat<
     onError,
     onToolCall,
     onFinish,
-  }: Omit<ChatInit<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS>, 'messages'> & {
-    state: ChatState<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
+  }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
+    state: ChatState<UI_MESSAGE>;
   }) {
     this.id = id;
     this.maxSteps = maxSteps;
@@ -224,25 +193,15 @@ export abstract class AbstractChat<
     return this.state.error;
   }
 
-  get messages(): UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >[] {
+  get messages(): UI_MESSAGE[] {
     return this.state.messages;
   }
 
-  get lastMessage():
-    | UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
-    | undefined {
+  get lastMessage(): UI_MESSAGE | undefined {
     return this.state.messages[this.state.messages.length - 1];
   }
 
-  set messages(
-    messages: UIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >[],
-  ) {
+  set messages(messages: UI_MESSAGE[]) {
     this.state.messages = messages;
   }
 
@@ -266,27 +225,21 @@ export abstract class AbstractChat<
    */
   sendMessage = async (
     message:
-      | (CreateUIMessage<
-          MESSAGE_METADATA,
-          InferUIDataParts<UI_DATA_PART_SCHEMAS>
-        > & { text?: never; files?: never })
+      | (CreateUIMessage<UI_MESSAGE> & { text?: never; files?: never })
       | {
           text: string;
           files?: FileList | FileUIPart[];
-          metadata?: MESSAGE_METADATA;
+          metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
         }
       | {
           files: FileList | FileUIPart[];
-          metadata?: MESSAGE_METADATA;
+          metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
         },
     options: ChatRequestOptions = {},
   ): Promise<void> => {
-    let uiMessage: CreateUIMessage<
-      MESSAGE_METADATA,
-      InferUIDataParts<UI_DATA_PART_SCHEMAS>
-    >;
+    let uiMessage: CreateUIMessage<UI_MESSAGE>;
 
     if ('text' in message || 'files' in message) {
       const fileParts = Array.isArray(message.files)
@@ -309,7 +262,7 @@ export abstract class AbstractChat<
       ...uiMessage,
       id: uiMessage.id ?? this.generateId(),
       role: uiMessage.role ?? 'user',
-    });
+    } as UI_MESSAGE);
 
     await this.triggerRequest({ requestType: 'generate', ...options });
   };
@@ -379,7 +332,6 @@ export abstract class AbstractChat<
 
     if (this.activeResponse?.abortController) {
       this.activeResponse.abortController.abort();
-      this.activeResponse.abortController = undefined;
     }
   };
 
@@ -405,7 +357,7 @@ export abstract class AbstractChat<
           messageId: this.generateId(),
         }),
         abortController: new AbortController(),
-      };
+      } as ActiveResponse<UI_MESSAGE>;
 
       this.activeResponse = activeResponse;
 
@@ -421,9 +373,7 @@ export abstract class AbstractChat<
 
       const runUpdateMessageJob = (
         job: (options: {
-          state: StreamingUIMessageState<
-            UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>
-          >;
+          state: StreamingUIMessageState<UI_MESSAGE>;
           write: () => void;
         }) => Promise<void>,
       ) =>
