@@ -10,6 +10,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
+  isToolUIPart,
   TextStreamChatTransport,
   UIMessage,
   UIMessageStreamPart,
@@ -17,7 +18,6 @@ import {
 import React, { act, useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
-import { isToolUIPart } from '../../ai/src/ui/ui-messages';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;

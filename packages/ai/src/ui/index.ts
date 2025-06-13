@@ -28,6 +28,7 @@ export {
   type UIDataTypes,
   type UIMessage,
   type UIMessagePart,
+  isToolUIPart,
 } from './ui-messages';
 export {
   type CompletionRequestOptions,
