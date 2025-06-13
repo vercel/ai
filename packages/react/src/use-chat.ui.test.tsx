@@ -10,7 +10,6 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
-  getToolInvocations,
   TextStreamChatTransport,
   UIMessage,
   UIMessageStreamPart,
@@ -18,6 +17,7 @@ import {
 import React, { act, useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
+import { isToolUIPart } from '../../ai/src/ui/ui-messages';
 
 function formatStreamPart(part: UIMessageStreamPart) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -632,9 +632,9 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {getToolInvocations(m).map((toolInvocation, toolIdx) => (
-              <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
-                {JSON.stringify(toolInvocation)}
+            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => (
+              <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
+                {JSON.stringify(toolPart)}
               </div>
             ))}
           </div>
@@ -680,7 +680,7 @@ describe('onToolCall', () => {
       state: 'call',
       args: { testArg: 'test-value' },
       toolCallId: 'tool-call-0',
-      toolName: 'test-tool',
+      type: 'tool-test-tool',
     });
 
     resolve();
@@ -692,7 +692,7 @@ describe('onToolCall', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result:
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
       });
@@ -711,18 +711,18 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {getToolInvocations(m).map((toolInvocation, toolIdx) => {
+            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => {
               return (
                 <div key={toolIdx}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
-                    {JSON.stringify(toolInvocation)}
+                    {JSON.stringify(toolPart)}
                   </div>
-                  {toolInvocation.state === 'call' && (
+                  {toolPart.state === 'call' && (
                     <button
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
                         addToolResult({
-                          toolCallId: toolInvocation.toolCallId,
+                          toolCallId: toolPart.toolCallId,
                           result: 'test-result',
                         });
                       }}
@@ -779,7 +779,7 @@ describe('tool invocations', () => {
       ).toStrictEqual({
         state: 'partial-call',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -797,7 +797,7 @@ describe('tool invocations', () => {
       ).toStrictEqual({
         state: 'partial-call',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         args: { testArg: 't' },
       });
     });
@@ -816,7 +816,7 @@ describe('tool invocations', () => {
       ).toStrictEqual({
         state: 'partial-call',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         args: { testArg: 'test-value' },
       });
     });
@@ -837,7 +837,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -857,7 +857,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -888,7 +888,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -908,7 +908,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -941,7 +941,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -954,7 +954,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -988,16 +988,11 @@ describe('tool invocations', () => {
               type: 'step-start',
             },
             {
-              toolInvocation: {
-                args: {
-                  testArg: 'test-value',
-                },
-                result: 'test-result',
-                state: 'result',
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
-              },
-              type: 'tool-invocation',
+              type: 'tool-test-tool',
+              toolCallId: 'tool-call-0',
+              args: { testArg: 'test-value' },
+              result: 'test-result',
+              state: 'result',
             },
             {
               text: 'more text',
@@ -1040,7 +1035,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -1055,7 +1050,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -1112,7 +1107,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -1127,7 +1122,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -1244,10 +1239,10 @@ describe('maxSteps', () => {
 
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
-              {getToolInvocations(m).map((toolInvocation, toolIdx) =>
-                'result' in toolInvocation ? (
-                  <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
-                    {toolInvocation.result}
+              {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) =>
+                toolPart.state === 'result' ? (
+                  <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
+                    {JSON.stringify(toolPart.result)}
                   </div>
                 ) : null,
               )}
