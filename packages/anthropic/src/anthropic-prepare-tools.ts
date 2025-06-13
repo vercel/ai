@@ -114,19 +114,24 @@ export function prepareTools({
       case 'provider-defined-server':
         switch (tool.id) {
           case 'anthropic.web_search_20250305':
-            const webSearchTool: Extract<AnthropicTool, { type: 'web_search_20250305' }> = {
+            const webSearchTool: Extract<
+              AnthropicTool,
+              { type: 'web_search_20250305' }
+            > = {
               type: 'web_search_20250305',
               name: tool.name,
             };
-            
+
             if (tool.args.maxUses) {
               webSearchTool.max_uses = tool.args.maxUses as number;
             }
             if (tool.args.allowedDomains) {
-              webSearchTool.allowed_domains = tool.args.allowedDomains as string[];
+              webSearchTool.allowed_domains = tool.args
+                .allowedDomains as string[];
             }
             if (tool.args.blockedDomains) {
-              webSearchTool.blocked_domains = tool.args.blockedDomains as string[];
+              webSearchTool.blocked_domains = tool.args
+                .blockedDomains as string[];
             }
             if (tool.args.userLocation) {
               const loc = tool.args.userLocation as any;
@@ -138,7 +143,7 @@ export function prepareTools({
                 timezone: loc.timezone ?? '',
               };
             }
-            
+
             anthropicTools.push(webSearchTool);
             break;
           default:

@@ -5,7 +5,8 @@ import { generateText } from 'ai';
 async function main() {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-latest'),
-    prompt: 'What is the current weather in Paris? Please search for real-time weather.',
+    prompt:
+      'What is the current weather in Paris? Please search for real-time weather.',
     providerOptions: {
       anthropic: {
         webSearch: {
@@ -43,4 +44,4 @@ async function main() {
   }
 }
 
-main().catch(console.error); 
+main().catch(console.error);

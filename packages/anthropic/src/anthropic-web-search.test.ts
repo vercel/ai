@@ -50,7 +50,7 @@ describe('Anthropic Web Search Server-Side Tool', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toHaveLength(1);
-    
+
     expect(requestBody.tools[0]).toEqual({
       type: 'web_search_20250305',
       name: 'web_search',
@@ -87,7 +87,7 @@ describe('Anthropic Web Search Server-Side Tool', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toHaveLength(1);
-    
+
     expect(requestBody.tools[0]).toEqual({
       type: 'web_search_20250305',
       name: 'web_search',

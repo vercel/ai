@@ -5,7 +5,8 @@ import { generateText, streamText } from 'ai';
 async function testGenerateText() {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-latest'),
-    prompt: 'What are the latest breakthroughs in quantum computing? Please search for recent developments.',
+    prompt:
+      'What are the latest breakthroughs in quantum computing? Please search for recent developments.',
     providerOptions: {
       anthropic: {
         webSearch: {
@@ -26,7 +27,8 @@ async function testGenerateText() {
 async function testStreamText() {
   const result = streamText({
     model: anthropic('claude-3-5-sonnet-latest'),
-    prompt: 'What are current stock market trends? Search for latest financial news.',
+    prompt:
+      'What are current stock market trends? Search for latest financial news.',
     providerOptions: {
       anthropic: {
         webSearch: {
@@ -50,9 +52,9 @@ async function testStreamText() {
 async function main() {
   console.log('Generate Text Test:');
   await testGenerateText();
-  
+
   console.log('Stream Text Test:');
   await testStreamText();
 }
 
-main().catch(console.error); 
+main().catch(console.error);

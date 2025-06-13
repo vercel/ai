@@ -95,7 +95,9 @@ by the model, calls will generate deterministic results.
 The tools that are available for the model.
   */
   tools?: Array<
-    LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedClientTool | LanguageModelV2ProviderDefinedServerTool
+    | LanguageModelV2FunctionTool
+    | LanguageModelV2ProviderDefinedClientTool
+    | LanguageModelV2ProviderDefinedServerTool
   >;
 
   /**

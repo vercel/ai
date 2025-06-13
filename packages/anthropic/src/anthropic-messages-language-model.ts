@@ -321,7 +321,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     }
 
     const allTools = tools ? [...tools] : [];
-    
+
     if (anthropicOptions?.webSearch) {
       const webSearchServerTool: LanguageModelV2ProviderDefinedServerTool = {
         type: 'provider-defined-server',

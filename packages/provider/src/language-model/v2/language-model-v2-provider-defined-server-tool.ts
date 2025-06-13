@@ -22,4 +22,3 @@ The arguments for configuring the tool. Must match the expected arguments define
   */
   args: Record<string, unknown>;
 };
-
