@@ -1,24 +1,5 @@
-import {
-  StandardSchemaV1,
-  ToolCall,
-  ToolResult,
-  Validator,
-} from '@ai-sdk/provider-utils';
+import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { ValueOf } from '../util/value-of';
-
-/**
-Tool invocations are either tool calls or tool results. For each assistant tool call,
-there is one tool invocation. While the call is in progress, the invocation is a tool call.
-Once the call is complete, the invocation is a tool result.
-
-The step is used to track how to map an assistant UI message with many tool invocations
-back to a sequence of LLM assistant/tool result message pairs.
-It is optional for backwards compatibility.
- */
-export type ToolInvocation =
-  | ({ state: 'partial-call' } & ToolCall<string, any>)
-  | ({ state: 'call' } & ToolCall<string, any>)
-  | ({ state: 'result' } & ToolResult<string, any, any>);
 
 /**
 The data types that can be used in the UI message for the UI message data parts.
@@ -69,37 +50,6 @@ export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
   | FileUIPart
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
-
-export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
-  [NAME in keyof DATA_TYPES & string]: {
-    type: `data-${NAME}`;
-    id?: string;
-    data: DATA_TYPES[NAME];
-  };
-}>;
-
-export type UIDataPartSchemas = Record<
-  string,
-  Validator<any> | StandardSchemaV1<any>
->;
-
-export type InferUIDataParts<T extends UIDataPartSchemas> = {
-  [K in keyof T]: T[K] extends Validator<infer U>
-    ? U
-    : T[K] extends StandardSchemaV1<infer U>
-      ? U
-      : unknown;
-};
-
-export type UIDataTypesToSchemas<T extends UIDataTypes> = {
-  [K in keyof T]: Validator<T[K]> | StandardSchemaV1<T[K]>;
-};
-
-export type InferUIMessageData<T extends UIMessage> =
-  T extends UIMessage<unknown, infer DATA_TYPES> ? DATA_TYPES : UIDataTypes;
-
-export type InferUIMessageMetadata<T extends UIMessage> =
-  T extends UIMessage<infer METADATA, UIDataTypes> ? METADATA : unknown;
 
 /**
  * A text part of a message.
@@ -197,10 +147,30 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
-  UI_MESSAGE,
-  'id' | 'role'
-> & {
-  id?: UI_MESSAGE['id'];
-  role?: UI_MESSAGE['role'];
-};
+export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
+  [NAME in keyof DATA_TYPES & string]: {
+    type: `data-${NAME}`;
+    id?: string;
+    data: DATA_TYPES[NAME];
+  };
+}>;
+
+/**
+Tool invocations are either tool calls or tool results. For each assistant tool call,
+there is one tool invocation. While the call is in progress, the invocation is a tool call.
+Once the call is complete, the invocation is a tool result.
+
+The step is used to track how to map an assistant UI message with many tool invocations
+back to a sequence of LLM assistant/tool result message pairs.
+It is optional for backwards compatibility.
+ */
+export type ToolInvocation =
+  | ({ state: 'partial-call' } & ToolCall<string, any>)
+  | ({ state: 'call' } & ToolCall<string, any>)
+  | ({ state: 'result' } & ToolResult<string, any, any>);
+
+export type InferUIMessageData<T extends UIMessage> =
+  T extends UIMessage<unknown, infer DATA_TYPES> ? DATA_TYPES : UIDataTypes;
+
+export type InferUIMessageMetadata<T extends UIMessage> =
+  T extends UIMessage<infer METADATA, UIDataTypes> ? METADATA : unknown;

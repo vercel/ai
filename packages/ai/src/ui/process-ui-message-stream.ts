@@ -19,10 +19,10 @@ import type {
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
-  UIDataTypesToSchemas,
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
+import { UIDataTypesToSchemas } from './chat';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;

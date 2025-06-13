@@ -20,14 +20,38 @@ import {
   shouldResubmitMessages,
 } from './should-resubmit-messages';
 import type {
-  CreateUIMessage,
   FileUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
   ToolInvocationUIPart,
-  UIDataTypesToSchemas,
+  UIDataTypes,
   UIMessage,
 } from './ui-messages';
+
+export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
+  UI_MESSAGE,
+  'id' | 'role'
+> & {
+  id?: UI_MESSAGE['id'];
+  role?: UI_MESSAGE['role'];
+};
+
+export type UIDataPartSchemas = Record<
+  string,
+  Validator<any> | StandardSchemaV1<any>
+>;
+
+export type UIDataTypesToSchemas<T extends UIDataTypes> = {
+  [K in keyof T]: Validator<T[K]> | StandardSchemaV1<T[K]>;
+};
+
+export type InferUIDataParts<T extends UIDataPartSchemas> = {
+  [K in keyof T]: T[K] extends Validator<infer U>
+    ? U
+    : T[K] extends StandardSchemaV1<infer U>
+      ? U
+      : unknown;
+};
 
 export type ChatRequestOptions = {
   /**
