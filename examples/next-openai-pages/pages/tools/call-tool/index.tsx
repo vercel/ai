@@ -1,5 +1,5 @@
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, isToolUIPart } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
@@ -17,16 +17,10 @@ export default function Page() {
             <strong>{`${message.role}: `}</strong>
 
             {message.parts.map((part, index) => {
-              switch (part.type) {
-                case 'text':
-                  return <div key={index}>{part.text}</div>;
-                case 'tool-invocation': {
-                  return (
-                    <div key={index}>
-                      {JSON.stringify(part.toolInvocation.args)}
-                    </div>
-                  );
-                }
+              if (part.type === 'text') {
+                return <div key={index}>{part.text}</div>;
+              } else if (isToolUIPart(part)) {
+                return <div key={index}>{JSON.stringify(part.args)}</div>;
               }
             })}
           </div>

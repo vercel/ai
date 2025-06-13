@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, isToolUIPart } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
@@ -19,16 +19,10 @@ export default function Page() {
           <div key={message.id}>
             <strong>{`${message.role}: `}</strong>
             {message.parts.map((part, index) => {
-              switch (part.type) {
-                case 'text':
-                  return <span key={index}>{part.text}</span>;
-                case 'tool-invocation': {
-                  return (
-                    <pre key={index}>
-                      {JSON.stringify(part.toolInvocation, null, 2)}
-                    </pre>
-                  );
-                }
+              if (part.type === 'text') {
+                return <span key={index}>{part.text}</span>;
+              } else if (isToolUIPart(part)) {
+                return <pre key={index}>{JSON.stringify(part, null, 2)}</pre>;
               }
             })}
           </div>

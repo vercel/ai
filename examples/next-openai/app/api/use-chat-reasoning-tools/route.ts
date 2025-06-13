@@ -6,6 +6,8 @@ import {
   stepCountIs,
   streamText,
   tool,
+  UIDataTypes,
+  UIMessage,
   wrapLanguageModel,
 } from 'ai';
 import { z } from 'zod';
@@ -21,6 +23,25 @@ const anthropic = createAnthropic({
     return await fetch(url, options);
   },
 });
+
+export type ReasoningToolsMessage = UIMessage<
+  never,
+  UIDataTypes,
+  {
+    getWeatherInformation: {
+      args: { city: string };
+      result: string;
+    };
+    askForConfirmation: {
+      args: { message: string };
+      result: string;
+    };
+    getLocation: {
+      args: {};
+      result: string;
+    };
+  }
+>;
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;

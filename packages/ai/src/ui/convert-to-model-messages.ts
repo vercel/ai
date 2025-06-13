@@ -4,10 +4,13 @@ import { AssistantContent, ModelMessage } from '../../core/prompt/message';
 import { MessageConversionError } from '../../core/prompt/message-conversion-error';
 import {
   FileUIPart,
+  getToolName,
+  isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
-  ToolInvocationUIPart,
+  ToolUIPart,
   UIMessage,
+  UITools,
 } from './ui-messages';
 
 /**
@@ -59,7 +62,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
       case 'assistant': {
         if (message.parts != null) {
           let block: Array<
-            TextUIPart | ToolInvocationUIPart | ReasoningUIPart | FileUIPart
+            TextUIPart | ToolUIPart<UITools> | ReasoningUIPart | FileUIPart
           > = [];
 
           function processBlock() {
@@ -70,39 +73,39 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
             const content: AssistantContent = [];
 
             for (const part of block) {
-              switch (part.type) {
-                case 'text': {
-                  content.push(part);
-                  break;
-                }
-                case 'file': {
-                  content.push({
-                    type: 'file' as const,
-                    mediaType: part.mediaType,
-                    data: part.url,
+              if (part.type === 'text') {
+                content.push(part);
+              } else if (part.type === 'file') {
+                content.push({
+                  type: 'file' as const,
+                  mediaType: part.mediaType,
+                  data: part.url,
+                });
+              } else if (part.type === 'reasoning') {
+                content.push({
+                  type: 'reasoning' as const,
+                  text: part.text,
+                  providerOptions: part.providerMetadata,
+                });
+              } else if (isToolUIPart(part)) {
+                const toolName = getToolName(part);
+
+                if (part.state === 'partial-call') {
+                  throw new MessageConversionError({
+                    originalMessage: message,
+                    message: `Partial tool call is not supported: ${part.toolCallId}`,
                   });
-                  break;
-                }
-                case 'reasoning': {
-                  content.push({
-                    type: 'reasoning' as const,
-                    text: part.text,
-                    providerOptions: part.providerMetadata,
-                  });
-                  break;
-                }
-                case 'tool-invocation':
+                } else {
                   content.push({
                     type: 'tool-call' as const,
-                    toolCallId: part.toolInvocation.toolCallId,
-                    toolName: part.toolInvocation.toolName,
-                    args: part.toolInvocation.args,
+                    toolCallId: part.toolCallId,
+                    toolName,
+                    args: part.args,
                   });
-                  break;
-                default: {
-                  const _exhaustiveCheck: never = part;
-                  throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
                 }
+              } else {
+                const _exhaustiveCheck: never = part;
+                throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
               }
             }
 
@@ -112,54 +115,42 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
             });
 
             // check if there are tool invocations with results in the block
-            const stepInvocations = block
-              .filter(
-                (
-                  part:
-                    | TextUIPart
-                    | ToolInvocationUIPart
-                    | ReasoningUIPart
-                    | FileUIPart,
-                ): part is ToolInvocationUIPart =>
-                  part.type === 'tool-invocation',
-              )
-              .map(part => part.toolInvocation);
+            const toolParts = block.filter(isToolUIPart);
 
             // tool message with tool results
-            if (stepInvocations.length > 0) {
+            if (toolParts.length > 0) {
               modelMessages.push({
                 role: 'tool',
-                content: stepInvocations.map(
-                  (toolInvocation): ToolResultPart => {
-                    if (!('result' in toolInvocation)) {
-                      throw new MessageConversionError({
-                        originalMessage: message,
-                        message:
-                          'ToolInvocation must have a result: ' +
-                          JSON.stringify(toolInvocation),
-                      });
-                    }
+                content: toolParts.map((toolPart): ToolResultPart => {
+                  if (toolPart.state !== 'result') {
+                    throw new MessageConversionError({
+                      originalMessage: message,
+                      message:
+                        'ToolInvocation must have a result: ' +
+                        JSON.stringify(toolPart),
+                    });
+                  }
 
-                    const { toolCallId, toolName, result } = toolInvocation;
+                  const toolName = getToolName(toolPart);
+                  const { toolCallId, result } = toolPart;
 
-                    const tool = tools[toolName];
-                    return tool?.experimental_toToolResultContent != null
-                      ? {
-                          type: 'tool-result',
-                          toolCallId,
-                          toolName,
-                          result: tool.experimental_toToolResultContent(result),
-                          experimental_content:
-                            tool.experimental_toToolResultContent(result),
-                        }
-                      : {
-                          type: 'tool-result',
-                          toolCallId,
-                          toolName,
-                          result,
-                        };
-                  },
-                ),
+                  const tool = tools[toolName];
+                  return tool?.experimental_toToolResultContent != null
+                    ? {
+                        type: 'tool-result',
+                        toolCallId,
+                        toolName,
+                        result: tool.experimental_toToolResultContent(result),
+                        experimental_content:
+                          tool.experimental_toToolResultContent(result),
+                      }
+                    : {
+                        type: 'tool-result',
+                        toolCallId,
+                        toolName,
+                        result,
+                      };
+                }),
               });
             }
 
@@ -168,18 +159,15 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
           }
 
           for (const part of message.parts) {
-            switch (part.type) {
-              case 'text':
-              case 'reasoning':
-              case 'file':
-              case 'tool-invocation': {
-                block.push(part);
-                break;
-              }
-              case 'step-start': {
-                processBlock();
-                break;
-              }
+            if (
+              part.type === 'text' ||
+              part.type === 'reasoning' ||
+              part.type === 'file' ||
+              isToolUIPart(part)
+            ) {
+              block.push(part);
+            } else if (part.type === 'step-start') {
+              processBlock();
             }
           }
 

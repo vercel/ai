@@ -44,14 +44,11 @@ describe('shouldResubmitMessages', () => {
             parts: [
               { type: 'step-start' },
               {
-                type: 'tool-invocation' as const,
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'tool1',
-                  toolName: 'some-tool',
-                  args: {},
-                  result: 'some result',
-                },
+                type: 'tool-getLocation',
+                toolCallId: 'tool1',
+                state: 'result',
+                args: {},
+                result: 'some result',
               },
             ],
           },
@@ -70,14 +67,11 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
         parts: [
           { type: 'step-start' },
           {
-            type: 'tool-invocation',
-            toolInvocation: {
-              state: 'result',
-              toolCallId: 'call_CuEdmzpx4ZldCkg5SVr3ikLz',
-              toolName: 'getLocation',
-              args: {},
-              result: 'New York',
-            },
+            type: 'tool-getLocation',
+            toolCallId: 'call_CuEdmzpx4ZldCkg5SVr3ikLz',
+            state: 'result',
+            args: {},
+            result: 'New York',
           },
           { type: 'step-start' },
           {
@@ -97,16 +91,13 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
         parts: [
           { type: 'step-start' },
           {
-            type: 'tool-invocation',
-            toolInvocation: {
-              state: 'result',
-              toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
-              toolName: 'getWeatherInformation',
-              args: {
-                city: 'New York',
-              },
-              result: 'windy',
+            type: 'tool-getWeatherInformation',
+            state: 'result',
+            toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
+            args: {
+              city: 'New York',
             },
+            result: 'windy',
           },
           {
             type: 'text',

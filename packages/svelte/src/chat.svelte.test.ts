@@ -5,9 +5,8 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import {
   DefaultChatTransport,
-  getToolInvocations,
+  isToolUIPart,
   TextStreamChatTransport,
-  type UIMessage,
   type UIMessageStreamPart,
 } from 'ai';
 import { flushSync } from 'svelte';
@@ -378,14 +377,13 @@ describe('onToolCall', () => {
     const appendOperation = chat.sendMessage({ text: 'hi' });
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'call',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 'test-value' },
+          result: undefined,
         },
       ]);
     });
@@ -393,11 +391,11 @@ describe('onToolCall', () => {
     resolve();
     await appendOperation;
 
-    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'result',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         args: { testArg: 'test-value' },
         result:
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
@@ -441,14 +439,13 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'partial-call',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: undefined,
+          result: undefined,
         },
       ]);
     });
@@ -462,14 +459,13 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'partial-call',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 't' },
+          result: undefined,
         },
       ]);
     });
@@ -483,14 +479,13 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'partial-call',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 'test-value' },
+          result: undefined,
         },
       ]);
     });
@@ -505,14 +500,13 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'call',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 'test-value' },
+          result: undefined,
         },
       ]);
     });
@@ -527,11 +521,11 @@ describe('tool invocations', () => {
     controller.close();
     await appendOperation;
 
-    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'result',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         args: { testArg: 'test-value' },
         result: 'test-result',
       },
@@ -557,14 +551,13 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'call',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 'test-value' },
+          result: undefined,
         },
       ]);
     });
@@ -580,11 +573,11 @@ describe('tool invocations', () => {
 
     await appendOperation;
 
-    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'result',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         args: { testArg: 'test-value' },
         result: 'test-result',
       },
@@ -609,14 +602,13 @@ describe('tool invocations', () => {
     });
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'call',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 'test-value' },
+          result: undefined,
         },
       ]);
     });
@@ -627,13 +619,11 @@ describe('tool invocations', () => {
     });
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'result',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 'test-value' },
           result: 'test-result',
         },
@@ -670,13 +660,12 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'call',
+          result: undefined,
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 'test-value' },
         },
       ]);
@@ -690,13 +679,11 @@ describe('tool invocations', () => {
 
     // UI should show the tool result
     await vi.waitFor(() => {
-      expect(
-        getToolInvocations(chat.messages.at(1) as UIMessage),
-      ).toStrictEqual([
+      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'result',
           toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
+          type: 'tool-test-tool',
           args: { testArg: 'test-value' },
           result: 'test-result',
         },
@@ -785,16 +772,13 @@ describe('maxSteps', () => {
             "metadata": undefined,
             "parts": [
               {
-                "toolInvocation": {
-                  "args": {
-                    "testArg": "test-value",
-                  },
-                  "result": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
-                  "state": "result",
-                  "toolCallId": "tool-call-0",
-                  "toolName": "test-tool",
+                "args": {
+                  "testArg": "test-value",
                 },
-                "type": "tool-invocation",
+                "result": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
+                "state": "result",
+                "toolCallId": "tool-call-0",
+                "type": "tool-test-tool",
               },
               {
                 "text": "final result",

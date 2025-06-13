@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getToolInvocations } from 'ai';
+import { isToolUIPart } from 'ai';
 import { Chat } from './chat.vue';
 
 const chat = new Chat({
@@ -15,16 +15,16 @@ const chat = new Chat({
       :data-testid="`message-${idx}`"
     >
       <div
-        v-for="(toolInvocation, toolIdx) in getToolInvocations(m)"
-        :key="toolInvocation.toolCallId"
+        v-for="(toolPart, toolIdx) in m.parts.filter(isToolUIPart)"
+        :key="toolPart.toolCallId"
       >
-        {{ JSON.stringify(toolInvocation) }}
+        {{ JSON.stringify(toolPart) }}
         <button
-          v-if="toolInvocation.state === 'call'"
+          v-if="toolPart.state === 'call'"
           :data-testid="`add-result-${toolIdx}`"
           @click="
             chat.addToolResult({
-              toolCallId: toolInvocation.toolCallId,
+              toolCallId: toolPart.toolCallId,
               result: 'test-result',
             })
           "
