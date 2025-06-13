@@ -3,11 +3,7 @@ import {
   processUIMessageStream,
   StreamingUIMessageState,
 } from '../ui/process-ui-message-stream';
-import {
-  InferUIMessageData,
-  InferUIMessageMetadata,
-  UIMessage,
-} from '../ui/ui-messages';
+import { UIMessage } from '../ui/ui-messages';
 import {
   InferUIMessageStreamPart,
   UIMessageStreamPart,
@@ -53,27 +49,16 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
   const lastMessage = originalMessages?.[originalMessages.length - 1];
 
-  const state = createStreamingUIMessageState<
-    InferUIMessageMetadata<UI_MESSAGE>,
-    InferUIMessageData<UI_MESSAGE>
-  >({
+  const state = createStreamingUIMessageState<UI_MESSAGE>({
     lastMessage: lastMessage
-      ? (structuredClone(lastMessage) as UIMessage<
-          InferUIMessageMetadata<UI_MESSAGE>,
-          InferUIMessageData<UI_MESSAGE>
-        >)
+      ? (structuredClone(lastMessage) as UI_MESSAGE)
       : undefined,
     messageId, // will be overridden by the stream
   });
 
   const runUpdateMessageJob = async (
     job: (options: {
-      state: StreamingUIMessageState<
-        UIMessage<
-          InferUIMessageMetadata<UI_MESSAGE>,
-          InferUIMessageData<UI_MESSAGE>
-        >
-      >;
+      state: StreamingUIMessageState<UI_MESSAGE>;
       write: () => void;
     }) => Promise<void>,
   ) => {

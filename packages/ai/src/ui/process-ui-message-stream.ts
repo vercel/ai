@@ -1,5 +1,4 @@
 import {
-  IdGenerator,
   StandardSchemaV1,
   ToolCall,
   validateTypes,
@@ -20,7 +19,6 @@ import type {
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
-  UIDataTypes,
   UIDataTypesToSchemas,
   UIMessage,
   UIMessagePart,
@@ -36,26 +34,23 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   >;
 };
 
-export function createStreamingUIMessageState<
-  MESSAGE_METADATA = unknown,
-  UI_DATA_TYPES extends UIDataTypes = UIDataTypes,
->({
+export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
   messageId,
 }: {
-  lastMessage: UIMessage<MESSAGE_METADATA, UI_DATA_TYPES> | undefined;
+  lastMessage: UI_MESSAGE | undefined;
   messageId: string;
-}): StreamingUIMessageState<UIMessage<MESSAGE_METADATA, UI_DATA_TYPES>> {
+}): StreamingUIMessageState<UI_MESSAGE> {
   return {
     message:
       lastMessage?.role === 'assistant'
         ? lastMessage
-        : {
+        : ({
             id: messageId,
             metadata: undefined,
             role: 'assistant',
-            parts: [],
-          },
+            parts: [] as UIMessagePart<InferUIMessageData<UI_MESSAGE>>[],
+          } as UI_MESSAGE),
     activeTextPart: undefined,
     activeReasoningPart: undefined,
     partialToolCalls: {},
@@ -80,12 +75,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   }) => void | Promise<unknown> | unknown;
   runUpdateMessageJob: (
     job: (options: {
-      state: StreamingUIMessageState<
-        UIMessage<
-          InferUIMessageMetadata<UI_MESSAGE>,
-          InferUIMessageData<UI_MESSAGE>
-        >
-      >;
+      state: StreamingUIMessageState<UI_MESSAGE>;
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
