@@ -10,7 +10,7 @@ const TEST_PROMPT = [
   },
 ];
 
-describe('Anthropic Web Search', () => {
+describe('Anthropic Web Search Server-Side Tool', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
   });
@@ -27,7 +27,7 @@ describe('Anthropic Web Search', () => {
     };
   }
 
-  it('should add web search tool when webSearch provider option is provided', async () => {
+  it('should enable server-side web search when webSearch provider option is provided', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
@@ -50,6 +50,7 @@ describe('Anthropic Web Search', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toHaveLength(1);
+    
     expect(requestBody.tools[0]).toEqual({
       type: 'web_search_20250305',
       name: 'web_search',
@@ -58,7 +59,7 @@ describe('Anthropic Web Search', () => {
     });
   });
 
-  it('should add web search tool with user location', async () => {
+  it('should pass web search configuration in request when provided', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
@@ -85,16 +86,22 @@ describe('Anthropic Web Search', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.tools[0].user_location).toEqual({
-      type: 'approximate',
-      city: 'San Francisco',
-      region: 'California',
-      country: 'US',
-      timezone: 'America/Los_Angeles',
+    expect(requestBody.tools).toHaveLength(1);
+    
+    expect(requestBody.tools[0]).toEqual({
+      type: 'web_search_20250305',
+      name: 'web_search',
+      user_location: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+        country: 'US',
+        timezone: 'America/Los_Angeles',
+      },
     });
   });
 
-  it('should handle web search results with citations', async () => {
+  it('should handle server-side web search results with citations', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
@@ -162,7 +169,7 @@ describe('Anthropic Web Search', () => {
     });
   });
 
-  it('should handle web search errors', async () => {
+  it('should handle server-side web search errors', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
@@ -197,7 +204,7 @@ describe('Anthropic Web Search', () => {
     ).rejects.toThrow(APICallError);
   });
 
-  it('should combine web search with regular tools', async () => {
+  it('should not interfere with regular client-side tools when web search is enabled', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
@@ -226,16 +233,16 @@ describe('Anthropic Web Search', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toHaveLength(2);
 
-    expect(requestBody.tools[1]).toEqual({
-      type: 'web_search_20250305',
-      name: 'web_search',
-      max_uses: 2,
-    });
-
     expect(requestBody.tools[0]).toEqual({
       name: 'calculator',
       description: 'Calculate math',
       input_schema: { type: 'object', properties: {} },
+    });
+
+    expect(requestBody.tools[1]).toEqual({
+      type: 'web_search_20250305',
+      name: 'web_search',
+      max_uses: 2,
     });
   });
 });
