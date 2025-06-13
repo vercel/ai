@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/fal",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
