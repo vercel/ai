@@ -9,49 +9,52 @@ import {
 import { ProviderMetadata } from '../../core/types/provider-metadata';
 
 export const uiMessageStreamPartSchema = z.union([
-  z.object({
+  z.strictObject({
     type: z.literal('text'),
     text: z.string(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('error'),
     errorText: z.string(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('tool-call-streaming-start'),
     toolCallId: z.string(),
     toolName: z.string(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('tool-call-delta'),
     toolCallId: z.string(),
     argsTextDelta: z.string(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('tool-call'),
     toolCallId: z.string(),
     toolName: z.string(),
     args: z.unknown(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('tool-result'),
     toolCallId: z.string(),
     result: z.unknown(),
     providerMetadata: z.any().optional(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('reasoning'),
     text: z.string(),
     providerMetadata: z.record(z.any()).optional(),
   }),
-  z.object({
+  z.strictObject({
+    type: z.literal('reasoning-part-finish'),
+  }),
+  z.strictObject({
     type: z.literal('source-url'),
     sourceId: z.string(),
     url: z.string(),
     title: z.string().optional(),
     providerMetadata: z.any().optional(), // Use z.any() for generic metadata
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('source-document'),
     sourceId: z.string(),
     mediaType: z.string(),
@@ -59,39 +62,34 @@ export const uiMessageStreamPartSchema = z.union([
     filename: z.string().optional(),
     providerMetadata: z.any().optional(), // Use z.any() for generic metadata
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('file'),
     url: z.string(),
     mediaType: z.string(),
   }),
-  z.object({
+  z.strictObject({
     type: z.string().startsWith('data-'),
     id: z.string().optional(),
     data: z.unknown(),
   }),
-  z.object({
-    type: z.literal('metadata'),
-    value: z.object({ metadata: z.unknown() }),
-  }),
-  z.object({
+  z.strictObject({
     type: z.literal('start-step'),
-    metadata: z.unknown().optional(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('finish-step'),
-    metadata: z.unknown().optional(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('start'),
     messageId: z.string().optional(),
-    metadata: z.unknown().optional(),
+    messageMetadata: z.unknown().optional(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('finish'),
-    metadata: z.unknown().optional(),
+    messageMetadata: z.unknown().optional(),
   }),
-  z.object({
-    type: z.literal('reasoning-part-finish'),
+  z.strictObject({
+    type: z.literal('message-metadata'),
+    messageMetadata: z.unknown(),
   }),
 ]);
 
