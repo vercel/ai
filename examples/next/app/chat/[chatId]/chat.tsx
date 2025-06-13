@@ -1,18 +1,18 @@
 'use client';
 
 import { invalidateRouterCache } from '@/app/actions';
-import { MyUIMessage, weatherDataPartSchema } from '@/util/chat-schema';
+import { Message } from '@/util/chat-schema';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
 import ChatInput from './chat-input';
-import Message from './message';
+import MessageView from './message-view';
 
 export default function ChatComponent({
   chatData,
   isNewChat = false,
 }: {
-  chatData: { id: string; messages: MyUIMessage[] };
+  chatData: { id: string; messages: Message[] };
   isNewChat?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -20,9 +20,6 @@ export default function ChatComponent({
   const { status, sendMessage, messages } = useChat({
     id: chatData.id,
     messages: chatData.messages,
-    dataPartSchemas: {
-      weather: weatherDataPartSchema,
-    },
     transport: new DefaultChatTransport({
       // only send the last message to the server to limit the request size:
       prepareRequest: ({ id, messages }) => ({
@@ -53,7 +50,7 @@ export default function ChatComponent({
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(message => (
-        <Message key={message.id} message={message} />
+        <MessageView key={message.id} message={message} />
       ))}
       <ChatInput
         status={status}

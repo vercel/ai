@@ -1,6 +1,6 @@
-import { MyUIMessage } from '@/util/chat-schema';
+import { Message } from '@/util/chat-schema';
 
-export default function Message({ message }: { message: MyUIMessage }) {
+export default function MessageView({ message }: { message: Message }) {
   const date = message.metadata?.createdAt
     ? new Date(message.metadata.createdAt).toLocaleString()
     : '';

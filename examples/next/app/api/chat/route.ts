@@ -1,19 +1,17 @@
 import { callWeatherApi } from '@/util/call-weather-api';
-import { MyUIMessage } from '@/util/chat-schema';
+import { Message } from '@/util/chat-schema';
 import { readChat, saveChat } from '@util/chat-store';
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  generateId,
   streamText,
   tool,
 } from 'ai';
 import z from 'zod/v4';
 
 export async function POST(req: Request) {
-  const { message, id }: { message: MyUIMessage; id: string } =
-    await req.json();
+  const { message, id }: { message: Message; id: string } = await req.json();
 
   const chat = await readChat(id);
   const messages = [...chat.messages, message];
