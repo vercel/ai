@@ -28,6 +28,103 @@ export interface ToolCallOptions {
   abortSignal?: AbortSignal;
 }
 
+/**
+ * Options for server-side tool execution.
+ */
+export interface ServerToolCallOptions extends ToolCallOptions {
+  /**
+   * Execution context for server-side tools.
+   */
+  executionContext?: {
+    /**
+     * Maximum execution time in milliseconds.
+     */
+    maxExecutionTime?: number;
+
+    /**
+     * Whether the tool supports streaming results.
+     */
+    supportsStreaming?: boolean;
+
+    /**
+     * Provider-specific execution metadata.
+     */
+    providerMetadata?: Record<string, unknown>;
+  };
+}
+
+/**
+ * MCP-inspired tool patterns for server-side tools.
+ * These patterns align with Model Context Protocol best practices.
+ */
+export interface MCPToolPatterns {
+  /**
+   * Search pattern - returns IDs/references that can be fetched later.
+   * Inspired by MCP's search + fetch paradigm.
+   */
+  search?: {
+    /**
+     * Query interface for searching.
+     */
+    querySchema: ToolParameters;
+    /**
+     * Result schema for search results (typically returns IDs).
+     */
+    resultSchema: {
+      results: Array<{
+        id: string;
+        title: string;
+        snippet?: string;
+        score?: number;
+        metadata?: Record<string, unknown>;
+      }>;
+      totalResults?: number;
+      hasMore?: boolean;
+    };
+  };
+
+  /**
+   * Fetch pattern - retrieves full content by ID.
+   * Complements the search pattern for detailed content retrieval.
+   */
+  fetch?: {
+    /**
+     * ID-based fetch interface.
+     */
+    querySchema: { id: string };
+    /**
+     * Full content result schema.
+     */
+    resultSchema: {
+      id: string;
+      title: string;
+      content: string;
+      url?: string;
+      metadata?: Record<string, unknown>;
+    };
+  };
+
+  /**
+   * Execute pattern - performs actions or computations.
+   * For tools that perform operations rather than data retrieval.
+   */
+  execute?: {
+    /**
+     * Execution parameters.
+     */
+    querySchema: ToolParameters;
+    /**
+     * Execution result schema.
+     */
+    resultSchema: {
+      success: boolean;
+      result?: unknown;
+      error?: string;
+      metadata?: Record<string, unknown>;
+    };
+  };
+}
+
 type NeverOptional<N, T> = 0 extends 1 & N
   ? Partial<T>
   : [N] extends [never]
@@ -108,6 +205,26 @@ If not provided, the tool will not be executed automatically.
           args: [PARAMETERS] extends [never] ? undefined : PARAMETERS;
         } & ToolCallOptions,
       ) => void | PromiseLike<void>;
+
+      /**
+       * Optional function that is called when a server-side tool call can be started.
+       * Only applicable for provider-defined tools with server execution.
+       */
+      onServerToolCallStart?: (
+        options: ServerToolCallOptions,
+      ) => void | PromiseLike<void>;
+
+      /**
+       * Optional function that is called when server-side tool results are available.
+       * Only applicable for provider-defined tools with server execution.
+       */
+      onServerToolResult?: (
+        options: {
+          result: RESULT;
+          executionTime?: number;
+          serverMetadata?: Record<string, unknown>;
+        } & ServerToolCallOptions,
+      ) => void | PromiseLike<void>;
     }
   > &
   (
@@ -132,6 +249,130 @@ The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
      */
         args: Record<string, unknown>;
+
+        /**
+Optional execution mode for server-side tools.
+'server' means the tool is executed on the provider's servers.
+'hybrid' means the tool may be executed server-side or client-side based on provider capabilities.
+Defaults to 'server' for provider-defined tools.
+         */
+        executionMode?: 'server' | 'hybrid';
+
+        /**
+Optional result schema for server-side tools to enable type checking of results.
+This helps with tool composition and result validation.
+         */
+        resultSchema?: Record<string, unknown>;
+
+        /**
+Optional capabilities that this server-side tool supports.
+Used by providers to communicate tool limitations or special features.
+         */
+        capabilities?: {
+          /**
+Whether the tool supports streaming results.
+           */
+          streaming?: boolean;
+
+          /**
+Whether the tool supports cancellation during execution.
+           */
+          cancellable?: boolean;
+
+          /**
+Maximum execution time in milliseconds for server-side execution.
+           */
+          maxExecutionTime?: number;
+
+          /**
+Whether the tool requires special permissions or setup.
+           */
+          requiresSetup?: boolean;
+
+          /**
+Provider-specific capability flags.
+           */
+          providerSpecific?: Record<string, boolean | string | number>;
+        };
+
+        /**
+Optional server-side tool metadata.
+Provides additional information about server execution context.
+         */
+        serverMetadata?: {
+          /**
+Whether this tool is always executed server-side.
+           */
+          alwaysServerSide?: boolean;
+
+          /**
+Whether this tool can be executed in parallel with other tools.
+           */
+          supportsParallelExecution?: boolean;
+
+          /**
+Cost information for server-side execution.
+           */
+          costInfo?: {
+            /**
+Cost per execution in provider-specific units.
+             */
+            perExecution?: number;
+
+            /**
+Cost per input token processed.
+             */
+            perInputToken?: number;
+
+            /**
+Cost per output generated.
+             */
+            perOutput?: number;
+          };
+        };
+
+        /**
+MCP-inspired tool patterns for standardized server-side behavior.
+Helps tools follow established patterns for search, fetch, and execute operations.
+         */
+        mcpPatterns?: MCPToolPatterns;
+
+        /**
+OAuth configuration for server-side tools that require authentication.
+Inspired by OpenAI's MCP authentication approach.
+         */
+        authentication?: {
+          /**
+OAuth configuration for this tool.
+           */
+          oauth?: {
+            /**
+Authorization URL for OAuth flow.
+             */
+            authUrl: string;
+            /**
+Token URL for OAuth flow.
+             */
+            tokenUrl: string;
+            /**
+Required OAuth scopes.
+             */
+            scopes?: string[];
+          };
+          /**
+API key configuration for simpler authentication.
+           */
+          apiKey?: {
+            /**
+Name of the API key parameter.
+             */
+            paramName: string;
+            /**
+Where to include the API key (header, query, etc).
+             */
+            location: 'header' | 'query' | 'body';
+          };
+        };
       }
   );
 
