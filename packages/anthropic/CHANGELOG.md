@@ -1,5 +1,15 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-alpha.13
+
+### Patch Changes
+
+- 8dfcb11: feat(anthropic/citation): text support for citations
+- ee5a9c0: feat: streamText onChunk raw chunk support
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
 ## 2.0.0-alpha.12
 
 ### Patch Changes

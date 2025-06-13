@@ -1,5 +1,22 @@
 # @ai-sdk/svelte
 
+## 3.0.0-alpha.13
+
+### Major Changes
+
+- 0a710d8: feat (ui): typed tool parts in ui messages
+- 901df02: feat (ui): use UI_MESSAGE generic
+
+### Patch Changes
+
+- Updated dependencies [0a710d8]
+- Updated dependencies [6a83f7d]
+- Updated dependencies [1f55c21]
+- Updated dependencies [33eb499]
+- Updated dependencies [901df02]
+  - ai@5.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
 ## 3.0.0-alpha.12
 
 ### Patch Changes

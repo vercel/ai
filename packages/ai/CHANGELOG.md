@@ -1,5 +1,22 @@
 # ai
 
+## 5.0.0-alpha.13
+
+### Major Changes
+
+- 0a710d8: feat (ui): typed tool parts in ui messages
+- 6a83f7d: refactoring (ai): restructure message metadata transfer
+- 1f55c21: chore (ai): send reasoning to the client by default
+- 33eb499: feat (ai): inject message id in createUIMessageStream
+- 901df02: feat (ui): use UI_MESSAGE generic
+
+### Patch Changes
+
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/gateway@1.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
 ## 5.0.0-alpha.12
 
 ### Major Changes
