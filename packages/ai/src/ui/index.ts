@@ -16,7 +16,6 @@ export {
   convertToModelMessages,
 } from './convert-to-model-messages';
 export { DefaultChatTransport } from './default-chat-transport';
-export { getToolInvocations } from './get-tool-invocations';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
   type DataUIPart,
@@ -25,8 +24,7 @@ export {
   type SourceUrlUIPart,
   type StepStartUIPart,
   type TextUIPart,
-  type ToolInvocation,
-  type ToolInvocationUIPart,
+  type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
   type UIMessagePart,

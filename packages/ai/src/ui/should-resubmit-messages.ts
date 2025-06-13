@@ -1,4 +1,4 @@
-import { UIMessage } from './ui-messages';
+import { isToolUIPart, UIMessage } from './ui-messages';
 
 export function shouldResubmitMessages({
   originalMaxToolInvocationStep,
@@ -57,10 +57,10 @@ export function isAssistantMessageWithCompletedToolCalls(
 
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
-    .filter(part => part.type === 'tool-invocation');
+    .filter(isToolUIPart);
 
   return (
     lastStepToolInvocations.length > 0 &&
-    lastStepToolInvocations.every(part => 'result' in part.toolInvocation)
+    lastStepToolInvocations.every(part => part.state === 'result')
   );
 }

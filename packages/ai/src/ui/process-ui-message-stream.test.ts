@@ -332,14 +332,11 @@ describe('processUIMessageStream', () => {
           metadata: undefined,
           parts: [
             {
-              type: 'tool-invocation',
-              toolInvocation: {
-                args: {},
-                result: { location: 'Berlin' },
-                state: 'result',
-                toolCallId: 'tool-call-id-original',
-                toolName: 'tool-name-original',
-              },
+              type: 'tool-tool-name-original',
+              toolCallId: 'tool-call-id-original',
+              state: 'result',
+              args: {},
+              result: { location: 'Berlin' },
             },
           ],
         },

@@ -4,10 +4,13 @@ import { AssistantContent, ModelMessage } from '../../core/prompt/message';
 import { MessageConversionError } from '../../core/prompt/message-conversion-error';
 import {
   FileUIPart,
+  getToolName,
+  isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
-  ToolInvocationUIPart,
+  ToolUIPart,
   UIMessage,
+  UITools,
 } from './ui-messages';
 
 /**
@@ -59,7 +62,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
       case 'assistant': {
         if (message.parts != null) {
           let block: Array<
-            TextUIPart | ToolInvocationUIPart | ReasoningUIPart | FileUIPart
+            TextUIPart | ToolUIPart<UITools> | ReasoningUIPart | FileUIPart
           > = [];
 
           function processBlock() {
@@ -70,39 +73,30 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
             const content: AssistantContent = [];
 
             for (const part of block) {
-              switch (part.type) {
-                case 'text': {
-                  content.push(part);
-                  break;
-                }
-                case 'file': {
-                  content.push({
-                    type: 'file' as const,
-                    mediaType: part.mediaType,
-                    data: part.url,
-                  });
-                  break;
-                }
-                case 'reasoning': {
-                  content.push({
-                    type: 'reasoning' as const,
-                    text: part.text,
-                    providerOptions: part.providerMetadata,
-                  });
-                  break;
-                }
-                case 'tool-invocation':
-                  content.push({
-                    type: 'tool-call' as const,
-                    toolCallId: part.toolInvocation.toolCallId,
-                    toolName: part.toolInvocation.toolName,
-                    args: part.toolInvocation.args,
-                  });
-                  break;
-                default: {
-                  const _exhaustiveCheck: never = part;
-                  throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
-                }
+              if (part.type === 'text') {
+                content.push(part);
+              } else if (part.type === 'file') {
+                content.push({
+                  type: 'file' as const,
+                  mediaType: part.mediaType,
+                  data: part.url,
+                });
+              } else if (part.type === 'reasoning') {
+                content.push({
+                  type: 'reasoning' as const,
+                  text: part.text,
+                  providerOptions: part.providerMetadata,
+                });
+              } else if (isToolUIPart(part)) {
+                content.push({
+                  type: 'tool-call' as const,
+                  toolCallId: part.toolCallId,
+                  toolName: getToolName(part),
+                  args: part.state === 'partial-call' ? undefined : part.args,
+                });
+              } else {
+                const _exhaustiveCheck: never = part;
+                throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
               }
             }
 
@@ -112,18 +106,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
             });
 
             // check if there are tool invocations with results in the block
-            const stepInvocations = block
-              .filter(
-                (
-                  part:
-                    | TextUIPart
-                    | ToolInvocationUIPart
-                    | ReasoningUIPart
-                    | FileUIPart,
-                ): part is ToolInvocationUIPart =>
-                  part.type === 'tool-invocation',
-              )
-              .map(part => part.toolInvocation);
+            const stepInvocations = block.filter(isToolUIPart);
 
             // tool message with tool results
             if (stepInvocations.length > 0) {
@@ -140,7 +123,8 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                       });
                     }
 
-                    const { toolCallId, toolName, result } = toolInvocation;
+                    const toolName = getToolName(toolInvocation);
+                    const { toolCallId, result } = toolInvocation;
 
                     const tool = tools[toolName];
                     return tool?.experimental_toToolResultContent != null

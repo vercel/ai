@@ -11,16 +11,17 @@ import {
 } from '../ui-message-stream/ui-message-stream-parts';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
-import { getToolInvocations } from './get-tool-invocations';
-import type {
+import {
   InferUIMessageData,
   InferUIMessageMetadata,
+  InferUIMessageTools,
   ReasoningUIPart,
+  isToolUIPart,
   TextUIPart,
-  ToolInvocation,
-  ToolInvocationUIPart,
+  ToolUIPart,
   UIMessage,
   UIMessagePart,
+  getToolName,
 } from './ui-messages';
 import { UIDataTypesToSchemas } from './chat';
 
@@ -49,7 +50,10 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
             id: messageId,
             metadata: undefined,
             role: 'assistant',
-            parts: [] as UIMessagePart<InferUIMessageData<UI_MESSAGE>>[],
+            parts: [] as UIMessagePart<
+              InferUIMessageData<UI_MESSAGE>,
+              InferUIMessageTools<UI_MESSAGE>
+            >[],
           } as UI_MESSAGE),
     activeTextPart: undefined,
     activeReasoningPart: undefined,
@@ -88,22 +92,34 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       async transform(part, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function updateToolInvocationPart(
-            toolCallId: string,
-            invocation: ToolInvocation,
+            options: {
+              toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
+              toolCallId: string;
+            } & (
+              | { state: 'partial-call'; partialArgs: unknown }
+              | { state: 'call'; args: unknown }
+              | { state: 'result'; args: unknown; result: unknown }
+            ),
           ) {
             const part = state.message.parts.find(
               part =>
-                isToolInvocationUIPart(part) &&
-                part.toolInvocation.toolCallId === toolCallId,
-            ) as ToolInvocationUIPart | undefined;
+                isToolUIPart(part) && part.toolCallId === options.toolCallId,
+            ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
 
             if (part != null) {
-              part.toolInvocation = invocation;
+              part.state = options.state;
+              (part as any).partialArgs = (options as any).partialArgs;
+              (part as any).args = (options as any).args;
+              (part as any).result = (options as any).result;
             } else {
               state.message.parts.push({
-                type: 'tool-invocation',
-                toolInvocation: invocation,
-              });
+                type: `tool-${options.toolName}`,
+                toolCallId: options.toolCallId,
+                state: options.state,
+                partialArgs: (options as any).partialArgs,
+                args: (options as any).args,
+                result: (options as any).result,
+              } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
 
@@ -206,7 +222,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-call-streaming-start': {
-              const toolInvocations = getToolInvocations(state.message);
+              const toolInvocations = state.message.parts.filter(isToolUIPart);
 
               // add the partial tool call to the map
               state.partialToolCalls[part.toolCallId] = {
@@ -215,12 +231,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 index: toolInvocations.length,
               };
 
-              updateToolInvocationPart(part.toolCallId, {
-                state: 'partial-call',
+              updateToolInvocationPart({
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
-                args: undefined,
-              } as const);
+                state: 'partial-call',
+                partialArgs: '',
+              });
 
               write();
               break;
@@ -235,24 +251,24 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 partialToolCall.text,
               );
 
-              updateToolInvocationPart(part.toolCallId, {
-                state: 'partial-call',
+              updateToolInvocationPart({
                 toolCallId: part.toolCallId,
                 toolName: partialToolCall.toolName,
-                args: partialArgs,
-              } as const);
+                state: 'partial-call',
+                partialArgs: partialArgs,
+              });
 
               write();
               break;
             }
 
             case 'tool-call': {
-              updateToolInvocationPart(part.toolCallId, {
-                state: 'call',
+              updateToolInvocationPart({
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
+                state: 'call',
                 args: part.args,
-              } as const);
+              });
 
               write();
 
@@ -264,13 +280,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCall: part,
                 });
                 if (result != null) {
-                  updateToolInvocationPart(part.toolCallId, {
-                    state: 'result',
+                  updateToolInvocationPart({
                     toolCallId: part.toolCallId,
                     toolName: part.toolName,
+                    state: 'result',
                     args: part.args,
                     result,
-                  } as const);
+                  });
 
                   write();
                 }
@@ -279,7 +295,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-result': {
-              const toolInvocations = getToolInvocations(state.message);
+              const toolInvocations = state.message.parts.filter(isToolUIPart);
 
               if (toolInvocations == null) {
                 throw new Error('tool_result must be preceded by a tool_call');
@@ -297,11 +313,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 );
               }
 
-              updateToolInvocationPart(part.toolCallId, {
-                ...toolInvocations[toolInvocationIndex],
-                state: 'result' as const,
+              const toolName = getToolName(
+                toolInvocations[toolInvocationIndex],
+              );
+
+              updateToolInvocationPart({
+                toolCallId: part.toolCallId,
+                toolName,
+                state: 'result',
+                args: (toolInvocations[toolInvocationIndex] as any).args,
                 result: part.result,
-              } as const);
+              });
 
               write();
               break;
@@ -384,13 +406,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       },
     }),
   );
-}
-
-// helper function to narrow the type of a UIMessagePart
-function isToolInvocationUIPart(
-  part: UIMessagePart<any>,
-): part is ToolInvocationUIPart {
-  return part.type === 'tool-invocation';
 }
 
 function isObject(value: unknown): value is object {
