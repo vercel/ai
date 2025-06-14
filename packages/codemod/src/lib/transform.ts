@@ -1,11 +1,14 @@
 import { execSync } from 'child_process';
-import debug from 'debug';
 import fs from 'fs';
 import path from 'path';
 import { TransformOptions } from './transform-options';
 
-const log = debug('codemod:transform');
-const error = debug('codemod:transform:error');
+const log = (message: string) => {
+  console.error(`codemod:transform ${process.pid}: ${message}`);
+};
+const errorLog = (message: string) => {
+  console.error(`codemod:transform:error ${process.pid}: ${message}`);
+};
 
 function getJscodeshift(): string {
   const localJscodeshift = path.resolve(
@@ -97,7 +100,7 @@ export function transform(
   const errors = parseErrors(codemod, stdout);
   if (options.logStatus && errors.length > 0) {
     errors.forEach(({ transform, filename, summary }) => {
-      error(
+      errorLog(
         `Error applying codemod [codemod=${transform}, path=${filename}, summary=${summary}]`,
       );
     });
