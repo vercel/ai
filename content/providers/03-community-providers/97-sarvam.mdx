@@ -5,135 +5,171 @@ description: 'Learn how to use the Sarvam AI provider for the AI SDK.'
 
 # Sarvam Provider
 
-The Sarvam AI Provider is a library developed to integrate with the AI SDK. This library brings Speech to Text (STT) capabilities to your applications, allowing for seamless interaction with audio and text data.
+The **[Sarvam provider](http://sarvam.ai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the Sarvam chat completion, Text-to-Speech, Speech-to-Text and many more APIs.
 
 ## Setup
 
-The Sarvam provider is available in the `sarvam-ai-provider` module. You can install it with:
+The Sarvam provider is available in the `sarvam-ai-sdk` module. You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
-    <Snippet text="pnpm add sarvam-ai-provider" dark />
+    <Snippet text="pnpm add sarvam-ai-sdk" dark />
   </Tab>
   
   <Tab>
-    <Snippet text="npm install sarvam-ai-provider" dark />
+    <Snippet text="npm install sarvam-ai-sdk" dark />
   </Tab>
 
   <Tab>
-    <Snippet text="yarn add sarvam-ai-provider" dark />
+    <Snippet text="yarn add sarvam-ai-sdk" dark />
   </Tab>
 </Tabs>
 
 ## Provider Instance
 
-First, get your **Sarvam API Key** from the [Sarvam Dashboard](https://dashboard.sarvam.ai/auth/signin).
-
-Then initialize `Sarvam` in your application:
+You can import the default provider instance `sarvam` from `sarvam-ai-sdk`:
 
 ```ts
-import { createSarvam } from 'sarvam-ai-provider';
+import { sarvam } from 'sarvam-ai-sdk';
+```
 
-const sarvam = createSarvam({
-  headers: {
-    'api-subscription-key': 'YOUR_API_KEY',
-  },
+Create `.env` file with API key from **[Sarvam Dashboard](https://dashboard.sarvam.ai/)**
+```bash
+SARVAM_API_KEY="your_api_key"
+```## Example
+
+```ts
+import { sarvam } from 'sarvam-ai-sdk';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+    model: sarvam("sarvam-m"),
+    prompt: "Translate this to malayalam: 'Keep cooking, guys'",
 });
+
+console.log(text); // പാചകം തുടരൂ, സുഹൃത്തുക്കളേ
 ```
 
-<Note>
-  The `api-subscription-key` needs to be passed in headers. Consider using
-  `YOUR_API_KEY` as environment variables for security.
-</Note>
-
-- Transcribe speech to text
+## Text-to-Speech
 
 ```ts
-import { experimental_transcribe as transcribe } from 'ai';
-import { readFile } from 'fs/promises';
+import { sarvam } from "sarvam-ai-sdk";
+import { experimental_generateSpeech as generateSpeech } from "ai";
+import { writeFile } from "fs/promises";
 
-await transcribe({
-  model: sarvam.transcription('saarika:v2'),
-  audio: await readFile('./src/transcript-test.mp3'),
-  providerOptions: {
-    sarvam: {
-      language_code: 'en-IN',
-    },
-  },
+const { audio } = await generateSpeech({
+    model: sarvam.speech("bulbul:v2", "ml-IN"),
+    text: "പാചകം തുടരൂ, സുഹൃത്തുക്കളേ",
 });
+
+const audioBuffer = Buffer.from(audio.base64, "base64")
+await writeFile("./src/transcript-test.wav", audioBuffer);
 ```
 
-## Features
-
-### Changing parameters
-
-- Change language_code
+## Speech-to-Text
 
 ```ts
-providerOptions: {
-    sarvam: {
-      language_code: 'en-IN',
-    },
-  },
+import { sarvam } from "sarvam-ai-sdk";
+import { experimental_transcribe as transcribe } from "ai";
+import { readFile } from "fs/promises";
+
+const { text } = await transcribe({
+    model: sarvam.transcription("saarika:v2", "ml-IN")
+    audio: await readFile("./src/transcript-test.wav"),
+});
+
+console.log(text); // പാചകം തുടരും സുഹൃത്തുക്കളെ
 ```
 
-<Note>
-  `language_code` specifies the language of the input audio and is required for
-  accurate transcription. • It is mandatory for the `saarika:v1` model (this
-  model does not support `unknown`). • It is optional for the `saarika:v2`
-  model. • Use `unknown` when the language is not known; in that case, the API
-  will auto‑detect it. Available options: `unknown`, `hi-IN`, `bn-IN`, `kn-IN`,
-  `ml-IN`, `mr-IN`, `od-IN`, `pa-IN`, `ta-IN`, `te-IN`, `en-IN`, `gu-IN`.
-</Note>
-
-- with_timestamps?
+## Speech-to-Text-Translate
 
 ```ts
-providerOptions: {
-  sarvam: {
-    with_timestamps: true,
-  },
-},
+import { sarvam } from "sarvam-ai-sdk";
+import { experimental_transcribe as transcribe } from "ai";
+import { readFile } from "fs/promises";
+
+const result = await transcribe({
+    model: sarvam.speechTranslation("saaras:v2"),
+    audio: await readFile("./src/transcript-test.wav"),
+});
+
+console.log(result.text); // Cooking continues, my friends
 ```
 
-<Note>
-  `with_timestamps` specifies whether to include start/end timestamps for each
-  word/token. • Type: boolean • When true, each word/token will include
-  start/end timestamps. • Default: false
-</Note>
+## Translation
 
-- with_diarization?
+> NB: Only transliterates `prompt` and `role:user` messages, not `system` not `assistant`.
 
 ```ts
-providerOptions: {
-  sarvam: {
-    with_diarization: true,
-  },
-},
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText } from "ai";
+
+const result = await generateText({
+    model: sarvam.translation({
+        "from": "ml-IN",
+        "to": "en-IN",
+    }),
+    prompt: "ഇതൊക്കെ ശ്രദ്ധിക്കണ്ടേ അംബാനെ?",
+});
+
+console.log(result.text); // Shouldn't we be careful about this, Ambane?
 ```
 
-<Note>
-  `with_diarization` enables speaker diarization (Beta). • Type: boolean • When
-  true, enables speaker diarization. • Default: false
-</Note>
+## Transliterate
 
-- num_speakers?
+> NB: Only transliterates `prompt` and `role:user` messages, not `system` not `assistant`.
 
 ```ts
-providerOptions: {
-  sarvam: {
-    with_diarization: true,
-    num_speakers: 2,
-  },
-},
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText } from "ai";
+
+const result = await generateText({
+  model: sarvam.transliterate({
+      from: "en-IN",
+      to: "ml-IN",
+  }),
+  prompt: "eda mone, happy alle?",
+});
+
+console.log(result.text); // എടാ മോനെ, ഹാപ്പി അല്ലേ?
 ```
 
-<Note>
-  `num_speakers` sets the number of distinct speakers to detect (only when
-  `with_diarization` is true). • Type: number | null • Number of distinct
-  speakers to detect. • Default: null
-</Note>
+## Tool Calling
 
-## References
+> [!WARNING]
+> Latest `sarvam-m` model isn't trained on native tool calling feature (aka JSON mode). So we simulate this with prompt engineering technique.
 
-- [Sarvam API Docs](https://docs.sarvam.ai/api-reference-docs/endpoints/speech-to-text)
+```ts
+import { z } from "zod";
+import { generateText, tool } from "ai";
+import { sarvam } from "sarvam-ai-sdk";
+
+
+const result = await generateText({
+  model: sarvam("sarvam-m", {
+    simulate: "tool-calling" // ⚠️ important
+  }),
+  tools: {
+    weather: tool({
+      description: "Get the weather in a location",
+      parameters: z.object({
+        location: z.string().describe("The location to get the weather for"),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  system: "Your are a helpful AI",
+  prompt: "കൊച്ചിയിലെ കാലാവസ്ഥ എന്താണ്?",
+});
+
+console.log(result.toolResults);
+```
+
+## Documentation
+
+Please check out [Sarvam's API Documentation](https://docs.sarvam.ai) for more information.
+
+You can find the source code and more examples for this provider [here on GitHub](https://github.com/rajatsandeepsen/sarvam-ai-sdk).
