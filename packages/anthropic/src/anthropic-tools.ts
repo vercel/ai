@@ -510,6 +510,50 @@ function computerTool_20250124<RESULT>(options: {
   };
 }
 
+const WebSearch20250305Parameters = z.object({});
+
+/**
+ * Creates a web search tool. Must have name "web_search".
+ *
+ * Gives Claude direct access to real-time web content, allowing it to answer
+ * questions with up-to-date information beyond its knowledge cutoff.
+ * Claude automatically cites sources from search results as part of its answer.
+ */
+function webSearchTool_20250305({
+  maxUses,
+  allowedDomains,
+  blockedDomains,
+  userLocation,
+}: {
+  maxUses?: number;
+  allowedDomains?: string[];
+  blockedDomains?: string[];
+  userLocation?: {
+    type?: 'approximate';
+    city?: string;
+    region?: string;
+    country?: string;
+    timezone?: string;
+  };
+} = {}): {
+  type: 'provider-defined';
+  id: 'anthropic.web_search_20250305';
+  args: {};
+  parameters: typeof WebSearch20250305Parameters;
+} {
+  return {
+    type: 'provider-defined',
+    id: 'anthropic.web_search_20250305',
+    args: {
+      maxUses,
+      allowedDomains,
+      blockedDomains,
+      userLocation,
+    },
+    parameters: WebSearch20250305Parameters,
+  };
+}
+
 export const anthropicTools = {
   bash_20241022: bashTool_20241022,
   bash_20250124: bashTool_20250124,
@@ -517,4 +561,5 @@ export const anthropicTools = {
   textEditor_20250124: textEditorTool_20250124,
   computer_20241022: computerTool_20241022,
   computer_20250124: computerTool_20250124,
+  webSearch_20250305: webSearchTool_20250305,
 };
