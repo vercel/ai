@@ -4,6 +4,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2FunctionTool,
   LanguageModelV2ProviderDefinedClientTool,
+  LanguageModelV2ProviderDefinedServerTool,
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -6466,6 +6467,7 @@ describe('streamText', () => {
         | (
             | LanguageModelV2FunctionTool
             | LanguageModelV2ProviderDefinedClientTool
+            | LanguageModelV2ProviderDefinedServerTool
           )[]
         | undefined;
 
