@@ -1,6 +1,7 @@
 import { MyUIMessage } from '@/util/chat-schema';
 import { loadStreams, readChat, saveChat } from '@util/chat-store';
 import {
+  consumeStream,
   convertToModelMessages,
   createUIMessageStreamResponse,
   generateId,
@@ -54,26 +55,6 @@ export async function POST(req: Request) {
   return createUIMessageStreamResponse({
     stream: stream1,
   });
-}
-
-export async function consumeStream({
-  stream,
-  onError,
-}: {
-  stream: ReadableStream;
-  onError?: (error: unknown) => void;
-}): Promise<void> {
-  const reader = stream.getReader();
-  try {
-    while (true) {
-      const { done } = await reader.read();
-      if (done) break;
-    }
-  } catch (error) {
-    onError?.(error);
-  } finally {
-    reader.releaseLock();
-  }
 }
 
 export async function GET(request: Request) {
