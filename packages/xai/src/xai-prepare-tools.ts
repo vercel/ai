@@ -45,7 +45,10 @@ export function prepareTools({
   }> = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined-client' || tool.type === 'provider-defined-server') {
+    if (
+      tool.type === 'provider-defined-client' ||
+      tool.type === 'provider-defined-server'
+    ) {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
       xaiTools.push({
