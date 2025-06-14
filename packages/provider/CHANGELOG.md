@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.14
+
+### Patch Changes
+
+- b5da06a: update to LanguageModelV2ProviderDefinedClientTool to add server side tool later on
+
 ## 2.0.0-alpha.13
 
 ### Patch Changes
