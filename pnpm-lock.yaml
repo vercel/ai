@@ -449,9 +449,6 @@ importers:
       react-markdown:
         specifier: 9.0.1
         version: 9.0.1(@types/react@18.3.3)(react@18.3.1)
-      redis:
-        specifier: ^4.7.0
-        version: 4.7.0
       resumable-stream:
         specifier: ^2.0.0
         version: 2.0.0
