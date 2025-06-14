@@ -55,7 +55,7 @@ export function prepareTools({
           input_schema: tool.parameters,
         });
         break;
-      case 'provider-defined':
+      case 'provider-defined-client':
         switch (tool.id) {
           case 'anthropic.computer_20250124':
             betas.add('computer-use-2025-01-24');

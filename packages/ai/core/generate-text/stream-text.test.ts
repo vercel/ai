@@ -3,7 +3,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV2ProviderDefinedClientTool,
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -6463,7 +6463,10 @@ describe('streamText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | (
+            | LanguageModelV2FunctionTool
+            | LanguageModelV2ProviderDefinedClientTool
+          )[]
         | undefined;
 
       const result = streamText({

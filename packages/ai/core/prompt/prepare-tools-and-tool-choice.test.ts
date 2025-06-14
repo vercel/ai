@@ -15,7 +15,7 @@ const mockTools: ToolSet = {
 };
 
 const mockProviderDefinedTool: Tool = {
-  type: 'provider-defined',
+  type: 'provider-defined-client',
   id: 'provider.tool-id',
   args: { key: 'value' },
   parameters: z.object({}),
@@ -97,7 +97,7 @@ it('should correctly map tool properties', () => {
   });
 });
 
-it('should handle provider-defined tool type', () => {
+it('should handle provider-defined-client tool type', () => {
   const result = prepareToolsAndToolChoice({
     tools: mockToolsWithProviderDefined,
     toolChoice: undefined,
@@ -105,7 +105,7 @@ it('should handle provider-defined tool type', () => {
   });
   expect(result.tools).toHaveLength(3);
   expect(result.tools?.[2]).toEqual({
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     name: 'providerTool',
     id: 'provider.tool-id',
     args: { key: 'value' },
