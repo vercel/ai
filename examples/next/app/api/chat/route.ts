@@ -65,7 +65,7 @@ export async function GET(request: Request) {
   });
 
   const { searchParams } = new URL(request.url);
-  const chatId = searchParams.get('chatId');
+  const chatId = searchParams.get('id');
 
   if (!chatId) {
     return new Response('id is required', { status: 400 });

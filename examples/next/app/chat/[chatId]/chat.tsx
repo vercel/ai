@@ -11,13 +11,15 @@ import Message from './message';
 export default function ChatComponent({
   chatData,
   isNewChat = false,
+  resume,
 }: {
   chatData: { id: string; messages: MyUIMessage[] };
   isNewChat?: boolean;
+  resume: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, sendMessage, messages } = useChat({
+  const { status, sendMessage, messages, experimental_resume } = useChat({
     id: chatData.id,
     messages: chatData.messages,
     transport: new DefaultChatTransport({
@@ -44,6 +46,13 @@ export default function ChatComponent({
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // resume ongoing stream
+  useEffect(() => {
+    if (resume) {
+      experimental_resume();
+    }
+  }, [resume, experimental_resume]);
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

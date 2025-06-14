@@ -23,7 +23,7 @@ export default async function Page(props: {
           </li>
         ))}
       </ul>
-      <Chat chatData={chatData} />;
+      <Chat chatData={chatData} resume={chatData.streamId !== null} />;
     </div>
   );
 }
