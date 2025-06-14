@@ -16,11 +16,11 @@ export async function createChat(): Promise<string> {
 
 export async function saveChat({
   id,
-  streamId,
+  activeStreamId,
   messages,
 }: {
   id: string;
-  streamId?: string | null;
+  activeStreamId?: string | null;
   messages?: MyUIMessage[];
 }): Promise<void> {
   const chat = await readChat(id);
@@ -29,8 +29,8 @@ export async function saveChat({
     chat.messages = messages;
   }
 
-  if (streamId !== undefined) {
-    chat.streamId = streamId;
+  if (activeStreamId !== undefined) {
+    chat.activeStreamId = activeStreamId;
   }
 
   writeChat(chat);

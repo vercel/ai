@@ -3,9 +3,7 @@ import { readChat, saveChat } from '@util/chat-store';
 import {
   consumeStream,
   convertToModelMessages,
-  createUIMessageStreamResponse,
   generateId,
-  JsonToSseTransformStream,
   streamText,
 } from 'ai';
 import { after } from 'next/server';
@@ -23,11 +21,9 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
-  const streamId = generateId();
+  const streamContext = createResumableStreamContext({ waitUntil: after });
 
-  saveChat({ id, streamId });
-
-  const stream = result.toUIMessageStream({
+  return result.toUIMessageStreamResponse({
     originalMessages: messages,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
@@ -35,27 +31,25 @@ export async function POST(req: Request) {
       }
     },
     onFinish: ({ messages }) => {
-      saveChat({ id, messages, streamId: null });
+      saveChat({ id, messages, activeStreamId: null });
     },
-  });
+    async consumeSseStream({ stream }) {
+      const streamId = generateId();
 
-  const [stream1, stream2] = stream.tee();
+      // send the sse stream into a resumable stream sink as well:
+      const resumableStream = await streamContext.createNewResumableStream(
+        streamId,
+        () => stream,
+      );
 
-  const streamContext = createResumableStreamContext({
-    waitUntil: after,
-  });
+      if (resumableStream) {
+        // update the chat with the streamId
+        saveChat({ id, activeStreamId: streamId });
 
-  const resumableStream = await streamContext.createNewResumableStream(
-    streamId,
-    () => stream2.pipeThrough(new JsonToSseTransformStream()),
-  );
-
-  if (resumableStream) {
-    consumeStream({ stream: resumableStream });
-  }
-
-  return createUIMessageStreamResponse({
-    stream: stream1,
+        // always consume the stream even if the client connection is lost
+        consumeStream({ stream: resumableStream });
+      }
+    },
   });
 }
 
@@ -73,10 +67,12 @@ export async function GET(request: Request) {
 
   const chat = await readChat(chatId);
 
-  if (!chat.streamId) {
+  if (!chat.activeStreamId) {
     return new Response('No stream found', { status: 404 });
   }
 
   // TODO headers
-  return new Response(await streamContext.resumeExistingStream(chat.streamId));
+  return new Response(
+    await streamContext.resumeExistingStream(chat.activeStreamId),
+  );
 }
