@@ -24,7 +24,7 @@ export function createUIMessageStreamResponse({
     consumeSseStream({ stream: stream2 }); // no await (do not block the response)
   }
 
-  return new Response(sseStream, {
+  return new Response(sseStream.pipeThrough(new TextEncoderStream()), {
     status,
     statusText,
     headers: prepareHeaders(headers, uiMessageStreamHeaders),
