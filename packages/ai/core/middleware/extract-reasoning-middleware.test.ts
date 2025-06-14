@@ -84,7 +84,7 @@ describe('extractReasoningMiddleware', () => {
       expect(result.text).toStrictEqual('Here is the response\nmore');
     });
 
-    it('should preprend <think> tag IFF startWithReasoning is true', async () => {
+    it('should prepend <think> tag IFF startWithReasoning is true', async () => {
       const mockModel = new MockLanguageModelV1({
         async doGenerate() {
           return {
@@ -459,7 +459,7 @@ describe('extractReasoningMiddleware', () => {
       ]);
     });
 
-    it('should preprend <think> tag IFF startWithReasoning is true', async () => {
+    it('should prepend <think> tag IFF startWithReasoning is true', async () => {
       const mockModel = new MockLanguageModelV1({
         async doStream() {
           return {
