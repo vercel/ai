@@ -141,6 +141,18 @@ Details for all steps.
 ) => Promise<void> | void;
 
 /**
+Callback that is called after tool executions to update the available tools list.
+
+@param event - The event that is passed to the callback containing current tool calls and results.
+@returns A new tools object or undefined to keep current tools.
+ */
+export type StreamTextOnUpdateToolsListCallback<TOOLS extends ToolSet> = (event: {
+  toolCalls: ToolCallUnion<TOOLS>[];
+  toolResults: ToolResultUnion<TOOLS>[];
+  currentStep: number;
+}) => Promise<TOOLS | undefined> | (TOOLS | undefined);
+
+/**
 Generate a text and call tools for a given prompt using a language model.
 
 This function streams the output. If you do not want to stream the output, use `generateText` instead.
@@ -185,6 +197,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
 @param onFinish - Callback that is called when the LLM response and all request tool executions
 (for tools that have an `execute` function) are finished.
+@param onUpdateToolsList - Callback that is called after tool executions to update the available tools list.
 
 @return
 A result object for accessing different stream types and additional information.
@@ -219,6 +232,7 @@ export function streamText<
   onError,
   onFinish,
   onStepFinish,
+  onUpdateToolsList,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -342,6 +356,11 @@ Callback that is called when each step (LLM call) is finished, including interme
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
+Callback that is called after tool executions to update the available tools list.
+    */
+    onUpdateToolsList?: StreamTextOnUpdateToolsListCallback<TOOLS>;
+
+    /**
 Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -374,6 +393,7 @@ Internal. For test use only. May change without notice.
     onError,
     onFinish,
     onStepFinish,
+    onUpdateToolsList,
     now,
     currentDate,
     generateId,
@@ -524,6 +544,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
 
+  // Make tools mutable to support dynamic updates
+  private currentTools: TOOLS | undefined;
+
   constructor({
     model,
     telemetry,
@@ -552,6 +575,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onError,
     onFinish,
     onStepFinish,
+    onUpdateToolsList,
   }: {
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
@@ -582,6 +606,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onError: undefined | StreamTextOnErrorCallback;
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
+    onUpdateToolsList: undefined | StreamTextOnUpdateToolsListCallback<TOOLS>;
   }) {
     if (maxSteps < 1) {
       throw new InvalidArgumentError({
@@ -592,6 +617,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     }
 
     this.output = output;
+    this.currentTools = tools;
 
     // event processor for telemetry, invoking callbacks, etc.
     // The event processor reads the transformed stream to enable correct
@@ -638,9 +664,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'reasoning' ||
           part.type === 'source' ||
           part.type === 'tool-call' ||
-          part.type === 'tool-result' ||
           part.type === 'tool-call-streaming-start' ||
-          part.type === 'tool-call-delta'
+          part.type === 'tool-call-delta' ||
+          part.type === 'tool-result'
         ) {
           await onChunk?.({ chunk: part });
         }
@@ -702,7 +728,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             text: recordedContinuationText,
             files: stepFiles,
             reasoning: stepReasoning,
-            tools: tools ?? ({} as TOOLS),
+            tools: self.currentTools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
             messageId: part.messageId,
@@ -879,23 +905,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     let stream = stitchableStream.stream;
 
-    // transform the stream before output parsing
-    // to enable replacement of stream segments:
-    for (const transform of transforms) {
-      stream = stream.pipeThrough(
-        transform({
-          tools: tools as TOOLS,
-          stopStream() {
-            stitchableStream.terminate();
-          },
-        }),
-      );
-    }
-
-    this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output))
-      .pipeThrough(eventProcessor);
-
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
     });
@@ -919,6 +928,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     });
 
     const self = this;
+
+    // transform the stream before output parsing
+    // to enable replacement of stream segments:
+    for (const transform of transforms) {
+      stream = stream.pipeThrough(
+        transform({
+          tools: self.currentTools as TOOLS,
+          stopStream() {
+            stitchableStream.terminate();
+          },
+        }),
+      );
+    }
+
+    this.baseStream = stream
+      .pipeThrough(createOutputTransformStream(output))
+      .pipeThrough(eventProcessor);
 
     recordSpan({
       name: 'ai.streamText',
@@ -977,7 +1003,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           const mode = {
             type: 'regular' as const,
-            ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
+            ...prepareToolsAndToolChoice({ tools: self.currentTools, toolChoice, activeTools }),
           };
 
           const {
@@ -1044,7 +1070,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           );
 
           const transformedStream = runToolsTransformation({
-            tools,
+            tools: self.currentTools,
             generatorStream: stream,
             toolCallStreaming,
             tracer,
@@ -1433,13 +1459,30 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           text: stepText,
                           files: stepFiles,
                           reasoning: stepReasoning,
-                          tools: tools ?? ({} as TOOLS),
+                          tools: self.currentTools ?? ({} as TOOLS),
                           toolCalls: stepToolCalls,
                           toolResults: stepToolResults,
                           messageId,
                           generateMessageId,
                         }),
                       );
+                    }
+
+                    // Update tools if callback is provided and there are tool results
+                    if (onUpdateToolsList && stepToolResults.length > 0) {
+                      try {
+                        const updatedTools = await onUpdateToolsList({
+                          toolCalls: stepToolCalls,
+                          toolResults: stepToolResults,
+                          currentStep: currentStep,
+                        });
+                        if (updatedTools !== undefined) {
+                          self.currentTools = updatedTools;
+                        }
+                      } catch (error) {
+                        // If updating tools fails, log the error but continue with current tools
+                        console.warn('Failed to update tools list:', error);
+                      }
                     }
 
                     await streamStep({
