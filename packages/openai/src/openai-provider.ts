@@ -1,10 +1,10 @@
 import {
   EmbeddingModelV1,
   ImageModelV1,
-  TranscriptionModelV1,
   LanguageModelV1,
   ProviderV1,
   SpeechModelV1,
+  TranscriptionModelV1,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -28,13 +28,13 @@ import {
   OpenAIImageModelId,
   OpenAIImageSettings,
 } from './openai-image-settings';
+import { OpenAISpeechModel } from './openai-speech-model';
+import { OpenAISpeechModelId } from './openai-speech-settings';
+import { openaiTools } from './openai-tools';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
 import { OpenAITranscriptionModelId } from './openai-transcription-settings';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
-import { openaiTools } from './openai-tools';
-import { OpenAISpeechModel } from './openai-speech-model';
-import { OpenAISpeechModelId } from './openai-speech-settings';
 
 export interface OpenAIProvider extends ProviderV1 {
   (
