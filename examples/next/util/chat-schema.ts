@@ -1,16 +1,38 @@
-import { UIDataTypes, UIMessage } from 'ai';
-import { z } from 'zod';
+import { UIMessage } from 'ai';
 
-export const myMessageMetadataSchema = z.object({
-  createdAt: z.number(),
-});
+export type WeatherDataPart =
+  | { status: 'generating' }
+  | { status: 'calling api' }
+  | {
+      status: 'available';
+      weather: {
+        city: string;
+        weather: string;
+        temperatureInCelsius: number;
+      };
+    };
 
-export type MyMessageMetadata = z.infer<typeof myMessageMetadataSchema>;
-
-export type MyUIMessage = UIMessage<MyMessageMetadata, UIDataTypes>;
+export type Message = UIMessage<
+  {
+    createdAt: number;
+  },
+  {
+    weather: WeatherDataPart;
+  },
+  {
+    getWeatherInformation: {
+      args: { city: string };
+      result: {
+        city: string;
+        weather: string;
+        temperatureInCelsius: number;
+      };
+    };
+  }
+>;
 
 export type ChatData = {
   id: string;
-  messages: MyUIMessage[];
+  messages: Message[];
   createdAt: number;
 };
