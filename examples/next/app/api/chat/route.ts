@@ -24,8 +24,7 @@ export async function POST(req: Request) {
       }
     },
     onFinish: ({ messages }) => {
-      // TODO fix type safety
-      saveChat({ id, messages: messages as MyUIMessage[] });
+      saveChat({ id, messages });
     },
   });
 }
