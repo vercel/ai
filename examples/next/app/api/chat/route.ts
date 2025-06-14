@@ -23,6 +23,10 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
+  const streamId = generateId();
+
+  saveChat({ id, streamId });
+
   const stream = result.toUIMessageStream({
     originalMessages: messages,
     messageMetadata: ({ part }) => {
@@ -31,13 +35,11 @@ export async function POST(req: Request) {
       }
     },
     onFinish: ({ messages }) => {
-      saveChat({ id, messages });
+      saveChat({ id, messages, streamId: null });
     },
   });
 
   const [stream1, stream2] = stream.tee();
-
-  const streamId = generateId();
 
   const streamContext = createResumableStreamContext({
     waitUntil: after,
