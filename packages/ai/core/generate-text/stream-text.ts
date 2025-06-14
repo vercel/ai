@@ -77,6 +77,7 @@ import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
+import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1704,7 +1705,8 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendStart,
     onError,
     ...init
-  }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
+  }: UIMessageStreamResponseInit &
+    UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
     return createUIMessageStreamResponse({
       stream: this.toUIMessageStream({
         originalMessages,

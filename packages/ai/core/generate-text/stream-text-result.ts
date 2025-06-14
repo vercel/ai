@@ -19,6 +19,7 @@ import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -305,7 +306,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   @return A response object.
      */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
-    options?: ResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
+    options?: UIMessageStreamOptions<UI_MESSAGE> & UIMessageStreamResponseInit,
   ): Response;
 
   /**
