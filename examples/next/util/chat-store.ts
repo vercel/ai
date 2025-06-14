@@ -82,28 +82,3 @@ async function getChatFile(id: string): Promise<string> {
 
   return chatFile;
 }
-
-export async function appendStreamId({
-  id,
-  streamId,
-}: {
-  id: string;
-  streamId: string;
-}) {
-  const file = getStreamsFile(id);
-  const streams = await loadStreams(id);
-  streams.push(streamId);
-  await writeFile(file, JSON.stringify(streams, null, 2));
-}
-
-export async function loadStreams(id: string): Promise<string[]> {
-  const file = getStreamsFile(id);
-  if (!existsSync(file)) return [];
-  return JSON.parse(await readFile(file, 'utf8'));
-}
-
-function getStreamsFile(id: string): string {
-  const chatDir = path.join(process.cwd(), '.streams');
-  if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
-  return path.join(chatDir, `${id}.json`);
-}

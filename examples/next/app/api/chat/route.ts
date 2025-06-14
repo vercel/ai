@@ -1,5 +1,5 @@
 import { MyUIMessage } from '@/util/chat-schema';
-import { loadStreams, readChat, saveChat } from '@util/chat-store';
+import { readChat, saveChat } from '@util/chat-store';
 import {
   consumeStream,
   convertToModelMessages,
@@ -69,18 +69,12 @@ export async function GET(request: Request) {
     return new Response('id is required', { status: 400 });
   }
 
-  const streamIds = await loadStreams(chatId);
+  const chat = await readChat(chatId);
 
-  if (!streamIds.length) {
-    return new Response('No streams found', { status: 404 });
-  }
-
-  const recentStreamId = streamIds.at(-1);
-
-  if (!recentStreamId) {
-    return new Response('No recent stream found', { status: 404 });
+  if (!chat.streamId) {
+    return new Response('No stream found', { status: 404 });
   }
 
   // TODO headers
-  return new Response(await streamContext.resumeExistingStream(recentStreamId));
+  return new Response(await streamContext.resumeExistingStream(chat.streamId));
 }
