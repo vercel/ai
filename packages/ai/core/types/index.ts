@@ -28,3 +28,16 @@ export type {
 export type { TranscriptionModelResponseMetadata } from './transcription-model-response-metadata';
 export type { SpeechModel, SpeechWarning } from './speech-model';
 export type { SpeechModelResponseMetadata } from './speech-model-response-metadata';
+
+import { StepResult } from '../generate-text/step-result';
+import { ToolSet } from '../generate-text/tool-set';
+
+export type OnFinishResult<TOOLS extends ToolSet> = Omit<
+  StepResult<TOOLS>,
+  'stepType' | 'isContinued'
+> & {
+  /**
+   * Details for all steps.
+   */
+  readonly steps: StepResult<TOOLS>[];
+};

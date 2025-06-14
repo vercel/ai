@@ -45,6 +45,8 @@ export * from './registry';
 export * from './tool';
 export * from './types';
 
+export type { OnFinishResult } from './types';
+
 // telemetry types:
 export type { TelemetrySettings } from './telemetry/telemetry-settings';
 
