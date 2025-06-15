@@ -3,7 +3,7 @@ import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-part
 import { ChatTransport } from './chat-transport';
 import { PrepareRequest } from './prepare-request';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
-import { UIDataTypes, UIMessage } from './ui-messages';
+import { UIMessage } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -27,7 +27,7 @@ async function fetchTextStream({
 }): Promise<ReadableStream<UIMessageStreamPart<never, never>>> {
   const response =
     requestType === 'resume'
-      ? await fetch(`${api}?chatId=${body.chatId}`, {
+      ? await fetch(`${api}/${body.chatId}/stream`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

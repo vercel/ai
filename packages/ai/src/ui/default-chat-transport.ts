@@ -33,7 +33,7 @@ async function fetchUIMessageStream({
 }): Promise<ReadableStream<UIMessageStreamPart>> {
   const response =
     requestType === 'resume'
-      ? await fetch(`${api}?id=${body.id}`, {
+      ? await fetch(`${api}/${body.id}/stream`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

@@ -52,27 +52,3 @@ export async function POST(req: Request) {
     },
   });
 }
-
-export async function GET(request: Request) {
-  const streamContext = createResumableStreamContext({
-    waitUntil: after,
-  });
-
-  const { searchParams } = new URL(request.url);
-  const chatId = searchParams.get('id');
-
-  if (!chatId) {
-    return new Response('id is required', { status: 400 });
-  }
-
-  const chat = await readChat(chatId);
-
-  if (!chat.activeStreamId) {
-    return new Response('No stream found', { status: 404 });
-  }
-
-  // TODO headers
-  return new Response(
-    await streamContext.resumeExistingStream(chat.activeStreamId),
-  );
-}

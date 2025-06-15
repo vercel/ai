@@ -52,6 +52,7 @@ async function writeChat(chat: ChatData) {
   await writeFile(await getChatFile(chat.id), JSON.stringify(chat, null, 2));
 }
 
+// TODO return null if the chat does not exist
 export async function readChat(id: string): Promise<ChatData> {
   return JSON.parse(await readFile(await getChatFile(id), 'utf8'));
 }
