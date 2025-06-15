@@ -41,7 +41,7 @@ This creates a file like `ai-4.3.16.tgz` (version may vary).
 
 Copy the tarball to your main project:
 ```bash
-cp ai-*.tgz /Users/eliaweiss/work/scrape-n-chat1/
+cp ai-*.tgz /Users/eliaweiss/work/scrape-n-chat1/ai-sdk
 ```
 
 ### 5. Update Main Project Dependencies
@@ -55,7 +55,7 @@ Update `package.json` to use the new tarball:
 ```json
 {
   "dependencies": {
-    "ai": "./ai-4.3.16.tgz"
+    "ai": "./ai-sdk/ai-4.3.16.tgz"
   }
 }
 ```
@@ -127,7 +127,7 @@ cd "$AI_PATH/packages/ai"
 pnpm pack
 
 echo "Copying to main project..."
-cp ai-*.tgz "$MAIN_PATH/"
+cp ai-*.tgz "$MAIN_PATH/ai-sdk"
 
 echo "Updating dependencies..."
 cd "$MAIN_PATH"
