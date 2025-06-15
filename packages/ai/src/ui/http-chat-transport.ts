@@ -51,7 +51,7 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    * @param messages The current messages in the chat.
    * @param requestBody The request body object passed in the chat request.
    */
-  prepareRequest?: NoInfer<PrepareRequest<UI_MESSAGE>>;
+  prepareRequest?: PrepareRequest<UI_MESSAGE>;
 };
 
 export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
