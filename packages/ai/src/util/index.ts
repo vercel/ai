@@ -1,6 +1,4 @@
-// Export stream data utilities for custom stream implementations,
-// both on the client and server side.
-// NOTE: this is experimental / internal and may change without notice
+export { consumeStream } from './consume-stream';
 export { cosineSimilarity } from './cosine-similarity';
 export { getTextFromDataUrl } from './data-url';
 export type { DeepPartial } from './deep-partial';

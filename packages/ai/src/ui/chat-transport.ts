@@ -12,4 +12,10 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
       requestType: 'generate' | 'resume'; // TODO have separate functions
     } & ChatRequestOptions,
   ) => Promise<ReadableStream<UIMessageStreamPart>>;
+
+  // reconnectToStream: (
+  //   options: {
+  //     chatId: string;
+  //   } & ChatRequestOptions,
+  // ) => Promise<ReadableStream<UIMessageStreamPart>>;
 }
