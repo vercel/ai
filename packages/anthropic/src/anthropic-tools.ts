@@ -265,6 +265,86 @@ function textEditorTool_20250124<RESULT>(
     experimental_toToolResultContent: options.experimental_toToolResultContent,
   };
 }
+const TextEditor20250429Parameters = z.object({
+  command: z.enum(['view', 'create', 'str_replace', 'insert']),
+  path: z.string(),
+  file_text: z.string().optional(),
+  insert_line: z.number().int().optional(),
+  new_str: z.string().optional(),
+  old_str: z.string().optional(),
+  view_range: z.array(z.number().int()).optional(),
+});
+
+/**
+ * Creates a tool for editing text. Must have name "str_replace_based_edit_tool".
+ *
+ * Image results are supported.
+ *
+ * @param execute - The function to execute the tool. Optional.
+ */
+function textEditorTool_20250429<RESULT>(
+  options: {
+    execute?: ExecuteFunction<
+      {
+        /**
+         * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`. Note: `undo_edit` is not available in this version.
+         */
+        command: 'view' | 'create' | 'str_replace' | 'insert';
+
+        /**
+         * Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
+         */
+        path: string;
+
+        /**
+         * Required parameter of `create` command, with the content of the file to be created.
+         */
+        file_text?: string;
+
+        /**
+         * Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`.
+         */
+        insert_line?: number;
+
+        /**
+         * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
+         */
+        new_str?: string;
+
+        /**
+         * Required parameter of `str_replace` command containing the string in `path` to replace.
+         */
+        old_str?: string;
+
+        /**
+         * Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.
+         */
+        view_range?: number[];
+      },
+      RESULT
+    >;
+    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  } = {},
+): {
+  type: 'provider-defined';
+  id: 'anthropic.text_editor_20250429';
+  args: {};
+  parameters: typeof TextEditor20250429Parameters;
+  execute: ExecuteFunction<
+    z.infer<typeof TextEditor20250429Parameters>,
+    RESULT
+  >;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+} {
+  return {
+    type: 'provider-defined',
+    id: 'anthropic.text_editor_20250429',
+    args: {},
+    parameters: TextEditor20250429Parameters,
+    execute: options.execute,
+    experimental_toToolResultContent: options.experimental_toToolResultContent,
+  };
+}
 
 const Computer20241022Parameters = z.object({
   action: z.enum([
@@ -502,6 +582,7 @@ export const anthropicTools = {
   bash_20250124: bashTool_20250124,
   textEditor_20241022: textEditorTool_20241022,
   textEditor_20250124: textEditorTool_20250124,
+  textEditor_20250429: textEditorTool_20250429,
   computer_20241022: computerTool_20241022,
   computer_20250124: computerTool_20250124,
 };

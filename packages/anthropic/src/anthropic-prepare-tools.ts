@@ -77,6 +77,13 @@ export function prepareTools({
               display_number: tool.args.displayNumber as number,
             });
             break;
+          case 'anthropic.text_editor_20250429':
+            betas.add('computer-use-2025-01-24');
+            anthropicTools.push({
+              name: tool.name,
+              type: 'text_editor_20250429',
+            });
+            break;
           case 'anthropic.text_editor_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
