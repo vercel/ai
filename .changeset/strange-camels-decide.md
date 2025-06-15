@@ -10,3 +10,5 @@
 ---
 
 chore(embedding-model-v2): rename rawResponse to response
+
+Commit: https://github.com/vercel/ai/pull/5699

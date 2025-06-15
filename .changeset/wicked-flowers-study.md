@@ -7,3 +7,5 @@
 ---
 
 feat(tool-calling): don't require the user to have to pass parameters
+
+Commit: https://github.com/vercel/ai/pull/5678
