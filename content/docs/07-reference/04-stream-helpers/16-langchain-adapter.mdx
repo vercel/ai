@@ -31,7 +31,7 @@ It supports:
     },
     {
       name: 'toDataStreamResponse',
-      type: '(stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>, options?: {init?: ResponseInit, data?: StreamData, callbacks?: AIStreamCallbacksAndOptions}) => Response',
+      type: '(stream: ReadableStream<LangChainAIMessageChunk> | ReadableStream<string>, options?: {init?: ResponseInit, data?: ReadableStream<DataStreamString>, callbacks?: AIStreamCallbacksAndOptions}) => Response',
       description: 'Converts LangChain output streams to data stream response.',
     },
     {
@@ -62,6 +62,32 @@ export async function POST(req: Request) {
   const stream = await model.stream(prompt);
 
   return LangChainAdapter.toDataStreamResponse(stream);
+}
+```
+
+### Merge LangChain Expression Language Stream With Data Stream
+
+```tsx filename="app/api/completion/route.ts" highlight={"14"}
+import { ChatOpenAI } from '@langchain/openai';
+import { LangChainAdapter } from 'ai';
+
+export async function POST(req: Request) {
+  const { prompt } = await req.json();
+
+  const model = new ChatOpenAI({
+    model: 'gpt-3.5-turbo-0125',
+    temperature: 0,
+  });
+
+  const stream = await model.stream(prompt);
+
+  const dataStream = createDataStream({
+    execute(writer) {
+      writer.writeData({ metadata: 'Custom metadata' });
+    },
+  });
+
+  return LangChainAdapter.toDataStreamResponse(stream, { data: dataStream });
 }
 ```
 
