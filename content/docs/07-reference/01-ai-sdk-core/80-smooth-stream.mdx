@@ -35,7 +35,7 @@ const result = streamText({
   content={[
     {
       name: 'delayInMs',
-      type: 'number | null',
+      type: 'number | null | ((buffer: string) => number)',
       isOptional: true,
       description:
         'The delay in milliseconds between outputting each chunk. Defaults to 10ms. Set to `null` to disable delays.',
