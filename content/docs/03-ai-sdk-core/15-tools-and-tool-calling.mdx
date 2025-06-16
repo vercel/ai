@@ -142,6 +142,46 @@ const result = await generateText({
 });
 ```
 
+### `experimental_prepareStep` callback
+
+<Note type="warning">
+  The `experimental_prepareStep` callback is experimental and may change in the
+  future. It is only available in the `generateText` function.
+</Note>
+
+The `experimental_prepareStep` callback is called before a step is started.
+
+It is called with the following parameters:
+
+- `model`: The model that was passed into `generateText`.
+- `maxSteps`: The maximum number of steps that was passed into `generateText`.
+- `stepNumber`: The number of the step that is being executed.
+- `steps`: The steps that have been executed so far.
+
+You can use it to provide different settings for a step.
+
+```tsx highlight="5-7"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // ...
+  experimental_prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
+    if (stepNumber === 0) {
+      return {
+        // use a different model for this step:
+        model: modelForThisParticularStep,
+        // force a tool choice for this step:
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+        // limit the tools that are available for this step:
+        experimental_activeTools: ['tool1'],
+      };
+    }
+
+    // when nothing is returned, the default settings are used
+  },
+});
+```
+
 ## Response Messages
 
 Adding the generated assistant and tool messages to your conversation history is a common task,
@@ -639,7 +679,7 @@ Create an MCP client using either:
 
 - `SSE` (Server-Sent Events): Uses HTTP-based real-time communication, better suited for remote servers that need to send data over the network
 - `stdio`: Uses standard input and output streams for communication, ideal for local tool servers running on the same machine (like CLI tools or local services)
-- Custom transport: Bring your own transport by implementing the `MCPTransport` interface
+- Custom transport: Bring your own transport by implementing the `MCPTransport` interface, ideal when implementing transports from MCP's official Typescript SDK (e.g. `StreamableHTTPClientTransport`)
 
 #### SSE Transport
 
@@ -679,17 +719,29 @@ const mcpClient = await createMCPClient({
 
 #### Custom Transport
 
-You can also bring your own transport by implementing the `MCPTransport` interface:
+You can also bring your own transport, as long as it implements the `MCPTransport` interface. Below is an example of using the new `StreamableHTTPClientTransport` from MCP's official Typescript SDK:
 
 ```typescript
-import { MCPTransport, createMCPClient } from 'ai';
+import {
+  MCPTransport,
+  experimental_createMCPClient as createMCPClient,
+} from 'ai';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 
+const url = new URL('http://localhost:3000/mcp');
 const mcpClient = await createMCPClient({
-  transport: new MyCustomTransport({
-    // ...
+  transport: new StreamableHTTPClientTransport(url, {
+    sessionId: 'session_123',
   }),
 });
 ```
+
+<Note>
+  The client returned by the `experimental_createMCPClient` function is a
+  lightweight client intended for use in tool conversion. It currently does not
+  support all features of the full MCP client, such as: authorization, session
+  management, resumable streams, and receiving notifications.
+</Note>
 
 #### Closing the MCP Client
 
@@ -705,9 +757,11 @@ const mcpClient = await experimental_createMCPClient({
   // ...
 });
 
+const tools = await mcpClient.tools();
+
 const result = await streamText({
   model: openai('gpt-4o'),
-  tools: mcpClient.tools(),
+  tools,
   prompt: 'What is the weather in Brooklyn, New York?',
   onFinish: async () => {
     await mcpClient.close();

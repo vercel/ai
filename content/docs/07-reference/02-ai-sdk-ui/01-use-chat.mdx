@@ -18,11 +18,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     />
   </Tab>
   <Tab>
-    <Snippet
-      text="import { useChat } from '@ai-sdk/svelte'"
-      dark
-      prompt={false}
-    />
+    <Snippet text="import { Chat } from '@ai-sdk/svelte'" dark prompt={false} />
   </Tab>
   <Tab>
     <Snippet text="import { useChat } from '@ai-sdk/vue'" dark prompt={false} />
@@ -603,6 +599,11 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'stop',
       type: '() => void',
       description: 'Function to abort the current API request.',
+    },
+    {
+      name: 'experimental_resume',
+      type: '() => void',
+      description: 'Function to resume an ongoing chat generation stream.',
     },
     {
       name: 'setMessages',

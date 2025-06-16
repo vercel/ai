@@ -26,7 +26,7 @@ describe('createChildProcess', () => {
   });
 
   it('should spawn a child process', async () => {
-    const childProcess = await createChildProcess(
+    const childProcess = createChildProcess(
       { command: process.execPath },
       new AbortController().signal,
     );
@@ -38,7 +38,7 @@ describe('createChildProcess', () => {
 
   it('should spawn a child process with custom env', async () => {
     const customEnv = { FOO: 'bar' };
-    const childProcessWithCustomEnv = await createChildProcess(
+    const childProcessWithCustomEnv = createChildProcess(
       { command: process.execPath, env: customEnv },
       new AbortController().signal,
     );
@@ -53,7 +53,7 @@ describe('createChildProcess', () => {
   });
 
   it('should spawn a child process with args', async () => {
-    const childProcessWithArgs = await createChildProcess(
+    const childProcessWithArgs = createChildProcess(
       { command: process.execPath, args: ['-c', 'echo', 'test'] },
       new AbortController().signal,
     );
@@ -66,11 +66,12 @@ describe('createChildProcess', () => {
       'echo',
       'test',
     ]);
+
     childProcessWithArgs.kill();
   });
 
   it('should spawn a child process with cwd', async () => {
-    const childProcessWithCwd = await createChildProcess(
+    const childProcessWithCwd = createChildProcess(
       { command: process.execPath, cwd: '/tmp' },
       new AbortController().signal,
     );
@@ -80,7 +81,7 @@ describe('createChildProcess', () => {
   });
 
   it('should spawn a child process with stderr', async () => {
-    const childProcessWithStderr = await createChildProcess(
+    const childProcessWithStderr = createChildProcess(
       { command: process.execPath, stderr: 'pipe' },
       new AbortController().signal,
     );

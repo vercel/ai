@@ -14,3 +14,14 @@ body:
         Reproduction steps, code examples, background, etc...
     validations:
       required: true
+  - type: textarea
+    attributes:
+      label: AI SDK Version
+      description: Which version of the AI SDK are you using?
+      placeholder: |
+        Examples:
+        - ai: 4.1.2
+        - @ai-sdk/react: 2.1.0
+        - @ai-sdk/openai: 0.5.2
+    validations:
+      required: false

@@ -1,5 +1,24 @@
 # @ai-sdk/openai-compatible
 
+## 0.2.14
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+
+## 0.2.13
+
+### Patch Changes
+
+- 23571c9: feat(providers/xai): add reasoningEffort provider option
+
+## 0.2.12
+
+### Patch Changes
+
+- 13492fe: fix(providers/xai): return actual usage when streaming instead of NaN
+
 ## 0.2.11
 
 ### Patch Changes

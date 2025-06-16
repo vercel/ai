@@ -1,5 +1,18 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.2.10
+
+### Patch Changes
+
+- 05b8324: feat (provider/amazon-bedrock): add Claude 4 model ids (claude-sonnet-4-20250514-v1:0, claude-opus-4-20250514-v1:0)
+
+## 2.2.9
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+
 ## 2.2.8
 
 ### Patch Changes

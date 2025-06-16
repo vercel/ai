@@ -30,25 +30,45 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 }): Array<ResponseMessage> {
   const responseMessages: Array<ResponseMessage> = [];
 
-  responseMessages.push({
-    role: 'assistant',
-    content: [
+  const content = [];
+
+  // TODO language model v2: switch to order response content (instead of type-based ordering)
+
+  if (reasoning.length > 0) {
+    content.push(
       ...reasoning.map(part =>
         part.type === 'text'
           ? { ...part, type: 'reasoning' as const }
           : { ...part, type: 'redacted-reasoning' as const },
       ),
-      // TODO language model v2: switch to order response content (instead of type-based ordering)
+    );
+  }
+
+  if (files.length > 0) {
+    content.push(
       ...files.map(file => ({
         type: 'file' as const,
         data: file.base64,
         mimeType: file.mimeType,
       })),
-      { type: 'text' as const, text },
-      ...toolCalls,
-    ],
-    id: messageId,
-  });
+    );
+  }
+
+  if (text.length > 0) {
+    content.push({ type: 'text' as const, text });
+  }
+
+  if (toolCalls.length > 0) {
+    content.push(...toolCalls);
+  }
+
+  if (content.length > 0) {
+    responseMessages.push({
+      role: 'assistant',
+      content,
+      id: messageId,
+    });
+  }
 
   if (toolResults.length > 0) {
     responseMessages.push({

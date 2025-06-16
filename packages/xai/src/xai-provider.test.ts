@@ -88,6 +88,22 @@ describe('xAIProvider', () => {
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
+
+    it('should pass the includeUsage option to the chat model, to make sure usage is reported while streaming', () => {
+      const provider = createXai();
+      const modelId = 'xai-chat-model';
+      const settings = { user: 'foo-user' };
+
+      const model = provider.chat(modelId, settings);
+
+      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+
+      expect(constructorCall[0]).toBe(modelId);
+      expect(constructorCall[2].includeUsage).toBe(true);
+    });
   });
 
   describe('imageModel', () => {

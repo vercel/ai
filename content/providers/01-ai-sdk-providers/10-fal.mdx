@@ -93,15 +93,17 @@ console.log(`Image saved to ${filename}`);
 
 Fal offers many models optimized for different use cases. Here are a few popular examples. For a full list of models, see the [Fal AI documentation](https://fal.ai/models).
 
-| Model                               | Description                                                                                                                                            |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `fal-ai/fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                        |
-| `fal-ai/flux-lora`                  | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations. |
-| `fal-ai/flux-pro/v1.1-ultra`        | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                 |
-| `fal-ai/ideogram/v2`                | Specialized for high-quality posters and logos with exceptional typography handling                                                                    |
-| `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                  |
-| `fal-ai/stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding                                                                         |
-| `fal-ai/hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                 |
+| Model                               | Description                                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fal-ai/fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                               |
+| `fal-ai/flux-pro/kontext`           | FLUX.1 Kontext [pro] handles both text and reference images as inputs, seamlessly enabling targeted, local edits and complex transformations of entire scenes |
+| `fal-ai/flux-pro/kontext/max`       | FLUX.1 Kontext [max] with greatly improved prompt adherence and typography generation, meeting premium consistency for editing without compromise on speed    |
+| `fal-ai/flux-lora`                  | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations.        |
+| `fal-ai/flux-pro/v1.1-ultra`        | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                        |
+| `fal-ai/ideogram/v2`                | Specialized for high-quality posters and logos with exceptional typography handling                                                                           |
+| `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                         |
+| `fal-ai/stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding                                                                                |
+| `fal-ai/hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                        |
 
 Fal models support the following aspect ratios:
 
@@ -123,6 +125,24 @@ Key features of Fal models include:
 - Cost-effective scaling with pay-per-use pricing
 - LoRA training capabilities for model personalization
 
+#### Modify Image
+
+Transform existing images using text prompts.
+
+```ts
+// Example: Modify existing image
+await generateImage({
+  model: fal.image('fal-ai/flux-pro/kontext'),
+  prompt: 'Put a donut next to the flour.',
+  providerOptions: {
+    fal: {
+      image_url:
+        'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
+    },
+  },
+});
+```
+
 ### Advanced Features
 
 Fal's platform offers several advanced capabilities:
@@ -133,3 +153,66 @@ Fal's platform offers several advanced capabilities:
 - **Scalable Architecture**: Scale to thousands of GPUs when needed
 
 For more details about Fal's capabilities and features, visit the [Fal AI documentation](https://fal.ai/docs).
+
+## Transcription Models
+
+You can create models that call the [Fal transcription API](https://docs.fal.ai/guides/convert-speech-to-text)
+using the `.transcription()` factory method.
+
+The first argument is the model id without the `fal-ai/` prefix e.g. `wizper`.
+
+```ts
+const model = fal.transcription('wizper');
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `batchSize` option will increase the number of audio chunks processed in parallel.
+
+```ts highlight="6"
+import { experimental_transcribe as transcribe } from 'ai';
+import { fal } from '@ai-sdk/fal';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: fal.transcription('wizper'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: { fal: { batchSize: 10 } },
+});
+```
+
+The following provider options are available:
+
+- **language** _string_
+  Language of the audio file. If set to null, the language will be automatically detected.
+  Accepts ISO language codes like 'en', 'fr', 'zh', etc.
+  Optional.
+
+- **diarize** _boolean_
+  Whether to diarize the audio file (identify different speakers).
+  Defaults to true.
+  Optional.
+
+- **chunkLevel** _string_
+  Level of the chunks to return. Either 'segment' or 'word'.
+  Default value: "word"
+  Optional.
+
+- **version** _string_
+  Version of the model to use. All models are Whisper large variants.
+  Default value: "3"
+  Optional.
+
+- **batchSize** _number_
+  Batch size for processing.
+  Default value: 64
+  Optional.
+
+- **numSpeakers** _number_
+  Number of speakers in the audio file. If not provided, the number of speakers will be automatically detected.
+  Optional.
+
+### Model Capabilities
+
+| Model     | Transcription       | Duration            | Segments            | Language            |
+| --------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `whisper` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `wizper`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

@@ -1,6 +1,6 @@
 # AI SDK - Hume Provider
 
-The **[Hume provider](https://sdk.vercel.ai/providers/ai-sdk-providers/hume)** for the [AI SDK](https://sdk.vercel.ai/docs)
+The **[Hume provider](https://ai-sdk.dev/providers/ai-sdk-providers/hume)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains support for the Hume API.
 
 ## Setup
@@ -33,4 +33,4 @@ const result = await generateSpeech({
 
 ## Documentation
 
-Please check out the **[Hume provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/hume)** for more information.
+Please check out the **[Hume provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/hume)** for more information.

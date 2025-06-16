@@ -1504,37 +1504,35 @@ describe('attachments with empty submit', () => {
   });
 });
 
-describe('should append message with attachments', () => {
-  setupTestComponent(() => {
-    const { messages, append } = useChat();
+describe('append', () => {
+  describe('should append message with Message.experimental_attachments', () => {
+    setupTestComponent(() => {
+      const { messages, append } = useChat();
 
-    return (
-      <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
-            {m.experimental_attachments?.map(attachment => (
-              <img
-                key={attachment.name}
-                src={attachment.url}
-                alt={attachment.name}
-                data-testid={`attachment-${idx}`}
-              />
-            ))}
-          </div>
-        ))}
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+              {m.experimental_attachments?.map(attachment => (
+                <img
+                  key={attachment.name}
+                  src={attachment.url}
+                  alt={attachment.name}
+                  data-testid={`attachment-${idx}`}
+                />
+              ))}
+            </div>
+          ))}
 
-        <form
-          onSubmit={event => {
-            event.preventDefault();
+          <form
+            onSubmit={event => {
+              event.preventDefault();
 
-            append(
-              {
+              append({
                 role: 'user',
                 content: 'Message with image attachment',
-              },
-              {
                 experimental_attachments: [
                   {
                     name: 'test.png',
@@ -1542,58 +1540,151 @@ describe('should append message with attachments', () => {
                     url: 'https://example.com/image.png',
                   },
                 ],
+              });
+            }}
+            data-testid="chat-form"
+          >
+            <button type="submit" data-testid="submit-button">
+              Send
+            </button>
+          </form>
+        </div>
+      );
+    });
+
+    it('should handle image file attachment and submission', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: ['0:"Response to message with image attachment"\n'],
+      };
+
+      const submitButton = screen.getByTestId('submit-button');
+      await userEvent.click(submitButton);
+
+      await screen.findByTestId('message-0');
+      expect(screen.getByTestId('message-0')).toHaveTextContent(
+        'User: Message with image attachment',
+      );
+
+      await screen.findByTestId('attachment-0');
+      expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+        'src',
+        expect.stringContaining('https://example.com/image.png'),
+      );
+
+      await screen.findByTestId('message-1');
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
+
+      expect(await server.calls[0].requestBody).toStrictEqual({
+        id: expect.any(String),
+        messages: [
+          {
+            role: 'user',
+            content: 'Message with image attachment',
+            experimental_attachments: [
+              {
+                name: 'test.png',
+                contentType: 'image/png',
+                url: 'https://example.com/image.png',
               },
-            );
-          }}
-          data-testid="chat-form"
-        >
-          <button type="submit" data-testid="submit-button">
-            Send
-          </button>
-        </form>
-      </div>
-    );
+            ],
+            parts: [{ text: 'Message with image attachment', type: 'text' }],
+          },
+        ],
+      });
+    });
   });
+  describe('should append message with ChatRequestOptions.experimental_attachments', () => {
+    setupTestComponent(() => {
+      const { messages, append } = useChat();
 
-  it('should handle image file attachment and submission', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: ['0:"Response to message with image attachment"\n'],
-    };
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+              {m.experimental_attachments?.map(attachment => (
+                <img
+                  key={attachment.name}
+                  src={attachment.url}
+                  alt={attachment.name}
+                  data-testid={`attachment-${idx}`}
+                />
+              ))}
+            </div>
+          ))}
 
-    const submitButton = screen.getByTestId('submit-button');
-    await userEvent.click(submitButton);
+          <form
+            onSubmit={event => {
+              event.preventDefault();
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
+              append(
+                {
+                  role: 'user',
+                  content: 'Message with image attachment',
+                },
+                {
+                  experimental_attachments: [
+                    {
+                      name: 'test.png',
+                      contentType: 'image/png',
+                      url: 'https://example.com/image.png',
+                    },
+                  ],
+                },
+              );
+            }}
+            data-testid="chat-form"
+          >
+            <button type="submit" data-testid="submit-button">
+              Send
+            </button>
+          </form>
+        </div>
+      );
+    });
 
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('https://example.com/image.png'),
-    );
+    it('should handle image file attachment and submission', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: ['0:"Response to message with image attachment"\n'],
+      };
 
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
+      const submitButton = screen.getByTestId('submit-button');
+      await userEvent.click(submitButton);
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          role: 'user',
-          content: 'Message with image attachment',
-          experimental_attachments: [
-            {
-              name: 'test.png',
-              contentType: 'image/png',
-              url: 'https://example.com/image.png',
-            },
-          ],
-          parts: [{ text: 'Message with image attachment', type: 'text' }],
-        },
-      ],
+      await screen.findByTestId('message-0');
+      expect(screen.getByTestId('message-0')).toHaveTextContent(
+        'User: Message with image attachment',
+      );
+
+      await screen.findByTestId('attachment-0');
+      expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+        'src',
+        expect.stringContaining('https://example.com/image.png'),
+      );
+
+      await screen.findByTestId('message-1');
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
+
+      expect(await server.calls[0].requestBody).toStrictEqual({
+        id: expect.any(String),
+        messages: [
+          {
+            role: 'user',
+            content: 'Message with image attachment',
+            experimental_attachments: [
+              {
+                name: 'test.png',
+                contentType: 'image/png',
+                url: 'https://example.com/image.png',
+              },
+            ],
+            parts: [{ text: 'Message with image attachment', type: 'text' }],
+          },
+        ],
+      });
     });
   });
 });
@@ -1852,6 +1943,86 @@ describe('initialMessages', () => {
           'Test message 2',
         );
       });
+    });
+  });
+});
+
+describe('resume ongoing stream and return assistant message', () => {
+  const controller = new TestResponseController();
+
+  setupTestComponent(
+    () => {
+      const { messages, status, experimental_resume } = useChat({
+        id: '123',
+        initialMessages: [{ id: 'msg_123', role: 'user', content: 'hi' }],
+      });
+
+      useEffect(() => {
+        experimental_resume();
+
+        // We want to disable the exhaustive deps rule here because we only want to run this effect once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))}
+
+          <div data-testid="status">{status}</div>
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat'].response = {
+          type: 'controlled-stream',
+          controller,
+        };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  it('construct messages from resumed stream', async () => {
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write('0:"Hello"\n');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+    });
+
+    controller.write('0:"," \n');
+    controller.write('0:" world"\n');
+    controller.write('0:"."\n');
+
+    controller.close();
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+
+      expect(server.calls.length).toBeGreaterThan(0);
+      const mostRecentCall = server.calls[0];
+
+      const { requestMethod, requestUrl } = mostRecentCall;
+      expect(requestMethod).toBe('GET');
+      expect(requestUrl).toBe('http://localhost:3000/api/chat?chatId=123');
     });
   });
 });

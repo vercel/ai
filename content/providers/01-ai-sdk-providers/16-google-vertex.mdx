@@ -5,7 +5,7 @@ description: Learn how to use the Google Vertex AI provider.
 
 # Google Vertex Provider
 
-The Google Vertex provider for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs. This includes support for [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) and [Anthropic's Claude partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude).
+The Google Vertex provider for the [AI SDK](/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs. This includes support for [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) and [Anthropic's Claude partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude).
 
 <Note>
   The Google Vertex provider is compatible with both Node.js and Edge runtimes.
@@ -316,6 +316,71 @@ const { text } = await generateText({
 Google Vertex language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+#### Reasoning (Thinking Tokens)
+
+Google Vertex AI, through its support for Gemini models, can also emit "thinking" tokens, representing the model's reasoning process. The AI SDK exposes these as reasoning information.
+
+To enable thinking tokens for compatible Gemini models via Vertex, set `includeThoughts: true` in the `thinkingConfig` provider option. Since the Vertex provider uses the Google provider's underlying language model, these options are passed through `providerOptions.google`:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'; // Note: importing from @ai-sdk/google
+import { generateText, streamText } from 'ai';
+
+// For generateText:
+const { text, reasoning, reasoningDetails } = await generateText({
+  model: vertex('gemini-2.5-flash-preview-04-17'), // Or other supported model via Vertex
+  providerOptions: {
+    google: {
+      // Options are nested under 'google' for Vertex provider
+      thinkingConfig: {
+        includeThoughts: true,
+        // thinkingBudget: 2048, // Optional
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
+  },
+  prompt: 'Explain quantum computing in simple terms.',
+});
+
+console.log('Reasoning:', reasoning);
+console.log('Reasoning Details:', reasoningDetails);
+console.log('Final Text:', text);
+
+// For streamText:
+const result = streamText({
+  model: vertex('gemini-2.5-flash-preview-04-17'), // Or other supported model via Vertex
+  providerOptions: {
+    google: {
+      // Options are nested under 'google' for Vertex provider
+      thinkingConfig: {
+        includeThoughts: true,
+        // thinkingBudget: 2048, // Optional
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
+  },
+  prompt: 'Explain quantum computing in simple terms.',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning') {
+    process.stdout.write(`THOUGHT: ${part.textDelta}\n`);
+  } else if (part.type === 'text-delta') {
+    process.stdout.write(part.textDelta);
+  }
+}
+```
+
+When `includeThoughts` is true, parts of the API response marked with `thought: true` will be processed as reasoning.
+
+- In `generateText`, these contribute to the `reasoning` (string) and `reasoningDetails` (array) fields.
+- In `streamText`, these are emitted as `reasoning` stream parts.
+
+<Note>
+  Refer to the [Google Vertex AI documentation on
+  "thinking"](https://cloud.google.com/vertex-ai/generative-ai/docs/thinking)
+  for model compatibility and further details.
+</Note>
+
 #### File Inputs
 
 The Google Vertex provider supports file inputs, e.g. PDF files.
@@ -593,7 +658,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-001'),
+  model: vertex.image('imagen-3.0-generate-002'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -607,7 +672,7 @@ import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-001'),
+  model: vertex.image('imagen-3.0-generate-002'),
   providerOptions: {
     vertex: {
       negativePrompt: 'pixelated, blurry, low-quality',
@@ -643,12 +708,12 @@ The following provider options are available:
 
 | Model                          | Aspect Ratios             |
 | ------------------------------ | ------------------------- |
-| `imagen-3.0-generate-001`      | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-generate-002`      | 1:1, 3:4, 4:3, 9:16, 16:9 |
 | `imagen-3.0-fast-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 
 ## Google Vertex Anthropic Provider Usage
 
-The Google Vertex Anthropic provider for the [AI SDK](https://sdk.vercel.ai/docs) offers support for Anthropic's Claude models through the Google Vertex AI APIs. This section provides details on how to set up and use the Google Vertex Anthropic provider.
+The Google Vertex Anthropic provider for the [AI SDK](/docs) offers support for Anthropic's Claude models through the Google Vertex AI APIs. This section provides details on how to set up and use the Google Vertex Anthropic provider.
 
 ### Provider Instance
 

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "2.2.7",
+  "version": "2.2.8",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -58,7 +58,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"

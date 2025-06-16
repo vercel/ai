@@ -40,6 +40,7 @@ export type OpenAICompatibleChatConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  includeUsage?: boolean;
   errorStructure?: ProviderErrorStructure<any>;
   metadataExtractor?: MetadataExtractor;
 
@@ -169,6 +170,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       stop: stopSequences,
       seed,
       ...providerMetadata?.[this.providerOptionsName],
+
+      reasoning_effort:
+        providerMetadata?.[this.providerOptionsName]?.reasoningEffort ??
+        providerMetadata?.['openai-compatible']?.reasoningEffort,
 
       // messages:
       messages: convertToOpenAICompatibleChatMessages(prompt),
@@ -375,7 +380,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const { args, warnings } = this.getArgs({ ...options });
 
-    const body = JSON.stringify({ ...args, stream: true });
+    const body = {
+      ...args,
+      stream: true,
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options: this.config.includeUsage
+        ? { include_usage: true }
+        : undefined,
+    };
+
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();
 
@@ -385,10 +399,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         this.chunkSchema,
@@ -683,7 +694,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
-      request: { body },
+      request: { body: JSON.stringify(body) },
     };
   }
 }

@@ -5,7 +5,7 @@ description: Learn how to use the Amazon Bedrock provider.
 
 # Amazon Bedrock Provider
 
-The Amazon Bedrock provider for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [Amazon Bedrock](https://aws.amazon.com/bedrock) APIs.
+The Amazon Bedrock provider for the [AI SDK](/docs) contains language model support for the [Amazon Bedrock](https://aws.amazon.com/bedrock) APIs.
 
 ## Setup
 
@@ -390,6 +390,8 @@ on how to integrate reasoning into your chatbot.
 | `amazon.nova-micro-v1:0`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `amazon.nova-lite-v1:0`                     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `amazon.nova-pro-v1:0`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-4-sonnet-20250514-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-4-opus-20250514-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-7-sonnet-20250219-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -433,7 +435,7 @@ using the `.embedding()` factory method.
 const model = bedrock.embedding('amazon.titan-embed-text-v1');
 ```
 
-Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several aditional settings.
+Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several additional settings.
 You can pass them as an options argument:
 
 ```ts

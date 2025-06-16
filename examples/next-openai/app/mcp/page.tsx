@@ -1,34 +1,69 @@
 'use client';
 
-import { useState } from 'react';
+import { useChat } from '@ai-sdk/react';
 
-export default function Page() {
-  const [response, setResponse] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleClick = async () => {
-    setIsLoading(true);
-    const response = await fetch('/api/mcp', {
-      method: 'POST',
-      body: JSON.stringify({
-        prompt: 'Can you find a product called The Product?',
-      }),
-    });
-    const data = await response.json();
-    setResponse(data.text);
-    setIsLoading(false);
-  };
+export default function Chat() {
+  const {
+    error,
+    input,
+    status,
+    handleInputChange,
+    handleSubmit,
+    messages,
+    reload,
+    stop,
+  } = useChat({
+    api: '/mcp/chat',
+    onFinish(_message, { usage, finishReason }) {
+      console.log('Usage', usage);
+      console.log('FinishReason', finishReason);
+    },
+  });
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen gap-4">
-      <button
-        className="bg-blue-500 text-white p-2 rounded-md"
-        onClick={handleClick}
-        disabled={isLoading}
-      >
-        {isLoading ? 'Searching...' : 'Find Product'}
-      </button>
-      {response && <p>Result: {response}</p>}
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.content}
+        </div>
+      ))}
+
+      {(status === 'submitted' || status === 'streaming') && (
+        <div className="mt-4 text-gray-500">
+          {status === 'submitted' && <div>Loading...</div>}
+          <button
+            type="button"
+            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            onClick={stop}
+          >
+            Stop
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4">
+          <div className="text-red-500">An error occurred.</div>
+          <button
+            type="button"
+            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            onClick={() => reload()}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Ask me a basic arithmetic problem"
+          onChange={handleInputChange}
+          disabled={status !== 'ready'}
+        />
+      </form>
     </div>
   );
 }

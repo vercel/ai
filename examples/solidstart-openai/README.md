@@ -1,6 +1,6 @@
 # AI SDK, Solid.js, SolidStart and OpenAI Chat Example
 
-This example shows how to use the [AI SDK](https://sdk.vercel.ai/docs) with [Solid](https://solidjs.com/), [SolidStart](https://start.solidjs.com), and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
+This example shows how to use the [AI SDK](https://ai-sdk.dev/docs) with [Solid](https://solidjs.com/), [SolidStart](https://start.solidjs.com), and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot.
 
 ## Deploy your own
 
@@ -41,7 +41,7 @@ By default, `npm run build` will generate a Node app that you can run with `npm 
 
 To learn more about OpenAI, Nuxt, and the AI SDK take a look at the following resources:
 
-- [AI SDK docs](https://sdk.vercel.ai/docs) - learn mode about the AI SDK
-- [Vercel AI Playground](https://play.vercel.ai) - compare and tune 20+ AI models side-by-side
+- [AI SDK docs](https://ai-sdk.dev/docs) - learn mode about the AI SDK
+- [Vercel AI Playground](https://ai-sdk.dev/playground) - compare and tune 20+ AI models side-by-side
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [SolidStart Documentation](https://start.solidjs.com) - learn about SolidStart.

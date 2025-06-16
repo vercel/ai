@@ -1,5 +1,24 @@
 # @ai-sdk/ui-utils
 
+## 1.2.11
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+
+## 1.2.10
+
+### Patch Changes
+
+- 6c59ae7: feat (ui/react): support resuming an ongoing stream
+
+## 1.2.9
+
+### Patch Changes
+
+- 62181ef: fix(react-native): support experimental_attachments without FileList global
+
 ## 1.2.8
 
 ### Patch Changes
