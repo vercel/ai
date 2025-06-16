@@ -26,6 +26,7 @@ const bundle = [
   'remove-isxxxerror',
   'remove-metadata-with-headers',
   'remove-mistral-facade',
+  'remove-openai-compatibility',
   'remove-openai-facade',
   'remove-sendExtraMessageFields',
   'rename-core-message-to-model-message',
