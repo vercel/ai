@@ -1,0 +1,59 @@
+---
+title: 'IBM watsonx.ai'
+description: 'Learn how to use the IBM watsonx.ai provider for the AI SDK.'
+---
+
+# IBM watsonx.ai Provider
+
+The watsonx.ai Provider allows you to use [watsonx.ai](https://www.ibm.com/products/watsonx-ai) with the Vercel AI SDK.
+
+## Setup
+
+The watsonx.ai provider is available in the `watsonx-ai-provider` npm module. Install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add watsonx-ai-provider" dark />
+  </Tab>
+  
+  <Tab>
+    <Snippet text="npm install watsonx-ai-provider" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="yarn add watsonx-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+```ts
+import { createWatsonxProvider } from "watsonx-ai-provider";
+
+const watsonx = createWatsonxProvider({ projectId: process.env.WATSONX_AI_PROJECT_ID });
+```
+
+<Note>
+  Set the following environment variables:
+  
+  ```
+  WATSONX_AI_AUTH_TYPE=iam
+  WATSONX_AI_APIKEY=YOUR_API_KEY_HERE
+  WATSONX_AI_PROJECT_ID=YOUR_PROJECT_ID_HERE
+  ```
+</Note>
+
+## Programatic authentication
+
+```typescript
+import { IamAuthenticator } from "ibm-cloud-sdk-core";
+
+const watsonx = createWatsonxProvider({
+  authenticator: new IamAuthenticator({
+    apikey: "YOUR_KEY",
+  })
+  projectId: process.env.WATSONX_AI_PROJECT_ID,
+});
+```
+
+See [watsonx-ai-provider](https://sdk.vercel.ai/docs/foundations/providers-and-models) on Github for details.
