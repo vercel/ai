@@ -320,31 +320,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
     }
 
-    const allTools = tools ? [...tools] : [];
-
-    if (anthropicOptions?.webSearch) {
-      const webSearchServerTool: LanguageModelV2ProviderDefinedServerTool = {
-        type: 'provider-defined-server',
-        id: 'anthropic.web_search_20250305',
-        name: 'web_search',
-        args: {
-          ...(anthropicOptions.webSearch.maxUses && {
-            maxUses: anthropicOptions.webSearch.maxUses,
-          }),
-          ...(anthropicOptions.webSearch.allowedDomains && {
-            allowedDomains: anthropicOptions.webSearch.allowedDomains,
-          }),
-          ...(anthropicOptions.webSearch.blockedDomains && {
-            blockedDomains: anthropicOptions.webSearch.blockedDomains,
-          }),
-          ...(anthropicOptions.webSearch.userLocation && {
-            userLocation: anthropicOptions.webSearch.userLocation,
-          }),
-        },
-      };
-      allTools.push(webSearchServerTool);
-    }
-
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -356,7 +331,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
           }
-        : { tools: allTools, toolChoice },
+        : { tools: tools ?? [], toolChoice },
     );
 
     return {

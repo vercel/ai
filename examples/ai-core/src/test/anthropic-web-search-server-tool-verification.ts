@@ -7,18 +7,16 @@ async function main() {
     model: anthropic('claude-3-5-sonnet-latest'),
     prompt:
       'What is the current weather in Paris? Please search for real-time weather.',
-    providerOptions: {
-      anthropic: {
-        webSearch: {
-          maxUses: 1,
-          userLocation: {
-            type: 'approximate',
-            city: 'Paris',
-            country: 'FR',
-            timezone: 'Europe/Paris',
-          },
+    tools: {
+      web_search: anthropic.tools.webSearch_20250305({
+        maxUses: 1,
+        userLocation: {
+          type: 'approximate',
+          city: 'Paris',
+          country: 'FR',
+          timezone: 'Europe/Paris',
         },
-      },
+      }),
     },
   });
 

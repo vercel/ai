@@ -16,15 +16,6 @@ export type AnthropicMessagesModelId =
   | 'claude-3-haiku-20240307'
   | (string & {});
 
-// web search tool options schema
-const webSearchLocationSchema = z.object({
-  type: z.literal('approximate'),
-  city: z.string().optional(),
-  region: z.string().optional(),
-  country: z.string(),
-  timezone: z.string().optional(),
-});
-
 /**
  * Anthropic file part provider options for document-specific features.
  * These options apply to individual file parts (documents).
@@ -62,48 +53,13 @@ export type AnthropicFilePartProviderOptions = z.infer<
 >;
 
 export const anthropicProviderOptions = z.object({
-  /**
-Include reasoning content in requests sent to the model. Defaults to `true`.
 
-If you are experiencing issues with the model handling requests involving
-  */
   sendReasoning: z.boolean().optional(),
 
   thinking: z
     .object({
       type: z.union([z.literal('enabled'), z.literal('disabled')]),
       budgetTokens: z.number().optional(),
-    })
-    .optional(),
-
-  /**
-   * Web search tool configuration for Claude models that support it.
-   * When provided, automatically adds the web search tool to the request.
-   */
-  webSearch: z
-    .object({
-      /**
-       * Limit the number of searches per request (optional)
-       * Defaults to 5 if not specified
-       */
-      maxUses: z.number().min(1).max(20).optional(),
-
-      /**
-       * Only include results from these domains (optional)
-       * Cannot be used with blockedDomains
-       */
-      allowedDomains: z.array(z.string()).optional(),
-
-      /**
-       * Never include results from these domains (optional)
-       * Cannot be used with allowedDomains
-       */
-      blockedDomains: z.array(z.string()).optional(),
-
-      /**
-       * Localize search results based on user location (optional)
-       */
-      userLocation: webSearchLocationSchema.optional(),
     })
     .optional(),
 });
