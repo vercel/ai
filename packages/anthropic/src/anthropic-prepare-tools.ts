@@ -141,24 +141,14 @@ export function prepareTools({
                 country?: string;
                 timezone?: string;
               };
-
+              
               webSearchTool.user_location = {
                 type: 'approximate',
+                city: loc.city,
+                region: loc.region,
+                country: loc.country,
+                timezone: loc.timezone,
               };
-
-              // Only include fields if they have values
-              if (loc.city) {
-                webSearchTool.user_location.city = loc.city;
-              }
-              if (loc.region) {
-                webSearchTool.user_location.region = loc.region;
-              }
-              if (loc.country) {
-                webSearchTool.user_location.country = loc.country;
-              }
-              if (loc.timezone) {
-                webSearchTool.user_location.timezone = loc.timezone;
-              }
             }
 
             anthropicTools.push(webSearchTool);
