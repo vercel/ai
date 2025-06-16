@@ -1,11 +1,6 @@
 import { MyUIMessage } from '@/util/chat-schema';
 import { readChat, saveChat } from '@util/chat-store';
-import {
-  consumeStream,
-  convertToModelMessages,
-  generateId,
-  streamText,
-} from 'ai';
+import { convertToModelMessages, generateId, streamText } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
 
@@ -24,8 +19,6 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
   });
 
-  const streamContext = createResumableStreamContext({ waitUntil: after });
-
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     messageMetadata: ({ part }) => {
@@ -40,18 +33,11 @@ export async function POST(req: Request) {
       const streamId = generateId();
 
       // send the sse stream into a resumable stream sink as well:
-      const resumableStream = await streamContext.createNewResumableStream(
-        streamId,
-        () => stream,
-      );
+      const streamContext = createResumableStreamContext({ waitUntil: after });
+      await streamContext.createNewResumableStream(streamId, () => stream);
 
-      if (resumableStream) {
-        // update the chat with the streamId
-        saveChat({ id, activeStreamId: streamId });
-
-        // always consume the stream even if the client connection is lost
-        consumeStream({ stream: resumableStream });
-      }
+      // update the chat with the streamId
+      saveChat({ id, activeStreamId: streamId });
     },
   });
 }

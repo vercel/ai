@@ -1,4 +1,3 @@
-export { consumeStream } from './consume-stream';
 export { cosineSimilarity } from './cosine-similarity';
 export { getTextFromDataUrl } from './data-url';
 export type { DeepPartial } from './deep-partial';
