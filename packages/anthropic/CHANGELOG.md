@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-alpha.14
+
+### Patch Changes
+
+- 2e13791: feat(anthropic): add server-side web search support
+- 6392f60: fix(anthropic): resolve web search API validation errors with partial location + provider output
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
 ## 2.0.0-alpha.13
 
 ### Patch Changes
