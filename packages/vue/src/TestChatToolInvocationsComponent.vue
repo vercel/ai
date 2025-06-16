@@ -20,12 +20,12 @@ const chat = new Chat({
       >
         {{ JSON.stringify(toolPart) }}
         <button
-          v-if="toolPart.state === 'call'"
+          v-if="toolPart.state === 'input-available'"
           :data-testid="`add-result-${toolIdx}`"
           @click="
             chat.addToolResult({
               toolCallId: toolPart.toolCallId,
-              result: 'test-result',
+              output: 'test-result',
             })
           "
         />

@@ -376,7 +376,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming"}',
       );
     });
 
@@ -390,7 +390,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call","args":{"testArg":"t"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"t"}}',
       );
     });
 
@@ -404,7 +404,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"test-value"}}',
       );
     });
 
@@ -421,8 +421,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -441,11 +441,11 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'result',
-        args: { testArg: 'test-value' },
+        state: 'output-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        result: 'test-result',
+        output: 'test-result',
       });
     });
 
@@ -484,8 +484,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -539,7 +539,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"call","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-available","input":{"testArg":"test-value"}}',
       );
     });
 
@@ -547,7 +547,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"result","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"output-available","input":{"testArg":"test-value"},"output":"test-result"}',
       );
     });
 
@@ -595,7 +595,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"call","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-available","input":{"testArg":"test-value"}}',
       );
     });
 
@@ -605,7 +605,7 @@ describe('tool invocations', () => {
     // UI should show the tool result
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"result","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"output-available","input":{"testArg":"test-value"},"output":"test-result"}',
       );
     });
 
