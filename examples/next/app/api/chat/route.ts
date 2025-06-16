@@ -38,9 +38,9 @@ export async function POST(req: Request) {
                 {
                   type: 'tool-getWeatherInformation' as const,
                   toolCallId: part.id!,
-                  state: 'result' as const,
-                  args: { city: weather.city },
-                  result: part.data.weather,
+                  state: 'output-available' as const,
+                  input: { city: weather.city },
+                  output: part.data.weather,
                 },
                 // {
                 //   type: 'text' as const,
@@ -64,9 +64,9 @@ export async function POST(req: Request) {
         tools: {
           getWeather: tool({
             description: 'show the weather in a given city to the user',
-            parameters: z.object({ city: z.string() }),
+            inputSchema: z.object({ city: z.string() }),
 
-            onArgsStreamingStart(options) {
+            onInputStart(options) {
               writer.write({
                 type: 'data-weather',
                 id: options.toolCallId,
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
               });
             },
 
-            onArgsAvailable(options) {
+            onInputAvailable(options) {
               writer.write({
                 type: 'data-weather',
                 id: options.toolCallId,
@@ -114,10 +114,10 @@ export async function POST(req: Request) {
               transform(chunk, controller) {
                 // filter out tool related information
                 if (
-                  chunk.type === 'tool-result' ||
-                  chunk.type === 'tool-call' ||
-                  chunk.type === 'tool-call-delta' ||
-                  chunk.type === 'tool-call-streaming-start'
+                  chunk.type === 'tool-output-available' ||
+                  chunk.type === 'tool-input-available' ||
+                  chunk.type === 'tool-input-delta' ||
+                  chunk.type === 'tool-input-start'
                 ) {
                   return;
                 }

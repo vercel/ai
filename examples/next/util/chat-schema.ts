@@ -21,8 +21,8 @@ export type Message = UIMessage<
   },
   {
     getWeatherInformation: {
-      args: { city: string };
-      result: {
+      input: { city: string };
+      output: {
         city: string;
         weather: string;
         temperatureInCelsius: number;
