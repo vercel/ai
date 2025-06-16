@@ -904,14 +904,14 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "args": "{"location":"San Francisco"}",
+              "input": "{"location":"San Francisco"}",
               "toolCallId": "call_0NdsJqOS8N3J9l2p0p4WpYU9",
               "toolCallType": "function",
               "toolName": "weather",
               "type": "tool-call",
             },
             {
-              "args": "{"city":"San Francisco"}",
+              "input": "{"city":"San Francisco"}",
               "toolCallId": "call_gexo0HtjUfmAIW4gjNOgyrcr",
               "toolCallType": "function",
               "toolName": "cityAttractions",
@@ -1306,7 +1306,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "tool-call-delta",
           },
           {
-            "args": "{}",
+            "input": "{}",
             "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
             "toolCallType": "function",
             "toolName": "currentLocation",
@@ -1355,7 +1355,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "tool-call-delta",
           },
           {
-            "args": "{"location":"Rome"}",
+            "input": "{"location":"Rome"}",
             "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
             "toolCallType": "function",
             "toolName": "weather",

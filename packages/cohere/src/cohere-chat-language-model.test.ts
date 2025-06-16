@@ -121,7 +121,7 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "args": "{"value":"example value"}",
+          "input": "{"value":"example value"}",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -433,7 +433,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{}",
+          "input": "{}",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "currentTime",
@@ -980,7 +980,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{"ticker_symbol":"AAPL"}",
+          "input": "{"ticker_symbol":"AAPL"}",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -1205,7 +1205,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{}",
+          "input": "{}",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",

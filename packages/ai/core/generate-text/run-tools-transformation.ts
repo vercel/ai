@@ -229,12 +229,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     messages,
                     abortSignal,
                   }).then(
-                    (result: any) => {
+                    (output: unknown) => {
                       toolResultsStreamController!.enqueue({
                         ...toolCall,
                         type: 'tool-result',
-                        result,
-                      } as any);
+                        output,
+                      });
 
                       outstandingToolResults.delete(toolExecutionId);
 
@@ -246,8 +246,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                           selectTelemetryAttributes({
                             telemetry,
                             attributes: {
-                              'ai.toolCall.result': {
-                                output: () => JSON.stringify(result),
+                              'ai.toolCall.output': {
+                                output: () => JSON.stringify(output),
                               },
                             },
                           }),
@@ -259,7 +259,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                         // if the result is not serializable.
                       }
                     },
-                    (error: any) => {
+                    (error: unknown) => {
                       toolResultsStreamController!.enqueue({
                         type: 'error',
                         error: new ToolExecutionError({

@@ -125,7 +125,7 @@ export class MockMCPTransport implements MCPTransport {
             id: message.id,
             error: {
               code: -32602,
-              message: `Invalid tool parameters: ${JSON.stringify(
+              message: `Invalid tool inputSchema: ${JSON.stringify(
                 message.params?.arguments,
               )}`,
             },

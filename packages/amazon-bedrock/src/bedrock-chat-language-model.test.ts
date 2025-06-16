@@ -279,7 +279,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "tool-use-id",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -422,14 +422,14 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{"value1":"Sparkle Day"}",
+          "input": "{"value1":"Sparkle Day"}",
           "toolCallId": "tool-use-id-1",
           "toolCallType": "function",
           "toolName": "test-tool-1",
           "type": "tool-call",
         },
         {
-          "args": "{"value2":"Sparkle Day"}",
+          "input": "{"value2":"Sparkle Day"}",
           "toolCallId": "tool-use-id-2",
           "toolCallType": "function",
           "toolName": "test-tool-2",

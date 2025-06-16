@@ -82,7 +82,7 @@ it('should handle immediate tool execution', async () => {
   const transformedStream = runToolsTransformation({
     tools: {
       syncTool: {
-        parameters: z.object({ value: z.string() }),
+        inputSchema: z.object({ value: z.string() }),
         execute: async ({ value }) => `${value}-sync-result`,
       },
     },
@@ -97,37 +97,37 @@ it('should handle immediate tool execution', async () => {
 
   expect(await convertReadableStreamToArray(transformedStream))
     .toMatchInlineSnapshot(`
-    [
-      {
-        "args": {
-          "value": "test",
+      [
+        {
+          "input": {
+            "value": "test",
+          },
+          "toolCallId": "call-1",
+          "toolName": "syncTool",
+          "type": "tool-call",
         },
-        "toolCallId": "call-1",
-        "toolName": "syncTool",
-        "type": "tool-call",
-      },
-      {
-        "args": {
-          "value": "test",
+        {
+          "input": {
+            "value": "test",
+          },
+          "output": "test-sync-result",
+          "toolCallId": "call-1",
+          "toolName": "syncTool",
+          "type": "tool-result",
         },
-        "result": "test-sync-result",
-        "toolCallId": "call-1",
-        "toolName": "syncTool",
-        "type": "tool-result",
-      },
-      {
-        "finishReason": "stop",
-        "type": "finish",
-        "usage": {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
         },
-      },
-    ]
-  `);
+      ]
+    `);
 });
 
 it('should hold off on sending finish until the delayed tool result is received', async () => {
@@ -150,7 +150,7 @@ it('should hold off on sending finish until the delayed tool result is received'
   const transformedStream = runToolsTransformation({
     tools: {
       delayedTool: {
-        parameters: z.object({ value: z.string() }),
+        inputSchema: z.object({ value: z.string() }),
         execute: async ({ value }) => {
           await delay(0); // Simulate delayed execution
           return `${value}-delayed-result`;
@@ -171,7 +171,7 @@ it('should hold off on sending finish until the delayed tool result is received'
   expect(result).toMatchInlineSnapshot(`
     [
       {
-        "args": {
+        "input": {
           "value": "test",
         },
         "toolCallId": "call-1",
@@ -190,10 +190,10 @@ it('should hold off on sending finish until the delayed tool result is received'
         },
       },
       {
-        "args": {
+        "input": {
           "value": "test",
         },
-        "result": "test-delayed-result",
+        "output": "test-delayed-result",
         "toolCallId": "call-1",
         "toolName": "delayedTool",
         "type": "tool-result",
@@ -228,7 +228,7 @@ it('should try to repair tool call when the tool name is not found', async () =>
     abortSignal: undefined,
     tools: {
       correctTool: {
-        parameters: z.object({ value: z.string() }),
+        inputSchema: z.object({ value: z.string() }),
         execute: async ({ value }) => `${value}-result`,
       },
     },
@@ -248,35 +248,35 @@ it('should try to repair tool call when the tool name is not found', async () =>
 
   expect(await convertReadableStreamToArray(transformedStream))
     .toMatchInlineSnapshot(`
-    [
-      {
-        "args": {
-          "value": "test",
+      [
+        {
+          "input": {
+            "value": "test",
+          },
+          "toolCallId": "call-1",
+          "toolName": "correctTool",
+          "type": "tool-call",
         },
-        "toolCallId": "call-1",
-        "toolName": "correctTool",
-        "type": "tool-call",
-      },
-      {
-        "args": {
-          "value": "test",
+        {
+          "input": {
+            "value": "test",
+          },
+          "output": "test-result",
+          "toolCallId": "call-1",
+          "toolName": "correctTool",
+          "type": "tool-result",
         },
-        "result": "test-result",
-        "toolCallId": "call-1",
-        "toolName": "correctTool",
-        "type": "tool-result",
-      },
-      {
-        "finishReason": "stop",
-        "type": "finish",
-        "usage": {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
         },
-      },
-    ]
-  `);
+      ]
+    `);
 });

@@ -277,7 +277,7 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
     "type": "text",
   },
   {
-    "args": {
+    "input": {
       "expression": "2+2",
     },
     "toolCallId": "tool-1",
@@ -285,7 +285,7 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
     "type": "tool-call",
   },
   {
-    "args": {
+    "input": {
       "location": "New York",
     },
     "toolCallId": "tool-2",

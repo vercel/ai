@@ -166,7 +166,7 @@ describe('XaiChatLanguageModel', () => {
       expect(content).toMatchInlineSnapshot(`
         [
           {
-            "args": "{"location": "paris"}",
+            "input": "{"location": "paris"}",
             "toolCallId": "call_test123",
             "toolCallType": "function",
             "toolName": "weatherTool",
@@ -846,7 +846,7 @@ describe('XaiChatLanguageModel', () => {
             "type": "tool-call-delta",
           },
           {
-            "args": "{"value":"Sparkle Day"}",
+            "input": "{"value":"Sparkle Day"}",
             "toolCallId": "call_test123",
             "toolCallType": "function",
             "toolName": "test-tool",

@@ -137,7 +137,7 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
     "url": "https://example.com",
   },
   {
-    "args": {
+    "input": {
       "value": "test",
     },
     "toolCallId": "1",
@@ -145,10 +145,10 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
     "type": "tool-call",
   },
   {
-    "args": {
+    "input": {
       "value": "test",
     },
-    "result": "test-result",
+    "output": "test-result",
     "toolCallId": "1",
     "toolName": "tool1",
     "type": "tool-result",
@@ -168,7 +168,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "type": "text",
     },
     {
-      "args": {
+      "input": {
         "value": "value",
       },
       "toolCallId": "call-1",
@@ -176,10 +176,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "type": "tool-call",
     },
     {
-      "args": {
+      "input": {
         "value": "value",
       },
-      "result": "value-result",
+      "output": "value-result",
       "toolCallId": "call-1",
       "toolName": "tool1",
       "type": "tool-result",
@@ -212,7 +212,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
             "type": "text",
           },
           {
-            "args": {
+            "input": {
               "value": "value",
             },
             "toolCallId": "call-1",
@@ -229,7 +229,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       {
         "content": [
           {
-            "result": "value-result",
+            "output": "value-result",
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
@@ -250,7 +250,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           "type": "text",
         },
         {
-          "args": {
+          "input": {
             "value": "value",
           },
           "toolCallId": "call-1",
@@ -258,10 +258,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           "type": "tool-call",
         },
         {
-          "args": {
+          "input": {
             "value": "value",
           },
-          "result": "value-result",
+          "output": "value-result",
           "toolCallId": "call-1",
           "toolName": "tool1",
           "type": "tool-result",
@@ -291,7 +291,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
                 "type": "text",
               },
               {
-                "args": {
+                "input": {
                   "value": "value",
                 },
                 "toolCallId": "call-1",
@@ -308,7 +308,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           {
             "content": [
               {
-                "result": "value-result",
+                "output": "value-result",
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -333,7 +333,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   "text": "Hello, world!",
   "toolCalls": [
     {
-      "args": {
+      "input": {
         "value": "value",
       },
       "toolCallId": "call-1",
@@ -343,10 +343,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   ],
   "toolResults": [
     {
-      "args": {
+      "input": {
         "value": "value",
       },
-      "result": "value-result",
+      "output": "value-result",
       "toolCallId": "call-1",
       "toolName": "tool1",
       "type": "tool-result",
@@ -813,7 +813,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
             "type": "reasoning",
           },
           {
-            "args": {
+            "input": {
               "value": "value",
             },
             "toolCallId": "call-1",
@@ -826,7 +826,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
       {
         "content": [
           {
-            "result": "result1",
+            "output": "result1",
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
@@ -857,7 +857,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
           "type": "reasoning",
         },
         {
-          "args": {
+          "input": {
             "value": "value",
           },
           "toolCallId": "call-1",
@@ -865,10 +865,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
           "type": "tool-call",
         },
         {
-          "args": {
+          "input": {
             "value": "value",
           },
-          "result": "result1",
+          "output": "result1",
           "toolCallId": "call-1",
           "toolName": "tool1",
           "type": "tool-result",
@@ -891,7 +891,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
                 "type": "reasoning",
               },
               {
-                "args": {
+                "input": {
                   "value": "value",
                 },
                 "toolCallId": "call-1",
@@ -904,7 +904,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
           {
             "content": [
               {
-                "result": "result1",
+                "output": "result1",
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -949,7 +949,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
                 "type": "reasoning",
               },
               {
-                "args": {
+                "input": {
                   "value": "value",
                 },
                 "toolCallId": "call-1",
@@ -962,7 +962,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
           {
             "content": [
               {
-                "result": "result1",
+                "output": "result1",
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -1024,7 +1024,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
         "type": "reasoning",
       },
       {
-        "args": {
+        "input": {
           "value": "value",
         },
         "toolCallId": "call-1",
@@ -1032,10 +1032,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
         "type": "tool-call",
       },
       {
-        "args": {
+        "input": {
           "value": "value",
         },
-        "result": "result1",
+        "output": "result1",
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",
@@ -1058,7 +1058,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
               "type": "reasoning",
             },
             {
-              "args": {
+              "input": {
                 "value": "value",
               },
               "toolCallId": "call-1",
@@ -1071,7 +1071,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
         {
           "content": [
             {
-              "result": "result1",
+              "output": "result1",
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1116,7 +1116,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
               "type": "reasoning",
             },
             {
-              "args": {
+              "input": {
                 "value": "value",
               },
               "toolCallId": "call-1",
@@ -1129,7 +1129,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
         {
           "content": [
             {
-              "result": "result1",
+              "output": "result1",
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1178,7 +1178,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
     "type": "reasoning",
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
     "toolCallId": "call-1",
@@ -1186,10 +1186,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
     "type": "tool-call",
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
-    "result": "result1",
+    "output": "result1",
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-result",
@@ -1290,7 +1290,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+        "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "tool-calls",
@@ -1300,7 +1300,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -1333,10 +1333,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
-      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
+      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.result": ""result1"",
+      "ai.toolCall.output": ""result1"",
       "operation.name": "ai.toolCall",
     },
     "events": [],
@@ -1347,10 +1347,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":"result1"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+        "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.avgOutputTokensPerSecond": 25,
       "ai.response.finishReason": "stop",
@@ -1404,7 +1404,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
         "type": "reasoning",
       },
       {
-        "args": {
+        "input": {
           "value": "value",
         },
         "toolCallId": "call-1",
@@ -1417,7 +1417,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
   {
     "content": [
       {
-        "result": "result1",
+        "output": "result1",
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",
@@ -1447,7 +1447,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
         "type": "reasoning",
       },
       {
-        "args": {
+        "input": {
           "value": "value",
         },
         "toolCallId": "call-1",
@@ -1455,10 +1455,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
         "type": "tool-call",
       },
       {
-        "args": {
+        "input": {
           "value": "value",
         },
-        "result": "result1",
+        "output": "result1",
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",
@@ -1481,7 +1481,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
               "type": "reasoning",
             },
             {
-              "args": {
+              "input": {
                 "value": "value",
               },
               "toolCallId": "call-1",
@@ -1494,7 +1494,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
         {
           "content": [
             {
-              "result": "result1",
+              "output": "result1",
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1539,7 +1539,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
               "type": "reasoning",
             },
             {
-              "args": {
+              "input": {
                 "value": "value",
               },
               "toolCallId": "call-1",
@@ -1552,7 +1552,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
         {
           "content": [
             {
-              "result": "result1",
+              "output": "result1",
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1593,7 +1593,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "type": "text",
     },
     {
-      "args": {
+      "input": {
         "value": "VALUE",
       },
       "toolCallId": "call-1",
@@ -1601,10 +1601,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "type": "tool-call",
     },
     {
-      "args": {
+      "input": {
         "value": "VALUE",
       },
-      "result": "VALUE-RESULT",
+      "output": "VALUE-RESULT",
       "toolCallId": "call-1",
       "toolName": "tool1",
       "type": "tool-result",
@@ -1637,7 +1637,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
             "type": "text",
           },
           {
-            "args": {
+            "input": {
               "value": "VALUE",
             },
             "toolCallId": "call-1",
@@ -1654,7 +1654,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
       {
         "content": [
           {
-            "result": "VALUE-RESULT",
+            "output": "VALUE-RESULT",
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
@@ -1675,7 +1675,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
           "type": "text",
         },
         {
-          "args": {
+          "input": {
             "value": "VALUE",
           },
           "toolCallId": "call-1",
@@ -1683,10 +1683,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
           "type": "tool-call",
         },
         {
-          "args": {
+          "input": {
             "value": "VALUE",
           },
-          "result": "VALUE-RESULT",
+          "output": "VALUE-RESULT",
           "toolCallId": "call-1",
           "toolName": "tool1",
           "type": "tool-result",
@@ -1716,7 +1716,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
                 "type": "text",
               },
               {
-                "args": {
+                "input": {
                   "value": "VALUE",
                 },
                 "toolCallId": "call-1",
@@ -1733,7 +1733,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
           {
             "content": [
               {
-                "result": "VALUE-RESULT",
+                "output": "VALUE-RESULT",
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -1758,7 +1758,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
   "text": "HELLO, WORLD!",
   "toolCalls": [
     {
-      "args": {
+      "input": {
         "value": "VALUE",
       },
       "toolCallId": "call-1",
@@ -1768,10 +1768,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
   ],
   "toolResults": [
     {
-      "args": {
+      "input": {
         "value": "VALUE",
       },
-      "result": "VALUE-RESULT",
+      "output": "VALUE-RESULT",
       "toolCallId": "call-1",
       "toolName": "tool1",
       "type": "tool-result",
@@ -1803,7 +1803,7 @@ DefaultStepResult {
       "type": "text",
     },
     {
-      "args": {
+      "input": {
         "value": "VALUE",
       },
       "toolCallId": "call-1",
@@ -1811,10 +1811,10 @@ DefaultStepResult {
       "type": "tool-call",
     },
     {
-      "args": {
+      "input": {
         "value": "VALUE",
       },
-      "result": "VALUE-RESULT",
+      "output": "VALUE-RESULT",
       "toolCallId": "call-1",
       "toolName": "tool1",
       "type": "tool-result",
@@ -1844,7 +1844,7 @@ DefaultStepResult {
             "type": "text",
           },
           {
-            "args": {
+            "input": {
               "value": "VALUE",
             },
             "toolCallId": "call-1",
@@ -1861,7 +1861,7 @@ DefaultStepResult {
       {
         "content": [
           {
-            "result": "VALUE-RESULT",
+            "output": "VALUE-RESULT",
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
@@ -1893,7 +1893,7 @@ exports[`streamText > options.transform > with base transformation > result.step
         "type": "text",
       },
       {
-        "args": {
+        "input": {
           "value": "VALUE",
         },
         "toolCallId": "call-1",
@@ -1901,10 +1901,10 @@ exports[`streamText > options.transform > with base transformation > result.step
         "type": "tool-call",
       },
       {
-        "args": {
+        "input": {
           "value": "VALUE",
         },
-        "result": "RESULT1",
+        "output": "RESULT1",
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",
@@ -1924,7 +1924,7 @@ exports[`streamText > options.transform > with base transformation > result.step
               "type": "text",
             },
             {
-              "args": {
+              "input": {
                 "value": "VALUE",
               },
               "toolCallId": "call-1",
@@ -1937,7 +1937,7 @@ exports[`streamText > options.transform > with base transformation > result.step
         {
           "content": [
             {
-              "result": "RESULT1",
+              "output": "RESULT1",
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1971,7 +1971,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
       "ai.response.text": "HELLO, WORLD!",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"VALUE"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -1989,7 +1989,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+        "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "stop",
@@ -1999,7 +1999,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"VALUE"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -2032,10 +2032,10 @@ exports[`streamText > options.transform > with base transformation > telemetry s
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
-      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
+      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.result": ""value-result"",
+      "ai.toolCall.output": ""value-result"",
       "operation.name": "ai.toolCall",
     },
     "events": [],
@@ -2164,7 +2164,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "warnings": [],
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
     "toolCallId": "call-1",
@@ -2172,10 +2172,10 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "type": "tool-call",
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
-    "result": "value-result",
+    "output": "value-result",
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-result",
@@ -2560,7 +2560,7 @@ exports[`streamText > result.fullStream > should send tool call deltas 1`] = `
     "type": "tool-call-delta",
   },
   {
-    "args": {
+    "input": {
       "value": "Sparkle Day",
     },
     "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
@@ -2610,7 +2610,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "warnings": [],
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
     "toolCallId": "call-1",
@@ -2660,7 +2660,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "warnings": [],
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
     "toolCallId": "call-1",
@@ -2668,10 +2668,10 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "type": "tool-call",
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
-    "result": "value-result",
+    "output": "value-result",
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-result",
@@ -2893,7 +2893,7 @@ exports[`streamText > result.responseMessages > should contain assistant respons
         "type": "text",
       },
       {
-        "args": {
+        "input": {
           "value": "value",
         },
         "toolCallId": "call-1",
@@ -2906,7 +2906,7 @@ exports[`streamText > result.responseMessages > should contain assistant respons
   {
     "content": [
       {
-        "result": "result1",
+        "output": "result1",
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",
@@ -3528,30 +3528,30 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
   {
     "toolCallId": "call-1",
     "toolName": "tool1",
-    "type": "tool-call-streaming-start",
+    "type": "tool-input-start",
   },
   {
     "inputTextDelta": "{ "value":",
     "toolCallId": "call-1",
-    "type": "tool-call-delta",
+    "type": "tool-input-delta",
   },
   {
     "inputTextDelta": " "value" }",
     "toolCallId": "call-1",
-    "type": "tool-call-delta",
+    "type": "tool-input-delta",
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
     "toolCallId": "call-1",
     "toolName": "tool1",
-    "type": "tool-call",
+    "type": "tool-input-available",
   },
   {
-    "result": "value-result",
+    "output": "value-result",
     "toolCallId": "call-1",
-    "type": "tool-result",
+    "type": "tool-output-available",
   },
   {
     "type": "finish-step",
@@ -3716,7 +3716,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
       "ai.response.text": "",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -3734,7 +3734,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
-        "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+        "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
       "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "stop",
@@ -3744,7 +3744,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
@@ -3777,10 +3777,10 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
-      "ai.toolCall.args": "{"value":"value"}",
       "ai.toolCall.id": "call-1",
+      "ai.toolCall.input": "{"value":"value"}",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.result": ""value-result"",
+      "ai.toolCall.output": ""value-result"",
       "operation.name": "ai.toolCall",
     },
     "events": [],
@@ -3901,7 +3901,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "warnings": [],
   },
   {
-    "args": {
+    "input": {
       "value": "value",
     },
     "toolCallId": "call-1",

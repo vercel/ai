@@ -334,7 +334,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{"value":"example value"}",
+          "input": "{"value":"example value"}",
           "toolCallId": "test-id",
           "toolCallType": "function",
           "toolName": "test-tool",

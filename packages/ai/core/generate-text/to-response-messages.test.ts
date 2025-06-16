@@ -15,7 +15,7 @@ describe('toResponseMessages', () => {
       tools: {
         testTool: {
           description: 'A test tool',
-          parameters: z.object({}),
+          inputSchema: z.object({}),
         },
       },
     });
@@ -59,7 +59,7 @@ describe('toResponseMessages', () => {
             type: 'tool-call',
             toolCallId: '123',
             toolName: 'testTool',
-            args: {},
+            input: {},
           },
         ],
       },
@@ -105,7 +105,7 @@ describe('toResponseMessages', () => {
             type: 'tool-call',
             toolCallId: '123',
             toolName: 'testTool',
-            args: {},
+            input: {},
           },
         ],
       },
@@ -116,7 +116,7 @@ describe('toResponseMessages', () => {
             type: 'tool-result',
             toolCallId: '123',
             toolName: 'testTool',
-            result: 'Tool result',
+            output: 'Tool result',
           },
         ],
       },
@@ -259,7 +259,7 @@ describe('toResponseMessages', () => {
               "type": "text",
             },
             {
-              "args": {},
+              "input": {},
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -277,7 +277,7 @@ describe('toResponseMessages', () => {
                   "type": "image",
                 },
               ],
-              "result": [
+              "output": [
                 {
                   "data": "image-base64",
                   "mediaType": "image/png",
@@ -445,7 +445,7 @@ describe('toResponseMessages', () => {
               "type": "text",
             },
             {
-              "args": {},
+              "input": {},
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -484,7 +484,7 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
-              "args": {},
+              "input": {},
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",

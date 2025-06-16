@@ -143,7 +143,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{"location": "paris"}",
+          "input": "{"location": "paris"}",
           "toolCallId": "gSIMJiOkT",
           "toolCallType": "function",
           "toolName": "weatherTool",
@@ -606,7 +606,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "yfBEybNYi",
           "toolCallType": "function",
           "toolName": "test-tool",

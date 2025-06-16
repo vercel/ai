@@ -621,7 +621,7 @@ describe('doGenerate', () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{"value":"Spark"}",
+          "input": "{"value":"Spark"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -920,7 +920,7 @@ describe('doGenerate', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "args": "{"value":"Spark"}",
+            "input": "{"value":"Spark"}",
             "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             "toolCallType": "function",
             "toolName": "test-tool",
@@ -993,7 +993,7 @@ describe('doGenerate', () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{"value":"Spark"}",
+          "input": "{"value":"Spark"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -1761,7 +1761,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -1909,7 +1909,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -2046,7 +2046,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{"query": "latest news on ai"}",
+          "input": "{"query": "latest news on ai"}",
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolCallType": "function",
           "toolName": "searchGoogle",
@@ -2124,7 +2124,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",

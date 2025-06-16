@@ -763,7 +763,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'tool-call',
-              args: {},
+              input: {},
               toolCallId: 'toolCallId',
               toolName: 'toolName',
             },
@@ -894,7 +894,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'tool-call',
-              args: {},
+              input: {},
               toolCallId: 'toolCallId',
               toolName: 'toolName',
               providerOptions: {
@@ -1029,7 +1029,7 @@ describe('convertToLanguageModelMessage', () => {
         content: [
           {
             type: 'tool-result',
-            result: { some: 'result' },
+            output: { some: 'result' },
             toolCallId: 'toolCallId',
             toolName: 'toolName',
           },
@@ -1064,7 +1064,7 @@ describe('convertToLanguageModelMessage', () => {
         content: [
           {
             type: 'tool-result',
-            result: { some: 'result' },
+            output: { some: 'result' },
             toolCallId: 'toolCallId',
             toolName: 'toolName',
             providerOptions: {
@@ -1100,7 +1100,7 @@ describe('convertToLanguageModelMessage', () => {
         content: [
           {
             type: 'tool-result',
-            result: { some: 'result' },
+            output: { some: 'result' },
             toolCallId: 'toolCallId',
             toolName: 'toolName',
             isError: true,
@@ -1133,7 +1133,7 @@ describe('convertToLanguageModelMessage', () => {
         content: [
           {
             type: 'tool-result',
-            result: { some: 'result' },
+            output: { some: 'result' },
             toolCallId: 'toolCallId',
             toolName: 'toolName',
             content: [

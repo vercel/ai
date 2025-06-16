@@ -444,7 +444,7 @@ describe('streamText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
-                parameters: {
+                inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
@@ -659,7 +659,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => {
               await delay(50); // delay to show bug where step finish is sent before tool result
               return `${value}-result`;
@@ -1193,7 +1193,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -2066,14 +2066,18 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect(await result.toolCalls).toStrictEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-      ]);
+      expect(await result.toolCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ]
+      `);
     });
   });
 
@@ -2112,8 +2116,8 @@ describe('streamText', () => {
           type: 'tool-result',
           toolCallId: 'call-1',
           toolName: 'tool1',
-          args: { value: 'value' },
-          result: 'value-result',
+          input: { value: 'value' },
+          output: 'value-result',
         },
       ]);
     });
@@ -2195,7 +2199,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -2273,7 +2277,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -2394,7 +2398,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async () => 'result1',
           },
         },
@@ -2436,7 +2440,7 @@ describe('streamText', () => {
                       type: 'function',
                       name: 'tool1',
                       description: undefined,
-                      parameters: {
+                      inputSchema: {
                         $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
                         properties: { value: { type: 'string' } },
@@ -2491,7 +2495,7 @@ describe('streamText', () => {
                       type: 'function',
                       name: 'tool1',
                       description: undefined,
-                      parameters: {
+                      inputSchema: {
                         $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
                         properties: { value: { type: 'string' } },
@@ -2572,7 +2576,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -2682,17 +2686,17 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
-                "args": {
+                "input": {
                   "value": "value",
                 },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
-                "type": "tool-call",
+                "type": "tool-input-available",
               },
               {
-                "result": "result1",
+                "output": "result1",
                 "toolCallId": "call-1",
-                "type": "tool-result",
+                "type": "tool-output-available",
               },
               {
                 "type": "finish-step",
@@ -2857,8 +2861,7 @@ describe('streamText', () => {
               "tools": [
                 {
                   "description": undefined,
-                  "name": "tool1",
-                  "parameters": {
+                  "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
                     "properties": {
@@ -2871,6 +2874,7 @@ describe('streamText', () => {
                     ],
                     "type": "object",
                   },
+                  "name": "tool1",
                   "type": "function",
                 },
               ],
@@ -2902,7 +2906,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
                       "providerOptions": undefined,
@@ -2919,8 +2923,8 @@ describe('streamText', () => {
                     {
                       "content": undefined,
                       "isError": undefined,
+                      "output": "result1",
                       "providerOptions": undefined,
-                      "result": "result1",
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-result",
@@ -2956,7 +2960,7 @@ describe('streamText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
                       "toolCallId": "call-1",
@@ -2964,10 +2968,10 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
-                      "result": "result1",
+                      "output": "result1",
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-result",
@@ -2985,7 +2989,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
                             "toolCallId": "call-1",
@@ -2998,7 +3002,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "result1",
+                            "output": "result1",
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3038,7 +3042,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
                             "toolCallId": "call-1",
@@ -3051,7 +3055,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "result1",
+                            "output": "result1",
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3089,7 +3093,7 @@ describe('streamText', () => {
                 DefaultStepResult {
                   "content": [
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
                       "toolCallId": "call-1",
@@ -3097,10 +3101,10 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
-                      "result": "result1",
+                      "output": "result1",
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-result",
@@ -3118,7 +3122,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
                             "toolCallId": "call-1",
@@ -3131,7 +3135,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "result1",
+                            "output": "result1",
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3171,7 +3175,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
                             "toolCallId": "call-1",
@@ -3184,7 +3188,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "result1",
+                            "output": "result1",
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3256,7 +3260,7 @@ describe('streamText', () => {
                       type: 'function',
                       name: 'tool1',
                       description: undefined,
-                      parameters: {
+                      inputSchema: {
                         $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
                         properties: { value: { type: 'string' } },
@@ -3311,7 +3315,7 @@ describe('streamText', () => {
                       type: 'function',
                       name: 'tool1',
                       description: undefined,
-                      parameters: {
+                      inputSchema: {
                         $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
                         properties: { value: { type: 'string' } },
@@ -3341,7 +3345,7 @@ describe('streamText', () => {
                           type: 'tool-call',
                           toolCallId: 'call-1',
                           toolName: 'tool1',
-                          args: { value: 'value' },
+                          input: { value: 'value' },
                           providerOptions: undefined,
                         },
                       ],
@@ -3354,7 +3358,7 @@ describe('streamText', () => {
                           type: 'tool-result',
                           toolCallId: 'call-1',
                           toolName: 'tool1',
-                          result: 'RESULT1',
+                          output: 'RESULT1',
                           content: undefined,
                           isError: undefined,
                           providerOptions: undefined,
@@ -3417,103 +3421,103 @@ describe('streamText', () => {
       it('should contain assistant response message and tool message from all steps', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
-            },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "reasoningType": "text",
-              "text": "thinking",
-              "type": "reasoning",
-            },
-            {
-              "args": {
-                "value": "value",
+            [
+              {
+                "type": "start",
               },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-            {
-              "args": {
-                "value": "VALUE",
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
               },
-              "result": "RESULT1",
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-            {
-              "finishReason": "tool-calls",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": {
-                  "call": "1",
+              {
+                "reasoningType": "text",
+                "text": "thinking",
+                "type": "reasoning",
+              },
+              {
+                "input": {
+                  "value": "value",
                 },
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
-            },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "text": "Hello, ",
-              "type": "text",
-            },
-            {
-              "text": "world!",
-              "type": "text",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": {
-                  "call": "2",
+              {
+                "input": {
+                  "value": "VALUE",
                 },
-                "id": "id-1",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:01.000Z,
+                "output": "RESULT1",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": 3,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": 10,
-                "totalTokens": 23,
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": {
+                    "call": "1",
+                  },
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
               },
-            },
-            {
-              "finishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": 3,
-                "inputTokens": 6,
-                "outputTokens": 20,
-                "reasoningTokens": 10,
-                "totalTokens": 36,
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
               },
-              "type": "finish",
-            },
-          ]
-        `);
+              {
+                "text": "Hello, ",
+                "type": "text",
+              },
+              {
+                "text": "world!",
+                "type": "text",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": {
+                    "call": "2",
+                  },
+                  "id": "id-1",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:01.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": 3,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": 10,
+                  "totalTokens": 23,
+                },
+              },
+              {
+                "finishReason": "stop",
+                "totalUsage": {
+                  "cachedInputTokens": 3,
+                  "inputTokens": 6,
+                  "outputTokens": 20,
+                  "reasoningTokens": 10,
+                  "totalTokens": 36,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
       });
 
       describe('callbacks', () => {
@@ -3550,7 +3554,7 @@ describe('streamText', () => {
                         "type": "reasoning",
                       },
                       {
-                        "args": {
+                        "input": {
                           "value": "value",
                         },
                         "toolCallId": "call-1",
@@ -3563,7 +3567,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "result": "RESULT1",
+                        "output": "RESULT1",
                         "toolCallId": "call-1",
                         "toolName": "tool1",
                         "type": "tool-result",
@@ -3594,7 +3598,7 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
                       "toolCallId": "call-1",
@@ -3602,10 +3606,10 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "VALUE",
                       },
-                      "result": "RESULT1",
+                      "output": "RESULT1",
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-result",
@@ -3628,7 +3632,7 @@ describe('streamText', () => {
                             "type": "reasoning",
                           },
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
                             "toolCallId": "call-1",
@@ -3641,7 +3645,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "RESULT1",
+                            "output": "RESULT1",
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3686,7 +3690,7 @@ describe('streamText', () => {
                             "type": "reasoning",
                           },
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
                             "toolCallId": "call-1",
@@ -3699,7 +3703,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "RESULT1",
+                            "output": "RESULT1",
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3763,7 +3767,7 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
                     "toolCallId": "call-1",
@@ -3771,10 +3775,10 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "VALUE",
                     },
-                    "result": "RESULT1",
+                    "output": "RESULT1",
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -3797,7 +3801,7 @@ describe('streamText', () => {
                           "type": "reasoning",
                         },
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
                           "toolCallId": "call-1",
@@ -3810,7 +3814,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "result": "RESULT1",
+                          "output": "RESULT1",
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -3855,7 +3859,7 @@ describe('streamText', () => {
                           "type": "reasoning",
                         },
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
                           "toolCallId": "call-1",
@@ -3868,7 +3872,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "result": "RESULT1",
+                          "output": "RESULT1",
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -3951,7 +3955,7 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
                     "toolCallId": "call-1",
@@ -3959,10 +3963,10 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "VALUE",
                     },
-                    "result": "RESULT1",
+                    "output": "RESULT1",
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -3985,7 +3989,7 @@ describe('streamText', () => {
                           "type": "reasoning",
                         },
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
                           "toolCallId": "call-1",
@@ -3998,7 +4002,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "result": "RESULT1",
+                          "output": "RESULT1",
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -4043,7 +4047,7 @@ describe('streamText', () => {
                           "type": "reasoning",
                         },
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
                           "toolCallId": "call-1",
@@ -4056,7 +4060,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "result": "RESULT1",
+                          "output": "RESULT1",
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -4101,7 +4105,7 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
                     "toolCallId": "call-1",
@@ -4114,7 +4118,7 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "result": "RESULT1",
+                    "output": "RESULT1",
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -4167,7 +4171,7 @@ describe('streamText', () => {
                 "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+                  "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
                 ],
                 "ai.response.avgOutputTokensPerSecond": 20,
                 "ai.response.finishReason": "tool-calls",
@@ -4177,7 +4181,7 @@ describe('streamText', () => {
                 "ai.response.msToFirstChunk": 100,
                 "ai.response.text": "",
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-                "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+                "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.inputTokens": 3,
                 "ai.usage.outputTokens": 10,
@@ -4210,10 +4214,10 @@ describe('streamText', () => {
             {
               "attributes": {
                 "ai.operationId": "ai.toolCall",
-                "ai.toolCall.args": "{"value":"value"}",
                 "ai.toolCall.id": "call-1",
+                "ai.toolCall.input": "{"value":"value"}",
                 "ai.toolCall.name": "tool1",
-                "ai.toolCall.result": ""result1"",
+                "ai.toolCall.output": ""result1"",
                 "operation.name": "ai.toolCall",
               },
               "events": [],
@@ -4224,10 +4228,10 @@ describe('streamText', () => {
                 "ai.model.id": "mock-model-id",
                 "ai.model.provider": "mock-provider",
                 "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"RESULT1"}]}]",
+                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":"RESULT1"}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+                  "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
                 ],
                 "ai.response.avgOutputTokensPerSecond": 25,
                 "ai.response.finishReason": "stop",
@@ -4290,17 +4294,17 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
-                "args": {
+                "input": {
                   "value": "value",
                 },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
-                "type": "tool-call",
+                "type": "tool-input-available",
               },
               {
-                "result": "RESULT1",
+                "output": "RESULT1",
                 "toolCallId": "call-1",
-                "type": "tool-result",
+                "type": "tool-output-available",
               },
               {
                 "type": "finish-step",
@@ -4381,7 +4385,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -4423,7 +4427,7 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
                       "toolCallId": "call-1",
@@ -4431,10 +4435,10 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
-                      "result": "result1",
+                      "output": "result1",
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-result",
@@ -4457,7 +4461,7 @@ describe('streamText', () => {
                             "type": "reasoning",
                           },
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
                             "toolCallId": "call-1",
@@ -4470,7 +4474,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "result1",
+                            "output": "result1",
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -4504,7 +4508,7 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
                       "toolCallId": "call-1",
@@ -4512,10 +4516,10 @@ describe('streamText', () => {
                       "type": "tool-call",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
-                      "result": "result1",
+                      "output": "result1",
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-result",
@@ -4538,7 +4542,7 @@ describe('streamText', () => {
                             "type": "reasoning",
                           },
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
                             "toolCallId": "call-1",
@@ -4551,7 +4555,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "result1",
+                            "output": "result1",
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -4672,7 +4676,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: toolExecuteMock,
           },
         },
@@ -4773,7 +4777,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -4813,7 +4817,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -4950,7 +4954,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsStreamingStart",
+            "type": "onInputStart",
           },
           {
             "options": {
@@ -4964,7 +4968,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsStreamingDelta",
+            "type": "onInputDelta",
           },
           {
             "options": {
@@ -4978,7 +4982,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsStreamingDelta",
+            "type": "onInputDelta",
           },
           {
             "options": {
@@ -4992,7 +4996,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsStreamingDelta",
+            "type": "onInputDelta",
           },
           {
             "options": {
@@ -5006,7 +5010,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsStreamingDelta",
+            "type": "onInputDelta",
           },
           {
             "options": {
@@ -5020,7 +5024,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsStreamingDelta",
+            "type": "onInputDelta",
           },
           {
             "options": {
@@ -5034,7 +5038,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsStreamingDelta",
+            "type": "onInputDelta",
           },
           {
             "options": {
@@ -5048,12 +5052,12 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsStreamingDelta",
+            "type": "onInputDelta",
           },
           {
             "options": {
               "abortSignal": undefined,
-              "args": {
+              "input": {
                 "value": "Sparkle Day",
               },
               "messages": [
@@ -5064,7 +5068,7 @@ describe('streamText', () => {
               ],
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
             },
-            "type": "onArgsAvailable",
+            "type": "onInputAvailable",
           },
         ]
       `);
@@ -5081,7 +5085,7 @@ describe('streamText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
-                parameters: {
+                inputSchema: {
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
                   required: ['value'],
@@ -5239,7 +5243,7 @@ describe('streamText', () => {
               "warnings": [],
             },
             {
-              "args": {
+              "input": {
                 "value": "value",
               },
               "toolCallId": "call-1",
@@ -5490,14 +5494,18 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(await result.toolCalls).toStrictEqual([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            args: { value: 'VALUE' },
-          },
-        ]);
+        expect(await result.toolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "VALUE",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ]
+        `);
       });
 
       it('result.toolResults should be transformed', async () => {
@@ -5532,15 +5540,19 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(await result.toolResults).toStrictEqual([
-          {
-            type: 'tool-result',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            args: { value: 'VALUE' },
-            result: 'RESULT1',
-          },
-        ]);
+        expect(await result.toolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "VALUE",
+              },
+              "output": "RESULT1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ]
+        `);
       });
 
       it('result.steps should be transformed', async () => {
@@ -5921,7 +5933,7 @@ describe('streamText', () => {
               "type": "tool-call-delta",
             },
             {
-              "args": {
+              "input": {
                 "value": "TEST",
               },
               "toolCallId": "1",
@@ -5929,10 +5941,10 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
-              "args": {
+              "input": {
                 "value": "TEST",
               },
-              "result": "TEST-RESULT",
+              "output": "TEST-RESULT",
               "toolCallId": "1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -6490,11 +6502,11 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async () => 'result1',
           },
           tool2: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async () => 'result2',
           },
         },
@@ -6508,8 +6520,7 @@ describe('streamText', () => {
         [
           {
             "description": undefined,
-            "name": "tool1",
-            "parameters": {
+            "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
               "properties": {
@@ -6522,6 +6533,7 @@ describe('streamText', () => {
               ],
               "type": "object",
             },
+            "name": "tool1",
             "type": "function",
           },
         ]

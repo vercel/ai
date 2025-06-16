@@ -303,7 +303,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text",
           },
           {
-            "args": "{"value":"example value"}",
+            "input": "{"value":"example value"}",
             "toolCallId": "toolu_1",
             "toolCallType": "function",
             "toolName": "test-tool",
@@ -1406,7 +1406,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "tool-call-delta",
           },
           {
-            "args": "{"value":"Sparkle Day"}",
+            "input": "{"value":"Sparkle Day"}",
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolCallType": "function",
             "toolName": "test-tool",
