@@ -191,7 +191,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onFinish = onFinish;
 
     if (resume) {
-      this.experimental_resume();
+      this.triggerRequest({ requestType: 'resume' });
     }
   }
 
@@ -312,15 +312,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     await this.triggerRequest({ requestType: 'generate', ...options });
-  };
-
-  /**
-   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
-   */
-  experimental_resume = async (
-    options: ChatRequestOptions = {},
-  ): Promise<void> => {
-    await this.triggerRequest({ requestType: 'resume', ...options });
   };
 
   addToolResult = async ({
