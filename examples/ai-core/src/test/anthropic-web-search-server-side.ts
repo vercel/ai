@@ -7,14 +7,12 @@ async function testGenerateText() {
     model: anthropic('claude-3-5-sonnet-latest'),
     prompt:
       'What are the latest breakthroughs in quantum computing? Please search for recent developments.',
-    providerOptions: {
-      anthropic: {
-        webSearch: {
-          maxUses: 3,
-          allowedDomains: ['arxiv.org', 'nature.com', 'mit.edu'],
-        },
-      },
-    },
+    tools: [
+      anthropic.tools.webSearch_20250305({
+        maxUses: 3,
+        allowedDomains: ['arxiv.org', 'nature.com', 'mit.edu'],
+      }),
+    ],
   });
 
   console.log(result.text);
@@ -29,14 +27,12 @@ async function testStreamText() {
     model: anthropic('claude-3-5-sonnet-latest'),
     prompt:
       'What are current stock market trends? Search for latest financial news.',
-    providerOptions: {
-      anthropic: {
-        webSearch: {
-          maxUses: 2,
-          blockedDomains: ['reddit.com'],
-        },
-      },
-    },
+    tools: [
+      anthropic.tools.webSearch_20250305({
+        maxUses: 2,
+        blockedDomains: ['reddit.com'],
+      }),
+    ],
   });
 
   for await (const textPart of result.textStream) {
