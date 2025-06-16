@@ -144,13 +144,16 @@ Details for all steps.
 Callback that is called after tool executions to update the available tools list.
 
 @param event - The event that is passed to the callback containing current tool calls and results.
-@returns A new tools object or undefined to keep current tools.
+@returns A new tools object, or an object with tools and optional systemInstruction, or undefined to keep current tools.
  */
-export type StreamTextOnUpdateToolsListCallback<TOOLS extends ToolSet> = (event: {
-  toolCalls: ToolCallUnion<TOOLS>[];
-  toolResults: ToolResultUnion<TOOLS>[];
-  currentStep: number;
-}) => Promise<TOOLS | undefined> | (TOOLS | undefined);
+export type StreamTextOnUpdateToolsListCallback<TOOLS extends ToolSet> =
+  (event: {
+    toolCalls: ToolCallUnion<TOOLS>[];
+    toolResults: ToolResultUnion<TOOLS>[];
+    currentStep: number;
+  }) =>
+    | Promise<TOOLS | { tools: TOOLS; systemInstruction?: string } | undefined>
+    | (TOOLS | { tools: TOOLS; systemInstruction?: string } | undefined);
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -973,6 +976,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           previousStepText,
           hasLeadingWhitespace,
           messageId,
+          systemInstruction,
         }: {
           currentStep: number;
           responseMessages: Array<ResponseMessage>;
@@ -981,13 +985,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           previousStepText: string;
           hasLeadingWhitespace: boolean;
           messageId: string;
+          systemInstruction?: string;
         }) {
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';
 
+          // @ts-ignore: Adding system instruction before response messages
           const stepInputMessages = [
             ...initialPrompt.messages,
+            // Add system instruction if provided
+            ...(systemInstruction
+              ? [
+                  {
+                    role: 'system' as const,
+                    content: systemInstruction,
+                  },
+                ]
+              : []),
             ...responseMessages,
           ];
 
@@ -1003,7 +1018,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           const mode = {
             type: 'regular' as const,
-            ...prepareToolsAndToolChoice({ tools: self.currentTools, toolChoice, activeTools }),
+            ...prepareToolsAndToolChoice({
+              tools: self.currentTools,
+              toolChoice,
+              activeTools,
+            }),
           };
 
           const {
@@ -1469,15 +1488,33 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     // Update tools if callback is provided and there are tool results
+                    let nextSystemInstruction: string | undefined;
                     if (onUpdateToolsList && stepToolResults.length > 0) {
                       try {
-                        const updatedTools = await onUpdateToolsList({
+                        const callbackResult = await onUpdateToolsList({
                           toolCalls: stepToolCalls,
                           toolResults: stepToolResults,
                           currentStep: currentStep,
                         });
-                        if (updatedTools !== undefined) {
-                          self.currentTools = updatedTools;
+
+                        if (callbackResult !== undefined) {
+                          // Handle both formats: TOOLS or { tools: TOOLS; systemInstruction?: string }
+                          if (
+                            callbackResult &&
+                            typeof callbackResult === 'object' &&
+                            'tools' in callbackResult
+                          ) {
+                            // New format with tools and optional systemInstruction
+                            const result = callbackResult as {
+                              tools: TOOLS;
+                              systemInstruction?: string;
+                            };
+                            self.currentTools = result.tools;
+                            nextSystemInstruction = result.systemInstruction;
+                          } else {
+                            // Legacy format: just tools
+                            self.currentTools = callbackResult as TOOLS;
+                          }
                         }
                       } catch (error) {
                         // If updating tools fails, log the error but continue with current tools
@@ -1497,6 +1534,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         nextStepType === 'continue'
                           ? messageId
                           : generateMessageId(),
+                      systemInstruction: nextSystemInstruction,
                     });
                   }
                 },
