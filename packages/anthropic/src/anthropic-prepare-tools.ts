@@ -134,14 +134,41 @@ export function prepareTools({
                 .blockedDomains as string[];
             }
             if (tool.args.userLocation) {
-              const loc = tool.args.userLocation as any;
+              const loc = tool.args.userLocation as {
+                type: 'approximate';
+                city?: string;
+                region?: string;
+                country?: string;
+                timezone?: string;
+              };
+              
+              // Check if at least one field is provided (API requirement)
+              const hasAnyField = loc.city || loc.region || loc.country || loc.timezone;
+              if (!hasAnyField) {
+                toolWarnings.push({ 
+                  type: 'unsupported-tool', 
+                  tool: tool
+                });
+                break;
+              }
+              
               webSearchTool.user_location = {
                 type: 'approximate',
-                country: loc.country,
-                city: loc.city ?? '',
-                region: loc.region ?? '',
-                timezone: loc.timezone ?? '',
               };
+              
+              // Only include fields if they have values
+              if (loc.city) {
+                webSearchTool.user_location.city = loc.city;
+              }
+              if (loc.region) {
+                webSearchTool.user_location.region = loc.region;
+              }
+              if (loc.country) {
+                webSearchTool.user_location.country = loc.country;
+              }
+              if (loc.timezone) {
+                webSearchTool.user_location.timezone = loc.timezone;
+              }
             }
 
             anthropicTools.push(webSearchTool);
