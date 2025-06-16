@@ -53,7 +53,6 @@ export type AnthropicFilePartProviderOptions = z.infer<
 >;
 
 export const anthropicProviderOptions = z.object({
-
   sendReasoning: z.boolean().optional(),
 
   thinking: z
