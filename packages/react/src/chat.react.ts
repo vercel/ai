@@ -1,13 +1,4 @@
-import {
-  AbstractChat,
-  ChatInit,
-  ChatState,
-  ChatStatus,
-  InferUIDataParts,
-  UIDataPartSchemas,
-  UIDataTypes,
-  UIMessage,
-} from 'ai';
+import { AbstractChat, ChatInit, ChatState, ChatStatus, UIMessage } from 'ai';
 import { throttle } from './throttle';
 
 type SubscriptionRegistrars = {
@@ -26,6 +17,8 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
   #messagesCallbacks = new Set<() => void>();
   #statusCallbacks = new Set<() => void>();
   #errorCallbacks = new Set<() => void>();
+
+  #clonedMessages = new WeakMap();
 
   constructor(initialMessages: UI_MESSAGE[] = []) {
     this.#messages = initialMessages;
@@ -71,7 +64,7 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
   replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.#messages = [
       ...this.#messages.slice(0, index),
-      message,
+      this.snapshot(message),
       ...this.#messages.slice(index + 1),
     ];
     this.#callMessagesCallbacks();
