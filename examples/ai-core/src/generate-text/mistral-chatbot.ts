@@ -33,15 +33,15 @@ async function main() {
       process.stdout.write(`\nAssistant: ${text}`);
     }
 
-    for (const { toolName, args } of toolCalls) {
+    for (const { toolName, input } of toolCalls) {
       process.stdout.write(
-        `\nTool call: '${toolName}' ${JSON.stringify(args)}`,
+        `\nTool call: '${toolName}' ${JSON.stringify(input)}`,
       );
     }
 
-    for (const { toolName, result } of toolResults) {
+    for (const { toolName, output } of toolResults) {
       process.stdout.write(
-        `\nTool response: '${toolName}' ${JSON.stringify(result)}`,
+        `\nTool response: '${toolName}' ${JSON.stringify(output)}`,
       );
     }
 

@@ -356,7 +356,7 @@ describe('onToolCall', () => {
         await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
-        } ${JSON.stringify(toolCall.args)}`;
+        } ${JSON.stringify(toolCall.input)}`;
       },
     });
   });
@@ -366,10 +366,10 @@ describe('onToolCall', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
-          args: { testArg: 'test-value' },
+          input: { testArg: 'test-value' },
         }),
       ],
     };
@@ -379,11 +379,11 @@ describe('onToolCall', () => {
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'call',
+          state: 'input-available',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 'test-value' },
-          result: undefined,
+          input: { testArg: 'test-value' },
+          output: undefined,
         },
       ]);
     });
@@ -393,11 +393,11 @@ describe('onToolCall', () => {
 
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
-        state: 'result',
+        state: 'output-available',
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        args: { testArg: 'test-value' },
-        result:
+        input: { testArg: 'test-value' },
+        output:
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
       },
     ]);
@@ -432,7 +432,7 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-streaming-start',
+        type: 'tool-input-start',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
       }),
@@ -441,81 +441,81 @@ describe('tool invocations', () => {
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'partial-call',
+          state: 'input-streaming',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: undefined,
-          result: undefined,
+          input: undefined,
+          output: undefined,
         },
       ]);
     });
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-delta',
+        type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
-        argsTextDelta: '{"testArg":"t',
+        inputTextDelta: '{"testArg":"t',
       }),
     );
 
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'partial-call',
+          state: 'input-streaming',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 't' },
-          result: undefined,
+          input: { testArg: 't' },
+          output: undefined,
         },
       ]);
     });
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-delta',
+        type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
-        argsTextDelta: 'est-value"}}',
+        inputTextDelta: 'est-value"}}',
       }),
     );
 
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'partial-call',
+          state: 'input-streaming',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 'test-value' },
-          result: undefined,
+          input: { testArg: 'test-value' },
+          output: undefined,
         },
       ]);
     });
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'call',
+          state: 'input-available',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 'test-value' },
-          result: undefined,
+          input: { testArg: 'test-value' },
+          output: undefined,
         },
       ]);
     });
 
     controller.write(
       formatStreamPart({
-        type: 'tool-result',
+        type: 'tool-output-available',
         toolCallId: 'tool-call-0',
-        result: 'test-result',
+        output: 'test-result',
       }),
     );
     controller.close();
@@ -523,11 +523,11 @@ describe('tool invocations', () => {
 
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
-        state: 'result',
+        state: 'output-available',
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        args: { testArg: 'test-value' },
-        result: 'test-result',
+        input: { testArg: 'test-value' },
+        output: 'test-result',
       },
     ]);
   });
@@ -543,30 +543,30 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'call',
+          state: 'input-available',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 'test-value' },
-          result: undefined,
+          input: { testArg: 'test-value' },
+          output: undefined,
         },
       ]);
     });
 
     controller.write(
       formatStreamPart({
-        type: 'tool-result',
+        type: 'tool-output-available',
         toolCallId: 'tool-call-0',
-        result: 'test-result',
+        output: 'test-result',
       }),
     );
     controller.close();
@@ -575,11 +575,11 @@ describe('tool invocations', () => {
 
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
-        state: 'result',
+        state: 'output-available',
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        args: { testArg: 'test-value' },
-        result: 'test-result',
+        input: { testArg: 'test-value' },
+        output: 'test-result',
       },
     ]);
   });
@@ -589,10 +589,10 @@ describe('tool invocations', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
-          args: { testArg: 'test-value' },
+          input: { testArg: 'test-value' },
         }),
       ],
     };
@@ -604,28 +604,28 @@ describe('tool invocations', () => {
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'call',
+          state: 'input-available',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 'test-value' },
-          result: undefined,
+          input: { testArg: 'test-value' },
+          output: undefined,
         },
       ]);
     });
 
     chat.addToolResult({
       toolCallId: 'tool-call-0',
-      result: 'test-result',
+      output: 'test-result',
     });
 
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'result',
+          state: 'output-available',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 'test-value' },
-          result: 'test-result',
+          input: { testArg: 'test-value' },
+          output: 'test-result',
         },
       ]);
     });
@@ -652,21 +652,21 @@ describe('tool invocations', () => {
     // tool call
     controller1.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'call',
-          result: undefined,
+          state: 'input-available',
+          input: { testArg: 'test-value' },
+          output: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 'test-value' },
         },
       ]);
     });
@@ -674,18 +674,18 @@ describe('tool invocations', () => {
     // user submits the tool result
     chat.addToolResult({
       toolCallId: 'tool-call-0',
-      result: 'test-result',
+      output: 'test-result',
     });
 
     // UI should show the tool result
     await vi.waitFor(() => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
-          state: 'result',
+          state: 'output-available',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
-          args: { testArg: 'test-value' },
-          result: 'test-result',
+          input: { testArg: 'test-value' },
+          output: 'test-result',
         },
       ]);
     });
@@ -717,7 +717,7 @@ describe('maxSteps', () => {
           onToolCallInvoked = true;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
-          } ${JSON.stringify(toolCall.args)}`;
+          } ${JSON.stringify(toolCall.input)}`;
         },
         id: 'test-id',
         maxSteps: 5,
@@ -735,10 +735,10 @@ describe('maxSteps', () => {
           type: 'stream-chunks',
           chunks: [
             formatStreamPart({
-              type: 'tool-call',
+              type: 'tool-input-available',
               toolCallId: 'tool-call-0',
               toolName: 'test-tool',
-              args: { testArg: 'test-value' },
+              input: { testArg: 'test-value' },
             }),
           ],
         },
@@ -772,11 +772,11 @@ describe('maxSteps', () => {
             "metadata": undefined,
             "parts": [
               {
-                "args": {
+                "input": {
                   "testArg": "test-value",
                 },
-                "result": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
-                "state": "result",
+                "output": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
+                "state": "output-available",
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
               },
@@ -802,7 +802,7 @@ describe('maxSteps', () => {
           onToolCallCounter++;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
-          } ${JSON.stringify(toolCall.args)}`;
+          } ${JSON.stringify(toolCall.input)}`;
         },
         maxSteps: 5,
         transport: new DefaultChatTransport({
@@ -818,10 +818,10 @@ describe('maxSteps', () => {
           type: 'stream-chunks',
           chunks: [
             formatStreamPart({
-              type: 'tool-call',
+              type: 'tool-input-available',
               toolCallId: 'tool-call-0',
               toolName: 'test-tool',
-              args: { testArg: 'test-value' },
+              input: { testArg: 'test-value' },
             }),
           ],
         },

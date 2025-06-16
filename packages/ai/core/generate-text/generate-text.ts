@@ -40,7 +40,7 @@ import {
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
 import { resolveLanguageModel } from '../prompt/resolve-language-model';
@@ -541,12 +541,12 @@ async function executeTools<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
 }): Promise<ToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(
-    toolCalls.map(async ({ toolCallId, toolName, args }) => {
+    toolCalls.map(async ({ toolCallId, toolName, input }) => {
       const tool = tools[toolName];
 
-      if (tool?.onArgsAvailable != null) {
-        await tool.onArgsAvailable({
-          args,
+      if (tool?.onInputAvailable != null) {
+        await tool.onInputAvailable({
+          input,
           toolCallId,
           messages,
           abortSignal,
@@ -568,15 +568,15 @@ async function executeTools<TOOLS extends ToolSet>({
             }),
             'ai.toolCall.name': toolName,
             'ai.toolCall.id': toolCallId,
-            'ai.toolCall.args': {
-              output: () => JSON.stringify(args),
+            'ai.toolCall.input': {
+              output: () => JSON.stringify(input),
             },
           },
         }),
         tracer,
         fn: async span => {
           try {
-            const result = await tool.execute!(args, {
+            const result = await tool.execute!(input, {
               toolCallId,
               messages,
               abortSignal,
@@ -605,7 +605,7 @@ async function executeTools<TOOLS extends ToolSet>({
             throw new ToolExecutionError({
               toolCallId,
               toolName,
-              toolArgs: args,
+              toolInput: input,
               cause: error,
             });
           }
@@ -616,8 +616,8 @@ async function executeTools<TOOLS extends ToolSet>({
         type: 'tool-result',
         toolCallId,
         toolName,
-        args,
-        result,
+        input,
+        output: result,
       } as ToolResultArray<TOOLS>[number];
     }),
   );
@@ -739,6 +739,6 @@ function asToolCalls(content: Array<LanguageModelV2Content>) {
     toolCallType: toolCall.toolCallType,
     toolCallId: toolCall.toolCallId,
     toolName: toolCall.toolName,
-    args: toolCall.args,
+    input: toolCall.input,
   }));
 }

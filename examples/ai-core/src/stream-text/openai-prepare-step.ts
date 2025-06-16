@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 const retrieveInformation = tool({
   description: 'Retrieve information from the database',
-  parameters: z
+  inputSchema: z
     .object({
       query: z.string(),
     })

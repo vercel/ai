@@ -67,7 +67,7 @@ export async function submitUserMessage(content: string) {
     tools: {
       get_current_weather: {
         description: 'Get the current weather',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string(),
         }),
         generate: async function* ({ location }) {

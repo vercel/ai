@@ -280,7 +280,7 @@ export async function convertToAnthropicMessagesPrompt({
                             };
                         }
                       })
-                    : JSON.stringify(part.result);
+                    : JSON.stringify(part.output);
 
                 anthropicContent.push({
                   type: 'tool_result',
@@ -393,7 +393,7 @@ export async function convertToAnthropicMessagesPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: part.args,
+                  input: part.input,
                   cache_control: cacheControl,
                 });
                 break;

@@ -1,6 +1,7 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2ProviderDefinedServerTool,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
@@ -52,7 +53,7 @@ export function prepareTools({
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
-          input_schema: tool.parameters,
+          input_schema: tool.inputSchema,
         });
         break;
       case 'provider-defined-client':
@@ -104,6 +105,45 @@ export function prepareTools({
               name: tool.name,
               type: 'bash_20241022',
             });
+            break;
+          default:
+            toolWarnings.push({ type: 'unsupported-tool', tool });
+            break;
+        }
+        break;
+      case 'provider-defined-server':
+        switch (tool.id) {
+          case 'anthropic.web_search_20250305':
+            const webSearchTool: Extract<
+              AnthropicTool,
+              { type: 'web_search_20250305' }
+            > = {
+              type: 'web_search_20250305',
+              name: tool.name,
+            };
+
+            if (tool.args.maxUses) {
+              webSearchTool.max_uses = tool.args.maxUses as number;
+            }
+            if (tool.args.allowedDomains) {
+              webSearchTool.allowed_domains = tool.args
+                .allowedDomains as string[];
+            }
+            if (tool.args.blockedDomains) {
+              webSearchTool.blocked_domains = tool.args
+                .blockedDomains as string[];
+            }
+            if (tool.args.userLocation) {
+              webSearchTool.user_location = tool.args.userLocation as {
+                type: 'approximate';
+                city?: string;
+                region?: string;
+                country?: string;
+                timezone?: string;
+              };
+            }
+
+            anthropicTools.push(webSearchTool);
             break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });

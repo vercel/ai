@@ -41,7 +41,7 @@ export function prepareResponsesTools({
           type: 'function',
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters,
+          parameters: tool.inputSchema,
           strict: strict ? true : undefined,
         });
         break;

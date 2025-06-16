@@ -555,7 +555,7 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'calculator',
-            result: { value: 42 },
+            output: { value: 42 },
             content: [{ type: 'text', text: 'The result is 42' }],
           },
         ],
@@ -584,7 +584,7 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'image-generator',
-            result: undefined,
+            output: undefined,
             content: [
               {
                 type: 'image',
@@ -627,7 +627,7 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolCallId: 'call-123',
               toolName: 'image-generator',
-              result: undefined,
+              output: undefined,
               content: [
                 {
                   type: 'image',
@@ -652,7 +652,7 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolCallId: 'call-123',
               toolName: 'image-generator',
-              result: undefined,
+              output: undefined,
               content: [
                 {
                   type: 'image',
@@ -678,7 +678,7 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'calculator',
-            result: { value: 42 },
+            output: { value: 42 },
           },
         ],
       },

@@ -55,7 +55,7 @@ describe('convertToPerplexityMessages', () => {
                 type: 'tool-result',
                 toolCallId: 'dummy-tool-call-id',
                 toolName: 'dummy-tool-name',
-                result: 'This should fail',
+                output: 'This should fail',
               },
             ],
           },

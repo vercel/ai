@@ -211,7 +211,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
           toolCallType: 'function',
           toolCallId: toolCall.id,
           toolName: toolCall.function.name,
-          args: toolCall.function.arguments!,
+          input: toolCall.function.arguments!,
         });
       }
     }
@@ -353,14 +353,14 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                   toolCallType: 'function',
                   toolCallId: toolCall.id,
                   toolName: toolCall.function.name,
-                  argsTextDelta: toolCall.function.arguments,
+                  inputTextDelta: toolCall.function.arguments,
                 });
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallType: 'function',
                   toolCallId: toolCall.id,
                   toolName: toolCall.function.name,
-                  args: toolCall.function.arguments,
+                  input: toolCall.function.arguments,
                 });
               }
             }

@@ -44,7 +44,10 @@ export function prepareTools({
   }> = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined-client') {
+    if (
+      tool.type === 'provider-defined-client' ||
+      tool.type === 'provider-defined-server'
+    ) {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
       cohereTools.push({
@@ -52,7 +55,7 @@ export function prepareTools({
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters,
+          parameters: tool.inputSchema,
         },
       });
     }

@@ -10,7 +10,7 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: {
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       },
     },
     prompt: 'What is the weather in San Francisco?',
@@ -46,7 +46,7 @@ async function main() {
         toolCalls.push(part);
 
         process.stdout.write(
-          `\nTool call: '${part.toolName}' ${JSON.stringify(part.args)}`,
+          `\nTool call: '${part.toolName}' ${JSON.stringify(part.input)}`,
         );
         break;
       }
@@ -55,7 +55,7 @@ async function main() {
         toolResponses.push(part);
 
         process.stdout.write(
-          `\nTool response: '${part.toolName}' ${JSON.stringify(part.result)}`,
+          `\nTool response: '${part.toolName}' ${JSON.stringify(part.output)}`,
         );
         break;
       }

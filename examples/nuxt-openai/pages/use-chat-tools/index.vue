@@ -51,7 +51,7 @@ const handleSubmit = (e: Event) => {
                 :key="part.toolInvocation.toolCallId"
                 className="text-gray-500"
               >
-                {{ part.toolInvocation.args.message }}
+                {{ part.toolInvocation.input.message }}
                 <div className="flex gap-2">
                   <button
                     class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
@@ -121,7 +121,7 @@ const handleSubmit = (e: Event) => {
                 className="text-gray-500"
               >
                 Getting weather information for
-                {{ part.toolInvocation.args.city }}...
+                {{ part.toolInvocation.input.city }}...
               </div>
             </template>
             <template v-if="part.toolInvocation.state === 'result'">
@@ -129,7 +129,7 @@ const handleSubmit = (e: Event) => {
                 :key="part.toolInvocation.toolCallId"
                 className="text-gray-500"
               >
-                Weather in {{ part.toolInvocation.args.city }}:
+                Weather in {{ part.toolInvocation.input.city }}:
                 {{ part.toolInvocation.result }}
               </div>
             </template>

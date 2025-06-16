@@ -4,12 +4,12 @@ import {
   safeParseJSON,
   safeValidateTypes,
 } from '@ai-sdk/provider-utils';
-import { InvalidToolArgumentsError } from '../../src/error/invalid-tool-arguments-error';
+import { InvalidToolInputError } from '../../src/error/invalid-tool-input-error';
 import { NoSuchToolError } from '../../src/error/no-such-tool-error';
 import { ToolCallRepairError } from '../../src/error/tool-call-repair-error';
 import { ModelMessage } from '../prompt';
 import { ToolCallUnion } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
 
 export async function parseToolCall<TOOLS extends ToolSet>({
@@ -36,7 +36,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       repairToolCall == null ||
       !(
         NoSuchToolError.isInstance(error) ||
-        InvalidToolArgumentsError.isInstance(error)
+        InvalidToolInputError.isInstance(error)
       )
     ) {
       throw error;
@@ -48,9 +48,9 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       repairedToolCall = await repairToolCall({
         toolCall,
         tools,
-        parameterSchema: ({ toolName }) => {
-          const { parameters } = tools[toolName];
-          return asSchema(parameters).jsonSchema;
+        inputSchema: ({ toolName }) => {
+          const { inputSchema } = tools[toolName];
+          return asSchema(inputSchema).jsonSchema;
         },
         system,
         messages,
@@ -90,19 +90,19 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  const schema = asSchema(tool.parameters);
+  const schema = asSchema(tool.inputSchema);
 
   // when the tool call has no arguments, we try passing an empty object to the schema
   // (many LLMs generate empty strings for tool calls with no arguments)
   const parseResult =
-    toolCall.args.trim() === ''
+    toolCall.input.trim() === ''
       ? await safeValidateTypes({ value: {}, schema })
-      : await safeParseJSON({ text: toolCall.args, schema });
+      : await safeParseJSON({ text: toolCall.input, schema });
 
   if (parseResult.success === false) {
-    throw new InvalidToolArgumentsError({
+    throw new InvalidToolInputError({
       toolName,
-      toolArgs: toolCall.args,
+      toolInput: toolCall.input,
       cause: parseResult.error,
     });
   }
@@ -111,6 +111,6 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     type: 'tool-call',
     toolCallId: toolCall.toolCallId,
     toolName,
-    args: parseResult?.value,
+    input: parseResult.value,
   };
 }

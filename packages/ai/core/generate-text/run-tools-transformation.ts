@@ -14,7 +14,7 @@ import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
@@ -30,7 +30,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'tool-call-delta';
       toolCallId: string;
       toolName: string;
-      argsTextDelta: string;
+      inputTextDelta: string;
     }
   | {
       type: 'response-metadata';
@@ -169,7 +169,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             type: 'tool-call-delta',
             toolCallId: chunk.toolCallId,
             toolName: chunk.toolName,
-            argsTextDelta: chunk.argsTextDelta,
+            inputTextDelta: chunk.inputTextDelta,
           });
 
           break;
@@ -190,9 +190,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             const tool = tools![toolCall.toolName];
 
-            if (tool.onArgsAvailable != null) {
-              await tool.onArgsAvailable({
-                args: toolCall.args,
+            if (tool.onInputAvailable != null) {
+              await tool.onInputAvailable({
+                input: toolCall.input,
                 toolCallId: toolCall.toolCallId,
                 messages,
                 abortSignal,
@@ -217,24 +217,24 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     }),
                     'ai.toolCall.name': toolCall.toolName,
                     'ai.toolCall.id': toolCall.toolCallId,
-                    'ai.toolCall.args': {
-                      output: () => JSON.stringify(toolCall.args),
+                    'ai.toolCall.input': {
+                      output: () => JSON.stringify(toolCall.input),
                     },
                   },
                 }),
                 tracer,
                 fn: async span =>
-                  tool.execute!(toolCall.args, {
+                  tool.execute!(toolCall.input, {
                     toolCallId: toolCall.toolCallId,
                     messages,
                     abortSignal,
                   }).then(
-                    (result: any) => {
+                    (output: unknown) => {
                       toolResultsStreamController!.enqueue({
                         ...toolCall,
                         type: 'tool-result',
-                        result,
-                      } as any);
+                        output,
+                      });
 
                       outstandingToolResults.delete(toolExecutionId);
 
@@ -246,8 +246,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                           selectTelemetryAttributes({
                             telemetry,
                             attributes: {
-                              'ai.toolCall.result': {
-                                output: () => JSON.stringify(result),
+                              'ai.toolCall.output': {
+                                output: () => JSON.stringify(output),
                               },
                             },
                           }),
@@ -259,13 +259,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                         // if the result is not serializable.
                       }
                     },
-                    (error: any) => {
+                    (error: unknown) => {
                       toolResultsStreamController!.enqueue({
                         type: 'error',
                         error: new ToolExecutionError({
                           toolCallId: toolCall.toolCallId,
                           toolName: toolCall.toolName,
-                          toolArgs: toolCall.args,
+                          toolInput: toolCall.input,
                           cause: error,
                         }),
                       });

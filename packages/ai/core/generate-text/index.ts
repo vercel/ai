@@ -24,6 +24,6 @@ export type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 export type { ToolCall, ToolCallUnion } from './tool-call';
-export type { ToolCallRepairFunction } from './tool-call-repair';
+export type { ToolCallRepairFunction } from './tool-call-repair-function';
 export type { ToolResult, ToolResultUnion } from './tool-result';
 export type { ToolSet } from './tool-set';
