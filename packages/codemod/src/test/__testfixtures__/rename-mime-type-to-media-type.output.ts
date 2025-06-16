@@ -17,10 +17,10 @@ const result1 = await streamText({
           type: 'file',
           data: contents,
           mediaType: 'application/pdf',
-        }
-      ]
-    }
-  ]
+        },
+      ],
+    },
+  ],
 });
 
 // generateText with multiple file types
@@ -43,10 +43,10 @@ const result2 = await generateText({
           type: 'file',
           data: audioBuffer,
           mediaType: 'audio/wav',
-        }
-      ]
-    }
-  ]
+        },
+      ],
+    },
+  ],
 });
 
 // generateObject example
@@ -70,11 +70,12 @@ const result3 = await generateObject({
         {
           type: 'file',
           data: docBuffer,
-          mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        }
-      ]
-    }
-  ]
+          mediaType:
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      ],
+    },
+  ],
 });
 
 // streamObject example
@@ -94,11 +95,12 @@ const result4 = await streamObject({
         {
           type: 'file',
           data: xlsxBuffer,
-          mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        }
-      ]
-    }
-  ]
+          mediaType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+      ],
+    },
+  ],
 });
 
 // String-quoted properties (should also be transformed)
@@ -109,13 +111,13 @@ const result5 = await streamText({
       role: 'user',
       content: [
         {
-          'type': 'file',
-          'data': videoBuffer,
-          'mediaType': 'video/mp4',
-        }
-      ]
-    }
-  ]
+          type: 'file',
+          data: videoBuffer,
+          mediaType: 'video/mp4',
+        },
+      ],
+    },
+  ],
 });
 
 // Multiple messages with files
@@ -129,12 +131,12 @@ const result6 = await generateText({
           type: 'file',
           data: file1,
           mediaType: 'text/plain',
-        }
-      ]
+        },
+      ],
     },
     {
       role: 'assistant',
-      content: 'I can see the text file. What would you like me to do with it?'
+      content: 'I can see the text file. What would you like me to do with it?',
     },
     {
       role: 'user',
@@ -147,10 +149,10 @@ const result6 = await generateText({
           type: 'file',
           data: file2,
           mediaType: 'image/png',
-        }
-      ]
-    }
-  ]
+        },
+      ],
+    },
+  ],
 });
 
 // Mixed content with text and non-file objects (shouldn't be affected)
@@ -173,10 +175,10 @@ const result7 = await streamText({
           type: 'file',
           data: pdfBuffer,
           mediaType: 'application/pdf', // This SHOULD be transformed
-        }
-      ]
-    }
-  ]
+        },
+      ],
+    },
+  ],
 });
 
 // Edge case: non-AI function calls should not be affected
@@ -189,8 +191,8 @@ const nonAiResult = await someOtherFunction({
           type: 'file',
           data: buffer,
           mimeType: 'text/html', // Should NOT be transformed
-        }
-      ]
-    }
-  ]
-}); 
+        },
+      ],
+    },
+  ],
+});

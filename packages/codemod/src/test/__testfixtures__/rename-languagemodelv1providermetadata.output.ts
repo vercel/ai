@@ -1,7 +1,10 @@
 // @ts-nocheck
 import { SharedV2ProviderMetadata } from '@ai-sdk/provider';
 import { SharedV2ProviderMetadata as ProviderMeta } from '@ai-sdk/provider';
-import { LanguageModelV1, SharedV2ProviderMetadata as LM1Meta } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  SharedV2ProviderMetadata as LM1Meta,
+} from '@ai-sdk/provider';
 
 // Basic import and usage
 function processMetadata(metadata: SharedV2ProviderMetadata): void {
@@ -39,4 +42,4 @@ const mixedArray: (SharedV2ProviderMetadata | string)[] = [];
 // Generic type usage
 type ProviderConfig<T = SharedV2ProviderMetadata> = {
   data: T;
-}; 
+};

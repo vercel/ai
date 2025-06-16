@@ -13,7 +13,7 @@ export async function testWithOtherImports() {
     model: 'some-model',
     prompt: 'Hello world',
   });
-  
+
   const stream = createSomeStream();
   return LlamaIndexAdapter.toDataStreamResponse(stream);
 }
@@ -22,20 +22,18 @@ export async function testWithOtherImports() {
 export async function testMultipleCalls() {
   const stream1 = createSomeStream();
   const stream2 = createSomeStream();
-  
+
   const response1 = LlamaIndexAdapter.toDataStreamResponse(stream1);
   const response2 = LlamaIndexAdapter.toDataStreamResponse(stream2);
-  
+
   return [response1, response2];
 }
 
 // In a more complex expression
 export async function testComplexExpression() {
-  return await LlamaIndexAdapter.toDataStreamResponse(
-    createSomeStream()
-  );
+  return await LlamaIndexAdapter.toDataStreamResponse(createSomeStream());
 }
 
 function createSomeStream() {
   return {};
-} 
+}

@@ -24,10 +24,10 @@ export async function testAnthropicSimulateStreaming() {
 // With other options
 export async function testWithOtherOptions() {
   const result = generateText({
-    model: openai('gpt-4o', { 
+    model: openai('gpt-4o', {
       simulateStreaming: true,
       maxTokens: 100,
-      temperature: 0.5 
+      temperature: 0.5,
     }),
     prompt: 'Generate text',
   });
@@ -59,12 +59,12 @@ export async function testMultipleCalls() {
     model: openai('gpt-4o', { simulateStreaming: true }),
     prompt: 'First call',
   });
-  
+
   const result2 = generateText({
     model: anthropic('claude-3-haiku-20240307', { simulateStreaming: true }),
     prompt: 'Second call',
   });
-  
+
   return [result1, result2];
 }
 
@@ -84,4 +84,4 @@ export async function testNoSimulateStreaming() {
     prompt: 'Should not change',
   });
   return result;
-} 
+}

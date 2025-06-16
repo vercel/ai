@@ -89,4 +89,4 @@ export async function testMultipleCalls() {
   });
 
   return [stream1, stream2];
-} 
+}

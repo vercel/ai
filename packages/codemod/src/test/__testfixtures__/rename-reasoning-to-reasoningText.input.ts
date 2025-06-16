@@ -17,7 +17,7 @@ const { steps } = await generateText({
 
 const test = {
   reasoning: 'should not be renamed',
-}
+};
 for (const step of steps) {
   console.log(step.reasoning);
 }

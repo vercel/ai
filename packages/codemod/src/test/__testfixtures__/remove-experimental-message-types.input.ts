@@ -1,5 +1,10 @@
 // @ts-nocheck
-import { ExperimentalMessage, ExperimentalUserMessage, ExperimentalAssistantMessage, ExperimentalToolMessage } from 'ai';
+import {
+  ExperimentalMessage,
+  ExperimentalUserMessage,
+  ExperimentalAssistantMessage,
+  ExperimentalToolMessage,
+} from 'ai';
 
 function processMessage(message: ExperimentalMessage) {
   console.log(message);
@@ -11,7 +16,7 @@ function handleUser(msg: ExperimentalUserMessage) {
 
 const assistant: ExperimentalAssistantMessage = {
   role: 'assistant',
-  content: 'Hello'
+  content: 'Hello',
 };
 
 type ToolHandler = (msg: ExperimentalToolMessage) => void;

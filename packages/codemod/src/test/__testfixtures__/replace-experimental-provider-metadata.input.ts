@@ -8,9 +8,9 @@ const result1 = await streamObject({
   experimental_providerMetadata: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 5000 },
-    }
+    },
   },
-  prompt: 'Generate an object'
+  prompt: 'Generate an object',
 });
 
 // Basic usage - generateText
@@ -19,9 +19,9 @@ const result2 = await generateText({
   experimental_providerMetadata: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 3000 },
-    }
+    },
   },
-  prompt: 'Hello world'
+  prompt: 'Hello world',
 });
 
 // With other properties
@@ -31,9 +31,9 @@ const result3 = await streamText({
   experimental_providerMetadata: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 2000 },
-    }
+    },
   },
-  temperature: 0.7
+  temperature: 0.7,
 });
 
 // Multiple AI methods in same file
@@ -42,9 +42,9 @@ const result4 = await generateText({
   experimental_providerMetadata: {
     anthropic: {
       thinking: { type: 'disabled' },
-    }
+    },
   },
-  prompt: 'Another test'
+  prompt: 'Another test',
 });
 
 // Non-AI method call (should not be transformed)
@@ -52,8 +52,8 @@ const otherResult = someOtherFunction({
   experimental_providerMetadata: {
     anthropic: {
       thinking: { type: 'enabled' },
-    }
-  }
+    },
+  },
 });
 
 // Already has providerOptions (edge case)
@@ -61,12 +61,12 @@ const result5 = await streamObject({
   model: anthropic('claude-3-5-sonnet-latest'),
   providerOptions: {
     anthropic: {
-      existing: true
-    }
+      existing: true,
+    },
   },
   experimental_providerMetadata: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 1000 },
-    }
-  }
-}); 
+    },
+  },
+});

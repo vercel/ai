@@ -6,12 +6,12 @@ import { createDataStream, streamText, DataStreamWriter } from 'ai';
 const dataStream1 = createDataStream({
   execute: async writer => {
     writer.write({
-      'type': 'data',
-      'value': ['initialized call']
+      type: 'data',
+      value: ['initialized call'],
     });
     writer.write({
-      'type': 'data',
-      'value': ['call completed']
+      type: 'data',
+      value: ['call completed'],
     });
   },
 });
@@ -20,16 +20,18 @@ const dataStream1 = createDataStream({
 const dataStream2 = createDataStream({
   execute: async writer => {
     writer.write({
-      'type': 'message-annotations',
-      'value': [{ chunk: '123' }]
+      type: 'message-annotations',
+      value: [{ chunk: '123' }],
     });
     writer.write({
-      'type': 'message-annotations',
+      type: 'message-annotations',
 
-      'value': [{
-        id: 'abc123',
-        other: 'information',
-      }]
+      value: [
+        {
+          id: 'abc123',
+          other: 'information',
+        },
+      ],
     });
   },
 });
@@ -38,38 +40,36 @@ const dataStream2 = createDataStream({
 const dataStream3 = createDataStream({
   execute: writer => {
     writer.write({
-      'type': 'source',
+      type: 'source',
 
-      'value': {
+      value: {
         sourceType: 'url',
         id: 'source-1',
         url: 'https://example.com',
         title: 'Example Source',
-      }
+      },
     });
   },
 });
 
 // Test formatDataStreamPart() transformation for tool results
 async function processToolCalls(dataStream: DataStreamWriter) {
-  dataStream.write(
-    {
-      'type': 'tool-result',
+  dataStream.write({
+    type: 'tool-result',
 
-      'value': {
-        toolCallId: 'call_123',
-        result: 'success',
-      }
+    value: {
+      toolCallId: 'call_123',
+      result: 'success',
     },
-  );
+  });
 }
 
 // Test mixed usage
 const dataStream4 = createDataStream({
   execute: writer => {
     writer.write({
-      'type': 'data',
-      'value': ['start']
+      type: 'data',
+      value: ['start'],
     });
 
     const result = streamText({
@@ -77,22 +77,24 @@ const dataStream4 = createDataStream({
       messages: [],
       onChunk() {
         writer.write({
-          'type': 'message-annotations',
-          'value': [{ chunk: 'chunk-data' }]
+          type: 'message-annotations',
+          value: [{ chunk: 'chunk-data' }],
         });
       },
       onFinish() {
         writer.write({
-          'type': 'message-annotations',
+          type: 'message-annotations',
 
-          'value': [{
-            id: 'final-id',
-            status: 'complete',
-          }]
+          value: [
+            {
+              id: 'final-id',
+              status: 'complete',
+            },
+          ],
         });
         writer.write({
-          'type': 'data',
-          'value': ['finished']
+          type: 'data',
+          value: ['finished'],
         });
       },
     });
@@ -105,13 +107,13 @@ const dataStream4 = createDataStream({
 const dataStream5 = createDataStream({
   execute: writer => {
     writer.write({
-      'type': 'source',
+      type: 'source',
 
-      'value': {
+      value: {
         type: 'file',
         id: 'file-1',
         name: 'document.pdf',
-      }
+      },
     });
   },
 });

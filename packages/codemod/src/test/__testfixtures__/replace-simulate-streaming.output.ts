@@ -1,14 +1,19 @@
 // @ts-nocheck
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, streamText, simulateStreamingMiddleware, wrapLanguageModel } from 'ai';
+import {
+  generateText,
+  streamText,
+  simulateStreamingMiddleware,
+  wrapLanguageModel,
+} from 'ai';
 
 // Basic example from breaking change doc
 export async function testBasicSimulateStreaming() {
   const result = generateText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
-      middleware: simulateStreamingMiddleware()
+      middleware: simulateStreamingMiddleware(),
     }),
     prompt: 'Hello, world!',
   });
@@ -20,7 +25,7 @@ export async function testAnthropicSimulateStreaming() {
   const result = generateText({
     model: wrapLanguageModel({
       model: anthropic('claude-3-sonnet-20240229'),
-      middleware: simulateStreamingMiddleware()
+      middleware: simulateStreamingMiddleware(),
     }),
     prompt: 'Hello, world!',
   });
@@ -33,10 +38,10 @@ export async function testWithOtherOptions() {
     model: wrapLanguageModel({
       model: openai('gpt-4o', {
         maxTokens: 100,
-        temperature: 0.5
+        temperature: 0.5,
       }),
 
-      middleware: simulateStreamingMiddleware()
+      middleware: simulateStreamingMiddleware(),
     }),
     prompt: 'Generate text',
   });
@@ -48,7 +53,7 @@ export async function testStreamText() {
   const result = streamText({
     model: wrapLanguageModel({
       model: openai('gpt-3.5-turbo'),
-      middleware: simulateStreamingMiddleware()
+      middleware: simulateStreamingMiddleware(),
     }),
     prompt: 'Stream this text',
   });
@@ -59,7 +64,7 @@ export async function testStreamText() {
 export async function testStoredInVariable() {
   const model = wrapLanguageModel({
     model: openai('gpt-4o'),
-    middleware: simulateStreamingMiddleware()
+    middleware: simulateStreamingMiddleware(),
   });
   const result = generateText({
     model,
@@ -73,19 +78,19 @@ export async function testMultipleCalls() {
   const result1 = generateText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
-      middleware: simulateStreamingMiddleware()
+      middleware: simulateStreamingMiddleware(),
     }),
     prompt: 'First call',
   });
-  
+
   const result2 = generateText({
     model: wrapLanguageModel({
       model: anthropic('claude-3-haiku-20240307'),
-      middleware: simulateStreamingMiddleware()
+      middleware: simulateStreamingMiddleware(),
     }),
     prompt: 'Second call',
   });
-  
+
   return [result1, result2];
 }
 
@@ -105,4 +110,4 @@ export async function testNoSimulateStreaming() {
     prompt: 'Should not change',
   });
   return result;
-} 
+}

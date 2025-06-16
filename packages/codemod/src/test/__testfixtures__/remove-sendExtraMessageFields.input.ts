@@ -4,19 +4,19 @@ import { useChat } from '@ai-sdk/react';
 
 // Basic case with sendExtraMessageFields: true
 const { messages } = useChat({
-  sendExtraMessageFields: true
+  sendExtraMessageFields: true,
 });
 
 // Case with sendExtraMessageFields: false (should still be removed)
 const { messages: messages2 } = useChat({
-  sendExtraMessageFields: false
+  sendExtraMessageFields: false,
 });
 
 // Case with other properties
 const { messages: messages3 } = useChat({
   api: '/api/chat',
   sendExtraMessageFields: true,
-  initialMessages: []
+  initialMessages: [],
 });
 
 // Case with only sendExtraMessageFields
@@ -34,7 +34,7 @@ const { messages: messages5 } = useChat({
 // Case without sendExtraMessageFields (should not be changed)
 const { messages: messages6 } = useChat({
   api: '/api/chat',
-  initialMessages: []
+  initialMessages: [],
 });
 
 // Case with no arguments (should not be changed)
@@ -42,6 +42,6 @@ const { messages: messages7 } = useChat();
 
 // Case with string literal key
 const { messages: messages8 } = useChat({
-  'sendExtraMessageFields': true,
-  api: '/api/chat'
-}); 
+  sendExtraMessageFields: true,
+  api: '/api/chat',
+});

@@ -24,14 +24,14 @@ export function handleMessages(messages: Message[]): CreateMessage[] {
 // Function parameters and return types
 export async function processChat(
   messages: Message[],
-  factory: () => CreateMessage
+  factory: () => CreateMessage,
 ): Promise<Message> {
   const newMessage = factory();
   const result = await generateText({
     model: 'gpt-4',
     messages: [...messages, newMessage],
   });
-  
+
   return {
     role: 'assistant',
     content: result.text,
@@ -62,4 +62,4 @@ export class MessageHandler<T extends Message> {
 }
 
 // Union types
-type MessageOrCreator = Message | CreateMessage; 
+type MessageOrCreator = Message | CreateMessage;

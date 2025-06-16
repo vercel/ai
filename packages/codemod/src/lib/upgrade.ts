@@ -7,6 +7,7 @@ const bundle = [
   'migrate-to-data-stream-protocol-v2',
   'move-image-model-maxImagesPerCall',
   'move-provider-options',
+  'move-langchain-adapter',
   'remove-ai-stream-methods-from-stream-text-result',
   'remove-anthropic-facade',
   'remove-await-streamobject',

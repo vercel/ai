@@ -34,7 +34,7 @@ export async function testGenerateText() {
 
   console.log(result.usage.promptTokens);
   console.log(result.usage.completionTokens);
-  
+
   return {
     text: result.text,
     promptTokens: result.usage.promptTokens,
@@ -42,7 +42,7 @@ export async function testGenerateText() {
   };
 }
 
-// Test generateObject usage pattern  
+// Test generateObject usage pattern
 export async function testGenerateObject() {
   const { usage, object } = await generateObject({
     model: 'some-model',
@@ -67,9 +67,7 @@ export async function testStreamText() {
 
   const finishReason = await stream.finishReason;
   const usage = await stream.usage;
-  
+
   console.log(`Used ${usage.promptTokens} prompt tokens`);
   console.log(`Used ${usage.completionTokens} completion tokens`);
 }
-
-

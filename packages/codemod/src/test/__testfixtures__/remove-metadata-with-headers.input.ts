@@ -12,20 +12,21 @@ async function processResult() {
   const result = await generateObject({
     model,
     schema: schema,
-    prompt: 'test'
+    prompt: 'test',
   });
 
   // Save response metadata to variable
   const metadata: LanguageModelResponseMetadataWithHeaders = result.response;
 
   // Destructured access
-  const { headers, timestamp }: LanguageModelResponseMetadataWithHeaders = result.response;
+  const { headers, timestamp }: LanguageModelResponseMetadataWithHeaders =
+    result.response;
 
   // Direct property access
   const responseData: LanguageModelResponseMetadataWithHeaders = {
     id: result.response.id,
     timestamp: result.response.timestamp,
-    headers: result.response.headers
+    headers: result.response.headers,
   };
 
   return { metadata, headers, responseData };
@@ -38,5 +39,5 @@ type OtherMetadata = MetadataWithHeaders;
 const data: LanguageModelResponseMetadataWithHeaders = {
   id: 'test',
   timestamp: new Date(),
-  headers: {}
+  headers: {},
 };

@@ -24,14 +24,14 @@ export function handleMessages(messages: UIMessage[]): CreateUIMessage[] {
 // Function parameters and return types
 export async function processChat(
   messages: UIMessage[],
-  factory: () => CreateUIMessage
+  factory: () => CreateUIMessage,
 ): Promise<UIMessage> {
   const newMessage = factory();
   const result = await generateText({
     model: 'gpt-4',
     messages: [...messages, newMessage],
   });
-  
+
   return {
     role: 'assistant',
     content: result.text,
@@ -62,4 +62,4 @@ export class MessageHandler<T extends UIMessage> {
 }
 
 // Union types
-type MessageOrCreator = UIMessage | CreateUIMessage; 
+type MessageOrCreator = UIMessage | CreateUIMessage;
