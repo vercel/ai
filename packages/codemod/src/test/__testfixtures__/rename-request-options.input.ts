@@ -44,7 +44,7 @@ interface CompletionHandler {
 function useCompletionWithOptions(opts: RequestOptions) {
   return useCompletion({
     ...opts,
-    api: '/api/completion',
+    api: '/api/completion'
   });
 }
 
@@ -60,4 +60,4 @@ function handleAliased(options: CompletionReq): void {
 import { RequestOptions as OtherRequestOptions } from 'other-package';
 function handleOther(opts: OtherRequestOptions): void {
   console.log(opts);
-}
+} 

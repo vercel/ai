@@ -7,5 +7,5 @@ interface Config {
 
 const myTool: ExperimentalTool = {
   description: 'test',
-  parameters: {},
+  parameters: {}
 };

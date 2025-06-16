@@ -49,4 +49,4 @@ const model = customWrap({
 // Should not affect non-ai imports
 import { experimental_wrapLanguageModel as otherWrap } from 'other-library';
 
-const otherWrapped = otherWrap();
+const otherWrapped = otherWrap(); 

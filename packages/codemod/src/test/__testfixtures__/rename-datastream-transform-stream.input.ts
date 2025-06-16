@@ -40,12 +40,10 @@ const myStream = new DataStreamToSSETransformStream();
 
 // Mixed with other imports from 'ai'
 function createSSEStream(): DataStreamToSSETransformStream {
-  return streamText({
+  return streamText({ 
     model: 'gpt-3.5-turbo',
-    prompt: 'Hello',
-  })
-    .toDataStreamResponse()
-    .body?.pipeThrough(new DataStreamToSSETransformStream()) as any;
+    prompt: 'Hello'
+  }).toDataStreamResponse().body?.pipeThrough(new DataStreamToSSETransformStream()) as any;
 }
 
 // Type alias
@@ -60,4 +58,4 @@ function handleAliased(stream: SSEStream): void {
 import { DataStreamToSSETransformStream as OtherStream } from 'other-package';
 function handleOther(stream: OtherStream): void {
   console.log(stream);
-}
+} 

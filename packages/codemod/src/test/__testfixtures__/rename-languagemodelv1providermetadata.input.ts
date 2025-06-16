@@ -1,10 +1,7 @@
 // @ts-nocheck
 import { LanguageModelV1ProviderMetadata } from '@ai-sdk/provider';
 import { LanguageModelV1ProviderMetadata as ProviderMeta } from '@ai-sdk/provider';
-import {
-  LanguageModelV1,
-  LanguageModelV1ProviderMetadata as LM1Meta,
-} from '@ai-sdk/provider';
+import { LanguageModelV1, LanguageModelV1ProviderMetadata as LM1Meta } from '@ai-sdk/provider';
 
 // Basic import and usage
 function processMetadata(metadata: LanguageModelV1ProviderMetadata): void {
@@ -42,4 +39,4 @@ const mixedArray: (LanguageModelV1ProviderMetadata | string)[] = [];
 // Generic type usage
 type ProviderConfig<T = LanguageModelV1ProviderMetadata> = {
   data: T;
-};
+}; 

@@ -74,4 +74,4 @@ await generateImage({
   }),
   prompt: 'A sunset',
   n: 8,
-});
+}); 

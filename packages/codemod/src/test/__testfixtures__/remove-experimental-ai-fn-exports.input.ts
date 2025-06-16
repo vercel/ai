@@ -1,10 +1,5 @@
 // @ts-nocheck
-import {
-  experimental_generateText,
-  experimental_streamText,
-  experimental_generateObject,
-  experimental_streamObject,
-} from 'ai';
+import { experimental_generateText, experimental_streamText, experimental_generateObject, experimental_streamObject } from 'ai';
 
 async function main() {
   const result = await experimental_generateText({

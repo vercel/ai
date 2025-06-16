@@ -7,14 +7,12 @@ const result1 = await generateText({
     {
       role: 'user',
 
-      parts: [
-        {
-          type: 'text',
-          text: 'Hello world!',
-        },
-      ],
-    },
-  ],
+      parts: [{
+        type: 'text',
+        text: 'Hello world!'
+      }]
+    }
+  ]
 });
 
 // Multiple messages with content
@@ -23,34 +21,28 @@ const result2 = await streamText({
     {
       role: 'user',
 
-      parts: [
-        {
-          type: 'text',
-          text: 'First message',
-        },
-      ],
+      parts: [{
+        type: 'text',
+        text: 'First message'
+      }]
     },
     {
       role: 'assistant',
 
-      parts: [
-        {
-          type: 'text',
-          text: 'Assistant response',
-        },
-      ],
+      parts: [{
+        type: 'text',
+        text: 'Assistant response'
+      }]
     },
     {
       role: 'user',
 
-      parts: [
-        {
-          type: 'text',
-          text: 'Second user message',
-        },
-      ],
-    },
-  ],
+      parts: [{
+        type: 'text',
+        text: 'Second user message'
+      }]
+    }
+  ]
 });
 
 // Template literal content
@@ -60,14 +52,12 @@ const result3 = await generateObject({
     {
       role: 'user',
 
-      parts: [
-        {
-          type: 'text',
-          text: `Hello ${name}!`,
-        },
-      ],
-    },
-  ],
+      parts: [{
+        type: 'text',
+        text: `Hello ${name}!`
+      }]
+    }
+  ]
 });
 
 // Variable content
@@ -77,14 +67,12 @@ const result4 = await generateText({
     {
       role: 'user',
 
-      parts: [
-        {
-          type: 'text',
-          text: userMessage,
-        },
-      ],
-    },
-  ],
+      parts: [{
+        type: 'text',
+        text: userMessage
+      }]
+    }
+  ]
 });
 
 // Already has parts property - should not be transformed
@@ -93,9 +81,9 @@ const result5 = await generateText({
     {
       role: 'user',
       content: 'This should not change',
-      parts: [{ type: 'text', text: 'Already has parts' }],
-    },
-  ],
+      parts: [{ type: 'text', text: 'Already has parts' }]
+    }
+  ]
 });
 
 // Message without content - should not be affected
@@ -103,9 +91,9 @@ const result6 = await generateText({
   messages: [
     {
       role: 'user',
-      parts: [{ type: 'text', text: 'No content property' }],
-    },
-  ],
+      parts: [{ type: 'text', text: 'No content property' }]
+    }
+  ]
 });
 
 // Non-AI method call - should not be affected
@@ -114,9 +102,9 @@ otherFunction({
   messages: [
     {
       role: 'user',
-      content: 'This should not change',
-    },
-  ],
+      content: 'This should not change'
+    }
+  ]
 });
 
 // String-quoted property name
@@ -125,12 +113,10 @@ const result7 = await generateText({
     {
       role: 'user',
 
-      parts: [
-        {
-          type: 'text',
-          text: 'String-quoted content',
-        },
-      ],
-    },
-  ],
-});
+      parts: [{
+        type: 'text',
+        text: 'String-quoted content'
+      }]
+    }
+  ]
+}); 

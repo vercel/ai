@@ -10,9 +10,9 @@ export async function testBasicReasoningConfig() {
     providerOptions: {
       bedrock: {
         reasoning_config: {
-          type: 'enabled',
-          budgetTokens: 1024,
-        },
+          type: "enabled",
+          budgetTokens: 1024
+        }
       },
     },
   });
@@ -28,8 +28,8 @@ export async function testAdditionalModelRequestFields() {
       bedrock: {
         additional_model_request_fields: {
           some_custom_param: 'value',
-          another_snake_case: true,
-        },
+          another_snake_case: true
+        }
       },
     },
   });
@@ -44,9 +44,9 @@ export async function testStreamingWithReasoningConfig() {
     providerOptions: {
       bedrock: {
         reasoning_config: {
-          type: 'enabled',
-          budget_tokens: 2048,
-        },
+          type: "enabled",
+          budget_tokens: 2048
+        }
       },
     },
   });
@@ -62,13 +62,13 @@ export async function testMixedProviders() {
     providerOptions: {
       bedrock: {
         reasoning_config: {
-          type: 'disabled',
-        },
+          type: "disabled"
+        }
       },
       openai: {
-        some_snake_case: 'should not change',
-      },
+        some_snake_case: 'should not change'
+      }
     },
   });
   return result;
-}
+} 

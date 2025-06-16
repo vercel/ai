@@ -13,9 +13,9 @@ await generateImage({
 
   providerOptions: {
     luma: {
-      pollIntervalMillis: 500,
-    },
-  },
+      pollIntervalMillis: 500
+    }
+  }
 });
 
 // Case with only maxImagesPerCall
@@ -23,7 +23,7 @@ await generateImage({
   model: openai.image('dall-e-2'),
   prompt: 'A cat',
   n: 6,
-  maxImagesPerCall: 3,
+  maxImagesPerCall: 3
 });
 
 // Case with other provider settings but no maxImagesPerCall
@@ -34,9 +34,9 @@ await generateImage({
   providerOptions: {
     luma: {
       pollIntervalMillis: 1000,
-      maxPollAttempts: 20,
-    },
-  },
+      maxPollAttempts: 20
+    }
+  }
 });
 
 // Case with existing providerOptions that should be merged
@@ -46,7 +46,7 @@ await generateImage({
   providerOptions: {
     luma: {
       existingSetting: 'value',
-      pollIntervalMillis: 500,
+      pollIntervalMillis: 500
     },
   },
 });
@@ -62,11 +62,11 @@ await generateImage({
     },
 
     luma: {
-      pollIntervalMillis: 750,
-    },
+      pollIntervalMillis: 750
+    }
   },
 
-  maxImagesPerCall: 2,
+  maxImagesPerCall: 2
 });
 
 // Case with no settings (should not be changed)
@@ -85,7 +85,7 @@ await generateImage({
   providerOptions: {
     luma: {
       pollIntervalMillis: 200,
-      maxPollAttempts: 50,
-    },
-  },
-});
+      maxPollAttempts: 50
+    }
+  }
+}); 

@@ -1,12 +1,5 @@
 // @ts-nocheck
-import {
-  generateText,
-  generateObject,
-  streamText,
-  streamObject,
-  embed,
-  embedMany,
-} from 'ai';
+import { generateText, generateObject, streamText, streamObject, embed, embedMany } from 'ai';
 
 // Basic variable assignment
 export async function testBasicAssignment() {
@@ -14,7 +7,7 @@ export async function testBasicAssignment() {
     model: 'some-model',
     prompt: 'Hello world',
   });
-
+  
   console.log(result.rawResponse.headers);
   return result.rawResponse.body;
 }
@@ -22,10 +15,10 @@ export async function testBasicAssignment() {
 // Destructuring in variable declaration
 export async function testDestructuring() {
   const { text, rawResponse } = await generateText({
-    model: 'some-model',
+    model: 'some-model', 
     prompt: 'Hello world',
   });
-
+  
   console.log(rawResponse.headers);
   return { text, response: rawResponse };
 }
@@ -36,7 +29,7 @@ export async function testBothResponseTypes() {
     model: 'some-model',
     prompt: 'Hello world',
   });
-
+  
   console.log(rawResponse.headers);
   console.log(response.modelId);
   return { text, oldResponse: rawResponse, newResponse: response };
@@ -48,18 +41,18 @@ export async function testMultipleMethods() {
     model: 'some-model',
     prompt: 'Generate text',
   });
-
+  
   const objectResult = await generateObject({
     model: 'some-model',
     prompt: 'Generate object',
     schema: { type: 'object' },
   });
-
+  
   const embedResult = await embed({
     model: 'some-model',
     value: 'Some text',
   });
-
+  
   return {
     textHeaders: textResult.rawResponse.headers,
     objectStatus: objectResult.rawResponse.status,
@@ -73,17 +66,17 @@ export async function testStreamingMethods() {
     model: 'some-model',
     prompt: 'Stream text',
   });
-
+  
   const streamObjectResult = streamObject({
-    model: 'some-model',
+    model: 'some-model', 
     prompt: 'Stream object',
     schema: { type: 'object' },
   });
-
+  
   // Access after await
   const finalStreamText = await streamTextResult;
   const finalStreamObject = await streamObjectResult;
-
+  
   return {
     streamTextResponse: finalStreamText.rawResponse,
     streamObjectHeaders: finalStreamObject.rawResponse.headers,
@@ -96,10 +89,10 @@ export async function testChainedAccess() {
     model: 'some-model',
     prompt: 'Hello',
   });
-
+  
   const headers = result.rawResponse?.headers;
   const contentType = result.rawResponse.headers['content-type'];
-
+  
   return { headers, contentType };
 }
 
@@ -110,7 +103,7 @@ export async function testAssignmentExpression() {
     model: 'some-model',
     prompt: 'Hello',
   });
-
+  
   return result.rawResponse;
 }
 
@@ -120,9 +113,9 @@ export async function testEmbedMany() {
     model: 'some-model',
     values: ['text1', 'text2'],
   });
-
+  
   return {
     embeddings,
     headers: rawResponse.headers,
   };
-}
+} 
