@@ -125,7 +125,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         // Google GenAI does not support all OpenAPI Schema features,
         // so this is needed as an escape hatch:
         this.supportsStructuredOutputs
-          ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+          ? convertJSONSchemaToOpenAPISchema(
+              responseFormat.schema,
+              this.settings.propertyOrdering,
+            )
           : undefined,
       ...(this.settings.audioTimestamp && {
         audioTimestamp: this.settings.audioTimestamp,
@@ -146,6 +149,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           this.settings.useSearchGrounding ?? false,
           this.settings.dynamicRetrievalConfig,
           this.modelId,
+          this.settings.propertyOrdering,
         );
 
         return {
@@ -173,7 +177,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 // Google GenAI does not support all OpenAPI Schema features,
                 // so this is needed as an escape hatch:
                 this.supportsStructuredOutputs
-                  ? convertJSONSchemaToOpenAPISchema(mode.schema)
+                  ? convertJSONSchemaToOpenAPISchema(
+                      mode.schema,
+                      this.settings.propertyOrdering,
+                    )
                   : undefined,
             },
             contents,
@@ -197,6 +204,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                   description: mode.tool.description ?? '',
                   parameters: convertJSONSchemaToOpenAPISchema(
                     mode.tool.parameters,
+                    this.settings.propertyOrdering,
                   ),
                 },
               ],

@@ -1,10 +1,12 @@
 import { JSONSchema7Definition } from '@ai-sdk/provider';
+import { PropertyOrderingConfig } from './google-generative-ai-settings';
 
 /**
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
  */
 export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition,
+  propertyOrderingConfig?: PropertyOrderingConfig,
 ): unknown {
   // parameters need to be undefined if they are empty objects:
   if (isEmptyObjectSchema(jsonSchema)) {
@@ -64,21 +66,44 @@ export function convertJSONSchemaToOpenAPISchema(
   if (properties != null) {
     result.properties = Object.entries(properties).reduce(
       (acc, [key, value]) => {
-        acc[key] = convertJSONSchemaToOpenAPISchema(value);
+        // Apply nested property ordering configuration if it exists for this property
+        const nestedConfig = propertyOrderingConfig?.[key];
+        // Only pass nested config if it's not null (null means leaf property)
+        acc[key] = convertJSONSchemaToOpenAPISchema(
+          value,
+          nestedConfig === null ? undefined : nestedConfig,
+        );
         return acc;
       },
       {} as Record<string, unknown>,
     );
+
+    // Apply property ordering if configuration is provided for this level
+    if (
+      propertyOrderingConfig &&
+      Object.keys(propertyOrderingConfig).length > 0
+    ) {
+      const propertyOrdering = Object.keys(propertyOrderingConfig);
+      // Only include properties that actually exist in the schema
+      const validPropertyOrdering = propertyOrdering.filter(prop =>
+        properties.hasOwnProperty(prop),
+      );
+      if (validPropertyOrdering.length > 0) {
+        result.propertyOrdering = validPropertyOrdering;
+      }
+    }
   }
 
   if (items) {
     result.items = Array.isArray(items)
-      ? items.map(convertJSONSchemaToOpenAPISchema)
+      ? items.map(item => convertJSONSchemaToOpenAPISchema(item))
       : convertJSONSchemaToOpenAPISchema(items);
   }
 
   if (allOf) {
-    result.allOf = allOf.map(convertJSONSchemaToOpenAPISchema);
+    result.allOf = allOf.map(schema =>
+      convertJSONSchemaToOpenAPISchema(schema),
+    );
   }
   if (anyOf) {
     // Handle cases where anyOf includes a null type
@@ -100,15 +125,21 @@ export function convertJSONSchemaToOpenAPISchema(
         }
       } else {
         // If there are multiple non-null schemas, keep them in anyOf
-        result.anyOf = nonNullSchemas.map(convertJSONSchemaToOpenAPISchema);
+        result.anyOf = nonNullSchemas.map(schema =>
+          convertJSONSchemaToOpenAPISchema(schema),
+        );
         result.nullable = true;
       }
     } else {
-      result.anyOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
+      result.anyOf = anyOf.map(schema =>
+        convertJSONSchemaToOpenAPISchema(schema),
+      );
     }
   }
   if (oneOf) {
-    result.oneOf = oneOf.map(convertJSONSchemaToOpenAPISchema);
+    result.oneOf = oneOf.map(schema =>
+      convertJSONSchemaToOpenAPISchema(schema),
+    );
   }
 
   if (minLength !== undefined) {
