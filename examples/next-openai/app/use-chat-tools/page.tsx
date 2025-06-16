@@ -108,9 +108,11 @@ export default function Chat() {
               case 'tool-getWeatherInformation': {
                 switch (part.state) {
                   // example of pre-rendering streaming tool calls:
-                  case 'input-available':
+                  case 'input-streaming':
                     return (
-                      <pre key={index}>{JSON.stringify(part, null, 2)}</pre>
+                      <pre key={index}>
+                        {JSON.stringify(part.input, null, 2)}
+                      </pre>
                     );
                   case 'input-available':
                     return (

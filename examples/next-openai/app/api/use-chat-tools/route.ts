@@ -58,7 +58,7 @@ export async function POST(req: Request) {
           console.log('onInputStart');
         },
         onInputDelta: ({ inputTextDelta }) => {
-          console.log('onInputStreamingDelta', inputTextDelta);
+          console.log('onInputDelta', inputTextDelta);
         },
         onInputAvailable: ({ input }) => {
           console.log('onInputAvailable', input);
