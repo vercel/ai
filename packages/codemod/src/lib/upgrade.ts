@@ -8,6 +8,7 @@ const bundle = [
   'move-image-model-maxImagesPerCall',
   'move-provider-options',
   'move-langchain-adapter',
+  'move-ui-utils-to-ai',
   'remove-ai-stream-methods-from-stream-text-result',
   'remove-anthropic-facade',
   'remove-await-streamobject',
