@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { APICallError } from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
-import { prepareTools } from './anthropic-prepare-tools';
 
 const TEST_PROMPT = [
   {

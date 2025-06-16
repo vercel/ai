@@ -141,11 +141,11 @@ export function prepareTools({
                 country?: string;
                 timezone?: string;
               };
-              
+
               webSearchTool.user_location = {
                 type: 'approximate',
               };
-              
+
               // Only include fields if they have values
               if (loc.city) {
                 webSearchTool.user_location.city = loc.city;
