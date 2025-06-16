@@ -42,7 +42,7 @@ The tool can also contain an optional execute function for the actual execution 
  */
 export type Tool<
   INPUT extends JSONValue | unknown | never = any,
-  RESULT = any,
+  OUTPUT = any,
 > = {
   /**
 An optional description of what the tool does.
@@ -62,7 +62,7 @@ Use descriptions to make the input understandable for the language model.
   }
 > &
   NeverOptional<
-    RESULT,
+    OUTPUT,
     {
       /**
 An async function that is called with the arguments from the tool call and produces a result.
@@ -74,12 +74,12 @@ If not provided, the tool will not be executed automatically.
       execute: (
         input: [INPUT] extends [never] ? undefined : INPUT,
         options: ToolCallOptions,
-      ) => PromiseLike<RESULT>;
+      ) => PromiseLike<OUTPUT>;
 
       /**
   Optional conversion function that maps the tool result to multi-part tool content for LLMs.
       */
-      experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+      experimental_toToolResultContent?: (output: OUTPUT) => ToolResultContent;
 
       /**
        * Optional function that is called when the argument streaming starts.
@@ -151,21 +151,19 @@ The arguments for configuring the tool. Must match the expected arguments define
 Helper function for inferring the execute args of a tool.
  */
 // Note: overload order is important for auto-completion
-export function tool<PARAMETERS, RESULT>(
-  tool: Tool<PARAMETERS, RESULT>,
-): Tool<PARAMETERS, RESULT>;
-export function tool<PARAMETERS>(
-  tool: Tool<PARAMETERS, never>,
-): Tool<PARAMETERS, never>;
-export function tool<RESULT>(tool: Tool<never, RESULT>): Tool<never, RESULT>;
+export function tool<INPUT, OUTPUT>(
+  tool: Tool<INPUT, OUTPUT>,
+): Tool<INPUT, OUTPUT>;
+export function tool<INPUT>(tool: Tool<INPUT, never>): Tool<INPUT, never>;
+export function tool<OUTPUT>(tool: Tool<never, OUTPUT>): Tool<never, OUTPUT>;
 export function tool(tool: Tool<never, never>): Tool<never, never>;
 export function tool(tool: any): any {
   return tool;
 }
 
-export type MappedTool<T extends Tool | JSONObject, RESULT extends any> =
-  T extends Tool<infer P>
-    ? Tool<P, RESULT>
+export type MappedTool<T extends Tool | JSONObject, OUTPUT extends any> =
+  T extends Tool<infer INPUT>
+    ? Tool<INPUT, OUTPUT>
     : T extends JSONObject
-      ? Tool<T, RESULT>
+      ? Tool<T, OUTPUT>
       : never;
