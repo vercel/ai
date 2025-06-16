@@ -27,6 +27,7 @@ const bundle = [
   'remove-mistral-facade',
   'remove-openai-facade',
   'remove-sendExtraMessageFields',
+  'rename-core-message-to-model-message',
   'rename-datastream-transform-stream',
   'rename-format-stream-part',
   'rename-languagemodelv1providermetadata',
