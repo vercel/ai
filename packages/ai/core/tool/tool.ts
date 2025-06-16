@@ -10,7 +10,7 @@ export type ToolParameters<T = JSONObject> =
   | z3.Schema<T>
   | Schema<T>;
 
-export interface ToolExecutionOptions {
+export interface ToolCallOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -47,7 +47,7 @@ export type Tool<
   /**
 An optional description of what the tool does.
 Will be used by the language model to decide whether to use the tool.
-Not used for provider-defined tools.
+Not used for provider-defined-client tools.
    */
   description?: string;
 } & NeverOptional<
@@ -73,13 +73,41 @@ If not provided, the tool will not be executed automatically.
       */
       execute: (
         args: [PARAMETERS] extends [never] ? undefined : PARAMETERS,
-        options: ToolExecutionOptions,
+        options: ToolCallOptions,
       ) => PromiseLike<RESULT>;
 
       /**
   Optional conversion function that maps the tool result to multi-part tool content for LLMs.
       */
       experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+
+      /**
+       * Optional function that is called when the argument streaming starts.
+       * Only called when the tool is used in a streaming context.
+       */
+      onArgsStreamingStart?: (
+        options: ToolCallOptions,
+      ) => void | PromiseLike<void>;
+
+      /**
+       * Optional function that is called when an argument streaming delta is available.
+       * Only called when the tool is used in a streaming context.
+       */
+      onArgsStreamingDelta?: (
+        options: {
+          argsTextDelta: string;
+        } & ToolCallOptions,
+      ) => void | PromiseLike<void>;
+
+      /**
+       * Optional function that is called when a tool call can be started,
+       * even if the execute function is not provided.
+       */
+      onArgsAvailable?: (
+        options: {
+          args: [PARAMETERS] extends [never] ? undefined : PARAMETERS;
+        } & ToolCallOptions,
+      ) => void | PromiseLike<void>;
     }
   > &
   (
@@ -91,9 +119,9 @@ Function tool.
       }
     | {
         /**
-Provider-defined tool.
+Provider-defined-client tool.
      */
-        type: 'provider-defined';
+        type: 'provider-defined-client';
 
         /**
 The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
@@ -110,14 +138,15 @@ The arguments for configuring the tool. Must match the expected arguments define
 /**
 Helper function for inferring the execute args of a tool.
  */
-export function tool(tool: Tool<never, never>): Tool<never, never>;
+// Note: overload order is important for auto-completion
+export function tool<PARAMETERS, RESULT>(
+  tool: Tool<PARAMETERS, RESULT>,
+): Tool<PARAMETERS, RESULT>;
 export function tool<PARAMETERS>(
   tool: Tool<PARAMETERS, never>,
 ): Tool<PARAMETERS, never>;
 export function tool<RESULT>(tool: Tool<never, RESULT>): Tool<never, RESULT>;
-export function tool<PARAMETERS, RESULT>(
-  tool: Tool<PARAMETERS, RESULT>,
-): Tool<PARAMETERS, RESULT>;
+export function tool(tool: Tool<never, never>): Tool<never, never>;
 export function tool(tool: any): any {
   return tool;
 }

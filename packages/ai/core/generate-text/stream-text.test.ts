@@ -3,7 +3,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV2ProviderDefinedClientTool,
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -37,6 +37,7 @@ const defaultSettings = () =>
       generateId: mockId({ prefix: 'id' }),
       currentDate: () => new Date(0),
     },
+    onError: () => {},
   }) as const;
 
 const testUsage = {
@@ -109,6 +110,36 @@ const modelWithSources = new MockLanguageModelV2({
         url: 'https://example.com/2',
         title: 'Example 2',
         providerMetadata: { provider: { custom: 'value2' } },
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
+const modelWithDocumentSources = new MockLanguageModelV2({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'source',
+        sourceType: 'document',
+        id: 'doc-123',
+        mediaType: 'application/pdf',
+        title: 'Document Example',
+        filename: 'example.pdf',
+        providerMetadata: { provider: { custom: 'doc-value' } },
+      },
+      { type: 'text', text: 'Hello from document!' },
+      {
+        type: 'source',
+        sourceType: 'document',
+        id: 'doc-456',
+        mediaType: 'text/plain',
+        title: 'Text Document',
+        providerMetadata: { provider: { custom: 'doc-value2' } },
       },
       {
         type: 'finish',
@@ -283,6 +314,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
+        onError: () => {},
       });
 
       expect(
@@ -470,125 +502,8 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
+    it('should send tool call deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
-          doStream: async ({ prompt, tools, toolChoice }) => {
-            expect(tools).toStrictEqual([
-              {
-                type: 'function',
-                name: 'test-tool',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
-              },
-            ]);
-
-            expect(toolChoice).toStrictEqual({ type: 'required' });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'test-input' }],
-                providerOptions: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '{"',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'value',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '":"',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'Spark',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'le',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: ' Day',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '"}',
-                },
-                {
-                  type: 'tool-call',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  args: '{"value":"Sparkle Day"}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'tool-calls',
-                  usage: testUsage2,
-                },
-              ]),
-            };
-          },
-        }),
-        tools: {
-          'test-tool': {
-            parameters: z.object({ value: z.string() }),
-          },
-        },
-        toolChoice: 'required',
-        prompt: 'test-input',
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
-    });
-
-    it('should send tool call deltas when toolCallStreaming is enabled', async () => {
-      const result = streamText({
-        toolCallStreaming: true,
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
@@ -799,6 +714,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
+        onError: () => {},
       });
 
       expect(
@@ -949,6 +865,7 @@ describe('streamText', () => {
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
+        onError: () => {},
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse);
@@ -971,6 +888,7 @@ describe('streamText', () => {
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
+        onError: () => {},
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse, {
@@ -1241,7 +1159,7 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should send tool call and tool result stream parts', async () => {
+    it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
@@ -1279,53 +1197,6 @@ describe('streamText', () => {
             execute: async ({ value }) => `${value}-result`,
           },
         },
-        ...defaultSettings(),
-      });
-
-      expect(
-        await convertReadableStreamToArray(result.toUIMessageStream()),
-      ).toMatchSnapshot();
-    });
-
-    it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '{ "value":',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: ' "value" }',
-            },
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            parameters: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
-        toolCallStreaming: true,
         ...defaultSettings(),
       });
 
@@ -1346,6 +1217,9 @@ describe('streamText', () => {
           { key2: 'value2' },
           { key3: 'value3' },
           { key4: 'value4' },
+          { key5: 'value5' },
+          { key6: 'value6' },
+          { key7: 'value7' },
         ),
       });
 
@@ -1354,38 +1228,62 @@ describe('streamText', () => {
           [
             {
               "messageId": undefined,
-              "metadata": {
+              "messageMetadata": {
                 "key1": "value1",
               },
               "type": "start",
             },
             {
-              "metadata": {
+              "type": "start-step",
+            },
+            {
+              "messageMetadata": {
                 "key2": "value2",
               },
-              "type": "start-step",
+              "type": "message-metadata",
             },
             {
               "text": "Hello",
               "type": "text",
             },
             {
+              "messageMetadata": {
+                "key3": "value3",
+              },
+              "type": "message-metadata",
+            },
+            {
               "text": ", ",
               "type": "text",
+            },
+            {
+              "messageMetadata": {
+                "key4": "value4",
+              },
+              "type": "message-metadata",
             },
             {
               "text": "world!",
               "type": "text",
             },
             {
-              "metadata": {
-                "key3": "value3",
+              "messageMetadata": {
+                "key5": "value5",
               },
+              "type": "message-metadata",
+            },
+            {
               "type": "finish-step",
             },
             {
-              "metadata": {
-                "key4": "value4",
+              "messageMetadata": {
+                "key6": "value6",
+              },
+              "type": "message-metadata",
+            },
+            {
+              "messageMetadata": {
+                "key7": "value7",
               },
               "type": "finish",
             },
@@ -1401,6 +1299,7 @@ describe('streamText', () => {
           ]),
         }),
         ...defaultSettings(),
+        onError: () => {},
       });
 
       const uiMessageStream = result.toUIMessageStream();
@@ -1418,6 +1317,7 @@ describe('streamText', () => {
           ]),
         }),
         ...defaultSettings(),
+        onError: () => {},
       });
 
       const uiMessageStream = result.toUIMessageStream({
@@ -1491,6 +1391,19 @@ describe('streamText', () => {
     it('should send source content when sendSources is true', async () => {
       const result = streamText({
         model: modelWithSources,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({ sendSources: true });
+
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchSnapshot();
+    });
+
+    it('should send document source content when sendSources is true', async () => {
+      const result = streamText({
+        model: modelWithDocumentSources,
         ...defaultSettings(),
       });
 
@@ -1642,6 +1555,7 @@ describe('streamText', () => {
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
+        onError: () => {},
       });
 
       const response = result.toUIMessageStreamResponse();
@@ -1660,6 +1574,7 @@ describe('streamText', () => {
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
+        onError: () => {},
       });
 
       const response = result.toUIMessageStreamResponse({
@@ -2216,7 +2131,8 @@ describe('streamText', () => {
             | 'tool-call'
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
-            | 'tool-result';
+            | 'tool-result'
+            | 'raw';
         }
       >
     >;
@@ -2284,7 +2200,6 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        toolCallStreaming: true,
         onChunk(event) {
           result.push(event.chunk);
         },
@@ -2418,6 +2333,7 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
         onFinish() {}, // just defined; do nothing
+        onError: () => {},
       });
 
       expect(
@@ -2754,12 +2670,16 @@ describe('streamText', () => {
             [
               {
                 "messageId": undefined,
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "start",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "thinking",
+                "type": "reasoning",
               },
               {
                 "args": {
@@ -2775,11 +2695,9 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
               },
               {
@@ -2791,11 +2709,10 @@ describe('streamText', () => {
                 "type": "text",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -2909,6 +2826,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": undefined,
+              "includeRawChunks": false,
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
               "prompt": [
@@ -2963,6 +2881,7 @@ describe('streamText', () => {
               "abortSignal": undefined,
               "frequencyPenalty": undefined,
               "headers": undefined,
+              "includeRawChunks": false,
               "maxOutputTokens": undefined,
               "presencePenalty": undefined,
               "prompt": [
@@ -4359,12 +4278,16 @@ describe('streamText', () => {
             [
               {
                 "messageId": undefined,
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "start",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "thinking",
+                "type": "reasoning",
               },
               {
                 "args": {
@@ -4380,11 +4303,9 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
               },
               {
@@ -4396,11 +4317,10 @@ describe('streamText', () => {
                 "type": "text",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
@@ -4910,6 +4830,244 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+  });
+
+  describe('tool callbacks', () => {
+    it('should invoke callbacks in the correct order', async () => {
+      const recordedCalls: unknown[] = [];
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '{"',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'value',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '":"',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'Spark',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: 'le',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: ' Day',
+            },
+            {
+              type: 'tool-call-delta',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              argsTextDelta: '"}',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallType: 'function',
+              toolName: 'test-tool',
+              args: '{"value":"Sparkle Day"}',
+            },
+            {
+              type: 'finish',
+              finishReason: 'tool-calls',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          'test-tool': tool({
+            parameters: jsonSchema<{ value: string }>({
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+            }),
+            onArgsAvailable: options => {
+              recordedCalls.push({ type: 'onArgsAvailable', options });
+            },
+            onArgsStreamingStart: options => {
+              recordedCalls.push({ type: 'onArgsStreamingStart', options });
+            },
+            onArgsStreamingDelta: options => {
+              recordedCalls.push({ type: 'onArgsStreamingDelta', options });
+            },
+          }),
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+        _internal: {
+          now: mockValues(0, 100, 500),
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(recordedCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "{"",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "value",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "":"",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "Spark",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": "le",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": " Day",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "argsTextDelta": ""}",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsStreamingDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "args": {
+                "value": "Sparkle Day",
+              },
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onArgsAvailable",
+          },
+        ]
+      `);
     });
   });
 
@@ -5662,7 +5820,8 @@ describe('streamText', () => {
                 | 'tool-call'
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
-                | 'tool-result';
+                | 'tool-result'
+                | 'raw';
             }
           >
         > = [];
@@ -5719,7 +5878,6 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
-          toolCallStreaming: true,
           onChunk(event) {
             result.push(event.chunk);
           },
@@ -6092,6 +6250,7 @@ describe('streamText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": undefined,
+            "includeRawChunks": false,
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,
             "prompt": [
@@ -6304,7 +6463,10 @@ describe('streamText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | (
+            | LanguageModelV2FunctionTool
+            | LanguageModelV2ProviderDefinedClientTool
+          )[]
         | undefined;
 
       const result = streamText({
@@ -6364,6 +6526,270 @@ describe('streamText', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('raw chunks forwarding', () => {
+    it('should forward raw chunks when includeRawChunks is enabled', async () => {
+      const modelWithRawChunks = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'raw',
+            rawValue: {
+              type: 'raw-data',
+              content: 'should appear',
+            },
+          },
+          {
+            type: 'response-metadata',
+            id: 'test-id',
+            modelId: 'test-model',
+            timestamp: new Date(0),
+          },
+          { type: 'text', text: 'Hello, world!' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "rawValue": {
+                "content": "should appear",
+                "type": "raw-data",
+              },
+              "type": "raw",
+            },
+          ]
+        `);
+    });
+
+    it('should not forward raw chunks when includeRawChunks is disabled', async () => {
+      const modelWithRawChunks = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'raw',
+            rawValue: {
+              type: 'raw-data',
+              content: 'should not appear',
+            },
+          },
+          {
+            type: 'response-metadata',
+            id: 'test-id',
+            modelId: 'test-model',
+            timestamp: new Date(0),
+          },
+          { type: 'text', text: 'Hello, world!' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should pass through the includeRawChunks flag correctly to the model', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV2({
+        doStream: async options => {
+          capturedOptions = options;
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'finish', finishReason: 'stop', usage: testUsage },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(true);
+    });
+
+    it('should call onChunk with raw chunks when includeRawChunks is enabled', async () => {
+      const onChunkCalls: Array<any> = [];
+
+      const modelWithRawChunks = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'raw',
+            rawValue: { type: 'stream-start', data: 'start' },
+          },
+          {
+            type: 'raw',
+            rawValue: {
+              type: 'response-metadata',
+              id: 'test-id',
+              modelId: 'test-model',
+            },
+          },
+          {
+            type: 'raw',
+            rawValue: { type: 'text-delta', content: 'Hello' },
+          },
+          {
+            type: 'raw',
+            rawValue: { type: 'text-delta', content: ', world!' },
+          },
+          {
+            type: 'raw',
+            rawValue: { type: 'finish', reason: 'stop' },
+          },
+          {
+            type: 'response-metadata',
+            id: 'test-id',
+            modelId: 'test-model',
+            timestamp: new Date(0),
+          },
+          { type: 'text', text: 'Hello, world!' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+        onChunk({ chunk }) {
+          onChunkCalls.push(chunk);
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(onChunkCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "data": "start",
+              "type": "stream-start",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "id": "test-id",
+              "modelId": "test-model",
+              "type": "response-metadata",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "content": "Hello",
+              "type": "text-delta",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "content": ", world!",
+              "type": "text-delta",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "reason": "stop",
+              "type": "finish",
+            },
+            "type": "raw",
+          },
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should pass includeRawChunks flag correctly to the model', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV2({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'response-metadata' as const,
+                id: 'test-id',
+                modelId: 'test-model',
+                timestamp: new Date(0),
+              },
+              { type: 'text' as const, text: 'Hello' },
+              {
+                type: 'finish' as const,
+                finishReason: 'stop' as const,
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(true);
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: false,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
     });
   });
 });

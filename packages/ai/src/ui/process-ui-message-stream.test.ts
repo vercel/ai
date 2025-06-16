@@ -19,7 +19,7 @@ export function mockId(): () => string {
 
 describe('processUIMessageStream', () => {
   let writeCalls: Array<{ message: UIMessage }> = [];
-  let state: StreamingUIMessageState | undefined;
+  let state: StreamingUIMessageState<UIMessage> | undefined;
 
   beforeEach(() => {
     writeCalls = [];
@@ -28,7 +28,7 @@ describe('processUIMessageStream', () => {
 
   const runUpdateMessageJob = async (
     job: (options: {
-      state: StreamingUIMessageState;
+      state: StreamingUIMessageState<UIMessage>;
       write: () => void;
     }) => Promise<void>,
   ) => {
@@ -51,7 +51,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -67,7 +70,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -75,19 +78,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -103,7 +94,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -124,7 +115,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -163,7 +154,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -179,7 +173,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -187,10 +181,19 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
+                },
+                {
+                  "args": {
+                    "city": "London",
+                  },
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -199,21 +202,21 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -222,79 +225,21 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "result": {
+                    "weather": "sunny",
                   },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -315,24 +260,21 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": {
-                  "weather": "sunny",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "result": {
+                "weather": "sunny",
+              },
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
             {
               "type": "step-start",
@@ -372,20 +314,18 @@ describe('processUIMessageStream', () => {
       ]);
 
       state = createStreamingUIMessageState({
+        messageId: 'msg-123',
         lastMessage: {
           role: 'assistant',
           id: 'original-id',
           metadata: undefined,
           parts: [
             {
-              type: 'tool-invocation',
-              toolInvocation: {
-                args: {},
-                result: { location: 'Berlin' },
-                state: 'result',
-                toolCallId: 'tool-call-id-original',
-                toolName: 'tool-name-original',
-              },
+              type: 'tool-tool-name-original',
+              toolCallId: 'tool-call-id-original',
+              state: 'result',
+              args: {},
+              result: { location: 'Berlin' },
             },
           ],
         },
@@ -408,16 +348,13 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "args": {},
+                  "result": {
+                    "location": "Berlin",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
                 },
               ],
               "role": "assistant",
@@ -429,19 +366,25 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "args": {},
+                  "result": {
+                    "location": "Berlin",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
                 },
                 {
                   "type": "step-start",
+                },
+                {
+                  "args": {
+                    "city": "London",
+                  },
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -453,30 +396,27 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "args": {},
+                  "result": {
+                    "location": "Berlin",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
                 },
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -488,112 +428,27 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "args": {},
+                  "result": {
+                    "location": "Berlin",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
                 },
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
+                  "result": {
+                    "weather": "sunny",
                   },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -617,33 +472,27 @@ describe('processUIMessageStream', () => {
           "metadata": undefined,
           "parts": [
             {
-              "toolInvocation": {
-                "args": {},
-                "result": {
-                  "location": "Berlin",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id-original",
-                "toolName": "tool-name-original",
+              "args": {},
+              "result": {
+                "location": "Berlin",
               },
-              "type": "tool-invocation",
+              "state": "result",
+              "toolCallId": "tool-call-id-original",
+              "type": "tool-tool-name-original",
             },
             {
               "type": "step-start",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": {
-                  "weather": "sunny",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "result": {
+                "weather": "sunny",
+              },
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
             {
               "type": "step-start",
@@ -685,7 +534,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -701,7 +553,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -709,19 +561,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -737,7 +577,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -753,7 +593,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -763,15 +603,13 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -780,7 +618,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -790,18 +628,15 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -810,7 +645,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -820,51 +655,15 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "text",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "result": {
+                    "weather": "sunny",
                   },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -880,7 +679,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -890,18 +689,15 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -922,7 +718,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -932,18 +728,15 @@ describe('processUIMessageStream', () => {
               "type": "text",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": {
-                  "weather": "sunny",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "result": {
+                "weather": "sunny",
+              },
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
             {
               "type": "step-start",
@@ -999,7 +792,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -1015,7 +811,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -1023,19 +819,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1052,7 +836,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1073,7 +857,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1088,15 +872,13 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -1105,7 +887,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1120,18 +902,15 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -1140,7 +919,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1155,56 +934,15 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+                  "result": {
+                    "weather": "sunny",
                   },
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "reasoning",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -1225,7 +963,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1240,18 +978,15 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
+                  "result": {
+                    "weather": "sunny",
+                  },
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
                 {
                   "type": "step-start",
@@ -1281,7 +1016,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -1296,18 +1031,15 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": {
-                  "weather": "sunny",
-                },
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "result": {
+                "weather": "sunny",
+              },
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
             {
               "type": "step-start",
@@ -1338,7 +1070,7 @@ describe('processUIMessageStream', () => {
         {
           type: 'start',
           messageId: 'msg-123',
-          metadata: {
+          messageMetadata: {
             start: 'start-1',
             shared: {
               key1: 'value-1a',
@@ -1346,41 +1078,19 @@ describe('processUIMessageStream', () => {
             },
           },
         },
-        {
-          type: 'start-step',
-          metadata: {
-            startStep: 'start-step-1',
-            shared: {
-              key1: 'value-1b',
-              key3: 'value-3b',
-            },
-          },
-        },
+        { type: 'start-step' },
         { type: 'text', text: 't1' },
         {
-          type: 'metadata',
-          metadata: {
+          type: 'message-metadata',
+          messageMetadata: {
             metadata: 'metadata-1',
-            shared: {
-              key1: 'value-1c',
-              key4: 'value-4c',
-            },
           },
         },
         { type: 'text', text: 't2' },
-        {
-          type: 'finish-step',
-          metadata: {
-            finishStep: 'finish-step-1',
-            shared: {
-              key1: 'value-1d',
-              key5: 'value-5d',
-            },
-          },
-        },
+        { type: 'finish-step' },
         {
           type: 'finish',
-          metadata: {
+          messageMetadata: {
             finish: 'finish-1',
             shared: {
               key1: 'value-1e',
@@ -1390,7 +1100,10 @@ describe('processUIMessageStream', () => {
         },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -1422,32 +1135,10 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": {
                 "shared": {
-                  "key1": "value-1b",
+                  "key1": "value-1a",
                   "key2": "value-2a",
-                  "key3": "value-3b",
                 },
                 "start": "start-1",
-                "startStep": "start-step-1",
-              },
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {
-                "shared": {
-                  "key1": "value-1b",
-                  "key2": "value-2a",
-                  "key3": "value-3b",
-                },
-                "start": "start-1",
-                "startStep": "start-step-1",
               },
               "parts": [
                 {
@@ -1467,13 +1158,10 @@ describe('processUIMessageStream', () => {
               "metadata": {
                 "metadata": "metadata-1",
                 "shared": {
-                  "key1": "value-1c",
+                  "key1": "value-1a",
                   "key2": "value-2a",
-                  "key3": "value-3b",
-                  "key4": "value-4c",
                 },
                 "start": "start-1",
-                "startStep": "start-step-1",
               },
               "parts": [
                 {
@@ -1493,41 +1181,10 @@ describe('processUIMessageStream', () => {
               "metadata": {
                 "metadata": "metadata-1",
                 "shared": {
-                  "key1": "value-1c",
+                  "key1": "value-1a",
                   "key2": "value-2a",
-                  "key3": "value-3b",
-                  "key4": "value-4c",
                 },
                 "start": "start-1",
-                "startStep": "start-step-1",
-              },
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "t1t2",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {
-                "finishStep": "finish-step-1",
-                "metadata": "metadata-1",
-                "shared": {
-                  "key1": "value-1d",
-                  "key2": "value-2a",
-                  "key3": "value-3b",
-                  "key4": "value-4c",
-                  "key5": "value-5d",
-                },
-                "start": "start-1",
-                "startStep": "start-step-1",
               },
               "parts": [
                 {
@@ -1546,18 +1203,13 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": {
                 "finish": "finish-1",
-                "finishStep": "finish-step-1",
                 "metadata": "metadata-1",
                 "shared": {
                   "key1": "value-1e",
                   "key2": "value-2a",
-                  "key3": "value-3b",
-                  "key4": "value-4c",
-                  "key5": "value-5d",
                   "key6": "value-6e",
                 },
                 "start": "start-1",
-                "startStep": "start-step-1",
               },
               "parts": [
                 {
@@ -1581,18 +1233,13 @@ describe('processUIMessageStream', () => {
           "id": "msg-123",
           "metadata": {
             "finish": "finish-1",
-            "finishStep": "finish-step-1",
             "metadata": "metadata-1",
             "shared": {
               "key1": "value-1e",
               "key2": "value-2a",
-              "key3": "value-3b",
-              "key4": "value-4c",
-              "key5": "value-5d",
               "key6": "value-6e",
             },
             "start": "start-1",
-            "startStep": "start-step-1",
           },
           "parts": [
             {
@@ -1618,14 +1265,17 @@ describe('processUIMessageStream', () => {
         { type: 'finish-step' },
         { type: 'finish' },
         {
-          type: 'metadata',
-          metadata: {
+          type: 'message-metadata',
+          messageMetadata: {
             key1: 'value-1',
           },
         },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -1641,7 +1291,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -1649,19 +1299,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -1721,20 +1359,22 @@ describe('processUIMessageStream', () => {
   describe('message metadata with existing assistant lastMessage', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
-        { type: 'start', messageId: 'msg-123' },
         {
-          type: 'start-step',
-          metadata: {
+          type: 'start',
+          messageId: 'msg-123',
+          messageMetadata: {
             key1: 'value-1b',
             key2: 'value-2b',
           },
         },
+        { type: 'start-step' },
         { type: 'text', text: 't1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
+        messageId: 'msg-123',
         lastMessage: {
           role: 'assistant',
           id: 'original-id',
@@ -1761,26 +1401,11 @@ describe('processUIMessageStream', () => {
             "message": {
               "id": "msg-123",
               "metadata": {
-                "key1": "value-1a",
-                "key3": "value-3a",
-              },
-              "parts": [],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {
                 "key1": "value-1b",
                 "key2": "value-2b",
                 "key3": "value-3a",
               },
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
+              "parts": [],
               "role": "assistant",
             },
           },
@@ -1867,7 +1492,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -1883,7 +1511,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -1891,10 +1519,17 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
+                },
+                {
+                  "args": undefined,
+                  "result": undefined,
+                  "state": "partial-call",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1903,19 +1538,19 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": undefined,
-                    "state": "partial-call",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
+                  "args": {
+                    "testArg": "t",
                   },
-                  "type": "tool-invocation",
+                  "result": undefined,
+                  "state": "partial-call",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1924,21 +1559,19 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "t",
-                    },
-                    "state": "partial-call",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
+                  "args": {
+                    "testArg": "test-value",
                   },
-                  "type": "tool-invocation",
+                  "result": undefined,
+                  "state": "partial-call",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1947,21 +1580,19 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "test-value",
-                    },
-                    "state": "partial-call",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
+                  "args": {
+                    "testArg": "test-value",
                   },
-                  "type": "tool-invocation",
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -1970,45 +1601,19 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "test-value",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
+                  "args": {
+                    "testArg": "test-value",
                   },
-                  "type": "tool-invocation",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "test-value",
-                    },
-                    "result": "test-result",
-                    "state": "result",
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
-                  },
-                  "type": "tool-invocation",
+                  "result": "test-result",
+                  "state": "result",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
                 },
               ],
               "role": "assistant",
@@ -2022,22 +1627,19 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "testArg": "test-value",
-                },
-                "result": "test-result",
-                "state": "result",
-                "toolCallId": "tool-call-0",
-                "toolName": "test-tool",
+              "args": {
+                "testArg": "test-value",
               },
-              "type": "tool-invocation",
+              "result": "test-result",
+              "state": "result",
+              "toolCallId": "tool-call-0",
+              "type": "tool-test-tool",
             },
           ],
           "role": "assistant",
@@ -2057,7 +1659,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2073,7 +1678,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2081,19 +1686,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2109,7 +1702,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2130,7 +1723,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2186,7 +1779,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2202,7 +1798,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2210,19 +1806,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2239,7 +1823,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2260,7 +1844,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2281,7 +1865,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2298,7 +1882,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2319,7 +1903,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2349,7 +1933,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2389,7 +1973,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2406,7 +1993,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2414,10 +2001,19 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
+                },
+                {
+                  "args": {
+                    "city": "London",
+                  },
+                  "result": undefined,
+                  "state": "call",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -2426,45 +2022,19 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
                 },
                 {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
+                  "args": {
+                    "city": "London",
                   },
-                  "type": "tool-invocation",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": "test-result",
-                    "state": "result",
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
+                  "result": "test-result",
+                  "state": "result",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
                 },
               ],
               "role": "assistant",
@@ -2478,22 +2048,19 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
             },
             {
-              "toolInvocation": {
-                "args": {
-                  "city": "London",
-                },
-                "result": "test-result",
-                "state": "result",
-                "toolCallId": "tool-call-id",
-                "toolName": "tool-name",
+              "args": {
+                "city": "London",
               },
-              "type": "tool-invocation",
+              "result": "test-result",
+              "state": "result",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
             },
           ],
           "role": "assistant",
@@ -2518,7 +2085,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2534,7 +2104,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2542,19 +2112,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2570,7 +2128,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2598,7 +2156,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2642,7 +2200,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2658,7 +2219,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2666,19 +2227,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2694,7 +2243,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2715,7 +2264,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2736,7 +2285,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2767,7 +2316,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2806,7 +2355,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2822,7 +2374,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2830,19 +2382,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2863,7 +2403,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -2898,7 +2438,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -2914,7 +2457,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -2922,19 +2465,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2951,7 +2482,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -2973,7 +2504,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",
@@ -3015,7 +2546,10 @@ describe('processUIMessageStream', () => {
         { type: 'finish' },
       ]);
 
-      state = createStreamingUIMessageState();
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
 
       await consumeStream({
         stream: processUIMessageStream({
@@ -3031,7 +2565,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [],
               "role": "assistant",
             },
@@ -3039,19 +2573,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -3071,7 +2593,7 @@ describe('processUIMessageStream', () => {
           {
             "message": {
               "id": "msg-123",
-              "metadata": {},
+              "metadata": undefined,
               "parts": [
                 {
                   "type": "step-start",
@@ -3097,7 +2619,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message).toMatchInlineSnapshot(`
         {
           "id": "msg-123",
-          "metadata": {},
+          "metadata": undefined,
           "parts": [
             {
               "type": "step-start",

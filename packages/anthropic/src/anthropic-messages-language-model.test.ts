@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
+import { type DocumentCitation } from './anthropic-messages-language-model';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -34,7 +35,11 @@ describe('AnthropicMessagesLanguageModel', () => {
       headers = {},
     }: {
       content?: Array<
-        | { type: 'text'; text: string }
+        | {
+            type: 'text';
+            text: string;
+            citations?: Array<DocumentCitation>;
+          }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
       >;
@@ -648,6 +653,249 @@ describe('AnthropicMessagesLanguageModel', () => {
         }
       `);
     });
+
+    it('should process PDF citation responses', async () => {
+      // Create a model with a predictable generateId function
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-citation-id',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      // Mock response with PDF citations
+      prepareJsonResponse({
+        content: [
+          {
+            type: 'text',
+            text: 'Based on the document, the results show positive growth.',
+            citations: [
+              {
+                type: 'page_location',
+                cited_text: 'Revenue increased by 25% year over year',
+                document_index: 0,
+                document_title: 'Financial Report 2023',
+                start_page_number: 5,
+                end_page_number: 6,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await modelWithMockId.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'base64PDFdata',
+                mediaType: 'application/pdf',
+                filename: 'financial-report.pdf',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What do the results show?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Based on the document, the results show positive growth.",
+            "type": "text",
+          },
+          {
+            "filename": "financial-report.pdf",
+            "id": "test-citation-id",
+            "mediaType": "application/pdf",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "Revenue increased by 25% year over year",
+                "endPageNumber": 6,
+                "startPageNumber": 5,
+              },
+            },
+            "sourceType": "document",
+            "title": "Financial Report 2023",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should process text citation responses', async () => {
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-text-citation-id',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      prepareJsonResponse({
+        content: [
+          {
+            type: 'text',
+            text: 'The text shows important information.',
+            citations: [
+              {
+                type: 'char_location',
+                cited_text: 'important information',
+                document_index: 0,
+                document_title: 'Test Document',
+                start_char_index: 15,
+                end_char_index: 35,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await modelWithMockId.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'VGVzdCBkb2N1bWVudCBjb250ZW50',
+                mediaType: 'text/plain',
+                filename: 'test.txt',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What does this say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "The text shows important information.",
+            "type": "text",
+          },
+          {
+            "filename": "test.txt",
+            "id": "test-text-citation-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "important information",
+                "endCharIndex": 35,
+                "startCharIndex": 15,
+              },
+            },
+            "sourceType": "document",
+            "title": "Test Document",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should process PDF citation responses in streaming', async () => {
+      // Create a model with predictable ID generation for testing
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-citation-id-stream',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      // Mock streaming response with PDF citations
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Based on the document"}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":", results show growth."}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"page_location","cited_text":"Revenue increased by 25% year over year","document_index":0,"document_title":"Financial Report 2023","start_page_number":5,"end_page_number":6}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await modelWithMockId.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'base64PDFdata',
+                mediaType: 'application/pdf',
+                filename: 'financial-report.pdf',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What do the results show?',
+              },
+            ],
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      // Verify we get the expected streaming parts
+      expect(result).toHaveLength(6);
+
+      // Verify text content
+      expect(result[2]).toMatchInlineSnapshot(`
+        {
+          "text": "Based on the document",
+          "type": "text",
+        }
+      `);
+
+      expect(result[3]).toMatchInlineSnapshot(`
+        {
+          "text": ", results show growth.",
+          "type": "text",
+        }
+      `);
+
+      // Verify citation source
+      expect(result[4]).toMatchInlineSnapshot(`
+        {
+          "filename": "financial-report.pdf",
+          "id": "test-citation-id-stream",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "anthropic": {
+              "citedText": "Revenue increased by 25% year over year",
+              "endPageNumber": 6,
+              "startPageNumber": 5,
+            },
+          },
+          "sourceType": "document",
+          "title": "Financial Report 2023",
+          "type": "source",
+        }
+      `);
+    });
   });
 
   describe('doStream', () => {
@@ -691,6 +939,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
           },
+          includeRawChunks: false,
         });
 
         result = await convertReadableStreamToArray(stream);
@@ -813,6 +1062,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -877,6 +1127,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -950,6 +1201,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1014,6 +1266,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1088,6 +1341,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ],
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1190,6 +1444,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1230,6 +1485,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { response } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(response?.headers).toStrictEqual({
@@ -1259,6 +1515,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1297,6 +1554,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
+        includeRawChunks: false,
       });
 
       expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -1329,6 +1587,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1381,6 +1640,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { request } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(request).toMatchInlineSnapshot(`
@@ -1411,6 +1671,124 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         }
       `);
+    });
+  });
+
+  describe('raw chunks', () => {
+    it('should include raw chunks when includeRawChunks is enabled', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "message": {
+                "content": [],
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "role": "assistant",
+                "stop_reason": null,
+                "stop_sequence": null,
+                "type": "message",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+              "type": "message_start",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "content_block": {
+                "text": "",
+                "type": "text",
+              },
+              "index": 0,
+              "type": "content_block_start",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "delta": {
+                "text": "Hello",
+                "type": "text_delta",
+              },
+              "index": 0,
+              "type": "content_block_delta",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "index": 0,
+              "type": "content_block_stop",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "delta": {
+                "stop_reason": "end_turn",
+                "stop_sequence": null,
+              },
+              "type": "message_delta",
+              "usage": {
+                "output_tokens": 227,
+              },
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "type": "message_stop",
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+    });
+
+    it('should not include raw chunks when includeRawChunks is false', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
   });
 });

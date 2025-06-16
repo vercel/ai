@@ -46,23 +46,25 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add -D ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
-    </Tab>
-    <Tab>
       <Snippet
-        text="npm install -D ai @ai-sdk/openai @ai-sdk/svelte zod"
+        text="pnpm add -D ai@alpha @ai-sdk/openai@alpha @ai-sdk/svelte@alpha zod"
         dark
       />
     </Tab>
     <Tab>
-      <Snippet text="yarn add -D ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
+      <Snippet
+        text="npm install -D ai@alpha @ai-sdk/openai@alpha @ai-sdk/svelte@alpha zod"
+        dark
+      />
+    </Tab>
+    <Tab>
+      <Snippet
+        text="yarn add -D ai@alpha @ai-sdk/openai@alpha @ai-sdk/svelte@alpha zod"
+        dark
+      />
     </Tab>
   </Tabs>
 </div>
-
-<Note type="secondary" fill>
-  Make sure you are using `ai` version 3.1 or higher.
-</Note>
 
 ### Configure OpenAI API Key
 
@@ -90,7 +92,7 @@ Create a SvelteKit Endpoint, `src/routes/api/chat/+server.ts` and add the follow
 
 ```tsx filename="src/routes/api/chat/+server.ts"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, UIMessage, convertToModelMessages } from 'ai';
 
 import { OPENAI_API_KEY } from '$env/static/private';
 
@@ -99,14 +101,14 @@ const openai = createOpenAI({
 });
 
 export async function POST({ request }) {
-  const { messages } = await request.json();
+  const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -120,7 +122,7 @@ Let's take a look at what is happening in this code:
 1. Create an OpenAI provider instance with the `createOpenAI` function from the `@ai-sdk/openai` package.
 2. Define a `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation with you and the chatbot and will provide the chatbot with the necessary context to make the next generation.
 3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (defined in step 1) and `messages` (defined in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
-4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toDataStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-data-stream-response) function which converts the result to a streamed response object.
+4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-data-stream-response) function which converts the result to a streamed response object.
 5. Return the result to the client to stream the response.
 
 ## Wire up the UI
@@ -191,7 +193,7 @@ Modify your `src/routes/api/chat/+server.ts` file to include the new weather too
 
 ```tsx filename="src/routes/api/chat/+server.ts" highlight="2,3,17-31"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 import { z } from 'zod';
 
 import { OPENAI_API_KEY } from '$env/static/private';
@@ -201,11 +203,11 @@ const openai = createOpenAI({
 });
 
 export async function POST({ request }) {
-  const { messages } = await request.json();
+  const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -223,7 +225,7 @@ export async function POST({ request }) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -311,7 +313,7 @@ Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert t
 
 ```tsx filename="src/routes/api/chat/+server.ts" highlight="31-44"
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 import { z } from 'zod';
 
 import { OPENAI_API_KEY } from '$env/static/private';
@@ -321,11 +323,11 @@ const openai = createOpenAI({
 });
 
 export async function POST({ request }) {
-  const { messages } = await request.json();
+  const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -357,7 +359,7 @@ export async function POST({ request }) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 

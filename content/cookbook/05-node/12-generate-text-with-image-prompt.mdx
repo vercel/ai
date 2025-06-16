@@ -15,7 +15,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   maxOutputTokens: 512,
   messages: [
     {
@@ -47,7 +47,7 @@ import { openai } from '@ai-sdk/openai';
 import fs from 'fs';
 
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   maxOutputTokens: 512,
   messages: [
     {

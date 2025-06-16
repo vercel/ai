@@ -47,12 +47,15 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'error';
       error: unknown;
+    }
+  | {
+      type: 'raw';
+      rawValue: unknown;
     };
 
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
   generatorStream,
-  toolCallStreaming,
   tracer,
   telemetry,
   system,
@@ -62,7 +65,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV2StreamPart>;
-  toolCallStreaming: boolean;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   system: string | undefined;
@@ -134,6 +136,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        // forward raw chunks to be part of the fullStream
+        case 'raw': {
+          controller.enqueue(chunk);
+          break;
+        }
+
         case 'file': {
           controller.enqueue({
             type: 'file',
@@ -147,24 +155,23 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
         // forward with less information:
         case 'tool-call-delta': {
-          if (toolCallStreaming) {
-            if (!activeToolCalls[chunk.toolCallId]) {
-              controller.enqueue({
-                type: 'tool-call-streaming-start',
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-              });
-
-              activeToolCalls[chunk.toolCallId] = true;
-            }
-
+          if (!activeToolCalls[chunk.toolCallId]) {
             controller.enqueue({
-              type: 'tool-call-delta',
+              type: 'tool-call-streaming-start',
               toolCallId: chunk.toolCallId,
               toolName: chunk.toolName,
-              argsTextDelta: chunk.argsTextDelta,
             });
+
+            activeToolCalls[chunk.toolCallId] = true;
           }
+
+          controller.enqueue({
+            type: 'tool-call-delta',
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            argsTextDelta: chunk.argsTextDelta,
+          });
+
           break;
         }
 
@@ -182,6 +189,15 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             controller.enqueue(toolCall);
 
             const tool = tools![toolCall.toolName];
+
+            if (tool.onArgsAvailable != null) {
+              await tool.onArgsAvailable({
+                args: toolCall.args,
+                toolCallId: toolCall.toolCallId,
+                messages,
+                abortSignal,
+              });
+            }
 
             if (tool.execute != null) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness

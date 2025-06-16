@@ -1,7 +1,7 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV2ProviderDefinedClientTool,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -1361,7 +1361,10 @@ describe('options.abortSignal', () => {
 describe('options.activeTools', () => {
   it('should filter available tools to only the ones in activeTools', async () => {
     let tools:
-      | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+      | (
+          | LanguageModelV2FunctionTool
+          | LanguageModelV2ProviderDefinedClientTool
+        )[]
       | undefined;
 
     await generateText({
@@ -1547,6 +1550,73 @@ describe('telemetry', () => {
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+describe('tool callbacks', () => {
+  it('should invoke callbacks in the correct order', async () => {
+    const recordedCalls: unknown[] = [];
+
+    await generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: async () => {
+          return {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'test-tool',
+                args: `{ "value": "value" }`,
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        'test-tool': tool({
+          parameters: jsonSchema<{ value: string }>({
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+          }),
+          onArgsAvailable: options => {
+            recordedCalls.push({ type: 'onArgsAvailable', options });
+          },
+          onArgsStreamingStart: options => {
+            recordedCalls.push({ type: 'onArgsStreamingStart', options });
+          },
+          onArgsStreamingDelta: options => {
+            recordedCalls.push({ type: 'onArgsStreamingDelta', options });
+          },
+        }),
+      },
+      toolChoice: 'required',
+      prompt: 'test-input',
+    });
+
+    expect(recordedCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "options": {
+            "abortSignal": undefined,
+            "args": {
+              "value": "value",
+            },
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
+            "toolCallId": "call-1",
+          },
+          "type": "onArgsAvailable",
+        },
+      ]
+    `);
   });
 });
 

@@ -266,6 +266,7 @@ describe('doGenerate', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
+          "service_tier": undefined,
           "stop": undefined,
           "store": undefined,
           "temperature": undefined,
@@ -1349,6 +1350,77 @@ describe('doGenerate', () => {
         'temperature is not supported for the search preview models and has been removed.',
     });
   });
+
+  it('should send serviceTier flex processing setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o3-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "o3-mini",
+        "service_tier": "flex",
+      }
+    `);
+  });
+
+  it('should show warning when using flex processing with unsupported model', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o-mini');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'serviceTier',
+      details: 'flex processing is only available for o3 and o4-mini models',
+    });
+  });
+
+  it('should allow flex processing with o4-mini model without warnings', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o4-mini');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBe('flex');
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe('doStream', () => {
@@ -1430,6 +1502,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1623,6 +1696,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1763,6 +1837,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1916,6 +1991,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2025,6 +2101,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2083,6 +2160,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2126,6 +2204,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2161,6 +2240,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -2185,6 +2265,7 @@ describe('doStream', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
+          "service_tier": undefined,
           "stop": undefined,
           "store": undefined,
           "stream": true,
@@ -2209,6 +2290,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -2227,6 +2309,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2254,6 +2337,7 @@ describe('doStream', () => {
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
+      includeRawChunks: false,
     });
 
     expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -2281,6 +2365,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2325,6 +2410,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2366,6 +2452,7 @@ describe('doStream', () => {
           store: true,
         },
       },
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2389,6 +2476,7 @@ describe('doStream', () => {
           },
         },
       },
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2402,6 +2490,39 @@ describe('doStream', () => {
     });
   });
 
+  it('should send serviceTier flex processing setting in streaming', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const model = provider.chat('o3-mini');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "o3-mini",
+        "service_tier": "flex",
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
+  });
+
   describe('reasoning models', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
@@ -2413,6 +2534,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2471,6 +2593,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2509,6 +2632,134 @@ describe('doStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('raw chunks', () => {
+    it('should include raw chunks when includeRawChunks is enabled', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' World!'],
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "",
+                    "role": "assistant",
+                  },
+                  "finish_reason": null,
+                  "index": 0,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "Hello",
+                  },
+                  "finish_reason": null,
+                  "index": 1,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": " World!",
+                  },
+                  "finish_reason": null,
+                  "index": 1,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {},
+                  "finish_reason": "stop",
+                  "index": 0,
+                  "logprobs": null,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": "fp_3bc1b5746c",
+              "usage": {
+                "completion_tokens": 227,
+                "prompt_tokens": 17,
+                "total_tokens": 244,
+              },
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+    });
+
+    it('should not include raw chunks when includeRawChunks is false', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' World!'],
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
   });
 });

@@ -5,6 +5,7 @@ import { createUIMessageStream } from './create-ui-message-stream';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 import { consumeStream } from '../util/consume-stream';
+import { UIDataTypes, UIMessage } from '../ui';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
@@ -250,7 +251,7 @@ describe('createUIMessageStream', () => {
   });
 
   it('should suppress error when writing to closed stream', async () => {
-    let uiMessageStreamWriter: UIMessageStreamWriter;
+    let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -269,7 +270,7 @@ describe('createUIMessageStream', () => {
   });
 
   it('should support writing from delayed merged streams', async () => {
-    let uiMessageStreamWriter: UIMessageStreamWriter;
+    let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
     let controller1: ReadableStreamDefaultController<UIMessageStreamPart>;
     let controller2: ReadableStreamDefaultController<UIMessageStreamPart>;
     let done = false;
@@ -338,6 +339,7 @@ describe('createUIMessageStream', () => {
       onFinish: options => {
         recordedOptions.push(options);
       },
+      generateId: () => 'response-message-id',
     });
 
     await consumeStream({ stream });
@@ -348,8 +350,8 @@ describe('createUIMessageStream', () => {
           "isContinuation": false,
           "messages": [
             {
-              "id": "",
-              "metadata": {},
+              "id": "response-message-id",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "1a",
@@ -360,8 +362,8 @@ describe('createUIMessageStream', () => {
             },
           ],
           "responseMessage": {
-            "id": "",
-            "metadata": {},
+            "id": "response-message-id",
+            "metadata": undefined,
             "parts": [
               {
                 "text": "1a",
@@ -443,6 +445,122 @@ describe('createUIMessageStream', () => {
                 "type": "text",
               },
             ],
+            "role": "assistant",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should inject a messageId into the stream when originalMessages are provided', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'start' }); // no messageId
+      },
+      originalMessages: [
+        { id: '0', role: 'user', parts: [{ type: 'text', text: '0a' }] },
+        // no assistant message
+      ],
+      onFinish(options) {
+        recordedOptions.push(options);
+      },
+      generateId: () => 'response-message-id',
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "messageId": "response-message-id",
+          "type": "start",
+        },
+      ]
+    `);
+    expect(recordedOptions).toMatchInlineSnapshot(`
+      [
+        {
+          "isContinuation": false,
+          "messages": [
+            {
+              "id": "0",
+              "parts": [
+                {
+                  "text": "0a",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "response-message-id",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          ],
+          "responseMessage": {
+            "id": "response-message-id",
+            "metadata": undefined,
+            "parts": [],
+            "role": "assistant",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should keep existing messageId from start chunk when originalMessages are provided', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'start', messageId: 'existing-message-id' });
+      },
+      originalMessages: [
+        { id: '0', role: 'user', parts: [{ type: 'text', text: '0a' }] },
+        // no assistant message
+      ],
+      onFinish(options) {
+        recordedOptions.push(options);
+      },
+      generateId: () => 'response-message-id',
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "messageId": "existing-message-id",
+          "type": "start",
+        },
+      ]
+    `);
+    expect(recordedOptions).toMatchInlineSnapshot(`
+      [
+        {
+          "isContinuation": false,
+          "messages": [
+            {
+              "id": "0",
+              "parts": [
+                {
+                  "text": "0a",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "existing-message-id",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          ],
+          "responseMessage": {
+            "id": "existing-message-id",
+            "metadata": undefined,
+            "parts": [],
             "role": "assistant",
           },
         },

@@ -1,5 +1,35 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.13
+
+### Patch Changes
+
+- 68ecf2f: release alpha.13
+
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+
+## 2.0.0-alpha.11
+
+### Patch Changes
+
+- c1e6647: release alpha.11
+
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- c4df419: release alpha.10
+
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- 811dff3: release alpha.9
+
 ## 2.0.0-alpha.8
 
 ### Patch Changes

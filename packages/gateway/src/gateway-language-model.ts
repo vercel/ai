@@ -12,6 +12,7 @@ import {
   postJsonToApi,
   resolve,
   type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import type { GatewayConfig } from './gateway-config';
@@ -20,7 +21,7 @@ import { asGatewayError } from './errors';
 
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
-  o11yHeaders: Record<string, string>;
+  o11yHeaders: Resolvable<Record<string, string>>;
 };
 
 export class GatewayLanguageModel implements LanguageModelV2 {
@@ -51,7 +52,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           await resolve(this.config.headers()),
           options.headers,
           this.getModelConfigHeaders(this.modelId, false),
-          this.config.o11yHeaders,
+          await resolve(this.config.o11yHeaders),
         ),
         body: this.maybeEncodeFileParts(body),
         successfulResponseHandler: createJsonResponseHandler(z.any()),
@@ -86,7 +87,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           await resolve(this.config.headers()),
           options.headers,
           this.getModelConfigHeaders(this.modelId, true),
-          this.config.o11yHeaders,
+          await resolve(this.config.o11yHeaders),
         ),
         body: this.maybeEncodeFileParts(body),
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
@@ -106,7 +107,15 @@ export class GatewayLanguageModel implements LanguageModelV2 {
           >({
             transform(chunk, controller) {
               if (chunk.success) {
-                controller.enqueue(chunk.value);
+                const streamPart = chunk.value;
+
+                // Handle raw chunks: if this is a raw chunk from the gateway API,
+                // only emit it if includeRawChunks is true
+                if (streamPart.type === 'raw' && !options.includeRawChunks) {
+                  return; // Skip raw chunks if not requested
+                }
+
+                controller.enqueue(streamPart);
               } else {
                 controller.error(
                   (chunk as { success: false; error: unknown }).error,

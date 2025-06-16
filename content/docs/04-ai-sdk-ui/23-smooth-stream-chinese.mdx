@@ -5,13 +5,14 @@ description: Learn how to stream smooth stream chinese text
 
 # Smooth streaming chinese text
 
-You can smooth stream chinese text by using the `smoothStream` function, and the following regex that splits either on words of chinese characters:
+You can smooth stream chinese text by using the `smoothStream` function with `streamText`, and the following regex that splits either on words of chinese characters:
 
 ```tsx filename="page.tsx"
-import { smoothStream } from 'ai';
-import { useChat } from '@ai-sdk/react';
+import { smoothStream, streamText } from 'ai';
 
-const { data } = useChat({
+const result = streamText({
+  model: yourModel,
+  prompt: 'Your prompt here',
   experimental_transform: smoothStream({
     chunking: /[\u4E00-\u9FFF]|\S+\s+/,
   }),

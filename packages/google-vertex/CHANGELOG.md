@@ -1,5 +1,62 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [8dfcb11]
+- Updated dependencies [68ecf2f]
+- Updated dependencies [ee5a9c0]
+  - @ai-sdk/anthropic@2.0.0-alpha.13
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/google@2.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 3.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/anthropic@2.0.0-alpha.12
+  - @ai-sdk/google@2.0.0-alpha.12
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 3.0.0-alpha.11
+
+### Patch Changes
+
+- Updated dependencies [25f3454]
+- Updated dependencies [c1e6647]
+  - @ai-sdk/anthropic@2.0.0-alpha.11
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/google@2.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 3.0.0-alpha.10
+
+### Patch Changes
+
+- bb13f18: Add reasoning token output support for gemini models via Vertex AI Provider
+- Updated dependencies [581a9be]
+- Updated dependencies [c4df419]
+  - @ai-sdk/google@2.0.0-alpha.10
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/anthropic@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 3.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [362b048]
+- Updated dependencies [811dff3]
+  - @ai-sdk/anthropic@2.0.0-alpha.9
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/google@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
 ## 3.0.0-alpha.8
 
 ### Patch Changes

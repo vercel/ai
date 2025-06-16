@@ -1,12 +1,12 @@
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { DefaultChatTransport, isToolUIPart } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/api/call-tool',
-      maxSteps: 2,
-    }),
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/call-tool' }),
+    maxSteps: 2,
   });
 
   return (
@@ -17,27 +17,28 @@ export default function Page() {
             <strong>{`${message.role}: `}</strong>
 
             {message.parts.map((part, index) => {
-              switch (part.type) {
-                case 'text':
-                  return <div key={index}>{part.text}</div>;
-                case 'tool-invocation': {
-                  return (
-                    <div key={index}>
-                      {JSON.stringify(part.toolInvocation.args)}
-                    </div>
-                  );
-                }
+              if (part.type === 'text') {
+                return <div key={index}>{part.text}</div>;
+              } else if (isToolUIPart(part)) {
+                return <div key={index}>{JSON.stringify(part.args)}</div>;
               }
             })}
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="fixed bottom-0 w-full p-2">
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+        className="fixed bottom-0 w-full p-2"
+      >
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-2 bg-zinc-100"
         />
       </form>

@@ -40,11 +40,11 @@ it('should process function tools correctly', () => {
   });
 });
 
-it('should add warnings for provider-defined tools', () => {
+it('should add warnings for provider-defined-client tools', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined' as const,
+        type: 'provider-defined-client' as const,
         name: 'providerTool',
         id: 'provider.tool',
         args: {},
@@ -59,7 +59,7 @@ it('should add warnings for provider-defined tools', () => {
       {
         type: 'unsupported-tool',
         tool: {
-          type: 'provider-defined' as const,
+          type: 'provider-defined-client' as const,
           name: 'providerTool',
           id: 'provider.tool',
           args: {},

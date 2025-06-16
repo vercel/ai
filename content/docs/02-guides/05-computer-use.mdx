@@ -81,9 +81,9 @@ This reference implementation serves as a foundation to understand the requireme
 
 First, ensure you have the AI SDK and [Anthropic AI SDK provider](/providers/ai-sdk-providers/anthropic) installed:
 
-<Snippet text="pnpm add ai @ai-sdk/anthropic" />
+<Snippet text="pnpm add ai@alpha @ai-sdk/anthropic@alpha" />
 
-You can add Computer Use to your AI SDK applications using provider-defined tools. These tools accept various input parameters (like display height and width in the case of the computer tool) and then require that you define an execute function.
+You can add Computer Use to your AI SDK applications using provider-defined-client tools. These tools accept various input parameters (like display height and width in the case of the computer tool) and then require that you define an execute function.
 
 Here's how you could set up the Computer Tool with the AI SDK:
 
@@ -138,7 +138,7 @@ const result = await generateText({
   tools: { computer: computerTool },
 });
 
-console.log(response.text);
+console.log(result.text);
 ```
 
 For streaming responses, use `streamText` to receive updates in real-time:

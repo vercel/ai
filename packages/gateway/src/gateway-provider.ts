@@ -12,7 +12,7 @@ import {
 } from './gateway-fetch-metadata';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayModelId } from './gateway-language-model-settings';
-import { getVercelOidcToken } from './get-vercel-oidc-token';
+import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -101,7 +101,7 @@ export function createGatewayProvider(
   const createLanguageModel = (modelId: GatewayModelId) => {
     const deploymentId = loadOptionalSetting({
       settingValue: undefined,
-      environmentVariableName: 'DEPLOYMENT_ID',
+      environmentVariableName: 'VERCEL_DEPLOYMENT_ID',
     });
     const environment = loadOptionalSetting({
       settingValue: undefined,
@@ -116,10 +116,14 @@ export function createGatewayProvider(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      o11yHeaders: {
-        ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
-        ...(environment && { 'ai-o11y-environment': environment }),
-        ...(region && { 'ai-o11y-region': region }),
+      o11yHeaders: async () => {
+        const requestId = await getVercelRequestId();
+        return {
+          ...(deploymentId && { 'ai-o11y-deployment-id': deploymentId }),
+          ...(environment && { 'ai-o11y-environment': environment }),
+          ...(region && { 'ai-o11y-region': region }),
+          ...(requestId && { 'ai-o11y-request-id': requestId }),
+        };
       },
     });
   };

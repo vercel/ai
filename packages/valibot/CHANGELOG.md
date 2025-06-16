@@ -1,5 +1,36 @@
 # @ai-sdk/valibot
 
+## 1.0.0-alpha.13
+
+### Patch Changes
+
+- d7cb6b4: chore (valibot): update to valibot 1.1
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 1.0.0-alpha.11
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 1.0.0-alpha.10
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.9
+
 ## 1.0.0-alpha.8
 
 ### Patch Changes

@@ -1,27 +1,35 @@
+import {
+  generateId as generateIdFunc,
+  IdGenerator,
+} from '@ai-sdk/provider-utils';
 import { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
-import { UIMessageStreamPart } from './ui-message-stream-parts';
+import { InferUIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
-export function createUIMessageStream({
+export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
   originalMessages,
   onFinish,
+  generateId = generateIdFunc,
 }: {
-  execute: (options: { writer: UIMessageStreamWriter }) => Promise<void> | void;
+  execute: (options: {
+    writer: UIMessageStreamWriter<UI_MESSAGE>;
+  }) => Promise<void> | void;
   onError?: (error: unknown) => string;
 
   /**
-   * The original messages.
+   * The original messages. If they are provided, persistence mode is assumed,
+   * and a message ID is provided for the response message.
    */
-  originalMessages?: UIMessage[];
+  originalMessages?: UI_MESSAGE[];
 
   onFinish?: (options: {
     /**
      * The updates list of UI messages.
      */
-    messages: UIMessage[];
+    messages: UI_MESSAGE[];
 
     /**
      * Indicates whether the response message is a continuation of the last original message,
@@ -33,10 +41,14 @@ export function createUIMessageStream({
      * The message that was sent to the client as a response
      * (including the original message if it was extended).
      */
-    responseMessage: UIMessage;
+    responseMessage: UI_MESSAGE;
   }) => void;
-}): ReadableStream<UIMessageStreamPart> {
-  let controller!: ReadableStreamDefaultController<UIMessageStreamPart>;
+
+  generateId?: IdGenerator;
+}): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
+  let controller!: ReadableStreamDefaultController<
+    InferUIMessageStreamPart<UI_MESSAGE>
+  >;
 
   const ongoingStreamPromises: Promise<void>[] = [];
 
@@ -46,7 +58,7 @@ export function createUIMessageStream({
     },
   });
 
-  function safeEnqueue(data: UIMessageStreamPart) {
+  function safeEnqueue(data: InferUIMessageStreamPart<UI_MESSAGE>) {
     try {
       controller.enqueue(data);
     } catch (error) {
@@ -57,7 +69,7 @@ export function createUIMessageStream({
   try {
     const result = execute({
       writer: {
-        write(part: UIMessageStreamPart) {
+        write(part: InferUIMessageStreamPart<UI_MESSAGE>) {
           safeEnqueue(part);
         },
         merge(streamArg) {
@@ -70,7 +82,10 @@ export function createUIMessageStream({
                 safeEnqueue(value);
               }
             })().catch(error => {
-              safeEnqueue({ type: 'error', errorText: onError(error) });
+              safeEnqueue({
+                type: 'error',
+                errorText: onError(error),
+              } as InferUIMessageStreamPart<UI_MESSAGE>);
             }),
           );
         },
@@ -81,12 +96,18 @@ export function createUIMessageStream({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
-          safeEnqueue({ type: 'error', errorText: onError(error) });
+          safeEnqueue({
+            type: 'error',
+            errorText: onError(error),
+          } as InferUIMessageStreamPart<UI_MESSAGE>);
         }),
       );
     }
   } catch (error) {
-    safeEnqueue({ type: 'error', errorText: onError(error) });
+    safeEnqueue({
+      type: 'error',
+      errorText: onError(error),
+    } as InferUIMessageStreamPart<UI_MESSAGE>);
   }
 
   // Wait until all ongoing streams are done. This approach enables merging
@@ -108,9 +129,9 @@ export function createUIMessageStream({
     }
   });
 
-  return handleUIMessageStreamFinish({
+  return handleUIMessageStreamFinish<UI_MESSAGE>({
     stream,
-    newMessageId: '',
+    messageId: generateId(),
     originalMessages,
     onFinish,
   });

@@ -204,7 +204,53 @@ describe('user messages', () => {
     });
   });
 
-  it('should throw error for non-PDF file types', async () => {
+  it('should add text file parts for text/plain documents', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: Buffer.from('sample text content', 'utf-8').toString(
+                'base64',
+              ),
+              mediaType: 'text/plain',
+              filename: 'sample.txt',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'text',
+                  media_type: 'text/plain',
+                  data: 'sample text content',
+                },
+                title: 'sample.txt',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should throw error for unsupported file types', async () => {
     await expect(
       convertToAnthropicMessagesPrompt({
         prompt: [
@@ -214,7 +260,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'base64data',
-                mediaType: 'text/plain',
+                mediaType: 'video/mp4',
               },
             ],
           },
@@ -222,7 +268,7 @@ describe('user messages', () => {
         sendReasoning: true,
         warnings: [],
       }),
-    ).rejects.toThrow('media type: text/plain');
+    ).rejects.toThrow('media type: video/mp4');
   });
 });
 
@@ -1132,5 +1178,261 @@ describe('cache control', () => {
         betas: new Set(),
       });
     });
+  });
+});
+
+describe('citations', () => {
+  it('should not include citations by default', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "source": {
+                    "data": "base64PDFdata",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": undefined,
+                  "type": "document",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should include citations when enabled on file part', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+              providerOptions: {
+                anthropic: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "citations": {
+                    "enabled": true,
+                  },
+                  "source": {
+                    "data": "base64PDFdata",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": undefined,
+                  "type": "document",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should include custom title and context when provided', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+              filename: 'original-name.pdf',
+              providerOptions: {
+                anthropic: {
+                  title: 'Custom Document Title',
+                  context: 'This is metadata about the document',
+                  citations: { enabled: true },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "citations": {
+                    "enabled": true,
+                  },
+                  "context": "This is metadata about the document",
+                  "source": {
+                    "data": "base64PDFdata",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": "Custom Document Title",
+                  "type": "document",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should handle multiple documents with consistent citation settings', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata1',
+              mediaType: 'application/pdf',
+              filename: 'doc1.pdf',
+              providerOptions: {
+                anthropic: {
+                  citations: { enabled: true },
+                  title: 'Custom Title 1',
+                },
+              },
+            },
+            {
+              type: 'file',
+              data: 'base64PDFdata2',
+              mediaType: 'application/pdf',
+              filename: 'doc2.pdf',
+              providerOptions: {
+                anthropic: {
+                  citations: { enabled: true },
+                  title: 'Custom Title 2',
+                  context: 'Additional context for document 2',
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Analyze both documents',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "citations": {
+                    "enabled": true,
+                  },
+                  "source": {
+                    "data": "base64PDFdata1",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": "Custom Title 1",
+                  "type": "document",
+                },
+                {
+                  "cache_control": undefined,
+                  "citations": {
+                    "enabled": true,
+                  },
+                  "context": "Additional context for document 2",
+                  "source": {
+                    "data": "base64PDFdata2",
+                    "media_type": "application/pdf",
+                    "type": "base64",
+                  },
+                  "title": "Custom Title 2",
+                  "type": "document",
+                },
+                {
+                  "cache_control": undefined,
+                  "text": "Analyze both documents",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
   });
 });

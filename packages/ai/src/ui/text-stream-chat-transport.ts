@@ -1,6 +1,7 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
 import { ChatTransport } from './chat-transport';
+import { PrepareRequest } from './prepare-request';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
 import { UIDataTypes, UIMessage } from './ui-messages';
 
@@ -12,7 +13,7 @@ async function fetchTextStream({
   body,
   credentials,
   headers,
-  abortController,
+  abortSignal,
   fetch = getOriginalFetch(),
   requestType = 'generate',
 }: {
@@ -20,10 +21,10 @@ async function fetchTextStream({
   body: Record<string, any>;
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
-  abortController: (() => AbortController | null) | undefined;
+  abortSignal: AbortSignal | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   requestType?: 'generate' | 'resume';
-}): Promise<ReadableStream<UIMessageStreamPart>> {
+}): Promise<ReadableStream<UIMessageStreamPart<never, never>>> {
   const response =
     requestType === 'resume'
       ? await fetch(`${api}?chatId=${body.chatId}`, {
@@ -32,7 +33,7 @@ async function fetchTextStream({
             'Content-Type': 'application/json',
             ...headers,
           },
-          signal: abortController?.()?.signal,
+          signal: abortSignal,
           credentials,
         })
       : await fetch(api, {
@@ -42,7 +43,7 @@ async function fetchTextStream({
             'Content-Type': 'application/json',
             ...headers,
           },
-          signal: abortController?.()?.signal,
+          signal: abortSignal,
           credentials,
         });
 
@@ -61,21 +62,15 @@ async function fetchTextStream({
   });
 }
 
-export class TextStreamChatTransport<
-  MESSAGE_METADATA,
-  DATA_TYPES extends UIDataTypes,
-> implements ChatTransport<MESSAGE_METADATA, DATA_TYPES>
+export class TextStreamChatTransport<UI_MESSAGE extends UIMessage>
+  implements ChatTransport<UI_MESSAGE>
 {
   private api: string;
   private credentials?: RequestCredentials;
   private headers?: Record<string, string> | Headers;
   private body?: object;
   private fetch?: FetchFunction;
-  private prepareRequestBody?: (options: {
-    chatId: string;
-    messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-    requestBody?: object;
-  }) => unknown;
+  private prepareRequest?: PrepareRequest<UI_MESSAGE>;
 
   constructor({
     api,
@@ -83,7 +78,7 @@ export class TextStreamChatTransport<
     headers,
     body,
     fetch,
-    prepareRequestBody,
+    prepareRequest,
   }: {
     api: string;
 
@@ -128,49 +123,47 @@ export class TextStreamChatTransport<
      * @param messages The current messages in the chat.
      * @param requestBody The request body object passed in the chat request.
      */
-    prepareRequestBody?: (options: {
-      chatId: string;
-      messages: UIMessage<MESSAGE_METADATA, DATA_TYPES>[];
-      requestBody?: object;
-    }) => unknown;
+    prepareRequest?: NoInfer<PrepareRequest<UI_MESSAGE>>;
   }) {
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;
     this.body = body;
     this.fetch = fetch;
-    this.prepareRequestBody = prepareRequestBody;
+    this.prepareRequest = prepareRequest;
   }
 
   submitMessages({
     chatId,
     messages,
-    abortController,
-    body,
+    abortSignal,
+    metadata,
     headers,
+    body,
     requestType,
-  }: Parameters<
-    ChatTransport<MESSAGE_METADATA, DATA_TYPES>['submitMessages']
-  >[0]) {
+  }: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0]) {
+    const preparedRequest = this.prepareRequest?.({
+      id: chatId,
+      messages,
+      body: { ...this.body, ...body },
+      headers: { ...this.headers, ...headers },
+      credentials: this.credentials,
+      requestMetadata: metadata,
+    });
+
     return fetchTextStream({
       api: this.api,
-      headers: {
-        ...this.headers,
-        ...headers,
-      },
-      body: this.prepareRequestBody?.({
-        chatId,
-        messages,
-        ...this.body,
-        ...body,
-      }) ?? {
-        chatId,
-        messages,
-        ...this.body,
-        ...body,
-      },
-      credentials: this.credentials,
-      abortController: () => abortController,
+
+      body:
+        preparedRequest?.body !== undefined
+          ? preparedRequest.body
+          : { ...this.body, ...body },
+      headers:
+        preparedRequest?.headers !== undefined
+          ? preparedRequest.headers
+          : { ...this.headers, ...headers },
+      credentials: preparedRequest?.credentials ?? this.credentials,
+      abortSignal,
       fetch: this.fetch,
       requestType,
     });

@@ -13,11 +13,31 @@ import { FireworksImageModel } from './fireworks-image-model';
 const OpenAICompatibleChatLanguageModelMock =
   OpenAICompatibleChatLanguageModel as unknown as Mock;
 
-vi.mock('@ai-sdk/openai-compatible', () => ({
-  OpenAICompatibleChatLanguageModel: vi.fn(),
-  OpenAICompatibleCompletionLanguageModel: vi.fn(),
-  OpenAICompatibleEmbeddingModel: vi.fn(),
-}));
+vi.mock('@ai-sdk/openai-compatible', () => {
+  // Create mock constructor functions that behave like classes
+  const createMockConstructor = (providerName: string) => {
+    const mockConstructor = vi.fn().mockImplementation(function (
+      this: any,
+      modelId: string,
+      settings: any,
+    ) {
+      this.provider = providerName;
+      this.modelId = modelId;
+      this.settings = settings;
+    });
+    return mockConstructor;
+  };
+
+  return {
+    OpenAICompatibleChatLanguageModel: createMockConstructor('fireworks.chat'),
+    OpenAICompatibleCompletionLanguageModel: createMockConstructor(
+      'fireworks.completion',
+    ),
+    OpenAICompatibleEmbeddingModel: createMockConstructor(
+      'fireworks.embedding',
+    ),
+  };
+});
 
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockReturnValue('mock-api-key'),

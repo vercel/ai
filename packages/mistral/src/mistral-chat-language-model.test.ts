@@ -377,6 +377,34 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it('should return raw text with think tags for reasoning models', async () => {
+    const reasoningModel = provider.chat('magistral-small-2506');
+
+    prepareJsonResponse({
+      content:
+        "<think>\nLet me think about this problem step by step.\nFirst, I need to understand what the user is asking.\nThen I can provide a helpful response.\n</think>\n\nHello! I'm ready to help you with your question.",
+    });
+
+    const { content } = await reasoningModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "<think>
+      Let me think about this problem step by step.
+      First, I need to understand what the user is asking.
+      Then I can provide a helpful response.
+      </think>
+
+      Hello! I'm ready to help you with your question.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream', () => {
@@ -415,6 +443,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -473,6 +502,7 @@ describe('doStream', () => {
           content: [{ type: 'text', text: 'prefix ' }],
         },
       ],
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -549,6 +579,7 @@ describe('doStream', () => {
           },
         ],
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -602,6 +633,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -620,6 +652,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -641,6 +674,7 @@ describe('doStream', () => {
 
     await provider.chat('mistral-small-latest').doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -659,6 +693,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -707,6 +742,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -740,6 +776,115 @@ describe('doStream', () => {
             "inputTokens": 4,
             "outputTokens": 32,
             "totalTokens": 36,
+          },
+        },
+      ]
+    `);
+  });
+});
+
+describe('doStream with raw chunks', () => {
+  it('should stream raw chunks when includeRawChunks is true', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"cmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"mistral-large-latest","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-456","object":"chat.completion.chunk","created":1234567890,"model":"mistral-large-latest","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-789","object":"chat.completion.chunk","created":1234567890,"model":"mistral-large-latest","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                  "role": "assistant",
+                },
+                "finish_reason": null,
+                "index": 0,
+              },
+            ],
+            "created": 1234567890,
+            "id": "cmpl-123",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+          },
+          "type": "raw",
+        },
+        {
+          "id": "cmpl-123",
+          "modelId": "mistral-large-latest",
+          "timestamp": 2009-02-13T23:31:30.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": " world",
+                },
+                "finish_reason": null,
+                "index": 0,
+              },
+            ],
+            "created": 1234567890,
+            "id": "cmpl-456",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+          },
+          "type": "raw",
+        },
+        {
+          "text": " world",
+          "type": "text",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+                "index": 0,
+              },
+            ],
+            "created": 1234567890,
+            "id": "cmpl-789",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
+          },
+          "type": "raw",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 5,
+            "totalTokens": 15,
           },
         },
       ]

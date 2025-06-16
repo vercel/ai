@@ -2,25 +2,28 @@
 import { generateId } from 'ai';
 import { mockId } from 'ai/test';
 import { computed, ref } from 'vue';
-import { useChat } from './use-chat';
+import { Chat } from './chat.vue';
 
-const { messages, handleSubmit, status, input } = useChat({
-  chatId: generateId(),
+const chat = new Chat({
+  id: generateId(),
   generateId: mockId(),
 });
 const files = ref<FileList>();
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const isLoading = computed(() => status.value !== 'ready');
+const isLoading = computed(() => chat.status !== 'ready');
+const input = ref('');
 </script>
 
 <template>
   <div>
-    <div data-testid="messages">{{ JSON.stringify(messages, null, 2) }}</div>
+    <div data-testid="messages">
+      {{ JSON.stringify(chat.messages, null, 2) }}
+    </div>
 
     <form
       @submit="
         event => {
-          handleSubmit(event, { files });
+          chat.sendMessage({ text: input, files });
           files = undefined;
           if (fileInputRef) {
             fileInputRef.value = '';

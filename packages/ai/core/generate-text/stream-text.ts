@@ -5,10 +5,18 @@ import { ServerResponse } from 'node:http';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { UIDataTypes, UIMessage } from '../../src/ui';
 import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
 import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
-import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import {
+  InferUIMessageStreamPart,
+  UIMessageStreamPart,
+} from '../../src/ui-message-stream/ui-message-stream-parts';
+import {
+  InferUIMessageData,
+  InferUIMessageMetadata,
+} from '../../src/ui/ui-messages';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -68,6 +76,7 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -119,7 +128,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
         | 'tool-call'
         | 'tool-call-streaming-start'
         | 'tool-call-delta'
-        | 'tool-result';
+        | 'tool-result'
+        | 'raw';
     }
   >;
 }) => Promise<void> | void;
@@ -210,12 +220,11 @@ export function streamText<
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
-  experimental_toolCallStreaming = false,
-  toolCallStreaming = experimental_toolCallStreaming,
   experimental_activeTools,
   activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
+  includeRawChunks = false,
   onChunk,
   onError = ({ error }) => {
     console.error(error);
@@ -302,16 +311,6 @@ A function that attempts to repair a tool call that failed to parse.
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
-Enable streaming of tool call deltas as they are generated. Disabled by default.
-     */
-    toolCallStreaming?: boolean;
-
-    /**
-@deprecated Use `toolCallStreaming` instead.
-     */
-    experimental_toolCallStreaming?: boolean;
-
-    /**
 Optional stream transformations.
 They are applied in the order they are provided.
 The stream transformations must maintain the stream structure for streamText to work correctly.
@@ -319,6 +318,14 @@ The stream transformations must maintain the stream structure for streamText to 
     experimental_transform?:
       | StreamTextTransform<TOOLS>
       | Array<StreamTextTransform<TOOLS>>;
+
+    /**
+Whether to include raw chunks from the provider in the stream.
+When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
+This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
+Defaults to false.
+     */
+    includeRawChunks?: boolean;
 
     /**
 Callback that is called for each chunk of the stream.
@@ -367,7 +374,6 @@ Internal. For test use only. May change without notice.
     messages,
     tools,
     toolChoice,
-    toolCallStreaming,
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
@@ -375,6 +381,7 @@ Internal. For test use only. May change without notice.
     output,
     providerOptions,
     prepareStep,
+    includeRawChunks,
     onChunk,
     onError,
     onFinish,
@@ -493,6 +500,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
 
+  private includeRawChunks: boolean;
+
   private generateId: () => string;
 
   constructor({
@@ -507,7 +516,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     messages,
     tools,
     toolChoice,
-    toolCallStreaming,
     transforms,
     activeTools,
     repairToolCall,
@@ -515,6 +523,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     output,
     providerOptions,
     prepareStep,
+    includeRawChunks,
     now,
     currentDate,
     generateId,
@@ -534,7 +543,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     messages: Prompt['messages'];
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
-    toolCallStreaming: boolean;
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
@@ -542,6 +550,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
+    includeRawChunks: boolean;
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
@@ -553,6 +562,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
     this.output = output;
+    this.includeRawChunks = includeRawChunks;
     this.generateId = generateId;
 
     // promise to ensure that the step has been fully processed by the event processor
@@ -590,7 +600,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
           part.type === 'tool-call-streaming-start' ||
-          part.type === 'tool-call-delta'
+          part.type === 'tool-call-delta' ||
+          part.type === 'raw'
         ) {
           await onChunk?.({ chunk: part });
         }
@@ -839,6 +850,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
         }) {
+          const includeRawChunks = self.includeRawChunks;
+
           stepFinish = new DelayedPromise<void>();
 
           const initialPrompt = await standardizePrompt({
@@ -939,6 +952,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     providerOptions,
                     abortSignal,
                     headers,
+                    includeRawChunks: includeRawChunks,
                   }),
                 };
               },
@@ -948,7 +962,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const streamWithToolResults = runToolsTransformation({
             tools,
             generatorStream: stream,
-            toolCallStreaming,
             tracer,
             telemetry,
             system,
@@ -1122,9 +1135,33 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
-                    // forward:
-                    case 'tool-call-streaming-start':
+                    case 'tool-call-streaming-start': {
+                      const tool = tools?.[chunk.toolName];
+
+                      if (tool?.onArgsStreamingStart != null) {
+                        await tool.onArgsStreamingStart({
+                          toolCallId: chunk.toolCallId,
+                          messages: stepInputMessages,
+                          abortSignal,
+                        });
+                      }
+
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'tool-call-delta': {
+                      const tool = tools?.[chunk.toolName];
+
+                      if (tool?.onArgsStreamingDelta != null) {
+                        await tool.onArgsStreamingDelta({
+                          argsTextDelta: chunk.argsTextDelta,
+                          toolCallId: chunk.toolCallId,
+                          messages: stepInputMessages,
+                          abortSignal,
+                        });
+                      }
+
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1132,6 +1169,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'error': {
                       controller.enqueue(chunk);
                       stepFinishReason = 'error';
+                      break;
+                    }
+
+                    case 'raw': {
+                      if (includeRawChunks) {
+                        controller.enqueue(chunk);
+                      }
                       break;
                     }
 
@@ -1411,24 +1455,34 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  toUIMessageStream({
-    newMessageId,
-    originalMessages = [],
+  toUIMessageStream<UI_MESSAGE extends UIMessage>({
+    originalMessages,
     onFinish,
     messageMetadata,
-    sendReasoning = false,
+    sendReasoning = true,
     sendSources = false,
     sendStart = true,
     sendFinish = true,
     onError = () => 'An error occurred.', // mask error messages for safety by default
-  }: UIMessageStreamOptions = {}): ReadableStream<UIMessageStreamPart> {
-    const lastMessage = originalMessages[originalMessages.length - 1];
-    const isContinuation = lastMessage?.role === 'assistant';
-    const messageId = isContinuation ? lastMessage.id : newMessageId;
+  }: UIMessageStreamOptions<UI_MESSAGE> = {}): ReadableStream<
+    InferUIMessageStreamPart<UI_MESSAGE>
+  > {
+    const responseMessageId = getResponseUIMessageId({
+      originalMessages,
+      responseMessageId: this.generateId,
+    });
 
     const baseStream = this.fullStream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, UIMessageStreamPart>({
+      new TransformStream<
+        TextStreamPart<TOOLS>,
+        UIMessageStreamPart<
+          InferUIMessageMetadata<UI_MESSAGE>,
+          InferUIMessageData<UI_MESSAGE>
+        >
+      >({
         transform: async (part, controller) => {
+          const messageMetadataValue = messageMetadata?.({ part });
+
           const partType = part.type;
           switch (partType) {
             case 'text': {
@@ -1467,12 +1521,23 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'source': {
-              if (sendSources) {
+              if (sendSources && part.sourceType === 'url') {
                 controller.enqueue({
                   type: 'source-url',
                   sourceId: part.id,
                   url: part.url,
                   title: part.title,
+                  providerMetadata: part.providerMetadata,
+                });
+              }
+
+              if (sendSources && part.sourceType === 'document') {
+                controller.enqueue({
+                  type: 'source-document',
+                  sourceId: part.id,
+                  mediaType: part.mediaType,
+                  title: part.title,
+                  filename: part.filename,
                   providerMetadata: part.providerMetadata,
                 });
               }
@@ -1525,31 +1590,21 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'start-step': {
-              const metadata = messageMetadata?.({ part });
-              controller.enqueue({
-                type: 'start-step',
-                metadata,
-              });
+              controller.enqueue({ type: 'start-step' });
               break;
             }
 
             case 'finish-step': {
-              const metadata = messageMetadata?.({ part });
-              controller.enqueue({
-                type: 'finish-step',
-                metadata,
-              });
-
+              controller.enqueue({ type: 'finish-step' });
               break;
             }
 
             case 'start': {
               if (sendStart) {
-                const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'start',
-                  messageId,
-                  metadata,
+                  messageId: responseMessageId,
+                  messageMetadata: messageMetadataValue,
                 });
               }
               break;
@@ -1557,12 +1612,17 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'finish': {
               if (sendFinish) {
-                const metadata = messageMetadata?.({ part });
                 controller.enqueue({
                   type: 'finish',
-                  metadata,
+                  messageMetadata: messageMetadataValue,
                 });
               }
+              break;
+            }
+
+            case 'raw': {
+              // Raw chunks are not included in UI message streams
+              // as they contain provider-specific data for developer use
               break;
             }
 
@@ -1571,22 +1631,34 @@ However, the LLM results are expected to be small enough to not cause issues.
               throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
             }
           }
+
+          // start and finish events already have metadata
+          // so we only need to send metadata for other parts
+          if (
+            messageMetadataValue != null &&
+            partType !== 'start' &&
+            partType !== 'finish'
+          ) {
+            controller.enqueue({
+              type: 'message-metadata',
+              messageMetadata: messageMetadataValue,
+            });
+          }
         },
       }),
     );
 
-    return handleUIMessageStreamFinish({
+    return handleUIMessageStreamFinish<UI_MESSAGE>({
       stream: baseStream,
-      newMessageId: messageId ?? this.generateId(),
+      messageId: responseMessageId ?? this.generateId(),
       originalMessages,
       onFinish,
     });
   }
 
-  pipeUIMessageStreamToResponse(
+  pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     {
-      newMessageId,
       originalMessages,
       onFinish,
       messageMetadata,
@@ -1596,12 +1668,11 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendStart,
       onError,
       ...init
-    }: ResponseInit & UIMessageStreamOptions = {},
+    }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
     pipeUIMessageStreamToResponse({
       response,
       stream: this.toUIMessageStream({
-        newMessageId,
         originalMessages,
         onFinish,
         messageMetadata,
@@ -1623,8 +1694,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toUIMessageStreamResponse({
-    newMessageId,
+  toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
     onFinish,
     messageMetadata,
@@ -1634,10 +1704,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendStart,
     onError,
     ...init
-  }: ResponseInit & UIMessageStreamOptions = {}): Response {
+  }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
     return createUIMessageStreamResponse({
       stream: this.toUIMessageStream({
-        newMessageId,
         originalMessages,
         onFinish,
         messageMetadata,

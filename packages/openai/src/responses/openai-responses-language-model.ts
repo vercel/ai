@@ -132,6 +132,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       store: openaiOptions?.store,
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
+      service_tier: openaiOptions?.serviceTier,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -171,6 +172,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           details: 'topP is not supported for reasoning models',
         });
       }
+    }
+
+    // Validate flex processing support
+    if (
+      openaiOptions?.serviceTier === 'flex' &&
+      !supportsFlexProcessing(this.modelId)
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'serviceTier',
+        details: 'flex processing is only available for o3 and o4-mini models',
+      });
+      // Remove from args if not supported
+      delete (baseArgs as any).service_tier;
     }
 
     const {
@@ -383,6 +398,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     > = {};
     let hasToolCalls = false;
 
+    // Track the last summary_index received in reasoning summary chunks.
+    // When the provider switches to a different summary_index we emit a
+    // `reasoning-part-finish` marker so downstream consumers can separate
+    // distinct reasoning parts.
+    let lastReasoningSummaryIndex: number | null = null;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -394,6 +415,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -444,10 +469,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 text: value.delta,
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+              // When the summary_index changes, mark the end of the previous
+              // reasoning part before streaming the new one.
+              if (
+                lastReasoningSummaryIndex !== null &&
+                value.summary_index !== lastReasoningSummaryIndex
+              ) {
+                controller.enqueue({ type: 'reasoning-part-finish' });
+              }
+
+              lastReasoningSummaryIndex = value.summary_index;
+
               controller.enqueue({
                 type: 'reasoning',
                 text: value.delta,
               });
+            } else if (isResponseReasoningSummaryPartDoneChunk(value)) {
+              controller.enqueue({ type: 'reasoning-part-finish' });
             } else if (
               isResponseOutputItemDoneChunk(value) &&
               value.item.type === 'function_call'
@@ -600,6 +638,14 @@ const responseReasoningSummaryTextDeltaSchema = z.object({
   delta: z.string(),
 });
 
+const responseReasoningSummaryPartDoneSchema = z.object({
+  type: z.literal('response.reasoning_summary_part.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  part: z.unknown().nullish(),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -609,6 +655,7 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
+  responseReasoningSummaryPartDoneSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -662,6 +709,12 @@ function isResponseReasoningSummaryTextDeltaChunk(
   return chunk.type === 'response.reasoning_summary_text.delta';
 }
 
+function isResponseReasoningSummaryPartDoneChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryPartDoneSchema> {
+  return chunk.type === 'response.reasoning_summary_part.done';
+}
+
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -694,6 +747,10 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
+function supportsFlexProcessing(modelId: string): boolean {
+  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+}
+
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
@@ -704,6 +761,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   strictSchemas: z.boolean().nullish(),
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
+  serviceTier: z.enum(['auto', 'flex']).nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

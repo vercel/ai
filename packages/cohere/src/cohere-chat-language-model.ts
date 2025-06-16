@@ -1,9 +1,12 @@
 import {
   LanguageModelV2,
+  LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -11,6 +14,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -25,6 +29,7 @@ type CohereChatConfig = {
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
+  generateId: () => string;
 };
 
 export class CohereChatLanguageModel implements LanguageModelV2 {
@@ -61,7 +66,11 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const chatPrompt = convertToCohereChatPrompt(prompt);
+    const {
+      messages: chatPrompt,
+      documents: cohereDocuments,
+      warnings: promptWarnings,
+    } = convertToCohereChatPrompt(prompt);
 
     const {
       tools: cohereTools,
@@ -96,8 +105,11 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         // tools:
         tools: cohereTools,
         tool_choice: cohereToolChoice,
+
+        // documents for RAG:
+        ...(cohereDocuments.length > 0 && { documents: cohereDocuments }),
       },
-      warnings: toolWarnings,
+      warnings: [...toolWarnings, ...promptWarnings],
     };
   }
 
@@ -125,24 +137,44 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // text content:
-    const text = response.message.content?.[0]?.text;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
+    if (
+      response.message.content?.[0]?.text != null &&
+      response.message.content?.[0]?.text.length > 0
+    ) {
+      content.push({ type: 'text', text: response.message.content[0].text });
+    }
+
+    // citations:
+    for (const citation of response.message.citations ?? []) {
+      content.push({
+        type: 'source',
+        sourceType: 'document',
+        id: this.config.generateId(),
+        mediaType: 'text/plain',
+        title: citation.sources[0]?.document?.title || 'Document',
+        providerMetadata: {
+          cohere: {
+            start: citation.start,
+            end: citation.end,
+            text: citation.text,
+            sources: citation.sources,
+            ...(citation.type && { citationType: citation.type }),
+          },
+        },
+      });
     }
 
     // tool calls:
-    if (response.message.tool_calls != null) {
-      for (const toolCall of response.message.tool_calls) {
-        content.push({
-          type: 'tool-call' as const,
-          toolCallId: toolCall.id,
-          toolName: toolCall.function.name,
-          // Cohere sometimes returns `null` for tool call arguments for tools
-          // defined as having no arguments.
-          args: toolCall.function.arguments.replace(/^null$/, '{}'),
-          toolCallType: 'function',
-        });
-      }
+    for (const toolCall of response.message.tool_calls ?? []) {
+      content.push({
+        type: 'tool-call' as const,
+        toolCallId: toolCall.id,
+        toolName: toolCall.function.name,
+        // Cohere sometimes returns `null` for tool call arguments for tools
+        // defined as having no arguments.
+        args: toolCall.function.arguments.replace(/^null$/, '{}'),
+        toolCallType: 'function',
+      });
     }
 
     return {
@@ -211,6 +243,10 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -334,8 +370,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   }
 }
 
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
 const cohereChatResponseSchema = z.object({
   generation_id: z.string().nullish(),
   message: z.object({
@@ -361,6 +395,27 @@ const cohereChatResponseSchema = z.object({
         }),
       )
       .nullish(),
+    citations: z
+      .array(
+        z.object({
+          start: z.number(),
+          end: z.number(),
+          text: z.string(),
+          sources: z.array(
+            z.object({
+              type: z.string().optional(),
+              id: z.string().optional(),
+              document: z.object({
+                id: z.string().optional(),
+                text: z.string(),
+                title: z.string(),
+              }),
+            }),
+          ),
+          type: z.string().optional(),
+        }),
+      )
+      .nullish(),
   }),
   finish_reason: z.string(),
   usage: z.object({
@@ -375,7 +430,7 @@ const cohereChatResponseSchema = z.object({
   }),
 });
 
-// limited version of the schema, focused on what is needed for the implementation
+// limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const cohereChatChunkSchema = z.discriminatedUnion('type', [
   z.object({

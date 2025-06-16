@@ -276,6 +276,7 @@ functionality that can be fully encapsulated in the provider.
       providerOptions,
       abortSignal,
       headers,
+      includeRawChunks: false,
     }),
   );
 

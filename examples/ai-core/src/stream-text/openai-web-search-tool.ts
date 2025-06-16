@@ -23,7 +23,11 @@ async function main() {
       }
 
       case 'source': {
-        process.stdout.write(`\n\n Source: ${chunk.title} (${chunk.url})`);
+        if (chunk.sourceType === 'url') {
+          process.stdout.write(`\n\n Source: ${chunk.title} (${chunk.url})`);
+        } else {
+          process.stdout.write(`\n\n Document: ${chunk.title}`);
+        }
         break;
       }
 

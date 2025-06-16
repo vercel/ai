@@ -9,14 +9,13 @@ import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
-  defaultChatStoreOptions,
-  getToolInvocations,
+  DefaultChatTransport,
+  isToolUIPart,
   TextStreamChatTransport,
   UIMessage,
   UIMessageStreamPart,
 } from 'ai';
 import React, { act, useEffect, useRef, useState } from 'react';
-import { createChatStore } from './chat-store';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 
@@ -32,16 +31,16 @@ describe('data protocol stream', () => {
   let onFinishCalls: Array<{ message: UIMessage }> = [];
 
   setupTestComponent(
-    ({ chatId: idParam }: { chatId: string }) => {
-      const [chatId, setChatId] = React.useState<string>(idParam);
+    ({ id: idParam }: { id: string }) => {
+      const [id, setId] = React.useState<string>(idParam);
       const {
         messages,
-        append,
+        sendMessage,
         error,
         status,
-        chatId: idKey,
+        id: idKey,
       } = useChat({
-        chatId,
+        id,
         onFinish: options => {
           onFinishCalls.push(options);
         },
@@ -55,18 +54,15 @@ describe('data protocol stream', () => {
           {error && <div data-testid="error">{error.toString()}</div>}
           <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
           <button
-            data-testid="do-append"
+            data-testid="do-send"
             onClick={() => {
-              append({
-                role: 'user',
-                parts: [{ text: 'hi', type: 'text' }],
-              });
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
             }}
           />
           <button
             data-testid="do-change-id"
             onClick={() => {
-              setChatId('second-id');
+              setId('second-id');
             }}
           />
         </div>
@@ -93,7 +89,7 @@ describe('data protocol stream', () => {
       ],
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await waitFor(() => {
       expect(
@@ -107,12 +103,11 @@ describe('data protocol stream', () => {
               type: 'text',
             },
           ],
-          id: 'id-1',
+          id: 'id-0',
         },
         {
-          id: 'id-2',
+          id: 'id-1',
           role: 'assistant',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -131,7 +126,7 @@ describe('data protocol stream', () => {
       controller,
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await waitFor(() => {
       expect(
@@ -145,7 +140,7 @@ describe('data protocol stream', () => {
               type: 'text',
             },
           ],
-          id: 'id-1',
+          id: 'id-0',
         },
       ]);
     });
@@ -158,7 +153,7 @@ describe('data protocol stream', () => {
       body: 'Not found',
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await screen.findByTestId('error');
     expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
@@ -172,7 +167,7 @@ describe('data protocol stream', () => {
       ],
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await screen.findByTestId('error');
     expect(screen.getByTestId('error')).toHaveTextContent(
@@ -189,7 +184,7 @@ describe('data protocol stream', () => {
         controller,
       };
 
-      await userEvent.click(screen.getByTestId('do-append'));
+      await userEvent.click(screen.getByTestId('do-send'));
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('submitted');
@@ -215,7 +210,7 @@ describe('data protocol stream', () => {
         body: 'Not found',
       };
 
-      await userEvent.click(screen.getByTestId('do-append'));
+      await userEvent.click(screen.getByTestId('do-send'));
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('error');
@@ -231,7 +226,7 @@ describe('data protocol stream', () => {
       controller,
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
     controller.write(formatStreamPart({ type: 'text', text: ',' }));
@@ -240,7 +235,7 @@ describe('data protocol stream', () => {
     controller.write(
       formatStreamPart({
         type: 'finish',
-        metadata: {
+        messageMetadata: {
           example: 'metadata',
         },
       }),
@@ -260,10 +255,10 @@ describe('data protocol stream', () => {
               type: 'text',
             },
           ],
-          id: 'id-1',
+          id: 'id-0',
         },
         {
-          id: 'id-2',
+          id: 'id-1',
           role: 'assistant',
           metadata: {
             example: 'metadata',
@@ -282,7 +277,7 @@ describe('data protocol stream', () => {
       [
         {
           "message": {
-            "id": "id-2",
+            "id": "id-1",
             "metadata": {
               "example": "metadata",
             },
@@ -311,14 +306,14 @@ describe('data protocol stream', () => {
         ],
       };
 
-      await userEvent.click(screen.getByTestId('do-append'));
+      await userEvent.click(screen.getByTestId('do-send'));
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "chatId": "id-0",
+          "id": "first-id-0",
           "messages": [
             {
-              "id": "id-1",
+              "id": "id-0",
               "parts": [
                 {
                   "text": "hi",
@@ -343,7 +338,7 @@ describe('data protocol stream', () => {
         ],
       };
 
-      await userEvent.click(screen.getByTestId('do-append'));
+      await userEvent.click(screen.getByTestId('do-send'));
 
       await waitFor(() => {
         expect(
@@ -360,8 +355,7 @@ describe('data protocol stream', () => {
             role: 'user',
           },
           {
-            id: 'id-2',
-            metadata: {},
+            id: 'id-1',
             parts: [
               {
                 text: 'Hello, world.',
@@ -383,16 +377,13 @@ describe('text stream', () => {
   let onFinishCalls: Array<{ message: UIMessage }> = [];
 
   setupTestComponent(() => {
-    const { messages, append } = useChat({
+    const { messages, sendMessage } = useChat({
       onFinish: options => {
         onFinishCalls.push(options);
       },
       generateId: mockId(),
-      chatStore: createChatStore({
-        transport: new TextStreamChatTransport({
-          api: '/api/chat',
-        }),
-        generateId: mockId(),
+      transport: new TextStreamChatTransport({
+        api: '/api/chat',
       }),
     });
 
@@ -413,9 +404,9 @@ describe('text stream', () => {
         ))}
 
         <button
-          data-testid="do-append-text-stream"
+          data-testid="do-send"
           onClick={() => {
-            append({
+            sendMessage({
               role: 'user',
               parts: [{ text: 'hi', type: 'text' }],
             });
@@ -435,7 +426,7 @@ describe('text stream', () => {
       chunks: ['Hello', ',', ' world', '.'],
     };
 
-    await userEvent.click(screen.getByTestId('do-append-text-stream'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await screen.findByTestId('message-0-content');
     expect(screen.getByTestId('message-0-content')).toHaveTextContent('hi');
@@ -454,7 +445,7 @@ describe('text stream', () => {
       controller,
     };
 
-    await userEvent.click(screen.getByTestId('do-append-text-stream'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     controller.write('He');
 
@@ -477,7 +468,7 @@ describe('text stream', () => {
       chunks: ['Hello', ',', ' world', '.'],
     };
 
-    await userEvent.click(screen.getByTestId('do-append-text-stream'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await screen.findByTestId('message-1-text-stream');
 
@@ -485,8 +476,8 @@ describe('text stream', () => {
       [
         {
           "message": {
-            "id": "id-1",
-            "metadata": {},
+            "id": "id-2",
+            "metadata": undefined,
             "parts": [
               {
                 "type": "step-start",
@@ -504,84 +495,20 @@ describe('text stream', () => {
   });
 });
 
-describe('form actions', () => {
-  setupTestComponent(() => {
-    const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat({
-        chatStore: createChatStore({
-          transport: new TextStreamChatTransport({
-            api: '/api/chat',
-          }),
-          generateId: mockId(),
-        }),
-      });
-
-    return (
-      <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join('')}
-          </div>
-        ))}
-
-        <form onSubmit={handleSubmit}>
-          <input
-            value={input}
-            placeholder="Send message..."
-            onChange={handleInputChange}
-            disabled={status !== 'ready'}
-            data-testid="do-input"
-          />
-        </form>
-      </div>
-    );
-  });
-
-  it('should show streamed response using handleSubmit', async () => {
-    server.urls['/api/chat'].response = [
-      {
-        type: 'stream-chunks',
-        chunks: ['Hello', ',', ' world', '.'],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: ['How', ' can', ' I', ' help', ' you', '?'],
-      },
-    ];
-
-    const firstInput = screen.getByTestId('do-input');
-    await userEvent.type(firstInput, 'hi');
-    await userEvent.keyboard('{Enter}');
-
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Hello, world.',
-    );
-
-    const secondInput = screen.getByTestId('do-input');
-    await userEvent.type(secondInput, '{Enter}');
-
-    expect(screen.queryByTestId('message-2')).not.toBeInTheDocument();
-  });
-});
-
-describe('prepareRequestBody', () => {
-  let bodyOptions: any;
+describe('prepareChatRequest', () => {
+  let options: any;
 
   setupTestComponent(() => {
-    const { messages, append, status } = useChat({
-      chatStore: defaultChatStoreOptions({
-        api: '/api/chat',
-        generateId: mockId({ prefix: 'msg' }),
-        prepareRequestBody(options) {
-          bodyOptions = options;
-          return 'test-request-body';
+    const { messages, sendMessage, status } = useChat({
+      transport: new DefaultChatTransport({
+        body: { 'body-key': 'body-value' },
+        headers: { 'header-key': 'header-value' },
+        prepareRequest(optionsArg) {
+          options = optionsArg;
+          return {
+            body: { 'request-body-key': 'request-body-value' },
+            headers: { 'header-key': 'header-value' },
+          };
         },
       }),
       generateId: mockId(),
@@ -600,15 +527,16 @@ describe('prepareRequestBody', () => {
         ))}
 
         <button
-          data-testid="do-append"
+          data-testid="do-send"
           onClick={() => {
-            append(
+            sendMessage(
               {
-                role: 'user',
                 parts: [{ text: 'hi', type: 'text' }],
               },
               {
                 body: { 'request-body-key': 'request-body-value' },
+                headers: { 'request-header-key': 'request-header-value' },
+                metadata: { 'request-metadata-key': 'request-metadata-value' },
               },
             );
           }}
@@ -618,7 +546,7 @@ describe('prepareRequestBody', () => {
   });
 
   afterEach(() => {
-    bodyOptions = undefined;
+    options = undefined;
   });
 
   it('should show streamed response', async () => {
@@ -632,17 +560,26 @@ describe('prepareRequestBody', () => {
       ],
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-    expect(bodyOptions).toMatchInlineSnapshot(`
+    expect(options).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "body": {
+          "body-key": "body-value",
+          "request-body-key": "request-body-value",
+        },
+        "credentials": undefined,
+        "headers": {
+          "header-key": "header-value",
+          "request-header-key": "request-header-value",
+        },
+        "id": "id-0",
         "messages": [
           {
-            "id": "msg-0",
+            "id": "id-1",
             "parts": [
               {
                 "text": "hi",
@@ -652,11 +589,23 @@ describe('prepareRequestBody', () => {
             "role": "user",
           },
         ],
-        "request-body-key": "request-body-value",
+        "requestMetadata": {
+          "request-metadata-key": "request-metadata-value",
+        },
       }
     `);
 
-    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "request-body-key": "request-body-value",
+      }
+    `);
+    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "content-type": "application/json",
+        "header-key": "header-value",
+      }
+    `);
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -670,7 +619,7 @@ describe('onToolCall', () => {
   let toolCallPromise: Promise<void>;
 
   setupTestComponent(() => {
-    const { messages, append } = useChat({
+    const { messages, sendMessage } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
@@ -683,19 +632,18 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {getToolInvocations(m).map((toolInvocation, toolIdx) => (
-              <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
-                {JSON.stringify(toolInvocation)}
+            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => (
+              <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
+                {JSON.stringify(toolPart)}
               </div>
             ))}
           </div>
         ))}
 
         <button
-          data-testid="do-append"
+          data-testid="do-send"
           onClick={() => {
-            append({
-              role: 'user',
+            sendMessage({
               parts: [{ text: 'hi', type: 'text' }],
             });
           }}
@@ -723,7 +671,7 @@ describe('onToolCall', () => {
       ],
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await screen.findByTestId('message-1');
     expect(
@@ -732,7 +680,7 @@ describe('onToolCall', () => {
       state: 'call',
       args: { testArg: 'test-value' },
       toolCallId: 'tool-call-0',
-      toolName: 'test-tool',
+      type: 'tool-test-tool',
     });
 
     resolve();
@@ -744,7 +692,7 @@ describe('onToolCall', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result:
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
       });
@@ -754,12 +702,8 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   setupTestComponent(() => {
-    const { messages, append, addToolResult } = useChat({
-      chatStore: defaultChatStoreOptions({
-        api: '/api/chat',
-        maxSteps: 5,
-        generateId: mockId(),
-      }),
+    const { messages, sendMessage, addToolResult } = useChat({
+      maxSteps: 5,
       generateId: mockId(),
     });
 
@@ -767,18 +711,18 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {getToolInvocations(m).map((toolInvocation, toolIdx) => {
+            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => {
               return (
                 <div key={toolIdx}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
-                    {JSON.stringify(toolInvocation)}
+                    {JSON.stringify(toolPart)}
                   </div>
-                  {toolInvocation.state === 'call' && (
+                  {toolPart.state === 'call' && (
                     <button
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
                         addToolResult({
-                          toolCallId: toolInvocation.toolCallId,
+                          toolCallId: toolPart.toolCallId,
                           result: 'test-result',
                         });
                       }}
@@ -800,10 +744,9 @@ describe('tool invocations', () => {
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <button
-          data-testid="do-append"
+          data-testid="do-send"
           onClick={() => {
-            append({
-              role: 'user',
+            sendMessage({
               parts: [{ text: 'hi', type: 'text' }],
             });
           }}
@@ -820,7 +763,7 @@ describe('tool invocations', () => {
       controller,
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     controller.write(
       formatStreamPart({
@@ -836,7 +779,7 @@ describe('tool invocations', () => {
       ).toStrictEqual({
         state: 'partial-call',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -854,7 +797,7 @@ describe('tool invocations', () => {
       ).toStrictEqual({
         state: 'partial-call',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         args: { testArg: 't' },
       });
     });
@@ -873,7 +816,7 @@ describe('tool invocations', () => {
       ).toStrictEqual({
         state: 'partial-call',
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         args: { testArg: 'test-value' },
       });
     });
@@ -894,7 +837,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -914,7 +857,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -927,7 +870,7 @@ describe('tool invocations', () => {
       controller,
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     controller.write(
       formatStreamPart({
@@ -945,7 +888,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -965,7 +908,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -978,7 +921,7 @@ describe('tool invocations', () => {
       controller,
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     controller.write(formatStreamPart({ type: 'start' }));
     controller.write(formatStreamPart({ type: 'start-step' }));
@@ -998,7 +941,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -1011,7 +954,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -1029,7 +972,7 @@ describe('tool invocations', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          id: 'id-0',
+          id: 'id-1',
           parts: [
             {
               text: 'hi',
@@ -1039,23 +982,17 @@ describe('tool invocations', () => {
           role: 'user',
         },
         {
-          id: 'id-1',
-          metadata: {},
+          id: 'id-2',
           parts: [
             {
               type: 'step-start',
             },
             {
-              toolInvocation: {
-                args: {
-                  testArg: 'test-value',
-                },
-                result: 'test-result',
-                state: 'result',
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
-              },
-              type: 'tool-invocation',
+              type: 'tool-test-tool',
+              toolCallId: 'tool-call-0',
+              args: { testArg: 'test-value' },
+              result: 'test-result',
+              state: 'result',
             },
             {
               text: 'more text',
@@ -1075,7 +1012,7 @@ describe('tool invocations', () => {
       { type: 'controlled-stream', controller: controller1 },
     ];
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     // start stream
     controller1.write(formatStreamPart({ type: 'start' }));
@@ -1098,7 +1035,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -1113,7 +1050,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -1142,7 +1079,7 @@ describe('tool invocations', () => {
       { type: 'controlled-stream', controller: controller2 },
     ];
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     // start stream
     controller1.write(formatStreamPart({ type: 'start' }));
@@ -1157,6 +1094,7 @@ describe('tool invocations', () => {
         args: { testArg: 'test-value' },
       }),
     );
+
     // finish stream
     controller1.write(formatStreamPart({ type: 'finish-step' }));
     controller1.write(formatStreamPart({ type: 'finish' }));
@@ -1169,7 +1107,7 @@ describe('tool invocations', () => {
         state: 'call',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
       });
     });
 
@@ -1184,7 +1122,7 @@ describe('tool invocations', () => {
         state: 'result',
         args: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
-        toolName: 'test-tool',
+        type: 'tool-test-tool',
         result: 'test-result',
       });
     });
@@ -1216,7 +1154,7 @@ describe('maxSteps', () => {
     let onToolCallInvoked = false;
 
     setupTestComponent(() => {
-      const { messages, append } = useChat({
+      const { messages, sendMessage } = useChat({
         async onToolCall({ toolCall }) {
           onToolCallInvoked = true;
 
@@ -1224,11 +1162,8 @@ describe('maxSteps', () => {
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatStore: defaultChatStoreOptions({
-          api: '/api/chat',
-          generateId: mockId(),
-          maxSteps: 5,
-        }),
+        generateId: mockId(),
+        maxSteps: 5,
       });
 
       return (
@@ -1242,12 +1177,9 @@ describe('maxSteps', () => {
           ))}
 
           <button
-            data-testid="do-append"
+            data-testid="do-send"
             onClick={() => {
-              append({
-                role: 'user',
-                parts: [{ text: 'hi', type: 'text' }],
-              });
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
             }}
           />
         </div>
@@ -1277,7 +1209,7 @@ describe('maxSteps', () => {
         },
       ];
 
-      await userEvent.click(screen.getByTestId('do-append'));
+      await userEvent.click(screen.getByTestId('do-send'));
 
       expect(onToolCallInvoked).toBe(true);
 
@@ -1290,18 +1222,15 @@ describe('maxSteps', () => {
     let onToolCallCounter = 0;
 
     setupTestComponent(() => {
-      const { messages, append, error } = useChat({
+      const { messages, sendMessage, error } = useChat({
         async onToolCall({ toolCall }) {
           onToolCallCounter++;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
           } ${JSON.stringify(toolCall.args)}`;
         },
-        chatStore: defaultChatStoreOptions({
-          api: '/api/chat',
-          generateId: mockId(),
-          maxSteps: 5,
-        }),
+        generateId: mockId(),
+        maxSteps: 5,
       });
 
       return (
@@ -1310,10 +1239,10 @@ describe('maxSteps', () => {
 
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
-              {getToolInvocations(m).map((toolInvocation, toolIdx) =>
-                'result' in toolInvocation ? (
-                  <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
-                    {toolInvocation.result}
+              {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) =>
+                toolPart.state === 'result' ? (
+                  <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
+                    {JSON.stringify(toolPart.result)}
                   </div>
                 ) : null,
               )}
@@ -1321,12 +1250,9 @@ describe('maxSteps', () => {
           ))}
 
           <button
-            data-testid="do-append"
+            data-testid="do-send"
             onClick={() => {
-              append({
-                role: 'user',
-                parts: [{ text: 'hi', type: 'text' }],
-              });
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
             }}
           />
         </div>
@@ -1357,7 +1283,7 @@ describe('maxSteps', () => {
         },
       ];
 
-      await userEvent.click(screen.getByTestId('do-append'));
+      await userEvent.click(screen.getByTestId('do-send'));
 
       await waitFor(() => {
         expect(screen.getByTestId('error')).toHaveTextContent(
@@ -1372,21 +1298,21 @@ describe('maxSteps', () => {
 
 describe('file attachments with data url', () => {
   setupTestComponent(() => {
-    const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat({
-        generateId: mockId(),
-      });
+    const { messages, status, sendMessage } = useChat({
+      generateId: mockId(),
+    });
 
     const [files, setFiles] = useState<FileList | undefined>(undefined);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [input, setInput] = useState('');
 
     return (
       <div>
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={event => {
-            handleSubmit(event, { files });
+          onSubmit={() => {
+            sendMessage({ text: input, files });
             setFiles(undefined);
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
@@ -1407,7 +1333,7 @@ describe('file attachments with data url', () => {
           />
           <input
             value={input}
-            onChange={handleInputChange}
+            onChange={e => setInput(e.target.value)}
             disabled={status !== 'ready'}
             data-testid="message-input"
           />
@@ -1448,7 +1374,7 @@ describe('file attachments with data url', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          id: 'id-0',
+          id: 'id-1',
           role: 'user',
           parts: [
             {
@@ -1464,8 +1390,7 @@ describe('file attachments with data url', () => {
           ],
         },
         {
-          id: 'id-1',
-          metadata: {},
+          id: 'id-2',
           parts: [
             {
               text: 'Response to message with text attachment',
@@ -1479,10 +1404,10 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
-            "id": "id-0",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.txt",
@@ -1532,7 +1457,7 @@ describe('file attachments with data url', () => {
       ).toStrictEqual([
         {
           role: 'user',
-          id: 'id-0',
+          id: 'id-1',
           parts: [
             {
               type: 'file',
@@ -1548,8 +1473,7 @@ describe('file attachments with data url', () => {
         },
         {
           role: 'assistant',
-          id: 'id-1',
-          metadata: {},
+          id: 'id-2',
           parts: [
             {
               type: 'text',
@@ -1562,10 +1486,10 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
-            "id": "id-0",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.png",
@@ -1588,18 +1512,20 @@ describe('file attachments with data url', () => {
 
 describe('file attachments with url', () => {
   setupTestComponent(() => {
-    const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat({
-        generateId: mockId(),
-      });
+    const { messages, sendMessage, status } = useChat({
+      generateId: mockId(),
+    });
+
+    const [input, setInput] = useState('');
 
     return (
       <div>
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={event => {
-            handleSubmit(event, {
+          onSubmit={() => {
+            sendMessage({
+              text: input,
               files: [
                 {
                   type: 'file',
@@ -1613,7 +1539,7 @@ describe('file attachments with url', () => {
         >
           <input
             value={input}
-            onChange={handleInputChange}
+            onChange={e => setInput(e.target.value)}
             disabled={status !== 'ready'}
             data-testid="message-input"
           />
@@ -1648,7 +1574,7 @@ describe('file attachments with url', () => {
       ).toStrictEqual([
         {
           role: 'user',
-          id: 'id-0',
+          id: 'id-1',
           parts: [
             {
               type: 'file',
@@ -1663,8 +1589,7 @@ describe('file attachments with url', () => {
         },
         {
           role: 'assistant',
-          id: 'id-1',
-          metadata: {},
+          id: 'id-2',
           parts: [
             {
               type: 'text',
@@ -1677,10 +1602,10 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
-            "id": "id-0",
+            "id": "id-1",
             "parts": [
               {
                 "mediaType": "image/png",
@@ -1702,7 +1627,7 @@ describe('file attachments with url', () => {
 
 describe('attachments with empty submit', () => {
   setupTestComponent(() => {
-    const { messages, handleSubmit } = useChat({
+    const { messages, sendMessage } = useChat({
       generateId: mockId(),
     });
 
@@ -1711,8 +1636,8 @@ describe('attachments with empty submit', () => {
         <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
-          onSubmit={event => {
-            handleSubmit(event, {
+          onSubmit={() => {
+            sendMessage({
               files: [
                 {
                   type: 'file',
@@ -1761,16 +1686,11 @@ describe('attachments with empty submit', () => {
               filename: 'test.png',
               url: 'https://example.com/image.png',
             },
-            {
-              type: 'text',
-              text: '',
-            },
           ],
         },
         {
           id: 'id-2',
           role: 'assistant',
-          metadata: {},
           parts: [
             {
               type: 'text',
@@ -1783,7 +1703,7 @@ describe('attachments with empty submit', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1794,10 +1714,6 @@ describe('attachments with empty submit', () => {
                 "type": "file",
                 "url": "https://example.com/image.png",
               },
-              {
-                "text": "",
-                "type": "text",
-              },
             ],
             "role": "user",
           },
@@ -1807,9 +1723,9 @@ describe('attachments with empty submit', () => {
   });
 });
 
-describe('should append message with attachments', () => {
+describe('should send message with attachments', () => {
   setupTestComponent(() => {
-    const { messages, append } = useChat({
+    const { messages, sendMessage } = useChat({
       generateId: mockId(),
     });
 
@@ -1821,8 +1737,7 @@ describe('should append message with attachments', () => {
           onSubmit={event => {
             event.preventDefault();
 
-            append({
-              role: 'user',
+            sendMessage({
               parts: [
                 {
                   type: 'file',
@@ -1881,7 +1796,6 @@ describe('should append message with attachments', () => {
         },
         {
           id: 'id-2',
-          metadata: {},
           parts: [
             {
               text: 'Response to message with image attachment',
@@ -1895,7 +1809,7 @@ describe('should append message with attachments', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -1920,7 +1834,7 @@ describe('should append message with attachments', () => {
 
 describe('reload', () => {
   setupTestComponent(() => {
-    const { messages, append, reload } = useChat({
+    const { messages, sendMessage, reload } = useChat({
       generateId: mockId(),
     });
 
@@ -1936,12 +1850,9 @@ describe('reload', () => {
         ))}
 
         <button
-          data-testid="do-append"
+          data-testid="do-send"
           onClick={() => {
-            append({
-              role: 'user',
-              parts: [{ text: 'hi', type: 'text' }],
-            });
+            sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
           }}
         />
 
@@ -1970,7 +1881,7 @@ describe('reload', () => {
       },
     ];
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
@@ -1982,7 +1893,7 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -2013,7 +1924,9 @@ describe('reload', () => {
 
 describe('test sending additional fields during message submission', () => {
   setupTestComponent(() => {
-    const { messages, append } = useChat({
+    type Message = UIMessage<{ test: string }>;
+
+    const { messages, sendMessage } = useChat<Message>({
       generateId: mockId(),
     });
 
@@ -2029,9 +1942,9 @@ describe('test sending additional fields during message submission', () => {
         ))}
 
         <button
-          data-testid="do-append"
+          data-testid="do-send"
           onClick={() => {
-            append({
+            sendMessage({
               role: 'user',
               metadata: { test: 'example' },
               parts: [{ text: 'hi', type: 'text' }],
@@ -2048,14 +1961,14 @@ describe('test sending additional fields during message submission', () => {
       chunks: [formatStreamPart({ type: 'text', text: 'first response' })],
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "chatId": "id-0",
+        "id": "id-0",
         "messages": [
           {
             "id": "id-1",
@@ -2081,24 +1994,16 @@ describe('resume ongoing stream and return assistant message', () => {
 
   setupTestComponent(
     () => {
-      const chatStore = createChatStore(
-        defaultChatStoreOptions({
-          api: '/api/chat',
-          generateId: mockId(),
-        })(),
-      );
-
-      chatStore.addChat('123', [
-        {
-          id: 'msg_123',
-          role: 'user',
-          parts: [{ type: 'text', text: 'hi' }],
-        },
-      ]);
-
       const { messages, status, experimental_resume } = useChat({
-        chatId: '123',
-        chatStore,
+        id: '123',
+        messages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
       });
 
       useEffect(() => {
@@ -2168,14 +2073,14 @@ describe('resume ongoing stream and return assistant message', () => {
 
       const { requestMethod, requestUrl } = mostRecentCall;
       expect(requestMethod).toBe('GET');
-      expect(requestUrl).toBe('http://localhost:3000/api/chat?chatId=123');
+      expect(requestUrl).toBe('http://localhost:3000/api/chat?id=123');
     });
   });
 });
 
 describe('stop', () => {
   setupTestComponent(() => {
-    const { messages, append, stop, status } = useChat({
+    const { messages, sendMessage, stop, status } = useChat({
       generateId: mockId(),
     });
 
@@ -2191,9 +2096,9 @@ describe('stop', () => {
         ))}
 
         <button
-          data-testid="do-append"
+          data-testid="do-send"
           onClick={() => {
-            append({
+            sendMessage({
               role: 'user',
               parts: [{ text: 'hi', type: 'text' }],
             });
@@ -2215,7 +2120,7 @@ describe('stop', () => {
       controller,
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
 
     controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
 
@@ -2245,7 +2150,7 @@ describe('experimental_throttle', () => {
   const throttleMs = 50;
 
   setupTestComponent(() => {
-    const { messages, append, status } = useChat({
+    const { messages, sendMessage, status } = useChat({
       experimental_throttle: throttleMs,
       generateId: mockId(),
     });
@@ -2262,12 +2167,9 @@ describe('experimental_throttle', () => {
           </div>
         ))}
         <button
-          data-testid="do-append"
+          data-testid="do-send"
           onClick={() => {
-            append({
-              role: 'user',
-              parts: [{ text: 'hi', type: 'text' }],
-            });
+            sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
           }}
         />
       </div>
@@ -2282,7 +2184,7 @@ describe('experimental_throttle', () => {
       controller,
     };
 
-    await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-send'));
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     vi.useFakeTimers();

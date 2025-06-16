@@ -1,24 +1,18 @@
-import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
-
-/**
-Tool invocations are either tool calls or tool results. For each assistant tool call,
-there is one tool invocation. While the call is in progress, the invocation is a tool call.
-Once the call is complete, the invocation is a tool result.
-
-The step is used to track how to map an assistant UI message with many tool invocations
-back to a sequence of LLM assistant/tool result message pairs.
-It is optional for backwards compatibility.
- */
-export type ToolInvocation =
-  | ({ state: 'partial-call' } & ToolCall<string, any>)
-  | ({ state: 'call' } & ToolCall<string, any>)
-  | ({ state: 'result' } & ToolResult<string, any, any>);
 
 /**
 The data types that can be used in the UI message for the UI message data parts.
  */
 export type UIDataTypes = Record<string, unknown>;
+
+export type UITools = Record<
+  string,
+  {
+    args: unknown;
+    result: unknown | undefined;
+  }
+>;
 
 /**
 AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
@@ -26,6 +20,7 @@ AI SDK UI Messages. They are used in the client and to communicate between the f
 export interface UIMessage<
   METADATA = unknown,
   DATA_PARTS extends UIDataTypes = UIDataTypes,
+  TOOLS extends UITools = UITools,
 > {
   /**
 A unique identifier for the message.
@@ -52,25 +47,21 @@ User messages can have text parts and file parts.
 
 Assistant messages can have text, reasoning, tool invocation, and file parts.
    */
-  parts: Array<UIMessagePart<DATA_PARTS>>;
+  parts: Array<UIMessagePart<DATA_PARTS, TOOLS>>;
 }
 
-export type UIMessagePart<DATA_TYPES extends UIDataTypes> =
+export type UIMessagePart<
+  DATA_TYPES extends UIDataTypes,
+  TOOLS extends UITools,
+> =
   | TextUIPart
   | ReasoningUIPart
-  | ToolInvocationUIPart
+  | ToolUIPart<TOOLS>
   | SourceUrlUIPart
+  | SourceDocumentUIPart
   | FileUIPart
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
-
-export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
-  [NAME in keyof DATA_TYPES & string]: {
-    type: `data-${NAME}`;
-    id?: string;
-    data: DATA_TYPES[NAME];
-  };
-}>;
 
 /**
  * A text part of a message.
@@ -102,18 +93,6 @@ export type ReasoningUIPart = {
 };
 
 /**
- * A tool invocation part of a message.
- */
-export type ToolInvocationUIPart = {
-  type: 'tool-invocation';
-
-  /**
-   * The tool invocation.
-   */
-  toolInvocation: ToolInvocation;
-};
-
-/**
  * A source part of a message.
  */
 export type SourceUrlUIPart = {
@@ -121,6 +100,18 @@ export type SourceUrlUIPart = {
   sourceId: string;
   url: string;
   title?: string;
+  providerMetadata?: Record<string, any>;
+};
+
+/**
+ * A document source part of a message.
+ */
+export type SourceDocumentUIPart = {
+  type: 'source-document';
+  sourceId: string;
+  mediaType: string;
+  title: string;
+  filename?: string;
   providerMetadata?: Record<string, any>;
 };
 
@@ -156,9 +147,52 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateUIMessage<
-  METADATA = unknown,
-  DATA_TYPES extends UIDataTypes = UIDataTypes,
-> = Omit<UIMessage<METADATA, DATA_TYPES>, 'id'> & {
-  id?: UIMessage<METADATA, DATA_TYPES>['id'];
-};
+export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
+  [NAME in keyof DATA_TYPES & string]: {
+    type: `data-${NAME}`;
+    id?: string;
+    data: DATA_TYPES[NAME];
+  };
+}>;
+
+export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
+  [NAME in keyof TOOLS & string]: {
+    type: `tool-${NAME}`;
+    toolCallId: string;
+  } & (
+    | {
+        state: 'partial-call';
+        args: DeepPartial<TOOLS[NAME]['args']>;
+      }
+    | {
+        state: 'call';
+        args: TOOLS[NAME]['args'];
+      }
+    | {
+        state: 'result';
+        args: TOOLS[NAME]['args'];
+        result: TOOLS[NAME]['result'];
+      }
+  );
+}>;
+
+export function isToolUIPart<TOOLS extends UITools>(
+  part: UIMessagePart<UIDataTypes, TOOLS>,
+): part is ToolUIPart<TOOLS> {
+  return part.type.startsWith('tool-');
+}
+
+export function getToolName<TOOLS extends UITools>(
+  part: ToolUIPart<TOOLS>,
+): keyof TOOLS {
+  return part.type.split('-')[1] as keyof TOOLS;
+}
+
+export type InferUIMessageMetadata<T extends UIMessage> =
+  T extends UIMessage<infer METADATA> ? METADATA : unknown;
+
+export type InferUIMessageData<T extends UIMessage> =
+  T extends UIMessage<unknown, infer DATA_TYPES> ? DATA_TYPES : UIDataTypes;
+
+export type InferUIMessageTools<T extends UIMessage> =
+  T extends UIMessage<unknown, UIDataTypes, infer TOOLS> ? TOOLS : UITools;

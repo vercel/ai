@@ -1,9 +1,35 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, stepCountIs, streamText, tool } from 'ai';
+import {
+  convertToModelMessages,
+  stepCountIs,
+  streamText,
+  tool,
+  UIDataTypes,
+  UIMessage,
+} from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+
+export type UseChatToolsMessage = UIMessage<
+  never,
+  UIDataTypes,
+  {
+    getWeatherInformation: {
+      args: { city: string };
+      result: string;
+    };
+    askForConfirmation: {
+      args: { message: string };
+      result: string;
+    };
+    getLocation: {
+      args: {};
+      result: string;
+    };
+  }
+>;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -12,7 +38,6 @@ export async function POST(req: Request) {
     model: openai('gpt-4o'),
     // model: anthropic('claude-3-5-sonnet-latest'),
     messages: convertToModelMessages(messages),
-    toolCallStreaming: true,
     stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
@@ -27,6 +52,16 @@ export async function POST(req: Request) {
           return weatherOptions[
             Math.floor(Math.random() * weatherOptions.length)
           ];
+        },
+
+        onArgsStreamingStart: () => {
+          console.log('onArgsStreamingStart');
+        },
+        onArgsStreamingDelta: ({ argsTextDelta }) => {
+          console.log('onArgsStreamingDelta', argsTextDelta);
+        },
+        onArgsAvailable: ({ args }) => {
+          console.log('onArgsAvailable', args);
         },
       }),
       // client-side tool that starts user interaction:
