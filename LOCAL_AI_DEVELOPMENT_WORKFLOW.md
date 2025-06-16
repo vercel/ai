@@ -35,7 +35,7 @@ cd packages/ai
 pnpm pack
 ```
 
-This creates a file like `ai-4.3.16.tgz` (version may vary).
+This creates a file like `ai-4.3.17.tgz` (version may vary).
 
 ### 4. Copy Tarball to Main Project
 
@@ -55,22 +55,17 @@ Update `package.json` to use the new tarball:
 ```json
 {
   "dependencies": {
-    "ai": "./ai-sdk/ai-4.3.16.tgz"
+    "ai": "./ai-sdk/ai-4.3.17.tgz"
   }
 }
 ```
 
-Replace `4.3.16` with the actual version number from your tarball.
+Replace `4.3.17` with the actual version number from your tarball.
 
 ### 6. Clean Installation
 
 Remove existing node_modules and lockfile, then reinstall:
-```bash
-rm -rf node_modules package-lock.json
-npm install
-```
 
-Or if using pnpm:
 ```bash
 rm -rf node_modules pnpm-lock.yaml
 pnpm install
@@ -95,15 +90,7 @@ git commit -m "feat: your feature description"
 git push origin your-branch-name
 ```
 
-### Use Fork in Production
-Update your main project's `package.json`:
-```json
-{
-  "dependencies": {
-    "ai": "github:eliaweiss/ai#your-branch-name"
-  }
-}
-```
+
 
 **Note**: GitHub installation may have issues with monorepo structure. The tarball method is more reliable for development.
 
@@ -148,7 +135,7 @@ chmod +x update-ai.sh
 
 2. **Testing**: Always test your changes in the AI package before deploying to your main project.
 
-3. **Backup**: Keep your tarball files with descriptive names (e.g., `ai-4.3.16-onUpdateToolsList.tgz`) for version tracking.
+3. **Backup**: Keep your tarball files with descriptive names (e.g., `ai-4.3.17-onUpdateToolsList.tgz`) for version tracking.
 
 4. **Git Workflow**: Consider creating feature branches in your fork for different modifications.
 
