@@ -60,6 +60,17 @@ Format: cachedContents/{cachedContent}
   structuredOutputs?: boolean;
 
   /**
+   * Optional. Media resolution used for vision capabilities.
+   *
+   * @see https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig#FIELDS.media_resolution
+   */
+  mediaResolution?:
+    | 'MEDIA_RESOLUTION_UNSPECIFIED'
+    | 'MEDIA_RESOLUTION_LOW'
+    | 'MEDIA_RESOLUTION_MEDIUM'
+    | 'MEDIA_RESOLUTION_HIGH';
+
+  /**
 Optional. A list of unique safety settings for blocking unsafe content.
    */
   safetySettings?: Array<{
