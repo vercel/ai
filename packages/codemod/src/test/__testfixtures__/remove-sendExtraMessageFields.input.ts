@@ -1,5 +1,7 @@
 // @ts-nocheck
 
+/* eslint react-hooks/rules-of-hooks: "off" */
+
 import { useChat } from '@ai-sdk/react';
 
 // Basic case with sendExtraMessageFields: true
