@@ -4,6 +4,7 @@ import { ToolResultContent } from '../prompt/tool-result-content';
 import { CoreMessage } from '../prompt/message';
 
 export type ToolParameters = z.ZodTypeAny | Schema<any>;
+export type PromptParameters = z.ZodTypeAny | Schema<any>;
 
 export type inferParameters<PARAMETERS extends ToolParameters> =
   PARAMETERS extends Schema<any>
