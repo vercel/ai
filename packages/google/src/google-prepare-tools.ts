@@ -77,7 +77,10 @@ export function prepareTools({
 
   const functionDeclarations = [];
   for (const tool of tools) {
-    if (tool.type === 'provider-defined-client') {
+    if (
+      tool.type === 'provider-defined-client' ||
+      tool.type === 'provider-defined-server'
+    ) {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
       functionDeclarations.push({

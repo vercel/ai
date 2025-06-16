@@ -129,6 +129,22 @@ The arguments for configuring the tool. Must match the expected arguments define
      */
         args: Record<string, unknown>;
       }
+    | {
+        /**
+Provider-defined-server tool.
+     */
+        type: 'provider-defined-server';
+
+        /**
+The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
+     */
+        id: `${string}.${string}`;
+
+        /**
+The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
+     */
+        args: Record<string, unknown>;
+      }
   );
 
 /**

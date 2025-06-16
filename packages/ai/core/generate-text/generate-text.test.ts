@@ -2,6 +2,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
   LanguageModelV2ProviderDefinedClientTool,
+  LanguageModelV2ProviderDefinedServerTool,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -1364,6 +1365,7 @@ describe('options.activeTools', () => {
       | (
           | LanguageModelV2FunctionTool
           | LanguageModelV2ProviderDefinedClientTool
+          | LanguageModelV2ProviderDefinedServerTool
         )[]
       | undefined;
 
