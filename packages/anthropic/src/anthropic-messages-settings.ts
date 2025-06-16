@@ -1,6 +1,8 @@
 // https://docs.anthropic.com/claude/docs/models-overview
 export type AnthropicMessagesModelId =
+  | 'claude-opus-4-0'
   | 'claude-4-opus-20250514'
+  | 'claude-sonnet-4-0'
   | 'claude-4-sonnet-20250514'
   | 'claude-3-7-sonnet-20250219'
   | 'claude-3-5-sonnet-latest'
