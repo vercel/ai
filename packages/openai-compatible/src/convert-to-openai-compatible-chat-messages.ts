@@ -36,7 +36,7 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'user',
-          content: content.map(part => {
+          content: content.map((part, index) => {
             const partMetadata = getOpenAIMetadata(part);
             switch (part.type) {
               case 'text': {
@@ -57,9 +57,45 @@ export function convertToOpenAICompatibleChatMessages(
                 };
               }
               case 'file': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'File content parts in user messages',
-                });
+                if (part.data instanceof URL) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality:
+                      "'File content parts with URL data' functionality not supported.",
+                  });
+                }
+
+                switch (part.mimeType) {
+                  case 'audio/wav': {
+                    return {
+                      type: 'input_audio',
+                      input_audio: { data: part.data, format: 'wav' },
+                    };
+                  }
+                  case 'audio/mp3':
+                  case 'audio/mpeg': {
+                    return {
+                      type: 'input_audio',
+                      input_audio: { data: part.data, format: 'mp3' },
+                    };
+                  }
+                  case 'application/pdf': {
+                    return {
+                      type: 'file',
+                      file: {
+                        filename: part.filename ?? `part-${index}.pdf`,
+                        file_data:
+                          typeof part.data === 'string'
+                            ? `data:application/pdf;base64,${part.data}`
+                            : `data:application/pdf;base64,${convertUint8ArrayToBase64(part.data)}`,
+                      },
+                    };
+                  }
+                  default: {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `File content part type ${part.mimeType} in user messages`,
+                    });
+                  }
+                }
               }
             }
           }),
