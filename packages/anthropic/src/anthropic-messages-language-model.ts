@@ -32,6 +32,8 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { AnthropicTool } from './anthropic-api-types';
+import { LanguageModelV2ProviderDefinedServerTool } from '@ai-sdk/provider';
 
 const citationSchemas = {
   webSearchResult: z.object({
@@ -318,30 +320,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
     }
 
-    let modifiedTools = tools;
-    let modifiedToolChoice = toolChoice;
-
-    if (anthropicOptions?.webSearch) {
-      const webSearchTool: any = {
-        type: 'web_search_20250305',
-        name: 'web_search',
-        max_uses: anthropicOptions.webSearch.maxUses,
-        allowed_domains: anthropicOptions.webSearch.allowedDomains,
-        blocked_domains: anthropicOptions.webSearch.blockedDomains,
-        ...(anthropicOptions.webSearch.userLocation && {
-          user_location: {
-            type: anthropicOptions.webSearch.userLocation.type,
-            country: anthropicOptions.webSearch.userLocation.country,
-            city: anthropicOptions.webSearch.userLocation.city,
-            region: anthropicOptions.webSearch.userLocation.region,
-            timezone: anthropicOptions.webSearch.userLocation.timezone,
-          },
-        }),
-      };
-
-      modifiedTools = tools ? [...tools, webSearchTool] : [webSearchTool];
-    }
-
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -353,7 +331,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
           }
-        : { tools: modifiedTools, toolChoice: modifiedToolChoice },
+        : { tools: tools ?? [], toolChoice },
     );
 
     return {

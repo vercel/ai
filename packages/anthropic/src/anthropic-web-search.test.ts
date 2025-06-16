@@ -10,7 +10,7 @@ const TEST_PROMPT = [
   },
 ];
 
-describe('Anthropic Web Search', () => {
+describe('Anthropic Web Search Server-Side Tool', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
   });
@@ -27,74 +27,131 @@ describe('Anthropic Web Search', () => {
     };
   }
 
-  it('should add web search tool when webSearch provider option is provided', async () => {
+  it('should enable server-side web search when using anthropic.tools.webSearch_20250305', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
-      content: [{ type: 'text', text: 'Here are the latest news articles.' }],
+      content: [
+        {
+          type: 'text',
+          text: 'Here are the latest quantum computing breakthroughs.',
+        },
+      ],
       stop_reason: 'end_turn',
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
-      providerOptions: {
-        anthropic: {
-          webSearch: {
+      tools: [
+        {
+          type: 'provider-defined-server',
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {
             maxUses: 3,
-            allowedDomains: ['news.com', 'bbc.com'],
+            allowedDomains: ['arxiv.org', 'nature.com', 'mit.edu'],
           },
         },
-      },
+      ],
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toHaveLength(1);
+
     expect(requestBody.tools[0]).toEqual({
       type: 'web_search_20250305',
       name: 'web_search',
       max_uses: 3,
-      allowed_domains: ['news.com', 'bbc.com'],
+      allowed_domains: ['arxiv.org', 'nature.com', 'mit.edu'],
     });
   });
 
-  it('should add web search tool with user location', async () => {
+  it('should pass web search configuration with blocked domains', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
-      content: [{ type: 'text', text: 'Here are local news.' }],
+      content: [
+        { type: 'text', text: 'Here are the latest stock market trends.' },
+      ],
       stop_reason: 'end_turn',
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
-      providerOptions: {
-        anthropic: {
-          webSearch: {
-            userLocation: {
-              type: 'approximate',
-              city: 'San Francisco',
-              region: 'California',
-              country: 'US',
-              timezone: 'America/Los_Angeles',
-            },
+      tools: [
+        {
+          type: 'provider-defined-server',
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {
+            maxUses: 2,
+            blockedDomains: ['reddit.com'],
           },
         },
-      },
+      ],
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.tools[0].user_location).toEqual({
-      type: 'approximate',
-      city: 'San Francisco',
-      region: 'California',
-      country: 'US',
-      timezone: 'America/Los_Angeles',
+    expect(requestBody.tools).toHaveLength(1);
+
+    expect(requestBody.tools[0]).toEqual({
+      type: 'web_search_20250305',
+      name: 'web_search',
+      max_uses: 2,
+      blocked_domains: ['reddit.com'],
     });
   });
 
-  it('should handle web search results with citations', async () => {
+  it('should handle web search with user location', async () => {
+    prepareJsonResponse({
+      type: 'message',
+      id: 'msg_test',
+      content: [{ type: 'text', text: 'Here are local tech events.' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 10, output_tokens: 20 },
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined-server',
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {
+            maxUses: 1,
+            userLocation: {
+              type: 'approximate',
+              city: 'New York',
+              region: 'New York',
+              country: 'US',
+              timezone: 'America/New_York',
+            },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools).toHaveLength(1);
+
+    expect(requestBody.tools[0]).toEqual({
+      type: 'web_search_20250305',
+      name: 'web_search',
+      max_uses: 1,
+      user_location: {
+        type: 'approximate',
+        city: 'New York',
+        region: 'New York',
+        country: 'US',
+        timezone: 'America/New_York',
+      },
+    });
+  });
+
+  it('should handle server-side web search results with citations', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
@@ -133,11 +190,16 @@ describe('Anthropic Web Search', () => {
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
-      providerOptions: {
-        anthropic: {
-          webSearch: { maxUses: 5 },
+      tools: [
+        {
+          type: 'provider-defined-server',
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {
+            maxUses: 5,
+          },
         },
-      },
+      ],
     });
 
     expect(result.content).toHaveLength(2);
@@ -162,7 +224,7 @@ describe('Anthropic Web Search', () => {
     });
   });
 
-  it('should handle web search errors', async () => {
+  it('should handle server-side web search errors', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
@@ -188,20 +250,25 @@ describe('Anthropic Web Search', () => {
     await expect(() =>
       model.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          anthropic: {
-            webSearch: { maxUses: 1 },
+        tools: [
+          {
+            type: 'provider-defined-server',
+            id: 'anthropic.web_search_20250305',
+            name: 'web_search',
+            args: {
+              maxUses: 1,
+            },
           },
-        },
+        ],
       }),
     ).rejects.toThrow(APICallError);
   });
 
-  it('should combine web search with regular tools', async () => {
+  it('should work alongside regular client-side tools', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
-      content: [{ type: 'text', text: 'I can search and use tools.' }],
+      content: [{ type: 'text', text: 'I can search and calculate.' }],
       stop_reason: 'end_turn',
       usage: { input_tokens: 10, output_tokens: 20 },
     });
@@ -215,27 +282,30 @@ describe('Anthropic Web Search', () => {
           description: 'Calculate math',
           parameters: { type: 'object', properties: {} },
         },
-      ],
-      providerOptions: {
-        anthropic: {
-          webSearch: { maxUses: 2 },
+        {
+          type: 'provider-defined-server',
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {
+            maxUses: 1,
+          },
         },
-      },
+      ],
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toHaveLength(2);
 
-    expect(requestBody.tools[1]).toEqual({
-      type: 'web_search_20250305',
-      name: 'web_search',
-      max_uses: 2,
-    });
-
     expect(requestBody.tools[0]).toEqual({
       name: 'calculator',
       description: 'Calculate math',
       input_schema: { type: 'object', properties: {} },
+    });
+
+    expect(requestBody.tools[1]).toEqual({
+      type: 'web_search_20250305',
+      name: 'web_search',
+      max_uses: 1,
     });
   });
 });
