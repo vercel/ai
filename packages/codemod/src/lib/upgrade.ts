@@ -35,6 +35,7 @@ const bundle = [
   'rename-parse-stream-part',
   'rename-reasoning-to-reasoningText',
   'rename-request-options',
+  'rename-reasoning-properties',
   'replace-baseurl',
   'replace-bedrock-snake-case',
   'replace-content-with-parts',
