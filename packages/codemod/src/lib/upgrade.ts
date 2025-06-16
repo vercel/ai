@@ -44,6 +44,7 @@ const bundle = [
   'replace-llamaindex-adapter',
   'replace-nanoid',
   'replace-oncompletion-with-onfinal',
+  'replace-provider-metadata-with-provider-options',
   'replace-rawresponse-with-response',
   'replace-redacted-reasoning-type',
   'replace-roundtrips-with-maxsteps',
