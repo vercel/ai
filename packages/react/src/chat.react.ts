@@ -18,8 +18,6 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
   #statusCallbacks = new Set<() => void>();
   #errorCallbacks = new Set<() => void>();
 
-  #clonedMessages = new WeakMap();
-
   constructor(initialMessages: UI_MESSAGE[] = []) {
     this.#messages = initialMessages;
   }
