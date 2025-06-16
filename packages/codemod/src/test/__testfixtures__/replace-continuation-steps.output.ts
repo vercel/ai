@@ -7,20 +7,20 @@ import { generateText as otherGen } from 'other-pkg';
 const result = await generateText({
   model,
   prompt: 'Hello',
-  experimental_continueSteps: true
+  experimental_continueSteps: true,
 });
 
 // Should rename - aliased import
 await genText({
-  experimental_continueSteps: false
+  experimental_continueSteps: false,
 });
 
 // Should NOT rename - different package
 await otherGen({
-  experimental_continuationSteps: true
+  experimental_continuationSteps: true,
 });
 
 // Should NOT rename - not in generateText call
 const config = {
-  experimental_continuationSteps: true
+  experimental_continuationSteps: true,
 };

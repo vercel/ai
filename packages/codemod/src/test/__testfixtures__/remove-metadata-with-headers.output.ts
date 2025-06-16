@@ -12,7 +12,7 @@ async function processResult() {
   const result = await generateObject({
     model,
     schema: schema,
-    prompt: 'test'
+    prompt: 'test',
   });
 
   // Save response metadata to variable
@@ -25,7 +25,7 @@ async function processResult() {
   const responseData: LanguageModelResponseMetadata = {
     id: result.response.id,
     timestamp: result.response.timestamp,
-    headers: result.response.headers
+    headers: result.response.headers,
   };
 
   return { metadata, headers, responseData };
@@ -38,5 +38,5 @@ type OtherMetadata = MetadataWithHeaders;
 const data: LanguageModelResponseMetadata = {
   id: 'test',
   timestamp: new Date(),
-  headers: {}
+  headers: {},
 };
