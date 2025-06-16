@@ -114,8 +114,6 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
 
   maxSteps?: number;
 
-  resume?: boolean;
-
   /**
    * Callback function to be called when an error is encountered.
    */
@@ -175,7 +173,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onError,
     onToolCall,
     onFinish,
-    resume = false,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
@@ -189,10 +186,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onError = onError;
     this.onToolCall = onToolCall;
     this.onFinish = onFinish;
-
-    if (resume) {
-      this.triggerRequest({ requestType: 'resume' });
-    }
   }
 
   /**
@@ -312,6 +305,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     await this.triggerRequest({ requestType: 'generate', ...options });
+  };
+
+  /**
+   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
+   */
+  experimental_resume = async (
+    options: ChatRequestOptions = {},
+  ): Promise<void> => {
+    await this.triggerRequest({ requestType: 'resume', ...options });
   };
 
   addToolResult = async ({
