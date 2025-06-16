@@ -10,13 +10,13 @@ export type StreamingToolCallsMessage = UIMessage<
   UIDataTypes,
   {
     showWeatherInformation: {
-      args: {
+      input: {
         city: string;
         weather: string;
         temperature: number;
         typicalWeather: string;
       };
-      result: string;
+      output: string;
     };
   }
 >;
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       // server-side tool with execute function:
       getWeatherInformation: {
         description: 'show the weather in a given city to the user',
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
         execute: async ({}: { city: string }) => {
           const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
           return {
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       showWeatherInformation: {
         description:
           'Show the weather information to the user. Always use this tool to tell weather information to the user.',
-        parameters: z.object({
+        inputSchema: z.object({
           city: z.string(),
           weather: z.string(),
           temperature: z.number(),

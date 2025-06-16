@@ -11,7 +11,7 @@ async function main() {
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => {
           const locations = ['New York', 'London', 'Paris'];
           return {
@@ -38,14 +38,14 @@ async function main() {
 
       case 'tool-call': {
         console.log(
-          `TOOL CALL ${chunk.toolName} ${JSON.stringify(chunk.args)}`,
+          `TOOL CALL ${chunk.toolName} ${JSON.stringify(chunk.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
         console.log(
-          `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.result)}`,
+          `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.output)}`,
         );
         break;
       }

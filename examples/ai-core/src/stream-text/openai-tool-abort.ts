@@ -12,7 +12,7 @@ async function main() {
     tools: {
       currentLocation: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }, { abortSignal }) => {

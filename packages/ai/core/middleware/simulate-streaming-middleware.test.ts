@@ -238,14 +238,14 @@ describe('simulateStreamingMiddleware', () => {
               type: 'tool-call',
               toolCallId: 'tool-1',
               toolName: 'calculator',
-              args: '{"expression": "2+2"}',
+              input: '{"expression": "2+2"}',
               toolCallType: 'function',
             },
             {
               type: 'tool-call',
               toolCallId: 'tool-2',
               toolName: 'weather',
-              args: '{"location": "New York"}',
+              input: '{"location": "New York"}',
               toolCallType: 'function',
             },
           ],
@@ -263,12 +263,12 @@ describe('simulateStreamingMiddleware', () => {
       }),
       tools: {
         calculator: tool({
-          parameters: jsonSchema<{ expression: string }>({
+          inputSchema: jsonSchema<{ expression: string }>({
             type: 'object',
           }),
         }),
         weather: tool({
-          parameters: jsonSchema<{ location: string }>({
+          inputSchema: jsonSchema<{ location: string }>({
             type: 'object',
           }),
         }),

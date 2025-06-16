@@ -82,7 +82,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV2Prompt): {
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
               });
               break;
@@ -104,7 +104,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV2Prompt): {
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.result),
+            content: JSON.stringify(toolResponse.output),
           });
         }
         break;

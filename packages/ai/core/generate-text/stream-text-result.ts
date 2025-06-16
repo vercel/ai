@@ -329,7 +329,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'tool-call-delta';
       toolCallId: string;
       toolName: string;
-      argsTextDelta: string;
+      inputTextDelta: string;
     }
   | {
       type: 'start-step';

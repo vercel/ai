@@ -258,7 +258,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           toolCallType: 'function',
           toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
           toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
-          args: JSON.stringify(part.toolUse?.input ?? ''),
+          input: JSON.stringify(part.toolUse?.input ?? ''),
         });
       }
     }
@@ -506,7 +506,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 toolCallType: 'function',
                 toolCallId: contentBlock.toolCallId,
                 toolName: contentBlock.toolName,
-                argsTextDelta: delta,
+                inputTextDelta: delta,
               });
 
               contentBlock.jsonText += delta;
@@ -524,7 +524,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                   toolCallType: 'function',
                   toolCallId: contentBlock.toolCallId,
                   toolName: contentBlock.toolName,
-                  args: contentBlock.jsonText,
+                  input: contentBlock.jsonText,
                 });
 
                 delete toolCallContentBlocks[index];

@@ -17,7 +17,7 @@ exports[`appendResponseMessages > after assistant message > adds assistant text 
     "parts": [
       {
         "toolInvocation": {
-          "args": {
+          "input": {
             "query": "some query",
           },
           "result": {
@@ -60,7 +60,7 @@ exports[`appendResponseMessages > after assistant message > adds assistant tool 
     "parts": [
       {
         "toolInvocation": {
-          "args": {
+          "input": {
             "query": "some query",
           },
           "result": {
@@ -78,7 +78,7 @@ exports[`appendResponseMessages > after assistant message > adds assistant tool 
       },
       {
         "toolInvocation": {
-          "args": {
+          "input": {
             "query": "another query",
           },
           "state": "call",
@@ -111,7 +111,7 @@ exports[`appendResponseMessages > after assistant message > adds tool results to
     "parts": [
       {
         "toolInvocation": {
-          "args": {
+          "input": {
             "query": "some query",
           },
           "result": {
@@ -151,7 +151,7 @@ exports[`appendResponseMessages > after assistant message > appends assistant me
       },
       {
         "toolInvocation": {
-          "args": {
+          "input": {
             "query": "some query",
           },
           "result": {
@@ -220,7 +220,7 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
       },
       {
         "toolInvocation": {
-          "args": {
+          "input": {
             "query": "some query",
           },
           "result": {
@@ -238,7 +238,7 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
       },
       {
         "toolInvocation": {
-          "args": {
+          "input": {
             "query": "another query",
           },
           "result": {
@@ -399,7 +399,7 @@ exports[`appendResponseMessages > after user message > handles tool calls and ma
       },
       {
         "toolInvocation": {
-          "args": {
+          "input": {
             "query": "some query",
           },
           "state": "call",

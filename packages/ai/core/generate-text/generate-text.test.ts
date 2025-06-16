@@ -130,7 +130,7 @@ describe('result.content', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             { type: 'text', text: 'More text' },
           ],
@@ -139,7 +139,7 @@ describe('result.content', () => {
       prompt: 'prompt',
       tools: {
         tool1: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
           execute: async args => {
             expect(args).toStrictEqual({ value: 'value' });
             return 'result1';
@@ -183,7 +183,7 @@ describe('result.content', () => {
           "type": "reasoning",
         },
         {
-          "args": {
+          "input": {
             "value": "value",
           },
           "toolCallId": "call-1",
@@ -195,10 +195,10 @@ describe('result.content', () => {
           "type": "text",
         },
         {
-          "args": {
+          "input": {
             "value": "value",
           },
-          "result": "result1",
+          "output": "result1",
           "toolCallId": "call-1",
           "toolName": "tool1",
           "type": "tool-result",
@@ -311,7 +311,7 @@ describe('result.toolCalls', () => {
               type: 'function',
               name: 'tool1',
               description: undefined,
-              parameters: {
+              inputSchema: {
                 $schema: 'http://json-schema.org/draft-07/schema#',
                 additionalProperties: false,
                 properties: { value: { type: 'string' } },
@@ -323,7 +323,7 @@ describe('result.toolCalls', () => {
               type: 'function',
               name: 'tool2',
               description: undefined,
-              parameters: {
+              inputSchema: {
                 $schema: 'http://json-schema.org/draft-07/schema#',
                 additionalProperties: false,
                 properties: { somethingElse: { type: 'string' } },
@@ -351,7 +351,7 @@ describe('result.toolCalls', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
             ],
           };
@@ -359,11 +359,11 @@ describe('result.toolCalls', () => {
       }),
       tools: {
         tool1: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
         },
         // 2nd tool to show typing:
         tool2: {
-          parameters: z.object({ somethingElse: z.string() }),
+          inputSchema: z.object({ somethingElse: z.string() }),
         },
       },
       toolChoice: 'required',
@@ -372,7 +372,7 @@ describe('result.toolCalls', () => {
 
     // test type inference
     if (result.toolCalls[0].toolName === 'tool1') {
-      assertType<string>(result.toolCalls[0].args.value);
+      assertType<string>(result.toolCalls[0].input.value);
     }
 
     expect(result.toolCalls).toStrictEqual([
@@ -380,7 +380,7 @@ describe('result.toolCalls', () => {
         type: 'tool-call',
         toolCallId: 'call-1',
         toolName: 'tool1',
-        args: { value: 'value' },
+        input: { value: 'value' },
       },
     ]);
   });
@@ -396,7 +396,7 @@ describe('result.toolResults', () => {
               type: 'function',
               name: 'tool1',
               description: undefined,
-              parameters: {
+              inputSchema: {
                 $schema: 'http://json-schema.org/draft-07/schema#',
                 additionalProperties: false,
                 properties: { value: { type: 'string' } },
@@ -424,7 +424,7 @@ describe('result.toolResults', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
             ],
           };
@@ -432,7 +432,7 @@ describe('result.toolResults', () => {
       }),
       tools: {
         tool1: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
           execute: async args => {
             expect(args).toStrictEqual({ value: 'value' });
             return 'result1';
@@ -444,7 +444,7 @@ describe('result.toolResults', () => {
 
     // test type inference
     if (result.toolResults[0].toolName === 'tool1') {
-      assertType<string>(result.toolResults[0].result);
+      assertType<string>(result.toolResults[0].output);
     }
 
     expect(result.toolResults).toStrictEqual([
@@ -452,8 +452,8 @@ describe('result.toolResults', () => {
         type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'tool1',
-        args: { value: 'value' },
-        result: 'result1',
+        input: { value: 'value' },
+        output: 'result1',
       },
     ]);
   });
@@ -513,14 +513,14 @@ describe('result.response.messages', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
           ],
         }),
       }),
       tools: {
         tool1: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
           execute: async (args, options) => {
             expect(args).toStrictEqual({ value: 'value' });
             expect(options.messages).toStrictEqual([
@@ -612,7 +612,7 @@ describe('options.stopWhen', () => {
                     type: 'function',
                     name: 'tool1',
                     description: undefined,
-                    parameters: {
+                    inputSchema: {
                       $schema: 'http://json-schema.org/draft-07/schema#',
                       additionalProperties: false,
                       properties: { value: { type: 'string' } },
@@ -640,7 +640,7 @@ describe('options.stopWhen', () => {
                       toolCallType: 'function',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
-                      args: `{ "value": "value" }`,
+                      input: `{ "value": "value" }`,
                     },
                   ],
                   finishReason: 'tool-calls',
@@ -663,7 +663,7 @@ describe('options.stopWhen', () => {
                     type: 'function',
                     name: 'tool1',
                     description: undefined,
-                    parameters: {
+                    inputSchema: {
                       $schema: 'http://json-schema.org/draft-07/schema#',
                       additionalProperties: false,
                       properties: { value: { type: 'string' } },
@@ -688,7 +688,7 @@ describe('options.stopWhen', () => {
                         type: 'tool-call',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        args: { value: 'value' },
+                        input: { value: 'value' },
                         providerOptions: undefined,
                       },
                     ],
@@ -701,7 +701,7 @@ describe('options.stopWhen', () => {
                         type: 'tool-result',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        result: 'result1',
+                        output: 'result1',
                         content: undefined,
                         isError: undefined,
                         providerOptions: undefined,
@@ -729,7 +729,7 @@ describe('options.stopWhen', () => {
         }),
         tools: {
           tool1: tool({
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async (args, options) => {
               expect(args).toStrictEqual({ value: 'value' });
               expect(options.messages).toStrictEqual([
@@ -818,7 +818,7 @@ describe('options.stopWhen', () => {
                   type: 'function',
                   name: 'tool1',
                   description: undefined,
-                  parameters: {
+                  inputSchema: {
                     $schema: 'http://json-schema.org/draft-07/schema#',
                     additionalProperties: false,
                     properties: { value: { type: 'string' } },
@@ -848,15 +848,15 @@ describe('options.stopWhen', () => {
                     toolCallType: 'function',
                     toolCallId: 'call-1',
                     toolName: 'tool1',
-                    args: `{ "value": "value" }`,
+                    input: `{ "value": "value" }`,
                   },
                 ],
                 toolResults: [
                   {
                     toolCallId: 'call-1',
                     toolName: 'tool1',
-                    args: { value: 'value' },
-                    result: 'result1',
+                    input: { value: 'value' },
+                    output: 'result1',
                   },
                 ],
                 finishReason: 'tool-calls',
@@ -894,7 +894,7 @@ describe('options.stopWhen', () => {
                       type: 'tool-call',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
-                      args: { value: 'value' },
+                      input: { value: 'value' },
                       providerOptions: undefined,
                     },
                   ],
@@ -907,7 +907,7 @@ describe('options.stopWhen', () => {
                       type: 'tool-result',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
-                      result: 'result1',
+                      output: 'result1',
                       content: undefined,
                       isError: undefined,
                       providerOptions: undefined,
@@ -938,7 +938,7 @@ describe('options.stopWhen', () => {
         model: modelWithFiles,
         tools: {
           tool1: tool({
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async (args, options) => {
               expect(args).toStrictEqual({ value: 'value' });
               expect(options.messages).toStrictEqual([
@@ -1064,7 +1064,7 @@ describe('options.stopWhen', () => {
                       toolCallType: 'function',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
-                      args: `{ "value": "value" }`,
+                      input: `{ "value": "value" }`,
                     },
                   ],
                   finishReason: 'tool-calls',
@@ -1088,9 +1088,9 @@ describe('options.stopWhen', () => {
         }),
         tools: {
           tool1: tool({
-            parameters: z.object({ value: z.string() }),
-            execute: async (args, options) => {
-              expect(args).toStrictEqual({ value: 'value' });
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (input, options) => {
+              expect(input).toStrictEqual({ value: 'value' });
               expect(options.messages).toStrictEqual([
                 { role: 'user', content: 'test-input' },
               ]);
@@ -1125,7 +1125,7 @@ describe('options.stopWhen', () => {
               DefaultStepResult {
                 "content": [
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
                     "toolCallId": "call-1",
@@ -1133,10 +1133,10 @@ describe('options.stopWhen', () => {
                     "type": "tool-call",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
-                    "result": "result1",
+                    "output": "result1",
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -1153,7 +1153,7 @@ describe('options.stopWhen', () => {
                     {
                       "content": [
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
                           "toolCallId": "call-1",
@@ -1166,7 +1166,7 @@ describe('options.stopWhen', () => {
                     {
                       "content": [
                         {
-                          "result": "result1",
+                          "output": "result1",
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -1195,7 +1195,7 @@ describe('options.stopWhen', () => {
               DefaultStepResult {
                 "content": [
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
                     "toolCallId": "call-1",
@@ -1203,10 +1203,10 @@ describe('options.stopWhen', () => {
                     "type": "tool-call",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
-                    "result": "result1",
+                    "output": "result1",
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -1223,7 +1223,7 @@ describe('options.stopWhen', () => {
                     {
                       "content": [
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
                           "toolCallId": "call-1",
@@ -1236,7 +1236,7 @@ describe('options.stopWhen', () => {
                     {
                       "content": [
                         {
-                          "result": "result1",
+                          "output": "result1",
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -1328,14 +1328,14 @@ describe('options.abortSignal', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
           ],
         }),
       }),
       tools: {
         tool1: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
           execute: toolExecuteMock,
         },
       },
@@ -1383,11 +1383,11 @@ describe('options.activeTools', () => {
 
       tools: {
         tool1: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
           execute: async () => 'result1',
         },
         tool2: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
           execute: async () => 'result2',
         },
       },
@@ -1399,8 +1399,7 @@ describe('options.activeTools', () => {
       [
         {
           "description": undefined,
-          "name": "tool1",
-          "parameters": {
+          "inputSchema": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "additionalProperties": false,
             "properties": {
@@ -1413,6 +1412,7 @@ describe('options.activeTools', () => {
             ],
             "type": "object",
           },
+          "name": "tool1",
           "type": "function",
         },
       ]
@@ -1491,14 +1491,14 @@ describe('telemetry', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
           ],
         }),
       }),
       tools: {
         tool1: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
           execute: async () => 'result1',
         },
       },
@@ -1527,14 +1527,14 @@ describe('telemetry', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
           ],
         }),
       }),
       tools: {
         tool1: {
-          parameters: z.object({ value: z.string() }),
+          inputSchema: z.object({ value: z.string() }),
           execute: async () => 'result1',
         },
       },
@@ -1570,7 +1570,7 @@ describe('tool callbacks', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'test-tool',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
             ],
           };
@@ -1578,20 +1578,20 @@ describe('tool callbacks', () => {
       }),
       tools: {
         'test-tool': tool({
-          parameters: jsonSchema<{ value: string }>({
+          inputSchema: jsonSchema<{ value: string }>({
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
             additionalProperties: false,
           }),
-          onArgsAvailable: options => {
-            recordedCalls.push({ type: 'onArgsAvailable', options });
+          onInputAvailable: options => {
+            recordedCalls.push({ type: 'onInputAvailable', options });
           },
-          onArgsStreamingStart: options => {
-            recordedCalls.push({ type: 'onArgsStreamingStart', options });
+          onInputStart: options => {
+            recordedCalls.push({ type: 'onInputStart', options });
           },
-          onArgsStreamingDelta: options => {
-            recordedCalls.push({ type: 'onArgsStreamingDelta', options });
+          onInputDelta: options => {
+            recordedCalls.push({ type: 'onInputDelta', options });
           },
         }),
       },
@@ -1604,7 +1604,7 @@ describe('tool callbacks', () => {
         {
           "options": {
             "abortSignal": undefined,
-            "args": {
+            "input": {
               "value": "value",
             },
             "messages": [
@@ -1615,7 +1615,7 @@ describe('tool callbacks', () => {
             ],
             "toolCallId": "call-1",
           },
-          "type": "onArgsAvailable",
+          "type": "onInputAvailable",
         },
       ]
     `);
@@ -1632,7 +1632,7 @@ describe('tools with custom schema', () => {
               type: 'function',
               name: 'tool1',
               description: undefined,
-              parameters: {
+              inputSchema: {
                 additionalProperties: false,
                 properties: { value: { type: 'string' } },
                 required: ['value'],
@@ -1643,7 +1643,7 @@ describe('tools with custom schema', () => {
               type: 'function',
               name: 'tool2',
               description: undefined,
-              parameters: {
+              inputSchema: {
                 additionalProperties: false,
                 properties: { somethingElse: { type: 'string' } },
                 required: ['somethingElse'],
@@ -1670,7 +1670,7 @@ describe('tools with custom schema', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
             ],
           };
@@ -1678,7 +1678,7 @@ describe('tools with custom schema', () => {
       }),
       tools: {
         tool1: {
-          parameters: jsonSchema<{ value: string }>({
+          inputSchema: jsonSchema<{ value: string }>({
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1687,7 +1687,7 @@ describe('tools with custom schema', () => {
         },
         // 2nd tool to show typing:
         tool2: {
-          parameters: jsonSchema<{ somethingElse: string }>({
+          inputSchema: jsonSchema<{ somethingElse: string }>({
             type: 'object',
             properties: { somethingElse: { type: 'string' } },
             required: ['somethingElse'],
@@ -1705,7 +1705,7 @@ describe('tools with custom schema', () => {
 
     // test type inference
     if (result.toolCalls[0].toolName === 'tool1') {
-      assertType<string>(result.toolCalls[0].args.value);
+      assertType<string>(result.toolCalls[0].input.value);
     }
 
     assert.deepStrictEqual(result.toolCalls, [
@@ -1713,7 +1713,7 @@ describe('tools with custom schema', () => {
         type: 'tool-call',
         toolCallId: 'call-1',
         toolName: 'tool1',
-        args: { value: 'value' },
+        input: { value: 'value' },
       },
     ]);
   });
@@ -1943,14 +1943,14 @@ describe('tool execution errors', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
             ],
           }),
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async () => {
               throw new Error('test error');
             },
@@ -1962,7 +1962,7 @@ describe('tool execution errors', () => {
       new ToolExecutionError({
         toolName: 'tool1',
         toolCallId: 'call-1',
-        toolArgs: { value: 'value' },
+        toolInput: { value: 'value' },
         cause: new Error('test error'),
       }),
     );

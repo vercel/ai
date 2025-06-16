@@ -152,7 +152,7 @@ export async function convertToBedrockChatMessages(
                             };
                         }
                       })
-                    : [{ text: JSON.stringify(part.result) }];
+                    : [{ text: JSON.stringify(part.output) }];
 
                 bedrockContent.push({
                   toolResult: {
@@ -254,7 +254,7 @@ export async function convertToBedrockChatMessages(
                   toolUse: {
                     toolUseId: part.toolCallId,
                     name: part.toolName,
-                    input: part.args as JSONObject,
+                    input: part.input as JSONObject,
                   },
                 });
                 break;

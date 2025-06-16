@@ -22,14 +22,14 @@ async function main() {
             toolCallId: 'call-1',
             toolName: 'cityAttractions',
             // wrong tool call arguments (city vs cities):
-            args: `{ "city": "San Francisco" }`,
+            input: `{ "city": "San Francisco" }`,
           },
         ],
       }),
     }),
     tools: {
       cityAttractions: tool({
-        parameters: z.object({ cities: z.array(z.string()) }),
+        inputSchema: z.object({ cities: z.array(z.string()) }),
       }),
     },
     prompt: 'What are the tourist attractions in San Francisco?',
@@ -53,7 +53,7 @@ async function main() {
                 type: 'tool-call',
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
-                args: toolCall.args,
+                input: toolCall.input,
               },
             ],
           },
@@ -64,7 +64,7 @@ async function main() {
                 type: 'tool-result',
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
-                result: error.message,
+                output: error.message,
               },
             ],
           },
@@ -82,7 +82,7 @@ async function main() {
             toolCallType: 'function' as const,
             toolCallId: toolCall.toolCallId,
             toolName: toolCall.toolName,
-            args: JSON.stringify(newToolCall.args),
+            input: JSON.stringify(newToolCall.input),
           }
         : null;
     },

@@ -18,25 +18,25 @@ export const uiMessageStreamPartSchema = z.union([
     errorText: z.string(),
   }),
   z.strictObject({
-    type: z.literal('tool-call-streaming-start'),
+    type: z.literal('tool-input-start'),
     toolCallId: z.string(),
     toolName: z.string(),
   }),
   z.strictObject({
-    type: z.literal('tool-call-delta'),
+    type: z.literal('tool-input-delta'),
     toolCallId: z.string(),
-    argsTextDelta: z.string(),
+    inputTextDelta: z.string(),
   }),
   z.strictObject({
-    type: z.literal('tool-call'),
+    type: z.literal('tool-input-available'),
     toolCallId: z.string(),
     toolName: z.string(),
-    args: z.unknown(),
+    input: z.unknown(),
   }),
   z.strictObject({
-    type: z.literal('tool-result'),
+    type: z.literal('tool-output-available'),
     toolCallId: z.string(),
-    result: z.unknown(),
+    output: z.unknown(),
     providerMetadata: z.any().optional(),
   }),
   z.strictObject({
@@ -114,26 +114,26 @@ export type UIMessageStreamPart<
       errorText: string;
     }
   | {
-      type: 'tool-call';
+      type: 'tool-input-available';
       toolCallId: string;
       toolName: string;
-      args: unknown;
+      input: unknown;
     }
   | {
-      type: 'tool-result';
+      type: 'tool-output-available';
       toolCallId: string;
-      result: unknown;
+      output: unknown;
       providerMetadata?: ProviderMetadata;
     }
   | {
-      type: 'tool-call-streaming-start';
+      type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
     }
   | {
-      type: 'tool-call-delta';
+      type: 'tool-input-delta';
       toolCallId: string;
-      argsTextDelta: string;
+      inputTextDelta: string;
     }
   | {
       type: 'reasoning';

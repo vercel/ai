@@ -47,17 +47,17 @@ export default function Chat() {
 
               case 'tool-askForConfirmation': {
                 switch (part.state) {
-                  case 'call':
+                  case 'input-available':
                     return (
                       <div key={index} className="text-gray-500">
-                        {part.args.message}
+                        {part.input.message}
                         <div className="flex gap-2">
                           <button
                             className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                             onClick={() =>
                               addToolResult({
                                 toolCallId: part.toolCallId,
-                                result: 'Yes, confirmed.',
+                                output: 'Yes, confirmed.',
                               })
                             }
                           >
@@ -68,7 +68,7 @@ export default function Chat() {
                             onClick={() =>
                               addToolResult({
                                 toolCallId: part.toolCallId,
-                                result: 'No, denied',
+                                output: 'No, denied',
                               })
                             }
                           >
@@ -77,10 +77,10 @@ export default function Chat() {
                         </div>
                       </div>
                     );
-                  case 'result':
+                  case 'output-available':
                     return (
                       <div key={index} className="text-gray-500">
-                        Location access allowed: {part.result}
+                        Location access allowed: {part.output}
                       </div>
                     );
                 }
@@ -89,16 +89,16 @@ export default function Chat() {
 
               case 'tool-getLocation': {
                 switch (part.state) {
-                  case 'call':
+                  case 'input-available':
                     return (
                       <div key={index} className="text-gray-500">
                         Getting location...
                       </div>
                     );
-                  case 'result':
+                  case 'output-available':
                     return (
                       <div key={index} className="text-gray-500">
-                        Location: {part.result}
+                        Location: {part.output}
                       </div>
                     );
                 }
@@ -108,20 +108,22 @@ export default function Chat() {
               case 'tool-getWeatherInformation': {
                 switch (part.state) {
                   // example of pre-rendering streaming tool calls:
-                  case 'partial-call':
+                  case 'input-streaming':
                     return (
-                      <pre key={index}>{JSON.stringify(part, null, 2)}</pre>
+                      <pre key={index}>
+                        {JSON.stringify(part.input, null, 2)}
+                      </pre>
                     );
-                  case 'call':
+                  case 'input-available':
                     return (
                       <div key={index} className="text-gray-500">
-                        Getting weather information for {part.args.city}...
+                        Getting weather information for {part.input.city}...
                       </div>
                     );
-                  case 'result':
+                  case 'output-available':
                     return (
                       <div key={index} className="text-gray-500">
-                        Weather in {part.args.city}: {part.result}
+                        Weather in {part.input.city}: {part.output}
                       </div>
                     );
                 }

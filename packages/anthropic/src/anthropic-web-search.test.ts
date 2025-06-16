@@ -363,7 +363,7 @@ describe('Anthropic Web Search Server-Side Tool', () => {
           type: 'function',
           name: 'calculator',
           description: 'Calculate math',
-          parameters: { type: 'object', properties: {} },
+          inputSchema: { type: 'object', properties: {} },
         },
         {
           type: 'provider-defined-server',
