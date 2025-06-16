@@ -75,6 +75,25 @@ describe('google-vertex-provider', () => {
     );
   });
 
+  it('should construct the URL differently when using the `global` endpoint', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider.textEmbeddingModel('test-embedding-model');
+
+    expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
+      'test-embedding-model',
+      {},
+      expect.objectContaining({
+        provider: 'google.vertex.embedding',
+        headers: expect.any(Object),
+        baseURL:
+          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+      }),
+    );
+  });
+
   it('should pass custom headers to the model constructor', () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
     const provider = createVertex({
