@@ -24,7 +24,7 @@ After
 // Can use binary data directly
 const fileData = new Uint8Array([0, 1, 2, 3]);
 const filePart = {
-  type: 'file', 
+  type: 'file',
   mediaType: 'application/pdf',
   data: fileData, // Direct Uint8Array support
 };
