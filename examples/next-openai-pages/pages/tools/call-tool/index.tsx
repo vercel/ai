@@ -20,7 +20,7 @@ export default function Page() {
               if (part.type === 'text') {
                 return <div key={index}>{part.text}</div>;
               } else if (isToolUIPart(part)) {
-                return <div key={index}>{JSON.stringify(part.args)}</div>;
+                return <div key={index}>{JSON.stringify(part.input)}</div>;
               }
             })}
           </div>

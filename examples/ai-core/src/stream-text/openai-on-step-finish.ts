@@ -9,7 +9,7 @@ async function main() {
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({ location: z.string() }),
+        inputSchema: z.object({ location: z.string() }),
         execute: async () => ({
           temperature: 72 + Math.floor(Math.random() * 21) - 10,
         }),

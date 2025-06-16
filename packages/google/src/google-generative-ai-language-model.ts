@@ -218,7 +218,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           toolCallType: 'function' as const,
           toolCallId: this.config.generateId(),
           toolName: part.functionCall.name,
-          args: JSON.stringify(part.functionCall.args),
+          input: JSON.stringify(part.functionCall.args),
         });
       } else if ('inlineData' in part) {
         content.push({
@@ -386,7 +386,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     toolCallType: 'function',
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,
-                    argsTextDelta: toolCall.args,
+                    inputTextDelta: toolCall.args,
                   });
 
                   controller.enqueue({
@@ -394,7 +394,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     toolCallType: 'function',
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,
-                    args: toolCall.args,
+                    input: toolCall.args,
                   });
 
                   hasToolCalls = true;

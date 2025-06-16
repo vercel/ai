@@ -15,13 +15,13 @@ function webSearchPreviewTool({
     timezone?: string;
   };
 } = {}): {
-  type: 'provider-defined';
+  type: 'provider-defined-client';
   id: 'openai.web_search_preview';
   args: {};
   parameters: typeof WebSearchPreviewParameters;
 } {
   return {
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     id: 'openai.web_search_preview',
     args: {
       searchContextSize,

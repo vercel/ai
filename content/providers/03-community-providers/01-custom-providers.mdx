@@ -336,13 +336,13 @@ type LanguageModelV2FunctionTool = {
 };
 ```
 
-#### Provider-Defined Tools
+#### Provider-Defined Client Tools
 
 Native provider capabilities exposed as tools:
 
 ```ts
-export type LanguageModelV2ProviderDefinedTool = {
-  type: 'provider-defined';
+export type LanguageModelV2ProviderClientDefinedTool = {
+  type: 'provider-defined-client';
   id: string; // e.g., 'anthropic.computer-use'
   name: string; // Human-readable name
   args: Record<string, unknown>;

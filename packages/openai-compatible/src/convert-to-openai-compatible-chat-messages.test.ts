@@ -77,7 +77,7 @@ describe('tool calls', () => {
         content: [
           {
             type: 'tool-call',
-            args: { foo: 'bar123' },
+            input: { foo: 'bar123' },
             toolCallId: 'quux',
             toolName: 'thwomp',
           },
@@ -90,7 +90,7 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'quux',
             toolName: 'thwomp',
-            result: { oof: '321rab' },
+            output: { oof: '321rab' },
           },
         ],
       },
@@ -211,7 +211,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call1',
             toolName: 'calculator',
-            args: { x: 1, y: 2 },
+            input: { x: 1, y: 2 },
             providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' },
@@ -379,7 +379,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call1',
             toolName: 'searchTool',
-            args: { query: 'Weather' },
+            input: { query: 'Weather' },
             providerOptions: {
               openaiCompatible: { function_call_reason: 'user request' },
             },
@@ -389,7 +389,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call2',
             toolName: 'mapsTool',
-            args: { location: 'Paris' },
+            input: { location: 'Paris' },
           },
         ],
       },
@@ -435,7 +435,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-result',
             toolCallId: 'call123',
             toolName: 'calculator',
-            result: { stepOne: 'data chunk 1' },
+            output: { stepOne: 'data chunk 1' },
           },
           {
             type: 'tool-result',
@@ -444,7 +444,7 @@ describe('provider-specific metadata merging', () => {
             providerOptions: {
               openaiCompatible: { partial: true },
             },
-            result: { stepTwo: 'data chunk 2' },
+            output: { stepTwo: 'data chunk 2' },
           },
         ],
       },
@@ -529,7 +529,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'callXYZ',
             toolName: 'awesomeTool',
-            args: { param: 'someValue' },
+            input: { param: 'someValue' },
             providerOptions: {
               openaiCompatible: {
                 toolPriority: 'critical',
@@ -575,7 +575,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'collisionToolCall',
             toolName: 'collider',
-            args: { num: 42 },
+            input: { num: 42 },
             providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' }, // overwrites top-level

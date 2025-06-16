@@ -9,7 +9,7 @@ async function main() {
     tools: {
       currentTime: tool({
         description: 'Get the current time',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => ({
           currentTime: new Date().toLocaleTimeString(),
         }),
@@ -22,7 +22,7 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'currentTime': {
-        toolCall.args; // {}
+        toolCall.input; // {}
         break;
       }
     }
@@ -32,7 +32,7 @@ async function main() {
   for (const toolResult of result.toolResults) {
     switch (toolResult.toolName) {
       case 'currentTime': {
-        toolResult.args; // {}
+        toolResult.input; // {}
         break;
       }
     }

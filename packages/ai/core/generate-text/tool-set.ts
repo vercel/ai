@@ -5,9 +5,6 @@ export type ToolSet = Record<
   (Tool<never, never> | Tool<any, any> | Tool<any, never> | Tool<never, any>) &
     Pick<
       Tool<any, any>,
-      | 'execute'
-      | 'onArgsAvailable'
-      | 'onArgsStreamingStart'
-      | 'onArgsStreamingDelta'
+      'execute' | 'onInputAvailable' | 'onInputStart' | 'onInputDelta'
     >
 >;

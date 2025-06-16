@@ -113,7 +113,7 @@ export function convertToOpenAIResponsesMessages({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: part.toolName,
-                arguments: JSON.stringify(part.args),
+                arguments: JSON.stringify(part.input),
               });
               break;
             }
@@ -128,7 +128,7 @@ export function convertToOpenAIResponsesMessages({
           messages.push({
             type: 'function_call_output',
             call_id: part.toolCallId,
-            output: JSON.stringify(part.result),
+            output: JSON.stringify(part.output),
           });
         }
 

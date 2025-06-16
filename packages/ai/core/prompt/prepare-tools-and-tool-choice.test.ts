@@ -6,19 +6,19 @@ import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 const mockTools: ToolSet = {
   tool1: tool({
     description: 'Tool 1 description',
-    parameters: z.object({}),
+    inputSchema: z.object({}),
   }),
   tool2: tool({
     description: 'Tool 2 description',
-    parameters: z.object({ city: z.string() }),
+    inputSchema: z.object({ city: z.string() }),
   }),
 };
 
 const mockProviderDefinedTool: Tool = {
-  type: 'provider-defined',
+  type: 'provider-defined-client',
   id: 'provider.tool-id',
   args: { key: 'value' },
-  parameters: z.object({}),
+  inputSchema: z.object({}),
 };
 
 const mockToolsWithProviderDefined: ToolSet = {
@@ -88,7 +88,7 @@ it('should correctly map tool properties', () => {
     type: 'function',
     name: 'tool1',
     description: 'Tool 1 description',
-    parameters: {
+    inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       additionalProperties: false,
       type: 'object',
@@ -97,7 +97,7 @@ it('should correctly map tool properties', () => {
   });
 });
 
-it('should handle provider-defined tool type', () => {
+it('should handle provider-defined-client tool type', () => {
   const result = prepareToolsAndToolChoice({
     tools: mockToolsWithProviderDefined,
     toolChoice: undefined,
@@ -105,7 +105,7 @@ it('should handle provider-defined tool type', () => {
   });
   expect(result.tools).toHaveLength(3);
   expect(result.tools?.[2]).toEqual({
-    type: 'provider-defined',
+    type: 'provider-defined-client',
     name: 'providerTool',
     id: 'provider.tool-id',
     args: { key: 'value' },

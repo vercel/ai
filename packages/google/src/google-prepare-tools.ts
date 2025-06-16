@@ -77,13 +77,16 @@ export function prepareTools({
 
   const functionDeclarations = [];
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
+    if (
+      tool.type === 'provider-defined-client' ||
+      tool.type === 'provider-defined-server'
+    ) {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
       functionDeclarations.push({
         name: tool.name,
         description: tool.description ?? '',
-        parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
+        parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
       });
     }
   }

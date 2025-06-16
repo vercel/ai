@@ -1,5 +1,5 @@
 import { AISDKError, getErrorMessage } from '@ai-sdk/provider';
-import { InvalidToolArgumentsError } from './invalid-tool-arguments-error';
+import { InvalidToolInputError } from './invalid-tool-input-error';
 import { NoSuchToolError } from './no-such-tool-error';
 
 const name = 'AI_ToolCallRepairError';
@@ -9,7 +9,7 @@ const symbol = Symbol.for(marker);
 export class ToolCallRepairError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
-  readonly originalError: NoSuchToolError | InvalidToolArgumentsError;
+  readonly originalError: NoSuchToolError | InvalidToolInputError;
 
   constructor({
     cause,
@@ -18,7 +18,7 @@ export class ToolCallRepairError extends AISDKError {
   }: {
     message?: string;
     cause: unknown;
-    originalError: NoSuchToolError | InvalidToolArgumentsError;
+    originalError: NoSuchToolError | InvalidToolInputError;
   }) {
     super({ name, message, cause });
     this.originalError = originalError;

@@ -283,7 +283,7 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              result: { test: 'This is a tool message' },
+              output: { test: 'This is a tool message' },
             },
           ],
         },
@@ -323,13 +323,13 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              result: { test: 'This is a tool message' },
+              output: { test: 'This is a tool message' },
             },
             {
               type: 'tool-result',
               toolName: 'tool-2',
               toolCallId: 'tool-call-2',
-              result: { something: 'else' },
+              output: { something: 'else' },
             },
           ],
         },
@@ -375,7 +375,7 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              result: { test: 'This is a tool message' },
+              output: { test: 'This is a tool message' },
             },
           ],
         },
@@ -420,7 +420,7 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'image-generator',
               toolCallId: 'image-gen-1',
-              result: 'Image generated successfully',
+              output: 'Image generated successfully',
               content: [
                 {
                   type: 'text',
@@ -992,7 +992,7 @@ describe('cache control', () => {
                 type: 'tool-call',
                 toolCallId: 'test-id',
                 toolName: 'test-tool',
-                args: { some: 'arg' },
+                input: { some: 'arg' },
                 providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
@@ -1086,7 +1086,7 @@ describe('cache control', () => {
                 type: 'tool-result',
                 toolName: 'test',
                 toolCallId: 'test',
-                result: { test: 'test' },
+                output: { test: 'test' },
                 providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
@@ -1131,13 +1131,13 @@ describe('cache control', () => {
                 type: 'tool-result',
                 toolName: 'test',
                 toolCallId: 'part1',
-                result: { test: 'part1' },
+                output: { test: 'part1' },
               },
               {
                 type: 'tool-result',
                 toolName: 'test',
                 toolCallId: 'part2',
-                result: { test: 'part2' },
+                output: { test: 'part2' },
               },
             ],
             providerOptions: {

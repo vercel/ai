@@ -41,11 +41,11 @@ export function prepareResponsesTools({
           type: 'function',
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters,
+          parameters: tool.inputSchema,
           strict: strict ? true : undefined,
         });
         break;
-      case 'provider-defined':
+      case 'provider-defined-client':
         switch (tool.id) {
           case 'openai.web_search_preview':
             openaiTools.push({

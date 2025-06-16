@@ -1,6 +1,7 @@
 import {
   LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV2ProviderDefinedClientTool,
+  LanguageModelV2ProviderDefinedServerTool,
   LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
@@ -18,7 +19,11 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   activeTools: Array<keyof TOOLS> | undefined;
 }): {
   tools:
-    | Array<LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool>
+    | Array<
+        | LanguageModelV2FunctionTool
+        | LanguageModelV2ProviderDefinedClientTool
+        | LanguageModelV2ProviderDefinedServerTool
+      >
     | undefined;
   toolChoice: LanguageModelV2ToolChoice | undefined;
 } {
@@ -47,11 +52,18 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
             type: 'function' as const,
             name,
             description: tool.description,
-            parameters: asSchema(tool.parameters).jsonSchema,
+            inputSchema: asSchema(tool.inputSchema).jsonSchema,
           };
-        case 'provider-defined':
+        case 'provider-defined-client':
           return {
-            type: 'provider-defined' as const,
+            type: 'provider-defined-client' as const,
+            name,
+            id: tool.id,
+            args: tool.args,
+          };
+        case 'provider-defined-server':
+          return {
+            type: 'provider-defined-server' as const,
             name,
             id: tool.id,
             args: tool.args,

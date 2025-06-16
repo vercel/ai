@@ -30,7 +30,10 @@ export function prepareTools({
   const bedrockTools: BedrockTool[] = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
+    if (
+      tool.type === 'provider-defined-client' ||
+      tool.type === 'provider-defined-server'
+    ) {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
       bedrockTools.push({
@@ -38,7 +41,7 @@ export function prepareTools({
           name: tool.name,
           description: tool.description,
           inputSchema: {
-            json: tool.parameters as JSONObject,
+            json: tool.inputSchema as JSONObject,
           },
         },
       });

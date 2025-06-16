@@ -8,25 +8,25 @@ export class ToolExecutionError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly toolName: string;
-  readonly toolArgs: JSONValue | unknown;
+  readonly toolInput: JSONValue | unknown;
   readonly toolCallId: string;
 
   constructor({
-    toolArgs,
+    toolInput,
     toolName,
     toolCallId,
     cause,
     message = `Error executing tool ${toolName}: ${getErrorMessage(cause)}`,
   }: {
     message?: string;
-    toolArgs: JSONValue | unknown;
+    toolInput: JSONValue | unknown;
     toolName: string;
     toolCallId: string;
     cause: unknown;
   }) {
     super({ name, message, cause });
 
-    this.toolArgs = toolArgs;
+    this.toolInput = toolInput;
     this.toolName = toolName;
     this.toolCallId = toolCallId;
   }

@@ -6,19 +6,17 @@ async function main() {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-latest'),
     prompt: 'What are the latest developments in AI research and technology?',
-    providerOptions: {
-      anthropic: {
-        webSearch: {
-          maxUses: 5,
-          userLocation: {
-            type: 'approximate',
-            city: 'San Francisco',
-            region: 'California',
-            country: 'US',
-            timezone: 'America/Los_Angeles',
-          },
+    tools: {
+      web_search: anthropic.tools.webSearch_20250305({
+        maxUses: 5,
+        userLocation: {
+          type: 'approximate',
+          city: 'San Francisco',
+          region: 'California',
+          country: 'US',
+          timezone: 'America/Los_Angeles',
         },
-      },
+      }),
     },
   });
 

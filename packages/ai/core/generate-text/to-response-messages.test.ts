@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { mockValues } from '../test/mock-values';
 import { tool } from '../tool';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
@@ -16,7 +15,7 @@ describe('toResponseMessages', () => {
       tools: {
         testTool: {
           description: 'A test tool',
-          parameters: z.object({}),
+          inputSchema: z.object({}),
         },
       },
     });
@@ -40,14 +39,14 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-        },
+          inputSchema: z.object({}),
+        }),
       },
     });
 
@@ -60,7 +59,7 @@ describe('toResponseMessages', () => {
             type: 'tool-call',
             toolCallId: '123',
             toolName: 'testTool',
-            args: {},
+            input: {},
           },
         ],
       },
@@ -78,22 +77,22 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
         {
           type: 'tool-result',
           toolCallId: '123',
           toolName: 'testTool',
-          result: 'Tool result',
-          args: {},
+          output: 'Tool result',
+          input: {},
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
+          inputSchema: z.object({}),
           execute: async () => 'Tool result',
-        },
+        }),
       },
     });
 
@@ -106,7 +105,7 @@ describe('toResponseMessages', () => {
             type: 'tool-call',
             toolCallId: '123',
             toolName: 'testTool',
-            args: {},
+            input: {},
           },
         ],
       },
@@ -117,7 +116,7 @@ describe('toResponseMessages', () => {
             type: 'tool-result',
             toolCallId: '123',
             toolName: 'testTool',
-            result: 'Tool result',
+            output: 'Tool result',
           },
         ],
       },
@@ -229,20 +228,20 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
         {
           type: 'tool-result',
           toolCallId: '123',
           toolName: 'testTool',
-          result: 'image-base64',
-          args: {},
+          output: 'image-base64',
+          input: {},
         },
       ],
       tools: {
         testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
+          inputSchema: z.object({}),
           execute: async () => 'image-base64',
           experimental_toToolResultContent(result) {
             return [{ type: 'image', data: result, mediaType: 'image/png' }];
@@ -260,7 +259,7 @@ describe('toResponseMessages', () => {
               "type": "text",
             },
             {
-              "args": {},
+              "input": {},
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -278,7 +277,7 @@ describe('toResponseMessages', () => {
                   "type": "image",
                 },
               ],
-              "result": [
+              "output": [
                 {
                   "data": "image-base64",
                   "mediaType": "image/png",
@@ -412,14 +411,14 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-        },
+          inputSchema: z.object({}),
+        }),
       },
     });
 
@@ -446,7 +445,7 @@ describe('toResponseMessages', () => {
               "type": "text",
             },
             {
-              "args": {},
+              "input": {},
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -469,14 +468,14 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-        },
+          inputSchema: z.object({}),
+        }),
       },
     });
 
@@ -485,7 +484,7 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
-              "args": {},
+              "input": {},
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
