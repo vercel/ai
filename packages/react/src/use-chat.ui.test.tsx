@@ -677,8 +677,8 @@ describe('onToolCall', () => {
     expect(
       JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
     ).toStrictEqual({
-      state: 'call',
-      args: { testArg: 'test-value' },
+      state: 'input-available',
+      input: { testArg: 'test-value' },
       toolCallId: 'tool-call-0',
       type: 'tool-test-tool',
     });
@@ -689,11 +689,11 @@ describe('onToolCall', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'result',
-        args: { testArg: 'test-value' },
+        state: 'output-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        result:
+        output:
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
       });
     });
@@ -777,7 +777,7 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'partial-call',
+        state: 'input-streaming',
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -795,10 +795,10 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'partial-call',
+        state: 'input-streaming',
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        args: { testArg: 't' },
+        input: { testArg: 't' },
       });
     });
 
@@ -814,10 +814,10 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'partial-call',
+        state: 'input-streaming',
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       });
     });
 
@@ -834,8 +834,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -854,11 +854,11 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'result',
-        args: { testArg: 'test-value' },
+        state: 'output-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        result: 'test-result',
+        output: 'test-result',
       });
     });
   });
@@ -885,8 +885,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -905,11 +905,11 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'result',
-        args: { testArg: 'test-value' },
+        state: 'output-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        result: 'test-result',
+        output: 'test-result',
       });
     });
   });
@@ -938,8 +938,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -951,11 +951,11 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'result',
-        args: { testArg: 'test-value' },
+        state: 'output-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        result: 'test-result',
+        output: 'test-result',
       });
     });
 
@@ -990,9 +990,9 @@ describe('tool invocations', () => {
             {
               type: 'tool-test-tool',
               toolCallId: 'tool-call-0',
-              args: { testArg: 'test-value' },
-              result: 'test-result',
-              state: 'result',
+              input: { testArg: 'test-value' },
+              output: 'test-result',
+              state: 'output-available',
             },
             {
               text: 'more text',
@@ -1032,8 +1032,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -1047,11 +1047,11 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'result',
-        args: { testArg: 'test-value' },
+        state: 'output-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        result: 'test-result',
+        output: 'test-result',
       });
     });
 
@@ -1104,8 +1104,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -1119,11 +1119,11 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'result',
-        args: { testArg: 'test-value' },
+        state: 'output-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        result: 'test-result',
+        output: 'test-result',
       });
     });
 

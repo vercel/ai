@@ -108,8 +108,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             if (part != null) {
               part.state = options.state;
-              (part as any).args = (options as any).args;
-              (part as any).result = (options as any).result;
+              (part as any).input = (options as any).input;
+              (part as any).output = (options as any).output;
             } else {
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
