@@ -21,6 +21,7 @@ const bundle = [
   'remove-experimental-tool',
   'remove-experimental-useassistant',
   'remove-experimental-wrap-language-model',
+  'remove-get-ui-text',
   'remove-google-facade',
   'remove-isxxxerror',
   'remove-metadata-with-headers',
