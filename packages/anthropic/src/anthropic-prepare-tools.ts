@@ -141,7 +141,7 @@ export function prepareTools({
                 country?: string;
                 timezone?: string;
               };
-              
+
               webSearchTool.user_location = {
                 type: 'approximate',
                 city: loc.city,
