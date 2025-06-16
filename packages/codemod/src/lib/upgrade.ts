@@ -32,6 +32,7 @@ const bundle = [
   'rename-datastream-transform-stream',
   'rename-format-stream-part',
   'rename-languagemodelv1providermetadata',
+  'rename-max-tokens-to-max-output-tokens',
   'rename-message-to-ui-message',
   'rename-mime-type-to-media-type',
   'rename-parse-stream-part',
