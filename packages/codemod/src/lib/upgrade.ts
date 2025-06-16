@@ -56,6 +56,7 @@ const bundle = [
   'replace-simulate-streaming',
   'replace-token-usage-types',
   'replace-usage-token-properties',
+  'restructure-file-stream-parts',
   'rewrite-framework-imports',
   'rsc-package',
 ];
