@@ -368,7 +368,7 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-streaming-start',
+        type: 'tool-input-start',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
       }),
@@ -382,9 +382,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-delta',
+        type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
-        argsTextDelta: '{"testArg":"t',
+        inputTextDelta: '{"testArg":"t',
       }),
     );
 
@@ -396,9 +396,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-delta',
+        type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
-        argsTextDelta: 'est-value"}}',
+        inputTextDelta: 'est-value"}}',
       }),
     );
 
@@ -410,10 +410,10 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -430,9 +430,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-result',
+        type: 'tool-output-available',
         toolCallId: 'tool-call-0',
-        result: 'test-result',
+        output: 'test-result',
       }),
     );
     controller.close();
@@ -473,10 +473,10 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -493,9 +493,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-result',
+        type: 'tool-output-available',
         toolCallId: 'tool-call-0',
-        result: 'test-result',
+        output: 'test-result',
       }),
     );
     controller.close();
@@ -530,10 +530,10 @@ describe('tool invocations', () => {
     controller.write(formatStreamPart({ type: 'start-step' }));
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -586,10 +586,10 @@ describe('tool invocations', () => {
     // tool call
     controller1.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 

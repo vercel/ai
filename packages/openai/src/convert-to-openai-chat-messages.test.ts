@@ -400,7 +400,7 @@ describe('tool calls', () => {
           content: [
             {
               type: 'tool-call',
-              args: { foo: 'bar123' },
+              input: { foo: 'bar123' },
               toolCallId: 'quux',
               toolName: 'thwomp',
             },
@@ -413,7 +413,7 @@ describe('tool calls', () => {
               type: 'tool-result',
               toolCallId: 'quux',
               toolName: 'thwomp',
-              result: { oof: '321rab' },
+              output: { oof: '321rab' },
             },
           ],
         },

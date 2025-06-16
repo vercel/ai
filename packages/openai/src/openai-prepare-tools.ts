@@ -59,7 +59,7 @@ export function prepareTools({
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters,
+          parameters: tool.inputSchema,
           strict: structuredOutputs ? true : undefined,
         },
       });

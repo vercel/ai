@@ -93,7 +93,7 @@ export function convertToOpenAICompatibleChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
                 ...partMetadata,
               });
@@ -118,7 +118,7 @@ export function convertToOpenAICompatibleChatMessages(
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.result),
+            content: JSON.stringify(toolResponse.output),
             ...toolResponseMetadata,
           });
         }

@@ -317,16 +317,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   addToolResult = async ({
     toolCallId,
-    result,
+    output,
   }: {
     toolCallId: string;
-    result: unknown;
+    output: unknown;
   }) => {
     this.jobExecutor.run(async () => {
-      updateToolResult({
+      updateToolOutput({
         messages: this.state.messages,
         toolCallId,
-        toolResult: result,
+        output,
       });
 
       this.messages = this.state.messages;
@@ -486,14 +486,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
  * @param {unknown} params.toolResult - The result object to attach to the tool invocation.
  * @returns {void} This function does not return anything.
  */
-function updateToolResult<UI_MESSAGE extends UIMessage>({
+function updateToolOutput<UI_MESSAGE extends UIMessage>({
   messages,
   toolCallId,
-  toolResult: result,
+  output,
 }: {
   messages: UI_MESSAGE[];
   toolCallId: string;
-  toolResult: unknown;
+  output: unknown;
 }) {
   const lastMessage = messages[messages.length - 1];
 
@@ -506,10 +506,10 @@ function updateToolResult<UI_MESSAGE extends UIMessage>({
     return;
   }
 
-  toolPart.state = 'result';
+  toolPart.state = 'output-available';
   (
     toolPart as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> & {
-      state: 'result';
+      state: 'output-available';
     }
-  ).result = result;
+  ).output = output;
 }

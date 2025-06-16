@@ -17,16 +17,16 @@ export type UseChatToolsMessage = UIMessage<
   UIDataTypes,
   {
     getWeatherInformation: {
-      args: { city: string };
-      result: string;
+      input: { city: string };
+      output: string;
     };
     askForConfirmation: {
-      args: { message: string };
-      result: string;
+      input: { message: string };
+      output: string;
     };
     getLocation: {
-      args: {};
-      result: string;
+      input: {};
+      output: string;
     };
   }
 >;
@@ -43,8 +43,8 @@ export async function POST(req: Request) {
       // server-side tool with execute function:
       getWeatherInformation: tool({
         description: 'show the weather in a given city to the user',
-        parameters: z.object({ city: z.string() }),
-        execute: async ({}: { city: string }) => {
+        inputSchema: z.object({ city: z.string() }),
+        execute: async ({ city }: { city: string }) => {
           // Add artificial delay of 2 seconds
           await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -54,20 +54,20 @@ export async function POST(req: Request) {
           ];
         },
 
-        onArgsStreamingStart: () => {
-          console.log('onArgsStreamingStart');
+        onInputStart: () => {
+          console.log('onInputStart');
         },
-        onArgsStreamingDelta: ({ argsTextDelta }) => {
-          console.log('onArgsStreamingDelta', argsTextDelta);
+        onInputDelta: ({ inputTextDelta }) => {
+          console.log('onInputStreamingDelta', inputTextDelta);
         },
-        onArgsAvailable: ({ args }) => {
-          console.log('onArgsAvailable', args);
+        onInputAvailable: ({ input }) => {
+          console.log('onInputAvailable', input);
         },
       }),
       // client-side tool that starts user interaction:
       askForConfirmation: tool({
         description: 'Ask the user for confirmation.',
-        parameters: z.object({
+        inputSchema: z.object({
           message: z.string().describe('The message to ask for confirmation.'),
         }),
       }),
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       getLocation: tool({
         description:
           'Get the user location. Always ask for confirmation before using this tool.',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
       }),
     },
   });

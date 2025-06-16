@@ -52,7 +52,7 @@ export function prepareTools({
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
-          input_schema: tool.parameters,
+          input_schema: tool.inputSchema,
         });
         break;
       case 'provider-defined-client':

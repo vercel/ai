@@ -60,16 +60,16 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             type: 'tool-result',
             toolCallId: toolResult.toolCallId,
             toolName: toolResult.toolName,
-            result: tool.experimental_toToolResultContent(toolResult.result),
+            output: tool.experimental_toToolResultContent(toolResult.output),
             experimental_content: tool.experimental_toToolResultContent(
-              toolResult.result,
+              toolResult.output,
             ),
           }
         : {
             type: 'tool-result',
             toolCallId: toolResult.toolCallId,
             toolName: toolResult.toolName,
-            result: toolResult.result,
+            output: toolResult.output,
           };
     });
 

@@ -17,7 +17,7 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: { location: { type: 'string' } },
       required: ['location'],
@@ -27,7 +27,7 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   {
     type: 'function',
     name: 'cityAttractions',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: { city: { type: 'string' } },
       required: ['city'],
@@ -1292,14 +1292,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "argsTextDelta": "",
+            "inputTextDelta": "",
             "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
             "toolCallType": "function",
             "toolName": "currentLocation",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "{}",
+            "inputTextDelta": "{}",
             "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
             "toolCallType": "function",
             "toolName": "currentLocation",
@@ -1313,42 +1313,42 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "tool-call",
           },
           {
-            "argsTextDelta": "",
+            "inputTextDelta": "",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "{",
+            "inputTextDelta": "{",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": ""location",
+            "inputTextDelta": ""location",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "":",
+            "inputTextDelta": "":",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": ""Rome",
+            "inputTextDelta": ""Rome",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": ""}",
+            "inputTextDelta": ""}",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",

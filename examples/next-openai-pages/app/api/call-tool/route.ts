@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     tools: {
       celsiusToFahrenheit: {
         description: 'Converts celsius to fahrenheit',
-        parameters: z.object({
+        inputSchema: z.object({
           value: z.string().describe('The value in celsius'),
         }),
         execute: async ({ value }) => {

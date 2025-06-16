@@ -12,5 +12,5 @@ export type LanguageModelV2ToolCall = {
 Stringified JSON object with the tool call arguments. Must match the
 parameters schema of the tool.
    */
-  args: string;
+  input: string;
 };

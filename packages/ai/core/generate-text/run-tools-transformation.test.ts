@@ -70,7 +70,7 @@ it('should handle immediate tool execution', async () => {
         toolCallType: 'function',
         toolCallId: 'call-1',
         toolName: 'syncTool',
-        args: `{ "value": "test" }`,
+        input: `{ "value": "test" }`,
       },
       {
         type: 'finish',
@@ -138,7 +138,7 @@ it('should hold off on sending finish until the delayed tool result is received'
         toolCallType: 'function',
         toolCallId: 'call-1',
         toolName: 'delayedTool',
-        args: `{ "value": "test" }`,
+        input: `{ "value": "test" }`,
       },
       {
         type: 'finish',
@@ -210,7 +210,7 @@ it('should try to repair tool call when the tool name is not found', async () =>
         toolCallType: 'function',
         toolCallId: 'call-1',
         toolName: 'unknownTool',
-        args: `{ "value": "test" }`,
+        input: `{ "value": "test" }`,
       },
       {
         type: 'finish',
@@ -232,14 +232,14 @@ it('should try to repair tool call when the tool name is not found', async () =>
         execute: async ({ value }) => `${value}-result`,
       },
     },
-    repairToolCall: async ({ toolCall, tools, parameterSchema, error }) => {
+    repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
       expect(NoSuchToolError.isInstance(error)).toBe(true);
       expect(toolCall).toStrictEqual({
         type: 'tool-call',
         toolCallType: 'function',
         toolCallId: 'call-1',
         toolName: 'unknownTool',
-        args: `{ "value": "test" }`,
+        input: `{ "value": "test" }`,
       });
 
       return { ...toolCall, toolName: 'correctTool' };

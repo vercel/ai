@@ -257,7 +257,7 @@ describe('XaiChatLanguageModel', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -813,7 +813,7 @@ describe('XaiChatLanguageModel', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -839,7 +839,7 @@ describe('XaiChatLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "argsTextDelta": "{"value":"Sparkle Day"}",
+            "inputTextDelta": "{"value":"Sparkle Day"}",
             "toolCallId": "call_test123",
             "toolCallType": "function",
             "toolName": "test-tool",

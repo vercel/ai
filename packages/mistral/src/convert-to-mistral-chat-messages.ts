@@ -80,7 +80,7 @@ export function convertToMistralChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
               });
               break;
@@ -102,7 +102,7 @@ export function convertToMistralChatMessages(
           messages.push({
             role: 'tool',
             name: toolResponse.toolName,
-            content: JSON.stringify(toolResponse.result),
+            content: JSON.stringify(toolResponse.output),
             tool_call_id: toolResponse.toolCallId,
           });
         }

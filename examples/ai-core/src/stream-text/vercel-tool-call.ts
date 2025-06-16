@@ -31,14 +31,14 @@ async function main() {
 
       case 'tool-call': {
         console.log(
-          `TOOL CALL ${chunk.toolName} ${JSON.stringify(chunk.args)}`,
+          `TOOL CALL ${chunk.toolName} ${JSON.stringify(chunk.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
         console.log(
-          `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.result)}`,
+          `TOOL RESULT ${chunk.toolName} ${JSON.stringify(chunk.output)}`,
         );
         break;
       }

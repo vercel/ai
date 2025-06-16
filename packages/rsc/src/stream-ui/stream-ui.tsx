@@ -11,7 +11,7 @@ import {
   ToolChoice,
   Prompt,
   CallSettings,
-  InvalidToolArgumentsError,
+  InvalidToolInputError,
   NoSuchToolError,
   Schema,
 } from 'ai';
@@ -36,14 +36,12 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<
-  PARAMETERS_SCHEMA extends z4.$ZodType | z3.Schema | Schema = any,
-> = {
+type RenderTool<INPUT_SCHEMA extends z4.$ZodType | z3.Schema | Schema = any> = {
   description?: string;
-  parameters: PARAMETERS_SCHEMA;
+  inputSchema: INPUT_SCHEMA;
   generate?: Renderer<
     [
-      InferSchema<PARAMETERS_SCHEMA>,
+      InferSchema<INPUT_SCHEMA>,
       {
         toolName: string;
         toolCallId: string;
@@ -331,14 +329,14 @@ functionality that can be fully encapsulated in the provider.
 
             hasToolCall = true;
             const parseResult = await safeParseJSON({
-              text: value.args,
-              schema: tool.parameters,
+              text: value.input,
+              schema: tool.inputSchema,
             });
 
             if (parseResult.success === false) {
-              throw new InvalidToolArgumentsError({
+              throw new InvalidToolInputError({
                 toolName,
-                toolArgs: value.args,
+                toolInput: value.input,
                 cause: parseResult.error,
               });
             }

@@ -497,7 +497,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -602,7 +602,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -881,7 +881,7 @@ describe('doGenerate', () => {
             type: 'function',
             name: 'test-tool',
             description: 'test description',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -952,7 +952,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1686,7 +1686,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1712,49 +1712,49 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"",
+          "inputTextDelta": "{"",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "value",
+          "inputTextDelta": "value",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "":"",
+          "inputTextDelta": "":"",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "Spark",
+          "inputTextDelta": "Spark",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "le",
+          "inputTextDelta": "le",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": " Day",
+          "inputTextDelta": " Day",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": ""}",
+          "inputTextDelta": ""}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -1827,7 +1827,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1853,56 +1853,56 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"",
+          "inputTextDelta": "{"",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "va",
+          "inputTextDelta": "va",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "lue",
+          "inputTextDelta": "lue",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "":"",
+          "inputTextDelta": "":"",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "Spark",
+          "inputTextDelta": "Spark",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "le",
+          "inputTextDelta": "le",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": " Day",
+          "inputTextDelta": " Day",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": ""}",
+          "inputTextDelta": ""}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -1981,7 +1981,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'searchGoogle',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { query: { type: 'string' } },
             required: ['query'],
@@ -2011,35 +2011,35 @@ describe('doStream', () => {
           "type": "text",
         },
         {
-          "argsTextDelta": "{"query": "",
+          "inputTextDelta": "{"query": "",
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolCallType": "function",
           "toolName": "searchGoogle",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "latest",
+          "inputTextDelta": "latest",
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolCallType": "function",
           "toolName": "searchGoogle",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": " news",
+          "inputTextDelta": " news",
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolCallType": "function",
           "toolName": "searchGoogle",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": " on",
+          "inputTextDelta": " on",
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolCallType": "function",
           "toolName": "searchGoogle",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": " ai"}",
+          "inputTextDelta": " ai"}",
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolCallType": "function",
           "toolName": "searchGoogle",
@@ -2091,7 +2091,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -2117,7 +2117,7 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"value":"Sparkle Day"}",
+          "inputTextDelta": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolCallType": "function",
           "toolName": "test-tool",

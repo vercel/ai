@@ -17,7 +17,7 @@ it('should process function tools correctly', () => {
     type: 'function' as const,
     name: 'testFunction',
     description: 'test description',
-    parameters: { type: 'object' as const, properties: {} },
+    inputSchema: { type: 'object' as const, properties: {} },
   };
 
   const result = prepareTools({
@@ -74,7 +74,7 @@ describe('tool choice handling', () => {
     type: 'function' as const,
     name: 'testFunction',
     description: 'test description',
-    parameters: { type: 'object' as const, properties: {} },
+    inputSchema: { type: 'object' as const, properties: {} },
   };
 
   it('should handle auto tool choice', () => {

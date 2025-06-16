@@ -17,8 +17,8 @@ type ToToolResultObject<TOOLS extends ToolSet> = ValueOf<{
     type: 'tool-result';
     toolCallId: string;
     toolName: NAME & string;
-    args: TOOLS[NAME] extends Tool<infer P> ? P : never;
-    result: Awaited<ReturnType<Exclude<TOOLS[NAME]['execute'], undefined>>>;
+    input: TOOLS[NAME] extends Tool<infer P> ? P : never;
+    output: Awaited<ReturnType<Exclude<TOOLS[NAME]['execute'], undefined>>>;
   };
 }>;
 

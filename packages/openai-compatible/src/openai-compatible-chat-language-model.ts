@@ -251,7 +251,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
           toolCallType: 'function',
           toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
-          args: toolCall.function.arguments!,
+          input: toolCall.function.arguments!,
         });
       }
     }
@@ -525,7 +525,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                         toolCallType: 'function',
                         toolCallId: toolCall.id,
                         toolName: toolCall.function.name,
-                        argsTextDelta: toolCall.function.arguments,
+                        inputTextDelta: toolCall.function.arguments,
                       });
                     }
 
@@ -537,7 +537,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                         toolCallType: 'function',
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
-                        args: toolCall.function.arguments,
+                        input: toolCall.function.arguments,
                       });
                       toolCall.hasFinished = true;
                     }
@@ -564,7 +564,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                   toolCallType: 'function',
                   toolCallId: toolCall.id,
                   toolName: toolCall.function.name,
-                  argsTextDelta: toolCallDelta.function.arguments ?? '',
+                  inputTextDelta: toolCallDelta.function.arguments ?? '',
                 });
 
                 // check if tool call is complete
@@ -578,7 +578,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                     toolCallType: 'function',
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
-                    args: toolCall.function.arguments,
+                    input: toolCall.function.arguments,
                   });
                   toolCall.hasFinished = true;
                 }

@@ -102,7 +102,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -251,7 +251,7 @@ describe('doGenerate', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: {
                 value: { type: 'string' },
@@ -413,7 +413,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'currentTime',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: {},
             required: [],
@@ -876,7 +876,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -901,14 +901,14 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "",
+          "inputTextDelta": "",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "{
+          "inputTextDelta": "{
           "",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
@@ -916,56 +916,56 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "ticker",
+          "inputTextDelta": "ticker",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "_",
+          "inputTextDelta": "_",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "symbol",
+          "inputTextDelta": "symbol",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "":",
+          "inputTextDelta": "":",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": " "",
+          "inputTextDelta": " "",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "AAPL",
+          "inputTextDelta": "AAPL",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": """,
+          "inputTextDelta": """,
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "
+          "inputTextDelta": "
       ",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
@@ -973,7 +973,7 @@ describe('doStream', () => {
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "}",
+          "inputTextDelta": "}",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -1175,7 +1175,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: {},
             required: [],
@@ -1198,7 +1198,7 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "",
+          "inputTextDelta": "",
           "toolCallId": "test-id-1",
           "toolCallType": "function",
           "toolName": "test-tool",

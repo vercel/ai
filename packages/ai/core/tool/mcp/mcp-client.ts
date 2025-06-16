@@ -320,19 +320,17 @@ class MCPClient {
           continue;
         }
 
-        const parameters =
-          schemas === 'automatic'
-            ? jsonSchema({
-                ...inputSchema,
-                properties: inputSchema.properties ?? {},
-                additionalProperties: false,
-              } as JSONSchema7)
-            : schemas[name].parameters;
-
         const self = this;
         const toolWithExecute = tool({
           description,
-          parameters,
+          inputSchema:
+            schemas === 'automatic'
+              ? jsonSchema({
+                  ...inputSchema,
+                  properties: inputSchema.properties ?? {},
+                  additionalProperties: false,
+                } as JSONSchema7)
+              : schemas[name].inputSchema,
           execute: async (
             args: any,
             options: ToolCallOptions,

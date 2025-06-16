@@ -6,11 +6,11 @@ import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 const mockTools: ToolSet = {
   tool1: tool({
     description: 'Tool 1 description',
-    parameters: z.object({}),
+    inputSchema: z.object({}),
   }),
   tool2: tool({
     description: 'Tool 2 description',
-    parameters: z.object({ city: z.string() }),
+    inputSchema: z.object({ city: z.string() }),
   }),
 };
 
@@ -18,7 +18,7 @@ const mockProviderDefinedTool: Tool = {
   type: 'provider-defined-client',
   id: 'provider.tool-id',
   args: { key: 'value' },
-  parameters: z.object({}),
+  inputSchema: z.object({}),
 };
 
 const mockToolsWithProviderDefined: ToolSet = {

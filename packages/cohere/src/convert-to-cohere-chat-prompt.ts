@@ -95,7 +95,7 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
                 type: 'function' as const,
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
               });
               break;
@@ -116,7 +116,7 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
         messages.push(
           ...content.map(toolResult => ({
             role: 'tool' as const,
-            content: JSON.stringify(toolResult.result),
+            content: JSON.stringify(toolResult.output),
             tool_call_id: toolResult.toolCallId,
           })),
         );

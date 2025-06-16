@@ -751,7 +751,7 @@ describe('convertToLanguageModelMessage', () => {
                 type: 'tool-call',
                 toolName: 'toolName',
                 toolCallId: 'toolCallId',
-                args: {},
+                input: {},
               },
             ],
           },
@@ -876,7 +876,7 @@ describe('convertToLanguageModelMessage', () => {
                 type: 'tool-call',
                 toolName: 'toolName',
                 toolCallId: 'toolCallId',
-                args: {},
+                input: {},
                 providerOptions: {
                   'test-provider': {
                     'key-a': 'test-value-1',
@@ -1017,7 +1017,7 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              result: { some: 'result' },
+              output: { some: 'result' },
             },
           ],
         },
@@ -1046,7 +1046,7 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              result: { some: 'result' },
+              output: { some: 'result' },
               providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
@@ -1087,7 +1087,7 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              result: { some: 'result' },
+              output: { some: 'result' },
               isError: true,
             },
           ],
@@ -1118,7 +1118,7 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              result: { some: 'result' },
+              output: { some: 'result' },
               experimental_content: [
                 { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
               ],

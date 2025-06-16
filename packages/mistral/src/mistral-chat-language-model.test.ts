@@ -233,7 +233,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -569,7 +569,7 @@ describe('doStream', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -599,7 +599,7 @@ describe('doStream', () => {
           "type": "text",
         },
         {
-          "argsTextDelta": "{"value":"Sparkle Day"}",
+          "inputTextDelta": "{"value":"Sparkle Day"}",
           "toolCallId": "yfBEybNYi",
           "toolCallType": "function",
           "toolName": "test-tool",

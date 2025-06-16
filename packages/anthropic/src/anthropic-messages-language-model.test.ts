@@ -282,7 +282,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -428,7 +428,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -1331,7 +1331,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -1364,42 +1364,42 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text",
           },
           {
-            "argsTextDelta": "",
+            "inputTextDelta": "",
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolCallType": "function",
             "toolName": "test-tool",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "{"value",
+            "inputTextDelta": "{"value",
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolCallType": "function",
             "toolName": "test-tool",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "":",
+            "inputTextDelta": "":",
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolCallType": "function",
             "toolName": "test-tool",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": ""Spark",
+            "inputTextDelta": ""Spark",
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolCallType": "function",
             "toolName": "test-tool",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "le",
+            "inputTextDelta": "le",
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolCallType": "function",
             "toolName": "test-tool",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": " Day"}",
+            "inputTextDelta": " Day"}",
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolCallType": "function",
             "toolName": "test-tool",

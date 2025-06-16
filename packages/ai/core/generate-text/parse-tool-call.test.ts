@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { InvalidToolArgumentsError } from '../../src/error/invalid-tool-arguments-error';
+import { InvalidToolInputError } from '../../src/error/invalid-tool-input-error';
 import { NoSuchToolError } from '../../src/error/no-such-tool-error';
 import { tool } from '../tool';
 import { parseToolCall } from './parse-tool-call';
@@ -12,11 +12,11 @@ it('should successfully parse a valid tool call', async () => {
       toolCallType: 'function',
       toolName: 'testTool',
       toolCallId: '123',
-      args: '{"param1": "test", "param2": 42}',
+      input: '{"param1": "test", "param2": 42}',
     },
     tools: {
       testTool: tool({
-        parameters: z.object({
+        inputSchema: z.object({
           param1: z.string(),
           param2: z.number(),
         }),
@@ -42,11 +42,11 @@ it('should successfully process empty calls for tools that have no parameters', 
       toolCallType: 'function',
       toolName: 'testTool',
       toolCallId: '123',
-      args: '',
+      input: '',
     },
     tools: {
       testTool: tool({
-        parameters: z.object({}),
+        inputSchema: z.object({}),
       }),
     } as const,
     repairToolCall: undefined,
@@ -70,7 +70,7 @@ it('should throw NoSuchToolError when tools is null', async () => {
         toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
-        args: '{}',
+        input: '{}',
       },
       tools: undefined,
       repairToolCall: undefined,
@@ -88,11 +88,11 @@ it('should throw NoSuchToolError when tool is not found', async () => {
         toolCallType: 'function',
         toolName: 'nonExistentTool',
         toolCallId: '123',
-        args: '{}',
+        input: '{}',
       },
       tools: {
         testTool: tool({
-          parameters: z.object({
+          inputSchema: z.object({
             param1: z.string(),
             param2: z.number(),
           }),
@@ -113,11 +113,11 @@ it('should throw InvalidToolArgumentsError when args are invalid', async () => {
         toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
-        args: '{"param1": "test"}', // Missing required param2
+        input: '{"param1": "test"}', // Missing required param2
       },
       tools: {
         testTool: tool({
-          parameters: z.object({
+          inputSchema: z.object({
             param1: z.string(),
             param2: z.number(),
           }),
@@ -127,7 +127,7 @@ it('should throw InvalidToolArgumentsError when args are invalid', async () => {
       messages: [],
       system: undefined,
     }),
-  ).rejects.toThrow(InvalidToolArgumentsError);
+  ).rejects.toThrow(InvalidToolInputError);
 });
 
 describe('tool call repair', () => {
@@ -145,11 +145,11 @@ describe('tool call repair', () => {
         toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
-        args: 'invalid json', // This will trigger repair
+        input: 'invalid json', // This will trigger repair
       },
       tools: {
         testTool: tool({
-          parameters: z.object({
+          inputSchema: z.object({
             param1: z.string(),
             param2: z.number(),
           }),
@@ -171,7 +171,7 @@ describe('tool call repair', () => {
       parameterSchema: expect.any(Function),
       messages: [{ role: 'user', content: 'test message' }],
       system: 'test system',
-      error: expect.any(InvalidToolArgumentsError),
+      error: expect.any(InvalidToolInputError),
     });
 
     // Verify the repaired result was used
@@ -193,11 +193,11 @@ describe('tool call repair', () => {
           toolCallType: 'function',
           toolName: 'testTool',
           toolCallId: '123',
-          args: 'invalid json',
+          input: 'invalid json',
         },
         tools: {
           testTool: tool({
-            parameters: z.object({
+            inputSchema: z.object({
               param1: z.string(),
               param2: z.number(),
             }),
@@ -207,7 +207,7 @@ describe('tool call repair', () => {
         messages: [],
         system: undefined,
       }),
-    ).rejects.toThrow(InvalidToolArgumentsError);
+    ).rejects.toThrow(InvalidToolInputError);
 
     expect(repairToolCall).toHaveBeenCalledTimes(1);
   });
@@ -221,11 +221,11 @@ describe('tool call repair', () => {
         toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
-        args: 'invalid json',
+        input: 'invalid json',
       },
       tools: {
         testTool: tool({
-          parameters: z.object({
+          inputSchema: z.object({
             param1: z.string(),
             param2: z.number(),
           }),
@@ -239,7 +239,7 @@ describe('tool call repair', () => {
     await expect(resultPromise).rejects.toThrow(ToolCallRepairError);
     await expect(resultPromise).rejects.toMatchObject({
       cause: new Error('test error'),
-      originalError: expect.any(InvalidToolArgumentsError),
+      originalError: expect.any(InvalidToolInputError),
     });
     expect(repairToolCall).toHaveBeenCalledTimes(1);
   });

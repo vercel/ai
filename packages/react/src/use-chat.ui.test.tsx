@@ -624,7 +624,7 @@ describe('onToolCall', () => {
         await toolCallPromise;
         return `test-tool-response: ${toolCall.toolName} ${
           toolCall.toolCallId
-        } ${JSON.stringify(toolCall.args)}`;
+        } ${JSON.stringify(toolCall.input)}`;
       },
     });
 
@@ -663,10 +663,10 @@ describe('onToolCall', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
-          args: { testArg: 'test-value' },
+          input: { testArg: 'test-value' },
         }),
       ],
     };
@@ -717,13 +717,13 @@ describe('tool invocations', () => {
                   <div data-testid={`tool-invocation-${toolIdx}`}>
                     {JSON.stringify(toolPart)}
                   </div>
-                  {toolPart.state === 'call' && (
+                  {toolPart.state === 'input-available' && (
                     <button
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
                         addToolResult({
                           toolCallId: toolPart.toolCallId,
-                          result: 'test-result',
+                          output: 'test-result',
                         });
                       }}
                     />
@@ -767,7 +767,7 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-streaming-start',
+        type: 'tool-input-start',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
       }),
@@ -785,9 +785,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-delta',
+        type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
-        argsTextDelta: '{"testArg":"t',
+        inputTextDelta: '{"testArg":"t',
       }),
     );
 
@@ -804,9 +804,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-delta',
+        type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
-        argsTextDelta: 'est-value"}}',
+        inputTextDelta: 'est-value"}}',
       }),
     );
 
@@ -823,10 +823,10 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -843,9 +843,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-result',
+        type: 'tool-output-available',
         toolCallId: 'tool-call-0',
-        result: 'test-result',
+        output: 'test-result',
       }),
     );
     controller.close();
@@ -874,10 +874,10 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -894,9 +894,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-result',
+        type: 'tool-output-available',
         toolCallId: 'tool-call-0',
-        result: 'test-result',
+        output: 'test-result',
       }),
     );
     controller.close();
@@ -927,10 +927,10 @@ describe('tool invocations', () => {
     controller.write(formatStreamPart({ type: 'start-step' }));
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -1021,10 +1021,10 @@ describe('tool invocations', () => {
     // tool call
     controller1.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -1088,10 +1088,10 @@ describe('tool invocations', () => {
     // tool call
     controller1.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -1160,7 +1160,7 @@ describe('maxSteps', () => {
 
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
-          } ${JSON.stringify(toolCall.args)}`;
+          } ${JSON.stringify(toolCall.input)}`;
         },
         generateId: mockId(),
         maxSteps: 5,
@@ -1196,10 +1196,10 @@ describe('maxSteps', () => {
           type: 'stream-chunks',
           chunks: [
             formatStreamPart({
-              type: 'tool-call',
+              type: 'tool-input-available',
               toolCallId: 'tool-call-0',
               toolName: 'test-tool',
-              args: { testArg: 'test-value' },
+              input: { testArg: 'test-value' },
             }),
           ],
         },
@@ -1227,7 +1227,7 @@ describe('maxSteps', () => {
           onToolCallCounter++;
           return `test-tool-response: ${toolCall.toolName} ${
             toolCall.toolCallId
-          } ${JSON.stringify(toolCall.args)}`;
+          } ${JSON.stringify(toolCall.input)}`;
         },
         generateId: mockId(),
         maxSteps: 5,
@@ -1240,9 +1240,9 @@ describe('maxSteps', () => {
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
               {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) =>
-                toolPart.state === 'result' ? (
+                toolPart.state === 'output-available' ? (
                   <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
-                    {JSON.stringify(toolPart.result)}
+                    {JSON.stringify(toolPart.output)}
                   </div>
                 ) : null,
               )}
@@ -1269,10 +1269,10 @@ describe('maxSteps', () => {
           type: 'stream-chunks',
           chunks: [
             formatStreamPart({
-              type: 'tool-call',
+              type: 'tool-input-available',
               toolCallId: 'tool-call-0',
               toolName: 'test-tool',
-              args: { testArg: 'test-value' },
+              input: { testArg: 'test-value' },
             }),
           ],
         },

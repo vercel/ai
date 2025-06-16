@@ -213,7 +213,7 @@ describe('Anthropic Web Search', () => {
           type: 'function',
           name: 'calculator',
           description: 'Calculate math',
-          parameters: { type: 'object', properties: {} },
+          inputSchema: { type: 'object', properties: {} },
         },
       ],
       providerOptions: {

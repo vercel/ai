@@ -477,7 +477,7 @@ describe('streamText', () => {
                   toolCallType: 'function',
                   toolCallId: 'call-1',
                   toolName: 'tool1',
-                  args: `{ "value": "value" }`,
+                  input: `{ "value": "value" }`,
                 },
                 {
                   type: 'finish',
@@ -489,9 +489,9 @@ describe('streamText', () => {
           },
         }),
         tools: {
-          tool1: {
-            parameters: z.object({ value: z.string() }),
-          },
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
         },
         toolChoice: 'required',
         prompt: 'test-input',
@@ -517,56 +517,56 @@ describe('streamText', () => {
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: '{"',
+              inputTextDelta: '{"',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: 'value',
+              inputTextDelta: 'value',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: '":"',
+              inputTextDelta: '":"',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: 'Spark',
+              inputTextDelta: 'Spark',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: 'le',
+              inputTextDelta: 'le',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: ' Day',
+              inputTextDelta: ' Day',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: '"}',
+              inputTextDelta: '"}',
             },
             {
               type: 'tool-call',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              args: '{"value":"Sparkle Day"}',
+              input: '{"value":"Sparkle Day"}',
             },
             {
               type: 'finish',
@@ -576,9 +576,9 @@ describe('streamText', () => {
           ]),
         }),
         tools: {
-          'test-tool': {
-            parameters: z.object({ value: z.string() }),
-          },
+          'test-tool': tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
         },
         toolChoice: 'required',
         prompt: 'test-input',
@@ -604,7 +604,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -615,13 +615,13 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
-            parameters: z.object({ value: z.string() }),
-            execute: async (args, options) => {
-              expect(args).toStrictEqual({ value: 'value' });
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (input, options) => {
+              expect(input).toStrictEqual({ value: 'value' });
               expect(options.messages).toStrictEqual([
                 { role: 'user', content: 'test-input' },
               ]);
-              return `${args.value}-result`;
+              return `${input.value}-result`;
             },
           }),
         },
@@ -648,7 +648,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -1168,21 +1168,21 @@ describe('streamText', () => {
               toolCallId: 'call-1',
               toolCallType: 'function',
               toolName: 'tool1',
-              argsTextDelta: '{ "value":',
+              inputTextDelta: '{ "value":',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call-1',
               toolCallType: 'function',
               toolName: 'tool1',
-              argsTextDelta: ' "value" }',
+              inputTextDelta: ' "value" }',
             },
             {
               type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -2047,7 +2047,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -2057,9 +2057,9 @@ describe('streamText', () => {
           ]),
         }),
         tools: {
-          tool1: {
-            parameters: z.object({ value: z.string() }),
-          },
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
         },
         prompt: 'test-input',
       });
@@ -2087,7 +2087,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -2098,7 +2098,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -2149,7 +2149,7 @@ describe('streamText', () => {
               toolCallId: '1',
               toolCallType: 'function',
               toolName: 'tool1',
-              argsTextDelta: '{"value": "',
+              inputTextDelta: '{"value": "',
             },
             {
               type: 'reasoning',
@@ -2161,14 +2161,14 @@ describe('streamText', () => {
               toolCallId: '1',
               toolCallType: 'function',
               toolName: 'tool1',
-              argsTextDelta: 'test',
+              inputTextDelta: 'test',
             },
             {
               type: 'tool-call-delta',
               toolCallId: '1',
               toolCallType: 'function',
               toolName: 'tool1',
-              argsTextDelta: '"}',
+              inputTextDelta: '"}',
             },
             {
               type: 'source',
@@ -2183,7 +2183,7 @@ describe('streamText', () => {
               toolCallId: '1',
               toolCallType: 'function',
               toolName: 'tool1',
-              args: `{ "value": "test" }`,
+              input: `{ "value": "test" }`,
             },
             { type: 'text', text: ' World' },
             {
@@ -2257,7 +2257,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             { type: 'text', text: `world!` },
             {
@@ -2383,7 +2383,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -2474,7 +2474,7 @@ describe('streamText', () => {
                         toolCallType: 'function',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        args: `{ "value": "value" }`,
+                        input: `{ "value": "value" }`,
                       },
                       {
                         type: 'finish',
@@ -2521,7 +2521,7 @@ describe('streamText', () => {
                           type: 'tool-call',
                           toolCallId: 'call-1',
                           toolName: 'tool1',
-                          args: { value: 'value' },
+                          input: { value: 'value' },
                           providerOptions: undefined,
                         },
                       ],
@@ -2534,7 +2534,7 @@ describe('streamText', () => {
                           type: 'tool-result',
                           toolCallId: 'call-1',
                           toolName: 'tool1',
-                          result: 'result1',
+                          output: 'result1',
                           content: undefined,
                           isError: undefined,
                           providerOptions: undefined,
@@ -2751,7 +2751,7 @@ describe('streamText', () => {
                         toolCallType: 'function',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        args: `{ "value": "value" }`,
+                        input: `{ "value": "value" }`,
                       },
                       {
                         type: 'finish',
@@ -2789,7 +2789,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: tool({
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             }),
           },
@@ -3229,10 +3229,10 @@ describe('streamText', () => {
         >({
           transform(chunk, controller) {
             if (chunk.type === 'tool-result') {
-              chunk.result = chunk.result.toUpperCase();
-              chunk.args = {
-                ...chunk.args,
-                value: chunk.args.value.toUpperCase(),
+              chunk.output = chunk.output.toUpperCase();
+              chunk.input = {
+                ...chunk.input,
+                value: chunk.input.value.toUpperCase(),
               };
             }
 
@@ -3294,7 +3294,7 @@ describe('streamText', () => {
                         toolCallType: 'function',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        args: `{ "value": "value" }`,
+                        input: `{ "value": "value" }`,
                       },
                       {
                         type: 'finish',
@@ -3392,7 +3392,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -4361,7 +4361,7 @@ describe('streamText', () => {
                         toolCallType: 'function',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        args: `{ "value": "value" }`,
+                        input: `{ "value": "value" }`,
                       },
                       {
                         type: 'finish',
@@ -4661,7 +4661,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -4762,7 +4762,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -4802,7 +4802,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -4851,56 +4851,56 @@ describe('streamText', () => {
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: '{"',
+              inputTextDelta: '{"',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: 'value',
+              inputTextDelta: 'value',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: '":"',
+              inputTextDelta: '":"',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: 'Spark',
+              inputTextDelta: 'Spark',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: 'le',
+              inputTextDelta: 'le',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: ' Day',
+              inputTextDelta: ' Day',
             },
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              argsTextDelta: '"}',
+              inputTextDelta: '"}',
             },
             {
               type: 'tool-call',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolCallType: 'function',
               toolName: 'test-tool',
-              args: '{"value":"Sparkle Day"}',
+              input: '{"value":"Sparkle Day"}',
             },
             {
               type: 'finish',
@@ -4911,20 +4911,20 @@ describe('streamText', () => {
         }),
         tools: {
           'test-tool': tool({
-            parameters: jsonSchema<{ value: string }>({
+            inputSchema: jsonSchema<{ value: string }>({
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
               additionalProperties: false,
             }),
-            onArgsAvailable: options => {
-              recordedCalls.push({ type: 'onArgsAvailable', options });
+            onInputAvailable: options => {
+              recordedCalls.push({ type: 'onInputAvailable', options });
             },
-            onArgsStreamingStart: options => {
-              recordedCalls.push({ type: 'onArgsStreamingStart', options });
+            onInputStart: options => {
+              recordedCalls.push({ type: 'onInputStart', options });
             },
-            onArgsStreamingDelta: options => {
-              recordedCalls.push({ type: 'onArgsStreamingDelta', options });
+            onInputDelta: options => {
+              recordedCalls.push({ type: 'onInputDelta', options });
             },
           }),
         },
@@ -4955,7 +4955,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "argsTextDelta": "{"",
+              "inputTextDelta": "{"",
               "messages": [
                 {
                   "content": "test-input",
@@ -4969,7 +4969,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "argsTextDelta": "value",
+              "inputTextDelta": "value",
               "messages": [
                 {
                   "content": "test-input",
@@ -4983,7 +4983,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "argsTextDelta": "":"",
+              "inputTextDelta": "":"",
               "messages": [
                 {
                   "content": "test-input",
@@ -4997,7 +4997,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "argsTextDelta": "Spark",
+              "inputTextDelta": "Spark",
               "messages": [
                 {
                   "content": "test-input",
@@ -5011,7 +5011,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "argsTextDelta": "le",
+              "inputTextDelta": "le",
               "messages": [
                 {
                   "content": "test-input",
@@ -5025,7 +5025,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "argsTextDelta": " Day",
+              "inputTextDelta": " Day",
               "messages": [
                 {
                   "content": "test-input",
@@ -5039,7 +5039,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "argsTextDelta": ""}",
+              "inputTextDelta": ""}",
               "messages": [
                 {
                   "content": "test-input",
@@ -5112,7 +5112,7 @@ describe('streamText', () => {
                   toolCallType: 'function',
                   toolCallId: 'call-1',
                   toolName: 'tool1',
-                  args: `{ "value": "value" }`,
+                  input: `{ "value": "value" }`,
                 },
                 {
                   type: 'finish',
@@ -5125,7 +5125,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: jsonSchema<{ value: string }>({
+            inputSchema: jsonSchema<{ value: string }>({
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -5207,7 +5207,7 @@ describe('streamText', () => {
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -5218,7 +5218,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async (): Promise<string> => {
               throw new Error('test error');
             },
@@ -5297,22 +5297,22 @@ describe('streamText', () => {
             }
 
             if (chunk.type === 'tool-call-delta') {
-              chunk.argsTextDelta = chunk.argsTextDelta.toUpperCase();
+              chunk.inputTextDelta = chunk.inputTextDelta.toUpperCase();
             }
 
             // assuming test arg structure:
             if (chunk.type === 'tool-call') {
-              chunk.args = {
-                ...chunk.args,
-                value: chunk.args.value.toUpperCase(),
+              chunk.input = {
+                ...chunk.input,
+                value: chunk.input.value.toUpperCase(),
               };
             }
 
             if (chunk.type === 'tool-result') {
-              chunk.result = chunk.result.toUpperCase();
-              chunk.args = {
-                ...chunk.args,
-                value: chunk.args.value.toUpperCase(),
+              chunk.output = chunk.output.toUpperCase();
+              chunk.input = {
+                ...chunk.input,
+                value: chunk.input.value.toUpperCase(),
               };
             }
 
@@ -5469,7 +5469,7 @@ describe('streamText', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               {
                 type: 'finish',
@@ -5480,7 +5480,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -5511,7 +5511,7 @@ describe('streamText', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               {
                 type: 'finish',
@@ -5522,7 +5522,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -5560,7 +5560,7 @@ describe('streamText', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               {
                 type: 'finish',
@@ -5571,7 +5571,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -5674,7 +5674,7 @@ describe('streamText', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               { type: 'text', text: `world!` },
               {
@@ -5690,7 +5690,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async ({ value }) => `${value}-result`,
             },
           },
@@ -5727,7 +5727,7 @@ describe('streamText', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               { type: 'text', text: `world!` },
               {
@@ -5743,7 +5743,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: tool({
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async ({ value }) => `${value}-result`,
             }),
           },
@@ -5778,7 +5778,7 @@ describe('streamText', () => {
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               { type: 'text', text: `world!` },
               {
@@ -5793,7 +5793,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: tool({
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async ({ value }) => `${value}-result`,
             }),
           },
@@ -5840,28 +5840,28 @@ describe('streamText', () => {
                 toolCallId: '1',
                 toolCallType: 'function',
                 toolName: 'tool1',
-                argsTextDelta: '{"value": "',
+                inputTextDelta: '{"value": "',
               },
               {
                 type: 'tool-call-delta',
                 toolCallId: '1',
                 toolCallType: 'function',
                 toolName: 'tool1',
-                argsTextDelta: 'test',
+                inputTextDelta: 'test',
               },
               {
                 type: 'tool-call-delta',
                 toolCallId: '1',
                 toolCallType: 'function',
                 toolName: 'tool1',
-                argsTextDelta: '"}',
+                inputTextDelta: '"}',
               },
               {
                 type: 'tool-call',
                 toolCallId: '1',
                 toolCallType: 'function',
                 toolName: 'tool1',
-                args: `{ "value": "test" }`,
+                input: `{ "value": "test" }`,
               },
               { type: 'text', text: ' World' },
               {
@@ -5873,7 +5873,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async ({ value }) => `${value}-result`,
             },
           },
@@ -5903,19 +5903,19 @@ describe('streamText', () => {
               "type": "tool-call-streaming-start",
             },
             {
-              "argsTextDelta": "{"VALUE": "",
+              "inputTextDelta": "{"VALUE": "",
               "toolCallId": "1",
               "toolName": "tool1",
               "type": "tool-call-delta",
             },
             {
-              "argsTextDelta": "TEST",
+              "inputTextDelta": "TEST",
               "toolCallId": "1",
               "toolName": "tool1",
               "type": "tool-call-delta",
             },
             {
-              "argsTextDelta": ""}",
+              "inputTextDelta": ""}",
               "toolCallId": "1",
               "toolName": "tool1",
               "type": "tool-call-delta",

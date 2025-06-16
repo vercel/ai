@@ -5,7 +5,7 @@ import * as z4 from 'zod/v4/core';
 import { ModelMessage } from '../prompt/message';
 import { ToolResultContent } from '../prompt/tool-result-content';
 
-export type ToolParameters<T = JSONObject> =
+export type ToolInputSchema<T = JSONObject> =
   | z4.$ZodType<T>
   | z3.Schema<T>
   | Schema<T>;
@@ -41,7 +41,7 @@ This enables the language model to generate the input.
 The tool can also contain an optional execute function for the actual execution function of the tool.
  */
 export type Tool<
-  PARAMETERS extends JSONValue | unknown | never = any,
+  INPUT extends JSONValue | unknown | never = any,
   RESULT = any,
 > = {
   /**
@@ -51,14 +51,14 @@ Not used for provider-defined-client tools.
    */
   description?: string;
 } & NeverOptional<
-  PARAMETERS,
+  INPUT,
   {
     /**
 The schema of the input that the tool expects. The language model will use this to generate the input.
 It is also used to validate the output of the language model.
 Use descriptions to make the input understandable for the language model.
    */
-    parameters: ToolParameters<PARAMETERS>;
+    inputSchema: ToolInputSchema<INPUT>;
   }
 > &
   NeverOptional<
@@ -72,7 +72,7 @@ If not provided, the tool will not be executed automatically.
 @options.abortSignal is a signal that can be used to abort the tool call.
       */
       execute: (
-        args: [PARAMETERS] extends [never] ? undefined : PARAMETERS,
+        input: [INPUT] extends [never] ? undefined : INPUT,
         options: ToolCallOptions,
       ) => PromiseLike<RESULT>;
 
@@ -85,27 +85,23 @@ If not provided, the tool will not be executed automatically.
        * Optional function that is called when the argument streaming starts.
        * Only called when the tool is used in a streaming context.
        */
-      onArgsStreamingStart?: (
-        options: ToolCallOptions,
-      ) => void | PromiseLike<void>;
+      onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
 
       /**
        * Optional function that is called when an argument streaming delta is available.
        * Only called when the tool is used in a streaming context.
        */
-      onArgsStreamingDelta?: (
-        options: {
-          argsTextDelta: string;
-        } & ToolCallOptions,
+      onInputDelta?: (
+        options: { inputTextDelta: string } & ToolCallOptions,
       ) => void | PromiseLike<void>;
 
       /**
        * Optional function that is called when a tool call can be started,
        * even if the execute function is not provided.
        */
-      onArgsAvailable?: (
+      onInputAvailable?: (
         options: {
-          args: [PARAMETERS] extends [never] ? undefined : PARAMETERS;
+          input: [INPUT] extends [never] ? undefined : INPUT;
         } & ToolCallOptions,
       ) => void | PromiseLike<void>;
     }

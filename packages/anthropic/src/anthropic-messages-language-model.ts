@@ -239,7 +239,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             type: 'function',
             name: 'json',
             description: 'Respond with a JSON object.',
-            parameters: responseFormat.schema,
+            inputSchema: responseFormat.schema,
           }
         : undefined;
 
@@ -523,7 +523,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   toolCallType: 'function',
                   toolCallId: part.id,
                   toolName: part.name,
-                  args: JSON.stringify(part.input),
+                  input: JSON.stringify(part.input),
                 },
           );
 
@@ -770,7 +770,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       toolCallType: 'function',
                       toolCallId: contentBlock.toolCallId,
                       toolName: contentBlock.toolName,
-                      args: contentBlock.jsonText,
+                      input: contentBlock.jsonText,
                     });
                   }
 
@@ -845,7 +845,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                             toolCallType: 'function',
                             toolCallId: contentBlock.toolCallId,
                             toolName: contentBlock.toolName,
-                            argsTextDelta: value.delta.partial_json,
+                            inputTextDelta: value.delta.partial_json,
                           },
                     );
 

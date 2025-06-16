@@ -58,7 +58,7 @@
               {#if toolName === 'askForConfirmation'}
                 {#if state === 'call'}
                   <div class="flex flex-col gap-2">
-                    {part.toolInvocation.args.message}
+                    {part.toolInvocation.input.message}
                     <div class="flex gap-2">
                       <Button
                         variant="default"
@@ -101,7 +101,7 @@
                   </div>
                 {:else if state === 'result'}
                   <div class="text-gray-500">
-                    Weather in {part.toolInvocation.args.city}: {part
+                    Weather in {part.toolInvocation.input.city}: {part
                       .toolInvocation.result}
                   </div>
                 {/if}
