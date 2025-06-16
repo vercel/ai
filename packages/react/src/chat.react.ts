@@ -62,6 +62,7 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
   replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.#messages = [
       ...this.#messages.slice(0, index),
+      // We deep clone the message here to ensure the new React Compiler (currently in RC) detects deeply nested parts/metadata changes:
       this.snapshot(message),
       ...this.#messages.slice(index + 1),
     ];
