@@ -12,9 +12,9 @@ export type ToToolsWithDefinedExecute<TOOLS extends ToolSet> = {
 };
 
 // transforms the tools into a tool result union
-type ToToolResultObject<TOOLS extends ToolSet> = ValueOf<{
+type ToToolOutputObject<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: {
-    type: 'tool-result';
+    type: 'tool-output';
     toolCallId: string;
     toolName: NAME & string;
     args: TOOLS[NAME] extends Tool<infer P> ? P : never;

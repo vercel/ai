@@ -5,7 +5,7 @@ import * as z4 from 'zod/v4/core';
 import { ModelMessage } from '../prompt/message';
 import { ToolResultContent } from '../prompt/tool-result-content';
 
-export type ToolParameters<T = JSONObject> =
+export type ToolInputSchema<T = JSONObject> =
   | z4.$ZodType<T>
   | z3.Schema<T>
   | Schema<T>;
@@ -41,8 +41,8 @@ This enables the language model to generate the input.
 The tool can also contain an optional execute function for the actual execution function of the tool.
  */
 export type Tool<
-  PARAMETERS extends JSONValue | unknown | never = any,
-  RESULT = any,
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT = any,
 > = {
   /**
 An optional description of what the tool does.
@@ -51,18 +51,18 @@ Not used for provider-defined-client tools.
    */
   description?: string;
 } & NeverOptional<
-  PARAMETERS,
+  INPUT,
   {
     /**
 The schema of the input that the tool expects. The language model will use this to generate the input.
 It is also used to validate the output of the language model.
 Use descriptions to make the input understandable for the language model.
    */
-    parameters: ToolParameters<PARAMETERS>;
+    inputSchema: ToolInputSchema<INPUT>;
   }
 > &
   NeverOptional<
-    RESULT,
+    OUTPUT,
     {
       /**
 An async function that is called with the arguments from the tool call and produces a result.
@@ -72,20 +72,20 @@ If not provided, the tool will not be executed automatically.
 @options.abortSignal is a signal that can be used to abort the tool call.
       */
       execute: (
-        args: [PARAMETERS] extends [never] ? undefined : PARAMETERS,
+        input: [INPUT] extends [never] ? undefined : INPUT,
         options: ToolCallOptions,
-      ) => PromiseLike<RESULT>;
+      ) => PromiseLike<OUTPUT>;
 
       /**
   Optional conversion function that maps the tool result to multi-part tool content for LLMs.
       */
-      experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+      experimental_toToolOutputContent?: (result: OUTPUT) => ToolResultContent;
 
       /**
        * Optional function that is called when the argument streaming starts.
        * Only called when the tool is used in a streaming context.
        */
-      onArgsStreamingStart?: (
+      onInputStreamingStart?: (
         options: ToolCallOptions,
       ) => void | PromiseLike<void>;
 
@@ -93,9 +93,9 @@ If not provided, the tool will not be executed automatically.
        * Optional function that is called when an argument streaming delta is available.
        * Only called when the tool is used in a streaming context.
        */
-      onArgsStreamingDelta?: (
+      onInputStreamingDelta?: (
         options: {
-          argsTextDelta: string;
+          inputTextDelta: string;
         } & ToolCallOptions,
       ) => void | PromiseLike<void>;
 
@@ -103,9 +103,9 @@ If not provided, the tool will not be executed automatically.
        * Optional function that is called when a tool call can be started,
        * even if the execute function is not provided.
        */
-      onArgsAvailable?: (
+      onInputAvailable?: (
         options: {
-          args: [PARAMETERS] extends [never] ? undefined : PARAMETERS;
+          input: [INPUT] extends [never] ? undefined : INPUT;
         } & ToolCallOptions,
       ) => void | PromiseLike<void>;
     }
@@ -151,9 +151,9 @@ export function tool(tool: any): any {
   return tool;
 }
 
-export type MappedTool<T extends Tool | JSONObject, RESULT extends any> =
-  T extends Tool<infer P>
-    ? Tool<P, RESULT>
+export type MappedTool<T extends Tool | JSONObject, OUTPUT extends any> =
+  T extends Tool<infer INPUT>
+    ? Tool<INPUT, OUTPUT>
     : T extends JSONObject
-      ? Tool<T, RESULT>
+      ? Tool<T, OUTPUT>
       : never;

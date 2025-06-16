@@ -122,33 +122,33 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
               modelMessages.push({
                 role: 'tool',
                 content: toolParts.map((toolPart): ToolResultPart => {
-                  if (toolPart.state !== 'result') {
+                  if (toolPart.state !== 'output-available') {
                     throw new MessageConversionError({
                       originalMessage: message,
                       message:
-                        'ToolInvocation must have a result: ' +
+                        'ToolInvocation must have an  output: ' +
                         JSON.stringify(toolPart),
                     });
                   }
 
                   const toolName = getToolName(toolPart);
-                  const { toolCallId, result } = toolPart;
+                  const { toolCallId, output } = toolPart;
 
                   const tool = tools[toolName];
-                  return tool?.experimental_toToolResultContent != null
+                  return tool?.experimental_toToolOutputContent != null
                     ? {
                         type: 'tool-result',
                         toolCallId,
                         toolName,
-                        result: tool.experimental_toToolResultContent(result),
+                        result: tool.experimental_toToolOutputContent(output),
                         experimental_content:
-                          tool.experimental_toToolResultContent(result),
+                          tool.experimental_toToolOutputContent(output),
                       }
                     : {
                         type: 'tool-result',
                         toolCallId,
                         toolName,
-                        result,
+                        output,
                       };
                 }),
               });

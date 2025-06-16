@@ -24,7 +24,7 @@ export * from './response-handler';
 export { asSchema, jsonSchema } from './schema';
 export type { Schema, InferSchema } from './schema';
 export type { ToolCall } from './types/tool-call';
-export type { ToolResult, ToolResultContent } from './types/tool-result';
+export type { ToolOutput, ToolOutputContent } from './types/tool-output';
 export * from './uint8-utils';
 export * from './validate-types';
 export * from './validator';

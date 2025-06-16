@@ -323,9 +323,9 @@ describe('processUIMessageStream', () => {
             {
               type: 'tool-tool-name-original',
               toolCallId: 'tool-call-id-original',
-              state: 'result',
-              args: {},
-              result: { location: 'Berlin' },
+              state: 'output-available',
+              input: {},
+              output: { location: 'Berlin' },
             },
           ],
         },

@@ -10,7 +10,7 @@ export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'reasoning'; text: string; providerMetadata?: ProviderMetadata }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
+  | ({ type: 'tool-input-start' } & ToolCallUnion<TOOLS>)
   | ({
-      type: 'tool-result';
+      type: 'tool-output-available';
     } & ToolResultUnion<TOOLS>);

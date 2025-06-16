@@ -96,9 +96,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
               toolCallId: string;
             } & (
-              | { state: 'partial-call'; args: unknown }
-              | { state: 'call'; args: unknown }
-              | { state: 'result'; args: unknown; result: unknown }
+              | { state: 'input-streaming'; input: unknown }
+              | { state: 'input-available'; input: unknown }
+              | { state: 'output-available'; input: unknown; output: unknown }
             ),
           ) {
             const part = state.message.parts.find(
@@ -108,15 +108,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             if (part != null) {
               part.state = options.state;
-              (part as any).args = (options as any).args;
-              (part as any).result = (options as any).result;
+              (part as any).input = (options as any).input;
+              (part as any).output = (options as any).output;
             } else {
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
                 toolCallId: options.toolCallId,
                 state: options.state,
-                args: (options as any).args,
-                result: (options as any).result,
+                input: (options as any).input,
+                output: (options as any).output,
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
@@ -252,8 +252,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               updateToolInvocationPart({
                 toolCallId: part.toolCallId,
                 toolName: partialToolCall.toolName,
-                state: 'partial-call',
-                args: partialArgs,
+                state: 'input-streaming',
+                input: partialArgs,
               });
 
               write();
@@ -264,8 +264,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               updateToolInvocationPart({
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
-                state: 'call',
-                args: part.args,
+                state: 'input-available',
+                input: part.args,
               });
 
               write();
@@ -281,9 +281,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   updateToolInvocationPart({
                     toolCallId: part.toolCallId,
                     toolName: part.toolName,
-                    state: 'result',
-                    args: part.args,
-                    result,
+                    state: 'output-available',
+                    input: part.args,
+                    output: result,
                   });
 
                   write();

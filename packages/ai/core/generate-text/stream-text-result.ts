@@ -321,15 +321,15 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | ContentPart<TOOLS>
   | { type: 'reasoning-part-finish' }
   | {
-      type: 'tool-call-streaming-start';
+      type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
     }
   | {
-      type: 'tool-call-delta';
+      type: 'tool-input-delta';
       toolCallId: string;
       toolName: string;
-      argsTextDelta: string;
+      inputTextDelta: string;
     }
   | {
       type: 'start-step';
