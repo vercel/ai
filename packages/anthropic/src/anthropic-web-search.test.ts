@@ -253,7 +253,12 @@ describe('Anthropic Web Search Server-Side Tool', () => {
       prepareJsonResponse({
         type: 'message',
         id: 'msg_test',
-        content: [{ type: 'text', text: 'Here are the latest quantum computing breakthroughs.' }],
+        content: [
+          {
+            type: 'text',
+            text: 'Here are the latest quantum computing breakthroughs.',
+          },
+        ],
         stop_reason: 'end_turn',
         usage: { input_tokens: 10, output_tokens: 20 },
       });
@@ -288,7 +293,9 @@ describe('Anthropic Web Search Server-Side Tool', () => {
       prepareJsonResponse({
         type: 'message',
         id: 'msg_test',
-        content: [{ type: 'text', text: 'Here are the latest stock market trends.' }],
+        content: [
+          { type: 'text', text: 'Here are the latest stock market trends.' },
+        ],
         stop_reason: 'end_turn',
         usage: { input_tokens: 10, output_tokens: 20 },
       });
