@@ -142,16 +142,6 @@ export function prepareTools({
                 timezone?: string;
               };
               
-              // Check if at least one field is provided (API requirement)
-              const hasAnyField = loc.city || loc.region || loc.country || loc.timezone;
-              if (!hasAnyField) {
-                toolWarnings.push({ 
-                  type: 'unsupported-tool', 
-                  tool: tool
-                });
-                break;
-              }
-              
               webSearchTool.user_location = {
                 type: 'approximate',
               };

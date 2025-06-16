@@ -349,36 +349,6 @@ describe('Anthropic Web Search Server-Side Tool', () => {
     ).rejects.toThrow(APICallError);
   });
 
-  it('should generate warning for empty user location', () => {
-    const result = prepareTools({
-      tools: [
-        {
-          type: 'provider-defined-server',
-          id: 'anthropic.web_search_20250305',
-          name: 'web_search',
-          args: {
-            maxUses: 1,
-            userLocation: {
-              type: 'approximate',
-              // No fields provided
-            },
-          },
-        },
-      ],
-    });
-
-    expect(result.tools).toEqual([]);
-    expect(result.toolWarnings).toHaveLength(1);
-    expect(result.toolWarnings[0]).toEqual({
-      type: 'unsupported-tool',
-      tool: expect.objectContaining({
-        type: 'provider-defined-server',
-        id: 'anthropic.web_search_20250305',
-        name: 'web_search',
-      }),
-    });
-  });
-
   it('should work alongside regular client-side tools', async () => {
     prepareJsonResponse({
       type: 'message',
