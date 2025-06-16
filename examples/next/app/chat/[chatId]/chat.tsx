@@ -11,17 +11,18 @@ import Message from './message';
 export default function ChatComponent({
   chatData,
   isNewChat = false,
-  resume,
+  resume = false,
 }: {
   chatData: { id: string; messages: MyUIMessage[] };
   isNewChat?: boolean;
-  resume: boolean;
+  resume?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, sendMessage, messages, experimental_resume } = useChat({
+  const { status, sendMessage, messages } = useChat({
     id: chatData.id,
     messages: chatData.messages,
+    resume,
     transport: new DefaultChatTransport({
       // only send the last message to the server to limit the request size:
       prepareRequest: ({ id, messages }) => ({
@@ -46,13 +47,6 @@ export default function ChatComponent({
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  // resume ongoing stream
-  useEffect(() => {
-    if (resume) {
-      experimental_resume();
-    }
-  }, [resume, experimental_resume]);
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">

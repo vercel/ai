@@ -83,4 +83,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   abstract submitMessages(
     options: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0],
   ): Promise<ReadableStream<UIMessageStreamPart>>;
+
+  abstract reconnectToStream(
+    options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
+  ): Promise<ReadableStream<UIMessageStreamPart> | null>;
 }

@@ -11,10 +11,9 @@ export async function GET(
 
   const chat = await readChat(id);
 
-  if (!chat.activeStreamId) {
-    return new Response(`no active stream for chat id ${id}`, {
-      status: 404,
-    });
+  if (chat.activeStreamId == null) {
+    // no content response when there is no active stream
+    return new Response(null, { status: 204 });
   }
 
   const streamContext = createResumableStreamContext({
