@@ -331,7 +331,6 @@ describe('Anthropic Web Search Server-Side Tool', () => {
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 
-    // web search errors should throw an exception in non-streaming mode
     await expect(() =>
       model.doGenerate({
         prompt: TEST_PROMPT,
