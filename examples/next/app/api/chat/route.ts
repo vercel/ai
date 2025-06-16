@@ -16,6 +16,9 @@ export async function POST(req: Request) {
   const chat = await readChat(id);
   const messages = [...chat.messages, message];
 
+  // save the user message
+  saveChat({ id, messages, activeStreamId: null });
+
   const result = streamText({
     model: 'openai/gpt-4o-mini',
     messages: convertToModelMessages(messages),
