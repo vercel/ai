@@ -151,6 +151,90 @@ describe('Anthropic Web Search Server-Side Tool', () => {
     });
   });
 
+  it('should handle web search with partial user location (city + country)', async () => {
+    prepareJsonResponse({
+      type: 'message',
+      id: 'msg_test',
+      content: [{ type: 'text', text: 'Here are local events.' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 10, output_tokens: 20 },
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined-server',
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {
+            maxUses: 1,
+            userLocation: {
+              type: 'approximate',
+              city: 'London',
+              country: 'GB',
+            },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools).toHaveLength(1);
+
+    expect(requestBody.tools[0]).toEqual({
+      type: 'web_search_20250305',
+      name: 'web_search',
+      max_uses: 1,
+      user_location: {
+        type: 'approximate',
+        city: 'London',
+        country: 'GB',
+      },
+    });
+  });
+
+  it('should handle web search with minimal user location (country only)', async () => {
+    prepareJsonResponse({
+      type: 'message',
+      id: 'msg_test',
+      content: [{ type: 'text', text: 'Here are global events.' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 10, output_tokens: 20 },
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined-server',
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {
+            maxUses: 1,
+            userLocation: {
+              type: 'approximate',
+              country: 'US',
+            },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools).toHaveLength(1);
+
+    expect(requestBody.tools[0]).toEqual({
+      type: 'web_search_20250305',
+      name: 'web_search',
+      max_uses: 1,
+      user_location: {
+        type: 'approximate',
+        country: 'US',
+      },
+    });
+  });
+
   it('should handle server-side web search results with citations', async () => {
     prepareJsonResponse({
       type: 'message',
@@ -246,7 +330,6 @@ describe('Anthropic Web Search Server-Side Tool', () => {
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 
-    // web search errors should throw an exception in non-streaming mode
     await expect(() =>
       model.doGenerate({
         prompt: TEST_PROMPT,

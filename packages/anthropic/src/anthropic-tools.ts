@@ -519,7 +519,7 @@ function webSearchTool_20250305(
       type: 'approximate';
       city?: string;
       region?: string;
-      country: string;
+      country?: string;
       timezone?: string;
     };
   } = {},
@@ -535,7 +535,7 @@ function webSearchTool_20250305(
       type: 'approximate';
       city?: string;
       region?: string;
-      country: string;
+      country?: string;
       timezone?: string;
     };
   };

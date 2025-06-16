@@ -134,13 +134,12 @@ export function prepareTools({
                 .blockedDomains as string[];
             }
             if (tool.args.userLocation) {
-              const loc = tool.args.userLocation as any;
-              webSearchTool.user_location = {
-                type: 'approximate',
-                country: loc.country,
-                city: loc.city ?? '',
-                region: loc.region ?? '',
-                timezone: loc.timezone ?? '',
+              webSearchTool.user_location = tool.args.userLocation as {
+                type: 'approximate';
+                city?: string;
+                region?: string;
+                country?: string;
+                timezone?: string;
               };
             }
 
