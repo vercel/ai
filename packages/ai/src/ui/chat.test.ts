@@ -53,15 +53,17 @@ const server = createTestServer({
 
 describe('chat', () => {
   describe('sendMessage', () => {
-    it('should send a message', async () => {
+    it('should send a simple message', async () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
         chunks: [
           formatStreamPart({ type: 'start' }),
+          formatStreamPart({ type: 'start-step' }),
           formatStreamPart({ type: 'text', text: 'Hello' }),
           formatStreamPart({ type: 'text', text: ',' }),
           formatStreamPart({ type: 'text', text: ' world' }),
           formatStreamPart({ type: 'text', text: '.' }),
+          formatStreamPart({ type: 'finish-step' }),
           formatStreamPart({ type: 'finish' }),
         ],
       };
@@ -99,6 +101,9 @@ describe('chat', () => {
             "id": "id-1",
             "metadata": undefined,
             "parts": [
+              {
+                "type": "step-start",
+              },
               {
                 "text": "Hello, world.",
                 "type": "text",
