@@ -58,6 +58,7 @@ const bundle = [
   'replace-usage-token-properties',
   'replace-generatetext-text-property',
   'replace-image-type-with-file-type',
+  'flatten-streamtext-file-properties',
   'replace-textdelta-with-text',
   'restructure-file-stream-parts',
   'restructure-source-stream-parts',
