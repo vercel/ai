@@ -230,22 +230,29 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }
 
   /**
-   * Append a user message to the chat list. This triggers the API call to fetch
+   * Appends or replaces a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
+   * If a messageId is provided, the message will be replaced.
    */
   sendMessage = async (
     message:
-      | (CreateUIMessage<UI_MESSAGE> & { text?: never; files?: never })
+      | (CreateUIMessage<UI_MESSAGE> & {
+          text?: never;
+          files?: never;
+          messageId?: string;
+        })
       | {
           text: string;
           files?: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
+          messageId?: string;
         }
       | {
           files: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
+          messageId?: string;
         },
     options: ChatRequestOptions = {},
   ): Promise<void> => {
