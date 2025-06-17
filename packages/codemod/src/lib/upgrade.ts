@@ -56,6 +56,7 @@ const bundle = [
   'replace-simulate-streaming',
   'replace-token-usage-types',
   'replace-usage-token-properties',
+  'replace-generatetext-text-property',
   'restructure-file-stream-parts',
   'restructure-source-stream-parts',
   'rewrite-framework-imports',
