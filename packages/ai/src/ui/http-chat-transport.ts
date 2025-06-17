@@ -16,7 +16,11 @@ export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
     headers: HeadersInit | undefined;
     api: string;
   } & {
-    trigger: 'submit-user-message' | 'submit-tool-result';
+    trigger:
+      | 'submit-user-message'
+      | 'submit-tool-result'
+      | 'regenerate-assistant-message';
+    messageId: string | undefined;
   },
 ) => {
   body: object;
@@ -129,6 +133,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
       credentials: this.credentials,
       requestMetadata: options.metadata,
       trigger: options.trigger,
+      messageId: options.messageId,
     });
 
     const api = preparedRequest?.api ?? this.api;

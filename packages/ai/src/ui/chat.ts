@@ -229,20 +229,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.state.messages = messages;
   }
 
-  removeAssistantResponse = () => {
-    const lastMessage = this.state.messages[this.state.messages.length - 1];
-
-    if (lastMessage == null) {
-      throw new Error('Cannot remove assistant response from empty chat');
-    }
-
-    if (lastMessage.role !== 'assistant') {
-      throw new Error('Last message is not an assistant message');
-    }
-
-    this.state.popMessage();
-  };
-
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
@@ -295,20 +281,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   };
 
   /**
-   * Regenerate the last assistant message.
+   * Regenerate the assistant message with the provided message id.
+   * If no message id is provided, the last assistant message will be regenerated.
    */
-  reload = async (options: ChatRequestOptions = {}): Promise<void> => {
-    // TODO stop any ongoing request
-    if (this.lastMessage === undefined) {
-      return;
+  regenerate = async ({
+    messageId,
+    ...options
+  }: {
+    messageId?: string;
+  } & ChatRequestOptions = {}): Promise<void> => {
+    const messageIndex =
+      messageId == null
+        ? this.state.messages.length - 1
+        : this.state.messages.findIndex(message => message.id === messageId);
+
+    if (
+      messageIndex === -1 ||
+      this.state.messages[messageIndex].role !== 'assistant'
+    ) {
+      throw new Error('Message is not an assistant message');
     }
 
-    if (this.lastMessage.role === 'assistant') {
-      this.state.popMessage();
-    }
+    // set the messages to the message before the assistant message
+    this.state.messages = this.state.messages.slice(0, messageIndex);
 
     await this.makeRequest({
-      trigger: 'submit-user-message',
+      trigger: 'regenerate-assistant-message',
+      messageId,
       ...options,
     });
   };
@@ -370,8 +369,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     metadata,
     headers,
     body,
+    messageId,
   }: {
-    trigger: 'submit-user-message' | 'resume-stream' | 'submit-tool-result';
+    trigger:
+      | 'submit-user-message'
+      | 'resume-stream'
+      | 'submit-tool-result'
+      | 'regenerate-assistant-message';
+    messageId?: string;
   } & ChatRequestOptions) {
     this.setStatus({ status: 'submitted', error: undefined });
 
@@ -415,6 +420,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           headers,
           body,
           trigger,
+          messageId,
         });
       }
 

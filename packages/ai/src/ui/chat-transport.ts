@@ -9,7 +9,11 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
       messages: UI_MESSAGE[];
       abortSignal: AbortSignal | undefined;
     } & {
-      trigger: 'submit-user-message' | 'submit-tool-result';
+      trigger:
+        | 'submit-user-message'
+        | 'submit-tool-result'
+        | 'regenerate-assistant-message';
+      messageId: string | undefined;
     } & ChatRequestOptions,
   ) => Promise<ReadableStream<UIMessageStreamPart>>;
 
