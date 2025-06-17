@@ -137,15 +137,15 @@ describe('processUIMessageStream', () => {
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-id',
           toolName: 'tool-name',
-          args: { city: 'London' },
+          input: { city: 'London' },
         },
         {
-          type: 'tool-result',
+          type: 'tool-output-available',
           toolCallId: 'tool-call-id',
-          result: { weather: 'sunny' },
+          output: { weather: 'sunny' },
         },
         { type: 'finish-step' },
         { type: 'start-step' },
@@ -187,11 +187,11 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": undefined,
-                  "state": "call",
+                  "output": undefined,
+                  "state": "input-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -208,13 +208,13 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -231,13 +231,13 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -266,13 +266,13 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "args": {
+              "input": {
                 "city": "London",
               },
-              "result": {
+              "output": {
                 "weather": "sunny",
               },
-              "state": "result",
+              "state": "output-available",
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
             },
@@ -296,15 +296,15 @@ describe('processUIMessageStream', () => {
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-id',
           toolName: 'tool-name',
-          args: { city: 'London' },
+          input: { city: 'London' },
         },
         {
-          type: 'tool-result',
+          type: 'tool-output-available',
           toolCallId: 'tool-call-id',
-          result: { weather: 'sunny' },
+          output: { weather: 'sunny' },
         },
         { type: 'finish-step' },
         { type: 'start-step' },
@@ -323,9 +323,9 @@ describe('processUIMessageStream', () => {
             {
               type: 'tool-tool-name-original',
               toolCallId: 'tool-call-id-original',
-              state: 'result',
-              args: {},
-              result: { location: 'Berlin' },
+              state: 'output-available',
+              input: {},
+              output: { location: 'Berlin' },
             },
           ],
         },
@@ -348,11 +348,11 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "args": {},
-                  "result": {
+                  "input": {},
+                  "output": {
                     "location": "Berlin",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id-original",
                   "type": "tool-tool-name-original",
                 },
@@ -366,11 +366,11 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "args": {},
-                  "result": {
+                  "input": {},
+                  "output": {
                     "location": "Berlin",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id-original",
                   "type": "tool-tool-name-original",
                 },
@@ -378,11 +378,11 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": undefined,
-                  "state": "call",
+                  "output": undefined,
+                  "state": "input-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -396,11 +396,11 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "args": {},
-                  "result": {
+                  "input": {},
+                  "output": {
                     "location": "Berlin",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id-original",
                   "type": "tool-tool-name-original",
                 },
@@ -408,13 +408,13 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -428,11 +428,11 @@ describe('processUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
-                  "args": {},
-                  "result": {
+                  "input": {},
+                  "output": {
                     "location": "Berlin",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id-original",
                   "type": "tool-tool-name-original",
                 },
@@ -440,13 +440,13 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -472,11 +472,11 @@ describe('processUIMessageStream', () => {
           "metadata": undefined,
           "parts": [
             {
-              "args": {},
-              "result": {
+              "input": {},
+              "output": {
                 "location": "Berlin",
               },
-              "state": "result",
+              "state": "output-available",
               "toolCallId": "tool-call-id-original",
               "type": "tool-tool-name-original",
             },
@@ -484,13 +484,13 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "args": {
+              "input": {
                 "city": "London",
               },
-              "result": {
+              "output": {
                 "weather": "sunny",
               },
-              "state": "result",
+              "state": "output-available",
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
             },
@@ -516,15 +516,15 @@ describe('processUIMessageStream', () => {
         { type: 'text', text: 'I will ' },
         { type: 'text', text: 'use a tool to get the weather in London.' },
         {
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-id',
           toolName: 'tool-name',
-          args: { city: 'London' },
+          input: { city: 'London' },
         },
         {
-          type: 'tool-result',
+          type: 'tool-output-available',
           toolCallId: 'tool-call-id',
-          result: { weather: 'sunny' },
+          output: { weather: 'sunny' },
         },
         { type: 'finish-step' },
         { type: 'start-step' },
@@ -603,11 +603,11 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": undefined,
-                  "state": "call",
+                  "output": undefined,
+                  "state": "input-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -628,13 +628,13 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -655,13 +655,13 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -689,13 +689,13 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -728,13 +728,13 @@ describe('processUIMessageStream', () => {
               "type": "text",
             },
             {
-              "args": {
+              "input": {
                 "city": "London",
               },
-              "result": {
+              "output": {
                 "weather": "sunny",
               },
-              "state": "result",
+              "state": "output-available",
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
             },
@@ -767,15 +767,15 @@ describe('processUIMessageStream', () => {
         },
         { type: 'reasoning-part-finish' },
         {
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-id',
           toolName: 'tool-name',
-          args: { city: 'London' },
+          input: { city: 'London' },
         },
         {
-          type: 'tool-result',
+          type: 'tool-output-available',
           toolCallId: 'tool-call-id',
-          result: { weather: 'sunny' },
+          output: { weather: 'sunny' },
         },
         { type: 'finish-step' },
         { type: 'start-step' },
@@ -872,11 +872,11 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": undefined,
-                  "state": "call",
+                  "output": undefined,
+                  "state": "input-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -902,13 +902,13 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -934,13 +934,13 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -978,13 +978,13 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": {
+                  "output": {
                     "weather": "sunny",
                   },
-                  "state": "result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -1031,13 +1031,13 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
-              "args": {
+              "input": {
                 "city": "London",
               },
-              "result": {
+              "output": {
                 "weather": "sunny",
               },
-              "state": "result",
+              "state": "output-available",
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
             },
@@ -1463,30 +1463,30 @@ describe('processUIMessageStream', () => {
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
-          type: 'tool-call-streaming-start',
+          type: 'tool-input-start',
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
         },
         {
-          type: 'tool-call-delta',
+          type: 'tool-input-delta',
           toolCallId: 'tool-call-0',
-          argsTextDelta: '{"testArg":"t',
+          inputTextDelta: '{"testArg":"t',
         },
         {
-          type: 'tool-call-delta',
+          type: 'tool-input-delta',
           toolCallId: 'tool-call-0',
-          argsTextDelta: 'est-value"}}',
+          inputTextDelta: 'est-value"}}',
         },
         {
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-0',
           toolName: 'test-tool',
-          args: { testArg: 'test-value' },
+          input: { testArg: 'test-value' },
         },
         {
-          type: 'tool-result',
+          type: 'tool-output-available',
           toolCallId: 'tool-call-0',
-          result: 'test-result',
+          output: 'test-result',
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -1525,9 +1525,9 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": undefined,
-                  "result": undefined,
-                  "state": "partial-call",
+                  "input": undefined,
+                  "output": undefined,
+                  "state": "input-streaming",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
                 },
@@ -1544,11 +1544,11 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "testArg": "t",
                   },
-                  "result": undefined,
-                  "state": "partial-call",
+                  "output": undefined,
+                  "state": "input-streaming",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
                 },
@@ -1565,11 +1565,11 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "testArg": "test-value",
                   },
-                  "result": undefined,
-                  "state": "partial-call",
+                  "output": undefined,
+                  "state": "input-streaming",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
                 },
@@ -1586,11 +1586,11 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "testArg": "test-value",
                   },
-                  "result": undefined,
-                  "state": "call",
+                  "output": undefined,
+                  "state": "input-available",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
                 },
@@ -1607,11 +1607,11 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "testArg": "test-value",
                   },
-                  "result": "test-result",
-                  "state": "result",
+                  "output": "test-result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
                 },
@@ -1633,11 +1633,11 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "args": {
+              "input": {
                 "testArg": "test-value",
               },
-              "result": "test-result",
-              "state": "result",
+              "output": "test-result",
+              "state": "output-available",
               "toolCallId": "tool-call-0",
               "type": "tool-test-tool",
             },
@@ -1964,10 +1964,10 @@ describe('processUIMessageStream', () => {
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
-          type: 'tool-call',
+          type: 'tool-input-available',
           toolCallId: 'tool-call-id',
           toolName: 'tool-name',
-          args: { city: 'London' },
+          input: { city: 'London' },
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -2007,11 +2007,11 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": undefined,
-                  "state": "call",
+                  "output": undefined,
+                  "state": "input-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -2028,11 +2028,11 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "args": {
+                  "input": {
                     "city": "London",
                   },
-                  "result": "test-result",
-                  "state": "result",
+                  "output": "test-result",
+                  "state": "output-available",
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
                 },
@@ -2054,11 +2054,11 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "args": {
+              "input": {
                 "city": "London",
               },
-              "result": "test-result",
-              "state": "result",
+              "output": "test-result",
+              "state": "output-available",
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
             },

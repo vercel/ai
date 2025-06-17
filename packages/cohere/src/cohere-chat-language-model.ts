@@ -172,7 +172,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         toolName: toolCall.function.name,
         // Cohere sometimes returns `null` for tool call arguments for tools
         // defined as having no arguments.
-        args: toolCall.function.arguments.replace(/^null$/, '{}'),
+        input: toolCall.function.arguments.replace(/^null$/, '{}'),
         toolCallType: 'function',
       });
     }
@@ -225,11 +225,11 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     let pendingToolCallDelta: {
       toolCallId: string;
       toolName: string;
-      argsTextDelta: string;
+      inputTextDelta: string;
     } = {
       toolCallId: '',
       toolName: '',
-      argsTextDelta: '',
+      inputTextDelta: '',
     };
 
     return {
@@ -271,7 +271,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 pendingToolCallDelta = {
                   toolCallId: value.delta.message.tool_calls.id,
                   toolName: value.delta.message.tool_calls.function.name,
-                  argsTextDelta:
+                  inputTextDelta:
                     value.delta.message.tool_calls.function.arguments,
                 };
 
@@ -282,14 +282,14 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                   toolCallId: pendingToolCallDelta.toolCallId,
                   toolName: pendingToolCallDelta.toolName,
                   toolCallType: 'function',
-                  argsTextDelta: pendingToolCallDelta.argsTextDelta,
+                  inputTextDelta: pendingToolCallDelta.inputTextDelta,
                 });
                 return;
               }
 
               case 'tool-call-delta': {
                 // Accumulate the arguments for the tool call.
-                pendingToolCallDelta.argsTextDelta +=
+                pendingToolCallDelta.inputTextDelta +=
                   value.delta.message.tool_calls.function.arguments;
 
                 // Provide visibility into the updated arguments for the tool call, even though we
@@ -299,7 +299,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                   toolCallId: pendingToolCallDelta.toolCallId,
                   toolName: pendingToolCallDelta.toolName,
                   toolCallType: 'function',
-                  argsTextDelta:
+                  inputTextDelta:
                     value.delta.message.tool_calls.function.arguments,
                 });
                 return;
@@ -312,9 +312,9 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                   toolCallId: pendingToolCallDelta.toolCallId,
                   toolName: pendingToolCallDelta.toolName,
                   toolCallType: 'function',
-                  args: JSON.stringify(
+                  input: JSON.stringify(
                     JSON.parse(
-                      pendingToolCallDelta.argsTextDelta?.trim() || '{}',
+                      pendingToolCallDelta.inputTextDelta?.trim() || '{}',
                     ),
                   ),
                 });
@@ -326,7 +326,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 pendingToolCallDelta = {
                   toolCallId: '',
                   toolName: '',
-                  argsTextDelta: '',
+                  inputTextDelta: '',
                 };
                 return;
               }

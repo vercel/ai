@@ -20,7 +20,7 @@ async function main() {
     tools: {
       submit: tool({
         description: 'Download an image',
-        parameters: z.object({
+        inputSchema: z.object({
           url: z.string().describe('The image URL'),
         }),
         execute: async ({ url }) => {

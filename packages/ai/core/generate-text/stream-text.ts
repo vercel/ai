@@ -73,10 +73,11 @@ import {
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
+import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -952,7 +953,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     providerOptions,
                     abortSignal,
                     headers,
-                    includeRawChunks: includeRawChunks,
+                    includeRawChunks,
                   }),
                 };
               },
@@ -1138,8 +1139,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'tool-call-streaming-start': {
                       const tool = tools?.[chunk.toolName];
 
-                      if (tool?.onArgsStreamingStart != null) {
-                        await tool.onArgsStreamingStart({
+                      if (tool?.onInputStart != null) {
+                        await tool.onInputStart({
                           toolCallId: chunk.toolCallId,
                           messages: stepInputMessages,
                           abortSignal,
@@ -1153,9 +1154,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'tool-call-delta': {
                       const tool = tools?.[chunk.toolName];
 
-                      if (tool?.onArgsStreamingDelta != null) {
-                        await tool.onArgsStreamingDelta({
-                          argsTextDelta: chunk.argsTextDelta,
+                      if (tool?.onInputDelta != null) {
+                        await tool.onInputDelta({
+                          inputTextDelta: chunk.inputTextDelta,
                           toolCallId: chunk.toolCallId,
                           messages: stepInputMessages,
                           abortSignal,
@@ -1546,7 +1547,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'tool-call-streaming-start': {
               controller.enqueue({
-                type: 'tool-call-streaming-start',
+                type: 'tool-input-start',
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
               });
@@ -1555,28 +1556,28 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'tool-call-delta': {
               controller.enqueue({
-                type: 'tool-call-delta',
+                type: 'tool-input-delta',
                 toolCallId: part.toolCallId,
-                argsTextDelta: part.argsTextDelta,
+                inputTextDelta: part.inputTextDelta,
               });
               break;
             }
 
             case 'tool-call': {
               controller.enqueue({
-                type: 'tool-call',
+                type: 'tool-input-available',
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
-                args: part.args,
+                input: part.input,
               });
               break;
             }
 
             case 'tool-result': {
               controller.enqueue({
-                type: 'tool-result',
+                type: 'tool-output-available',
                 toolCallId: part.toolCallId,
-                result: part.result,
+                output: part.output,
               });
               break;
             }
@@ -1668,7 +1669,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendStart,
       onError,
       ...init
-    }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
+    }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
     pipeUIMessageStreamToResponse({
       response,
@@ -1704,7 +1705,8 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendStart,
     onError,
     ...init
-  }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
+  }: UIMessageStreamResponseInit &
+    UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
     return createUIMessageStreamResponse({
       stream: this.toUIMessageStream({
         originalMessages,

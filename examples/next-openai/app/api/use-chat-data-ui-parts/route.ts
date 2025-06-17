@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         tools: {
           weather: {
             description: 'Get the weather in a city',
-            parameters: z.object({
+            inputSchema: z.object({
               city: z.string(),
             }),
             execute: async ({ city }, { toolCallId }) => {

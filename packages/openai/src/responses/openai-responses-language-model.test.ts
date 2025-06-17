@@ -17,7 +17,7 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: { location: { type: 'string' } },
       required: ['location'],
@@ -27,7 +27,7 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   {
     type: 'function',
     name: 'cityAttractions',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: { city: { type: 'string' } },
       required: ['city'],
@@ -904,14 +904,14 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "args": "{"location":"San Francisco"}",
+              "input": "{"location":"San Francisco"}",
               "toolCallId": "call_0NdsJqOS8N3J9l2p0p4WpYU9",
               "toolCallType": "function",
               "toolName": "weather",
               "type": "tool-call",
             },
             {
-              "args": "{"city":"San Francisco"}",
+              "input": "{"city":"San Francisco"}",
               "toolCallId": "call_gexo0HtjUfmAIW4gjNOgyrcr",
               "toolCallType": "function",
               "toolName": "cityAttractions",
@@ -1292,70 +1292,70 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "argsTextDelta": "",
+            "inputTextDelta": "",
             "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
             "toolCallType": "function",
             "toolName": "currentLocation",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "{}",
+            "inputTextDelta": "{}",
             "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
             "toolCallType": "function",
             "toolName": "currentLocation",
             "type": "tool-call-delta",
           },
           {
-            "args": "{}",
+            "input": "{}",
             "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
             "toolCallType": "function",
             "toolName": "currentLocation",
             "type": "tool-call",
           },
           {
-            "argsTextDelta": "",
+            "inputTextDelta": "",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "{",
+            "inputTextDelta": "{",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": ""location",
+            "inputTextDelta": ""location",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": "":",
+            "inputTextDelta": "":",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": ""Rome",
+            "inputTextDelta": ""Rome",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "argsTextDelta": ""}",
+            "inputTextDelta": ""}",
             "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call-delta",
           },
           {
-            "args": "{"location":"Rome"}",
+            "input": "{"location":"Rome"}",
             "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
             "toolCallType": "function",
             "toolName": "weather",

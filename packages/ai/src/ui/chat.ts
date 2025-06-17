@@ -29,6 +29,7 @@ import {
   type UIDataTypes,
   type UIMessage,
 } from './ui-messages';
+import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
 
 export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   UI_MESSAGE,
@@ -228,20 +229,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.state.messages = messages;
   }
 
-  removeAssistantResponse = () => {
-    const lastMessage = this.state.messages[this.state.messages.length - 1];
-
-    if (lastMessage == null) {
-      throw new Error('Cannot remove assistant response from empty chat');
-    }
-
-    if (lastMessage.role !== 'assistant') {
-      throw new Error('Last message is not an assistant message');
-    }
-
-    this.state.popMessage();
-  };
-
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
@@ -287,23 +274,45 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       role: uiMessage.role ?? 'user',
     } as UI_MESSAGE);
 
-    await this.triggerRequest({ requestType: 'generate', ...options });
+    await this.makeRequest({
+      trigger: 'submit-user-message',
+      ...options,
+    });
   };
 
   /**
-   * Regenerate the last assistant message.
+   * Regenerate the assistant message with the provided message id.
+   * If no message id is provided, the last assistant message will be regenerated.
    */
-  reload = async (options: ChatRequestOptions = {}): Promise<void> => {
-    // TODO stop any ongoing request
-    if (this.lastMessage === undefined) {
-      return;
+  regenerate = async ({
+    messageId,
+    ...options
+  }: {
+    messageId?: string;
+  } & ChatRequestOptions = {}): Promise<void> => {
+    const messageIndex =
+      messageId == null
+        ? this.state.messages.length - 1
+        : this.state.messages.findIndex(message => message.id === messageId);
+
+    if (messageIndex === -1) {
+      throw new Error(`message ${messageId} not found`);
     }
 
-    if (this.lastMessage.role === 'assistant') {
-      this.state.popMessage();
-    }
+    // set the messages to the message before the assistant message
+    this.state.messages = this.state.messages.slice(
+      0,
+      // if the message is a user message, we need to include it in the request:
+      this.messages[messageIndex].role === 'assistant'
+        ? messageIndex
+        : messageIndex + 1,
+    );
 
-    await this.triggerRequest({ requestType: 'generate', ...options });
+    await this.makeRequest({
+      trigger: 'regenerate-assistant-message',
+      messageId,
+      ...options,
+    });
   };
 
   /**
@@ -312,21 +321,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   experimental_resume = async (
     options: ChatRequestOptions = {},
   ): Promise<void> => {
-    await this.triggerRequest({ requestType: 'resume', ...options });
+    await this.makeRequest({ trigger: 'resume-stream', ...options });
   };
 
   addToolResult = async ({
     toolCallId,
-    result,
+    output,
   }: {
     toolCallId: string;
-    result: unknown;
+    output: unknown;
   }) => {
     this.jobExecutor.run(async () => {
-      updateToolResult({
+      updateToolOutput({
         messages: this.state.messages,
         toolCallId,
-        toolResult: result,
+        output,
       });
 
       this.messages = this.state.messages;
@@ -340,8 +349,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const lastMessage = this.lastMessage;
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
         // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
-        this.triggerRequest({
-          requestType: 'generate',
+        this.makeRequest({
+          trigger: 'submit-tool-result',
         });
       }
     });
@@ -358,13 +367,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
-  private async triggerRequest({
-    requestType,
+  private async makeRequest({
+    trigger,
     metadata,
     headers,
     body,
+    messageId,
   }: {
-    requestType: 'generate' | 'resume';
+    trigger:
+      | 'submit-user-message'
+      | 'resume-stream'
+      | 'submit-tool-result'
+      | 'regenerate-assistant-message';
+    messageId?: string;
   } & ChatRequestOptions) {
     this.setStatus({ status: 'submitted', error: undefined });
 
@@ -384,15 +399,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.activeResponse = activeResponse;
 
-      const stream = await this.transport.submitMessages({
-        chatId: this.id,
-        messages: this.state.messages,
-        abortSignal: activeResponse.abortController.signal,
-        metadata,
-        headers,
-        body,
-        requestType,
-      });
+      let stream: ReadableStream<UIMessageStreamPart>;
+
+      if (trigger === 'resume-stream') {
+        const reconnect = await this.transport.reconnectToStream({
+          chatId: this.id,
+          metadata,
+          headers,
+          body,
+        });
+
+        if (reconnect == null) {
+          return; // no active stream found, so we do not resume
+        }
+
+        stream = reconnect;
+      } else {
+        stream = await this.transport.sendMessages({
+          chatId: this.id,
+          messages: this.state.messages,
+          abortSignal: activeResponse.abortController.signal,
+          metadata,
+          headers,
+          body,
+          trigger,
+          messageId,
+        });
+      }
 
       const runUpdateMessageJob = (
         job: (options: {
@@ -467,11 +500,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         messages: this.state.messages,
       })
     ) {
-      await this.triggerRequest({
-        requestType,
+      await this.makeRequest({
         metadata,
         headers,
         body,
+        // secondary requests are triggered by automatic tool execution
+        trigger: 'submit-tool-result',
       });
     }
   }
@@ -486,14 +520,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
  * @param {unknown} params.toolResult - The result object to attach to the tool invocation.
  * @returns {void} This function does not return anything.
  */
-function updateToolResult<UI_MESSAGE extends UIMessage>({
+function updateToolOutput<UI_MESSAGE extends UIMessage>({
   messages,
   toolCallId,
-  toolResult: result,
+  output,
 }: {
   messages: UI_MESSAGE[];
   toolCallId: string;
-  toolResult: unknown;
+  output: unknown;
 }) {
   const lastMessage = messages[messages.length - 1];
 
@@ -506,10 +540,10 @@ function updateToolResult<UI_MESSAGE extends UIMessage>({
     return;
   }
 
-  toolPart.state = 'result';
+  toolPart.state = 'output-available';
   (
     toolPart as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> & {
-      state: 'result';
+      state: 'output-available';
     }
-  ).result = result;
+  ).output = output;
 }

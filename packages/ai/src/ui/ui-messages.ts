@@ -9,8 +9,8 @@ export type UIDataTypes = Record<string, unknown>;
 export type UITools = Record<
   string,
   {
-    args: unknown;
-    result: unknown | undefined;
+    input: unknown;
+    output: unknown | undefined;
   }
 >;
 
@@ -161,17 +161,17 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
     toolCallId: string;
   } & (
     | {
-        state: 'partial-call';
-        args: DeepPartial<TOOLS[NAME]['args']>;
+        state: 'input-streaming';
+        input: DeepPartial<TOOLS[NAME]['input']>;
       }
     | {
-        state: 'call';
-        args: TOOLS[NAME]['args'];
+        state: 'input-available';
+        input: TOOLS[NAME]['input'];
       }
     | {
-        state: 'result';
-        args: TOOLS[NAME]['args'];
-        result: TOOLS[NAME]['result'];
+        state: 'output-available';
+        input: TOOLS[NAME]['input'];
+        output: TOOLS[NAME]['output'];
       }
   );
 }>;

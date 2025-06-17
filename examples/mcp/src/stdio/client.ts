@@ -27,7 +27,7 @@ async function main() {
       tools: await mcpClient.tools({
         schemas: {
           'get-pokemon': {
-            parameters: z.object({ name: z.string() }),
+            inputSchema: z.object({ name: z.string() }),
           },
         },
       }),

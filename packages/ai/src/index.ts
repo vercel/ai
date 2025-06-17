@@ -17,3 +17,6 @@ export * from './util';
 
 // directory exports from /core
 export * from '../core/';
+
+// import globals
+import './global';

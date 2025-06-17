@@ -138,7 +138,7 @@ export function convertToLanguageModelMessage(
                   type: 'tool-call' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  args: part.args,
+                  input: part.input,
                   providerOptions,
                 };
               }
@@ -155,7 +155,7 @@ export function convertToLanguageModelMessage(
           type: 'tool-result',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          result: part.result,
+          output: part.output,
           content: part.experimental_content,
           isError: part.isError,
           providerOptions: part.providerOptions,

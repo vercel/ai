@@ -46,9 +46,9 @@ describe('shouldResubmitMessages', () => {
               {
                 type: 'tool-getLocation',
                 toolCallId: 'tool1',
-                state: 'result',
-                args: {},
-                result: 'some result',
+                state: 'output-available',
+                input: {},
+                output: 'some result',
               },
             ],
           },
@@ -69,9 +69,9 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
           {
             type: 'tool-getLocation',
             toolCallId: 'call_CuEdmzpx4ZldCkg5SVr3ikLz',
-            state: 'result',
-            args: {},
-            result: 'New York',
+            state: 'output-available',
+            input: {},
+            output: 'New York',
           },
           { type: 'step-start' },
           {
@@ -92,12 +92,12 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
           { type: 'step-start' },
           {
             type: 'tool-getWeatherInformation',
-            state: 'result',
             toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
-            args: {
+            state: 'output-available',
+            input: {
               city: 'New York',
             },
-            result: 'windy',
+            output: 'windy',
           },
           {
             type: 'text',

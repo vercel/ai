@@ -1,5 +1,16 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.14
+
+### Major Changes
+
+- 63f9e9b: chore (provider,ai): tools have input/output instead of args,result
+
+### Patch Changes
+
+- b5da06a: update to LanguageModelV2ProviderDefinedClientTool to add server side tool later on
+- 2e13791: feat(anthropic): add server-side web search support
+
 ## 2.0.0-alpha.13
 
 ### Patch Changes

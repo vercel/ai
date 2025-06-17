@@ -24,7 +24,7 @@ const server = createTestServer({
   '/api/chat': {},
 });
 
-describe('prepareRequestBody', () => {
+describe('prepareSubmitMessagesRequest', () => {
   setupTestComponent(TestChatPrepareRequestBodyComponent);
 
   it('should show streamed response', async () => {
@@ -53,6 +53,8 @@ describe('prepareRequestBody', () => {
 
     expect(value).toStrictEqual({
       id: expect.any(String),
+      api: '/api/chat',
+      trigger: 'submit-user-message',
       body: { 'request-body-key': 'request-body-value' },
       headers: { 'request-header-key': 'request-header-value' },
       requestMetadata: { 'request-metadata-key': 'request-metadata-value' },
@@ -293,7 +295,7 @@ describe('text stream', () => {
   });
 });
 
-describe('reload', () => {
+describe('regenerate', () => {
   setupTestComponent(TestChatReloadComponent);
 
   it('should show streamed response', async () => {
@@ -316,7 +318,7 @@ describe('reload', () => {
     await screen.findByTestId('message-1');
 
     // setup done, click reload:
-    await userEvent.click(screen.getByTestId('do-reload'));
+    await userEvent.click(screen.getByTestId('do-regenerate'));
 
     expect(await server.calls[1].requestBodyJson).toStrictEqual({
       id: expect.any(String),
@@ -333,6 +335,7 @@ describe('reload', () => {
         },
       ],
       'request-body-key': 'request-body-value',
+      trigger: 'regenerate-assistant-message',
     });
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
@@ -368,7 +371,7 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-streaming-start',
+        type: 'tool-input-start',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
       }),
@@ -376,44 +379,44 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming"}',
       );
     });
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-delta',
+        type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
-        argsTextDelta: '{"testArg":"t',
+        inputTextDelta: '{"testArg":"t',
       }),
     );
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call","args":{"testArg":"t"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"t"}}',
       );
     });
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call-delta',
+        type: 'tool-input-delta',
         toolCallId: 'tool-call-0',
-        argsTextDelta: 'est-value"}}',
+        inputTextDelta: 'est-value"}}',
       }),
     );
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"partial-call","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"test-value"}}',
       );
     });
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -421,8 +424,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -430,9 +433,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-result',
+        type: 'tool-output-available',
         toolCallId: 'tool-call-0',
-        result: 'test-result',
+        output: 'test-result',
       }),
     );
     controller.close();
@@ -441,11 +444,11 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'result',
-        args: { testArg: 'test-value' },
+        state: 'output-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
-        result: 'test-result',
+        output: 'test-result',
       });
     });
 
@@ -473,10 +476,10 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
@@ -484,8 +487,8 @@ describe('tool invocations', () => {
       expect(
         JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
       ).toStrictEqual({
-        state: 'call',
-        args: { testArg: 'test-value' },
+        state: 'input-available',
+        input: { testArg: 'test-value' },
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
       });
@@ -493,9 +496,9 @@ describe('tool invocations', () => {
 
     controller.write(
       formatStreamPart({
-        type: 'tool-result',
+        type: 'tool-output-available',
         toolCallId: 'tool-call-0',
-        result: 'test-result',
+        output: 'test-result',
       }),
     );
     controller.close();
@@ -530,16 +533,16 @@ describe('tool invocations', () => {
     controller.write(formatStreamPart({ type: 'start-step' }));
     controller.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"call","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-available","input":{"testArg":"test-value"}}',
       );
     });
 
@@ -547,7 +550,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"result","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"output-available","input":{"testArg":"test-value"},"output":"test-result"}',
       );
     });
 
@@ -586,16 +589,16 @@ describe('tool invocations', () => {
     // tool call
     controller1.write(
       formatStreamPart({
-        type: 'tool-call',
+        type: 'tool-input-available',
         toolCallId: 'tool-call-0',
         toolName: 'test-tool',
-        args: { testArg: 'test-value' },
+        input: { testArg: 'test-value' },
       }),
     );
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"call","args":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-available","input":{"testArg":"test-value"}}',
       );
     });
 
@@ -605,7 +608,7 @@ describe('tool invocations', () => {
     // UI should show the tool result
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"result","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"output-available","input":{"testArg":"test-value"},"output":"test-result"}',
       );
     });
 

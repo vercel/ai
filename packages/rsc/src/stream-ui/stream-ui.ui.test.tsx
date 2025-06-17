@@ -86,7 +86,7 @@ const mockToolModel = new MockLanguageModelV2({
           toolCallType: 'function',
           toolCallId: 'call-1',
           toolName: 'tool1',
-          args: `{ "value": "value" }`,
+          input: `{ "value": "value" }`,
         },
         {
           type: 'finish',
@@ -127,7 +127,7 @@ describe('result.value', () => {
       tools: {
         tool1: {
           description: 'test tool 1',
-          parameters: z.object({
+          inputSchema: z.object({
             value: z.string(),
           }),
           generate: async ({ value }) => {
@@ -149,7 +149,7 @@ describe('result.value', () => {
       tools: {
         tool1: {
           description: 'test tool 1',
-          parameters: z.object({
+          inputSchema: z.object({
             value: z.string(),
           }),
           generate: async function* ({ value }) {
@@ -173,7 +173,7 @@ describe('result.value', () => {
         tools: {
           tool1: {
             description: 'test tool 1',
-            parameters: z.object({
+            inputSchema: z.object({
               value: z.string(),
             }),
             // @ts-expect-error
@@ -199,7 +199,7 @@ describe('rsc - streamUI() onFinish callback', () => {
       tools: {
         tool1: {
           description: 'test tool 1',
-          parameters: z.object({
+          inputSchema: z.object({
             value: z.string(),
           }),
           generate: async ({ value }) => {

@@ -168,7 +168,7 @@ Name of the tool that is being called.
   /**
 Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
    */
-  args: unknown;
+  input: unknown;
 
   /**
 Additional provider-specific metadata. They are passed through
@@ -185,9 +185,9 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
   type: z.literal('tool-call'),
   toolCallId: z.string(),
   toolName: z.string(),
-  args: z.unknown(),
+  input: z.unknown(),
   providerOptions: providerMetadataSchema.optional(),
-}) as z.ZodType<ToolCallPart>; // necessary bc args is optional on Zod type
+}) as z.ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
 
 /**
 Tool result content part of a prompt. It contains the result of the tool call with the matching ID.
@@ -208,7 +208,7 @@ Name of the tool that generated this result.
   /**
 Result of the tool call. This is a JSON-serializable object.
    */
-  result: unknown;
+  output: unknown;
 
   /**
 Multi-part content of the tool result. Only for tools that support multipart results.
@@ -235,7 +235,7 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   type: z.literal('tool-result'),
   toolCallId: z.string(),
   toolName: z.string(),
-  result: z.unknown(),
+  output: z.unknown(),
   content: toolResultContentSchema.optional(),
   isError: z.boolean().optional(),
   providerOptions: providerMetadataSchema.optional(),

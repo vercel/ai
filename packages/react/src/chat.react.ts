@@ -1,20 +1,5 @@
-import {
-  AbstractChat,
-  ChatInit,
-  ChatState,
-  ChatStatus,
-  InferUIDataParts,
-  UIDataPartSchemas,
-  UIDataTypes,
-  UIMessage,
-} from 'ai';
+import { AbstractChat, ChatInit, ChatState, ChatStatus, UIMessage } from 'ai';
 import { throttle } from './throttle';
-
-type SubscriptionRegistrars = {
-  '~registerMessagesCallback': (onChange: () => void) => () => void;
-  '~registerStatusCallback': (onChange: () => void) => () => void;
-  '~registerErrorCallback': (onChange: () => void) => () => void;
-};
 
 class ReactChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -71,7 +56,8 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
   replaceMessage = (index: number, message: UI_MESSAGE) => {
     this.#messages = [
       ...this.#messages.slice(0, index),
-      message,
+      // We deep clone the message here to ensure the new React Compiler (currently in RC) detects deeply nested parts/metadata changes:
+      this.snapshot(message),
       ...this.#messages.slice(index + 1),
     ];
     this.#callMessagesCallbacks();
@@ -119,10 +105,9 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
   };
 }
 
-export class Chat<UI_MESSAGE extends UIMessage>
-  extends AbstractChat<UI_MESSAGE>
-  implements SubscriptionRegistrars
-{
+export class Chat<
+  UI_MESSAGE extends UIMessage,
+> extends AbstractChat<UI_MESSAGE> {
   #state: ReactChatState<UI_MESSAGE>;
 
   constructor({ messages, ...init }: ChatInit<UI_MESSAGE>) {

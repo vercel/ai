@@ -90,17 +90,17 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
 
-                if (part.state === 'partial-call') {
+                if (part.state === 'input-streaming') {
                   throw new MessageConversionError({
                     originalMessage: message,
-                    message: `Partial tool call is not supported: ${part.toolCallId}`,
+                    message: `incomplete tool input is not supported: ${part.toolCallId}`,
                   });
                 } else {
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
                     toolName,
-                    args: part.args,
+                    input: part.input,
                   });
                 }
               } else {
@@ -122,7 +122,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
               modelMessages.push({
                 role: 'tool',
                 content: toolParts.map((toolPart): ToolResultPart => {
-                  if (toolPart.state !== 'result') {
+                  if (toolPart.state !== 'output-available') {
                     throw new MessageConversionError({
                       originalMessage: message,
                       message:
@@ -132,7 +132,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                   }
 
                   const toolName = getToolName(toolPart);
-                  const { toolCallId, result } = toolPart;
+                  const { toolCallId, output } = toolPart;
 
                   const tool = tools[toolName];
                   return tool?.experimental_toToolResultContent != null
@@ -140,15 +140,15 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                         type: 'tool-result',
                         toolCallId,
                         toolName,
-                        result: tool.experimental_toToolResultContent(result),
+                        output: tool.experimental_toToolResultContent(output),
                         experimental_content:
-                          tool.experimental_toToolResultContent(result),
+                          tool.experimental_toToolResultContent(output),
                       }
                     : {
                         type: 'tool-result',
                         toolCallId,
                         toolName,
-                        result,
+                        output,
                       };
                 }),
               });

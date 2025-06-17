@@ -137,7 +137,7 @@ Name of the tool that is being called.
   /**
 Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
    */
-  args: unknown;
+  input: unknown;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -166,7 +166,7 @@ Name of the tool that generated this result.
   /**
 Result of the tool call. This is a JSON-serializable object.
    */
-  result: unknown;
+  output: unknown;
 
   /**
 Optional flag if the result is an error or an error message.

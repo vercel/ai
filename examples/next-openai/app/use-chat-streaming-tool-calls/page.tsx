@@ -44,16 +44,16 @@ export default function Chat() {
                     key={part.toolCallId}
                     className="p-4 my-2 text-gray-500 border border-gray-300 rounded"
                   >
-                    <h4 className="mb-2">{part.args?.city ?? ''}</h4>
+                    <h4 className="mb-2">{part.input.city ?? ''}</h4>
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
-                        {part.args?.weather && <b>{part.args.weather}</b>}
-                        {part.args?.temperature && (
-                          <b>{part.args.temperature} &deg;C</b>
+                        {part.input.weather && <b>{part.input.weather}</b>}
+                        {part.input.temperature && (
+                          <b>{part.input.temperature} &deg;C</b>
                         )}
                       </div>
-                      {part.args?.typicalWeather && (
-                        <div>{part.args.typicalWeather}</div>
+                      {part.input.typicalWeather && (
+                        <div>{part.input.typicalWeather}</div>
                       )}
                     </div>
                   </div>

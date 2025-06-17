@@ -23,7 +23,7 @@ async function main() {
     tools: {
       transferToAgentB: tool({
         description: 'Transfer to agent B.',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => {
           activeAgent = agentB;
           return 'Transferred to agent B.';
