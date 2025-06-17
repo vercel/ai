@@ -5,11 +5,41 @@ import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
 
 export async function POST(req: Request) {
-  const { message, id }: { message: MyUIMessage; id: string } =
-    await req.json();
+  const {
+    message,
+    id,
+    trigger,
+    messageId,
+  }: {
+    message: MyUIMessage | undefined;
+    id: string;
+    trigger: 'submit-user-message' | 'regenerate-assistant-message';
+    messageId: string | undefined;
+  } = await req.json();
 
   const chat = await readChat(id);
-  const messages = [...chat.messages, message];
+  let messages: MyUIMessage[] = chat.messages;
+
+  if (trigger === 'submit-user-message') {
+    messages = [...messages, message!];
+  } else if (trigger === 'regenerate-assistant-message') {
+    const messageIndex =
+      messageId == null
+        ? messages.length - 1
+        : messages.findIndex(message => message.id === messageId);
+
+    if (messageIndex === -1) {
+      throw new Error(`message ${messageId} not found`);
+    }
+
+    // set the messages to the message before the assistant message
+    messages = messages.slice(
+      0,
+      messages[messageIndex].role === 'assistant'
+        ? messageIndex
+        : messageIndex + 1,
+    );
+  }
 
   // save the user message
   saveChat({ id, messages, activeStreamId: null });

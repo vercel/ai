@@ -28,7 +28,7 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
 } & Pick<
   AbstractChat<UI_MESSAGE>,
   | 'sendMessage'
-  | 'reload'
+  | 'regenerate'
   | 'stop'
   | 'experimental_resume'
   | 'addToolResult'
@@ -107,7 +107,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     messages,
     setMessages,
     sendMessage: chatRef.current.sendMessage,
-    reload: chatRef.current.reload,
+    regenerate: chatRef.current.regenerate,
     stop: chatRef.current.stop,
     error,
     experimental_resume: chatRef.current.experimental_resume,

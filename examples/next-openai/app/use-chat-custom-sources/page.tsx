@@ -5,7 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
-  const { error, status, sendMessage, messages, reload, stop } = useChat({
+  const { error, status, sendMessage, messages, regenerate, stop } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/use-chat-custom-sources',
     }),
@@ -60,7 +60,7 @@ export default function Chat() {
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-            onClick={() => reload()}
+            onClick={() => regenerate()}
           >
             Retry
           </button>

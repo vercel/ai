@@ -324,6 +324,7 @@ describe('data protocol stream', () => {
               "role": "user",
             },
           ],
+          "trigger": "submit-user-message",
         }
       `);
     });
@@ -504,7 +505,7 @@ describe('prepareChatRequest', () => {
       transport: new DefaultChatTransport({
         body: { 'body-key': 'body-value' },
         headers: { 'header-key': 'header-value' },
-        prepareSubmitMessagesRequest(optionsArg) {
+        prepareSendMessagesRequest(optionsArg) {
           options = optionsArg;
           return {
             body: { 'request-body-key': 'request-body-value' },
@@ -568,6 +569,7 @@ describe('prepareChatRequest', () => {
 
     expect(options).toMatchInlineSnapshot(`
       {
+        "api": "/api/chat",
         "body": {
           "body-key": "body-value",
           "request-body-key": "request-body-value",
@@ -578,6 +580,7 @@ describe('prepareChatRequest', () => {
           "request-header-key": "request-header-value",
         },
         "id": "id-0",
+        "messageId": undefined,
         "messages": [
           {
             "id": "id-1",
@@ -593,6 +596,7 @@ describe('prepareChatRequest', () => {
         "requestMetadata": {
           "request-metadata-key": "request-metadata-value",
         },
+        "trigger": "submit-user-message",
       }
     `);
 
@@ -1424,6 +1428,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1506,6 +1511,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1621,6 +1627,7 @@ describe('file attachments with url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1719,6 +1726,7 @@ describe('attachments with empty submit', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1828,14 +1836,15 @@ describe('should send message with attachments', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
 });
 
-describe('reload', () => {
+describe('regenerate', () => {
   setupTestComponent(() => {
-    const { messages, sendMessage, reload } = useChat({
+    const { messages, sendMessage, regenerate } = useChat({
       generateId: mockId(),
     });
 
@@ -1858,9 +1867,9 @@ describe('reload', () => {
         />
 
         <button
-          data-testid="do-reload"
+          data-testid="do-regenerate"
           onClick={() => {
-            reload({
+            regenerate({
               body: { 'request-body-key': 'request-body-value' },
               headers: { 'header-key': 'header-value' },
             });
@@ -1890,7 +1899,7 @@ describe('reload', () => {
     await screen.findByTestId('message-1');
 
     // setup done, click reload:
-    await userEvent.click(screen.getByTestId('do-reload'));
+    await userEvent.click(screen.getByTestId('do-regenerate'));
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
@@ -1908,6 +1917,7 @@ describe('reload', () => {
           },
         ],
         "request-body-key": "request-body-value",
+        "trigger": "regenerate-assistant-message",
       }
     `);
 
@@ -1985,6 +1995,7 @@ describe('test sending additional fields during message submission', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
