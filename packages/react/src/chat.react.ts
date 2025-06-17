@@ -1,12 +1,6 @@
 import { AbstractChat, ChatInit, ChatState, ChatStatus, UIMessage } from 'ai';
 import { throttle } from './throttle';
 
-type SubscriptionRegistrars = {
-  '~registerMessagesCallback': (onChange: () => void) => () => void;
-  '~registerStatusCallback': (onChange: () => void) => () => void;
-  '~registerErrorCallback': (onChange: () => void) => () => void;
-};
-
 class ReactChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
 {
@@ -111,10 +105,9 @@ class ReactChatState<UI_MESSAGE extends UIMessage>
   };
 }
 
-export class Chat<UI_MESSAGE extends UIMessage>
-  extends AbstractChat<UI_MESSAGE>
-  implements SubscriptionRegistrars
-{
+export class Chat<
+  UI_MESSAGE extends UIMessage,
+> extends AbstractChat<UI_MESSAGE> {
   #state: ReactChatState<UI_MESSAGE>;
 
   constructor({ messages, ...init }: ChatInit<UI_MESSAGE>) {
