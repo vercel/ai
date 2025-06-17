@@ -30,4 +30,4 @@ export type LanguageModelV2ToolResult = {
    * Additional provider-specific metadata for the tool result.
    */
   providerMetadata?: SharedV2ProviderMetadata;
-}; 
+};

@@ -601,6 +601,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
+          part.type === 'server-tool-result' ||
           part.type === 'tool-call-streaming-start' ||
           part.type === 'tool-call-delta' ||
           part.type === 'raw'
@@ -655,6 +656,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'tool-result') {
+          recordedContent.push(part);
+        }
+
+        if (part.type === 'server-tool-result') {
           recordedContent.push(part);
         }
 
@@ -1591,9 +1596,9 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'server-tool-result': {
               controller.enqueue({
-                type: 'tool-result',
+                type: 'tool-output-available',
                 toolCallId: part.toolCallId,
-                result: part.result,
+                output: part.result,
               });
               break;
             }

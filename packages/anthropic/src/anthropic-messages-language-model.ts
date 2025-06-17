@@ -529,13 +529,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 });
               }
             }
-            
+
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: 'web_search',
-              result: part.content.map(result => 
-                result.type === 'web_search_result' 
+              result: part.content.map(result =>
+                result.type === 'web_search_result'
                   ? {
                       type: 'web_search_result',
                       url: result.url,
@@ -543,7 +543,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       encrypted_content: result.encrypted_content,
                       page_age: result.page_age,
                     }
-                  : result
+                  : result,
               ),
               providerMetadata: {
                 anthropic: {
@@ -565,7 +565,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 },
               },
             });
-            
+
             throw new APICallError({
               message: `Web search failed: ${part.content.error_code}`,
               url: 'web_search_api',
@@ -746,13 +746,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           });
                         }
                       }
-                      
+
                       controller.enqueue({
                         type: 'tool-result',
                         toolCallId: value.content_block.tool_use_id,
                         toolName: 'web_search',
-                        result: value.content_block.content.map(result => 
-                          result.type === 'web_search_result' 
+                        result: value.content_block.content.map(result =>
+                          result.type === 'web_search_result'
                             ? {
                                 type: 'web_search_result',
                                 url: result.url,
@@ -760,7 +760,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                                 encrypted_content: result.encrypted_content,
                                 page_age: result.page_age,
                               }
-                            : result
+                            : result,
                         ),
                         providerMetadata: {
                           anthropic: {
@@ -785,7 +785,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           },
                         },
                       });
-                      
+
                       controller.enqueue({
                         type: 'error',
                         error: {
