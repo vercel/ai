@@ -3,7 +3,6 @@ import {
   UIMessageStreamPart,
   uiMessageStreamPartSchema,
 } from '../ui-message-stream/ui-message-stream-parts';
-import { ChatTransport } from './chat-transport';
 import {
   HttpChatTransport,
   HttpChatTransportInitOptions,
@@ -16,37 +15,6 @@ export class DefaultChatTransport<
 > extends HttpChatTransport<UI_MESSAGE> {
   constructor(options: HttpChatTransportInitOptions<UI_MESSAGE> = {}) {
     super(options);
-  }
-
-  async submitMessages({
-    abortSignal,
-    ...options
-  }: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0]) {
-    const { headers, body, credentials } =
-      this.prepareSubmitMessagesRequest(options);
-
-    const response = await fetch(this.api, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      body: JSON.stringify(body),
-      credentials,
-      signal: abortSignal,
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
-      );
-    }
-
-    if (!response.body) {
-      throw new Error('The response body is empty.');
-    }
-
-    return this.processResponseStream(response.body);
   }
 
   async reconnectToStream(

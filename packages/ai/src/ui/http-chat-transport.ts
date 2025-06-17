@@ -81,7 +81,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   }
 
   // TODO allow api override
-  protected prepareSubmitMessagesRequest({
+  private prepareSubmitMessagesRequest({
     chatId,
     messages,
     metadata,
@@ -113,9 +113,36 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     };
   }
 
-  abstract submitMessages(
-    options: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0],
-  ): Promise<ReadableStream<UIMessageStreamPart>>;
+  async submitMessages({
+    abortSignal,
+    ...options
+  }: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0]) {
+    const { headers, body, credentials } =
+      this.prepareSubmitMessagesRequest(options);
+
+    const response = await fetch(this.api, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: JSON.stringify(body),
+      credentials,
+      signal: abortSignal,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        (await response.text()) ?? 'Failed to fetch the chat response.',
+      );
+    }
+
+    if (!response.body) {
+      throw new Error('The response body is empty.');
+    }
+
+    return this.processResponseStream(response.body);
+  }
 
   abstract reconnectToStream(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
