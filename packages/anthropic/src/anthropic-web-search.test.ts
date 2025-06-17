@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { APICallError } from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
@@ -17,6 +17,7 @@ describe('Anthropic Web Search Server-Side Tool', () => {
 
   const provider = createAnthropic({
     apiKey: 'test-api-key',
+    generateId: () => 'test-id-123',
   });
   const model = provider('claude-3-5-sonnet-latest');
 

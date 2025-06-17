@@ -3,7 +3,7 @@
 exports[`Anthropic Web Search Server-Side Tool > should handle server-side web search results with citations and tool results 1`] = `
 [
   {
-    "id": "3pnqcdQ0i5ot27zf",
+    "id": "test-id-123",
     "providerMetadata": {
       "anthropic": {
         "encryptedContent": "encrypted_content_123",
@@ -14,6 +14,21 @@ exports[`Anthropic Web Search Server-Side Tool > should handle server-side web s
     "title": "Latest AI Developments",
     "type": "source",
     "url": "https://example.com/ai-news",
+  },
+  {
+    "isError": false,
+    "result": [
+      {
+        "encrypted_content": "encrypted_content_123",
+        "page_age": "January 15, 2025",
+        "title": "Latest AI Developments",
+        "type": "web_search_result",
+        "url": "https://example.com/ai-news",
+      },
+    ],
+    "toolCallId": "tool_1",
+    "toolName": "web_search",
+    "type": "tool-result",
   },
   {
     "text": "Based on recent articles, AI continues to advance rapidly.",

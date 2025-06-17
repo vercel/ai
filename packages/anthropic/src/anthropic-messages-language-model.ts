@@ -529,7 +529,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 });
               }
             }
+
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_search',
+              result: part.content,
+              isError: false,
+            });
           } else if (part.content.type === 'web_search_tool_result_error') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_search',
+              result: null,
+              isError: true,
+            });
+
             throw new APICallError({
               message: `Web search failed: ${part.content.error_code}`,
               url: 'web_search_api',
