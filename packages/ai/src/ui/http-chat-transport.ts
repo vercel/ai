@@ -14,6 +14,7 @@ export type PrepareSubmitMessagesRequest<UI_MESSAGE extends UIMessage> =
     body: Record<string, any> | undefined;
     credentials: RequestCredentials | undefined;
     headers: HeadersInit | undefined;
+    api: string;
   }) => {
     body: object;
     headers?: HeadersInit;
@@ -27,6 +28,7 @@ export type PrepareReconnectToStreamRequest = (options: {
   body: Record<string, any> | undefined;
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
+  api: string;
 }) => {
   headers?: HeadersInit;
   credentials?: RequestCredentials;
@@ -116,6 +118,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     ...options
   }: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0]) {
     const preparedRequest = this.prepareSubmitMessagesRequest?.({
+      api: this.api,
       id: options.chatId,
       messages: options.messages,
       body: { ...this.body, ...options.body },
@@ -168,6 +171,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
   ): Promise<ReadableStream<UIMessageStreamPart> | null> {
     const preparedRequest = this.prepareReconnectToStreamRequest?.({
+      api: this.api,
       id: options.chatId,
       body: { ...this.body, ...options.body },
       headers: { ...this.headers, ...options.headers },
