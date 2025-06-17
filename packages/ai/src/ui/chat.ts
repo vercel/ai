@@ -492,10 +492,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       })
     ) {
       await this.makeRequest({
-        trigger,
         metadata,
         headers,
         body,
+        // secondary requests are triggered by automatic tool execution
+        trigger: 'submit-tool-result',
       });
     }
   }
