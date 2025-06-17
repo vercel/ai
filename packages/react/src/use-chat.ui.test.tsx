@@ -1994,7 +1994,7 @@ describe('resume ongoing stream and return assistant message', () => {
 
   setupTestComponent(
     () => {
-      const { messages, status, experimental_resume } = useChat({
+      const { messages, status } = useChat({
         id: '123',
         messages: [
           {
@@ -2004,14 +2004,8 @@ describe('resume ongoing stream and return assistant message', () => {
           },
         ],
         generateId: mockId(),
+        resume: true,
       });
-
-      useEffect(() => {
-        experimental_resume();
-
-        // We want to disable the exhaustive deps rule here because we only want to run this effect once
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
 
       return (
         <div>

@@ -4,7 +4,7 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
-import { useCallback, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
@@ -45,10 +45,16 @@ Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
+
+  /**
+   * Whether to resume an ongoing chat generation stream.
+   */
+  resume?: boolean;
 };
 
 export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   experimental_throttle: throttleWaitMs,
+  resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
   const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
@@ -87,8 +93,14 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
       chatRef.current.messages = messagesParam;
     },
-    [messages],
+    [messages, chatRef],
   );
+
+  useEffect(() => {
+    if (resume) {
+      chatRef.current.experimental_resume();
+    }
+  }, [resume, chatRef]);
 
   return {
     id: chatRef.current.id,
