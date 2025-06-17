@@ -25,7 +25,7 @@ export default function ChatComponent({
     resume,
     transport: new DefaultChatTransport({
       // only send the last message to the server to limit the request size:
-      prepareRequest: ({ id, messages }) => ({
+      prepareSubmitMessagesRequest: ({ id, messages }) => ({
         body: { id, message: messages[messages.length - 1] },
       }),
     }),

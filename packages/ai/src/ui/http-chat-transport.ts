@@ -6,15 +6,28 @@ import { UIMessage } from './ui-messages';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export type PrepareRequest<UI_MESSAGE extends UIMessage> = (options: {
+export type PrepareSubmitMessagesRequest<UI_MESSAGE extends UIMessage> =
+  (options: {
+    id: string;
+    messages: UI_MESSAGE[];
+    requestMetadata: unknown;
+    body: Record<string, any> | undefined;
+    credentials: RequestCredentials | undefined;
+    headers: HeadersInit | undefined;
+  }) => {
+    body: object;
+    headers?: HeadersInit;
+    credentials?: RequestCredentials;
+    api?: string;
+  };
+
+export type PrepareReconnectToStreamRequest = (options: {
   id: string;
-  messages: UI_MESSAGE[];
   requestMetadata: unknown;
   body: Record<string, any> | undefined;
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
 }) => {
-  body: object;
   headers?: HeadersInit;
   credentials?: RequestCredentials;
   api?: string;
@@ -64,7 +77,9 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    * @param messages The current messages in the chat.
    * @param requestBody The request body object passed in the chat request.
    */
-  prepareRequest?: PrepareRequest<UI_MESSAGE>;
+  prepareSubmitMessagesRequest?: PrepareSubmitMessagesRequest<UI_MESSAGE>;
+
+  prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };
 
 export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
@@ -75,7 +90,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   protected headers?: Record<string, string> | Headers;
   protected body?: object;
   protected fetch: FetchFunction;
-  protected prepareRequest?: PrepareRequest<UI_MESSAGE>;
+  protected prepareSubmitMessagesRequest?: PrepareSubmitMessagesRequest<UI_MESSAGE>;
+  protected prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 
   constructor({
     api = '/api/chat',
@@ -83,55 +99,46 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     headers,
     body,
     fetch = getOriginalFetch(),
-    prepareRequest,
+    prepareSubmitMessagesRequest,
+    prepareReconnectToStreamRequest,
   }: HttpChatTransportInitOptions<UI_MESSAGE>) {
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;
     this.body = body;
     this.fetch = fetch;
-    this.prepareRequest = prepareRequest;
-  }
-
-  private prepareSubmitMessagesRequest({
-    chatId,
-    messages,
-    metadata,
-    headers,
-    body,
-  }: Omit<
-    Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0],
-    'abortSignal'
-  >) {
-    const preparedRequest = this.prepareRequest?.({
-      id: chatId,
-      messages,
-      body: { ...this.body, ...body },
-      headers: { ...this.headers, ...headers },
-      credentials: this.credentials,
-      requestMetadata: metadata,
-    });
-
-    return {
-      api: preparedRequest?.api ?? this.api,
-      headers:
-        preparedRequest?.headers !== undefined
-          ? preparedRequest.headers
-          : { ...this.headers, ...headers },
-      body:
-        preparedRequest?.body !== undefined
-          ? preparedRequest.body
-          : { ...this.body, ...body, id: chatId, messages },
-      credentials: preparedRequest?.credentials ?? this.credentials,
-    };
+    this.prepareSubmitMessagesRequest = prepareSubmitMessagesRequest;
+    this.prepareReconnectToStreamRequest = prepareReconnectToStreamRequest;
   }
 
   async submitMessages({
     abortSignal,
     ...options
   }: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0]) {
-    const { api, headers, body, credentials } =
-      this.prepareSubmitMessagesRequest(options);
+    const preparedRequest = this.prepareSubmitMessagesRequest?.({
+      id: options.chatId,
+      messages: options.messages,
+      body: { ...this.body, ...options.body },
+      headers: { ...this.headers, ...options.headers },
+      credentials: this.credentials,
+      requestMetadata: options.metadata,
+    });
+
+    const api = preparedRequest?.api ?? this.api;
+    const headers =
+      preparedRequest?.headers !== undefined
+        ? preparedRequest.headers
+        : { ...this.headers, ...options.headers };
+    const body =
+      preparedRequest?.body !== undefined
+        ? preparedRequest.body
+        : {
+            ...this.body,
+            ...options.body,
+            id: options.chatId,
+            messages: options.messages,
+          };
+    const credentials = preparedRequest?.credentials ?? this.credentials;
 
     const response = await fetch(api, {
       method: 'POST',
@@ -157,33 +164,23 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     return this.processResponseStream(response.body);
   }
 
-  private prepareReconnectToStreamRequest(
+  async reconnectToStream(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
-  ) {
-    const preparedRequest = this.prepareRequest?.({
+  ): Promise<ReadableStream<UIMessageStreamPart> | null> {
+    const preparedRequest = this.prepareReconnectToStreamRequest?.({
       id: options.chatId,
-      messages: [], // TODO prepareRequest needs type
       body: { ...this.body, ...options.body },
       headers: { ...this.headers, ...options.headers },
       credentials: this.credentials,
       requestMetadata: options.metadata,
     });
 
-    return {
-      api: preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`,
-      headers:
-        preparedRequest?.headers !== undefined
-          ? preparedRequest.headers
-          : { ...this.headers, ...options.headers },
-      credentials: preparedRequest?.credentials ?? this.credentials,
-    };
-  }
-
-  async reconnectToStream(
-    options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
-  ): Promise<ReadableStream<UIMessageStreamPart> | null> {
-    const { api, headers, credentials } =
-      this.prepareReconnectToStreamRequest(options);
+    const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
+    const headers =
+      preparedRequest?.headers !== undefined
+        ? preparedRequest.headers
+        : { ...this.headers, ...options.headers };
+    const credentials = preparedRequest?.credentials ?? this.credentials;
 
     const response = await fetch(api, {
       method: 'GET',
