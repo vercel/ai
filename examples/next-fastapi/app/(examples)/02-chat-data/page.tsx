@@ -28,7 +28,7 @@ export default function Page() {
                       className={`${GeistMono.className} text-sm text-zinc-500 bg-zinc-100 p-3 rounded-lg`}
                     >
                       {`${getToolName(part)}(${JSON.stringify(
-                        part.args,
+                        part.input,
                         null,
                         2,
                       )})`}

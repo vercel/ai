@@ -244,7 +244,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -265,21 +265,21 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "argsTextDelta": "{"value":",
+          "inputTextDelta": "{"value":",
           "toolCallId": "tool-use-id",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": ""Sparkle Day"}",
+          "inputTextDelta": ""Sparkle Day"}",
           "toolCallId": "tool-use-id",
           "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "tool-use-id",
           "toolCallType": "function",
           "toolName": "test-tool",
@@ -362,7 +362,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool-1',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value1: { type: 'string' } },
             required: ['value'],
@@ -373,7 +373,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool-2',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value2: { type: 'string' } },
             required: ['value'],
@@ -394,42 +394,42 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "argsTextDelta": "{"value1":",
+          "inputTextDelta": "{"value1":",
           "toolCallId": "tool-use-id-1",
           "toolCallType": "function",
           "toolName": "test-tool-1",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": "{"value2":",
+          "inputTextDelta": "{"value2":",
           "toolCallId": "tool-use-id-2",
           "toolCallType": "function",
           "toolName": "test-tool-2",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": ""Sparkle Day"}",
+          "inputTextDelta": ""Sparkle Day"}",
           "toolCallId": "tool-use-id-2",
           "toolCallType": "function",
           "toolName": "test-tool-2",
           "type": "tool-call-delta",
         },
         {
-          "argsTextDelta": ""Sparkle Day"}",
+          "inputTextDelta": ""Sparkle Day"}",
           "toolCallId": "tool-use-id-1",
           "toolCallType": "function",
           "toolName": "test-tool-1",
           "type": "tool-call-delta",
         },
         {
-          "args": "{"value1":"Sparkle Day"}",
+          "input": "{"value1":"Sparkle Day"}",
           "toolCallId": "tool-use-id-1",
           "toolCallType": "function",
           "toolName": "test-tool-1",
           "type": "tool-call",
         },
         {
-          "args": "{"value2":"Sparkle Day"}",
+          "input": "{"value2":"Sparkle Day"}",
           "toolCallId": "tool-use-id-2",
           "toolCallType": "function",
           "toolName": "test-tool-2",
@@ -1522,7 +1522,7 @@ describe('doGenerate', () => {
           type: 'function',
           name: 'test-tool-1',
           description: 'A test tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: {
               param1: { type: 'string' },

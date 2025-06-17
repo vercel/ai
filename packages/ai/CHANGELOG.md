@@ -1,5 +1,20 @@
 # ai
 
+## 5.0.0-alpha.14
+
+### Major Changes
+
+- 63f9e9b: chore (provider,ai): tools have input/output instead of args,result
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/gateway@1.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
 ## 5.0.0-alpha.13
 
 ### Major Changes

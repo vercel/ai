@@ -36,8 +36,8 @@ describe('MCPClient', () => {
     expect(tools).toHaveProperty('mock-tool');
 
     const tool = tools['mock-tool'];
-    expect(tool).toHaveProperty('parameters');
-    expect(tool.parameters).toMatchObject({
+    expect(tool).toHaveProperty('inputSchema');
+    expect(tool.inputSchema).toMatchObject({
       jsonSchema: {
         type: 'object',
         properties: {
@@ -73,7 +73,7 @@ describe('MCPClient', () => {
     const tools = await client.tools({
       schemas: {
         'mock-tool': {
-          parameters: z.object({
+          inputSchema: z.object({
             foo: z.string(),
           }),
         },
@@ -103,7 +103,7 @@ describe('MCPClient', () => {
     const tools = await client.tools({
       schemas: {
         'nonexistent-tool': {
-          parameters: z.object({ bar: z.string() }),
+          inputSchema: z.object({ bar: z.string() }),
         },
       },
     });
@@ -124,7 +124,7 @@ describe('MCPClient', () => {
     const tools = await client.tools({
       schemas: {
         'mock-tool': {
-          parameters: z.object({ bar: z.string() }),
+          inputSchema: z.object({ bar: z.string() }),
         },
       },
     });
@@ -240,7 +240,7 @@ describe('MCPClient', () => {
     const tools = await client.tools({
       schemas: {
         'mock-tool': {
-          parameters: z.object({
+          inputSchema: z.object({
             foo: z.string(),
           }),
         },
@@ -283,8 +283,8 @@ describe('MCPClient', () => {
     });
     const tools = await client.tools();
     const tool = tools['mock-tool-no-args'];
-    expect(tool).toHaveProperty('parameters');
-    expect(tool.parameters).toMatchObject({
+    expect(tool).toHaveProperty('inputSchema');
+    expect(tool.inputSchema).toMatchObject({
       jsonSchema: {
         type: 'object',
         properties: {},

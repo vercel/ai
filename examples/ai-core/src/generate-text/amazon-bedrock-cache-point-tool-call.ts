@@ -5,7 +5,7 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 
 const weatherTool = tool({
   description: 'Get the weather in a location',
-  parameters: z.object({
+  inputSchema: z.object({
     location: z.string().describe('The location to get the weather for'),
   }),
   // location below is inferred to be a string:
@@ -142,7 +142,7 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'weather': {
-        toolCall.args.location; // string
+        toolCall.input.location; // string
         break;
       }
     }
@@ -152,9 +152,9 @@ async function main() {
   for (const toolResult of result.toolResults) {
     switch (toolResult.toolName) {
       case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
+        toolResult.input.location; // string
+        toolResult.output.location; // string
+        toolResult.output.temperature; // number
         break;
       }
     }

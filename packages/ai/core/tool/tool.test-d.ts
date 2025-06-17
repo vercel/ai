@@ -1,7 +1,7 @@
 import { expectTypeOf } from 'vitest';
 import { Tool, tool } from '.';
 import { z } from 'zod';
-import { ToolCallOptions, ToolParameters } from './tool';
+import { ToolCallOptions, ToolInputSchema } from './tool';
 
 describe('tool helper', () => {
   it('should work with no parameters and no output', () => {
@@ -10,19 +10,19 @@ describe('tool helper', () => {
     expectTypeOf(toolType).toEqualTypeOf<Tool<never, never>>();
     expectTypeOf(toolType.execute).toEqualTypeOf<undefined>();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<Function>();
-    expectTypeOf(toolType.parameters).toEqualTypeOf<undefined>();
+    expectTypeOf(toolType.inputSchema).toEqualTypeOf<undefined>();
   });
 
   it('should work with only parameters', () => {
     const toolType = tool({
-      parameters: z.object({ number: z.number() }),
+      inputSchema: z.object({ number: z.number() }),
     });
 
     expectTypeOf(toolType).toEqualTypeOf<Tool<{ number: number }, never>>();
     expectTypeOf(toolType.execute).toEqualTypeOf<undefined>();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<Function>();
-    expectTypeOf(toolType.parameters).toEqualTypeOf<
-      ToolParameters<{ number: number }>
+    expectTypeOf(toolType.inputSchema).toEqualTypeOf<
+      ToolInputSchema<{ number: number }>
     >();
   });
 
@@ -36,14 +36,14 @@ describe('tool helper', () => {
       (args: undefined, options: ToolCallOptions) => PromiseLike<'test'>
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
-    expectTypeOf(toolType.parameters).toEqualTypeOf<undefined>();
+    expectTypeOf(toolType.inputSchema).toEqualTypeOf<undefined>();
   });
 
-  it('should work with both parameters and output', () => {
+  it('should work with both inputSchema and output', () => {
     const toolType = tool({
-      parameters: z.object({ number: z.number() }),
-      execute: async params => {
-        expectTypeOf(params).toEqualTypeOf<{ number: number }>();
+      inputSchema: z.object({ number: z.number() }),
+      execute: async input => {
+        expectTypeOf(input).toEqualTypeOf<{ number: number }>();
 
         return 'test' as const;
       },
@@ -57,8 +57,8 @@ describe('tool helper', () => {
       ) => PromiseLike<'test'>
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
-    expectTypeOf(toolType.parameters).toEqualTypeOf<
-      ToolParameters<{ number: number }>
+    expectTypeOf(toolType.inputSchema).toEqualTypeOf<
+      ToolInputSchema<{ number: number }>
     >();
   });
 });

@@ -9,7 +9,7 @@ exports[`convertToModelMessages > assistant message > should handle assistant me
         "type": "text",
       },
       {
-        "args": {
+        "input": {
           "numbers": [
             1,
             2,
@@ -26,7 +26,7 @@ exports[`convertToModelMessages > assistant message > should handle assistant me
   {
     "content": [
       {
-        "result": "3",
+        "output": "3",
         "toolCallId": "call1",
         "toolName": "calculator",
         "type": "tool-result",
@@ -46,7 +46,7 @@ exports[`convertToModelMessages > assistant message > should handle assistant me
         "type": "text",
       },
       {
-        "args": {},
+        "input": {},
         "toolCallId": "call1",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -63,7 +63,7 @@ exports[`convertToModelMessages > assistant message > should handle assistant me
             "type": "image",
           },
         ],
-        "result": [
+        "output": [
           {
             "data": "imgbase64",
             "type": "image",
@@ -111,7 +111,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "type": "text",
       },
       {
-        "args": {
+        "input": {
           "value": "value-1",
         },
         "toolCallId": "call-1",
@@ -124,7 +124,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "result": "result-1",
+        "output": "result-1",
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -139,7 +139,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "type": "text",
       },
       {
-        "args": {
+        "input": {
           "value": "value-2",
         },
         "toolCallId": "call-2",
@@ -147,7 +147,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "type": "tool-call",
       },
       {
-        "args": {
+        "input": {
           "value": "value-3",
         },
         "toolCallId": "call-3",
@@ -160,13 +160,13 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "result": "result-2",
+        "output": "result-2",
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-result",
       },
       {
-        "result": "result-3",
+        "output": "result-3",
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -177,7 +177,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "args": {
+        "input": {
           "value": "value-4",
         },
         "toolCallId": "call-4",
@@ -190,7 +190,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "result": "result-4",
+        "output": "result-4",
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -219,7 +219,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "type": "text",
       },
       {
-        "args": {
+        "input": {
           "value": "value-1",
         },
         "toolCallId": "call-1",
@@ -232,7 +232,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "result": "result-1",
+        "output": "result-1",
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -243,7 +243,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "args": {
+        "input": {
           "value": "value-2",
         },
         "toolCallId": "call-2",
@@ -251,7 +251,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "type": "tool-call",
       },
       {
-        "args": {
+        "input": {
           "value": "value-3",
         },
         "toolCallId": "call-3",
@@ -264,13 +264,13 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "result": "result-2",
+        "output": "result-2",
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-result",
       },
       {
-        "result": "result-3",
+        "output": "result-3",
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -281,7 +281,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "args": {
+        "input": {
           "value": "value-4",
         },
         "toolCallId": "call-4",
@@ -294,7 +294,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "result": "result-4",
+        "output": "result-4",
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -310,7 +310,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "args": {
+        "input": {
           "value": "value-1",
         },
         "toolCallId": "call-1",
@@ -323,7 +323,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "result": "result-1",
+        "output": "result-1",
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -334,7 +334,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "args": {
+        "input": {
           "value": "value-2",
         },
         "toolCallId": "call-2",
@@ -342,7 +342,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
         "type": "tool-call",
       },
       {
-        "args": {
+        "input": {
           "value": "value-3",
         },
         "toolCallId": "call-3",
@@ -355,13 +355,13 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "result": "result-2",
+        "output": "result-2",
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-result",
       },
       {
-        "result": "result-3",
+        "output": "result-3",
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -372,7 +372,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "args": {
+        "input": {
           "value": "value-4",
         },
         "toolCallId": "call-4",
@@ -385,7 +385,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "result": "result-4",
+        "output": "result-4",
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-result",

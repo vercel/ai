@@ -329,7 +329,7 @@ be returned as binary data.
       toolCallType: 'function';
       toolCallId: string;
       toolName: string;
-      argsTextDelta: string;
+      inputTextDelta: string;
     }
 
   // metadata for the response.

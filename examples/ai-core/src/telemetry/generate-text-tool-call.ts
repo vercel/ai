@@ -22,7 +22,7 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     prompt:

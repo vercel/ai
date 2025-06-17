@@ -116,7 +116,7 @@ export function convertToGoogleGenerativeAIMessages(
                   return {
                     functionCall: {
                       name: part.toolName,
-                      args: part.args,
+                      args: part.input,
                     },
                   };
                 }
@@ -137,7 +137,7 @@ export function convertToGoogleGenerativeAIMessages(
               name: part.toolName,
               response: {
                 name: part.toolName,
-                content: part.result,
+                content: part.output,
               },
             },
           })),

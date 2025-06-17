@@ -10,7 +10,7 @@ export type ToolCallUnion<TOOLS extends ToolSet> = ValueOf<{
     type: 'tool-call';
     toolCallId: string;
     toolName: NAME & string;
-    args: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
+    input: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
   };
 }>;
 

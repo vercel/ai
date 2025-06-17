@@ -20,7 +20,7 @@ async function main() {
     tools: {
       currentTime: tool({
         description: 'Get the current time',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => ({
           currentTime: new Date().toLocaleTimeString(),
         }),
@@ -47,7 +47,7 @@ async function main() {
         toolCalls.push(delta);
 
         process.stdout.write(
-          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
+          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.input)}`,
         );
         break;
       }
@@ -57,7 +57,7 @@ async function main() {
 
         process.stdout.write(
           `\nTool response: '${delta.toolName}' ${JSON.stringify(
-            delta.result,
+            delta.output,
           )}`,
         );
         break;

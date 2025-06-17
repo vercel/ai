@@ -321,7 +321,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallType: 'function' as const,
             toolCallId: part.call_id,
             toolName: part.name,
-            args: part.arguments,
+            input: part.arguments,
           });
           break;
         }
@@ -440,7 +440,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallType: 'function',
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
-                  argsTextDelta: value.item.arguments,
+                  inputTextDelta: value.item.arguments,
                 });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
@@ -452,7 +452,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallType: 'function',
                   toolCallId: toolCall.toolCallId,
                   toolName: toolCall.toolName,
-                  argsTextDelta: value.delta,
+                  inputTextDelta: value.delta,
                 });
               }
             } else if (isResponseCreatedChunk(value)) {
@@ -497,7 +497,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 toolCallType: 'function',
                 toolCallId: value.item.call_id,
                 toolName: value.item.name,
-                args: value.item.arguments,
+                input: value.item.arguments,
               });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({

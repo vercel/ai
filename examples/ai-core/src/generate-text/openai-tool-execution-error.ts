@@ -10,7 +10,7 @@ async function main() {
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
-          parameters: z.object({
+          inputSchema: z.object({
             location: z
               .string()
               .describe('The location to get the weather for'),
@@ -27,7 +27,7 @@ async function main() {
       console.error('Tool execution error: ' + error.message);
       console.error('Tool name: ' + error.toolName);
       console.error('Tool call ID: ' + error.toolCallId);
-      console.error('Tool args: ' + JSON.stringify(error.toolArgs));
+      console.error('Tool args: ' + JSON.stringify(error.toolInput));
       console.error('Cause: ' + error.cause);
     } else {
       console.error('Unexpected error:');
