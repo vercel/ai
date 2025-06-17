@@ -324,6 +324,7 @@ describe('data protocol stream', () => {
               "role": "user",
             },
           ],
+          "trigger": "submit-user-message",
         }
       `);
     });
@@ -1427,6 +1428,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1509,6 +1511,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1624,6 +1627,7 @@ describe('file attachments with url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1722,6 +1726,7 @@ describe('attachments with empty submit', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1831,6 +1836,7 @@ describe('should send message with attachments', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1911,6 +1917,7 @@ describe('regenerate', () => {
           },
         ],
         "request-body-key": "request-body-value",
+        "trigger": "regenerate-assistant-message",
       }
     `);
 
@@ -1988,6 +1995,7 @@ describe('test sending additional fields during message submission', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });

@@ -335,6 +335,7 @@ describe('regenerate', () => {
         },
       ],
       'request-body-key': 'request-body-value',
+      trigger: 'regenerate-assistant-message',
     });
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
