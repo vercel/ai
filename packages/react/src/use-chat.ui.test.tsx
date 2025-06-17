@@ -504,7 +504,7 @@ describe('prepareChatRequest', () => {
       transport: new DefaultChatTransport({
         body: { 'body-key': 'body-value' },
         headers: { 'header-key': 'header-value' },
-        prepareSubmitMessagesRequest(optionsArg) {
+        prepareSendMessagesRequest(optionsArg) {
           options = optionsArg;
           return {
             body: { 'request-body-key': 'request-body-value' },

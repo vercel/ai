@@ -14,7 +14,7 @@ export default function Chat({
     transport: new DefaultChatTransport({
       api: '/api/use-chat-persistence-single-message',
       // only send the last message to the server:
-      prepareSubmitMessagesRequest({ messages, id }) {
+      prepareSendMessagesRequest({ messages, id }) {
         return { body: { message: messages[messages.length - 1], id } };
       },
     }),
