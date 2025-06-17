@@ -3,7 +3,7 @@
 exports[`Anthropic Web Search Server-Side Tool > should handle server-side web search results with citations and tool results 1`] = `
 [
   {
-    "id": "4vrvhg79BuLY9JQU",
+    "id": "3pnqcdQ0i5ot27zf",
     "providerMetadata": {
       "anthropic": {
         "encryptedContent": "encrypted_content_123",
