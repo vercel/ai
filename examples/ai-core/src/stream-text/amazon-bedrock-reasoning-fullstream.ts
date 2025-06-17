@@ -12,7 +12,7 @@ async function main() {
     prompt: 'What is the weather in San Francisco?',
     providerOptions: {
       bedrock: {
-        reasoning_config: { type: 'enabled', budgetTokens: 1024 },
+        reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
       },
     },
     maxSteps: 5,
