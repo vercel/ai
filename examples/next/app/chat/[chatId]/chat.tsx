@@ -11,18 +11,21 @@ import Message from './message';
 export default function ChatComponent({
   chatData,
   isNewChat = false,
+  resume = false,
 }: {
   chatData: { id: string; messages: MyUIMessage[] };
   isNewChat?: boolean;
+  resume?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { status, sendMessage, messages } = useChat({
     id: chatData.id,
     messages: chatData.messages,
+    resume,
     transport: new DefaultChatTransport({
       // only send the last message to the server to limit the request size:
-      prepareRequest: ({ id, messages }) => ({
+      prepareSubmitMessagesRequest: ({ id, messages }) => ({
         body: { id, message: messages[messages.length - 1] },
       }),
     }),

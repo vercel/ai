@@ -24,7 +24,7 @@ const server = createTestServer({
   '/api/chat': {},
 });
 
-describe('prepareRequestBody', () => {
+describe('prepareSubmitMessagesRequest', () => {
   setupTestComponent(TestChatPrepareRequestBodyComponent);
 
   it('should show streamed response', async () => {

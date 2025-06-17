@@ -25,6 +25,7 @@ function formatStreamPart(part: UIMessageStreamPart) {
 
 const server = createTestServer({
   '/api/chat': {},
+  '/api/chat/123/stream': {},
 });
 
 describe('data protocol stream', () => {
@@ -503,7 +504,7 @@ describe('prepareChatRequest', () => {
       transport: new DefaultChatTransport({
         body: { 'body-key': 'body-value' },
         headers: { 'header-key': 'header-value' },
-        prepareRequest(optionsArg) {
+        prepareSubmitMessagesRequest(optionsArg) {
           options = optionsArg;
           return {
             body: { 'request-body-key': 'request-body-value' },
@@ -2024,7 +2025,7 @@ describe('resume ongoing stream and return assistant message', () => {
     },
     {
       init: TestComponent => {
-        server.urls['/api/chat'].response = {
+        server.urls['/api/chat/123/stream'].response = {
           type: 'controlled-stream',
           controller,
         };
@@ -2067,7 +2068,7 @@ describe('resume ongoing stream and return assistant message', () => {
 
       const { requestMethod, requestUrl } = mostRecentCall;
       expect(requestMethod).toBe('GET');
-      expect(requestUrl).toBe('http://localhost:3000/api/chat?id=123');
+      expect(requestUrl).toBe('http://localhost:3000/api/chat/123/stream');
     });
   });
 });

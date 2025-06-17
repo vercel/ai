@@ -29,6 +29,7 @@ import {
   type UIDataTypes,
   type UIMessage,
 } from './ui-messages';
+import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
 
 export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   UI_MESSAGE,
@@ -384,15 +385,31 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.activeResponse = activeResponse;
 
-      const stream = await this.transport.submitMessages({
-        chatId: this.id,
-        messages: this.state.messages,
-        abortSignal: activeResponse.abortController.signal,
-        metadata,
-        headers,
-        body,
-        requestType,
-      });
+      let stream: ReadableStream<UIMessageStreamPart>;
+
+      if (requestType === 'resume') {
+        const reconnect = await this.transport.reconnectToStream({
+          chatId: this.id,
+          metadata,
+          headers,
+          body,
+        });
+
+        if (reconnect == null) {
+          return; // no active stream found, so we do not resume
+        }
+
+        stream = reconnect;
+      } else {
+        stream = await this.transport.submitMessages({
+          chatId: this.id,
+          messages: this.state.messages,
+          abortSignal: activeResponse.abortController.signal,
+          metadata,
+          headers,
+          body,
+        });
+      }
 
       const runUpdateMessageJob = (
         job: (options: {

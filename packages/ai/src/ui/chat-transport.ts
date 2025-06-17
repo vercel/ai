@@ -9,7 +9,12 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
       chatId: string;
       messages: UI_MESSAGE[];
       abortSignal: AbortSignal | undefined;
-      requestType: 'generate' | 'resume'; // TODO have separate functions
     } & ChatRequestOptions,
   ) => Promise<ReadableStream<UIMessageStreamPart>>;
+
+  reconnectToStream: (
+    options: {
+      chatId: string;
+    } & ChatRequestOptions,
+  ) => Promise<ReadableStream<UIMessageStreamPart> | null>;
 }
