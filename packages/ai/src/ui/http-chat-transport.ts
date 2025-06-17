@@ -17,6 +17,7 @@ export type PrepareRequest<UI_MESSAGE extends UIMessage> = (options: {
   body: object;
   headers?: HeadersInit;
   credentials?: RequestCredentials;
+  api?: string;
 };
 
 export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
@@ -92,7 +93,6 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     this.prepareRequest = prepareRequest;
   }
 
-  // TODO allow api override
   private prepareSubmitMessagesRequest({
     chatId,
     messages,
@@ -113,6 +113,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     });
 
     return {
+      api: preparedRequest?.api ?? this.api,
       headers:
         preparedRequest?.headers !== undefined
           ? preparedRequest.headers
@@ -129,10 +130,10 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     abortSignal,
     ...options
   }: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0]) {
-    const { headers, body, credentials } =
+    const { api, headers, body, credentials } =
       this.prepareSubmitMessagesRequest(options);
 
-    const response = await fetch(this.api, {
+    const response = await fetch(api, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -169,7 +170,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     });
 
     return {
-      api: `${this.api}/${options.chatId}/stream`,
+      api: preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`,
       headers:
         preparedRequest?.headers !== undefined
           ? preparedRequest.headers
