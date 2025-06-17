@@ -1,21 +1,33 @@
-import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
+import {
+  TranscriptionModelV1,
+  ProviderV1,
+  VoiceChangerModelV1,
+} from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
+import { ElevenLabsVoiceChangerModel } from './elevenlabs-voice-changer-model';
+import { ElevenLabsVoiceChangerModelId } from './elevenlabs-voice-changer-settings';
 
 export interface ElevenLabsProvider
-  extends Pick<ProviderV1, 'transcriptionModel'> {
+  extends Pick<ProviderV1, 'transcriptionModel' | 'voiceChangerModel'> {
   (
     modelId: 'scribe_v1',
     settings?: {},
   ): {
     transcription: ElevenLabsTranscriptionModel;
+    voiceChanger: ElevenLabsVoiceChangerModel;
   };
 
   /**
 Creates a model for transcription.
    */
   transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV1;
+
+  /**
+Creates a model for voice changer.
+   */
+  voiceChanger(modelId: ElevenLabsVoiceChangerModelId): VoiceChangerModelV1;
 }
 
 export interface ElevenLabsProviderSettings {
@@ -59,14 +71,26 @@ export function createElevenLabs(
       fetch: options.fetch,
     });
 
+  const createVoiceChangerModel = (modelId: ElevenLabsVoiceChangerModelId) =>
+    new ElevenLabsVoiceChangerModel(modelId, {
+      provider: `elevenlabs.voiceChanger`,
+      url: ({ path }) => `https://api.elevenlabs.io${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: ElevenLabsTranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
+      voiceChanger: createVoiceChangerModel(modelId),
     };
   };
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+
+  provider.voiceChanger = createVoiceChangerModel;
+  provider.voiceChangerModel = createVoiceChangerModel;
 
   return provider as ElevenLabsProvider;
 }
