@@ -1,8 +1,4 @@
-import {
-  FetchFunction,
-  parseJsonEventStream,
-  ParseResult,
-} from '@ai-sdk/provider-utils';
+import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
 import {
   UIMessageStreamPart,
   uiMessageStreamPartSchema,
@@ -15,70 +11,6 @@ import {
 import { UIMessage } from './ui-messages';
 import { ChatRequestOptions } from './chat';
 
-async function fetchUIMessageStream({
-  api,
-  body,
-  credentials,
-  headers,
-  abortSignal,
-  fetch,
-  requestType = 'generate',
-}: {
-  api: string;
-  body: Record<string, any>;
-  credentials: RequestCredentials | undefined;
-  headers: HeadersInit | undefined;
-  abortSignal: AbortSignal | undefined;
-  fetch: FetchFunction;
-  requestType?: 'generate' | 'resume';
-}): Promise<ReadableStream<UIMessageStreamPart>> {
-  const response =
-    requestType === 'resume'
-      ? await fetch(`${api}/${body.id}/stream`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-          signal: abortSignal,
-          credentials,
-        })
-      : await fetch(api, {
-          method: 'POST',
-          body: JSON.stringify(body),
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-          signal: abortSignal,
-          credentials,
-        });
-
-  if (!response.ok) {
-    throw new Error(
-      (await response.text()) ?? 'Failed to fetch the chat response.',
-    );
-  }
-
-  if (!response.body) {
-    throw new Error('The response body is empty.');
-  }
-
-  return parseJsonEventStream({
-    stream: response.body,
-    schema: uiMessageStreamPartSchema,
-  }).pipeThrough(
-    new TransformStream<ParseResult<UIMessageStreamPart>, UIMessageStreamPart>({
-      async transform(part, controller) {
-        if (!part.success) {
-          throw part.error;
-        }
-        controller.enqueue(part.value);
-      },
-    }),
-  );
-}
-
 export class DefaultChatTransport<
   UI_MESSAGE extends UIMessage,
 > extends HttpChatTransport<UI_MESSAGE> {
@@ -86,38 +18,50 @@ export class DefaultChatTransport<
     super(options);
   }
 
-  submitMessages({
-    chatId,
-    messages,
+  async submitMessages({
     abortSignal,
-    metadata,
-    headers,
-    body,
+    ...options
   }: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0]) {
-    const preparedRequest = this.prepareRequest?.({
-      id: chatId,
-      messages,
-      body: { ...this.body, ...body },
-      headers: { ...this.headers, ...headers },
-      credentials: this.credentials,
-      requestMetadata: metadata,
+    const { headers, body, credentials } =
+      this.prepareSubmitMessagesRequest(options);
+
+    const response = await fetch(this.api, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: JSON.stringify(body),
+      credentials,
+      signal: abortSignal,
     });
 
-    return fetchUIMessageStream({
-      api: this.api,
-      body:
-        preparedRequest?.body !== undefined
-          ? preparedRequest.body
-          : { ...this.body, ...body, id: chatId, messages },
-      headers:
-        preparedRequest?.headers !== undefined
-          ? preparedRequest.headers
-          : { ...this.headers, ...headers },
-      credentials: preparedRequest?.credentials ?? this.credentials,
-      abortSignal,
-      fetch: this.fetch,
-      requestType: 'generate',
-    });
+    if (!response.ok) {
+      throw new Error(
+        (await response.text()) ?? 'Failed to fetch the chat response.',
+      );
+    }
+
+    if (!response.body) {
+      throw new Error('The response body is empty.');
+    }
+
+    return parseJsonEventStream({
+      stream: response.body,
+      schema: uiMessageStreamPartSchema,
+    }).pipeThrough(
+      new TransformStream<
+        ParseResult<UIMessageStreamPart>,
+        UIMessageStreamPart
+      >({
+        async transform(part, controller) {
+          if (!part.success) {
+            throw part.error;
+          }
+          controller.enqueue(part.value);
+        },
+      }),
+    );
   }
 
   async reconnectToStream(

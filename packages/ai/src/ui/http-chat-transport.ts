@@ -80,6 +80,39 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     this.prepareRequest = prepareRequest;
   }
 
+  // TODO allow api override
+  protected prepareSubmitMessagesRequest({
+    chatId,
+    messages,
+    metadata,
+    headers,
+    body,
+  }: Omit<
+    Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0],
+    'abortSignal'
+  >) {
+    const preparedRequest = this.prepareRequest?.({
+      id: chatId,
+      messages,
+      body: { ...this.body, ...body },
+      headers: { ...this.headers, ...headers },
+      credentials: this.credentials,
+      requestMetadata: metadata,
+    });
+
+    return {
+      headers:
+        preparedRequest?.headers !== undefined
+          ? preparedRequest.headers
+          : { ...this.headers, ...headers },
+      body:
+        preparedRequest?.body !== undefined
+          ? preparedRequest.body
+          : { ...this.body, ...body, id: chatId, messages },
+      credentials: preparedRequest?.credentials ?? this.credentials,
+    };
+  }
+
   abstract submitMessages(
     options: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0],
   ): Promise<ReadableStream<UIMessageStreamPart>>;
