@@ -1,14 +1,24 @@
+import { GatewayProvider } from '@ai-sdk/gateway';
 import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
+import { GLOBAL_DEFAULT_PROVIDER } from 'ai';
+
+declare global {
+  interface GlobalThis {
+    [GLOBAL_DEFAULT_PROVIDER]: GatewayProvider;
+  }
+}
 
 /**
 Language model that is used by the AI SDK Core functions.
 */
-export type LanguageModel = string | LanguageModelV2;
+export type LanguageModel =
+  | Parameters<GlobalThis[typeof GLOBAL_DEFAULT_PROVIDER]['languageModel']>[0]
+  | LanguageModelV2;
 
 /**
 Reason why a language model finished generating a response.
