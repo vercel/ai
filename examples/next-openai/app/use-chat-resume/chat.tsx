@@ -3,7 +3,6 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import Link from 'next/link';
-import { useEffect } from 'react';
 import ChatInput from '@component/chat-input';
 
 export function Chat({
@@ -15,30 +14,15 @@ export function Chat({
   autoResume: boolean;
   initialMessages: UIMessage[];
 }) {
-  const {
-    error,
-    status,
-    sendMessage,
-    messages,
-    reload,
-    stop,
-    experimental_resume,
-  } = useChat({
+  const { error, status, sendMessage, messages, reload, stop } = useChat({
     id,
     messages: initialMessages,
     transport: new DefaultChatTransport({ api: '/api/use-chat-resume' }),
     onError: error => {
       console.error('Error streaming text:', error);
     },
+    resume: autoResume,
   });
-
-  useEffect(() => {
-    if (autoResume) {
-      experimental_resume();
-    }
-    // We want to disable the exhaustive deps rule here because we only want to run this effect once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="flex flex-col w-full max-w-md gap-8 py-24 mx-auto stretch">
