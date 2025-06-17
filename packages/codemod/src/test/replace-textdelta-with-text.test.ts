@@ -6,4 +6,4 @@ describe('replace-textdelta-with-text', () => {
   it('transforms delta.textDelta to delta.text and text-delta case to text case', () => {
     testTransform(transformer, 'replace-textdelta-with-text');
   });
-}); 
+});

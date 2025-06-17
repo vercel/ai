@@ -8,26 +8,29 @@ export default createTransformer((fileInfo, api, options, context) => {
     .find(j.MemberExpression)
     .filter(path => {
       const node = path.node;
-      
+
       // Must be accessing a property called 'textDelta'
-      if (!j.Identifier.check(node.property) || node.property.name !== 'textDelta') {
+      if (
+        !j.Identifier.check(node.property) ||
+        node.property.name !== 'textDelta'
+      ) {
         return false;
       }
-      
+
       // The object must be an identifier called 'delta'
       if (!j.Identifier.check(node.object) || node.object.name !== 'delta') {
         return false;
       }
-      
+
       return true;
     })
     .forEach(path => {
       // Replace delta.textDelta with delta.text
       const newMemberExpression = j.memberExpression(
         path.node.object, // delta
-        j.identifier('text') // text
+        j.identifier('text'), // text
       );
-      
+
       path.replace(newMemberExpression);
       context.hasChanges = true;
     });
@@ -37,12 +40,12 @@ export default createTransformer((fileInfo, api, options, context) => {
     .find(j.SwitchCase)
     .filter(path => {
       const node = path.node;
-      
+
       // Check if the test is a string literal with value 'text-delta'
       if (j.Literal.check(node.test) && node.test.value === 'text-delta') {
         return true;
       }
-      
+
       return false;
     })
     .forEach(path => {
@@ -63,4 +66,4 @@ export default createTransformer((fileInfo, api, options, context) => {
       path.node.value = 'text';
       context.hasChanges = true;
     });
-}); 
+});
