@@ -295,7 +295,7 @@ describe('text stream', () => {
   });
 });
 
-describe('reload', () => {
+describe('regenerate', () => {
   setupTestComponent(TestChatReloadComponent);
 
   it('should show streamed response', async () => {
