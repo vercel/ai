@@ -28,12 +28,17 @@ export async function POST(req: Request) {
         ? messages.length - 1
         : messages.findIndex(message => message.id === messageId);
 
-    if (messageIndex === -1 || messages[messageIndex].role !== 'assistant') {
-      throw new Error(`message ${messageId} is not an assistant message`);
+    if (messageIndex === -1) {
+      throw new Error(`message ${messageId} not found`);
     }
 
     // set the messages to the message before the assistant message
-    messages = messages.slice(0, messageIndex);
+    messages = messages.slice(
+      0,
+      messages[messageIndex].role === 'assistant'
+        ? messageIndex
+        : messageIndex + 1,
+    );
   }
 
   // save the user message

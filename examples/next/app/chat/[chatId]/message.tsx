@@ -24,7 +24,7 @@ export default function Message({
           .map(part => (part.type === 'text' ? part.text : ''))
           .join('')}
       </div>
-      {message.role === 'assistant' && (
+      {message.role === 'user' && (
         <button
           onClick={() => regenerate({ messageId: message.id })}
           className="px-3 py-1 mt-2 text-sm transition-colors bg-gray-200 rounded-md hover:bg-gray-300"

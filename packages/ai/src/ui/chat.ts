@@ -295,15 +295,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ? this.state.messages.length - 1
         : this.state.messages.findIndex(message => message.id === messageId);
 
-    if (
-      messageIndex === -1 ||
-      this.state.messages[messageIndex].role !== 'assistant'
-    ) {
-      throw new Error('Message is not an assistant message');
+    if (messageIndex === -1) {
+      throw new Error(`message ${messageId} not found`);
     }
 
     // set the messages to the message before the assistant message
-    this.state.messages = this.state.messages.slice(0, messageIndex);
+    this.state.messages = this.state.messages.slice(
+      0,
+      // if the message is a user message, we need to include it in the request:
+      this.messages[messageIndex].role === 'assistant'
+        ? messageIndex
+        : messageIndex + 1,
+    );
 
     await this.makeRequest({
       trigger: 'regenerate-assistant-message',
