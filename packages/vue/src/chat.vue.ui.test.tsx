@@ -318,7 +318,7 @@ describe('reload', () => {
     await screen.findByTestId('message-1');
 
     // setup done, click reload:
-    await userEvent.click(screen.getByTestId('do-reload'));
+    await userEvent.click(screen.getByTestId('do-regenerate'));
 
     expect(await server.calls[1].requestBodyJson).toStrictEqual({
       id: expect.any(String),

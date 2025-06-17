@@ -1213,8 +1213,8 @@ describe('reload', () => {
       }),
     );
 
-    // Setup done, call reload:
-    await chat.reload({
+    // Setup done, call regenerate:
+    await chat.regenerate({
       body: { 'request-body-key': 'request-body-value' },
       headers: { 'header-key': 'header-value' },
     });

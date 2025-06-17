@@ -579,6 +579,7 @@ describe('prepareChatRequest', () => {
           "request-header-key": "request-header-value",
         },
         "id": "id-0",
+        "messageId": undefined,
         "messages": [
           {
             "id": "id-1",
@@ -1835,9 +1836,9 @@ describe('should send message with attachments', () => {
   });
 });
 
-describe('reload', () => {
+describe('regenerate', () => {
   setupTestComponent(() => {
-    const { messages, sendMessage, reload } = useChat({
+    const { messages, sendMessage, regenerate } = useChat({
       generateId: mockId(),
     });
 
@@ -1860,9 +1861,9 @@ describe('reload', () => {
         />
 
         <button
-          data-testid="do-reload"
+          data-testid="do-regenerate"
           onClick={() => {
-            reload({
+            regenerate({
               body: { 'request-body-key': 'request-body-value' },
               headers: { 'header-key': 'header-value' },
             });
@@ -1892,7 +1893,7 @@ describe('reload', () => {
     await screen.findByTestId('message-1');
 
     // setup done, click reload:
-    await userEvent.click(screen.getByTestId('do-reload'));
+    await userEvent.click(screen.getByTestId('do-regenerate'));
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {

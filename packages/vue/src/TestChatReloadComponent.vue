@@ -25,9 +25,9 @@ const chat = new Chat({
     <button data-testid="do-append" @click="chat.sendMessage({ text: 'hi' })" />
 
     <button
-      data-testid="do-reload"
+      data-testid="do-regenerate"
       @click="
-        chat.reload({
+        chat.regenerate({
           body: { 'request-body-key': 'request-body-value' },
           headers: { 'header-key': 'header-value' },
         })
