@@ -43,9 +43,7 @@ export class TextStreamChatTransport<
       throw new Error('The response body is empty.');
     }
 
-    return transformTextToUiMessageStream({
-      stream: response.body.pipeThrough(new TextDecoderStream()),
-    });
+    return this.processResponseStream(response.body);
   }
 
   async reconnectToStream(
@@ -88,8 +86,14 @@ export class TextStreamChatTransport<
       throw new Error('The response body is empty.');
     }
 
+    return this.processResponseStream(response.body);
+  }
+
+  protected processResponseStream(
+    stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
+  ): ReadableStream<UIMessageStreamPart> {
     return transformTextToUiMessageStream({
-      stream: response.body.pipeThrough(new TextDecoderStream()),
+      stream: stream.pipeThrough(new TextDecoderStream()),
     });
   }
 }

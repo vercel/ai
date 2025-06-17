@@ -46,22 +46,7 @@ export class DefaultChatTransport<
       throw new Error('The response body is empty.');
     }
 
-    return parseJsonEventStream({
-      stream: response.body,
-      schema: uiMessageStreamPartSchema,
-    }).pipeThrough(
-      new TransformStream<
-        ParseResult<UIMessageStreamPart>,
-        UIMessageStreamPart
-      >({
-        async transform(part, controller) {
-          if (!part.success) {
-            throw part.error;
-          }
-          controller.enqueue(part.value);
-        },
-      }),
-    );
+    return this.processResponseStream(response.body);
   }
 
   async reconnectToStream(
@@ -104,8 +89,14 @@ export class DefaultChatTransport<
       throw new Error('The response body is empty.');
     }
 
+    return this.processResponseStream(response.body);
+  }
+
+  protected processResponseStream(
+    stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
+  ): ReadableStream<UIMessageStreamPart> {
     return parseJsonEventStream({
-      stream: response.body,
+      stream,
       schema: uiMessageStreamPartSchema,
     }).pipeThrough(
       new TransformStream<

@@ -120,4 +120,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   abstract reconnectToStream(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
   ): Promise<ReadableStream<UIMessageStreamPart> | null>;
+
+  protected abstract processResponseStream(
+    stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
+  ): ReadableStream<UIMessageStreamPart>;
 }
