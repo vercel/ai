@@ -130,6 +130,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
         | 'tool-call-streaming-start'
         | 'tool-call-delta'
         | 'tool-result'
+        | 'server-tool-result'
         | 'raw';
     }
   >;
@@ -1136,6 +1137,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
+                    case 'server-tool-result': {
+                      stepContent.push(chunk);
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'tool-call-streaming-start': {
                       const tool = tools?.[chunk.toolName];
 
@@ -1578,6 +1585,15 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
+              });
+              break;
+            }
+
+            case 'server-tool-result': {
+              controller.enqueue({
+                type: 'tool-result',
+                toolCallId: part.toolCallId,
+                result: part.result,
               });
               break;
             }

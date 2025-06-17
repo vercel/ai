@@ -34,6 +34,17 @@ export function asContent<TOOLS extends ToolSet>({
             toolCall => toolCall.toolCallId === part.toolCallId,
           )!;
         }
+
+        case 'tool-result': {
+          return {
+            type: 'server-tool-result' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            result: part.result,
+            isError: part.isError,
+            providerMetadata: part.providerMetadata,
+          };
+        }
       }
     }),
     ...toolResults,

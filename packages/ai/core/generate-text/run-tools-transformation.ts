@@ -286,6 +286,18 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        case 'tool-result': {
+          controller.enqueue({
+            type: 'server-tool-result',
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            result: chunk.result,
+            isError: chunk.isError,
+            providerMetadata: chunk.providerMetadata,
+          });
+          break;
+        }
+
         default: {
           const _exhaustiveCheck: never = chunkType;
           throw new Error(`Unhandled chunk type: ${_exhaustiveCheck}`);

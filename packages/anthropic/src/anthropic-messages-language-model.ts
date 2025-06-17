@@ -529,7 +529,43 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 });
               }
             }
+            
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_search',
+              result: part.content.map(result => 
+                result.type === 'web_search_result' 
+                  ? {
+                      type: 'web_search_result',
+                      url: result.url,
+                      title: result.title,
+                      encrypted_content: result.encrypted_content,
+                      page_age: result.page_age,
+                    }
+                  : result
+              ),
+              providerMetadata: {
+                anthropic: {
+                  toolUseId: part.tool_use_id,
+                },
+              },
+            });
           } else if (part.content.type === 'web_search_tool_result_error') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_search',
+              result: null,
+              isError: true,
+              providerMetadata: {
+                anthropic: {
+                  toolUseId: part.tool_use_id,
+                  errorCode: part.content.error_code,
+                },
+              },
+            });
+            
             throw new APICallError({
               message: `Web search failed: ${part.content.error_code}`,
               url: 'web_search_api',
@@ -710,10 +746,46 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           });
                         }
                       }
+                      
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: value.content_block.tool_use_id,
+                        toolName: 'web_search',
+                        result: value.content_block.content.map(result => 
+                          result.type === 'web_search_result' 
+                            ? {
+                                type: 'web_search_result',
+                                url: result.url,
+                                title: result.title,
+                                encrypted_content: result.encrypted_content,
+                                page_age: result.page_age,
+                              }
+                            : result
+                        ),
+                        providerMetadata: {
+                          anthropic: {
+                            toolUseId: value.content_block.tool_use_id,
+                          },
+                        },
+                      });
                     } else if (
                       value.content_block.content.type ===
                       'web_search_tool_result_error'
                     ) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: value.content_block.tool_use_id,
+                        toolName: 'web_search',
+                        result: null,
+                        isError: true,
+                        providerMetadata: {
+                          anthropic: {
+                            toolUseId: value.content_block.tool_use_id,
+                            errorCode: value.content_block.content.error_code,
+                          },
+                        },
+                      });
+                      
                       controller.enqueue({
                         type: 'error',
                         error: {

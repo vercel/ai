@@ -17,4 +17,5 @@ export * from './language-model-v2-text';
 export * from './language-model-v2-tool-call';
 export * from './language-model-v2-tool-call-delta';
 export * from './language-model-v2-tool-choice';
+export * from './language-model-v2-tool-result';
 export * from './language-model-v2-usage';

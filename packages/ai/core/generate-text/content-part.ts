@@ -11,4 +11,14 @@ export type ContentPart<TOOLS extends ToolSet> =
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
-  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>);
+  | ({
+      type: 'tool-result';
+    } & ToolResultUnion<TOOLS>)
+  | {
+      type: 'server-tool-result';
+      toolCallId: string;
+      toolName: string;
+      result: unknown;
+      isError?: boolean;
+      providerMetadata?: ProviderMetadata;
+    };
