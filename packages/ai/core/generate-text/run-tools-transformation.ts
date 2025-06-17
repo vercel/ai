@@ -287,14 +287,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         case 'tool-result': {
-          controller.enqueue({
-            type: 'server-tool-result',
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName,
-            result: chunk.result,
-            isError: chunk.isError,
-            providerMetadata: chunk.providerMetadata,
-          });
+          // Server-side tool results are handled by providers (e.g., Anthropic web search)
+          // and converted to appropriate content parts. Skip them here.
           break;
         }
 

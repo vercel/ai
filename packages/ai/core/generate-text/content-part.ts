@@ -13,12 +13,4 @@ export type ContentPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
   | ({
       type: 'tool-result';
-    } & ToolResultUnion<TOOLS>)
-  | {
-      type: 'server-tool-result';
-      toolCallId: string;
-      toolName: string;
-      result: unknown;
-      isError?: boolean;
-      providerMetadata?: ProviderMetadata;
-    };
+    } & ToolResultUnion<TOOLS>);

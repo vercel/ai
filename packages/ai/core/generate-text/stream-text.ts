@@ -130,7 +130,6 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
         | 'tool-call-streaming-start'
         | 'tool-call-delta'
         | 'tool-result'
-        | 'server-tool-result'
         | 'raw';
     }
   >;
@@ -601,7 +600,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
-          part.type === 'server-tool-result' ||
           part.type === 'tool-call-streaming-start' ||
           part.type === 'tool-call-delta' ||
           part.type === 'raw'
@@ -659,9 +657,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
-        if (part.type === 'server-tool-result') {
-          recordedContent.push(part);
-        }
+
 
         if (part.type === 'start-step') {
           recordedRequest = part.request;
@@ -1142,11 +1138,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
-                    case 'server-tool-result': {
-                      stepContent.push(chunk);
-                      controller.enqueue(chunk);
-                      break;
-                    }
+
 
                     case 'tool-call-streaming-start': {
                       const tool = tools?.[chunk.toolName];
@@ -1590,15 +1582,6 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
-              });
-              break;
-            }
-
-            case 'server-tool-result': {
-              controller.enqueue({
-                type: 'tool-output-available',
-                toolCallId: part.toolCallId,
-                output: part.result,
               });
               break;
             }

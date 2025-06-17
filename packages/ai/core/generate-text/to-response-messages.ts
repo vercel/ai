@@ -23,9 +23,8 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   const content: AssistantContent = inputContent
     .filter(
       part =>
-        part.type !== 'tool-result' &&
-        part.type !== 'server-tool-result' &&
-        part.type !== 'source',
+        part.type !== 'source' &&
+        part.type !== 'tool-result',
     )
     .filter(part => part.type !== 'text' || part.text.length > 0)
     .map(part => {

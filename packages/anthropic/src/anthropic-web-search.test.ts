@@ -286,47 +286,7 @@ describe('Anthropic Web Search Server-Side Tool', () => {
       ],
     });
 
-    expect(result.content).toHaveLength(3);
-
-    // First should be the source content part (for citations)
-    expect(result.content[0]).toEqual({
-      type: 'source',
-      sourceType: 'url',
-      id: expect.any(String),
-      url: 'https://example.com/ai-news',
-      title: 'Latest AI Developments',
-      providerMetadata: {
-        anthropic: {
-          encryptedContent: 'encrypted_content_123',
-          pageAge: 'January 15, 2025',
-        },
-      },
-    });
-
-    expect(result.content[1]).toEqual({
-      type: 'tool-result',
-      toolCallId: 'tool_1',
-      toolName: 'web_search',
-      result: [
-        {
-          type: 'web_search_result',
-          url: 'https://example.com/ai-news',
-          title: 'Latest AI Developments',
-          encrypted_content: 'encrypted_content_123',
-          page_age: 'January 15, 2025',
-        },
-      ],
-      providerMetadata: {
-        anthropic: {
-          toolUseId: 'tool_1',
-        },
-      },
-    });
-
-    expect(result.content[2]).toEqual({
-      type: 'text',
-      text: 'Based on recent articles, AI continues to advance rapidly.',
-    });
+    expect(result.content).toMatchSnapshot();
   });
 
   it('should handle server-side web search errors with tool results', async () => {
