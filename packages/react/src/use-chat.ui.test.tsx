@@ -568,6 +568,7 @@ describe('prepareChatRequest', () => {
 
     expect(options).toMatchInlineSnapshot(`
       {
+        "api": "/api/chat",
         "body": {
           "body-key": "body-value",
           "request-body-key": "request-body-value",
@@ -593,6 +594,7 @@ describe('prepareChatRequest', () => {
         "requestMetadata": {
           "request-metadata-key": "request-metadata-value",
         },
+        "trigger": "submit-user-message",
       }
     `);
 

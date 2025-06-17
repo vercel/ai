@@ -8,7 +8,7 @@ const options = ref<any>();
 const chat = new Chat({
   transport: new DefaultChatTransport({
     api: '/api/chat',
-    prepareSubmitMessagesRequest(optionsArg) {
+    prepareSendMessagesRequest(optionsArg) {
       options.value = JSON.parse(JSON.stringify(optionsArg));
       return {
         body: { 'body-key': 'body-value' },

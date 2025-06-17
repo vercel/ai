@@ -53,6 +53,8 @@ describe('prepareSubmitMessagesRequest', () => {
 
     expect(value).toStrictEqual({
       id: expect.any(String),
+      api: '/api/chat',
+      trigger: 'submit-user-message',
       body: { 'request-body-key': 'request-body-value' },
       headers: { 'request-header-key': 'request-header-value' },
       requestMetadata: { 'request-metadata-key': 'request-metadata-value' },
