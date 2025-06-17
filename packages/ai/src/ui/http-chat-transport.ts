@@ -6,8 +6,8 @@ import { UIMessage } from './ui-messages';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export type PrepareSubmitMessagesRequest<UI_MESSAGE extends UIMessage> =
-  (options: {
+export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
+  options: {
     id: string;
     messages: UI_MESSAGE[];
     requestMetadata: unknown;
@@ -15,12 +15,15 @@ export type PrepareSubmitMessagesRequest<UI_MESSAGE extends UIMessage> =
     credentials: RequestCredentials | undefined;
     headers: HeadersInit | undefined;
     api: string;
-  }) => {
-    body: object;
-    headers?: HeadersInit;
-    credentials?: RequestCredentials;
-    api?: string;
-  };
+  } & {
+    trigger: 'submit-user-message' | 'submit-tool-result';
+  },
+) => {
+  body: object;
+  headers?: HeadersInit;
+  credentials?: RequestCredentials;
+  api?: string;
+};
 
 export type PrepareReconnectToStreamRequest = (options: {
   id: string;
@@ -79,7 +82,7 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    * @param messages The current messages in the chat.
    * @param requestBody The request body object passed in the chat request.
    */
-  prepareSubmitMessagesRequest?: PrepareSubmitMessagesRequest<UI_MESSAGE>;
+  prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
 
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };
@@ -92,7 +95,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   protected headers?: Record<string, string> | Headers;
   protected body?: object;
   protected fetch: FetchFunction;
-  protected prepareSubmitMessagesRequest?: PrepareSubmitMessagesRequest<UI_MESSAGE>;
+  protected prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
   protected prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 
   constructor({
@@ -101,7 +104,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     headers,
     body,
     fetch = getOriginalFetch(),
-    prepareSubmitMessagesRequest,
+    prepareSendMessagesRequest,
     prepareReconnectToStreamRequest,
   }: HttpChatTransportInitOptions<UI_MESSAGE>) {
     this.api = api;
@@ -109,15 +112,15 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     this.headers = headers;
     this.body = body;
     this.fetch = fetch;
-    this.prepareSubmitMessagesRequest = prepareSubmitMessagesRequest;
+    this.prepareSendMessagesRequest = prepareSendMessagesRequest;
     this.prepareReconnectToStreamRequest = prepareReconnectToStreamRequest;
   }
 
-  async submitMessages({
+  async sendMessages({
     abortSignal,
     ...options
-  }: Parameters<ChatTransport<UI_MESSAGE>['submitMessages']>[0]) {
-    const preparedRequest = this.prepareSubmitMessagesRequest?.({
+  }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]) {
+    const preparedRequest = this.prepareSendMessagesRequest?.({
       api: this.api,
       id: options.chatId,
       messages: options.messages,
@@ -125,6 +128,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
       headers: { ...this.headers, ...options.headers },
       credentials: this.credentials,
       requestMetadata: options.metadata,
+      trigger: options.trigger,
     });
 
     const api = preparedRequest?.api ?? this.api;

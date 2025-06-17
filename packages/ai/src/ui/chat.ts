@@ -288,7 +288,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       role: uiMessage.role ?? 'user',
     } as UI_MESSAGE);
 
-    await this.triggerRequest({ requestType: 'generate', ...options });
+    await this.makeRequest({
+      trigger: 'submit-user-message',
+      ...options,
+    });
   };
 
   /**
@@ -304,7 +307,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.state.popMessage();
     }
 
-    await this.triggerRequest({ requestType: 'generate', ...options });
+    await this.makeRequest({
+      trigger: 'submit-user-message',
+      ...options,
+    });
   };
 
   /**
@@ -313,7 +319,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   experimental_resume = async (
     options: ChatRequestOptions = {},
   ): Promise<void> => {
-    await this.triggerRequest({ requestType: 'resume', ...options });
+    await this.makeRequest({ trigger: 'resume-stream', ...options });
   };
 
   addToolResult = async ({
@@ -341,8 +347,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const lastMessage = this.lastMessage;
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
         // we do not await this call to avoid a deadlock in the serial job executor; triggerRequest also uses the job executor internally.
-        this.triggerRequest({
-          requestType: 'generate',
+        this.makeRequest({
+          trigger: 'submit-tool-result',
         });
       }
     });
@@ -359,13 +365,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
-  private async triggerRequest({
-    requestType,
+  private async makeRequest({
+    trigger,
     metadata,
     headers,
     body,
   }: {
-    requestType: 'generate' | 'resume';
+    trigger: 'submit-user-message' | 'resume-stream' | 'submit-tool-result';
   } & ChatRequestOptions) {
     this.setStatus({ status: 'submitted', error: undefined });
 
@@ -387,7 +393,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       let stream: ReadableStream<UIMessageStreamPart>;
 
-      if (requestType === 'resume') {
+      if (trigger === 'resume-stream') {
         const reconnect = await this.transport.reconnectToStream({
           chatId: this.id,
           metadata,
@@ -401,13 +407,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
         stream = reconnect;
       } else {
-        stream = await this.transport.submitMessages({
+        stream = await this.transport.sendMessages({
           chatId: this.id,
           messages: this.state.messages,
           abortSignal: activeResponse.abortController.signal,
           metadata,
           headers,
           body,
+          trigger,
         });
       }
 
@@ -484,8 +491,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         messages: this.state.messages,
       })
     ) {
-      await this.triggerRequest({
-        requestType,
+      await this.makeRequest({
+        trigger,
         metadata,
         headers,
         body,
