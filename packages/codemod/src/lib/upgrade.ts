@@ -57,6 +57,7 @@ const bundle = [
   'replace-token-usage-types',
   'replace-usage-token-properties',
   'replace-generatetext-text-property',
+  'replace-textdelta-with-text',
   'restructure-file-stream-parts',
   'restructure-source-stream-parts',
   'rewrite-framework-imports',
