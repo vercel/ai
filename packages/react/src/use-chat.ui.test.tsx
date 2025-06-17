@@ -15,7 +15,7 @@ import {
   UIMessage,
   UIMessageStreamPart,
 } from 'ai';
-import React, { act, useEffect, useRef, useState } from 'react';
+import React, { act, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 
