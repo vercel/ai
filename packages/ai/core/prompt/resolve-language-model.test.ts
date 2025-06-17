@@ -1,9 +1,6 @@
 import { customProvider } from '../registry/custom-provider';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import {
-  GLOBAL_DEFAULT_PROVIDER,
-  resolveLanguageModel,
-} from './resolve-language-model';
+import { resolveLanguageModel } from './resolve-language-model';
 
 describe('resolveLanguageModel', () => {
   describe('when a language model v2 is provided', () => {
@@ -31,7 +28,7 @@ describe('resolveLanguageModel', () => {
 
   describe('when a string is provided and the global default provider is set', () => {
     beforeEach(() => {
-      (globalThis as any)[GLOBAL_DEFAULT_PROVIDER] = customProvider({
+      globalThis.VERCEL_AI_GLOBAL_DEFAULT_PROVIDER = customProvider({
         languageModels: {
           'test-model-id': new MockLanguageModelV2({
             provider: 'global-test-provider',
@@ -42,7 +39,7 @@ describe('resolveLanguageModel', () => {
     });
 
     afterEach(() => {
-      delete (globalThis as any)[GLOBAL_DEFAULT_PROVIDER];
+      delete globalThis.VERCEL_AI_GLOBAL_DEFAULT_PROVIDER;
     });
 
     it('should return a language model from the global default provider', () => {

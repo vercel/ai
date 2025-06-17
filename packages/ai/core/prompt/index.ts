@@ -35,4 +35,3 @@ export type {
   UserModelMessage,
 } from './message';
 export type { Prompt } from './prompt';
-export { GLOBAL_DEFAULT_PROVIDER } from './resolve-language-model';
