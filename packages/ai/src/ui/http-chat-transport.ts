@@ -144,9 +144,57 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     return this.processResponseStream(response.body);
   }
 
-  abstract reconnectToStream(
+  private prepareReconnectToStreamRequest(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
-  ): Promise<ReadableStream<UIMessageStreamPart> | null>;
+  ) {
+    const preparedRequest = this.prepareRequest?.({
+      id: options.chatId,
+      messages: [], // TODO prepareRequest needs type
+      body: { ...this.body, ...options.body },
+      headers: { ...this.headers, ...options.headers },
+      credentials: this.credentials,
+      requestMetadata: options.metadata,
+    });
+
+    return {
+      api: `${this.api}/${options.chatId}/stream`,
+      headers:
+        preparedRequest?.headers !== undefined
+          ? preparedRequest.headers
+          : { ...this.headers, ...options.headers },
+      credentials: preparedRequest?.credentials ?? this.credentials,
+    };
+  }
+
+  async reconnectToStream(
+    options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
+  ): Promise<ReadableStream<UIMessageStreamPart> | null> {
+    const { api, headers, credentials } =
+      this.prepareReconnectToStreamRequest(options);
+
+    const response = await fetch(api, {
+      method: 'GET',
+      headers,
+      credentials,
+    });
+
+    // no active stream found, so we do not resume
+    if (response.status === 204) {
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        (await response.text()) ?? 'Failed to fetch the chat response.',
+      );
+    }
+
+    if (!response.body) {
+      throw new Error('The response body is empty.');
+    }
+
+    return this.processResponseStream(response.body);
+  }
 
   protected abstract processResponseStream(
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
