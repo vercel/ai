@@ -1,5 +1,15 @@
 # @ai-sdk/assemblyai
 
+## 1.0.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
 ## 1.0.0-alpha.13
 
 ### Patch Changes
