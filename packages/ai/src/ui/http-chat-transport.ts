@@ -149,6 +149,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
             ...options.body,
             id: options.chatId,
             messages: options.messages,
+            trigger: options.trigger,
+            messageId: options.messageId,
           };
     const credentials = preparedRequest?.credentials ?? this.credentials;
 

@@ -1,6 +1,12 @@
 import { MyUIMessage } from '@/util/chat-schema';
 
-export default function Message({ message }: { message: MyUIMessage }) {
+export default function Message({
+  message,
+  regenerate,
+}: {
+  message: MyUIMessage;
+  regenerate: ({ messageId }: { messageId: string }) => void;
+}) {
   const date = message.metadata?.createdAt
     ? new Date(message.metadata.createdAt).toLocaleString()
     : '';
@@ -18,6 +24,14 @@ export default function Message({ message }: { message: MyUIMessage }) {
           .map(part => (part.type === 'text' ? part.text : ''))
           .join('')}
       </div>
+      {message.role === 'assistant' && (
+        <button
+          onClick={() => regenerate({ messageId: message.id })}
+          className="px-3 py-1 mt-2 text-sm transition-colors bg-gray-200 rounded-md hover:bg-gray-300"
+        >
+          Regenerate
+        </button>
+      )}
     </div>
   );
 }
