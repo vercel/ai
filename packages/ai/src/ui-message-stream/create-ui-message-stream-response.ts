@@ -1,6 +1,6 @@
 import { prepareHeaders } from '../util/prepare-headers';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
-import { uiMessageStreamHeaders } from './ui-message-stream-headers';
+import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 
 export function createUIMessageStreamResponse({
@@ -18,7 +18,7 @@ export function createUIMessageStreamResponse({
     {
       status,
       statusText,
-      headers: prepareHeaders(headers, uiMessageStreamHeaders),
+      headers: prepareHeaders(headers, UI_MESSAGE_STREAM_HEADERS),
     },
   );
 }
