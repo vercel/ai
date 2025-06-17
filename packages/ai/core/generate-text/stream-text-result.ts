@@ -282,7 +282,7 @@ If an error occurs, it is passed to the optional `onError` callback.
      */
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
-    options?: ResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
+    options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): void;
 
   /**
@@ -306,7 +306,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   @return A response object.
      */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
-    options?: UIMessageStreamOptions<UI_MESSAGE> & UIMessageStreamResponseInit,
+    options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): Response;
 
   /**

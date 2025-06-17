@@ -1669,7 +1669,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendStart,
       onError,
       ...init
-    }: ResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
+    }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
     pipeUIMessageStreamToResponse({
       response,
