@@ -529,7 +529,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 });
               }
             }
-
           } else if (part.content.type === 'web_search_tool_result_error') {
             throw new APICallError({
               message: `Web search failed: ${part.content.error_code}`,
@@ -711,7 +710,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           });
                         }
                       }
-
                     } else if (
                       value.content_block.content.type ===
                       'web_search_tool_result_error'

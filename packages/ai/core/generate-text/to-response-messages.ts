@@ -21,11 +21,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
   const content: AssistantContent = inputContent
-    .filter(
-      part =>
-        part.type !== 'source' &&
-        part.type !== 'tool-result',
-    )
+    .filter(part => part.type !== 'source' && part.type !== 'tool-result')
     .filter(part => part.type !== 'text' || part.text.length > 0)
     .map(part => {
       switch (part.type) {

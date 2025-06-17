@@ -657,8 +657,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
-
-
         if (part.type === 'start-step') {
           recordedRequest = part.request;
           recordedWarnings = part.warnings;
@@ -1137,8 +1135,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       controller.enqueue(chunk);
                       break;
                     }
-
-
 
                     case 'tool-call-streaming-start': {
                       const tool = tools?.[chunk.toolName];
