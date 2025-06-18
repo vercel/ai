@@ -1,8 +1,8 @@
-import { ZodSchema } from 'zod';
 import {
-  createEventSourceParserStream,
-  EventSourceChunk,
-} from './event-source-parser-stream';
+  EventSourceMessage,
+  EventSourceParserStream,
+} from 'eventsource-parser/stream';
+import { ZodSchema } from 'zod';
 import { ParseResult, safeParseJSON } from './parse-json';
 
 /**
@@ -17,9 +17,9 @@ export function parseJsonEventStream<T>({
 }): ReadableStream<ParseResult<T>> {
   return stream
     .pipeThrough(new TextDecoderStream())
-    .pipeThrough(createEventSourceParserStream())
+    .pipeThrough(new EventSourceParserStream())
     .pipeThrough(
-      new TransformStream<EventSourceChunk, ParseResult<T>>({
+      new TransformStream<EventSourceMessage, ParseResult<T>>({
         async transform({ data }, controller) {
           // ignore the 'DONE' event that e.g. OpenAI sends:
           if (data === '[DONE]') {
