@@ -63,7 +63,7 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'quux',
             toolName: 'thwomp',
-            output: { oof: '321rab' },
+            output: { type: 'json', value: { oof: '321rab' } },
           },
         ],
       },

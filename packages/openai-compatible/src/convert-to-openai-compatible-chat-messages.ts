@@ -114,11 +114,29 @@ export function convertToOpenAICompatibleChatMessages(
 
       case 'tool': {
         for (const toolResponse of content) {
+          const output = toolResponse.output;
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+              contentValue = output.value;
+              break;
+            case 'content':
+              contentValue = JSON.stringify(output.value);
+              break;
+            case 'error':
+              contentValue = output.value;
+              break;
+            case 'json':
+            default:
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           const toolResponseMetadata = getOpenAIMetadata(toolResponse);
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.output),
+            content: contentValue,
             ...toolResponseMetadata,
           });
         }

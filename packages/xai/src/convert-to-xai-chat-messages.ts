@@ -101,10 +101,28 @@ export function convertToXaiChatMessages(prompt: LanguageModelV2Prompt): {
 
       case 'tool': {
         for (const toolResponse of content) {
+          const output = toolResponse.output;
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+              contentValue = output.value;
+              break;
+            case 'content':
+              contentValue = JSON.stringify(output.value);
+              break;
+            case 'error':
+              contentValue = output.value;
+              break;
+            case 'json':
+            default:
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.output),
+            content: contentValue,
           });
         }
         break;

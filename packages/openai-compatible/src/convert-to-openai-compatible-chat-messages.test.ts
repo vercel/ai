@@ -90,7 +90,7 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'quux',
             toolName: 'thwomp',
-            output: { oof: '321rab' },
+            output: { type: 'json', value: { oof: '321rab' } },
           },
         ],
       },
@@ -435,7 +435,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-result',
             toolCallId: 'call123',
             toolName: 'calculator',
-            output: { stepOne: 'data chunk 1' },
+            output: { type: 'json', value: { stepOne: 'data chunk 1' } },
           },
           {
             type: 'tool-result',
@@ -444,7 +444,7 @@ describe('provider-specific metadata merging', () => {
             providerOptions: {
               openaiCompatible: { partial: true },
             },
-            output: { stepTwo: 'data chunk 2' },
+            output: { type: 'json', value: { stepTwo: 'data chunk 2' } },
           },
         ],
       },

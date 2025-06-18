@@ -555,8 +555,7 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'calculator',
-            output: { value: 42 },
-            content: [{ type: 'text', text: 'The result is 42' }],
+            output: { type: 'content', value: [{ type: 'text', text: 'The result is 42' }] },
           },
         ],
       },
@@ -584,14 +583,16 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'image-generator',
-            output: undefined,
-            content: [
-              {
-                type: 'image',
-                data: 'base64data',
-                mediaType: 'image/jpeg',
-              },
-            ],
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'image',
+                  data: 'base64data',
+                  mediaType: 'image/jpeg',
+                },
+              ],
+            },
           },
         ],
       },
@@ -627,14 +628,16 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolCallId: 'call-123',
               toolName: 'image-generator',
-              output: undefined,
-              content: [
-                {
-                  type: 'image',
-                  data: 'base64data',
-                  mediaType: 'image/webp', // unsupported format
-                },
-              ],
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'image',
+                    data: 'base64data',
+                    mediaType: 'image/webp', // unsupported format
+                  },
+                ],
+              },
             },
           ],
         },
@@ -652,14 +655,16 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolCallId: 'call-123',
               toolName: 'image-generator',
-              output: undefined,
-              content: [
-                {
-                  type: 'image',
-                  data: 'base64data',
-                  // missing mediaType
-                },
-              ],
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'image',
+                    data: 'base64data',
+                    // missing mediaType
+                  } as any,
+                ],
+              },
             },
           ],
         },
@@ -678,7 +683,7 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'calculator',
-            output: { value: 42 },
+            output: { type: 'json', value: { value: 42 } },
           },
         ],
       },
