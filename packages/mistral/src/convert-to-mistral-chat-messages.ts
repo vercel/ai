@@ -99,40 +99,30 @@ export function convertToMistralChatMessages(
       }
       case 'tool': {
         for (const toolResponse of content) {
-          let contentString: string;
+          const output = toolResponse.output;
+          let contentValue: string;
           
-          switch (toolResponse.output.type) {
+          switch (output.type) {
             case 'text':
-              contentString = toolResponse.output.value;
-              break;
-            case 'json':
-              contentString = JSON.stringify(toolResponse.output.value);
+              contentValue = output.value;
               break;
             case 'content':
-              contentString = toolResponse.output.value
-                .map(part => {
-                  if (part.type === 'text') {
-                    return part.text;
-                  } else if (part.type === 'image') {
-                    return `[Image: ${part.mediaType || 'image'}]`;
-                  }
-                  return '';
-                })
-                .join('');
+              contentValue = JSON.stringify(output.value);
               break;
             case 'error':
-              contentString = `Error: ${toolResponse.output.value}`;
+              contentValue = output.value;
               break;
+            case 'json':
             default:
-              contentString = JSON.stringify(toolResponse.output);
+              contentValue = JSON.stringify(output.value);
               break;
           }
 
           messages.push({
             role: 'tool',
             name: toolResponse.toolName,
-            content: contentString,
             tool_call_id: toolResponse.toolCallId,
+            content: contentValue,
           });
         }
         break;

@@ -258,35 +258,29 @@ export async function convertToAnthropicMessagesPrompt({
                     ? getCacheControl(message.providerOptions)
                     : undefined);
 
-                const toolResultContent =
-                  part.content != null
-                    ? part.content.map(part => {
-                        switch (part.type) {
-                          case 'text':
-                            return {
-                              type: 'text' as const,
-                              text: part.text,
-                              cache_control: undefined,
-                            };
-                          case 'image':
-                            return {
-                              type: 'image' as const,
-                              source: {
-                                type: 'base64' as const,
-                                media_type: part.mediaType ?? 'image/jpeg',
-                                data: part.data,
-                              },
-                              cache_control: undefined,
-                            };
-                        }
-                      })
-                    : JSON.stringify(part.output);
+                const output = part.output;
+                let contentValue: string;
+                switch (output.type) {
+                  case 'text':
+                    contentValue = output.value;
+                    break;
+                  case 'content':
+                    contentValue = JSON.stringify(output.value);
+                    break;
+                  case 'error':
+                    contentValue = output.value;
+                    break;
+                  case 'json':
+                  default:
+                    contentValue = JSON.stringify(output.value);
+                    break;
+                }
 
                 anthropicContent.push({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
-                  content: toolResultContent,
-                  is_error: part.isError,
+                  content: contentValue,
+                  is_error: output.type === 'error',
                   cache_control: cacheControl,
                 });
               }

@@ -152,9 +152,9 @@ describe('tool calls', () => {
         content: [
           {
             type: 'tool-call',
-            input: { action: 'generate' },
+            input: { query: 'generate image' },
             toolCallId: 'tool-call-id-3',
-            toolName: 'content-tool',
+            toolName: 'image-tool',
           },
         ],
       },
@@ -164,13 +164,12 @@ describe('tool calls', () => {
           {
             type: 'tool-result',
             toolCallId: 'tool-call-id-3',
-            toolName: 'content-tool',
+            toolName: 'image-tool',
             output: { 
               type: 'content', 
               value: [
-                { type: 'text', text: 'Here is the result: ' },
-                { type: 'image', data: 'base64data', mediaType: 'image/png' },
-                { type: 'text', text: ' and some more text.' }
+                { type: 'text', text: 'Here is the result:' },
+                { type: 'image', data: 'base64data', mediaType: 'image/png' }
               ]
             },
           },
@@ -187,8 +186,8 @@ describe('tool calls', () => {
           "tool_calls": [
             {
               "function": {
-                "arguments": "{"action":"generate"}",
-                "name": "content-tool",
+                "arguments": "{"query":"generate image"}",
+                "name": "image-tool",
               },
               "id": "tool-call-id-3",
               "type": "function",
@@ -196,8 +195,8 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "Here is the result: [Image: image/png] and some more text.",
-          "name": "content-tool",
+          "content": "[{"type":"text","text":"Here is the result:"},{"type":"image","data":"base64data","mediaType":"image/png"}]",
+          "name": "image-tool",
           "role": "tool",
           "tool_call_id": "tool-call-id-3",
         },
@@ -212,7 +211,7 @@ describe('tool calls', () => {
         content: [
           {
             type: 'tool-call',
-            input: { invalid: 'input' },
+            input: { query: 'test' },
             toolCallId: 'tool-call-id-4',
             toolName: 'error-tool',
           },
@@ -240,7 +239,7 @@ describe('tool calls', () => {
           "tool_calls": [
             {
               "function": {
-                "arguments": "{"invalid":"input"}",
+                "arguments": "{"query":"test"}",
                 "name": "error-tool",
               },
               "id": "tool-call-id-4",
@@ -249,7 +248,7 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "Error: Invalid input provided",
+          "content": "Invalid input provided",
           "name": "error-tool",
           "role": "tool",
           "tool_call_id": "tool-call-id-4",
