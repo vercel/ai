@@ -42,7 +42,7 @@ The tool can also contain an optional execute function for the actual execution 
  */
 export type Tool<
   INPUT extends JSONValue | unknown | never = any,
-  OUTPUT = any,
+  OUTPUT extends JSONValue | unknown | never = any,
 > = {
   /**
 An optional description of what the tool does.
@@ -160,10 +160,3 @@ export function tool(tool: Tool<never, never>): Tool<never, never>;
 export function tool(tool: any): any {
   return tool;
 }
-
-export type MappedTool<T extends Tool | JSONObject, OUTPUT extends any> =
-  T extends Tool<infer INPUT>
-    ? Tool<INPUT, OUTPUT>
-    : T extends JSONObject
-      ? Tool<T, OUTPUT>
-      : never;
