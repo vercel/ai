@@ -41,8 +41,8 @@ This enables the language model to generate the input.
 The tool can also contain an optional execute function for the actual execution function of the tool.
  */
 export type Tool<
-  INPUT extends JSONValue | unknown | never = any,
-  OUTPUT = any,
+  INPUT extends JSONValue | unknown | never = JSONValue,
+  OUTPUT extends JSONValue = JSONValue,
 > = {
   /**
 An optional description of what the tool does.
@@ -79,7 +79,43 @@ If not provided, the tool will not be executed automatically.
       /**
   Optional conversion function that maps the tool result to multi-part tool content for LLMs.
       */
-      experimental_toToolResultContent?: (output: OUTPUT) => ToolResultContent;
+      toOutputForModel?: (output: OUTPUT) =>
+        | {
+            type: 'string';
+            value: string;
+          }
+        | {
+            type: 'json';
+            value: JSONObject;
+          }
+        | {
+            type: 'content';
+            value: Array<
+              | {
+                  type: 'text';
+
+                  /**
+        Text content.
+                 */
+                  text: string;
+                }
+              | {
+                  type: 'image';
+
+                  /**
+        base-64 encoded image data
+                 */
+                  data: string;
+
+                  /**
+        IANA media type of the image.
+
+        @see https://www.iana.org/assignments/media-types/media-types.xhtml
+                 */
+                  mediaType?: string;
+                }
+            >;
+          };
 
       /**
        * Optional function that is called when the argument streaming starts.

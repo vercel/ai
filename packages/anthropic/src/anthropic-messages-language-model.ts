@@ -32,8 +32,6 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { AnthropicTool } from './anthropic-api-types';
-import { LanguageModelV2ProviderDefinedServerTool } from '@ai-sdk/provider';
 
 const citationSchemas = {
   webSearchResult: z.object({
