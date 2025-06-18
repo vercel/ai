@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-alpha.15
+
+### Patch Changes
+
+- 8ba77a7: chore (provider-utils): use eventsource-parser library
+- Updated dependencies [48d257a]
+  - @ai-sdk/provider@2.0.0-alpha.15
+
 ## 3.0.0-alpha.14
 
 ### Patch Changes
