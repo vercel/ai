@@ -4,10 +4,6 @@ import {
   ProviderOptions,
 } from '../types/provider-metadata';
 import { DataContent, dataContentSchema } from './data-content';
-import {
-  ToolResultContent,
-  toolResultContentSchema,
-} from './tool-result-content';
 
 /**
 Text content part of a prompt. It contains a string of text.
@@ -231,7 +227,6 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   toolCallId: z.string(),
   toolName: z.string(),
   output: z.unknown(),
-  content: toolResultContentSchema.optional(),
   isError: z.boolean().optional(),
   providerOptions: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type

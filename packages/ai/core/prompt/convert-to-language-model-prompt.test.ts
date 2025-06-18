@@ -1,7 +1,10 @@
+import { z } from 'zod';
+import { tool } from '../tool/tool';
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
 } from './convert-to-language-model-prompt';
+import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
 
 describe('convertToLanguageModelPrompt', () => {
   describe('user message', () => {
@@ -1150,14 +1153,20 @@ describe('convertToLanguageModelMessage', () => {
               toolName: 'toolName',
               toolCallId: 'toolCallId',
               output: { some: 'result' },
-              experimental_content: [
-                { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
-              ],
             },
           ],
         },
         downloadedAssets: {},
-        tools: {},
+        tools: {
+          toolName: tool({
+            toModelOutput: () => ({
+              type: 'content',
+              value: [
+                { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
+              ],
+            }),
+          }),
+        },
       });
 
       expect(result).toEqual({
@@ -1165,12 +1174,14 @@ describe('convertToLanguageModelMessage', () => {
         content: [
           {
             type: 'tool-result',
-            output: { some: 'result' },
+            output: {
+              type: 'content',
+              content: [
+                { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
+              ],
+            },
             toolCallId: 'toolCallId',
             toolName: 'toolName',
-            content: [
-              { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
-            ],
           },
         ],
       });
