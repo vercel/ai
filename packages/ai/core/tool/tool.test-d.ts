@@ -33,7 +33,10 @@ describe('tool helper', () => {
 
     expectTypeOf(toolType).toEqualTypeOf<Tool<never, 'test'>>();
     expectTypeOf(toolType.execute).toMatchTypeOf<
-      (args: undefined, options: ToolCallOptions) => PromiseLike<'test'>
+      (
+        input: undefined,
+        options: ToolCallOptions,
+      ) => PromiseLike<'test'> | 'test'
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<undefined>();
@@ -52,9 +55,9 @@ describe('tool helper', () => {
     expectTypeOf(toolType).toEqualTypeOf<Tool<{ number: number }, 'test'>>();
     expectTypeOf(toolType.execute).toMatchTypeOf<
       (
-        args: { number: number },
+        input: { number: number },
         options: ToolCallOptions,
-      ) => PromiseLike<'test'>
+      ) => PromiseLike<'test'> | 'test'
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<
