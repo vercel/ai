@@ -241,11 +241,11 @@ describe('toResponseMessages', () => {
       tools: {
         testTool: tool({
           description: 'A test tool',
-          inputSchema: z.object({}),
-          execute: async () => 'image-base64',
-          experimental_toToolResultContent(result) {
-            return [{ type: 'image', data: result, mediaType: 'image/png' }];
-          },
+          execute: () => 'image-base64',
+          toModelOutput: result => ({
+            type: 'content',
+            value: [{ type: 'image', data: result, mediaType: 'image/png' }],
+          }),
         }),
       },
     });

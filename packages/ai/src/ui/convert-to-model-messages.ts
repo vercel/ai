@@ -135,21 +135,17 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                   const { toolCallId, output } = toolPart;
 
                   const tool = tools[toolName];
-                  return tool?.experimental_toToolResultContent != null
-                    ? {
-                        type: 'tool-result',
-                        toolCallId,
-                        toolName,
-                        output: tool.experimental_toToolResultContent(output),
-                        experimental_content:
-                          tool.experimental_toToolResultContent(output),
-                      }
-                    : {
-                        type: 'tool-result',
-                        toolCallId,
-                        toolName,
-                        output,
-                      };
+
+                  // TODO handle error case
+                  return {
+                    type: 'tool-result',
+                    toolCallId,
+                    toolName,
+                    output:
+                      tool.toModelOutput != null
+                        ? tool.toModelOutput(output)
+                        : { type: 'json', value: output },
+                  };
                 }),
               });
             }

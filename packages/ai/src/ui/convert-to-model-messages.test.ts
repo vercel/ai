@@ -187,11 +187,11 @@ describe('convertToModelMessages', () => {
     it('should handle assistant message with tool invocations that have multi-part responses', () => {
       const tools = {
         screenshot: tool({
-          inputSchema: z.object({}),
           execute: async () => 'imgbase64',
-          experimental_toToolResultContent: result => [
-            { type: 'image', data: result },
-          ],
+          toModelOutput: result => ({
+            type: 'content',
+            value: [{ type: 'image', data: result }],
+          }),
         }),
       };
 

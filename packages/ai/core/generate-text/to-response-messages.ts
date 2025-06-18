@@ -55,22 +55,17 @@ export function toResponseMessages<TOOLS extends ToolSet>({
     .filter(part => part.type === 'tool-result')
     .map((toolResult): ToolResultPart => {
       const tool = tools[toolResult.toolName];
-      return tool?.experimental_toToolResultContent != null
-        ? {
-            type: 'tool-result',
-            toolCallId: toolResult.toolCallId,
-            toolName: toolResult.toolName,
-            output: tool.experimental_toToolResultContent(toolResult.output),
-            experimental_content: tool.experimental_toToolResultContent(
-              toolResult.output,
-            ),
-          }
-        : {
-            type: 'tool-result',
-            toolCallId: toolResult.toolCallId,
-            toolName: toolResult.toolName,
-            output: toolResult.output,
-          };
+
+      // TODO handle error case
+      return {
+        type: 'tool-result',
+        toolCallId: toolResult.toolCallId,
+        toolName: toolResult.toolName,
+        output:
+          tool?.toModelOutput != null
+            ? tool.toModelOutput(toolResult.output)
+            : { type: 'json', value: toolResult.output },
+      };
     });
 
   if (toolResultContent.length > 0) {

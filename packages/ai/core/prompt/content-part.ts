@@ -211,11 +211,6 @@ Result of the tool call. This is a JSON-serializable object.
   output: unknown;
 
   /**
-Multi-part content of the tool result. Only for tools that support multipart results.
-   */
-  experimental_content?: ToolResultContent;
-
-  /**
 Optional flag if the result is an error or an error message.
    */
   isError?: boolean;

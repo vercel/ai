@@ -1,8 +1,10 @@
 import {
+  JSONObject,
   LanguageModelV2FilePart,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
+  LanguageModelV2ToolResultPart,
 } from '@ai-sdk/provider';
 import { isUrlSupported } from '@ai-sdk/provider-utils';
 import {
@@ -10,6 +12,7 @@ import {
   imageMediaTypeSignatures,
 } from '../../src/util/detect-media-type';
 import { download } from '../../src/util/download';
+import { ToolSet } from '../generate-text/tool-set';
 import { ModelMessage } from '../prompt/message';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import {
@@ -19,14 +22,18 @@ import {
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
 
-export async function convertToLanguageModelPrompt({
+export async function convertToLanguageModelPrompt<
+  TOOLS extends ToolSet = never,
+>({
   prompt,
   supportedUrls,
   downloadImplementation = download,
+  tools,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   downloadImplementation?: typeof download;
+  tools: TOOLS;
 }): Promise<LanguageModelV2Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
@@ -39,7 +46,11 @@ export async function convertToLanguageModelPrompt({
       ? [{ role: 'system' as const, content: prompt.system }]
       : []),
     ...prompt.messages.map(message =>
-      convertToLanguageModelMessage(message, downloadedAssets),
+      convertToLanguageModelMessage({
+        message,
+        downloadedAssets,
+        tools,
+      }),
     ),
   ];
 }
@@ -51,13 +62,18 @@ export async function convertToLanguageModelPrompt({
  * @param downloadedAssets A map of URLs to their downloaded data. Only
  *   available if the model does not support URLs, null otherwise.
  */
-export function convertToLanguageModelMessage(
-  message: ModelMessage,
+export function convertToLanguageModelMessage<TOOLS extends ToolSet = never>({
+  message,
+  downloadedAssets,
+  tools,
+}: {
+  message: ModelMessage;
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
-  >,
-): LanguageModelV2Message {
+  >;
+  tools: TOOLS;
+}): LanguageModelV2Message {
   const role = message.role;
   switch (role) {
     case 'system': {
@@ -151,15 +167,20 @@ export function convertToLanguageModelMessage(
     case 'tool': {
       return {
         role: 'tool',
-        content: message.content.map(part => ({
-          type: 'tool-result',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output: part.output,
-          content: part.experimental_content,
-          isError: part.isError,
-          providerOptions: part.providerOptions,
-        })),
+        content: message.content.map(part => {
+          const tool = tools[part.toolName];
+          // TODO handle error case
+          return {
+            type: 'tool-result' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output:
+              tool?.toModelOutput != null
+                ? tool.toModelOutput(part.output)
+                : { type: 'json', value: part.output as JSONObject },
+            providerOptions: part.providerOptions,
+          } satisfies LanguageModelV2ToolResultPart;
+        }),
         providerOptions: message.providerOptions,
       };
     }

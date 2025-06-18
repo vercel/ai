@@ -1,9 +1,12 @@
-import { JSONObject, JSONValue } from '@ai-sdk/provider';
+import {
+  JSONObject,
+  JSONValue,
+  LanguageModelV2ToolResultPart,
+} from '@ai-sdk/provider';
 import { Schema } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4/core';
 import { ModelMessage } from '../prompt/message';
-import { ToolResultContent } from '../prompt/tool-result-content';
 
 export type ToolInputSchema<T = JSONObject> =
   | z4.$ZodType<T>
@@ -74,12 +77,16 @@ If not provided, the tool will not be executed automatically.
       execute: (
         input: [INPUT] extends [never] ? undefined : INPUT,
         options: ToolCallOptions,
-      ) => PromiseLike<OUTPUT>;
+      ) => PromiseLike<OUTPUT> | OUTPUT;
 
       /**
-  Optional conversion function that maps the tool result to multi-part tool content for LLMs.
+Optional conversion function that maps the tool result to an output that can be used by the language model.
+
+If not provided, the tool result will be sent as a JSON object.
       */
-      experimental_toToolResultContent?: (output: OUTPUT) => ToolResultContent;
+      toModelOutput?: (
+        output: OUTPUT,
+      ) => LanguageModelV2ToolResultPart['output'];
 
       /**
        * Optional function that is called when the argument streaming starts.
