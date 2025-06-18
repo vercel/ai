@@ -8,7 +8,7 @@ import { jsonSchema } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { stepCountIs, Output } from '.';
+import { Output, stepCountIs } from '.';
 import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
@@ -701,9 +701,10 @@ describe('options.stopWhen', () => {
                         type: 'tool-result',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        output: 'result1',
-                        content: undefined,
-                        isError: undefined,
+                        output: {
+                          type: 'json',
+                          value: 'result1',
+                        },
                         providerOptions: undefined,
                       },
                     ],
@@ -907,9 +908,10 @@ describe('options.stopWhen', () => {
                       type: 'tool-result',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
-                      output: 'result1',
-                      content: undefined,
-                      isError: undefined,
+                      output: {
+                        type: 'json',
+                        value: 'result1',
+                      },
                       providerOptions: undefined,
                     },
                   ],

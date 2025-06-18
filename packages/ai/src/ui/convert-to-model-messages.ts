@@ -1,4 +1,3 @@
-import { ToolSet } from '../../core/generate-text/tool-set';
 import { ToolResultPart } from '../../core/prompt/content-part';
 import { AssistantContent, ModelMessage } from '../../core/prompt/message';
 import { MessageConversionError } from '../../core/prompt/message-conversion-error';
@@ -17,11 +16,9 @@ import {
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
-export function convertToModelMessages<TOOLS extends ToolSet = never>(
+export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
-  options?: { tools?: TOOLS },
 ): ModelMessage[] {
-  const tools = options?.tools ?? ({} as TOOLS);
   const modelMessages: ModelMessage[] = [];
 
   for (const message of messages) {
@@ -134,17 +131,12 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                   const toolName = getToolName(toolPart);
                   const { toolCallId, output } = toolPart;
 
-                  const tool = tools[toolName];
-
                   // TODO handle error case
                   return {
                     type: 'tool-result',
                     toolCallId,
                     toolName,
-                    output:
-                      tool.toModelOutput != null
-                        ? tool.toModelOutput(output)
-                        : { type: 'json', value: output },
+                    output,
                   };
                 }),
               });

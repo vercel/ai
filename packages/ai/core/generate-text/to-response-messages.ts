@@ -13,10 +13,8 @@ Converts the result of a `generateText` or `streamText` call to a list of respon
  */
 export function toResponseMessages<TOOLS extends ToolSet>({
   content: inputContent,
-  tools,
 }: {
   content: Array<ContentPart<TOOLS>>;
-  tools: TOOLS;
 }): Array<AssistantModelMessage | ToolModelMessage> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
@@ -54,17 +52,12 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   const toolResultContent: ToolContent = inputContent
     .filter(part => part.type === 'tool-result')
     .map((toolResult): ToolResultPart => {
-      const tool = tools[toolResult.toolName];
-
       // TODO handle error case
       return {
         type: 'tool-result',
         toolCallId: toolResult.toolCallId,
         toolName: toolResult.toolName,
-        output:
-          tool?.toModelOutput != null
-            ? tool.toModelOutput(toolResult.output)
-            : { type: 'json', value: toolResult.output },
+        output: toolResult.output,
       };
     });
 

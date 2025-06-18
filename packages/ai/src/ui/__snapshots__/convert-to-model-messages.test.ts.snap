@@ -57,18 +57,7 @@ exports[`convertToModelMessages > assistant message > should handle assistant me
   {
     "content": [
       {
-        "experimental_content": [
-          {
-            "data": "imgbase64",
-            "type": "image",
-          },
-        ],
-        "output": [
-          {
-            "data": "imgbase64",
-            "type": "image",
-          },
-        ],
+        "output": "imgbase64",
         "toolCallId": "call1",
         "toolName": "screenshot",
         "type": "tool-result",

@@ -1,5 +1,3 @@
-import { z } from 'zod';
-import { tool } from '../tool';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
 
@@ -12,12 +10,6 @@ describe('toResponseMessages', () => {
           text: 'Hello, world!',
         },
       ],
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          inputSchema: z.object({}),
-        },
-      },
     });
 
     expect(result).toEqual([
@@ -42,12 +34,6 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
-      tools: {
-        testTool: tool({
-          description: 'A test tool',
-          inputSchema: z.object({}),
-        }),
-      },
     });
 
     expect(result).toEqual([
@@ -87,40 +73,38 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
-      tools: {
-        testTool: tool({
-          description: 'A test tool',
-          inputSchema: z.object({}),
-          execute: async () => 'Tool result',
-        }),
-      },
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          { type: 'text', text: 'Tool used' },
-          {
-            type: 'tool-call',
-            toolCallId: '123',
-            toolName: 'testTool',
-            input: {},
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: '123',
-            toolName: 'testTool',
-            output: 'Tool result',
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Tool used",
+              "type": "text",
+            },
+            {
+              "input": {},
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": "Tool result",
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 
   it('should handle undefined text', () => {
@@ -136,7 +120,6 @@ describe('toResponseMessages', () => {
           },
         },
       ],
-      tools: {},
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -181,7 +164,6 @@ describe('toResponseMessages', () => {
           text: 'Final text',
         },
       ],
-      tools: {},
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -238,16 +220,6 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
-      tools: {
-        testTool: tool({
-          description: 'A test tool',
-          execute: () => 'image-base64',
-          toModelOutput: result => ({
-            type: 'content',
-            value: [{ type: 'image', data: result, mediaType: 'image/png' }],
-          }),
-        }),
-      },
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -270,20 +242,7 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
-              "experimental_content": [
-                {
-                  "data": "image-base64",
-                  "mediaType": "image/png",
-                  "type": "image",
-                },
-              ],
-              "output": [
-                {
-                  "data": "image-base64",
-                  "mediaType": "image/png",
-                  "type": "image",
-                },
-              ],
+              "output": "image-base64",
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-result",
@@ -309,7 +268,6 @@ describe('toResponseMessages', () => {
         },
         { type: 'file', file: pngFile },
       ],
-      tools: {},
     });
 
     expect(result).toStrictEqual([
@@ -342,7 +300,6 @@ describe('toResponseMessages', () => {
         { type: 'file', file: pngFile },
         { type: 'file', file: jpegFile },
       ],
-      tools: {},
     });
 
     expect(result).toStrictEqual([
@@ -375,7 +332,6 @@ describe('toResponseMessages', () => {
         },
         { type: 'file', file: pngFile },
       ],
-      tools: {},
     });
 
     expect(result).toStrictEqual([
@@ -414,12 +370,6 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
-      tools: {
-        testTool: tool({
-          description: 'A test tool',
-          inputSchema: z.object({}),
-        }),
-      },
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -471,12 +421,6 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
-      tools: {
-        testTool: tool({
-          description: 'A test tool',
-          inputSchema: z.object({}),
-        }),
-      },
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -499,7 +443,6 @@ describe('toResponseMessages', () => {
   it('should not append assistant message if there is no content', () => {
     const result = toResponseMessages({
       content: [],
-      tools: {},
     });
 
     expect(result).toEqual([]);

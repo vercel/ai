@@ -1,10 +1,8 @@
-import { z } from 'zod';
 import { tool } from '../tool/tool';
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
 } from './convert-to-language-model-prompt';
-import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
 
 describe('convertToLanguageModelPrompt', () => {
   describe('user message', () => {
@@ -1056,17 +1054,26 @@ describe('convertToLanguageModelMessage', () => {
         tools: {},
       });
 
-      expect(result).toEqual({
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            output: { some: 'result' },
-            toolCallId: 'toolCallId',
-            toolName: 'toolName',
-          },
-        ],
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "json",
+                "value": {
+                  "some": "result",
+                },
+              },
+              "providerOptions": undefined,
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
     });
 
     it('should convert tool result with provider metadata', () => {
@@ -1092,23 +1099,31 @@ describe('convertToLanguageModelMessage', () => {
         tools: {},
       });
 
-      expect(result).toEqual({
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            output: { some: 'result' },
-            toolCallId: 'toolCallId',
-            toolName: 'toolName',
-            providerOptions: {
-              'test-provider': {
-                'key-a': 'test-value-1',
-                'key-b': 'test-value-2',
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "json",
+                "value": {
+                  "some": "result",
+                },
               },
+              "providerOptions": {
+                "test-provider": {
+                  "key-a": "test-value-1",
+                  "key-b": "test-value-2",
+                },
+              },
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
             },
-          },
-        ],
-      });
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
     });
 
     it('should include error flag', () => {
@@ -1129,18 +1144,26 @@ describe('convertToLanguageModelMessage', () => {
         tools: {},
       });
 
-      expect(result).toEqual({
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            output: { some: 'result' },
-            toolCallId: 'toolCallId',
-            toolName: 'toolName',
-            isError: true,
-          },
-        ],
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "json",
+                "value": {
+                  "some": "result",
+                },
+              },
+              "providerOptions": undefined,
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
     });
 
     it('should include multipart content', () => {
@@ -1169,22 +1192,30 @@ describe('convertToLanguageModelMessage', () => {
         },
       });
 
-      expect(result).toEqual({
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            output: {
-              type: 'content',
-              content: [
-                { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
-              ],
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "content",
+                "value": [
+                  {
+                    "data": "dGVzdA==",
+                    "mediaType": "image/png",
+                    "type": "image",
+                  },
+                ],
+              },
+              "providerOptions": undefined,
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
             },
-            toolCallId: 'toolCallId',
-            toolName: 'toolName',
-          },
-        ],
-      });
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
     });
   });
 });
