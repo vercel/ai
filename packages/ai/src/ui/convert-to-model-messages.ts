@@ -20,7 +20,7 @@ with the AI core functions (e.g. `streamText`).
  */
 export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
-  tools?: ToolSet,
+  options?: { tools?: ToolSet },
 ): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
 
@@ -141,7 +141,7 @@ export function convertToModelMessages(
                     toolName,
                     output: createToolModelOutput({
                       output,
-                      tool: tools?.[toolName],
+                      tool: options?.tools?.[toolName],
                       isError: false,
                     }),
                   };
