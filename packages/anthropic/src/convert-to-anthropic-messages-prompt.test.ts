@@ -283,7 +283,10 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              output: { type: 'json', value: { test: 'This is a tool message' } },
+              output: {
+                type: 'json',
+                value: { test: 'This is a tool message' },
+              },
             },
           ],
         },
@@ -323,7 +326,10 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              output: { type: 'json', value: { test: 'This is a tool message' } },
+              output: {
+                type: 'json',
+                value: { test: 'This is a tool message' },
+              },
             },
             {
               type: 'tool-result',
@@ -375,7 +381,10 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              output: { type: 'json', value: { test: 'This is a tool message' } },
+              output: {
+                type: 'json',
+                value: { test: 'This is a tool message' },
+              },
             },
           ],
         },

@@ -165,12 +165,12 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'tool-call-id-3',
             toolName: 'image-tool',
-            output: { 
-              type: 'content', 
+            output: {
+              type: 'content',
               value: [
                 { type: 'text', text: 'Here is the result:' },
-                { type: 'image', data: 'base64data', mediaType: 'image/png' }
-              ]
+                { type: 'image', data: 'base64data', mediaType: 'image/png' },
+              ],
             },
           },
         ],

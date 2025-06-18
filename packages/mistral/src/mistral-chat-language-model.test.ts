@@ -893,8 +893,8 @@ describe('doStream with raw chunks', () => {
   });
 });
 
-describe('synchronous tool execution support', () => {
-  it('should handle new LanguageModelV2ToolResultOutput format in doGenerate', async () => {
+describe('tool result format support', () => {
+  it('should handle new LanguageModelV2ToolResultOutput format', async () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'json-value',
       body: {

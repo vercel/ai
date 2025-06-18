@@ -101,7 +101,7 @@ export function convertToMistralChatMessages(
         for (const toolResponse of content) {
           const output = toolResponse.output;
           let contentValue: string;
-          
+
           switch (output.type) {
             case 'text':
               contentValue = output.value;

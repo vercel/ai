@@ -132,15 +132,35 @@ export function convertToGoogleGenerativeAIMessages(
 
         contents.push({
           role: 'user',
-          parts: content.map(part => ({
-            functionResponse: {
-              name: part.toolName,
-              response: {
+          parts: content.map(part => {
+            const output = part.output;
+            let contentValue: any;
+            switch (output.type) {
+              case 'text':
+                contentValue = output.value;
+                break;
+              case 'content':
+                contentValue = output.value;
+                break;
+              case 'error':
+                contentValue = output.value;
+                break;
+              case 'json':
+              default:
+                contentValue = output.value;
+                break;
+            }
+
+            return {
+              functionResponse: {
                 name: part.toolName,
-                content: part.output,
+                response: {
+                  name: part.toolName,
+                  content: contentValue,
+                },
               },
-            },
-          })),
+            };
+          }),
         });
         break;
       }

@@ -394,7 +394,10 @@ describe('convertToOpenAIResponsesMessages', () => {
                 type: 'tool-result',
                 toolCallId: 'call_123',
                 toolName: 'search',
-                output: { type: 'json', value: { temperature: '72°F', condition: 'Sunny' } },
+                output: {
+                  type: 'json',
+                  value: { temperature: '72°F', condition: 'Sunny' },
+                },
               },
             ],
           },
@@ -421,7 +424,10 @@ describe('convertToOpenAIResponsesMessages', () => {
                 type: 'tool-result',
                 toolCallId: 'call_123',
                 toolName: 'search',
-                output: { type: 'json', value: { temperature: '72°F', condition: 'Sunny' } },
+                output: {
+                  type: 'json',
+                  value: { temperature: '72°F', condition: 'Sunny' },
+                },
               },
               {
                 type: 'tool-result',

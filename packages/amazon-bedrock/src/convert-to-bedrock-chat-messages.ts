@@ -124,7 +124,7 @@ export async function convertToBedrockChatMessages(
                 const part = content[i];
                 const output = part.output;
                 let toolResultContent;
-                
+
                 if (output.type === 'content') {
                   toolResultContent = output.value.map((contentPart: any) => {
                     switch (contentPart.type) {
@@ -153,7 +153,9 @@ export async function convertToBedrockChatMessages(
                           },
                         };
                       default:
-                        throw new Error(`Unsupported content part type: ${contentPart.type}`);
+                        throw new Error(
+                          `Unsupported content part type: ${contentPart.type}`,
+                        );
                     }
                   });
                 } else {

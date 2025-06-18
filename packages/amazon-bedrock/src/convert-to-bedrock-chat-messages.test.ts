@@ -555,7 +555,10 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'calculator',
-            output: { type: 'content', value: [{ type: 'text', text: 'The result is 42' }] },
+            output: {
+              type: 'content',
+              value: [{ type: 'text', text: 'The result is 42' }],
+            },
           },
         ],
       },
