@@ -44,7 +44,7 @@ class TestChat extends AbstractChat<UIMessage> {
   constructor(init: ChatInit<UIMessage>) {
     super({
       ...init,
-      state: new TestChatState(),
+      state: new TestChatState(init.messages ?? []),
     });
   }
 
@@ -94,6 +94,27 @@ describe('chat', () => {
       });
 
       await finishPromise.promise;
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
+        `
+        {
+          "id": "123",
+          "messages": [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "trigger": "submit-user-message",
+        }
+      `,
+      );
 
       expect(chat.messages).toMatchInlineSnapshot(`
         [
@@ -230,6 +251,246 @@ describe('chat', () => {
             },
             {
               "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        ]
+      `);
+    });
+
+    it('should replace an existing user message', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatStreamPart({ type: 'start' }),
+          formatStreamPart({ type: 'start-step' }),
+          formatStreamPart({ type: 'text', text: 'Hello' }),
+          formatStreamPart({ type: 'text', text: ',' }),
+          formatStreamPart({ type: 'text', text: ' world' }),
+          formatStreamPart({ type: 'text', text: '.' }),
+          formatStreamPart({ type: 'finish-step' }),
+          formatStreamPart({ type: 'finish' }),
+        ],
+      };
+
+      const finishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        onFinish: () => finishPromise.resolve(),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'Hi!', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [{ text: 'How can I help you?', type: 'text' }],
+          },
+        ],
+      });
+
+      chat.sendMessage({
+        text: 'Hello, world!',
+        id: 'id-0',
+      });
+
+      await finishPromise.promise;
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
+        `
+        {
+          "id": "123",
+          "messageId": "id-0",
+          "messages": [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "trigger": "submit-user-message",
+        }
+      `,
+      );
+
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "newid-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      expect(chat.history).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hi!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "text": "How can I help you?",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "newid-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "newid-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello,",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "newid-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello, world",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "newid-0",
               "metadata": undefined,
               "parts": [
                 {
