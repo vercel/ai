@@ -44,6 +44,7 @@ export type OpenAIChatModelId =
   | 'gpt-3.5-turbo'
   | 'gpt-3.5-turbo-1106'
   | 'chatgpt-4o-latest'
+  | 'codex-mini-latest'
   | (string & {});
 
 export interface OpenAIChatSettings {
