@@ -95,7 +95,10 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
-              "output": "Tool result",
+              "output": {
+                "type": "text",
+                "value": "Tool result",
+              },
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-result",
@@ -242,7 +245,10 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
-              "output": "image-base64",
+              "output": {
+                "type": "text",
+                "value": "image-base64",
+              },
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-result",

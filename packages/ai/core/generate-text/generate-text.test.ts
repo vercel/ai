@@ -702,7 +702,7 @@ describe('options.stopWhen', () => {
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         output: {
-                          type: 'json',
+                          type: 'text',
                           value: 'result1',
                         },
                         providerOptions: undefined,
@@ -909,7 +909,7 @@ describe('options.stopWhen', () => {
                       toolCallId: 'call-1',
                       toolName: 'tool1',
                       output: {
-                        type: 'json',
+                        type: 'text',
                         value: 'result1',
                       },
                       providerOptions: undefined,
@@ -1168,7 +1168,10 @@ describe('options.stopWhen', () => {
                     {
                       "content": [
                         {
-                          "output": "result1",
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -1238,7 +1241,10 @@ describe('options.stopWhen', () => {
                     {
                       "content": [
                         {
-                          "output": "result1",
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",

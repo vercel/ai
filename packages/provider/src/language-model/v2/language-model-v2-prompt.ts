@@ -179,7 +179,7 @@ Result of the tool call.
 
 export type LanguageModelV2ToolResultOutput =
   | {
-      type: 'string';
+      type: 'text';
       value: string;
     }
   | {

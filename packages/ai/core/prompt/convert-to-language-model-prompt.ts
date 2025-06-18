@@ -1,10 +1,8 @@
 import {
-  JSONObject,
   LanguageModelV2FilePart,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
-  LanguageModelV2ToolResultPart,
 } from '@ai-sdk/provider';
 import { isUrlSupported } from '@ai-sdk/provider-utils';
 import {

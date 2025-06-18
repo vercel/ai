@@ -229,7 +229,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       {
         "content": [
           {
-            "output": "value-result",
+            "output": {
+              "type": "text",
+              "value": "value-result",
+            },
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
@@ -308,7 +311,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           {
             "content": [
               {
-                "output": "value-result",
+                "output": {
+                  "type": "text",
+                  "value": "value-result",
+                },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -826,7 +832,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
       {
         "content": [
           {
-            "output": "result1",
+            "output": {
+              "type": "text",
+              "value": "result1",
+            },
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
@@ -904,7 +913,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
           {
             "content": [
               {
-                "output": "result1",
+                "output": {
+                  "type": "text",
+                  "value": "result1",
+                },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -962,7 +974,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
           {
             "content": [
               {
-                "output": "result1",
+                "output": {
+                  "type": "text",
+                  "value": "result1",
+                },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -1071,7 +1086,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1129,7 +1147,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > callbac
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1347,7 +1368,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"json","value":"result1"}}]}]",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"result1"}}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
         "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
@@ -1417,7 +1438,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
   {
     "content": [
       {
-        "output": "result1",
+        "output": {
+          "type": "text",
+          "value": "result1",
+        },
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",
@@ -1494,7 +1518,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1552,7 +1579,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > value p
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -1654,7 +1684,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
       {
         "content": [
           {
-            "output": "VALUE-RESULT",
+            "output": {
+              "type": "text",
+              "value": "VALUE-RESULT",
+            },
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
@@ -1733,7 +1766,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
           {
             "content": [
               {
-                "output": "VALUE-RESULT",
+                "output": {
+                  "type": "text",
+                  "value": "VALUE-RESULT",
+                },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -1861,7 +1897,10 @@ DefaultStepResult {
       {
         "content": [
           {
-            "output": "VALUE-RESULT",
+            "output": {
+              "type": "text",
+              "value": "VALUE-RESULT",
+            },
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
@@ -1937,7 +1976,10 @@ exports[`streamText > options.transform > with base transformation > result.step
         {
           "content": [
             {
-              "output": "RESULT1",
+              "output": {
+                "type": "text",
+                "value": "RESULT1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -2906,7 +2948,10 @@ exports[`streamText > result.responseMessages > should contain assistant respons
   {
     "content": [
       {
-        "output": "result1",
+        "output": {
+          "type": "text",
+          "value": "result1",
+        },
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",

@@ -222,7 +222,7 @@ functionality that can be fully encapsulated in the provider.
 export const outputSchema: z.ZodType<LanguageModelV2ToolResultOutput> =
   z.discriminatedUnion('type', [
     z.object({
-      type: z.literal('string'),
+      type: z.literal('text'),
       value: z.string(),
     }),
     z.object({

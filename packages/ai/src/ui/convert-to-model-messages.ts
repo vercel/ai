@@ -1,4 +1,6 @@
+import { ToolSet } from '../../core/generate-text/tool-set';
 import { ToolResultPart } from '../../core/prompt/content-part';
+import { createToolModelOutput } from '../../core/prompt/create-tool-model-output';
 import { AssistantContent, ModelMessage } from '../../core/prompt/message';
 import { MessageConversionError } from '../../core/prompt/message-conversion-error';
 import {
@@ -18,6 +20,7 @@ with the AI core functions (e.g. `streamText`).
  */
 export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
+  tools?: ToolSet,
 ): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
 
@@ -136,7 +139,11 @@ export function convertToModelMessages(
                     type: 'tool-result',
                     toolCallId,
                     toolName,
-                    output,
+                    output: createToolModelOutput({
+                      output,
+                      tool: tools?.[toolName],
+                      isError: false,
+                    }),
                   };
                 }),
               });

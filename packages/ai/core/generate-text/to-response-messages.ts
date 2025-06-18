@@ -7,14 +7,17 @@ import {
 } from '../prompt';
 import { ContentPart } from './content-part';
 import { ToolSet } from './tool-set';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 
 /**
 Converts the result of a `generateText` or `streamText` call to a list of response messages.
  */
 export function toResponseMessages<TOOLS extends ToolSet>({
   content: inputContent,
+  tools,
 }: {
   content: Array<ContentPart<TOOLS>>;
+  tools?: TOOLS;
 }): Array<AssistantModelMessage | ToolModelMessage> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
@@ -57,7 +60,11 @@ export function toResponseMessages<TOOLS extends ToolSet>({
         type: 'tool-result',
         toolCallId: toolResult.toolCallId,
         toolName: toolResult.toolName,
-        output: toolResult.output,
+        output: createToolModelOutput({
+          output: toolResult.output,
+          tool: tools?.[toolResult.toolName],
+          isError: false,
+        }),
       };
     });
 

@@ -1143,21 +1143,16 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              output: { type: 'json', value: { some: 'result' } },
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
+                ],
+              },
             },
           ],
         },
         downloadedAssets: {},
-        tools: {
-          toolName: tool({
-            toModelOutput: () => ({
-              type: 'content',
-              value: [
-                { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
-              ],
-            }),
-          }),
-        },
       });
 
       expect(result).toMatchInlineSnapshot(`
