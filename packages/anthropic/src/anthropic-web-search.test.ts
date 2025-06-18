@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { APICallError } from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
@@ -17,6 +17,7 @@ describe('Anthropic Web Search Server-Side Tool', () => {
 
   const provider = createAnthropic({
     apiKey: 'test-api-key',
+    generateId: () => 'test-id-123',
   });
   const model = provider('claude-3-5-sonnet-latest');
 
@@ -235,7 +236,7 @@ describe('Anthropic Web Search Server-Side Tool', () => {
     });
   });
 
-  it('should handle server-side web search results with citations', async () => {
+  it('should handle server-side web search results with citations and tool results', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',
@@ -286,29 +287,10 @@ describe('Anthropic Web Search Server-Side Tool', () => {
       ],
     });
 
-    expect(result.content).toHaveLength(2);
-
-    expect(result.content[0]).toEqual({
-      type: 'source',
-      sourceType: 'url',
-      id: expect.any(String),
-      url: 'https://example.com/ai-news',
-      title: 'Latest AI Developments',
-      providerMetadata: {
-        anthropic: {
-          encryptedContent: 'encrypted_content_123',
-          pageAge: 'January 15, 2025',
-        },
-      },
-    });
-
-    expect(result.content[1]).toEqual({
-      type: 'text',
-      text: 'Based on recent articles, AI continues to advance rapidly.',
-    });
+    expect(result.content).toMatchSnapshot();
   });
 
-  it('should handle server-side web search errors', async () => {
+  it('should handle server-side web search errors with tool results', async () => {
     prepareJsonResponse({
       type: 'message',
       id: 'msg_test',

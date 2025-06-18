@@ -15,27 +15,29 @@ export function asContent<TOOLS extends ToolSet>({
   toolResults: ToolResultArray<TOOLS>;
 }): Array<ContentPart<TOOLS>> {
   return [
-    ...content.map(part => {
-      switch (part.type) {
-        case 'text':
-        case 'reasoning':
-        case 'source':
-          return part;
+    ...content
+      .filter(part => part.type !== 'tool-result')
+      .map(part => {
+        switch (part.type) {
+          case 'text':
+          case 'reasoning':
+          case 'source':
+            return part;
 
-        case 'file': {
-          return {
-            type: 'file' as const,
-            file: new DefaultGeneratedFile(part),
-          };
-        }
+          case 'file': {
+            return {
+              type: 'file' as const,
+              file: new DefaultGeneratedFile(part),
+            };
+          }
 
-        case 'tool-call': {
-          return toolCalls.find(
-            toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
+          case 'tool-call': {
+            return toolCalls.find(
+              toolCall => toolCall.toolCallId === part.toolCallId,
+            )!;
+          }
         }
-      }
-    }),
+      }),
     ...toolResults,
   ];
 }

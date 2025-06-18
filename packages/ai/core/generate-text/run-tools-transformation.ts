@@ -286,6 +286,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        case 'tool-result': {
+          // Server-side tool results are handled by providers (e.g., Anthropic web search)
+          // and converted to appropriate content parts. Skip them here.
+          break;
+        }
+
         default: {
           const _exhaustiveCheck: never = chunkType;
           throw new Error(`Unhandled chunk type: ${_exhaustiveCheck}`);

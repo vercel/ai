@@ -188,10 +188,10 @@ describe('convertToModelMessages', () => {
       const tools = {
         screenshot: tool({
           inputSchema: z.object({}),
-          execute: async () => 'imgbase64',
-          experimental_toToolResultContent: result => [
-            { type: 'image', data: result },
-          ],
+          execute: async () => ({
+            type: 'parts',
+            value: [{ type: 'image', data: 'imgbase64' }],
+          }),
         }),
       };
 

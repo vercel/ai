@@ -2137,6 +2137,7 @@ describe('streamText', () => {
             | 'tool-call-streaming-start'
             | 'tool-call-delta'
             | 'tool-result'
+            | 'server-tool-result'
             | 'raw';
         }
       >
@@ -5834,6 +5835,7 @@ describe('streamText', () => {
                 | 'tool-call-streaming-start'
                 | 'tool-call-delta'
                 | 'tool-result'
+                | 'server-tool-result'
                 | 'raw';
             }
           >
