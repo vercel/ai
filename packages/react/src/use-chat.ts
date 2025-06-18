@@ -30,7 +30,7 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'sendMessage'
   | 'regenerate'
   | 'stop'
-  | 'experimental_resume'
+  | 'resumeStream'
   | 'addToolResult'
   | 'status'
   | 'messages'
@@ -98,7 +98,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   useEffect(() => {
     if (resume) {
-      chatRef.current.experimental_resume();
+      chatRef.current.resumeStream();
     }
   }, [resume, chatRef]);
 
@@ -110,7 +110,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     regenerate: chatRef.current.regenerate,
     stop: chatRef.current.stop,
     error,
-    experimental_resume: chatRef.current.experimental_resume,
+    resumeStream: chatRef.current.resumeStream,
     status,
     addToolResult: chatRef.current.addToolResult,
   };
