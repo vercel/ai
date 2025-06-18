@@ -240,20 +240,20 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       | (CreateUIMessage<UI_MESSAGE> & {
           text?: never;
           files?: never;
-          id?: string;
+          messageId?: string;
         })
       | {
           text: string;
           files?: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
-          id?: string;
+          messageId?: string;
         }
       | {
           files: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
-          id?: string;
+          messageId?: string;
         },
     options: ChatRequestOptions = {},
   ): Promise<void> => {
@@ -276,17 +276,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       uiMessage = message;
     }
 
-    if (message.id != null) {
+    if (message.messageId != null) {
       const messageIndex = this.state.messages.findIndex(
-        m => m.id === message.id,
+        m => m.id === message.messageId,
       );
 
       if (messageIndex === -1) {
-        throw new Error(`message with id ${message.id} not found`);
+        throw new Error(`message with id ${message.messageId} not found`);
       }
 
       if (this.state.messages[messageIndex].role !== 'user') {
-        throw new Error(`message with id ${message.id} is not a user message`);
+        throw new Error(
+          `message with id ${message.messageId} is not a user message`,
+        );
       }
 
       // remove all messages after the message with the given id
@@ -295,7 +297,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       // update the message with the new content
       this.state.replaceMessage(messageIndex, {
         ...uiMessage,
-        id: message.id,
+        id: message.messageId,
         role: uiMessage.role ?? 'user',
       } as UI_MESSAGE);
     } else {
@@ -308,7 +310,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     await this.makeRequest({
       trigger: 'submit-user-message',
-      messageId: message.id,
+      messageId: message.messageId,
       ...options,
     });
   };

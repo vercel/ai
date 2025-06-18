@@ -6,6 +6,13 @@ export default function Message({
 }: {
   message: MyUIMessage;
   regenerate: ({ messageId }: { messageId: string }) => void;
+  sendMessage: ({
+    text,
+    messageId,
+  }: {
+    text: string;
+    messageId?: string;
+  }) => void;
 }) {
   const date = message.metadata?.createdAt
     ? new Date(message.metadata.createdAt).toLocaleString()

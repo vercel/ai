@@ -308,7 +308,7 @@ describe('chat', () => {
 
       chat.sendMessage({
         text: 'Hello, world!',
-        id: 'id-0',
+        messageId: 'id-0',
       });
 
       await finishPromise.promise;
