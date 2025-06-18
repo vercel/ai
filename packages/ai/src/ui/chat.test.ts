@@ -7,20 +7,25 @@ import { UIMessage } from './ui-messages';
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
 {
+  history: UI_MESSAGE[][] = [];
+
   status: ChatStatus = 'ready';
   messages: UI_MESSAGE[];
   error: Error | undefined = undefined;
 
   constructor(initialMessages: UI_MESSAGE[] = []) {
     this.messages = initialMessages;
+    this.history.push(structuredClone(initialMessages));
   }
 
   pushMessage = (message: UI_MESSAGE) => {
     this.messages = this.messages.concat(message);
+    this.history.push(structuredClone(this.messages));
   };
 
   popMessage = () => {
     this.messages = this.messages.slice(0, -1);
+    this.history.push(structuredClone(this.messages));
   };
 
   replaceMessage = (index: number, message: UI_MESSAGE) => {
@@ -29,6 +34,7 @@ class TestChatState<UI_MESSAGE extends UIMessage>
       message,
       ...this.messages.slice(index + 1),
     ];
+    this.history.push(structuredClone(this.messages));
   };
 
   snapshot = <T>(value: T): T => value;
@@ -40,6 +46,10 @@ class TestChat extends AbstractChat<UIMessage> {
       ...init,
       state: new TestChatState(),
     });
+  }
+
+  get history() {
+    return (this.state as TestChatState<UIMessage>).history;
   }
 }
 
@@ -111,6 +121,128 @@ describe('chat', () => {
             ],
             "role": "assistant",
           },
+        ]
+      `);
+
+      expect(chat.history).toMatchInlineSnapshot(`
+        [
+          [],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello,",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello, world",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         ]
       `);
     });
