@@ -877,7 +877,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
-            tools: tools ?? ({} as TOOLS),
           });
 
           const stepModel = resolveLanguageModel(

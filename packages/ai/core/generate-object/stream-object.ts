@@ -481,7 +481,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           prompt: await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
             supportedUrls: await model.supportedUrls,
-            tools: {},
           }),
           providerOptions,
           abortSignal,

@@ -30,7 +30,6 @@ describe('convertToLanguageModelPrompt', () => {
               mediaType: 'image/png',
             };
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -70,7 +69,6 @@ describe('convertToLanguageModelPrompt', () => {
               mediaType: 'image/png',
             };
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -108,7 +106,6 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             '*': [/^https:\/\/.*$/],
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -152,7 +149,6 @@ describe('convertToLanguageModelPrompt', () => {
               mediaType: 'application/pdf',
             };
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -189,7 +185,6 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -226,7 +221,6 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -267,7 +261,6 @@ describe('convertToLanguageModelPrompt', () => {
               mediaType: 'application/pdf',
             };
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -308,7 +301,6 @@ describe('convertToLanguageModelPrompt', () => {
               mediaType: 'application/pdf',
             };
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -354,7 +346,6 @@ describe('convertToLanguageModelPrompt', () => {
               mediaType: 'application/pdf',
             };
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -393,7 +384,6 @@ describe('convertToLanguageModelPrompt', () => {
               /^https:\/\/example\.com\/document\.pdf$/,
             ],
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -434,7 +424,6 @@ describe('convertToLanguageModelPrompt', () => {
               mediaType: 'application/pdf',
             };
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -471,7 +460,6 @@ describe('convertToLanguageModelPrompt', () => {
           supportedUrls: {
             'image/*': [/^https:\/\/.*$/],
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -514,7 +502,6 @@ describe('convertToLanguageModelPrompt', () => {
               mediaType: 'application/pdf',
             };
           },
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -556,7 +543,6 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
           supportedUrls: {},
-          tools: {},
         });
 
         expect(result).toEqual([
@@ -589,7 +575,6 @@ describe('convertToLanguageModelMessage', () => {
         const result = convertToLanguageModelMessage({
           message: { role: 'user', content: [{ type: 'text', text: '' }] },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -605,7 +590,6 @@ describe('convertToLanguageModelMessage', () => {
             content: [{ type: 'text', text: 'hello, world!' }],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -628,7 +612,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -655,7 +638,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -683,7 +665,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -713,7 +694,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -741,7 +721,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -778,7 +757,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -814,7 +792,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -861,7 +838,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -912,7 +888,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -949,7 +924,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -978,7 +952,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -1013,7 +986,6 @@ describe('convertToLanguageModelMessage', () => {
             ],
           },
           downloadedAssets: {},
-          tools: {},
         });
 
         expect(result).toEqual({
@@ -1046,12 +1018,11 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              output: { some: 'result' },
+              output: { type: 'json', value: { some: 'result' } },
             },
           ],
         },
         downloadedAssets: {},
-        tools: {},
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1085,7 +1056,7 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              output: { some: 'result' },
+              output: { type: 'json', value: { some: 'result' } },
               providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
@@ -1096,7 +1067,6 @@ describe('convertToLanguageModelMessage', () => {
           ],
         },
         downloadedAssets: {},
-        tools: {},
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1135,13 +1105,11 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              output: { some: 'result' },
-              isError: true,
+              output: { type: 'json', value: { some: 'result' } },
             },
           ],
         },
         downloadedAssets: {},
-        tools: {},
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1175,7 +1143,7 @@ describe('convertToLanguageModelMessage', () => {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              output: { some: 'result' },
+              output: { type: 'json', value: { some: 'result' } },
             },
           ],
         },

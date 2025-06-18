@@ -22,18 +22,14 @@ import {
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
 
-export async function convertToLanguageModelPrompt<
-  TOOLS extends ToolSet = never,
->({
+export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
   downloadImplementation = download,
-  tools,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   downloadImplementation?: typeof download;
-  tools: TOOLS;
 }): Promise<LanguageModelV2Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
@@ -46,11 +42,7 @@ export async function convertToLanguageModelPrompt<
       ? [{ role: 'system' as const, content: prompt.system }]
       : []),
     ...prompt.messages.map(message =>
-      convertToLanguageModelMessage({
-        message,
-        downloadedAssets,
-        tools,
-      }),
+      convertToLanguageModelMessage({ message, downloadedAssets }),
     ),
   ];
 }
@@ -65,14 +57,12 @@ export async function convertToLanguageModelPrompt<
 export function convertToLanguageModelMessage<TOOLS extends ToolSet = never>({
   message,
   downloadedAssets,
-  tools,
 }: {
   message: ModelMessage;
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >;
-  tools: TOOLS;
 }): LanguageModelV2Message {
   const role = message.role;
   switch (role) {
@@ -167,20 +157,13 @@ export function convertToLanguageModelMessage<TOOLS extends ToolSet = never>({
     case 'tool': {
       return {
         role: 'tool',
-        content: message.content.map(part => {
-          const tool = tools[part.toolName];
-          // TODO handle error case
-          return {
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output:
-              tool?.toModelOutput != null
-                ? tool.toModelOutput(part.output)
-                : { type: 'json', value: part.output as JSONObject },
-            providerOptions: part.providerOptions,
-          } satisfies LanguageModelV2ToolResultPart;
-        }),
+        content: message.content.map(part => ({
+          type: 'tool-result' as const,
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          output: part.output,
+          providerOptions: part.providerOptions,
+        })),
         providerOptions: message.providerOptions,
       };
     }
