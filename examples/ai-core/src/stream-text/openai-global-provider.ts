@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
-globalThis.VERCEL_AI_GLOBAL_DEFAULT_PROVIDER = openai;
+globalThis.AI_SDK_DEFAULT_PROVIDER = openai;
 
 async function main() {
   const result = streamText({
