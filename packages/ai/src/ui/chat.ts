@@ -230,22 +230,30 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }
 
   /**
-   * Append a user message to the chat list. This triggers the API call to fetch
+   * Appends or replaces a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
+   *
+   * If a messageId is provided, the message will be replaced.
    */
   sendMessage = async (
     message:
-      | (CreateUIMessage<UI_MESSAGE> & { text?: never; files?: never })
+      | (CreateUIMessage<UI_MESSAGE> & {
+          text?: never;
+          files?: never;
+          messageId?: string;
+        })
       | {
           text: string;
           files?: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
+          messageId?: string;
         }
       | {
           files: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
+          messageId?: string;
         },
     options: ChatRequestOptions = {},
   ): Promise<void> => {
@@ -268,14 +276,41 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       uiMessage = message;
     }
 
-    this.state.pushMessage({
-      ...uiMessage,
-      id: uiMessage.id ?? this.generateId(),
-      role: uiMessage.role ?? 'user',
-    } as UI_MESSAGE);
+    if (message.messageId != null) {
+      const messageIndex = this.state.messages.findIndex(
+        m => m.id === message.messageId,
+      );
+
+      if (messageIndex === -1) {
+        throw new Error(`message with id ${message.messageId} not found`);
+      }
+
+      if (this.state.messages[messageIndex].role !== 'user') {
+        throw new Error(
+          `message with id ${message.messageId} is not a user message`,
+        );
+      }
+
+      // remove all messages after the message with the given id
+      this.state.messages = this.state.messages.slice(0, messageIndex + 1);
+
+      // update the message with the new content
+      this.state.replaceMessage(messageIndex, {
+        ...uiMessage,
+        id: message.messageId,
+        role: uiMessage.role ?? 'user',
+      } as UI_MESSAGE);
+    } else {
+      this.state.pushMessage({
+        ...uiMessage,
+        id: uiMessage.id ?? this.generateId(),
+        role: uiMessage.role ?? 'user',
+      } as UI_MESSAGE);
+    }
 
     await this.makeRequest({
       trigger: 'submit-user-message',
+      messageId: message.messageId,
       ...options,
     });
   };

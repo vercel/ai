@@ -21,7 +21,18 @@ export async function POST(req: Request) {
   let messages: MyUIMessage[] = chat.messages;
 
   if (trigger === 'submit-user-message') {
-    messages = [...messages, message!];
+    if (messageId != null) {
+      const messageIndex = messages.findIndex(m => m.id === messageId);
+
+      if (messageIndex === -1) {
+        throw new Error(`message ${messageId} not found`);
+      }
+
+      messages = messages.slice(0, messageIndex);
+      messages.push(message!);
+    } else {
+      messages = [...messages, message!];
+    }
   } else if (trigger === 'regenerate-assistant-message') {
     const messageIndex =
       messageId == null
