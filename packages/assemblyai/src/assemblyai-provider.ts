@@ -1,10 +1,10 @@
-import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
+import { TranscriptionModelV1, ProviderV2 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 
 export interface AssemblyAIProvider
-  extends Pick<ProviderV1, 'transcriptionModel'> {
+  extends Pick<ProviderV2, 'transcriptionModel'> {
   (
     modelId: 'best',
     settings?: {},

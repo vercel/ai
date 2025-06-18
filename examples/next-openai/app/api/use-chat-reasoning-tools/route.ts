@@ -25,8 +25,8 @@ const anthropic = createAnthropic({
 });
 
 export type ReasoningToolsMessage = UIMessage<
-  never,
-  UIDataTypes,
+  never, // could define metadata here
+  UIDataTypes, // could define data parts here
   {
     getWeatherInformation: {
       input: { city: string };

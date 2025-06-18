@@ -1,10 +1,10 @@
-import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
+import { TranscriptionModelV1, ProviderV2 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 
 export interface DeepgramProvider
-  extends Pick<ProviderV1, 'transcriptionModel'> {
+  extends Pick<ProviderV2, 'transcriptionModel'> {
   (
     modelId: 'nova-3',
     settings?: {},
