@@ -1,5 +1,27 @@
 # ai
 
+## 5.0.0-alpha.15
+
+### Major Changes
+
+- 04d5063: chore (ai): rename default provider global to AI_SDK_DEFAULT_PROVIDER
+- b4b4bb2: chore (ui): rename experimental_resume to resumeStream
+- d884051: feat (ai): simplify default provider setup
+- 954aa73: feat (ui): extended regenerate support
+- 60e2c56: feat (ai): restructure chat transports
+
+### Patch Changes
+
+- b1e3abd: feat (ai): expose ui message stream headers
+- 142576e: feat (ui): support message replacement in chat via messageId param on sendMessage
+- 395c85e: feat (ai): add consumeSseStream option to UI message stream responses
+- Updated dependencies [48d257a]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [c145d62]
+  - @ai-sdk/provider@2.0.0-alpha.15
+  - @ai-sdk/provider-utils@3.0.0-alpha.15
+  - @ai-sdk/gateway@1.0.0-alpha.15
+
 ## 5.0.0-alpha.14
 
 ### Major Changes
