@@ -310,6 +310,7 @@ Default and recommended: 'auto' (best mode for the model).
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
+          tools: {},
         });
 
         const generateResult = await retry(() =>

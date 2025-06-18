@@ -289,6 +289,7 @@ A function that attempts to repair a tool call that failed to parse.
               messages: stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
+            tools: tools ?? ({} as TOOLS),
           });
 
           const stepModel = resolveLanguageModel(
