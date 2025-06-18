@@ -1,11 +1,22 @@
 import { MyUIMessage } from '@/util/chat-schema';
+import { ChatStatus } from 'ai';
 
 export default function Message({
   message,
+  status,
   regenerate,
+  sendMessage,
 }: {
+  status: ChatStatus;
   message: MyUIMessage;
   regenerate: ({ messageId }: { messageId: string }) => void;
+  sendMessage: ({
+    text,
+    messageId,
+  }: {
+    text: string;
+    messageId?: string;
+  }) => void;
 }) {
   const date = message.metadata?.createdAt
     ? new Date(message.metadata.createdAt).toLocaleString()
@@ -25,12 +36,24 @@ export default function Message({
           .join('')}
       </div>
       {message.role === 'user' && (
-        <button
-          onClick={() => regenerate({ messageId: message.id })}
-          className="px-3 py-1 mt-2 text-sm transition-colors bg-gray-200 rounded-md hover:bg-gray-300"
-        >
-          Regenerate
-        </button>
+        <>
+          <button
+            onClick={() => regenerate({ messageId: message.id })}
+            className="px-3 py-1 mt-2 text-sm transition-colors bg-gray-200 rounded-md hover:bg-gray-300"
+            disabled={status !== 'ready'}
+          >
+            Regenerate
+          </button>
+          <button
+            onClick={() =>
+              sendMessage({ text: 'Hello', messageId: message.id })
+            }
+            className="px-3 py-1 mt-2 text-sm transition-colors bg-gray-200 rounded-md hover:bg-gray-300"
+            disabled={status !== 'ready'}
+          >
+            Replace with Hello
+          </button>
+        </>
       )}
     </div>
   );
