@@ -323,11 +323,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   };
 
   /**
-   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
+   * Attempt to resume an ongoing streaming response.
    */
-  experimental_resume = async (
-    options: ChatRequestOptions = {},
-  ): Promise<void> => {
+  resumeStream = async (options: ChatRequestOptions = {}): Promise<void> => {
     await this.makeRequest({ trigger: 'resume-stream', ...options });
   };
 
