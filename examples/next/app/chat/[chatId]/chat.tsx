@@ -43,6 +43,7 @@ export default function ChatComponent({
                 trigger: 'submit-user-message',
                 id,
                 message: messages[messages.length - 1],
+                messageId,
               },
             };
 
@@ -73,7 +74,13 @@ export default function ChatComponent({
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(message => (
-        <Message key={message.id} message={message} regenerate={regenerate} />
+        <Message
+          key={message.id}
+          message={message}
+          regenerate={regenerate}
+          sendMessage={sendMessage}
+          status={status}
+        />
       ))}
       <ChatInput
         status={status}
