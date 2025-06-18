@@ -7,6 +7,6 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV2 {
     return model;
   }
 
-  const globalProvider = globalThis.VERCEL_AI_GLOBAL_DEFAULT_PROVIDER;
+  const globalProvider = globalThis.AI_SDK_DEFAULT_PROVIDER;
   return (globalProvider ?? gateway).languageModel(model);
 }
