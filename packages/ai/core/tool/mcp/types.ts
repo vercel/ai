@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MappedTool, ToolInputSchema } from '../tool';
+import { Tool, ToolInputSchema } from '../tool';
 import { JSONObject } from '@ai-sdk/provider';
 
 export const LATEST_PROTOCOL_VERSION = '2024-11-05';
@@ -12,6 +12,13 @@ export type ToolSchemas =
   | Record<string, { inputSchema: ToolInputSchema<JSONObject | unknown> }>
   | 'automatic'
   | undefined;
+
+type MappedTool<T extends Tool | JSONObject, OUTPUT extends any> =
+  T extends Tool<infer INPUT>
+    ? Tool<INPUT, OUTPUT>
+    : T extends JSONObject
+      ? Tool<T, OUTPUT>
+      : never;
 
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
   TOOL_SCHEMAS extends Record<string, { inputSchema: ToolInputSchema<unknown> }>
