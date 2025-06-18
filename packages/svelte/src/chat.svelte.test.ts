@@ -212,6 +212,7 @@ describe('data protocol stream', () => {
               "role": "user",
             },
           ],
+          "trigger": "submit-user-message",
         }
       `);
     });
@@ -925,6 +926,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1002,6 +1004,7 @@ describe('file attachments with data url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1089,6 +1092,7 @@ describe('file attachments with url', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1169,6 +1173,7 @@ describe('file attachments with empty text content', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });
@@ -1213,8 +1218,8 @@ describe('reload', () => {
       }),
     );
 
-    // Setup done, call reload:
-    await chat.reload({
+    // Setup done, call regenerate:
+    await chat.regenerate({
       body: { 'request-body-key': 'request-body-value' },
       headers: { 'header-key': 'header-value' },
     });
@@ -1235,6 +1240,7 @@ describe('reload', () => {
           },
         ],
         "request-body-key": "request-body-value",
+        "trigger": "regenerate-assistant-message",
       }
     `);
 
@@ -1297,6 +1303,7 @@ describe('test sending additional fields during message submission', () => {
             "role": "user",
           },
         ],
+        "trigger": "submit-user-message",
       }
     `);
   });

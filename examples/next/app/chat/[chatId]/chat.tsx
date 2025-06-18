@@ -19,15 +19,38 @@ export default function ChatComponent({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, sendMessage, messages } = useChat({
+  const { status, sendMessage, messages, regenerate } = useChat({
     id: chatData.id,
     messages: chatData.messages,
     resume,
     transport: new DefaultChatTransport({
-      // only send the last message to the server to limit the request size:
-      prepareSubmitMessagesRequest: ({ id, messages }) => ({
-        body: { id, message: messages[messages.length - 1] },
-      }),
+      prepareSendMessagesRequest: ({ id, messages, trigger, messageId }) => {
+        switch (trigger) {
+          case 'regenerate-assistant-message':
+            // omit messages data transfer, only send the messageId:
+            return {
+              body: {
+                trigger: 'regenerate-assistant-message',
+                id,
+                messageId,
+              },
+            };
+
+          case 'submit-user-message':
+            // only send the last message to the server to limit the request size:
+            return {
+              body: {
+                trigger: 'submit-user-message',
+                id,
+                message: messages[messages.length - 1],
+                messageId,
+              },
+            };
+
+          case 'submit-tool-result':
+            throw new Error(`submit-tool-result is not supported`);
+        }
+      },
     }),
     onFinish() {
       // for new chats, the router cache needs to be invalidated so
@@ -51,7 +74,13 @@ export default function ChatComponent({
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(message => (
-        <Message key={message.id} message={message} />
+        <Message
+          key={message.id}
+          message={message}
+          regenerate={regenerate}
+          sendMessage={sendMessage}
+          status={status}
+        />
       ))}
       <ChatInput
         status={status}

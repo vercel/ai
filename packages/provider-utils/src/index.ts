@@ -1,8 +1,6 @@
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export * from './delay';
-export { createEventSourceParserStream } from './event-source-parser-stream';
-export type { EventSourceChunk } from './event-source-parser-stream';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId } from './generate-id';
@@ -30,4 +28,10 @@ export * from './validate-types';
 export * from './validator';
 export * from './without-trailing-slash';
 export { zodSchema } from './zod-schema';
+
+// re-exports
+export {
+  type EventSourceMessage,
+  EventSourceParserStream,
+} from 'eventsource-parser/stream';
 export * from '@standard-schema/spec';

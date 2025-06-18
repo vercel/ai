@@ -53,6 +53,8 @@ describe('prepareSubmitMessagesRequest', () => {
 
     expect(value).toStrictEqual({
       id: expect.any(String),
+      api: '/api/chat',
+      trigger: 'submit-user-message',
       body: { 'request-body-key': 'request-body-value' },
       headers: { 'request-header-key': 'request-header-value' },
       requestMetadata: { 'request-metadata-key': 'request-metadata-value' },
@@ -293,7 +295,7 @@ describe('text stream', () => {
   });
 });
 
-describe('reload', () => {
+describe('regenerate', () => {
   setupTestComponent(TestChatReloadComponent);
 
   it('should show streamed response', async () => {
@@ -316,7 +318,7 @@ describe('reload', () => {
     await screen.findByTestId('message-1');
 
     // setup done, click reload:
-    await userEvent.click(screen.getByTestId('do-reload'));
+    await userEvent.click(screen.getByTestId('do-regenerate'));
 
     expect(await server.calls[1].requestBodyJson).toStrictEqual({
       id: expect.any(String),
@@ -333,6 +335,7 @@ describe('reload', () => {
         },
       ],
       'request-body-key': 'request-body-value',
+      trigger: 'regenerate-assistant-message',
     });
 
     expect(server.calls[1].requestHeaders).toStrictEqual({

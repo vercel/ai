@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.15
+
+### Patch Changes
+
+- 48d257a: release alpha.15
+
 ## 2.0.0-alpha.14
 
 ### Major Changes

@@ -3,7 +3,11 @@ export type {
   GatewayLanguageModelEntry,
   GatewayLanguageModelSpecification,
 } from './gateway-model-entry';
-export { createGatewayProvider, gateway } from './gateway-provider';
+export {
+  createGatewayProvider,
+  createGatewayProvider as createGateway,
+  gateway,
+} from './gateway-provider';
 export type {
   GatewayProvider,
   GatewayProviderSettings,

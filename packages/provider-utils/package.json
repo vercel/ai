@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "3.0.0-alpha.14",
+  "version": "3.0.0-alpha.15",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -41,7 +41,8 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.0.0",
-    "zod-to-json-schema": "^3.24.1"
+    "zod-to-json-schema": "^3.24.1",
+    "eventsource-parser": "^3.0.2"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
