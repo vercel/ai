@@ -99,10 +99,39 @@ export function convertToMistralChatMessages(
       }
       case 'tool': {
         for (const toolResponse of content) {
+          let contentString: string;
+          
+          switch (toolResponse.output.type) {
+            case 'text':
+              contentString = toolResponse.output.value;
+              break;
+            case 'json':
+              contentString = JSON.stringify(toolResponse.output.value);
+              break;
+            case 'content':
+              contentString = toolResponse.output.value
+                .map(part => {
+                  if (part.type === 'text') {
+                    return part.text;
+                  } else if (part.type === 'image') {
+                    return `[Image: ${part.mediaType || 'image'}]`;
+                  }
+                  return '';
+                })
+                .join('');
+              break;
+            case 'error':
+              contentString = `Error: ${toolResponse.output.value}`;
+              break;
+            default:
+              contentString = JSON.stringify(toolResponse.output);
+              break;
+          }
+
           messages.push({
             role: 'tool',
             name: toolResponse.toolName,
-            content: JSON.stringify(toolResponse.output),
+            content: contentString,
             tool_call_id: toolResponse.toolCallId,
           });
         }

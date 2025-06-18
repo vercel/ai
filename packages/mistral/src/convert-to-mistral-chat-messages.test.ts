@@ -59,13 +59,203 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'tool-call-id-1',
             toolName: 'tool-1',
-            output: { key: 'result-value' },
+            output: { type: 'json', value: { key: 'result-value' } },
           },
         ],
       },
     ]);
 
-    expect(result).toMatchSnapshot();
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "prefix": undefined,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"key":"arg-value"}",
+                "name": "tool-1",
+              },
+              "id": "tool-call-id-1",
+              "type": "function",
+            },
+          ],
+        },
+        {
+          "content": "{"key":"result-value"}",
+          "name": "tool-1",
+          "role": "tool",
+          "tool_call_id": "tool-call-id-1",
+        },
+      ]
+    `);
+  });
+
+  it('should handle text output format', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { query: 'test' },
+            toolCallId: 'tool-call-id-2',
+            toolName: 'text-tool',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'tool-call-id-2',
+            toolName: 'text-tool',
+            output: { type: 'text', value: 'This is a text response' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "prefix": undefined,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"query":"test"}",
+                "name": "text-tool",
+              },
+              "id": "tool-call-id-2",
+              "type": "function",
+            },
+          ],
+        },
+        {
+          "content": "This is a text response",
+          "name": "text-tool",
+          "role": "tool",
+          "tool_call_id": "tool-call-id-2",
+        },
+      ]
+    `);
+  });
+
+  it('should handle content output format', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { action: 'generate' },
+            toolCallId: 'tool-call-id-3',
+            toolName: 'content-tool',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'tool-call-id-3',
+            toolName: 'content-tool',
+            output: { 
+              type: 'content', 
+              value: [
+                { type: 'text', text: 'Here is the result: ' },
+                { type: 'image', data: 'base64data', mediaType: 'image/png' },
+                { type: 'text', text: ' and some more text.' }
+              ]
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "prefix": undefined,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"action":"generate"}",
+                "name": "content-tool",
+              },
+              "id": "tool-call-id-3",
+              "type": "function",
+            },
+          ],
+        },
+        {
+          "content": "Here is the result: [Image: image/png] and some more text.",
+          "name": "content-tool",
+          "role": "tool",
+          "tool_call_id": "tool-call-id-3",
+        },
+      ]
+    `);
+  });
+
+  it('should handle error output format', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { invalid: 'input' },
+            toolCallId: 'tool-call-id-4',
+            toolName: 'error-tool',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'tool-call-id-4',
+            toolName: 'error-tool',
+            output: { type: 'error', value: 'Invalid input provided' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "prefix": undefined,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"invalid":"input"}",
+                "name": "error-tool",
+              },
+              "id": "tool-call-id-4",
+              "type": "function",
+            },
+          ],
+        },
+        {
+          "content": "Error: Invalid input provided",
+          "name": "error-tool",
+          "role": "tool",
+          "tool_call_id": "tool-call-id-4",
+        },
+      ]
+    `);
   });
 });
 
