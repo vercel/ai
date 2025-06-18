@@ -74,7 +74,7 @@ If not provided, the tool will not be executed automatically.
       execute: (
         input: [INPUT] extends [never] ? undefined : INPUT,
         options: ToolCallOptions,
-      ) => PromiseLike<OUTPUT>;
+      ) => PromiseLike<OUTPUT> | OUTPUT;
 
       /**
   Optional conversion function that maps the tool result to multi-part tool content for LLMs.
