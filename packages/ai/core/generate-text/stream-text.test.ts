@@ -5379,9 +5379,8 @@ describe('streamText', () => {
     });
 
     it('should add tool-error parts to ui message stream', async () => {
-      expect(
-        await convertReadableStreamToArray(result.toUIMessageStream()),
-      ).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+        .toMatchInlineSnapshot(`
         [
           {
             "messageId": undefined,
