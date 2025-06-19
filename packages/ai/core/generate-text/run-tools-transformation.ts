@@ -223,57 +223,59 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                   },
                 }),
                 tracer,
-                fn: async span =>
-                  tool.execute!(toolCall.input, {
-                    toolCallId: toolCall.toolCallId,
-                    messages,
-                    abortSignal,
-                  }).then(
-                    (output: unknown) => {
-                      toolResultsStreamController!.enqueue({
-                        ...toolCall,
-                        type: 'tool-result',
-                        output,
-                      });
+                fn: async span => {
+                  let output: unknown;
 
-                      outstandingToolResults.delete(toolExecutionId);
+                  try {
+                    output = await tool.execute!(toolCall.input, {
+                      toolCallId: toolCall.toolCallId,
+                      messages,
+                      abortSignal,
+                    });
+                  } catch (error) {
+                    toolResultsStreamController!.enqueue({
+                      type: 'error',
+                      error: new ToolExecutionError({
+                        toolCallId: toolCall.toolCallId,
+                        toolName: toolCall.toolName,
+                        toolInput: toolCall.input,
+                        cause: error,
+                      }),
+                    });
 
-                      attemptClose();
+                    outstandingToolResults.delete(toolExecutionId);
+                    attemptClose();
+                    return;
+                  }
 
-                      // record telemetry
-                      try {
-                        span.setAttributes(
-                          selectTelemetryAttributes({
-                            telemetry,
-                            attributes: {
-                              'ai.toolCall.output': {
-                                output: () => JSON.stringify(output),
-                              },
-                            },
-                          }),
-                        );
-                      } catch (ignored) {
-                        // JSON stringify might fail if the result is not serializable,
-                        // in which case we just ignore it. In the future we might want to
-                        // add an optional serialize method to the tool interface and warn
-                        // if the result is not serializable.
-                      }
-                    },
-                    (error: unknown) => {
-                      toolResultsStreamController!.enqueue({
-                        type: 'error',
-                        error: new ToolExecutionError({
-                          toolCallId: toolCall.toolCallId,
-                          toolName: toolCall.toolName,
-                          toolInput: toolCall.input,
-                          cause: error,
-                        }),
-                      });
+                  toolResultsStreamController!.enqueue({
+                    ...toolCall,
+                    type: 'tool-result',
+                    output,
+                  });
 
-                      outstandingToolResults.delete(toolExecutionId);
-                      attemptClose();
-                    },
-                  ),
+                  outstandingToolResults.delete(toolExecutionId);
+                  attemptClose();
+
+                  // record telemetry
+                  try {
+                    span.setAttributes(
+                      selectTelemetryAttributes({
+                        telemetry,
+                        attributes: {
+                          'ai.toolCall.output': {
+                            output: () => JSON.stringify(output),
+                          },
+                        },
+                      }),
+                    );
+                  } catch (ignored) {
+                    // JSON stringify might fail if the result is not serializable,
+                    // in which case we just ignore it. In the future we might want to
+                    // add an optional serialize method to the tool interface and warn
+                    // if the result is not serializable.
+                  }
+                },
               });
             }
           } catch (error) {
