@@ -429,7 +429,20 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'image-generator',
               toolCallId: 'image-gen-1',
-              output: { type: 'text', value: 'Image generated successfully' },
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'Image generated successfully',
+                  },
+                  {
+                    type: 'image',
+                    data: 'AAECAw==',
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
             },
           ],
         },
@@ -438,25 +451,43 @@ describe('tool messages', () => {
       warnings: [],
     });
 
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'tool_result',
-                tool_use_id: 'image-gen-1',
-                is_error: undefined,
-                content: 'Image generated successfully',
-              },
-            ],
-          },
-        ],
-        system: undefined,
-      },
-      betas: new Set(),
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Image generated successfully",
+                      "type": "text",
+                    },
+                    {
+                      "cache_control": undefined,
+                      "source": {
+                        "data": "AAECAw==",
+                        "media_type": "image/png",
+                        "type": "base64",
+                      },
+                      "type": "image",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "image-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
   });
 });
 
