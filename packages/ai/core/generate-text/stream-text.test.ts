@@ -5297,8 +5297,13 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
-              "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
-              "type": "error",
+              "error": [Error: test error],
+              "input": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-error",
             },
             {
               "finishReason": "stop",

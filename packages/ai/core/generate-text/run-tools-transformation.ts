@@ -14,6 +14,7 @@ import { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
+import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
@@ -233,12 +234,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     });
                   } catch (error) {
                     toolResultsStreamController!.enqueue({
+                      ...toolCall,
                       type: 'tool-error',
-                      toolCallId: toolCall.toolCallId,
-                      toolName: toolCall.toolName,
-                      input: toolCall.input,
                       error,
-                    });
+                    } satisfies ToolErrorUnion<TOOLS>);
 
                     outstandingToolResults.delete(toolExecutionId);
                     attemptClose();
@@ -249,7 +248,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     ...toolCall,
                     type: 'tool-result',
                     output,
-                  });
+                  } satisfies ToolResultUnion<TOOLS>);
 
                   outstandingToolResults.delete(toolExecutionId);
                   attemptClose();

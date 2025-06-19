@@ -76,7 +76,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolResultUnion } from './tool-output';
+import { ToolOutput, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
@@ -973,7 +973,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           const stepRequest = request ?? {};
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
-          const stepToolResults: ToolResultUnion<TOOLS>[] = [];
+          const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
           const stepContent: Array<ContentPart<TOOLS>> = [];
 
@@ -1090,7 +1090,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'tool-result': {
                       controller.enqueue(chunk);
                       // store tool results for onFinish callback and toolResults promise:
-                      stepToolResults.push(chunk);
+                      stepToolOutputs.push(chunk);
+                      stepContent.push(chunk);
+                      break;
+                    }
+
+                    case 'tool-error': {
+                      controller.enqueue(chunk);
                       stepContent.push(chunk);
                       break;
                     }
@@ -1252,8 +1258,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   if (
                     stepToolCalls.length > 0 &&
-                    // all current tool calls have results:
-                    stepToolResults.length === stepToolCalls.length &&
+                    // all current tool calls have outputs (incl. execution errors):
+                    stepToolOutputs.length === stepToolCalls.length &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
                       stopConditions,
