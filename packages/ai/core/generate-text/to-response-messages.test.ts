@@ -1,6 +1,7 @@
 import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
+import { tool } from '../tool';
 
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
@@ -11,7 +12,12 @@ describe('toResponseMessages', () => {
           text: 'Hello, world!',
         },
       ],
-      tools: {},
+      tools: {
+        testTool: tool({
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        }),
+      },
     });
 
     expect(result).toEqual([
@@ -37,10 +43,10 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
           inputSchema: z.object({}),
-        },
+        }),
       },
     });
 
@@ -82,10 +88,10 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
           inputSchema: z.object({}),
-        },
+        }),
       },
     });
 
@@ -402,10 +408,10 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
           inputSchema: z.object({}),
-        },
+        }),
       },
     });
 
@@ -459,10 +465,10 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
           inputSchema: z.object({}),
-        },
+        }),
       },
     });
 
