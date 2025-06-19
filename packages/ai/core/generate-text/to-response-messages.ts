@@ -22,7 +22,12 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
   const content: AssistantContent = inputContent
-    .filter(part => part.type !== 'tool-result' && part.type !== 'source')
+    .filter(
+      part =>
+        part.type !== 'tool-result' &&
+        part.type !== 'tool-error' &&
+        part.type !== 'source',
+    )
     .filter(part => part.type !== 'text' || part.text.length > 0)
     .map(part => {
       switch (part.type) {
@@ -53,20 +58,20 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   }
 
   const toolResultContent: ToolContent = inputContent
-    .filter(part => part.type === 'tool-result')
-    .map((toolResult): ToolResultPart => {
-      // TODO handle error case
-      return {
-        type: 'tool-result',
-        toolCallId: toolResult.toolCallId,
-        toolName: toolResult.toolName,
-        output: createToolModelOutput({
-          output: toolResult.output,
-          tool: tools?.[toolResult.toolName],
-          isError: false,
-        }),
-      };
-    });
+    .filter(part => part.type === 'tool-result' || part.type === 'tool-error')
+    .map(toolResult => ({
+      type: 'tool-result',
+      toolCallId: toolResult.toolCallId,
+      toolName: toolResult.toolName,
+      output: createToolModelOutput({
+        tool: tools?.[toolResult.toolName],
+        output:
+          toolResult.type === 'tool-result'
+            ? toolResult.output
+            : toolResult.error,
+        isError: toolResult.type === 'tool-error',
+      }),
+    }));
 
   if (toolResultContent.length > 0) {
     responseMessages.push({

@@ -130,6 +130,70 @@ describe('toResponseMessages', () => {
     `);
   });
 
+  it('should include tool errors as a separate message', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Tool used',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          input: {},
+        },
+        {
+          type: 'tool-error',
+          toolCallId: '123',
+          toolName: 'testTool',
+          error: 'Tool error',
+          input: {},
+        },
+      ],
+      tools: {
+        testTool: tool({
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Tool used",
+              "type": "text",
+            },
+            {
+              "input": {},
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "error",
+                "value": "Tool error",
+              },
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
+
   it('should handle undefined text', () => {
     const result = toResponseMessages({
       content: [
