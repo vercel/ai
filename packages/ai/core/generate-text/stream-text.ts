@@ -1097,7 +1097,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'tool-result': {
                       controller.enqueue(chunk);
-                      // store tool results for onFinish callback and toolResults promise:
                       stepToolOutputs.push(chunk);
                       stepContent.push(chunk);
                       break;
@@ -1105,6 +1104,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'tool-error': {
                       controller.enqueue(chunk);
+                      stepToolOutputs.push(chunk);
                       stepContent.push(chunk);
                       break;
                     }
