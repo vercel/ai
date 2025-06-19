@@ -4,7 +4,6 @@ import {
 } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { ModelMessage } from '../prompt/message';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
@@ -234,13 +233,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     });
                   } catch (error) {
                     toolResultsStreamController!.enqueue({
-                      type: 'error',
-                      error: new ToolExecutionError({
-                        toolCallId: toolCall.toolCallId,
-                        toolName: toolCall.toolName,
-                        toolInput: toolCall.input,
-                        cause: error,
-                      }),
+                      type: 'tool-error',
+                      toolCallId: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                      input: toolCall.input,
+                      error,
                     });
 
                     outstandingToolResults.delete(toolExecutionId);

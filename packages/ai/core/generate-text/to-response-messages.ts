@@ -3,7 +3,6 @@ import {
   AssistantModelMessage,
   ToolContent,
   ToolModelMessage,
-  ToolResultPart,
 } from '../prompt';
 import { ContentPart } from './content-part';
 import { ToolSet } from './tool-set';

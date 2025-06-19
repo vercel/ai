@@ -6,7 +6,6 @@ import {
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { asArray } from '../../src/util/as-array';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { ModelMessage } from '../prompt';
@@ -27,9 +26,10 @@ import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { asContent } from './as-content';
+import { ContentPart } from './content-part';
 import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
+import { DefaultGeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
@@ -43,7 +43,8 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolResultArray } from './tool-result';
+import { ToolErrorUnion } from './tool-error';
+import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
@@ -267,7 +268,9 @@ A function that attempts to repair a tool call that failed to parse.
           ReturnType<LanguageModelV2['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
         let currentToolCalls: ToolCallArray<TOOLS> = [];
-        let currentToolResults: ToolResultArray<TOOLS> = [];
+        let currentToolOutputs: Array<
+          ToolResultUnion<TOOLS> | ToolErrorUnion<TOOLS>
+        > = [];
         const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
@@ -426,7 +429,7 @@ A function that attempts to repair a tool call that failed to parse.
           );
 
           // execute tools:
-          currentToolResults =
+          currentToolOutputs =
             tools == null
               ? []
               : await executeTools({
@@ -442,7 +445,7 @@ A function that attempts to repair a tool call that failed to parse.
           const stepContent = asContent({
             content: currentModelResponse.content,
             toolCalls: currentToolCalls,
-            toolResults: currentToolResults,
+            toolOutputs: currentToolOutputs,
           });
 
           // append to messages for potential next step:
@@ -473,8 +476,8 @@ A function that attempts to repair a tool call that failed to parse.
         } while (
           // there are tool calls:
           currentToolCalls.length > 0 &&
-          // all current tool calls have results:
-          currentToolResults.length === currentToolCalls.length &&
+          // all current tool calls have outputs (incl. execution errors):
+          currentToolOutputs.length === currentToolCalls.length &&
           // continue until a stop condition is met:
           !(await isStopConditionMet({ stopConditions, steps }))
         );
@@ -539,7 +542,7 @@ async function executeTools<TOOLS extends ToolSet>({
   telemetry: TelemetrySettings | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-}): Promise<ToolResultArray<TOOLS>> {
+}): Promise<Array<ToolResultUnion<TOOLS> | ToolErrorUnion<TOOLS>>> {
   const toolResults = await Promise.all(
     toolCalls.map(async ({ toolCallId, toolName, input }) => {
       const tool = tools[toolName];
@@ -557,7 +560,7 @@ async function executeTools<TOOLS extends ToolSet>({
         return undefined;
       }
 
-      const result = await recordSpan({
+      return await recordSpan({
         name: 'ai.toolCall',
         attributes: selectTelemetryAttributes({
           telemetry,
@@ -600,25 +603,24 @@ async function executeTools<TOOLS extends ToolSet>({
               // if the result is not serializable.
             }
 
-            return result;
-          } catch (error) {
-            throw new ToolExecutionError({
+            return {
+              type: 'tool-result',
               toolCallId,
               toolName,
-              toolInput: input,
-              cause: error,
-            });
+              input,
+              output: result,
+            } as ToolResultUnion<TOOLS>;
+          } catch (error) {
+            return {
+              type: 'tool-error',
+              toolCallId,
+              toolName,
+              input,
+              error,
+            } as ToolErrorUnion<TOOLS>;
           }
         },
       });
-
-      return {
-        type: 'tool-result',
-        toolCallId,
-        toolName,
-        input,
-        output: result,
-      } as ToolResultArray<TOOLS>[number];
     }),
   );
 
@@ -741,4 +743,39 @@ function asToolCalls(content: Array<LanguageModelV2Content>) {
     toolName: toolCall.toolName,
     input: toolCall.input,
   }));
+}
+
+function asContent<TOOLS extends ToolSet>({
+  content,
+  toolCalls,
+  toolOutputs,
+}: {
+  content: Array<LanguageModelV2Content>;
+  toolCalls: ToolCallArray<TOOLS>;
+  toolOutputs: Array<ToolResultUnion<TOOLS> | ToolErrorUnion<TOOLS>>;
+}): Array<ContentPart<TOOLS>> {
+  return [
+    ...content.map(part => {
+      switch (part.type) {
+        case 'text':
+        case 'reasoning':
+        case 'source':
+          return part;
+
+        case 'file': {
+          return {
+            type: 'file' as const,
+            file: new DefaultGeneratedFile(part),
+          };
+        }
+
+        case 'tool-call': {
+          return toolCalls.find(
+            toolCall => toolCall.toolCallId === part.toolCallId,
+          )!;
+        }
+      }
+    }),
+    ...toolOutputs,
+  ];
 }
