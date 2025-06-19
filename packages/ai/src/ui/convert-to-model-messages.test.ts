@@ -161,7 +161,7 @@ describe('convertToModelMessages', () => {
       ] satisfies ModelMessage[]);
     });
 
-    it('should handle assistant message with tool invocations', () => {
+    it('should handle assistant message with tool output available', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
@@ -179,7 +179,104 @@ describe('convertToModelMessages', () => {
         },
       ]);
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "3",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should handle assistant message with tool output error', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Let me calculate that for you.' },
+            {
+              type: 'tool-calculator',
+              state: 'output-error',
+              toolCallId: 'call1',
+              input: { operation: 'add', numbers: [1, 2] },
+              errorText: 'Error: Invalid input',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error",
+                  "value": "Error: Invalid input",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
     });
 
     it('should handle assistant message with tool invocations that have multi-part responses', () => {
