@@ -129,17 +129,15 @@ export function convertToGoogleGenerativeAIMessages(
 
         contents.push({
           role: 'user',
-          parts: content.map(part => {
-            return {
-              functionResponse: {
+          parts: content.map(part => ({
+            functionResponse: {
+              name: part.toolName,
+              response: {
                 name: part.toolName,
-                response: {
-                  name: part.toolName,
-                  content: part.output.value,
-                },
+                content: part.output.value,
               },
-            };
-          }),
+            },
+          })),
         });
         break;
       }
