@@ -25,7 +25,7 @@ async function main() {
               .string()
               .describe('The location to get the weather for'),
           }),
-          execute: async ({ location }) => ({
+          execute: ({ location }) => ({
             location,
             temperature: 72 + Math.floor(Math.random() * 21) - 10,
           }),

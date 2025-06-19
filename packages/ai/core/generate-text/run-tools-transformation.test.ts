@@ -62,7 +62,7 @@ it('should forward text deltas correctly', async () => {
   `);
 });
 
-it('should handle immediate tool execution', async () => {
+it('should handle async tool execution', async () => {
   const inputStream: ReadableStream<LanguageModelV2StreamPart> =
     convertArrayToReadableStream([
       {
@@ -84,6 +84,74 @@ it('should handle immediate tool execution', async () => {
       syncTool: {
         inputSchema: z.object({ value: z.string() }),
         execute: async ({ value }) => `${value}-sync-result`,
+      },
+    },
+    generatorStream: inputStream,
+    tracer: new MockTracer(),
+    telemetry: undefined,
+    messages: [],
+    system: undefined,
+    abortSignal: undefined,
+    repairToolCall: undefined,
+  });
+
+  expect(await convertReadableStreamToArray(transformedStream))
+    .toMatchInlineSnapshot(`
+      [
+        {
+          "input": {
+            "value": "test",
+          },
+          "toolCallId": "call-1",
+          "toolName": "syncTool",
+          "type": "tool-call",
+        },
+        {
+          "input": {
+            "value": "test",
+          },
+          "output": "test-sync-result",
+          "toolCallId": "call-1",
+          "toolName": "syncTool",
+          "type": "tool-result",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+        },
+      ]
+    `);
+});
+
+it('should handle sync tool execution', async () => {
+  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+    convertArrayToReadableStream([
+      {
+        type: 'tool-call',
+        toolCallType: 'function',
+        toolCallId: 'call-1',
+        toolName: 'syncTool',
+        input: `{ "value": "test" }`,
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: testUsage,
+      },
+    ]);
+
+  const transformedStream = runToolsTransformation({
+    tools: {
+      syncTool: {
+        inputSchema: z.object({ value: z.string() }),
+        execute: ({ value }) => `${value}-sync-result`,
       },
     },
     generatorStream: inputStream,
