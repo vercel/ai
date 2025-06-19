@@ -4,7 +4,7 @@ import {
   LanguageModelV2,
   ProviderV2,
   TranscriptionModelV2,
-  SpeechModelV1,
+  SpeechModelV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -90,7 +90,7 @@ Creates a model for transcription.
   /**
 Creates a model for speech generation.
    */
-  speech(modelId: OpenAISpeechModelId): SpeechModelV1;
+  speech(modelId: OpenAISpeechModelId): SpeechModelV2;
 
   /**
 OpenAI-specific tools.
