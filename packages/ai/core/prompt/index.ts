@@ -7,6 +7,7 @@ export type {
   ToolResultPart,
 } from './content-part';
 export type { DataContent } from './data-content';
+export { convertToLanguageModelV2DataContent } from './data-content';
 export {
   assistantModelMessageSchema,
   coreAssistantMessageSchema,
