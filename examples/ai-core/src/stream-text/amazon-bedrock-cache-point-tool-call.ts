@@ -1,11 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import {
-  streamText,
-  tool,
-  ModelMessage,
-  ToolCallPart,
-  ToolResultPart,
-} from 'ai';
+import { streamText, tool, ModelMessage } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -130,8 +124,6 @@ const weatherData: Record<string, number> = {
 };
 
 async function main() {
-  let toolResponseAvailable = false;
-
   const result = streamText({
     model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
     maxOutputTokens: 512,
@@ -151,8 +143,6 @@ async function main() {
   });
 
   let fullResponse = '';
-  const toolCalls: ToolCallPart[] = [];
-  const toolResponses: ToolResultPart[] = [];
 
   for await (const delta of result.fullStream) {
     switch (delta.type) {
@@ -163,8 +153,6 @@ async function main() {
       }
 
       case 'tool-call': {
-        toolCalls.push(delta);
-
         process.stdout.write(
           `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.input)}`,
         );
@@ -172,8 +160,6 @@ async function main() {
       }
 
       case 'tool-result': {
-        toolResponses.push(delta);
-
         process.stdout.write(
           `\nTool response: '${delta.toolName}' ${JSON.stringify(
             delta.output,
@@ -185,16 +171,8 @@ async function main() {
   }
   process.stdout.write('\n\n');
 
-  messages.push({
-    role: 'assistant',
-    content: [{ type: 'text', text: fullResponse }, ...toolCalls],
-  });
+  messages.push(...(await result.response).messages);
 
-  if (toolResponses.length > 0) {
-    messages.push({ role: 'tool', content: toolResponses });
-  }
-
-  toolResponseAvailable = toolCalls.length > 0;
   console.log('Messages:', messages[0].content);
   console.log(JSON.stringify(result.providerMetadata, null, 2));
 }

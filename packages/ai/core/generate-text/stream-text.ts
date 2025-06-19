@@ -5,14 +5,16 @@ import { ServerResponse } from 'node:http';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { UIDataTypes, UIMessage } from '../../src/ui';
+import { UIMessage } from '../../src/ui';
 import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
+import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
 import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
 import {
   InferUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 import {
   InferUIMessageData,
   InferUIMessageMetadata,
@@ -76,8 +78,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
-import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -665,7 +665,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'finish-step') {
           const stepMessages = toResponseMessages({
             content: recordedContent,
-            tools: tools ?? ({} as TOOLS),
+            tools,
           });
 
           // Add step information (after response messages are updated):
@@ -1264,7 +1264,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     responseMessages.push(
                       ...toResponseMessages({
                         content: stepContent,
-                        tools: tools ?? ({} as TOOLS),
+                        tools,
                       }),
                     );
 

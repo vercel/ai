@@ -1,4 +1,4 @@
-import { ToolResultContent } from '@ai-sdk/provider-utils';
+import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
 import { z } from 'zod';
 
 type ExecuteFunction<PARAMETERS, RESULT> =
@@ -36,7 +36,7 @@ function bashTool_20241022<RESULT>(
       },
       RESULT
     >;
-    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+    toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
   } = {},
 ): {
   type: 'provider-defined-client';
@@ -44,7 +44,7 @@ function bashTool_20241022<RESULT>(
   args: {};
   parameters: typeof Bash20241022Parameters;
   execute: ExecuteFunction<z.infer<typeof Bash20241022Parameters>, RESULT>;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
 } {
   return {
     type: 'provider-defined-client',
@@ -52,7 +52,7 @@ function bashTool_20241022<RESULT>(
     args: {},
     parameters: Bash20241022Parameters,
     execute: options.execute,
-    experimental_toToolResultContent: options.experimental_toToolResultContent,
+    toModelOutput: options.toModelOutput,
   };
 }
 
@@ -84,7 +84,7 @@ function bashTool_20250124<RESULT>(
       },
       RESULT
     >;
-    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+    toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
   } = {},
 ): {
   type: 'provider-defined-client';
@@ -92,7 +92,7 @@ function bashTool_20250124<RESULT>(
   args: {};
   parameters: typeof Bash20250124Parameters;
   execute: ExecuteFunction<z.infer<typeof Bash20250124Parameters>, RESULT>;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
 } {
   return {
     type: 'provider-defined-client',
@@ -100,7 +100,7 @@ function bashTool_20250124<RESULT>(
     args: {},
     parameters: Bash20250124Parameters,
     execute: options.execute,
-    experimental_toToolResultContent: options.experimental_toToolResultContent,
+    toModelOutput: options.toModelOutput,
   };
 }
 
@@ -162,7 +162,7 @@ function textEditorTool_20241022<RESULT>(
       },
       RESULT
     >;
-    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+    toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
   } = {},
 ): {
   type: 'provider-defined-client';
@@ -173,7 +173,7 @@ function textEditorTool_20241022<RESULT>(
     z.infer<typeof TextEditor20241022Parameters>,
     RESULT
   >;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
 } {
   return {
     type: 'provider-defined-client',
@@ -181,7 +181,7 @@ function textEditorTool_20241022<RESULT>(
     args: {},
     parameters: TextEditor20241022Parameters,
     execute: options.execute,
-    experimental_toToolResultContent: options.experimental_toToolResultContent,
+    toModelOutput: options.toModelOutput,
   };
 }
 
@@ -243,7 +243,7 @@ function textEditorTool_20250124<RESULT>(
       },
       RESULT
     >;
-    experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+    toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
   } = {},
 ): {
   type: 'provider-defined-client';
@@ -254,7 +254,7 @@ function textEditorTool_20250124<RESULT>(
     z.infer<typeof TextEditor20250124Parameters>,
     RESULT
   >;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
 } {
   return {
     type: 'provider-defined-client',
@@ -262,7 +262,7 @@ function textEditorTool_20250124<RESULT>(
     args: {},
     parameters: TextEditor20250124Parameters,
     execute: options.execute,
-    experimental_toToolResultContent: options.experimental_toToolResultContent,
+    toModelOutput: options.toModelOutput,
   };
 }
 
@@ -338,14 +338,14 @@ function computerTool_20241022<RESULT>(options: {
     },
     RESULT
   >;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
 }): {
   type: 'provider-defined-client';
   id: 'anthropic.computer_20241022';
   args: {};
   parameters: typeof Computer20241022Parameters;
   execute: ExecuteFunction<z.infer<typeof Computer20241022Parameters>, RESULT>;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
 } {
   return {
     type: 'provider-defined-client',
@@ -357,7 +357,7 @@ function computerTool_20241022<RESULT>(options: {
     },
     parameters: Computer20241022Parameters,
     execute: options.execute,
-    experimental_toToolResultContent: options.experimental_toToolResultContent,
+    toModelOutput: options.toModelOutput,
   };
 }
 
@@ -474,14 +474,14 @@ function computerTool_20250124<RESULT>(options: {
     },
     RESULT
   >;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
 }): {
   type: 'provider-defined-client';
   id: 'anthropic.computer_20250124';
   args: {};
   parameters: typeof Computer20250124Parameters;
   execute: ExecuteFunction<z.infer<typeof Computer20250124Parameters>, RESULT>;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
 } {
   return {
     type: 'provider-defined-client',
@@ -493,7 +493,7 @@ function computerTool_20250124<RESULT>(options: {
     },
     parameters: Computer20250124Parameters,
     execute: options.execute,
-    experimental_toToolResultContent: options.experimental_toToolResultContent,
+    toModelOutput: options.toModelOutput,
   };
 }
 

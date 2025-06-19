@@ -1,3 +1,4 @@
+import { JSONObject, JSONValue } from '../../json-value/json-value';
 import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
 import { LanguageModelV2DataContent } from './language-model-v2-data-content';
 
@@ -164,44 +165,9 @@ Name of the tool that generated this result.
   toolName: string;
 
   /**
-Result of the tool call. This is a JSON-serializable object.
+Result of the tool call.
    */
-  output: unknown;
-
-  /**
-Optional flag if the result is an error or an error message.
-   */
-  isError?: boolean;
-
-  /**
-Tool results as an array of parts. This enables advanced tool results including images.
-When this is used, the `result` field should be ignored (if the provider supports content).
-   */
-  content?: Array<
-    | {
-        type: 'text';
-
-        /**
-Text content.
-         */
-        text: string;
-      }
-    | {
-        type: 'image';
-
-        /**
-base-64 encoded image data
-         */
-        data: string;
-
-        /**
-IANA media type of the image.
-
-@see https://www.iana.org/assignments/media-types/media-types.xhtml
-         */
-        mediaType?: string;
-      }
-  >;
+  output: LanguageModelV2ToolResultOutput;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -210,3 +176,44 @@ IANA media type of the image.
    */
   providerOptions?: SharedV2ProviderOptions;
 }
+
+export type LanguageModelV2ToolResultOutput =
+  | {
+      type: 'text';
+      value: string;
+    }
+  | {
+      type: 'json';
+      value: JSONValue;
+    }
+  | {
+      type: 'content';
+      value: Array<
+        | {
+            type: 'text';
+
+            /**
+Text content.
+*/
+            text: string;
+          }
+        | {
+            type: 'image';
+
+            /**
+base-64 encoded image data
+*/
+            data: string;
+
+            /**
+IANA media type of the image.
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+*/
+            mediaType?: string;
+          }
+      >;
+    }
+  | {
+      type: 'error';
+      value: string;
+    };

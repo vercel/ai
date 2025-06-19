@@ -47,7 +47,6 @@ describe('tool helper', () => {
       inputSchema: z.object({ number: z.number() }),
       execute: async input => {
         expectTypeOf(input).toEqualTypeOf<{ number: number }>();
-
         return 'test' as const;
       },
     });

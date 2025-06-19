@@ -120,39 +120,52 @@ export async function convertToBedrockChatMessages(
               break;
             }
             case 'tool': {
-              for (let i = 0; i < content.length; i++) {
-                const part = content[i];
-                const toolResultContent =
-                  part.content != undefined
-                    ? part.content.map(part => {
-                        switch (part.type) {
-                          case 'text':
-                            return {
-                              text: part.text,
-                            };
-                          case 'image':
-                            if (!part.mediaType) {
-                              throw new Error(
-                                'Image mime type is required in tool result part content',
-                              );
-                            }
-                            const format = part.mediaType.split('/')[1];
-                            if (!isBedrockImageFormat(format)) {
-                              throw new Error(
-                                `Unsupported image format: ${format}`,
-                              );
-                            }
-                            return {
-                              image: {
-                                format,
-                                source: {
-                                  bytes: part.data,
-                                },
+              for (const part of content) {
+                let toolResultContent;
+
+                const output = part.output;
+                switch (output.type) {
+                  case 'content': {
+                    toolResultContent = output.value.map(contentPart => {
+                      switch (contentPart.type) {
+                        case 'text':
+                          return { text: contentPart.text };
+                        case 'image':
+                          if (!contentPart.mediaType) {
+                            throw new Error(
+                              'Image mime type is required in tool result part content',
+                            );
+                          }
+
+                          const format = contentPart.mediaType.split('/')[1];
+                          if (!isBedrockImageFormat(format)) {
+                            throw new Error(
+                              `Unsupported image format: ${format}`,
+                            );
+                          }
+                          return {
+                            image: {
+                              format,
+                              source: {
+                                bytes: contentPart.data,
                               },
-                            };
-                        }
-                      })
-                    : [{ text: JSON.stringify(part.output) }];
+                            },
+                          };
+                      }
+                    });
+                    break;
+                  }
+                  case 'text':
+                  case 'error':
+                    toolResultContent = [{ text: output.value }];
+                    break;
+                  case 'json':
+                  default:
+                    toolResultContent = [
+                      { text: JSON.stringify(output.value) },
+                    ];
+                    break;
+                }
 
                 bedrockContent.push({
                   toolResult: {

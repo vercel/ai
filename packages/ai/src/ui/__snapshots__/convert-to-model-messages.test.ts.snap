@@ -26,7 +26,10 @@ exports[`convertToModelMessages > assistant message > should handle assistant me
   {
     "content": [
       {
-        "output": "3",
+        "output": {
+          "type": "text",
+          "value": "3",
+        },
         "toolCallId": "call1",
         "toolName": "calculator",
         "type": "tool-result",
@@ -57,18 +60,10 @@ exports[`convertToModelMessages > assistant message > should handle assistant me
   {
     "content": [
       {
-        "experimental_content": [
-          {
-            "data": "imgbase64",
-            "type": "image",
-          },
-        ],
-        "output": [
-          {
-            "data": "imgbase64",
-            "type": "image",
-          },
-        ],
+        "output": {
+          "type": "text",
+          "value": "imgbase64",
+        },
         "toolCallId": "call1",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -124,7 +119,10 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "output": "result-1",
+        "output": {
+          "type": "text",
+          "value": "result-1",
+        },
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -160,13 +158,19 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "output": "result-2",
+        "output": {
+          "type": "text",
+          "value": "result-2",
+        },
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-result",
       },
       {
-        "output": "result-3",
+        "output": {
+          "type": "text",
+          "value": "result-3",
+        },
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -190,7 +194,10 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "output": "result-4",
+        "output": {
+          "type": "text",
+          "value": "result-4",
+        },
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -232,7 +239,10 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "output": "result-1",
+        "output": {
+          "type": "text",
+          "value": "result-1",
+        },
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -264,13 +274,19 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "output": "result-2",
+        "output": {
+          "type": "text",
+          "value": "result-2",
+        },
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-result",
       },
       {
-        "output": "result-3",
+        "output": {
+          "type": "text",
+          "value": "result-3",
+        },
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -294,7 +310,10 @@ exports[`convertToModelMessages > assistant message > should handle conversation
   {
     "content": [
       {
-        "output": "result-4",
+        "output": {
+          "type": "text",
+          "value": "result-4",
+        },
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -323,7 +342,10 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "output": "result-1",
+        "output": {
+          "type": "text",
+          "value": "result-1",
+        },
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -355,13 +377,19 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "output": "result-2",
+        "output": {
+          "type": "text",
+          "value": "result-2",
+        },
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-result",
       },
       {
-        "output": "result-3",
+        "output": {
+          "type": "text",
+          "value": "result-3",
+        },
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-result",
@@ -385,7 +413,10 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
   {
     "content": [
       {
-        "output": "result-4",
+        "output": {
+          "type": "text",
+          "value": "result-4",
+        },
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-result",

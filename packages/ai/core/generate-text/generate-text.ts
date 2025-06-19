@@ -15,7 +15,9 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
+import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
+import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -43,8 +45,6 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
-import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -449,7 +449,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               content: stepContent,
-              tools: tools ?? ({} as TOOLS),
+              tools,
             }),
           );
 

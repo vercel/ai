@@ -46,7 +46,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result > onStepFinish should 
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -100,7 +103,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result > onStepFinish should 
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -151,7 +157,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result > result.response.mess
   {
     "content": [
       {
-        "output": "result1",
+        "output": {
+          "type": "text",
+          "value": "result1",
+        },
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",
@@ -217,7 +226,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result > result.steps should 
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -271,7 +283,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result > result.steps should 
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -350,7 +365,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > onS
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -404,7 +422,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > onS
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -455,7 +476,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > res
   {
     "content": [
       {
-        "output": "result1",
+        "output": {
+          "type": "text",
+          "value": "result1",
+        },
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",
@@ -521,7 +545,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > res
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -575,7 +602,10 @@ exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > res
         {
           "content": [
             {
-              "output": "result1",
+              "output": {
+                "type": "text",
+                "value": "result1",
+              },
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
@@ -695,7 +725,10 @@ exports[`result.response.messages > should contain assistant response message an
   {
     "content": [
       {
-        "output": "result1",
+        "output": {
+          "type": "text",
+          "value": "result1",
+        },
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-result",

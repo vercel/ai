@@ -1,5 +1,6 @@
 import { ToolSet } from '../../core/generate-text/tool-set';
 import { ToolResultPart } from '../../core/prompt/content-part';
+import { createToolModelOutput } from '../../core/prompt/create-tool-model-output';
 import { AssistantContent, ModelMessage } from '../../core/prompt/message';
 import { MessageConversionError } from '../../core/prompt/message-conversion-error';
 import {
@@ -17,11 +18,10 @@ import {
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
-export function convertToModelMessages<TOOLS extends ToolSet = never>(
+export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
-  options?: { tools?: TOOLS },
+  options?: { tools?: ToolSet },
 ): ModelMessage[] {
-  const tools = options?.tools ?? ({} as TOOLS);
   const modelMessages: ModelMessage[] = [];
 
   for (const message of messages) {
@@ -134,22 +134,17 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                   const toolName = getToolName(toolPart);
                   const { toolCallId, output } = toolPart;
 
-                  const tool = tools[toolName];
-                  return tool?.experimental_toToolResultContent != null
-                    ? {
-                        type: 'tool-result',
-                        toolCallId,
-                        toolName,
-                        output: tool.experimental_toToolResultContent(output),
-                        experimental_content:
-                          tool.experimental_toToolResultContent(output),
-                      }
-                    : {
-                        type: 'tool-result',
-                        toolCallId,
-                        toolName,
-                        output,
-                      };
+                  // TODO handle error case
+                  return {
+                    type: 'tool-result',
+                    toolCallId,
+                    toolName,
+                    output: createToolModelOutput({
+                      output,
+                      tool: options?.tools?.[toolName],
+                      isError: false,
+                    }),
+                  };
                 }),
               });
             }

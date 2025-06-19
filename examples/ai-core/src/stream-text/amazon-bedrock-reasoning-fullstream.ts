@@ -54,7 +54,11 @@ async function main() {
       }
 
       case 'tool-result': {
-        toolResponses.push(part);
+        const transformedPart: ToolResultPart = {
+          ...part,
+          output: { type: 'json', value: part.output },
+        };
+        toolResponses.push(transformedPart);
 
         process.stdout.write(
           `\nTool response: '${part.toolName}' ${JSON.stringify(part.output)}`,

@@ -94,7 +94,7 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolName: 'testFunction',
             toolCallId: 'testCallId',
-            output: { someData: 'test result' },
+            output: { type: 'json', value: { someData: 'test result' } },
           },
         ],
       },

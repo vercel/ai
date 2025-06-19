@@ -1,13 +1,11 @@
+import { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
 import { z } from 'zod';
+import { jsonValueSchema } from '../types/json-value';
 import {
   providerMetadataSchema,
   ProviderOptions,
 } from '../types/provider-metadata';
 import { DataContent, dataContentSchema } from './data-content';
-import {
-  ToolResultContent,
-  toolResultContentSchema,
-} from './tool-result-content';
 
 /**
 Text content part of a prompt. It contains a string of text.
@@ -208,17 +206,7 @@ Name of the tool that generated this result.
   /**
 Result of the tool call. This is a JSON-serializable object.
    */
-  output: unknown;
-
-  /**
-Multi-part content of the tool result. Only for tools that support multipart results.
-   */
-  experimental_content?: ToolResultContent;
-
-  /**
-Optional flag if the result is an error or an error message.
-   */
-  isError?: boolean;
+  output: LanguageModelV2ToolResultOutput;
 
   /**
 Additional provider-specific metadata. They are passed through
@@ -231,12 +219,41 @@ functionality that can be fully encapsulated in the provider.
 /**
 @internal
  */
+export const outputSchema: z.ZodType<LanguageModelV2ToolResultOutput> =
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('text'),
+      value: z.string(),
+    }),
+    z.object({
+      type: z.literal('json'),
+      value: jsonValueSchema,
+    }),
+    z.object({
+      type: z.literal('content'),
+      value: z.array(
+        z.union([
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+          z.object({
+            type: z.literal('image'),
+            data: z.string(),
+            mediaType: z.string().optional(),
+          }),
+        ]),
+      ),
+    }),
+  ]);
+
+/**
+@internal
+ */
 export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   type: z.literal('tool-result'),
   toolCallId: z.string(),
   toolName: z.string(),
-  output: z.unknown(),
-  content: toolResultContentSchema.optional(),
-  isError: z.boolean().optional(),
+  output: outputSchema,
   providerOptions: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type

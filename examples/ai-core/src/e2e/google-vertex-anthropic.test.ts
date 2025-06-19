@@ -138,16 +138,19 @@ const toolTests = (model: LanguageModelV2) => {
                 }
               }
             },
-            experimental_toToolResultContent(result) {
-              return typeof result === 'string'
-                ? [{ type: 'text', text: result }]
-                : [
-                    {
-                      type: 'image',
-                      data: result.data,
-                      mediaType: 'image/png',
-                    },
-                  ];
+            toModelOutput(result) {
+              return {
+                type: 'content',
+                value: [
+                  typeof result === 'string'
+                    ? { type: 'text', text: result }
+                    : {
+                        type: 'image',
+                        data: result.data,
+                        mediaType: 'image/png',
+                      },
+                ],
+              };
             },
           }),
         },

@@ -1,7 +1,7 @@
-import { z } from 'zod';
-import { tool } from '../tool';
+import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
+import { tool } from '../tool';
 
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
@@ -13,10 +13,10 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
           inputSchema: z.object({}),
-        },
+        }),
       },
     });
 
@@ -91,36 +91,43 @@ describe('toResponseMessages', () => {
         testTool: tool({
           description: 'A test tool',
           inputSchema: z.object({}),
-          execute: async () => 'Tool result',
         }),
       },
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          { type: 'text', text: 'Tool used' },
-          {
-            type: 'tool-call',
-            toolCallId: '123',
-            toolName: 'testTool',
-            input: {},
-          },
-        ],
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: '123',
-            toolName: 'testTool',
-            output: 'Tool result',
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Tool used",
+              "type": "text",
+            },
+            {
+              "input": {},
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "text",
+                "value": "Tool result",
+              },
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 
   it('should handle undefined text', () => {
@@ -242,10 +249,12 @@ describe('toResponseMessages', () => {
         testTool: tool({
           description: 'A test tool',
           inputSchema: z.object({}),
-          execute: async () => 'image-base64',
-          experimental_toToolResultContent(result) {
-            return [{ type: 'image', data: result, mediaType: 'image/png' }];
-          },
+          toModelOutput: () => ({
+            type: 'json',
+            value: {
+              proof: 'that toModelOutput is called',
+            },
+          }),
         }),
       },
     });
@@ -270,20 +279,12 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
-              "experimental_content": [
-                {
-                  "data": "image-base64",
-                  "mediaType": "image/png",
-                  "type": "image",
+              "output": {
+                "type": "json",
+                "value": {
+                  "proof": "that toModelOutput is called",
                 },
-              ],
-              "output": [
-                {
-                  "data": "image-base64",
-                  "mediaType": "image/png",
-                  "type": "image",
-                },
-              ],
+              },
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-result",

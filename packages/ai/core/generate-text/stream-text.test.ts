@@ -25,10 +25,10 @@ import { mockValues } from '../test/mock-values';
 import { Tool, tool } from '../tool/tool';
 import { object, text } from './output';
 import { StepResult } from './step-result';
+import { stepCountIs } from './stop-condition';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { stepCountIs } from './stop-condition';
 
 const defaultSettings = () =>
   ({
@@ -2539,9 +2539,10 @@ describe('streamText', () => {
                           type: 'tool-result',
                           toolCallId: 'call-1',
                           toolName: 'tool1',
-                          output: 'result1',
-                          content: undefined,
-                          isError: undefined,
+                          output: {
+                            type: 'text',
+                            value: 'result1',
+                          },
                           providerOptions: undefined,
                         },
                       ],
@@ -2922,9 +2923,10 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "content": undefined,
-                      "isError": undefined,
-                      "output": "result1",
+                      "output": {
+                        "type": "text",
+                        "value": "result1",
+                      },
                       "providerOptions": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
@@ -3003,7 +3005,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "output": "result1",
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3056,7 +3061,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "output": "result1",
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3136,7 +3144,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "output": "result1",
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3189,7 +3200,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "output": "result1",
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3359,9 +3373,10 @@ describe('streamText', () => {
                           type: 'tool-result',
                           toolCallId: 'call-1',
                           toolName: 'tool1',
-                          output: 'RESULT1',
-                          content: undefined,
-                          isError: undefined,
+                          output: {
+                            type: 'text',
+                            value: 'RESULT1',
+                          },
                           providerOptions: undefined,
                         },
                       ],
@@ -3568,7 +3583,10 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "output": "RESULT1",
+                        "output": {
+                          "type": "text",
+                          "value": "RESULT1",
+                        },
                         "toolCallId": "call-1",
                         "toolName": "tool1",
                         "type": "tool-result",
@@ -3646,7 +3664,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "output": "RESULT1",
+                            "output": {
+                              "type": "text",
+                              "value": "RESULT1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3704,7 +3725,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "output": "RESULT1",
+                            "output": {
+                              "type": "text",
+                              "value": "RESULT1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3815,7 +3839,10 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "output": "RESULT1",
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -3873,7 +3900,10 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "output": "RESULT1",
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -4003,7 +4033,10 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "output": "RESULT1",
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -4061,7 +4094,10 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "output": "RESULT1",
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -4119,7 +4155,10 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "output": "RESULT1",
+                    "output": {
+                      "type": "text",
+                      "value": "RESULT1",
+                    },
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -4229,7 +4268,7 @@ describe('streamText', () => {
                 "ai.model.id": "mock-model-id",
                 "ai.model.provider": "mock-provider",
                 "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":"RESULT1"}]}]",
+                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
                   "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
@@ -4475,7 +4514,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "output": "result1",
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -4556,7 +4598,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "output": "result1",
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",

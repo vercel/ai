@@ -33,10 +33,15 @@ async function main() {
         },
 
         // map to tool result content for LLM consumption:
-        experimental_toToolResultContent(result) {
-          return typeof result === 'string'
-            ? [{ type: 'text', text: result }]
-            : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+        toModelOutput(result) {
+          return {
+            type: 'content',
+            value: [
+              typeof result === 'string'
+                ? { type: 'text', text: result }
+                : { type: 'image', data: result.data, mediaType: 'image/png' },
+            ],
+          };
         },
       }),
     },

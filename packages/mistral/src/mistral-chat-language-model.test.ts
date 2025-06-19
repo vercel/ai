@@ -4,6 +4,7 @@ import {
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createMistral } from './mistral-provider';
+import { vi } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -889,5 +890,71 @@ describe('doStream with raw chunks', () => {
         },
       ]
     `);
+  });
+});
+
+describe('tool result format support', () => {
+  it('should handle new LanguageModelV2ToolResultOutput format', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-id',
+        object: 'chat.completion',
+        created: 1234567890,
+        model: 'mistral-small',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Here is the result',
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 5,
+          total_tokens: 15,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              input: { query: 'test' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              output: { type: 'json', value: { result: 'success' } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Here is the result' },
+    ]);
+    expect(result.finishReason).toBe('stop');
   });
 });

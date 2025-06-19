@@ -10,6 +10,7 @@ import {
   imageMediaTypeSignatures,
 } from '../../src/util/detect-media-type';
 import { download } from '../../src/util/download';
+import { ToolSet } from '../generate-text/tool-set';
 import { ModelMessage } from '../prompt/message';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import {
@@ -39,7 +40,7 @@ export async function convertToLanguageModelPrompt({
       ? [{ role: 'system' as const, content: prompt.system }]
       : []),
     ...prompt.messages.map(message =>
-      convertToLanguageModelMessage(message, downloadedAssets),
+      convertToLanguageModelMessage({ message, downloadedAssets }),
     ),
   ];
 }
@@ -51,13 +52,16 @@ export async function convertToLanguageModelPrompt({
  * @param downloadedAssets A map of URLs to their downloaded data. Only
  *   available if the model does not support URLs, null otherwise.
  */
-export function convertToLanguageModelMessage(
-  message: ModelMessage,
+export function convertToLanguageModelMessage<TOOLS extends ToolSet = never>({
+  message,
+  downloadedAssets,
+}: {
+  message: ModelMessage;
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
-  >,
-): LanguageModelV2Message {
+  >;
+}): LanguageModelV2Message {
   const role = message.role;
   switch (role) {
     case 'system': {
@@ -152,12 +156,10 @@ export function convertToLanguageModelMessage(
       return {
         role: 'tool',
         content: message.content.map(part => ({
-          type: 'tool-result',
+          type: 'tool-result' as const,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           output: part.output,
-          content: part.experimental_content,
-          isError: part.isError,
           providerOptions: part.providerOptions,
         })),
         providerOptions: message.providerOptions,

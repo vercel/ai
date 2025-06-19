@@ -1,7 +1,5 @@
-import { z } from 'zod';
-import { convertToModelMessages } from './convert-to-model-messages';
 import { ModelMessage } from '../../core/prompt/message';
-import { tool } from '../../core/tool/tool';
+import { convertToModelMessages } from './convert-to-model-messages';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
@@ -185,35 +183,22 @@ describe('convertToModelMessages', () => {
     });
 
     it('should handle assistant message with tool invocations that have multi-part responses', () => {
-      const tools = {
-        screenshot: tool({
-          inputSchema: z.object({}),
-          execute: async () => 'imgbase64',
-          experimental_toToolResultContent: result => [
-            { type: 'image', data: result },
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Let me calculate that for you.' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: {},
+              output: 'imgbase64',
+            },
           ],
-        }),
-      };
-
-      const result = convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
-              { type: 'step-start' },
-              { type: 'text', text: 'Let me calculate that for you.' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call1',
-                input: {},
-                output: 'imgbase64',
-              },
-            ],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
+        },
+      ]);
 
       expect(result).toMatchSnapshot();
     });
@@ -234,112 +219,92 @@ describe('convertToModelMessages', () => {
     });
 
     it('should handle conversation with multiple tool invocations that have step information', () => {
-      const tools = {
-        screenshot: tool({
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => 'imgbase64',
-        }),
-      };
-
-      const result = convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
-              { type: 'step-start' },
-              { type: 'text', text: 'response' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-1',
-                input: { value: 'value-1' },
-                output: 'result-1',
-              },
-              { type: 'step-start' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-2',
-                input: { value: 'value-2' },
-                output: 'result-2',
-              },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-3',
-                input: { value: 'value-3' },
-                output: 'result-3',
-              },
-              { type: 'step-start' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-4',
-                input: { value: 'value-4' },
-                output: 'result-4',
-              },
-            ],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'response' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { value: 'value-1' },
+              output: 'result-1',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-2',
+              input: { value: 'value-2' },
+              output: 'result-2',
+            },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-3',
+              input: { value: 'value-3' },
+              output: 'result-3',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-4',
+              input: { value: 'value-4' },
+              output: 'result-4',
+            },
+          ],
+        },
+      ]);
 
       expect(result).toMatchSnapshot();
     });
 
     it('should handle conversation with mix of tool invocations and text', () => {
-      const tools = {
-        screenshot: tool({
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => 'imgbase64',
-        }),
-      };
-
-      const result = convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
-              { type: 'step-start' },
-              { type: 'text', text: 'i am gonna use tool1' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-1',
-                input: { value: 'value-1' },
-                output: 'result-1',
-              },
-              { type: 'step-start' },
-              { type: 'text', text: 'i am gonna use tool2 and tool3' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-2',
-                input: { value: 'value-2' },
-                output: 'result-2',
-              },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-3',
-                input: { value: 'value-3' },
-                output: 'result-3',
-              },
-              { type: 'step-start' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-4',
-                input: { value: 'value-4' },
-                output: 'result-4',
-              },
-              { type: 'step-start' },
-              { type: 'text', text: 'final response' },
-            ],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'i am gonna use tool1' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { value: 'value-1' },
+              output: 'result-1',
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'i am gonna use tool2 and tool3' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-2',
+              input: { value: 'value-2' },
+              output: 'result-2',
+            },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-3',
+              input: { value: 'value-3' },
+              output: 'result-3',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-4',
+              input: { value: 'value-4' },
+              output: 'result-4',
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'final response' },
+          ],
+        },
+      ]);
 
       expect(result).toMatchSnapshot();
     });
@@ -396,60 +361,50 @@ describe('convertToModelMessages', () => {
     });
 
     it('should handle conversation with multiple tool invocations and user message at the end', () => {
-      const tools = {
-        screenshot: tool({
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => 'imgbase64',
-        }),
-      };
-
-      const result = convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
-              { type: 'step-start' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-1',
-                input: { value: 'value-1' },
-                output: 'result-1',
-              },
-              { type: 'step-start' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-2',
-                input: { value: 'value-2' },
-                output: 'result-2',
-              },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-3',
-                input: { value: 'value-3' },
-                output: 'result-3',
-              },
-              { type: 'step-start' },
-              {
-                type: 'tool-screenshot',
-                state: 'output-available',
-                toolCallId: 'call-4',
-                input: { value: 'value-4' },
-                output: 'result-4',
-              },
-              { type: 'step-start' },
-              { type: 'text', text: 'response' },
-            ],
-          },
-          {
-            role: 'user',
-            parts: [{ type: 'text', text: 'Thanks!' }],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { value: 'value-1' },
+              output: 'result-1',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-2',
+              input: { value: 'value-2' },
+              output: 'result-2',
+            },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-3',
+              input: { value: 'value-3' },
+              output: 'result-3',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-4',
+              input: { value: 'value-4' },
+              output: 'result-4',
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'response' },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'Thanks!' }],
+        },
+      ]);
 
       expect(result).toMatchSnapshot();
     });
