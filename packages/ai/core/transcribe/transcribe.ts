@@ -1,4 +1,8 @@
-import { JSONValue, TranscriptionModelV2, SharedV2DataContent } from '@ai-sdk/provider';
+import {
+  JSONValue,
+  TranscriptionModelV2,
+  SharedV2DataContent,
+} from '@ai-sdk/provider';
 import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
 import {
   audioMediaTypeSignatures,
@@ -79,14 +83,16 @@ Only applicable for HTTP-based providers.
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
-  
-  const { data: processedAudio, mediaType: detectedMediaType } = convertToLanguageModelV2DataContent(audio);
-  
-  const audioData = processedAudio instanceof URL
-    ? (await download({ url: processedAudio })).data
-    : typeof processedAudio === 'string'
-    ? convertDataContentToUint8Array(processedAudio)
-    : processedAudio;
+
+  const { data: processedAudio, mediaType: detectedMediaType } =
+    convertToLanguageModelV2DataContent(audio);
+
+  const audioData =
+    processedAudio instanceof URL
+      ? (await download({ url: processedAudio })).data
+      : typeof processedAudio === 'string'
+        ? convertDataContentToUint8Array(processedAudio)
+        : processedAudio;
 
   const result = await retry(() =>
     model.doGenerate({
@@ -94,11 +100,13 @@ Only applicable for HTTP-based providers.
       abortSignal,
       headers,
       providerOptions,
-      mediaType: detectedMediaType ??
+      mediaType:
+        detectedMediaType ??
         detectMediaType({
           data: audioData,
           signatures: audioMediaTypeSignatures,
-        }) ?? 'audio/wav',
+        }) ??
+        'audio/wav',
     }),
   );
 

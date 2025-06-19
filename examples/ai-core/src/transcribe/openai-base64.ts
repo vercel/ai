@@ -18,4 +18,4 @@ async function main() {
   console.log('Language:', result.language);
 }
 
-main().catch(console.error); 
+main().catch(console.error);
