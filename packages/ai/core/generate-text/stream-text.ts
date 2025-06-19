@@ -665,6 +665,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'finish-step') {
           const stepMessages = toResponseMessages({
             content: recordedContent,
+            tools,
           });
 
           // Add step information (after response messages are updated):
@@ -1263,6 +1264,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     responseMessages.push(
                       ...toResponseMessages({
                         content: stepContent,
+                        tools,
                       }),
                     );
 

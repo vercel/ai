@@ -17,7 +17,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   tools,
 }: {
   content: Array<ContentPart<TOOLS>>;
-  tools?: TOOLS;
+  tools: TOOLS | undefined;
 }): Array<AssistantModelMessage | ToolModelMessage> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 

@@ -449,6 +449,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               content: stepContent,
+              tools,
             }),
           );
 

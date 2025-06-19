@@ -1,3 +1,4 @@
+import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
 
@@ -10,6 +11,7 @@ describe('toResponseMessages', () => {
           text: 'Hello, world!',
         },
       ],
+      tools: {},
     });
 
     expect(result).toEqual([
@@ -34,6 +36,12 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        },
+      },
     });
 
     expect(result).toEqual([
@@ -73,6 +81,12 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        },
+      },
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -123,6 +137,7 @@ describe('toResponseMessages', () => {
           },
         },
       ],
+      tools: {},
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -167,6 +182,7 @@ describe('toResponseMessages', () => {
           text: 'Final text',
         },
       ],
+      tools: {},
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -223,6 +239,12 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        },
+      },
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -274,6 +296,7 @@ describe('toResponseMessages', () => {
         },
         { type: 'file', file: pngFile },
       ],
+      tools: {},
     });
 
     expect(result).toStrictEqual([
@@ -306,6 +329,7 @@ describe('toResponseMessages', () => {
         { type: 'file', file: pngFile },
         { type: 'file', file: jpegFile },
       ],
+      tools: {},
     });
 
     expect(result).toStrictEqual([
@@ -338,6 +362,7 @@ describe('toResponseMessages', () => {
         },
         { type: 'file', file: pngFile },
       ],
+      tools: {},
     });
 
     expect(result).toStrictEqual([
@@ -376,6 +401,12 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        },
+      },
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -427,6 +458,12 @@ describe('toResponseMessages', () => {
           input: {},
         },
       ],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        },
+      },
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -449,6 +486,7 @@ describe('toResponseMessages', () => {
   it('should not append assistant message if there is no content', () => {
     const result = toResponseMessages({
       content: [],
+      tools: {},
     });
 
     expect(result).toEqual([]);
