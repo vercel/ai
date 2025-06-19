@@ -1236,9 +1236,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'response-metadata': {
                       stepResponse = {
-                        id: chunk.id ?? stepResponse.id,
+                        id:
+                          chunk.id && chunk.id !== ''
+                            ? chunk.id
+                            : stepResponse.id,
                         timestamp: chunk.timestamp ?? stepResponse.timestamp,
-                        modelId: chunk.modelId ?? stepResponse.modelId,
+                        modelId:
+                          chunk.modelId && chunk.modelId !== ''
+                            ? chunk.modelId
+                            : stepResponse.modelId,
                       };
                       break;
                     }

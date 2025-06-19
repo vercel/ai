@@ -848,9 +848,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 switch (chunk.type) {
                   case 'response-metadata': {
                     response = {
-                      id: chunk.id ?? response.id,
+                      id: chunk.id && chunk.id !== '' ? chunk.id : response.id,
                       timestamp: chunk.timestamp ?? response.timestamp,
-                      modelId: chunk.modelId ?? response.modelId,
+                      modelId:
+                        chunk.modelId && chunk.modelId !== ''
+                          ? chunk.modelId
+                          : response.modelId,
                     };
                     break;
                   }
