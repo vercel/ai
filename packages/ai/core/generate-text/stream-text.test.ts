@@ -5242,8 +5242,10 @@ describe('streamText', () => {
   });
 
   describe('tool execution errors', () => {
-    it('should send a ToolExecutionError when a tool execution throws an error', async () => {
-      const result = streamText({
+    let result: StreamTextResult<any, any>;
+
+    beforeEach(async () => {
+      result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
@@ -5276,7 +5278,9 @@ describe('streamText', () => {
         },
         ...defaultSettings(),
       });
+    });
 
+    it('should include tool error part in the full stream', async () => {
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
           [
@@ -5336,6 +5340,42 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should include error result in response messages', async () => {
+      await result.consumeStream();
+
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error",
+                  "value": "test error",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
     });
   });
 

@@ -80,7 +80,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolOutput, ToolResultUnion } from './tool-output';
+import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
@@ -658,6 +658,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'tool-result') {
+          recordedContent.push(part);
+        }
+
+        if (part.type === 'tool-error') {
           recordedContent.push(part);
         }
 

@@ -1968,7 +1968,7 @@ describe('tool execution errors', () => {
     });
   });
 
-  it('should add tool error to the content', async () => {
+  it('should add tool error part to the content', async () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
