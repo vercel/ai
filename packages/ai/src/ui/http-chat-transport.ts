@@ -154,7 +154,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
           };
     const credentials = preparedRequest?.credentials ?? this.credentials;
 
-    const response = await fetch(api, {
+    const response = await this.fetch(api, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
         : { ...this.headers, ...options.headers };
     const credentials = preparedRequest?.credentials ?? this.credentials;
 
-    const response = await fetch(api, {
+    const response = await this.fetch(api, {
       method: 'GET',
       headers,
       credentials,
