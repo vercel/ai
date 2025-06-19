@@ -230,6 +230,10 @@ export const outputSchema: z.ZodType<LanguageModelV2ToolResultOutput> =
       value: jsonValueSchema,
     }),
     z.object({
+      type: z.literal('error'),
+      value: z.string(),
+    }),
+    z.object({
       type: z.literal('content'),
       value: z.array(
         z.union([
