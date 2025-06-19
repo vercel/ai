@@ -1,4 +1,4 @@
-import { TranscriptionModelV1, ProviderV2 } from '@ai-sdk/provider';
+import { TranscriptionModelV2, ProviderV2 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
@@ -15,7 +15,7 @@ export interface DeepgramProvider
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV1;
+  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV2;
 }
 
 export interface DeepgramProviderSettings {

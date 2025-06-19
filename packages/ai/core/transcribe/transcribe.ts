@@ -1,4 +1,4 @@
-import { JSONValue, TranscriptionModelV1 } from '@ai-sdk/provider';
+import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
 import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
 import {
   audioMediaTypeSignatures,
@@ -37,7 +37,7 @@ export async function transcribe({
   /**
 The transcription model to use.
      */
-  model: TranscriptionModelV1;
+  model: TranscriptionModelV2;
 
   /**
 The audio data to transcribe.

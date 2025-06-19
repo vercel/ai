@@ -1,4 +1,4 @@
-import { TranscriptionModelV1, ProviderV2 } from '@ai-sdk/provider';
+import { TranscriptionModelV2, ProviderV2 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
@@ -15,7 +15,7 @@ export interface AssemblyAIProvider
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV1;
+  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV2;
 }
 
 export interface AssemblyAIProviderSettings {
