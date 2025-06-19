@@ -44,9 +44,18 @@ export async function POST(req: Request) {
       getWeatherInformation: tool({
         description: 'show the weather in a given city to the user',
         inputSchema: z.object({ city: z.string() }),
-        execute: async ({ city }: { city: string }) => {
-          // Add artificial delay of 2 seconds
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        execute: async ({ city }: { city: string }, { messages }) => {
+          // count the number of assistant messages. throw error if 2 or less
+          const assistantMessageCount = messages.filter(
+            message => message.role === 'assistant',
+          ).length;
+
+          if (assistantMessageCount <= 2) {
+            throw new Error('could not get weather information');
+          }
+
+          // Add artificial delay of 5 seconds
+          await new Promise(resolve => setTimeout(resolve, 5000));
 
           const weatherOptions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
           return weatherOptions[
