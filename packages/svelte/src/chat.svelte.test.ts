@@ -381,6 +381,7 @@ describe('onToolCall', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -395,6 +396,7 @@ describe('onToolCall', () => {
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
+        errorText: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -443,6 +445,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: undefined,
@@ -463,6 +466,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
@@ -483,6 +487,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -504,6 +509,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -525,6 +531,7 @@ describe('tool invocations', () => {
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
+        errorText: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -555,6 +562,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -577,6 +585,7 @@ describe('tool invocations', () => {
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
+        errorText: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -606,6 +615,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -623,6 +633,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'output-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -664,6 +675,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           input: { testArg: 'test-value' },
           output: undefined,
           toolCallId: 'tool-call-0',
@@ -683,6 +695,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'output-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -773,6 +786,7 @@ describe('maxSteps', () => {
             "metadata": undefined,
             "parts": [
               {
+                "errorText": undefined,
                 "input": {
                   "testArg": "test-value",
                 },
