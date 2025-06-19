@@ -246,10 +246,16 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
           inputSchema: z.object({}),
-        },
+          toModelOutput: () => ({
+            type: 'json',
+            value: {
+              proof: 'that toModelOutput is called',
+            },
+          }),
+        }),
       },
     });
 
@@ -274,8 +280,10 @@ describe('toResponseMessages', () => {
           "content": [
             {
               "output": {
-                "type": "text",
-                "value": "image-base64",
+                "type": "json",
+                "value": {
+                  "proof": "that toModelOutput is called",
+                },
               },
               "toolCallId": "123",
               "toolName": "testTool",
