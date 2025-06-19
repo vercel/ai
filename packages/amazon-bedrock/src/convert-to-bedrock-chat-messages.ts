@@ -120,59 +120,51 @@ export async function convertToBedrockChatMessages(
               break;
             }
             case 'tool': {
-              for (let i = 0; i < content.length; i++) {
-                const part = content[i];
-                const output = part.output;
+              for (const part of content) {
                 let toolResultContent;
 
-                if (output.type === 'content') {
-                  toolResultContent = output.value.map((contentPart: any) => {
-                    switch (contentPart.type) {
-                      case 'text':
-                        return {
-                          text: contentPart.text,
-                        };
-                      case 'image':
-                        if (!contentPart.mediaType) {
-                          throw new Error(
-                            'Image mime type is required in tool result part content',
-                          );
-                        }
-                        const format = contentPart.mediaType.split('/')[1];
-                        if (!isBedrockImageFormat(format)) {
-                          throw new Error(
-                            `Unsupported image format: ${format}`,
-                          );
-                        }
-                        return {
-                          image: {
-                            format,
-                            source: {
-                              bytes: contentPart.data,
+                const output = part.output;
+                switch (output.type) {
+                  case 'content': {
+                    toolResultContent = output.value.map(contentPart => {
+                      switch (contentPart.type) {
+                        case 'text':
+                          return { text: contentPart.text };
+                        case 'image':
+                          if (!contentPart.mediaType) {
+                            throw new Error(
+                              'Image mime type is required in tool result part content',
+                            );
+                          }
+
+                          const format = contentPart.mediaType.split('/')[1];
+                          if (!isBedrockImageFormat(format)) {
+                            throw new Error(
+                              `Unsupported image format: ${format}`,
+                            );
+                          }
+                          return {
+                            image: {
+                              format,
+                              source: {
+                                bytes: contentPart.data,
+                              },
                             },
-                          },
-                        };
-                      default:
-                        throw new Error(
-                          `Unsupported content part type: ${contentPart.type}`,
-                        );
-                    }
-                  });
-                } else {
-                  let contentValue: string;
-                  switch (output.type) {
-                    case 'text':
-                      contentValue = output.value;
-                      break;
-                    case 'error':
-                      contentValue = output.value;
-                      break;
-                    case 'json':
-                    default:
-                      contentValue = JSON.stringify(output.value);
-                      break;
+                          };
+                      }
+                    });
+                    break;
                   }
-                  toolResultContent = [{ text: contentValue }];
+                  case 'text':
+                  case 'error':
+                    toolResultContent = [{ text: output.value }];
+                    break;
+                  case 'json':
+                  default:
+                    toolResultContent = [
+                      { text: JSON.stringify(output.value) },
+                    ];
+                    break;
                 }
 
                 bedrockContent.push({

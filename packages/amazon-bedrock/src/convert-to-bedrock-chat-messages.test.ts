@@ -665,7 +665,7 @@ describe('tool messages', () => {
                     type: 'image',
                     data: 'base64data',
                     // missing mediaType
-                  } as any,
+                  },
                 ],
               },
             },
