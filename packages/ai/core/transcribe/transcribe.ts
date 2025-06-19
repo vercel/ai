@@ -1,4 +1,4 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
+import { JSONValue, TranscriptionModelV2, SharedV2DataContent } from '@ai-sdk/provider';
 import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
 import {
   audioMediaTypeSignatures,
@@ -6,7 +6,7 @@ import {
 } from '../../src/util/detect-media-type';
 import { download } from '../../src/util/download';
 import { prepareRetries } from '../../src/util/prepare-retries';
-import { DataContent } from '../prompt';
+import { DataContent, convertToLanguageModelV2DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { ProviderOptions } from '../types/provider-metadata';
 import { TranscriptionWarning } from '../types/transcription-model';
@@ -17,7 +17,7 @@ import { TranscriptionResult } from './transcribe-result';
 Generates transcripts using a transcription model.
 
 @param model - The transcription model to use.
-@param audio - The audio data to transcribe as DataContent (string | Uint8Array | ArrayBuffer | Buffer) or a URL.
+@param audio - The audio data to transcribe as SharedV2DataContent (URL | string | Uint8Array).
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -42,7 +42,7 @@ The transcription model to use.
   /**
 The audio data to transcribe.
    */
-  audio: DataContent | URL;
+  audio: SharedV2DataContent;
 
   /**
 Additional provider-specific options that are passed through to the provider
@@ -79,10 +79,14 @@ Only applicable for HTTP-based providers.
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
-  const audioData =
-    audio instanceof URL
-      ? (await download({ url: audio })).data
-      : convertDataContentToUint8Array(audio);
+  
+  const { data: processedAudio, mediaType: detectedMediaType } = convertToLanguageModelV2DataContent(audio);
+  
+  const audioData = processedAudio instanceof URL
+    ? (await download({ url: processedAudio })).data
+    : typeof processedAudio === 'string'
+    ? convertDataContentToUint8Array(processedAudio)
+    : processedAudio;
 
   const result = await retry(() =>
     model.doGenerate({
@@ -90,7 +94,7 @@ Only applicable for HTTP-based providers.
       abortSignal,
       headers,
       providerOptions,
-      mediaType:
+      mediaType: detectedMediaType ??
         detectMediaType({
           data: audioData,
           signatures: audioMediaTypeSignatures,
