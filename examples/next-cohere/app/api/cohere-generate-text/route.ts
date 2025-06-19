@@ -1,4 +1,4 @@
-import { cohere } from '@ai-sdk/cohere';
+import { cohere, createCohere } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
@@ -10,10 +10,14 @@ export const maxDuration = 30;
 export async function GET(req: Request) {
   // Extract the `prompt` from the body of the request
 //   const { prompt } = await req.json();
+console.log(process.env.COHERE_API_KEY);
+    const cohereProvider = createCohere({
+        apiKey: process.env.COHERE_API_KEY
+    })
 
   // Ask OpenAI for a streaming chat completion given the prompt
   const result = await generateText({
-    model: cohere('command-a-03-2025'),
+    model: cohereProvider.languageModel('command-a-03-2025'),
     messages: [
       {
         role: 'user',
