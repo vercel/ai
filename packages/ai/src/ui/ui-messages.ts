@@ -173,6 +173,11 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
       }
+    | {
+        state: 'output-error';
+        input: TOOLS[NAME]['input'];
+        errorText: string;
+      }
   );
 }>;
 
