@@ -29,3 +29,21 @@ export type ToolResultUnion<TOOLS extends ToolSet> = ToToolResultObject<
 export type ToolResultArray<TOOLS extends ToolSet> = Array<
   ToolResultUnion<TOOLS>
 >;
+
+type ToToolErrorObject<TOOLS extends ToolSet> = ValueOf<{
+  [NAME in keyof TOOLS]: {
+    type: 'tool-error';
+    toolCallId: string;
+    toolName: NAME & string;
+    input: TOOLS[NAME] extends Tool<infer P> ? P : never;
+    error: unknown;
+  };
+}>;
+
+export type ToolErrorUnion<TOOLS extends ToolSet> = ToToolErrorObject<
+  ToToolsWithDefinedExecute<TOOLS>
+>;
+
+export type ToolOutput<TOOLS extends ToolSet> =
+  | ToolResultUnion<TOOLS>
+  | ToolErrorUnion<TOOLS>;

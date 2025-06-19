@@ -76,7 +76,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolResultUnion } from './tool-result';
+import { ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({

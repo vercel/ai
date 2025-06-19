@@ -17,7 +17,7 @@ import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
-import { ToolResultUnion } from './tool-result';
+import { ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
 import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 

@@ -2,8 +2,7 @@ import { ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { GeneratedFile } from './generated-file';
 import { ToolCallUnion } from './tool-call';
-import { ToolErrorUnion } from './tool-error';
-import { ToolResultUnion } from './tool-result';
+import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
 
 export type ContentPart<TOOLS extends ToolSet> =

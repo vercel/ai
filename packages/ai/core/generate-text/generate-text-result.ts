@@ -9,7 +9,7 @@ import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-result';
+import { ToolResultArray } from './tool-output';
 import { ToolSet } from './tool-set';
 
 /**

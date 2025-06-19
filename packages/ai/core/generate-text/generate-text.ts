@@ -43,8 +43,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolErrorUnion } from './tool-error';
-import { ToolResultUnion } from './tool-result';
+import { ToolErrorUnion, ToolOutput, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
@@ -268,9 +267,7 @@ A function that attempts to repair a tool call that failed to parse.
           ReturnType<LanguageModelV2['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
         let currentToolCalls: ToolCallArray<TOOLS> = [];
-        let currentToolOutputs: Array<
-          ToolResultUnion<TOOLS> | ToolErrorUnion<TOOLS>
-        > = [];
+        let currentToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
@@ -542,8 +539,8 @@ async function executeTools<TOOLS extends ToolSet>({
   telemetry: TelemetrySettings | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-}): Promise<Array<ToolResultUnion<TOOLS> | ToolErrorUnion<TOOLS>>> {
-  const toolResults = await Promise.all(
+}): Promise<Array<ToolOutput<TOOLS>>> {
+  const toolOutputs = await Promise.all(
     toolCalls.map(async ({ toolCallId, toolName, input }) => {
       const tool = tools[toolName];
 
@@ -560,7 +557,7 @@ async function executeTools<TOOLS extends ToolSet>({
         return undefined;
       }
 
-      return await recordSpan({
+      return recordSpan({
         name: 'ai.toolCall',
         attributes: selectTelemetryAttributes({
           telemetry,
@@ -624,8 +621,8 @@ async function executeTools<TOOLS extends ToolSet>({
     }),
   );
 
-  return toolResults.filter(
-    (result): result is NonNullable<typeof result> => result != null,
+  return toolOutputs.filter(
+    (output): output is NonNullable<typeof output> => output != null,
   );
 }
 
@@ -752,7 +749,7 @@ function asContent<TOOLS extends ToolSet>({
 }: {
   content: Array<LanguageModelV2Content>;
   toolCalls: ToolCallArray<TOOLS>;
-  toolOutputs: Array<ToolResultUnion<TOOLS> | ToolErrorUnion<TOOLS>>;
+  toolOutputs: Array<ToolOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {
   return [
     ...content.map(part => {
