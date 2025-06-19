@@ -64,7 +64,7 @@ async function main() {
                 type: 'tool-result',
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
-                output: { type: 'text', value: error.message },
+                output: { type: 'error', value: error.message },
               },
             ],
           },
