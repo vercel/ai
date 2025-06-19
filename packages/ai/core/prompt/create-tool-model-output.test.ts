@@ -296,7 +296,7 @@ describe('createToolModelOutput', () => {
 
       expect(result).toEqual({
         type: 'error',
-        value: undefined,
+        value: 'unknown error',
       });
     });
 

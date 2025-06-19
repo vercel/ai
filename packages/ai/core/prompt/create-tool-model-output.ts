@@ -1,4 +1,8 @@
-import { JSONValue, LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
+import {
+  getErrorMessage,
+  JSONValue,
+  LanguageModelV2ToolResultOutput,
+} from '@ai-sdk/provider';
 import { Tool } from '../tool';
 
 export function createToolModelOutput({
@@ -13,7 +17,7 @@ export function createToolModelOutput({
   if (isError) {
     return {
       type: 'error',
-      value: typeof output === 'string' ? output : JSON.stringify(output),
+      value: getErrorMessage(output),
     };
   }
 
