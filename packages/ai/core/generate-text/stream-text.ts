@@ -1598,7 +1598,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'tool-error': {
               controller.enqueue({
-                type: 'tool-error',
+                type: 'tool-output-error',
                 toolCallId: part.toolCallId,
                 errorText: onError(part.error),
               });

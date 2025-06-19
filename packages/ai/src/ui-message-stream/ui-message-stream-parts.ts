@@ -125,9 +125,9 @@ export type UIMessageStreamPart<
       output: unknown;
     }
   | {
-      type: 'tool-error';
+      type: 'tool-output-error';
       toolCallId: string;
-      errorText: unknown;
+      errorText: string;
     }
   | {
       type: 'tool-input-start';
