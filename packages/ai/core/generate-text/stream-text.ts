@@ -1,4 +1,8 @@
-import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import {
+  getErrorMessage,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+} from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -1470,7 +1474,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // mask error messages for safety by default
+    onError = getErrorMessage,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): ReadableStream<
     InferUIMessageStreamPart<UI_MESSAGE>
   > {
@@ -1584,6 +1588,15 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
+              });
+              break;
+            }
+
+            case 'tool-error': {
+              controller.enqueue({
+                type: 'tool-error',
+                toolCallId: part.toolCallId,
+                errorText: onError(part.error),
               });
               break;
             }

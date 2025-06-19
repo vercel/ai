@@ -123,7 +123,11 @@ export type UIMessageStreamPart<
       type: 'tool-output-available';
       toolCallId: string;
       output: unknown;
-      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-error';
+      toolCallId: string;
+      errorText: unknown;
     }
   | {
       type: 'tool-input-start';

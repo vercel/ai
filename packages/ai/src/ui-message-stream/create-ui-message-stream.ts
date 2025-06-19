@@ -1,5 +1,6 @@
 import {
   generateId as generateIdFunc,
+  getErrorMessage,
   IdGenerator,
 } from '@ai-sdk/provider-utils';
 import { UIMessage } from '../ui/ui-messages';
@@ -9,7 +10,7 @@ import { UIMessageStreamWriter } from './ui-message-stream-writer';
 
 export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute,
-  onError = () => 'An error occurred.', // mask error messages for safety by default
+  onError = getErrorMessage,
   originalMessages,
   onFinish,
   generateId = generateIdFunc,
