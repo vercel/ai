@@ -5377,6 +5377,43 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should add tool-error parts to ui message stream', async () => {
+      expect(
+        await convertReadableStreamToArray(result.toUIMessageStream()),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "input": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-input-available",
+          },
+          {
+            "errorText": "test error",
+            "toolCallId": "call-1",
+            "type": "tool-error",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
+    });
   });
 
   describe('options.transform', () => {
