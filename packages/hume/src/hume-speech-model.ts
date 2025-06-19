@@ -1,4 +1,4 @@
-import { SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -90,8 +90,8 @@ interface HumeSpeechModelConfig extends HumeConfig {
   };
 }
 
-export class HumeSpeechModel implements SpeechModelV1 {
-  readonly specificationVersion = 'v1';
+export class HumeSpeechModel implements SpeechModelV2 {
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
@@ -109,8 +109,8 @@ export class HumeSpeechModel implements SpeechModelV1 {
     speed,
     instructions,
     providerOptions,
-  }: Parameters<SpeechModelV1['doGenerate']>[0]) {
-    const warnings: SpeechModelV1CallWarning[] = [];
+  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
+    const warnings: SpeechModelV2CallWarning[] = [];
 
     // Parse provider options
     const humeOptions = await parseProviderOptions({
@@ -190,8 +190,8 @@ export class HumeSpeechModel implements SpeechModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
+    options: Parameters<SpeechModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

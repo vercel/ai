@@ -1,12 +1,12 @@
 import { JSONValue } from '../../json-value';
 import { SharedV2Headers } from '../../shared';
-import { SpeechModelV1CallOptions } from './speech-model-v1-call-options';
-import { SpeechModelV1CallWarning } from './speech-model-v1-call-warning';
+import { SpeechModelV2CallOptions } from './speech-model-v2-call-options';
+import { SpeechModelV2CallWarning } from './speech-model-v2-call-warning';
 
 /**
- * Speech model specification version 1.
+ * Speech model specification version 2.
  */
-export type SpeechModelV1 = {
+export type SpeechModelV2 = {
   /**
    * The speech model must specify which speech model interface
    * version it implements. This will allow us to evolve the speech
@@ -14,7 +14,7 @@ export type SpeechModelV1 = {
    * implementation versions can be handled as a discriminated union
    * on our side.
    */
-  readonly specificationVersion: 'v1';
+  readonly specificationVersion: 'v2';
 
   /**
    * Name of the provider for logging purposes.
@@ -29,7 +29,7 @@ export type SpeechModelV1 = {
   /**
    * Generates speech audio from text.
    */
-  doGenerate(options: SpeechModelV1CallOptions): PromiseLike<{
+  doGenerate(options: SpeechModelV2CallOptions): PromiseLike<{
     /**
      * Generated audio as an ArrayBuffer.
      * The audio should be returned without any unnecessary conversion.
@@ -42,7 +42,7 @@ export type SpeechModelV1 = {
     /**
      * Warnings for the call, e.g. unsupported settings.
      */
-    warnings: Array<SpeechModelV1CallWarning>;
+    warnings: Array<SpeechModelV2CallWarning>;
 
     /**
      * Optional request information for telemetry and debugging purposes.

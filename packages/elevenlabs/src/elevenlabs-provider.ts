@@ -1,4 +1,4 @@
-import { TranscriptionModelV1, ProviderV2 } from '@ai-sdk/provider';
+import { TranscriptionModelV2, ProviderV2 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
@@ -15,7 +15,7 @@ export interface ElevenLabsProvider
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV1;
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV2;
 }
 
 export interface ElevenLabsProviderSettings {

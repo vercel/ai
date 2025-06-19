@@ -1,4 +1,4 @@
-import { SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -92,8 +92,8 @@ interface LMNTSpeechModelConfig extends LMNTConfig {
   };
 }
 
-export class LMNTSpeechModel implements SpeechModelV1 {
-  readonly specificationVersion = 'v1';
+export class LMNTSpeechModel implements SpeechModelV2 {
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
@@ -110,8 +110,8 @@ export class LMNTSpeechModel implements SpeechModelV1 {
     outputFormat = 'mp3',
     speed,
     providerOptions,
-  }: Parameters<SpeechModelV1['doGenerate']>[0]) {
-    const warnings: SpeechModelV1CallWarning[] = [];
+  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
+    const warnings: SpeechModelV2CallWarning[] = [];
 
     // Parse provider options
     const lmntOptions = await parseProviderOptions({
@@ -171,8 +171,8 @@ export class LMNTSpeechModel implements SpeechModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
+    options: Parameters<SpeechModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

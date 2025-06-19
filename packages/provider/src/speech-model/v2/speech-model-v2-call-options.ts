@@ -1,8 +1,8 @@
 import { JSONValue } from '../../json-value/json-value';
 
-type SpeechModelV1ProviderOptions = Record<string, Record<string, JSONValue>>;
+type SpeechModelV2ProviderOptions = Record<string, Record<string, JSONValue>>;
 
-export type SpeechModelV1CallOptions = {
+export type SpeechModelV2CallOptions = {
   /**
    * Text to convert to speech.
    */
@@ -41,7 +41,7 @@ export type SpeechModelV1CallOptions = {
    * }
    * ```
    */
-  providerOptions?: SpeechModelV1ProviderOptions;
+  providerOptions?: SpeechModelV2ProviderOptions;
 
   /**
    * Abort signal for cancelling the operation.

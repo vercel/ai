@@ -1,12 +1,12 @@
 import { JSONValue } from '../../json-value';
 import { SharedV2Headers } from '../../shared';
-import { TranscriptionModelV1CallOptions } from './transcription-model-v1-call-options';
-import { TranscriptionModelV1CallWarning } from './transcription-model-v1-call-warning';
+import { TranscriptionModelV2CallOptions } from './transcription-model-v2-call-options';
+import { TranscriptionModelV2CallWarning } from './transcription-model-v2-call-warning';
 
 /**
-Transcription model specification version 1.
+Transcription model specification version 2.
  */
-export type TranscriptionModelV1 = {
+export type TranscriptionModelV2 = {
   /**
 The transcription model must specify which transcription model interface
 version it implements. This will allow us to evolve the transcription
@@ -14,7 +14,7 @@ model interface and retain backwards compatibility. The different
 implementation versions can be handled as a discriminated union
 on our side.
    */
-  readonly specificationVersion: 'v1';
+  readonly specificationVersion: 'v2';
 
   /**
 Name of the provider for logging purposes.
@@ -29,7 +29,7 @@ Provider-specific model ID for logging purposes.
   /**
 Generates a transcript.
    */
-  doGenerate(options: TranscriptionModelV1CallOptions): PromiseLike<{
+  doGenerate(options: TranscriptionModelV2CallOptions): PromiseLike<{
     /**
      * The complete transcribed text from the audio.
      */
@@ -69,7 +69,7 @@ Generates a transcript.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings: Array<TranscriptionModelV1CallWarning>;
+    warnings: Array<TranscriptionModelV2CallWarning>;
 
     /**
 Optional request information for telemetry and debugging purposes.
