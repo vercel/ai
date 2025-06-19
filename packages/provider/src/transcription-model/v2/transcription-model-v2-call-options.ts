@@ -1,11 +1,11 @@
 import { JSONValue } from '../../json-value/json-value';
 
-type TranscriptionModelV1ProviderOptions = Record<
+type TranscriptionModelV2ProviderOptions = Record<
   string,
   Record<string, JSONValue>
 >;
 
-export type TranscriptionModelV1CallOptions = {
+export type TranscriptionModelV2CallOptions = {
   /**
 Audio data to transcribe.
 Accepts a `Uint8Array` or `string`, where `string` is a base64 encoded audio file.
@@ -33,7 +33,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
  */
-  providerOptions?: TranscriptionModelV1ProviderOptions;
+  providerOptions?: TranscriptionModelV2ProviderOptions;
 
   /**
 Abort signal for cancelling the operation.
@@ -45,4 +45,4 @@ Additional HTTP headers to be sent with the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string | undefined>;
-};
+}; 

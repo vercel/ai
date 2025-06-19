@@ -3,7 +3,7 @@ import {
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
-  TranscriptionModelV1,
+  TranscriptionModelV2,
   SpeechModelV1,
 } from '@ai-sdk/provider';
 import {
@@ -85,7 +85,7 @@ Creates a model for image generation.
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV1;
+  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV2;
 
   /**
 Creates a model for speech generation.
