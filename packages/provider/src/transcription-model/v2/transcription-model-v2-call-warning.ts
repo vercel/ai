@@ -13,4 +13,4 @@ export type TranscriptionModelV2CallWarning =
   | {
       type: 'other';
       message: string;
-    }; 
+    };

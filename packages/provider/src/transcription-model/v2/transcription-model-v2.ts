@@ -114,4 +114,4 @@ results that can be fully encapsulated in the provider.
      */
     providerMetadata?: Record<string, Record<string, JSONValue>>;
   }>;
-}; 
+};

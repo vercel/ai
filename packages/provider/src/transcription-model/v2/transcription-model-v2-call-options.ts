@@ -45,4 +45,4 @@ Additional HTTP headers to be sent with the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string | undefined>;
-}; 
+};
