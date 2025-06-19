@@ -7,10 +7,7 @@ import {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
-import {
-  convertToBase64,
-  convertUint8ArrayToBase64,
-} from '@ai-sdk/provider-utils';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV2Prompt,
@@ -133,30 +130,12 @@ export function convertToGoogleGenerativeAIMessages(
         contents.push({
           role: 'user',
           parts: content.map(part => {
-            const output = part.output;
-            let contentValue: any;
-            switch (output.type) {
-              case 'text':
-                contentValue = output.value;
-                break;
-              case 'content':
-                contentValue = output.value;
-                break;
-              case 'error':
-                contentValue = output.value;
-                break;
-              case 'json':
-              default:
-                contentValue = output.value;
-                break;
-            }
-
             return {
               functionResponse: {
                 name: part.toolName,
                 response: {
                   name: part.toolName,
-                  content: contentValue,
+                  content: part.output.value,
                 },
               },
             };
