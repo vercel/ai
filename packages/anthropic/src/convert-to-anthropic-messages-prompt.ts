@@ -10,6 +10,7 @@ import {
   AnthropicAssistantMessage,
   AnthropicCacheControl,
   AnthropicMessagesPrompt,
+  AnthropicToolResultContent,
   AnthropicUserMessage,
 } from './anthropic-api-types';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
@@ -259,14 +260,31 @@ export async function convertToAnthropicMessagesPrompt({
                     : undefined);
 
                 const output = part.output;
-                let contentValue: string;
+                let contentValue: AnthropicToolResultContent['content'];
                 switch (output.type) {
-                  case 'text':
-                    contentValue = output.value;
-                    break;
                   case 'content':
-                    contentValue = JSON.stringify(output.value);
+                    contentValue = output.value.map(contentPart => {
+                      switch (contentPart.type) {
+                        case 'text':
+                          return {
+                            type: 'text',
+                            text: contentPart.text,
+                            cache_control: undefined,
+                          };
+                        case 'image':
+                          return {
+                            type: 'image',
+                            source: {
+                              type: 'base64',
+                              media_type: contentPart.mediaType ?? 'image/jpeg',
+                              data: contentPart.data,
+                            },
+                            cache_control: undefined,
+                          };
+                      }
+                    });
                     break;
+                  case 'text':
                   case 'error':
                     contentValue = output.value;
                     break;
@@ -280,7 +298,7 @@ export async function convertToAnthropicMessagesPrompt({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
                   content: contentValue,
-                  is_error: output.type === 'error',
+                  is_error: output.type === 'error' ? true : undefined,
                   cache_control: cacheControl,
                 });
               }

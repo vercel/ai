@@ -304,7 +304,7 @@ describe('tool messages', () => {
               {
                 type: 'tool_result',
                 tool_use_id: 'tool-call-1',
-                is_error: false,
+                is_error: undefined,
                 content: JSON.stringify({ test: 'This is a tool message' }),
               },
             ],
@@ -353,13 +353,13 @@ describe('tool messages', () => {
               {
                 type: 'tool_result',
                 tool_use_id: 'tool-call-1',
-                is_error: false,
+                is_error: undefined,
                 content: JSON.stringify({ test: 'This is a tool message' }),
               },
               {
                 type: 'tool_result',
                 tool_use_id: 'tool-call-2',
-                is_error: false,
+                is_error: undefined,
                 content: JSON.stringify({ something: 'else' }),
               },
             ],
@@ -406,7 +406,7 @@ describe('tool messages', () => {
               {
                 type: 'tool_result',
                 tool_use_id: 'tool-call-1',
-                is_error: false,
+                is_error: undefined,
                 content: JSON.stringify({ test: 'This is a tool message' }),
               },
               { type: 'text', text: 'This is a user message' },
@@ -447,7 +447,7 @@ describe('tool messages', () => {
               {
                 type: 'tool_result',
                 tool_use_id: 'image-gen-1',
-                is_error: false,
+                is_error: undefined,
                 content: 'Image generated successfully',
               },
             ],
@@ -1098,7 +1098,7 @@ describe('cache control', () => {
                 {
                   type: 'tool_result',
                   content: '{"test":"test"}',
-                  is_error: false,
+                  is_error: undefined,
                   tool_use_id: 'test',
                   cache_control: { type: 'ephemeral' },
                 },
@@ -1150,14 +1150,14 @@ describe('cache control', () => {
                   type: 'tool_result',
                   tool_use_id: 'part1',
                   content: '{"test":"part1"}',
-                  is_error: false,
+                  is_error: undefined,
                   cache_control: undefined,
                 },
                 {
                   type: 'tool_result',
                   tool_use_id: 'part2',
                   content: '{"test":"part2"}',
-                  is_error: false,
+                  is_error: undefined,
                   cache_control: { type: 'ephemeral' },
                 },
               ],
