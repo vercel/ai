@@ -122,29 +122,33 @@ export function convertToModelMessages(
               modelMessages.push({
                 role: 'tool',
                 content: toolParts.map((toolPart): ToolResultPart => {
-                  if (toolPart.state !== 'output-available') {
-                    throw new MessageConversionError({
-                      originalMessage: message,
-                      message:
-                        'ToolInvocation must have a result: ' +
-                        JSON.stringify(toolPart),
-                    });
+                  switch (toolPart.state) {
+                    case 'output-error':
+                    case 'output-available': {
+                      const toolName = getToolName(toolPart);
+
+                      return {
+                        type: 'tool-result',
+                        toolCallId: toolPart.toolCallId,
+                        toolName,
+                        output: createToolModelOutput({
+                          output:
+                            toolPart.state === 'output-error'
+                              ? toolPart.errorText
+                              : toolPart.output,
+                          tool: options?.tools?.[toolName],
+                          isError: toolPart.state === 'output-error',
+                        }),
+                      };
+                    }
+
+                    default: {
+                      throw new MessageConversionError({
+                        originalMessage: message,
+                        message: `Unsupported tool part state: ${toolPart.state}`,
+                      });
+                    }
                   }
-
-                  const toolName = getToolName(toolPart);
-                  const { toolCallId, output } = toolPart;
-
-                  // TODO handle error case
-                  return {
-                    type: 'tool-result',
-                    toolCallId,
-                    toolName,
-                    output: createToolModelOutput({
-                      output,
-                      tool: options?.tools?.[toolName],
-                      isError: false,
-                    }),
-                  };
                 }),
               });
             }

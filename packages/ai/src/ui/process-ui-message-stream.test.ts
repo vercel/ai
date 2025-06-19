@@ -187,6 +187,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -208,6 +209,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -231,6 +233,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -266,6 +269,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "errorText": undefined,
               "input": {
                 "city": "London",
               },
@@ -378,6 +382,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -408,6 +413,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -440,6 +446,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -484,6 +491,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "errorText": undefined,
               "input": {
                 "city": "London",
               },
@@ -603,6 +611,7 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -628,6 +637,7 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -655,6 +665,7 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -689,6 +700,7 @@ describe('processUIMessageStream', () => {
                   "type": "text",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -728,6 +740,7 @@ describe('processUIMessageStream', () => {
               "type": "text",
             },
             {
+              "errorText": undefined,
               "input": {
                 "city": "London",
               },
@@ -872,6 +885,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -902,6 +916,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -934,6 +949,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -978,6 +994,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -1031,6 +1048,7 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
+              "errorText": undefined,
               "input": {
                 "city": "London",
               },
@@ -1052,6 +1070,163 @@ describe('processUIMessageStream', () => {
               },
               "text": "I know know the weather in London.",
               "type": "reasoning",
+            },
+            {
+              "text": "The weather in London is sunny.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        }
+      `);
+    });
+  });
+
+  describe('server-side tool roundtrip with output-error', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          input: { city: 'London' },
+        },
+        {
+          type: 'tool-output-error',
+          toolCallId: 'tool-call-id',
+          errorText: 'error-text',
+        },
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": undefined,
+                  "state": "input-available",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": undefined,
+                  "state": "output-error",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": undefined,
+                  "state": "output-error",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message).toMatchInlineSnapshot(`
+        {
+          "id": "msg-123",
+          "metadata": undefined,
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "errorText": "error-text",
+              "input": {
+                "city": "London",
+              },
+              "output": undefined,
+              "state": "output-error",
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
+            },
+            {
+              "type": "step-start",
             },
             {
               "text": "The weather in London is sunny.",
@@ -1525,6 +1700,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": undefined,
                   "output": undefined,
                   "state": "input-streaming",
@@ -1544,6 +1720,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "testArg": "t",
                   },
@@ -1565,6 +1742,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "testArg": "test-value",
                   },
@@ -1586,6 +1764,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "testArg": "test-value",
                   },
@@ -1607,6 +1786,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "testArg": "test-value",
                   },
@@ -1633,6 +1813,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "errorText": undefined,
               "input": {
                 "testArg": "test-value",
               },
@@ -2007,6 +2188,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -2028,6 +2210,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "errorText": undefined,
                   "input": {
                     "city": "London",
                   },
@@ -2054,6 +2237,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "errorText": undefined,
               "input": {
                 "city": "London",
               },

@@ -29,7 +29,7 @@ export default function Chat() {
     });
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages?.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           <strong>{`${message.role}: `}</strong>
@@ -126,8 +126,13 @@ export default function Chat() {
                         Weather in {part.input.city}: {part.output}
                       </div>
                     );
+                  case 'output-error':
+                    return (
+                      <div key={index} className="text-red-500">
+                        Error: {part.errorText}
+                      </div>
+                    );
                 }
-                break;
               }
             }
           })}

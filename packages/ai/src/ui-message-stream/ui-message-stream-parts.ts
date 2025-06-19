@@ -37,7 +37,11 @@ export const uiMessageStreamPartSchema = z.union([
     type: z.literal('tool-output-available'),
     toolCallId: z.string(),
     output: z.unknown(),
-    providerMetadata: z.any().optional(),
+  }),
+  z.strictObject({
+    type: z.literal('tool-output-error'),
+    toolCallId: z.string(),
+    errorText: z.string(),
   }),
   z.strictObject({
     type: z.literal('reasoning'),
@@ -123,7 +127,11 @@ export type UIMessageStreamPart<
       type: 'tool-output-available';
       toolCallId: string;
       output: unknown;
-      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-output-error';
+      toolCallId: string;
+      errorText: string;
     }
   | {
       type: 'tool-input-start';

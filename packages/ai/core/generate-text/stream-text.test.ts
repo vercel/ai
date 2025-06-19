@@ -5242,8 +5242,10 @@ describe('streamText', () => {
   });
 
   describe('tool execution errors', () => {
-    it('should send a ToolExecutionError when a tool execution throws an error', async () => {
-      const result = streamText({
+    let result: StreamTextResult<any, any>;
+
+    beforeEach(async () => {
+      result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
@@ -5276,7 +5278,9 @@ describe('streamText', () => {
         },
         ...defaultSettings(),
       });
+    });
 
+    it('should include tool error part in the full stream', async () => {
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
           [
@@ -5297,8 +5301,13 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
-              "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
-              "type": "error",
+              "error": [Error: test error],
+              "input": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-error",
             },
             {
               "finishReason": "stop",
@@ -5327,6 +5336,154 @@ describe('streamText', () => {
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
+    it('should include the error part in the step stream', async () => {
+      await result.consumeStream();
+
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "content": [
+              {
+                "input": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "error": [Error: test error],
+                "input": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-error",
+              },
+            ],
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "error",
+                        "value": "test error",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
+    });
+
+    it('should include error result in response messages', async () => {
+      await result.consumeStream();
+
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error",
+                  "value": "test error",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should add tool-error parts to ui message stream', async () => {
+      expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "messageId": undefined,
+              "messageMetadata": undefined,
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-input-available",
+            },
+            {
+              "errorText": "test error",
+              "toolCallId": "call-1",
+              "type": "tool-output-error",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "messageMetadata": undefined,
               "type": "finish",
             },
           ]

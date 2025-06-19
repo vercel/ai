@@ -99,6 +99,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | { state: 'input-streaming'; input: unknown }
               | { state: 'input-available'; input: unknown }
               | { state: 'output-available'; input: unknown; output: unknown }
+              | { state: 'output-error'; input: unknown; errorText: string }
             ),
           ) {
             const part = state.message.parts.find(
@@ -110,6 +111,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               part.state = options.state;
               (part as any).input = (options as any).input;
               (part as any).output = (options as any).output;
+              (part as any).errorText = (options as any).errorText;
             } else {
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
@@ -117,6 +119,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: options.state,
                 input: (options as any).input,
                 output: (options as any).output,
+                errorText: (options as any).errorText,
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
@@ -321,6 +324,41 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: 'output-available',
                 input: (toolInvocations[toolInvocationIndex] as any).input,
                 output: part.output,
+              });
+
+              write();
+              break;
+            }
+
+            case 'tool-output-error': {
+              const toolInvocations = state.message.parts.filter(isToolUIPart);
+
+              if (toolInvocations == null) {
+                throw new Error('tool_result must be preceded by a tool_call');
+              }
+
+              // find if there is any tool invocation with the same toolCallId
+              // and replace it with the result
+              const toolInvocationIndex = toolInvocations.findIndex(
+                invocation => invocation.toolCallId === part.toolCallId,
+              );
+
+              if (toolInvocationIndex === -1) {
+                throw new Error(
+                  'tool_result must be preceded by a tool_call with the same toolCallId',
+                );
+              }
+
+              const toolName = getToolName(
+                toolInvocations[toolInvocationIndex],
+              );
+
+              updateToolInvocationPart({
+                toolCallId: part.toolCallId,
+                toolName,
+                state: 'output-error',
+                input: (toolInvocations[toolInvocationIndex] as any).input,
+                errorText: part.errorText,
               });
 
               write();

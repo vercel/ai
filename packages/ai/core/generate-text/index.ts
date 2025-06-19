@@ -25,5 +25,9 @@ export type {
 } from './stream-text-result';
 export type { ToolCall, ToolCallUnion } from './tool-call';
 export type { ToolCallRepairFunction } from './tool-call-repair-function';
-export type { ToolResult, ToolResultUnion } from './tool-result';
+export type {
+  ToolResult,
+  ToolResultUnion,
+  ToolErrorUnion,
+} from './tool-output';
 export type { ToolSet } from './tool-set';

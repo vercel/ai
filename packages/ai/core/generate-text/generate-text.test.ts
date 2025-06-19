@@ -9,7 +9,6 @@ import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { Output, stepCountIs } from '.';
-import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
@@ -1939,40 +1938,91 @@ describe('options.output', () => {
 });
 
 describe('tool execution errors', () => {
-  it('should throw a ToolExecutionError when a tool execution throws an error', async () => {
-    await expect(async () => {
-      await generateText({
-        model: new MockLanguageModelV2({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-            ],
-          }),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => {
-              throw new Error('test error');
+  let result: GenerateTextResult<any, any>;
+
+  beforeEach(async () => {
+    result = await generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
             },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            throw new Error('test error');
           },
         },
-        prompt: 'test-input',
-      });
-    }).rejects.toThrow(
-      new ToolExecutionError({
-        toolName: 'tool1',
-        toolCallId: 'call-1',
-        toolInput: { value: 'value' },
-        cause: new Error('test error'),
-      }),
-    );
+      },
+      prompt: 'test-input',
+    });
+  });
+
+  it('should add tool error part to the content', async () => {
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "error": [Error: test error],
+          "input": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-error",
+        },
+      ]
+    `);
+  });
+
+  it('should include error result in response messages', async () => {
+    expect(result.response.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "error",
+                "value": "test error",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 });
