@@ -1,13 +1,13 @@
-import { SpeechModelV1CallOptions } from './speech-model-v1-call-options';
+import { SpeechModelV2CallOptions } from './speech-model-v2-call-options';
 
 /**
  * Warning from the model provider for this call. The call will proceed, but e.g.
  * some settings might not be supported, which can lead to suboptimal results.
  */
-export type SpeechModelV1CallWarning =
+export type SpeechModelV2CallWarning =
   | {
       type: 'unsupported-setting';
-      setting: keyof SpeechModelV1CallOptions;
+      setting: keyof SpeechModelV2CallOptions;
       details?: string;
     }
   | {

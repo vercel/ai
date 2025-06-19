@@ -1,4 +1,4 @@
-import { JSONValue, SpeechModelV1 } from '@ai-sdk/provider';
+import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
 import { NoSpeechGeneratedError } from '../../src/error/no-speech-generated-error';
 import {
   audioMediaTypeSignatures,
@@ -46,7 +46,7 @@ export async function generateSpeech({
   /**
 The speech model to use.
      */
-  model: SpeechModelV1;
+  model: SpeechModelV2;
 
   /**
 The text to convert to speech.

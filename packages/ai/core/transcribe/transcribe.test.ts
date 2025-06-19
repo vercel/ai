@@ -3,7 +3,7 @@ import {
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
-import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v1';
+import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { transcribe } from './transcribe';
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
