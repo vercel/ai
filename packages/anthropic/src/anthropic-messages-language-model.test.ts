@@ -5,10 +5,12 @@ import {
 import {
   convertReadableStreamToArray,
   createTestServer,
+  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 import { type DocumentCitation } from './anthropic-messages-language-model';
+import { APICallError } from '@ai-sdk/provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -808,93 +810,400 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    it('should process PDF citation responses in streaming', async () => {
-      // Create a model with predictable ID generation for testing
-      const mockProvider = createAnthropic({
-        apiKey: 'test-api-key',
-        generateId: () => 'test-citation-id-stream',
+    describe('Anthropic Web Search Server-Side Tool', () => {
+      const TEST_PROMPT = [
+        {
+          role: 'user' as const,
+          content: [
+            { type: 'text' as const, text: 'What is the latest news?' },
+          ],
+        },
+      ];
+
+      function prepareJsonResponse(body: any) {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body,
+        };
+      }
+
+      it('should enable server-side web search when using anthropic.tools.webSearch_20250305', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [
+            {
+              type: 'text',
+              text: 'Here are the latest quantum computing breakthroughs.',
+            },
+          ],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined-server',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {
+                maxUses: 3,
+                allowedDomains: ['arxiv.org', 'nature.com', 'mit.edu'],
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 3,
+          allowed_domains: ['arxiv.org', 'nature.com', 'mit.edu'],
+        });
       });
-      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
 
-      // Mock streaming response with PDF citations
-      server.urls['https://api.anthropic.com/v1/messages'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
-          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
-          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Based on the document"}}\n\n`,
-          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":", results show growth."}}\n\n`,
-          `data: {"type":"content_block_stop","index":0}\n\n`,
-          `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"page_location","cited_text":"Revenue increased by 25% year over year","document_index":0,"document_title":"Financial Report 2023","start_page_number":5,"end_page_number":6}}}\n\n`,
-          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
-          `data: {"type":"message_stop"}\n\n`,
-        ],
-      };
+      it('should pass web search configuration with blocked domains', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [
+            { type: 'text', text: 'Here are the latest stock market trends.' },
+          ],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
 
-      const { stream } = await modelWithMockId.doStream({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                data: 'base64PDFdata',
-                mediaType: 'application/pdf',
-                filename: 'financial-report.pdf',
-                providerOptions: {
-                  anthropic: {
-                    citations: { enabled: true },
-                  },
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined-server',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {
+                maxUses: 2,
+                blockedDomains: ['reddit.com'],
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 2,
+          blocked_domains: ['reddit.com'],
+        });
+      });
+
+      it('should handle web search with user location', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [{ type: 'text', text: 'Here are local tech events.' }],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined-server',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {
+                maxUses: 1,
+                userLocation: {
+                  type: 'approximate',
+                  city: 'New York',
+                  region: 'New York',
+                  country: 'US',
+                  timezone: 'America/New_York',
                 },
               },
-              {
-                type: 'text',
-                text: 'What do the results show?',
-              },
-            ],
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 1,
+          user_location: {
+            type: 'approximate',
+            city: 'New York',
+            region: 'New York',
+            country: 'US',
+            timezone: 'America/New_York',
           },
-        ],
-        includeRawChunks: false,
+        });
       });
 
-      const result = await convertReadableStreamToArray(stream);
+      it('should handle web search with partial user location (city + country)', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [{ type: 'text', text: 'Here are local events.' }],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
 
-      // Verify we get the expected streaming parts
-      expect(result).toHaveLength(6);
-
-      // Verify text content
-      expect(result[2]).toMatchInlineSnapshot(`
-        {
-          "text": "Based on the document",
-          "type": "text",
-        }
-      `);
-
-      expect(result[3]).toMatchInlineSnapshot(`
-        {
-          "text": ", results show growth.",
-          "type": "text",
-        }
-      `);
-
-      // Verify citation source
-      expect(result[4]).toMatchInlineSnapshot(`
-        {
-          "filename": "financial-report.pdf",
-          "id": "test-citation-id-stream",
-          "mediaType": "application/pdf",
-          "providerMetadata": {
-            "anthropic": {
-              "citedText": "Revenue increased by 25% year over year",
-              "endPageNumber": 6,
-              "startPageNumber": 5,
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined-server',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {
+                maxUses: 1,
+                userLocation: {
+                  type: 'approximate',
+                  city: 'London',
+                  country: 'GB',
+                },
+              },
             },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 1,
+          user_location: {
+            type: 'approximate',
+            city: 'London',
+            country: 'GB',
           },
-          "sourceType": "document",
-          "title": "Financial Report 2023",
-          "type": "source",
-        }
-      `);
+        });
+      });
+
+      it('should handle web search with minimal user location (country only)', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [{ type: 'text', text: 'Here are global events.' }],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined-server',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {
+                maxUses: 1,
+                userLocation: {
+                  type: 'approximate',
+                  country: 'US',
+                },
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 1,
+          user_location: {
+            type: 'approximate',
+            country: 'US',
+          },
+        });
+      });
+
+      it('should handle server-side web search results with citations', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'tool_1',
+              name: 'web_search',
+              input: { query: 'latest AI news' },
+            },
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'tool_1',
+              content: [
+                {
+                  type: 'web_search_result',
+                  url: 'https://example.com/ai-news',
+                  title: 'Latest AI Developments',
+                  encrypted_content: 'encrypted_content_123',
+                  page_age: 'January 15, 2025',
+                },
+              ],
+            },
+            {
+              type: 'text',
+              text: 'Based on recent articles, AI continues to advance rapidly.',
+            },
+          ],
+          stop_reason: 'end_turn',
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+            server_tool_use: { web_search_requests: 1 },
+          },
+        });
+
+        const provider = createAnthropic({
+          apiKey: 'test-api-key',
+          generateId: mockId(),
+        });
+        const model = provider('claude-3-5-sonnet-latest');
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined-server',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {
+                maxUses: 5,
+              },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"query":"latest AI news"}",
+              "toolCallId": "tool_1",
+              "toolCallType": "function",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "id": "id-0",
+              "providerMetadata": {
+                "anthropic": {
+                  "encryptedContent": "encrypted_content_123",
+                  "pageAge": "January 15, 2025",
+                },
+              },
+              "sourceType": "url",
+              "title": "Latest AI Developments",
+              "type": "source",
+              "url": "https://example.com/ai-news",
+            },
+            {
+              "text": "Based on recent articles, AI continues to advance rapidly.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should handle server-side web search errors', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'tool_1',
+              content: {
+                type: 'web_search_tool_result_error',
+                error_code: 'max_uses_exceeded',
+              },
+            },
+            {
+              type: 'text',
+              text: 'I cannot search further due to limits.',
+            },
+          ],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
+
+        await expect(() =>
+          model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined-server',
+                id: 'anthropic.web_search_20250305',
+                name: 'web_search',
+                args: {
+                  maxUses: 1,
+                },
+              },
+            ],
+          }),
+        ).rejects.toThrow(APICallError);
+      });
+
+      it('should work alongside regular client-side tools', async () => {
+        prepareJsonResponse({
+          type: 'message',
+          id: 'msg_test',
+          content: [{ type: 'text', text: 'I can search and calculate.' }],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 20 },
+        });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'calculator',
+              description: 'Calculate math',
+              inputSchema: { type: 'object', properties: {} },
+            },
+            {
+              type: 'provider-defined-server',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {
+                maxUses: 1,
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(2);
+
+        expect(requestBody.tools[0]).toEqual({
+          name: 'calculator',
+          description: 'Calculate math',
+          input_schema: { type: 'object', properties: {} },
+        });
+
+        expect(requestBody.tools[1]).toEqual({
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 1,
+        });
+      });
     });
   });
 
@@ -1789,6 +2098,95 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const chunks = await convertReadableStreamToArray(stream);
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should process PDF citation responses in streaming', async () => {
+      // Create a model with predictable ID generation for testing
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-citation-id-stream',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      // Mock streaming response with PDF citations
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Based on the document"}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":", results show growth."}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"page_location","cited_text":"Revenue increased by 25% year over year","document_index":0,"document_title":"Financial Report 2023","start_page_number":5,"end_page_number":6}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await modelWithMockId.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'base64PDFdata',
+                mediaType: 'application/pdf',
+                filename: 'financial-report.pdf',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What do the results show?',
+              },
+            ],
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      // Verify we get the expected streaming parts
+      expect(result).toHaveLength(6);
+
+      // Verify text content
+      expect(result[2]).toMatchInlineSnapshot(`
+        {
+          "text": "Based on the document",
+          "type": "text",
+        }
+      `);
+
+      expect(result[3]).toMatchInlineSnapshot(`
+        {
+          "text": ", results show growth.",
+          "type": "text",
+        }
+      `);
+
+      // Verify citation source
+      expect(result[4]).toMatchInlineSnapshot(`
+        {
+          "filename": "financial-report.pdf",
+          "id": "test-citation-id-stream",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "anthropic": {
+              "citedText": "Revenue increased by 25% year over year",
+              "endPageNumber": 6,
+              "startPageNumber": 5,
+            },
+          },
+          "sourceType": "document",
+          "title": "Financial Report 2023",
+          "type": "source",
+        }
+      `);
     });
   });
 });
