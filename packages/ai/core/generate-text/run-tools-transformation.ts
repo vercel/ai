@@ -14,13 +14,69 @@ import { parseToolCall } from './parse-tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
-import { TextStreamPart } from './stream-text-result';
+import { Source } from '../types/language-model';
+import { ToolCallUnion } from './tool-call';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
-  | Omit<
-      TextStreamPart<TOOLS>,
-      'start-step' | 'finish-step' | 'start' | 'finish'
-    >
+  // Text blocks:
+  | {
+      type: 'text-start';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
+  | {
+      type: 'text-delta';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+      delta: string;
+    }
+  | {
+      type: 'text-end';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
+
+  // Reasoning blocks:
+  | {
+      type: 'reasoning-start';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
+  | {
+      type: 'reasoning-delta';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+      delta: string;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+
+  // Tool calls:
+  | {
+      type: 'tool-input-start';
+      id: string;
+      toolName: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | ({ type: 'source' } & Source)
+  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
+  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
+  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
+  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
   | {
@@ -35,7 +91,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
-  | { type: 'error'; error: unknown };
+  | { type: 'error'; error: unknown }
+  | { type: 'raw'; rawValue: unknown };
 
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,

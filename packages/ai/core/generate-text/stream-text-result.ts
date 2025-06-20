@@ -319,43 +319,18 @@ If an error occurs, it is passed to the optional `onError` callback.
 }
 
 export type TextStreamPart<TOOLS extends ToolSet> =
-  // Text blocks:
   | {
-      type: 'text-start';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-    }
-  | {
-      type: 'text-delta';
+      type: 'text';
       id: string;
       providerMetadata?: ProviderMetadata;
-      delta: string;
+      text: string;
     }
   | {
-      type: 'text-end';
+      type: 'reasoning';
       providerMetadata?: ProviderMetadata;
       id: string;
+      text: string;
     }
-
-  // Reasoning blocks:
-  | {
-      type: 'reasoning-start';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-    }
-  | {
-      type: 'reasoning-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      delta: string;
-    }
-  | {
-      type: 'reasoning-end';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-
-  // Tool calls:
   | {
       type: 'tool-input-start';
       id: string;
@@ -366,11 +341,6 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'tool-input-delta';
       id: string;
       delta: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'tool-input-end';
-      id: string;
       providerMetadata?: ProviderMetadata;
     }
   | ({ type: 'source' } & Source)

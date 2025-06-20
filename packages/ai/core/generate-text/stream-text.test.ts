@@ -5554,8 +5554,8 @@ describe('streamText', () => {
           TextStreamPart<{ tool1: Tool<{ value: string }> }>
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'text-delta') {
-              chunk.delta = chunk.delta.toUpperCase();
+            if (chunk.type === 'text') {
+              chunk.text = chunk.text.toUpperCase();
             }
 
             if (chunk.type === 'tool-input-delta') {
@@ -6220,14 +6220,14 @@ describe('streamText', () => {
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text') {
                 controller.enqueue(chunk);
                 return;
               }
 
               controller.enqueue({
                 ...chunk,
-                delta: `${chunk.delta.toUpperCase()},`,
+                text: `${chunk.text.toUpperCase()},`,
               });
             },
           });
@@ -6237,14 +6237,14 @@ describe('streamText', () => {
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text') {
                 controller.enqueue(chunk);
                 return;
               }
 
               controller.enqueue({
                 ...chunk,
-                delta: chunk.delta.replaceAll(',', ''),
+                text: chunk.text.replaceAll(',', ''),
               });
             },
           });
@@ -6275,12 +6275,12 @@ describe('streamText', () => {
             // stream buffering and scanning to correctly emit prior text
             // and to detect all STOP occurrences.
             transform(chunk, controller) {
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text') {
                 controller.enqueue(chunk);
                 return;
               }
 
-              if (chunk.delta.includes('STOP')) {
+              if (chunk.text.includes('STOP')) {
                 stopStream();
 
                 controller.enqueue({
