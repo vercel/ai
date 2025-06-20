@@ -7091,4 +7091,42 @@ describe('streamText', () => {
       expect(capturedOptions.includeRawChunks).toBe(false);
     });
   });
+
+  describe('mixed multi content streaming with interleaving parts', () => {
+    describe('mixed text blocks', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: `This` },
+              { type: 'text-delta', id: '2', delta: `is` },
+              { type: 'text-delta', id: '2', delta: `a` },
+              { type: 'text-delta', id: '1', delta: `world!` },
+              { type: 'text-end', id: '1' },
+              { type: 'text-delta', id: '2', delta: `test` },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+        });
+      });
+
+      it('should return the content parts in the correct order', async () => {
+        await result.consumeStream();
+
+        expect(await result.content).toMatchInlineSnapshot();
+      });
+    });
+  });
 });
