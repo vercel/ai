@@ -15,8 +15,8 @@ async function main() {
     },
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
+  for await (const part of result.fullStream) {
+    console.log(JSON.stringify(part));
   }
 
   console.log();

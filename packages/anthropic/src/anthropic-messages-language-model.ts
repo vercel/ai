@@ -627,7 +627,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'web_search_tool_result'
       | undefined = undefined;
 
-    const config = this.config;
     const generateId = this.generateId;
 
     return {
@@ -692,8 +691,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   }
 
                   case 'server_tool_use': {
-                    // server_tool_use is just metadata about the tool usage
-                    // We don't generate synthetic content for it
+                    if (value.content_block.name === 'web_search') {
+                      toolCallContentBlocks[value.index] = {
+                        toolCallId: value.content_block.id,
+                        toolName: value.content_block.name,
+                        jsonText: '',
+                      };
+                    }
+
                     return;
                   }
 
