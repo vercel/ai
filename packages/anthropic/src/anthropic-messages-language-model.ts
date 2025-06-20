@@ -700,26 +700,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'web_search_tool_result': {
                     if (Array.isArray(value.content_block.content)) {
                       for (const result of value.content_block.content) {
-                        if (result.type === 'web_search_result') {
-                          controller.enqueue({
-                            type: 'source',
-                            sourceType: 'url',
-                            id: generateId(),
-                            url: result.url,
-                            title: result.title,
-                            providerMetadata: {
-                              anthropic: {
-                                encryptedContent: result.encrypted_content,
-                                pageAge: result.page_age ?? null,
-                              },
+                        controller.enqueue({
+                          type: 'source',
+                          sourceType: 'url',
+                          id: generateId(),
+                          url: result.url,
+                          title: result.title,
+                          providerMetadata: {
+                            anthropic: {
+                              encryptedContent: result.encrypted_content,
+                              pageAge: result.page_age ?? null,
                             },
-                          });
-                        }
+                          },
+                        });
                       }
-                    } else if (
-                      value.content_block.content.type ===
-                      'web_search_tool_result_error'
-                    ) {
+                    } else {
                       controller.enqueue({
                         type: 'error',
                         error: {
