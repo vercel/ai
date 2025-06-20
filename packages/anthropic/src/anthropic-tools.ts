@@ -5,6 +5,7 @@ import { textEditor_20241022 } from './tool/textEditor_20241022';
 import { textEditor_20250124 } from './tool/textEditor_20250124';
 import { bash_20241022 } from './tool/bash_20241022';
 import { bash_20250124 } from './tool/bash_20250124';
+import { webSearch_20250305 } from './tool/webSearch_20250305';
 
 // TODO remove
 type ExecuteFunction<PARAMETERS, RESULT> =
@@ -150,62 +151,6 @@ function computerTool_20250124<RESULT>(options: {
   };
 }
 
-const WebSearch20250305Parameters = z.object({
-  query: z.string(),
-});
-
-/**
- * Creates a web search tool that gives Claude direct access to real-time web content.
- * Must have name "web_search".
- *
- * @param maxUses - Maximum number of web searches Claude can perform during the conversation.
- * @param allowedDomains - Optional list of domains that Claude is allowed to search.
- * @param blockedDomains - Optional list of domains that Claude should avoid when searching.
- * @param userLocation - Optional user location information to provide geographically relevant search results.
- */
-function webSearchTool_20250305(
-  options: {
-    maxUses?: number;
-    allowedDomains?: string[];
-    blockedDomains?: string[];
-    userLocation?: {
-      type: 'approximate';
-      city?: string;
-      region?: string;
-      country?: string;
-      timezone?: string;
-    };
-  } = {},
-): {
-  type: 'provider-defined-server';
-  id: 'anthropic.web_search_20250305';
-  name: 'web_search';
-  args: {
-    maxUses?: number;
-    allowedDomains?: string[];
-    blockedDomains?: string[];
-    userLocation?: {
-      type: 'approximate';
-      city?: string;
-      region?: string;
-      country?: string;
-      timezone?: string;
-    };
-  };
-} {
-  return {
-    type: 'provider-defined-server',
-    id: 'anthropic.web_search_20250305',
-    name: 'web_search',
-    args: {
-      ...(options.maxUses && { maxUses: options.maxUses }),
-      ...(options.allowedDomains && { allowedDomains: options.allowedDomains }),
-      ...(options.blockedDomains && { blockedDomains: options.blockedDomains }),
-      ...(options.userLocation && { userLocation: options.userLocation }),
-    },
-  };
-}
-
 export const anthropicTools = {
   /**
    * Creates a tool for running a bash command. Must have name "bash".
@@ -247,5 +192,15 @@ export const anthropicTools = {
   computer_20241022,
 
   computer_20250124: computerTool_20250124,
-  webSearch_20250305: webSearchTool_20250305,
+
+  /**
+   * Creates a web search tool that gives Claude direct access to real-time web content.
+   * Must have name "web_search".
+   *
+   * @param maxUses - Maximum number of web searches Claude can perform during the conversation.
+   * @param allowedDomains - Optional list of domains that Claude is allowed to search.
+   * @param blockedDomains - Optional list of domains that Claude should avoid when searching.
+   * @param userLocation - Optional user location information to provide geographically relevant search results.
+   */
+  webSearch_20250305,
 };
