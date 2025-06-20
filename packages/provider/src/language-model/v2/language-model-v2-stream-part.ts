@@ -1,20 +1,41 @@
 import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
-import { LanguageModelV2Content } from './language-model-v2-content';
+import { LanguageModelV2File } from './language-model-v2-file';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2ResponseMetadata } from './language-model-v2-response-metadata';
-import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
+import { LanguageModelV2Source } from './language-model-v2-source';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
 export type LanguageModelV2StreamPart =
-  // Content (similar to doGenerate):
-  | LanguageModelV2Content
+  // Text blocks:
+  | { type: 'text-start'; id: string }
+  | { type: 'text-delta'; id: string; delta: string }
+  | { type: 'text-end'; id: string }
 
-  // Reasoning part end marker:
-  | { type: 'reasoning-part-finish' }
+  // Reasoning blocks:
+  | { type: 'reasoning-start'; id: string }
+  | { type: 'reasoning-delta'; id: string; delta: string }
+  | { type: 'reasoning-end'; id: string }
 
-  // Tool calls delta:
-  | LanguageModelV2ToolCallDelta
+  // Tool calls:
+  | { type: 'tool-input-start'; id: string; toolName: string }
+  | { type: 'tool-input-delta'; id: string; delta: string }
+  | { type: 'tool-input-end'; id: string }
+  | {
+      type: 'tool-call';
+      id: string;
+      toolName: string;
+
+      /**
+  Stringified JSON object with the tool call arguments. Must match the
+  parameters schema of the tool.
+     */
+      input: string;
+    }
+
+  // Files and sources:
+  | LanguageModelV2File
+  | LanguageModelV2Source
 
   // stream start event with warnings for the call, e.g. unsupported settings:
   | {
