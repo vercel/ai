@@ -46,7 +46,7 @@ export interface OpenAIWebSearchPreviewTool {
 /**
  * Union type for all OpenAI tools
  */
-export type OpenAITool = 
+export type OpenAITool =
   | OpenAIFunctionTool
   | OpenAIFileSearchTool
   | OpenAIWebSearchPreviewTool;
@@ -63,4 +63,4 @@ export type OpenAIToolChoice =
 /**
  * OpenAI tools array type
  */
-export type OpenAITools = Array<OpenAITool>; 
+export type OpenAITools = Array<OpenAITool>;

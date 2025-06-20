@@ -2456,16 +2456,15 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "text": "Based on the search results,",
                 "type": "text",
               },
-              {
-                "text": " here's a comprehensive overview of current",
-                "type": "text",
-              },
-              {
-                "text": " stock market trends: 
-
-            Market Performance:",
-                "type": "text",
-              },
+                          {
+              "text": " here's a comprehensive overview of current",
+              "type": "text",
+            },
+            {
+              "error": [AI_JSONParseError: JSON parsing failed: Text: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" stock market trends: .
+Error message: Unterminated string in JSON at position 99],
+              "type": "error",
+            },
               {
                 "text": "Through recent trading, the major indexes are showing modest gains for 2025:",
                 "type": "text",
