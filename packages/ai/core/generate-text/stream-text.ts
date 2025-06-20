@@ -135,8 +135,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
         | 'reasoning'
         | 'source'
         | 'tool-call'
-        | 'tool-call-streaming-start'
-        | 'tool-call-delta'
+        | 'tool-input-start'
+        | 'tool-input-delta'
         | 'tool-result'
         | 'raw';
     }
@@ -608,8 +608,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
-          part.type === 'tool-call-streaming-start' ||
-          part.type === 'tool-call-delta' ||
+          part.type === 'tool-input-start' ||
+          part.type === 'tool-input-delta' ||
           part.type === 'raw'
         ) {
           await onChunk?.({ chunk: part });
@@ -1154,7 +1154,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
-                    case 'tool-call-streaming-start': {
+                    case 'tool-input-start': {
                       const tool = tools?.[chunk.toolName];
 
                       if (tool?.onInputStart != null) {
@@ -1169,7 +1169,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
-                    case 'tool-call-delta': {
+                    case 'tool-input-delta': {
                       const tool = tools?.[chunk.toolName];
 
                       if (tool?.onInputDelta != null) {
@@ -1523,13 +1523,6 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'reasoning-part-finish': {
-              if (sendReasoning) {
-                controller.enqueue({ type: 'reasoning-part-finish' });
-              }
-              break;
-            }
-
             case 'file': {
               controller.enqueue({
                 type: 'file',
@@ -1563,20 +1556,20 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'tool-call-streaming-start': {
+            case 'tool-input-start': {
               controller.enqueue({
                 type: 'tool-input-start',
-                toolCallId: part.toolCallId,
+                toolCallId: part.id,
                 toolName: part.toolName,
               });
               break;
             }
 
-            case 'tool-call-delta': {
+            case 'tool-input-delta': {
               controller.enqueue({
                 type: 'tool-input-delta',
-                toolCallId: part.toolCallId,
-                inputTextDelta: part.inputTextDelta,
+                toolCallId: part.id,
+                inputTextDelta: part.delta,
               });
               break;
             }

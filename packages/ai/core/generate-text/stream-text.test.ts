@@ -2178,8 +2178,8 @@ describe('streamText', () => {
             | 'reasoning'
             | 'source'
             | 'tool-call'
-            | 'tool-call-streaming-start'
-            | 'tool-call-delta'
+            | 'tool-input-start'
+            | 'tool-input-delta'
             | 'tool-result'
             | 'raw';
         }
@@ -6103,8 +6103,8 @@ describe('streamText', () => {
                 | 'reasoning'
                 | 'source'
                 | 'tool-call'
-                | 'tool-call-streaming-start'
-                | 'tool-call-delta'
+                | 'tool-input-start'
+                | 'tool-input-delta'
                 | 'tool-result'
                 | 'raw';
             }
