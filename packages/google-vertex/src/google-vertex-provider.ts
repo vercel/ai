@@ -97,7 +97,7 @@ export function createVertex(
     // For global region, use aiplatform.googleapis.com directly
     // For other regions, use region-aiplatform.googleapis.com
     const baseHost = `${region === 'global' ? '' : region + '-'}aiplatform.googleapis.com`;
-    
+
     return (
       withoutTrailingSlash(options.baseURL) ??
       `https://${baseHost}/v1/projects/${project}/locations/${region}/publishers/google`
