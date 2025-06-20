@@ -4,6 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
+import { webSearch_20250305ArgsSchema } from './tool/webSearch_20250305';
 
 function isWebSearchTool(
   tool: unknown,
@@ -113,36 +114,17 @@ export function prepareTools({
       case 'provider-defined-server':
         switch (tool.id) {
           case 'anthropic.web_search_20250305':
-            const webSearchTool: Extract<
-              AnthropicTool,
-              { type: 'web_search_20250305' }
-            > = {
+            const args = webSearch_20250305ArgsSchema.parse(tool.args);
+
+            anthropicTools.push({
               type: 'web_search_20250305',
               name: tool.name,
-            };
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              user_location: args.userLocation,
+            });
 
-            if (tool.args.maxUses) {
-              webSearchTool.max_uses = tool.args.maxUses as number;
-            }
-            if (tool.args.allowedDomains) {
-              webSearchTool.allowed_domains = tool.args
-                .allowedDomains as string[];
-            }
-            if (tool.args.blockedDomains) {
-              webSearchTool.blocked_domains = tool.args
-                .blockedDomains as string[];
-            }
-            if (tool.args.userLocation) {
-              webSearchTool.user_location = tool.args.userLocation as {
-                type: 'approximate';
-                city?: string;
-                region?: string;
-                country?: string;
-                timezone?: string;
-              };
-            }
-
-            anthropicTools.push(webSearchTool);
             break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
