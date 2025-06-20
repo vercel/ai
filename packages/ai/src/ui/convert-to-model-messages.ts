@@ -1,7 +1,10 @@
+import {
+  AssistantContent,
+  ModelMessage,
+  ToolResultPart,
+} from '@ai-sdk/provider-utils';
 import { ToolSet } from '../../core/generate-text/tool-set';
-import { ToolResultPart } from '../../core/prompt/content-part';
 import { createToolModelOutput } from '../../core/prompt/create-tool-model-output';
-import { AssistantContent, ModelMessage } from '../../core/prompt/message';
 import { MessageConversionError } from '../../core/prompt/message-conversion-error';
 import {
   FileUIPart,

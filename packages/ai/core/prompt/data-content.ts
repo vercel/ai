@@ -2,15 +2,11 @@ import { AISDKError, LanguageModelV2DataContent } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
+  DataContent,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { InvalidDataContentError } from './invalid-data-content-error';
 import { splitDataUrl } from './split-data-url';
-
-/**
-Data content. Can either be a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer.
- */
-export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
 /**
 @internal

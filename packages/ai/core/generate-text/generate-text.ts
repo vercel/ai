@@ -3,7 +3,11 @@ import {
   LanguageModelV2Content,
   LanguageModelV2ToolCall,
 } from '@ai-sdk/provider';
-import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  IdGenerator,
+  ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { asArray } from '../../src/util/as-array';
@@ -24,7 +28,7 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
+import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { extractContentText } from './extract-content-text';

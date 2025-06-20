@@ -1,4 +1,4 @@
-import { ModelMessage } from './message';
+import { ModelMessage } from '@ai-sdk/provider-utils';
 
 /**
 Prompt part of the AI function options.

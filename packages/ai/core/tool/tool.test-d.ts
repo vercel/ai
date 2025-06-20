@@ -1,7 +1,11 @@
-import { expectTypeOf } from 'vitest';
-import { Tool, tool } from '.';
 import { z } from 'zod';
-import { ToolCallOptions, ToolInputSchema } from './tool';
+import {
+  Tool,
+  ToolCallOptions,
+  ToolExecuteFunction,
+  ToolInputSchema,
+} from '@ai-sdk/provider-utils';
+import { tool } from './tool';
 
 describe('tool helper', () => {
   it('should work with no parameters and no output', () => {
@@ -33,10 +37,7 @@ describe('tool helper', () => {
 
     expectTypeOf(toolType).toEqualTypeOf<Tool<never, 'test'>>();
     expectTypeOf(toolType.execute).toMatchTypeOf<
-      (
-        input: undefined,
-        options: ToolCallOptions,
-      ) => PromiseLike<'test'> | 'test'
+      ToolExecuteFunction<never, 'test'>
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<undefined>();

@@ -1,4 +1,4 @@
-import { ReasoningPart } from '../prompt/content-part';
+import { ReasoningPart } from '@ai-sdk/provider-utils';
 import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
