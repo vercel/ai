@@ -1,4 +1,7 @@
-import { AssistantModelMessage, ToolModelMessage } from '../prompt/message';
+import {
+  AssistantModelMessage,
+  ToolModelMessage,
+} from '@ai-sdk/provider-utils';
 
 /**
 A message that was generated during the generation process.

@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  ProviderOptions,
   type InferSchema,
   type Schema,
 } from '@ai-sdk/provider-utils';
@@ -43,7 +44,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { CallWarning, LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
+import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';

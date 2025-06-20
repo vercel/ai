@@ -3,7 +3,7 @@ import {
   JSONValue,
   LanguageModelV2ToolResultOutput,
 } from '@ai-sdk/provider';
-import { Tool } from '../tool';
+import { Tool } from '@ai-sdk/provider-utils';
 
 export function createToolModelOutput({
   output,

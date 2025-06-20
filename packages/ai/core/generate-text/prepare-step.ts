@@ -1,4 +1,4 @@
-import { Tool } from '../tool/tool';
+import { Tool } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { StepResult } from './step-result';
 

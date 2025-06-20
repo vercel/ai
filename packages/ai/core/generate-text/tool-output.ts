@@ -1,8 +1,6 @@
 import { ValueOf } from '../../src/util/value-of';
-import { Tool } from '../tool';
+import { Tool } from '@ai-sdk/provider-utils';
 import { ToolSet } from './tool-set';
-
-export type { ToolResult } from '@ai-sdk/provider-utils';
 
 // limits the tools to those that have execute !== undefined
 export type ToToolsWithDefinedExecute<TOOLS extends ToolSet> = {

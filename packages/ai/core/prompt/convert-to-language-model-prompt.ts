@@ -4,19 +4,20 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
-import { isUrlSupported } from '@ai-sdk/provider-utils';
+import {
+  DataContent,
+  FilePart,
+  ImagePart,
+  isUrlSupported,
+  ModelMessage,
+  TextPart,
+} from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../../src/util/detect-media-type';
 import { download } from '../../src/util/download';
-import { ToolSet } from '../generate-text/tool-set';
-import { ModelMessage } from '../prompt/message';
-import { FilePart, ImagePart, TextPart } from './content-part';
-import {
-  convertToLanguageModelV2DataContent,
-  DataContent,
-} from './data-content';
+import { convertToLanguageModelV2DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
 
@@ -52,7 +53,7 @@ export async function convertToLanguageModelPrompt({
  * @param downloadedAssets A map of URLs to their downloaded data. Only
  *   available if the model does not support URLs, null otherwise.
  */
-export function convertToLanguageModelMessage<TOOLS extends ToolSet = never>({
+export function convertToLanguageModelMessage({
   message,
   downloadedAssets,
 }: {

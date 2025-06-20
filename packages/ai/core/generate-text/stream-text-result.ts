@@ -1,8 +1,9 @@
+import { ReasoningPart } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
 import { InferUIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 import { InferUIMessageMetadata, UIMessage } from '../../src/ui/ui-messages';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
-import { ReasoningPart } from '../prompt/content-part';
 import {
   CallWarning,
   FinishReason,
@@ -19,7 +20,6 @@ import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
-import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**

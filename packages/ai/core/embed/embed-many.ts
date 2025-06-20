@@ -1,3 +1,4 @@
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { splitArray } from '../../src/util/split-array';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -6,7 +7,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { Embedding, EmbeddingModel, ProviderOptions } from '../types';
+import { Embedding, EmbeddingModel } from '../types';
 import { EmbedManyResult } from './embed-many-result';
 
 /**

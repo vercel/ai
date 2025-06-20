@@ -1,12 +1,15 @@
 import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
-import { InferSchema, safeParseJSON } from '@ai-sdk/provider-utils';
+import {
+  InferSchema,
+  ProviderOptions,
+  safeParseJSON,
+} from '@ai-sdk/provider-utils';
 import { ReactNode } from 'react';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4/core';
 import {
   CallWarning,
   FinishReason,
-  ProviderOptions,
   LanguageModelUsage,
   ToolChoice,
   Prompt,

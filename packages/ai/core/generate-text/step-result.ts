@@ -1,4 +1,4 @@
-import { ReasoningPart } from '../prompt/content-part';
+import { ReasoningPart } from '@ai-sdk/provider-utils';
 import {
   CallWarning,
   FinishReason,

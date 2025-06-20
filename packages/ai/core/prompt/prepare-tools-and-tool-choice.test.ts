@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { ToolSet } from '../generate-text/tool-set';
-import { Tool, tool } from '../tool/tool';
+import { tool } from '../tool/tool';
 import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
+import { Tool } from '@ai-sdk/provider-utils';
 
 const mockTools: ToolSet = {
   tool1: tool({
