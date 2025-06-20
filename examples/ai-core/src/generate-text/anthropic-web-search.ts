@@ -20,26 +20,26 @@ async function main() {
     },
   });
 
-  console.log(result.text);
+  console.log(result.content);
   console.log();
   console.log('Sources:', result.sources.length);
   console.log('Content blocks:', result.content.length);
   console.log('Finish reason:', result.finishReason);
   console.log('Usage:', result.usage);
 
-  if (result.sources.length > 0) {
-    console.log();
-    for (const source of result.sources) {
-      if (source.sourceType === 'url') {
-        console.log('URL:', source.url);
-        console.log('Title:', source.title);
-        if (source.providerMetadata?.anthropic) {
-          console.log('Metadata:', source.providerMetadata.anthropic);
-        }
-        console.log();
-      }
-    }
-  }
+  // if (result.sources.length > 0) {
+  //   console.log();
+  //   for (const source of result.sources) {
+  //     if (source.sourceType === 'url') {
+  //       console.log('URL:', source.url);
+  //       console.log('Title:', source.title);
+  //       if (source.providerMetadata?.anthropic) {
+  //         console.log('Metadata:', source.providerMetadata.anthropic);
+  //       }
+  //       console.log();
+  //     }
+  //   }
+  // }
 }
 
 main().catch(console.error);
