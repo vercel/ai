@@ -1,36 +1,20 @@
-import { z } from 'zod';
+import { fileSearch } from './tool/file-search';
+import { webSearchPreview } from './tool/web-search-preview';
 
-const WebSearchPreviewParameters = z.object({});
+export { fileSearch } from './tool/file-search';
+export { webSearchPreview } from './tool/web-search-preview';
 
-function webSearchPreviewTool({
-  searchContextSize,
-  userLocation,
-}: {
-  searchContextSize?: 'low' | 'medium' | 'high';
-  userLocation?: {
-    type?: 'approximate';
-    city?: string;
-    region?: string;
-    country?: string;
-    timezone?: string;
-  };
-} = {}): {
-  type: 'provider-defined-client';
-  id: 'openai.web_search_preview';
-  args: {};
-  parameters: typeof WebSearchPreviewParameters;
-} {
-  return {
-    type: 'provider-defined-client',
-    id: 'openai.web_search_preview',
-    args: {
-      searchContextSize,
-      userLocation,
-    },
-    parameters: WebSearchPreviewParameters,
-  };
-}
+export type {
+  OpenAITool,
+  OpenAITools,
+  OpenAIToolChoice,
+  OpenAIFunctionTool,
+  OpenAIFileSearchTool,
+  OpenAIWebSearchPreviewTool,
+  OpenAIWebSearchUserLocation,
+} from './openai-types';
 
 export const openaiTools = {
-  webSearchPreview: webSearchPreviewTool,
+  fileSearch,
+  webSearchPreview,
 };
