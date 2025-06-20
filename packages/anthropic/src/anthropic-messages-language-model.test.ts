@@ -307,7 +307,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           {
             "input": "{"value":"example value"}",
             "toolCallId": "toolu_1",
-            "toolCallType": "function",
             "toolName": "test-tool",
             "type": "tool-call",
           },
@@ -1096,7 +1095,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               "input": "{"query":"latest AI news"}",
               "toolCallId": "tool_1",
-              "toolCallType": "function",
               "toolName": "web_search",
               "type": "tool-call",
             },
@@ -1761,8 +1759,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "tool-input-end",
           },
           {
-            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "input": "",
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolName": "test-tool",
             "type": "tool-call",
           },
@@ -2390,8 +2388,8 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "tool-input-end",
               },
               {
-                "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
                 "input": "",
+                "toolCallId": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
                 "toolName": "web_search",
                 "type": "tool-call",
               },
@@ -2540,7 +2538,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "text-delta",
               },
               {
-                "delta": " stock market trends:
+                "delta": " stock market trends: 
 
             Market Performance:",
                 "id": "3",

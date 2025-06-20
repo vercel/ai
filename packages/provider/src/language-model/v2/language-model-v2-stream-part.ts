@@ -63,7 +63,7 @@ export type LanguageModelV2StreamPart =
     }
   | {
       type: 'tool-call';
-      id: string;
+      toolCallId: string;
       toolName: string;
 
       /**

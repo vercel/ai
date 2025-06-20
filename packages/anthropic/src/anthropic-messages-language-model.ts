@@ -495,8 +495,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   text: JSON.stringify(part.input),
                 }
               : {
-                  type: 'tool-call' as const,
-                  toolCallType: 'function',
+                  type: 'tool-call',
                   toolCallId: part.id,
                   toolName: part.name,
                   input: JSON.stringify(part.input),
@@ -509,7 +508,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           if (part.name === 'web_search') {
             content.push({
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: part.id,
               toolName: part.name,
               input: JSON.stringify(part.input),
@@ -808,7 +806,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         });
                         controller.enqueue({
                           type: 'tool-call',
-                          id: contentBlock.toolCallId,
+                          toolCallId: contentBlock.toolCallId,
                           toolName: contentBlock.toolName,
                           input: contentBlock.input,
                         });
