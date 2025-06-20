@@ -16,87 +16,97 @@ const testUsage = {
   reasoningTokens: undefined,
   cachedInputTokens: undefined,
 };
+describe('runToolsTransformation', () => {
+  it('should forward text deltas correctly', async () => {
+    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+      convertArrayToReadableStream([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', delta: 'text' },
+        { type: 'text-end', id: '1' },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]);
 
-it('should forward text deltas correctly', async () => {
-  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
-    convertArrayToReadableStream([
-      { type: 'text', text: 'text' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: testUsage,
-      },
-    ]);
+    const transformedStream = runToolsTransformation({
+      tools: undefined,
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+    });
 
-  const transformedStream = runToolsTransformation({
-    tools: undefined,
-    generatorStream: inputStream,
-    tracer: new MockTracer(),
-    telemetry: undefined,
-    messages: [],
-    system: undefined,
-    abortSignal: undefined,
-    repairToolCall: undefined,
+    const result = await convertReadableStreamToArray(transformedStream);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "text",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+        },
+      ]
+    `);
   });
 
-  const result = await convertReadableStreamToArray(transformedStream);
+  it('should handle async tool execution', async () => {
+    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          id: 'call-1',
+          toolName: 'syncTool',
+          input: `{ "value": "test" }`,
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]);
 
-  expect(result).toMatchInlineSnapshot(`
-    [
-      {
-        "text": "text",
-        "type": "text",
-      },
-      {
-        "finishReason": "stop",
-        "type": "finish",
-        "usage": {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
+    const transformedStream = runToolsTransformation({
+      tools: {
+        syncTool: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-sync-result`,
         },
       },
-    ]
-  `);
-});
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+    });
 
-it('should handle async tool execution', async () => {
-  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
-    convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: 'call-1',
-        toolName: 'syncTool',
-        input: `{ "value": "test" }`,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: testUsage,
-      },
-    ]);
-
-  const transformedStream = runToolsTransformation({
-    tools: {
-      syncTool: {
-        inputSchema: z.object({ value: z.string() }),
-        execute: async ({ value }) => `${value}-sync-result`,
-      },
-    },
-    generatorStream: inputStream,
-    tracer: new MockTracer(),
-    telemetry: undefined,
-    messages: [],
-    system: undefined,
-    abortSignal: undefined,
-    repairToolCall: undefined,
-  });
-
-  expect(await convertReadableStreamToArray(transformedStream))
-    .toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
       [
         {
           "input": {
@@ -128,43 +138,42 @@ it('should handle async tool execution', async () => {
         },
       ]
     `);
-});
-
-it('should handle sync tool execution', async () => {
-  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
-    convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: 'call-1',
-        toolName: 'syncTool',
-        input: `{ "value": "test" }`,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: testUsage,
-      },
-    ]);
-
-  const transformedStream = runToolsTransformation({
-    tools: {
-      syncTool: {
-        inputSchema: z.object({ value: z.string() }),
-        execute: ({ value }) => `${value}-sync-result`,
-      },
-    },
-    generatorStream: inputStream,
-    tracer: new MockTracer(),
-    telemetry: undefined,
-    messages: [],
-    system: undefined,
-    abortSignal: undefined,
-    repairToolCall: undefined,
   });
 
-  expect(await convertReadableStreamToArray(transformedStream))
-    .toMatchInlineSnapshot(`
+  it('should handle sync tool execution', async () => {
+    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          id: 'call-1',
+          toolName: 'syncTool',
+          input: `{ "value": "test" }`,
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]);
+
+    const transformedStream = runToolsTransformation({
+      tools: {
+        syncTool: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: ({ value }) => `${value}-sync-result`,
+        },
+      },
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+    });
+
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
       [
         {
           "input": {
@@ -196,47 +205,46 @@ it('should handle sync tool execution', async () => {
         },
       ]
     `);
-});
-
-it('should hold off on sending finish until the delayed tool result is received', async () => {
-  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
-    convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: 'call-1',
-        toolName: 'delayedTool',
-        input: `{ "value": "test" }`,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: testUsage,
-      },
-    ]);
-
-  const transformedStream = runToolsTransformation({
-    tools: {
-      delayedTool: {
-        inputSchema: z.object({ value: z.string() }),
-        execute: async ({ value }) => {
-          await delay(0); // Simulate delayed execution
-          return `${value}-delayed-result`;
-        },
-      },
-    },
-    generatorStream: inputStream,
-    tracer: new MockTracer(),
-    telemetry: undefined,
-    messages: [],
-    system: undefined,
-    abortSignal: undefined,
-    repairToolCall: undefined,
   });
 
-  const result = await convertReadableStreamToArray(transformedStream);
+  it('should hold off on sending finish until the delayed tool result is received', async () => {
+    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          id: 'call-1',
+          toolName: 'delayedTool',
+          input: `{ "value": "test" }`,
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]);
 
-  expect(result).toMatchInlineSnapshot(`
+    const transformedStream = runToolsTransformation({
+      tools: {
+        delayedTool: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => {
+            await delay(0); // Simulate delayed execution
+            return `${value}-delayed-result`;
+          },
+        },
+      },
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+    });
+
+    const result = await convertReadableStreamToArray(transformedStream);
+
+    expect(result).toMatchInlineSnapshot(`
     [
       {
         "input": {
@@ -268,54 +276,53 @@ it('should hold off on sending finish until the delayed tool result is received'
       },
     ]
   `);
-});
-
-it('should try to repair tool call when the tool name is not found', async () => {
-  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
-    convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: 'call-1',
-        toolName: 'unknownTool',
-        input: `{ "value": "test" }`,
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: testUsage,
-      },
-    ]);
-
-  const transformedStream = runToolsTransformation({
-    generatorStream: inputStream,
-    tracer: new MockTracer(),
-    telemetry: undefined,
-    messages: [],
-    system: undefined,
-    abortSignal: undefined,
-    tools: {
-      correctTool: {
-        inputSchema: z.object({ value: z.string() }),
-        execute: async ({ value }) => `${value}-result`,
-      },
-    },
-    repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
-      expect(NoSuchToolError.isInstance(error)).toBe(true);
-      expect(toolCall).toStrictEqual({
-        type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: 'call-1',
-        toolName: 'unknownTool',
-        input: `{ "value": "test" }`,
-      });
-
-      return { ...toolCall, toolName: 'correctTool' };
-    },
   });
 
-  expect(await convertReadableStreamToArray(transformedStream))
-    .toMatchInlineSnapshot(`
+  it('should try to repair tool call when the tool name is not found', async () => {
+    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          id: 'call-1',
+          toolName: 'unknownTool',
+          input: `{ "value": "test" }`,
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]);
+
+    const transformedStream = runToolsTransformation({
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      tools: {
+        correctTool: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
+        expect(NoSuchToolError.isInstance(error)).toBe(true);
+        expect(toolCall).toStrictEqual({
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'call-1',
+          toolName: 'unknownTool',
+          input: `{ "value": "test" }`,
+        });
+
+        return { ...toolCall, toolName: 'correctTool' };
+      },
+    });
+
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
       [
         {
           "input": {
@@ -347,4 +354,5 @@ it('should try to repair tool call when the tool name is not found', async () =>
         },
       ]
     `);
+  });
 });

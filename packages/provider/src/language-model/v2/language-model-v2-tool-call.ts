@@ -6,7 +6,6 @@ Tool calls that the model has generated.
 export type LanguageModelV2ToolCall = {
   type: 'tool-call';
 
-  toolCallType: 'function';
   toolCallId: string;
   toolName: string;
 
