@@ -499,7 +499,7 @@ describe('streamText', () => {
                 },
                 {
                   type: 'tool-call',
-                  id: 'call-1',
+                  toolCallId: 'call-1',
                   toolName: 'tool1',
                   input: `{ "value": "value" }`,
                 },
@@ -582,7 +582,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolName: 'test-tool',
               input: '{"value":"Sparkle Day"}',
             },
@@ -619,7 +619,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -662,7 +662,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -1191,7 +1191,7 @@ describe('streamText', () => {
             { type: 'tool-input-end', id: 'call-1' },
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -2091,7 +2091,7 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -2134,7 +2134,7 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -2213,7 +2213,7 @@ describe('streamText', () => {
             { type: 'tool-input-end', id: '2' },
             {
               type: 'tool-call',
-              id: '2',
+              toolCallId: '2',
               toolName: 'tool1',
               input: `{ "value": "test" }`,
               providerMetadata: { provider: { custom: 'value' } },
@@ -2290,7 +2290,7 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: ', ' },
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -2420,7 +2420,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -2798,7 +2798,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'tool-call',
-                        id: 'call-1',
+                        toolCallId: 'call-1',
                         toolName: 'tool1',
                         input: `{ "value": "value" }`,
                       },
@@ -3357,7 +3357,7 @@ describe('streamText', () => {
                       { type: 'reasoning-end', id: 'id-0' },
                       {
                         type: 'tool-call',
-                        id: 'call-1',
+                        toolCallId: 'call-1',
                         toolName: 'tool1',
                         input: `{ "value": "value" }`,
                       },
@@ -4772,7 +4772,7 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -4872,7 +4872,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -4911,7 +4911,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -5003,7 +5003,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolName: 'test-tool',
               input: '{"value":"Sparkle Day"}',
             },
@@ -5214,7 +5214,7 @@ describe('streamText', () => {
                 },
                 {
                   type: 'tool-call',
-                  id: 'call-1',
+                  toolCallId: 'call-1',
                   toolName: 'tool1',
                   input: `{ "value": "value" }`,
                 },
@@ -5312,7 +5312,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              id: 'call-1',
+              toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -5734,7 +5734,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                id: 'call-1',
+                toolCallId: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -5781,7 +5781,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                id: 'call-1',
+                toolCallId: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -5835,7 +5835,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                id: 'call-1',
+                toolCallId: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -5954,7 +5954,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                id: 'call-1',
+                toolCallId: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -6008,7 +6008,7 @@ describe('streamText', () => {
               { type: 'text-delta', id: '1', delta: ', ' },
               {
                 type: 'tool-call',
-                id: 'call-1',
+                toolCallId: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -6060,7 +6060,7 @@ describe('streamText', () => {
               { type: 'text-delta', id: '1', delta: ', ' },
               {
                 type: 'tool-call',
-                id: 'call-1',
+                toolCallId: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -6126,7 +6126,7 @@ describe('streamText', () => {
               { type: 'tool-input-end', id: 'call-1' },
               {
                 type: 'tool-call',
-                id: 'call-1',
+                toolCallId: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "test" }`,
               },

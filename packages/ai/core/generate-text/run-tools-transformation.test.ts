@@ -78,7 +78,7 @@ describe('runToolsTransformation', () => {
       convertArrayToReadableStream([
         {
           type: 'tool-call',
-          id: 'call-1',
+          toolCallId: 'call-1',
           toolName: 'syncTool',
           input: `{ "value": "test" }`,
         },
@@ -145,7 +145,7 @@ describe('runToolsTransformation', () => {
       convertArrayToReadableStream([
         {
           type: 'tool-call',
-          id: 'call-1',
+          toolCallId: 'call-1',
           toolName: 'syncTool',
           input: `{ "value": "test" }`,
         },
@@ -212,7 +212,7 @@ describe('runToolsTransformation', () => {
       convertArrayToReadableStream([
         {
           type: 'tool-call',
-          id: 'call-1',
+          toolCallId: 'call-1',
           toolName: 'delayedTool',
           input: `{ "value": "test" }`,
         },
@@ -283,7 +283,7 @@ describe('runToolsTransformation', () => {
       convertArrayToReadableStream([
         {
           type: 'tool-call',
-          id: 'call-1',
+          toolCallId: 'call-1',
           toolName: 'unknownTool',
           input: `{ "value": "test" }`,
         },
