@@ -60,6 +60,7 @@ describe('runToolsTransformation', () => {
         },
         {
           "finishReason": "stop",
+          "providerMetadata": undefined,
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -127,6 +128,7 @@ describe('runToolsTransformation', () => {
         },
         {
           "finishReason": "stop",
+          "providerMetadata": undefined,
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -194,6 +196,7 @@ describe('runToolsTransformation', () => {
         },
         {
           "finishReason": "stop",
+          "providerMetadata": undefined,
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -255,7 +258,17 @@ describe('runToolsTransformation', () => {
         "type": "tool-call",
       },
       {
+        "input": {
+          "value": "test",
+        },
+        "output": "test-delayed-result",
+        "toolCallId": "call-1",
+        "toolName": "delayedTool",
+        "type": "tool-result",
+      },
+      {
         "finishReason": "stop",
+        "providerMetadata": undefined,
         "type": "finish",
         "usage": {
           "cachedInputTokens": undefined,
@@ -264,15 +277,6 @@ describe('runToolsTransformation', () => {
           "reasoningTokens": undefined,
           "totalTokens": 13,
         },
-      },
-      {
-        "input": {
-          "value": "test",
-        },
-        "output": "test-delayed-result",
-        "toolCallId": "call-1",
-        "toolName": "delayedTool",
-        "type": "tool-result",
       },
     ]
   `);
@@ -342,6 +346,7 @@ describe('runToolsTransformation', () => {
         },
         {
           "finishReason": "stop",
+          "providerMetadata": undefined,
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,

@@ -9,74 +9,19 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
+import { TextStreamPart } from './stream-text-result';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
-  // Text blocks:
-  | {
-      type: 'text-start';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-    }
-  | {
-      type: 'text-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      delta: string;
-    }
-  | {
-      type: 'text-end';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-    }
-
-  // Reasoning blocks:
-  | {
-      type: 'reasoning-start';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-    }
-  | {
-      type: 'reasoning-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      delta: string;
-    }
-  | {
-      type: 'reasoning-end';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-
-  // Tool calls:
-  | {
-      type: 'tool-input-start';
-      id: string;
-      toolName: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'tool-input-delta';
-      id: string;
-      delta: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'tool-input-end';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | ({ type: 'source' } & Source)
+  | Omit<
+      TextStreamPart<TOOLS>,
+      'start-step' | 'finish-step' | 'start' | 'finish'
+    >
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
-  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
-  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
   | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
   | {
       type: 'response-metadata';
@@ -90,8 +35,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
-  | { type: 'error'; error: unknown }
-  | { type: 'raw'; rawValue: unknown };
+  | { type: 'error'; error: unknown };
 
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
@@ -123,9 +67,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       toolResultsStreamController = controller;
     },
   });
-
-  // keep track of active tool calls for tool call streaming:
-  const activeToolCalls: Record<string, boolean> = {};
 
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
@@ -165,7 +106,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       switch (chunkType) {
         // forward:
         case 'stream-start':
-        case 'finish':
         case 'text-start':
         case 'text-delta':
         case 'text-end':
@@ -177,12 +117,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'tool-input-end':
         case 'source':
         case 'response-metadata':
-        case 'error': {
-          controller.enqueue(chunk);
-          break;
-        }
-
-        // forward raw chunks to be part of the fullStream
+        case 'error':
         case 'raw': {
           controller.enqueue(chunk);
           break;
@@ -199,16 +134,21 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        case 'finish': {
+          finishChunk = {
+            type: 'finish',
+            finishReason: chunk.finishReason,
+            usage: chunk.usage,
+            providerMetadata: chunk.providerMetadata,
+          };
+          break;
+        }
+
         // process tool call:
         case 'tool-call': {
           try {
             const toolCall = await parseToolCall({
-              toolCall: {
-                type: 'tool-call',
-                toolCallId: chunk.id,
-                toolName: chunk.toolName,
-                input: chunk.input,
-              },
+              toolCall: chunk,
               tools,
               repairToolCall,
               system,
@@ -304,10 +244,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               });
             }
           } catch (error) {
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error,
-            });
+            toolResultsStreamController!.enqueue({ type: 'error', error });
           }
 
           break;
