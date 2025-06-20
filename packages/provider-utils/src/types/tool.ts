@@ -31,6 +31,11 @@ export interface ToolCallOptions {
   abortSignal?: AbortSignal;
 }
 
+export type ToolExecuteFunction<INPUT, OUTPUT> = (
+  input: INPUT,
+  options: ToolCallOptions,
+) => PromiseLike<OUTPUT> | OUTPUT;
+
 type NeverOptional<N, T> = 0 extends 1 & N
   ? Partial<T>
   : [N] extends [never]
@@ -74,10 +79,7 @@ If not provided, the tool will not be executed automatically.
 @args is the input of the tool call.
 @options.abortSignal is a signal that can be used to abort the tool call.
       */
-      execute: (
-        input: [INPUT] extends [never] ? undefined : INPUT,
-        options: ToolCallOptions,
-      ) => PromiseLike<OUTPUT> | OUTPUT;
+      execute: ToolExecuteFunction<INPUT, OUTPUT>;
 
       /**
 Optional conversion function that maps the tool result to an output that can be used by the language model.

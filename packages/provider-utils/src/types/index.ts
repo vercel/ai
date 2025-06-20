@@ -14,7 +14,12 @@ export type { DataContent } from './data-content';
 export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { SystemModelMessage } from './system-model-message';
-export type { Tool, ToolCallOptions, ToolInputSchema } from './tool';
+export type {
+  Tool,
+  ToolCallOptions,
+  ToolExecuteFunction,
+  ToolInputSchema,
+} from './tool';
 export type { ToolCall } from './tool-call';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';
 export type { ToolResult } from './tool-result';

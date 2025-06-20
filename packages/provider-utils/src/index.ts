@@ -3,8 +3,7 @@ export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-t
 export * from './delay';
 export * from './extract-response-headers';
 export * from './fetch-function';
-export { createIdGenerator, generateId } from './generate-id';
-export type { IdGenerator } from './generate-id';
+export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
 export * from './is-abort-error';
@@ -16,11 +15,14 @@ export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
 export * from './post-to-api';
+export {
+  createProviderDefinedClientToolFactory,
+  type ProviderDefinedClientToolFactory,
+} from './provider-defined-client-tool-factory';
 export * from './remove-undefined-entries';
 export * from './resolve';
 export * from './response-handler';
-export { asSchema, jsonSchema } from './schema';
-export type { Schema, InferSchema } from './schema';
+export { asSchema, jsonSchema, type InferSchema, type Schema } from './schema';
 export * from './uint8-utils';
 export * from './validate-types';
 export * from './validator';
@@ -31,8 +33,8 @@ export { zodSchema } from './zod-schema';
 export * from './types';
 
 // external re-exports
-export {
-  type EventSourceMessage,
-  EventSourceParserStream,
-} from 'eventsource-parser/stream';
 export * from '@standard-schema/spec';
+export {
+  EventSourceParserStream,
+  type EventSourceMessage,
+} from 'eventsource-parser/stream';

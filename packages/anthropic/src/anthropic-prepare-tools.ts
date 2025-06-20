@@ -1,7 +1,6 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
-  LanguageModelV2ProviderDefinedServerTool,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';

@@ -1,6 +1,15 @@
 import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
+import {
+  createProviderDefinedClientToolFactory,
+  Tool,
+  ToolExecuteFunction,
+  ToolInputSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import { computer_20241022 } from './tool/computer_20241022';
+import { textEditor_20241022 } from './tool/textEditor_20241022';
 
+// TODO remove
 type ExecuteFunction<PARAMETERS, RESULT> =
   | undefined
   | ((
@@ -8,10 +17,12 @@ type ExecuteFunction<PARAMETERS, RESULT> =
       options: { abortSignal?: AbortSignal },
     ) => Promise<RESULT>);
 
-const Bash20241022Parameters = z.object({
+const Bash20241022InputSchema = z.object({
   command: z.string(),
   restart: z.boolean().optional(),
 });
+
+type Bash20241022Input = z.infer<typeof Bash20241022InputSchema>;
 
 /**
  * Creates a tool for running a bash command. Must have name "bash".
@@ -22,7 +33,7 @@ const Bash20241022Parameters = z.object({
  */
 function bashTool_20241022<RESULT>(
   options: {
-    execute?: ExecuteFunction<
+    execute?: ToolExecuteFunction<
       {
         /**
          * The bash command to run. Required unless the tool is being restarted.
@@ -36,23 +47,22 @@ function bashTool_20241022<RESULT>(
       },
       RESULT
     >;
-    toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
+    toModelOutput?: Tool<Bash20241022Input, RESULT>['toModelOutput'];
+    onInputStart?: Tool<Bash20241022Input, RESULT>['onInputStart'];
+    onInputDelta?: Tool<Bash20241022Input, RESULT>['onInputDelta'];
+    onInputAvailable?: Tool<Bash20241022Input, RESULT>['onInputAvailable'];
   } = {},
-): {
-  type: 'provider-defined-client';
-  id: 'anthropic.bash_20241022';
-  args: {};
-  parameters: typeof Bash20241022Parameters;
-  execute: ExecuteFunction<z.infer<typeof Bash20241022Parameters>, RESULT>;
-  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-} {
+): Tool<Bash20241022Input, RESULT> {
   return {
     type: 'provider-defined-client',
     id: 'anthropic.bash_20241022',
     args: {},
-    parameters: Bash20241022Parameters,
+    inputSchema: Bash20241022InputSchema,
     execute: options.execute,
     toModelOutput: options.toModelOutput,
+    onInputStart: options.onInputStart,
+    onInputDelta: options.onInputDelta,
+    onInputAvailable: options.onInputAvailable,
   };
 }
 
@@ -104,7 +114,7 @@ function bashTool_20250124<RESULT>(
   };
 }
 
-const TextEditor20241022Parameters = z.object({
+const TextEditor20250124InputSchema = z.object({
   command: z.enum(['view', 'create', 'str_replace', 'insert', 'undo_edit']),
   path: z.string(),
   file_text: z.string().optional(),
@@ -114,252 +124,50 @@ const TextEditor20241022Parameters = z.object({
   view_range: z.array(z.number().int()).optional(),
 });
 
-/**
- * Creates a tool for editing text. Must have name "str_replace_editor".
- *
- * Image results are supported.
- *
- * @param execute - The function to execute the tool. Optional.
- */
-function textEditorTool_20241022<RESULT>(
-  options: {
-    execute?: ExecuteFunction<
-      {
-        /**
-         * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`, `undo_edit`.
-         */
-        command: 'view' | 'create' | 'str_replace' | 'insert' | 'undo_edit';
+type TextEditor20250124Input = {
+  /**
+   * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`, `undo_edit`.
+   */
+  command: 'view' | 'create' | 'str_replace' | 'insert' | 'undo_edit';
 
-        /**
-         * Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
-         */
-        path: string;
+  /**
+   * Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
+   */
+  path: string;
 
-        /**
-         * Required parameter of `create` command, with the content of the file to be created.
-         */
-        file_text?: string;
+  /**
+   * Required parameter of `create` command, with the content of the file to be created.
+   */
+  file_text?: string;
 
-        /**
-         * Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`.
-         */
-        insert_line?: number;
+  /**
+   * Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`.
+   */
+  insert_line?: number;
 
-        /**
-         * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
-         */
-        new_str?: string;
+  /**
+   * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
+   */
+  new_str?: string;
 
-        /**
-         * Required parameter of `str_replace` command containing the string in `path` to replace.
-         */
-        old_str?: string;
+  /**
+   * Required parameter of `str_replace` command containing the string in `path` to replace.
+   */
+  old_str?: string;
 
-        /**
-         * Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.
-         */
-        view_range?: number[];
-      },
-      RESULT
-    >;
-    toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-  } = {},
-): {
-  type: 'provider-defined-client';
-  id: 'anthropic.text_editor_20241022';
-  args: {};
-  parameters: typeof TextEditor20241022Parameters;
-  execute: ExecuteFunction<
-    z.infer<typeof TextEditor20241022Parameters>,
-    RESULT
-  >;
-  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-} {
-  return {
-    type: 'provider-defined-client',
-    id: 'anthropic.text_editor_20241022',
-    args: {},
-    parameters: TextEditor20241022Parameters,
-    execute: options.execute,
-    toModelOutput: options.toModelOutput,
-  };
-}
+  /**
+   * Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.
+   */
+  view_range?: number[];
+};
 
-const TextEditor20250124Parameters = z.object({
-  command: z.enum(['view', 'create', 'str_replace', 'insert', 'undo_edit']),
-  path: z.string(),
-  file_text: z.string().optional(),
-  insert_line: z.number().int().optional(),
-  new_str: z.string().optional(),
-  old_str: z.string().optional(),
-  view_range: z.array(z.number().int()).optional(),
+const textEditor_20250124 = createProviderDefinedClientToolFactory<
+  TextEditor20250124Input,
+  {}
+>({
+  id: 'anthropic.text_editor_20250124',
+  inputSchema: TextEditor20250124InputSchema,
 });
-
-/**
- * Creates a tool for editing text. Must have name "str_replace_editor".
- *
- * Image results are supported.
- *
- * @param execute - The function to execute the tool. Optional.
- */
-function textEditorTool_20250124<RESULT>(
-  options: {
-    execute?: ExecuteFunction<
-      {
-        /**
-         * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`, `undo_edit`.
-         */
-        command: 'view' | 'create' | 'str_replace' | 'insert' | 'undo_edit';
-
-        /**
-         * Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
-         */
-        path: string;
-
-        /**
-         * Required parameter of `create` command, with the content of the file to be created.
-         */
-        file_text?: string;
-
-        /**
-         * Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`.
-         */
-        insert_line?: number;
-
-        /**
-         * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
-         */
-        new_str?: string;
-
-        /**
-         * Required parameter of `str_replace` command containing the string in `path` to replace.
-         */
-        old_str?: string;
-
-        /**
-         * Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.
-         */
-        view_range?: number[];
-      },
-      RESULT
-    >;
-    toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-  } = {},
-): {
-  type: 'provider-defined-client';
-  id: 'anthropic.text_editor_20250124';
-  args: {};
-  parameters: typeof TextEditor20250124Parameters;
-  execute: ExecuteFunction<
-    z.infer<typeof TextEditor20250124Parameters>,
-    RESULT
-  >;
-  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-} {
-  return {
-    type: 'provider-defined-client',
-    id: 'anthropic.text_editor_20250124',
-    args: {},
-    parameters: TextEditor20250124Parameters,
-    execute: options.execute,
-    toModelOutput: options.toModelOutput,
-  };
-}
-
-const Computer20241022Parameters = z.object({
-  action: z.enum([
-    'key',
-    'type',
-    'mouse_move',
-    'left_click',
-    'left_click_drag',
-    'right_click',
-    'middle_click',
-    'double_click',
-    'screenshot',
-    'cursor_position',
-  ]),
-  coordinate: z.array(z.number().int()).optional(),
-  text: z.string().optional(),
-});
-
-/**
- * Creates a tool for executing actions on a computer. Must have name "computer".
- *
- * Image results are supported.
- *
- * @param displayWidthPx - The width of the display being controlled by the model in pixels.
- * @param displayHeightPx - The height of the display being controlled by the model in pixels.
- * @param displayNumber - The display number to control (only relevant for X11 environments). If specified, the tool will be provided a display number in the tool definition.
- * @param execute - The function to execute the tool. Optional.
- */
-function computerTool_20241022<RESULT>(options: {
-  displayWidthPx: number;
-  displayHeightPx: number;
-  displayNumber?: number;
-  execute?: ExecuteFunction<
-    {
-      /**
-       * The action to perform. The available actions are:
-       * - `key`: Press a key or key-combination on the keyboard.
-       *   - This supports xdotool's `key` syntax.
-       *   - Examples: "a", "Return", "alt+Tab", "ctrl+s", "Up", "KP_0" (for the numpad 0 key).
-       * - `type`: Type a string of text on the keyboard.
-       * - `cursor_position`: Get the current (x, y) pixel coordinate of the cursor on the screen.
-       * - `mouse_move`: Move the cursor to a specified (x, y) pixel coordinate on the screen.
-       * - `left_click`: Click the left mouse button.
-       * - `left_click_drag`: Click and drag the cursor to a specified (x, y) pixel coordinate on the screen.
-       * - `right_click`: Click the right mouse button.
-       * - `middle_click`: Click the middle mouse button.
-       * - `double_click`: Double-click the left mouse button.
-       * - `screenshot`: Take a screenshot of the screen.
-       */
-      action:
-        | 'key'
-        | 'type'
-        | 'mouse_move'
-        | 'left_click'
-        | 'left_click_drag'
-        | 'right_click'
-        | 'middle_click'
-        | 'double_click'
-        | 'screenshot'
-        | 'cursor_position';
-
-      /**
-       * (x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates to move the mouse to. Required only by `action=mouse_move` and `action=left_click_drag`.
-       */
-      coordinate?: number[];
-
-      /**
-       * Required only by `action=type` and `action=key`.
-       */
-      text?: string;
-    },
-    RESULT
-  >;
-  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-}): {
-  type: 'provider-defined-client';
-  id: 'anthropic.computer_20241022';
-  args: {};
-  parameters: typeof Computer20241022Parameters;
-  execute: ExecuteFunction<z.infer<typeof Computer20241022Parameters>, RESULT>;
-  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-} {
-  return {
-    type: 'provider-defined-client',
-    id: 'anthropic.computer_20241022',
-    args: {
-      displayWidthPx: options.displayWidthPx,
-      displayHeightPx: options.displayHeightPx,
-      displayNumber: options.displayNumber,
-    },
-    parameters: Computer20241022Parameters,
-    execute: options.execute,
-    toModelOutput: options.toModelOutput,
-  };
-}
 
 const Computer20250124Parameters = z.object({
   action: z.enum([
@@ -556,9 +364,28 @@ function webSearchTool_20250305(
 export const anthropicTools = {
   bash_20241022: bashTool_20241022,
   bash_20250124: bashTool_20250124,
-  textEditor_20241022: textEditorTool_20241022,
-  textEditor_20250124: textEditorTool_20250124,
-  computer_20241022: computerTool_20241022,
+
+  /**
+   * Creates a tool for editing text. Must have name "str_replace_editor".
+   */
+  textEditor_20241022,
+
+  /**
+   * Creates a tool for editing text. Must have name "str_replace_editor".
+   */
+  textEditor_20250124,
+
+  /**
+   * Creates a tool for executing actions on a computer. Must have name "computer".
+   *
+   * Image results are supported.
+   *
+   * @param displayWidthPx - The width of the display being controlled by the model in pixels.
+   * @param displayHeightPx - The height of the display being controlled by the model in pixels.
+   * @param displayNumber - The display number to control (only relevant for X11 environments). If specified, the tool will be provided a display number in the tool definition.
+   */
+  computer_20241022,
+
   computer_20250124: computerTool_20250124,
   webSearch_20250305: webSearchTool_20250305,
 };
