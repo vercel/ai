@@ -1,10 +1,10 @@
 import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
-import { Tool, ToolExecuteFunction } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { computer_20241022 } from './tool/computer_20241022';
 import { textEditor_20241022 } from './tool/textEditor_20241022';
 import { textEditor_20250124 } from './tool/textEditor_20250124';
-import { bashTool_20241022 } from './tool/bashTool_20241022';
+import { bash_20241022 } from './tool/bash_20241022';
+import { bash_20250124 } from './tool/bash_20250124';
 
 // TODO remove
 type ExecuteFunction<PARAMETERS, RESULT> =
@@ -13,54 +13,6 @@ type ExecuteFunction<PARAMETERS, RESULT> =
       args: PARAMETERS,
       options: { abortSignal?: AbortSignal },
     ) => Promise<RESULT>);
-
-const Bash20250124Parameters = z.object({
-  command: z.string(),
-  restart: z.boolean().optional(),
-});
-
-/**
- * Creates a tool for running a bash command. Must have name "bash".
- *
- * Image results are supported.
- *
- * @param execute - The function to execute the tool. Optional.
- */
-function bashTool_20250124<RESULT>(
-  options: {
-    execute?: ExecuteFunction<
-      {
-        /**
-         * The bash command to run. Required unless the tool is being restarted.
-         */
-        command: string;
-
-        /**
-         * Specifying true will restart this tool. Otherwise, leave this unspecified.
-         */
-        restart?: boolean;
-      },
-      RESULT
-    >;
-    toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-  } = {},
-): {
-  type: 'provider-defined-client';
-  id: 'anthropic.bash_20250124';
-  args: {};
-  parameters: typeof Bash20250124Parameters;
-  execute: ExecuteFunction<z.infer<typeof Bash20250124Parameters>, RESULT>;
-  toModelOutput?: (result: RESULT) => LanguageModelV2ToolResultPart['output'];
-} {
-  return {
-    type: 'provider-defined-client',
-    id: 'anthropic.bash_20250124',
-    args: {},
-    parameters: Bash20250124Parameters,
-    execute: options.execute,
-    toModelOutput: options.toModelOutput,
-  };
-}
 
 const Computer20250124Parameters = z.object({
   action: z.enum([
@@ -262,9 +214,16 @@ export const anthropicTools = {
    *
    * @param execute - The function to execute the tool. Optional.
    */
-  bash_20241022: bashTool_20241022,
+  bash_20241022,
 
-  bash_20250124: bashTool_20250124,
+  /**
+   * Creates a tool for running a bash command. Must have name "bash".
+   *
+   * Image results are supported.
+   *
+   * @param execute - The function to execute the tool. Optional.
+   */
+  bash_20250124,
 
   /**
    * Creates a tool for editing text. Must have name "str_replace_editor".
