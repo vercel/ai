@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import { fileSearchArgsSchema } from './tool/file-search';
 import { webSearchPreviewArgsSchema } from './tool/web-search-preview';
+import { OpenAITools, OpenAIToolChoice } from './openai-types';
 
 export function prepareTools({
   tools,
@@ -16,40 +17,8 @@ export function prepareTools({
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   structuredOutputs: boolean;
 }): {
-  tools?: Array<
-    | {
-        type: 'function';
-        function: {
-          name: string;
-          description: string | undefined;
-          parameters: JSONSchema7;
-          strict?: boolean;
-        };
-      }
-    | {
-        type: 'file_search';
-        vector_store_ids?: string[];
-        max_results?: number;
-        search_type?: 'auto' | 'keyword' | 'semantic';
-      }
-    | {
-        type: 'web_search_preview';
-        search_context_size?: 'low' | 'medium' | 'high';
-        user_location?: {
-          type?: 'approximate';
-          city?: string;
-          region?: string;
-          country?: string;
-          timezone?: string;
-        };
-      }
-  >;
-  toolChoice?:
-    | 'auto'
-    | 'none'
-    | 'required'
-    | { type: 'function'; function: { name: string } };
-
+  tools?: OpenAITools;
+  toolChoice?: OpenAIToolChoice;
   toolWarnings: Array<LanguageModelV2CallWarning>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -61,34 +30,7 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const openaiTools: Array<
-    | {
-        type: 'function';
-        function: {
-          name: string;
-          description: string | undefined;
-          parameters: JSONSchema7;
-          strict: boolean | undefined;
-        };
-      }
-    | {
-        type: 'file_search';
-        vector_store_ids?: string[];
-        max_results?: number;
-        search_type?: 'auto' | 'keyword' | 'semantic';
-      }
-    | {
-        type: 'web_search_preview';
-        search_context_size?: 'low' | 'medium' | 'high';
-        user_location?: {
-          type?: 'approximate';
-          city?: string;
-          region?: string;
-          country?: string;
-          timezone?: string;
-        };
-      }
-  > = [];
+  const openaiTools: OpenAITools = [];
 
   for (const tool of tools) {
     switch (tool.type) {
