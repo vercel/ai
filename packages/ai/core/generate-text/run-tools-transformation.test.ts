@@ -311,7 +311,6 @@ describe('runToolsTransformation', () => {
         expect(NoSuchToolError.isInstance(error)).toBe(true);
         expect(toolCall).toStrictEqual({
           type: 'tool-call',
-          toolCallType: 'function',
           toolCallId: 'call-1',
           toolName: 'unknownTool',
           input: `{ "value": "test" }`,

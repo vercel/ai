@@ -12,6 +12,8 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
     wrapStream: async ({ doGenerate }) => {
       const result = await doGenerate();
 
+      let id = 0;
+
       const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
         start(controller) {
           controller.enqueue({
@@ -22,7 +24,34 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
           controller.enqueue({ type: 'response-metadata', ...result.response });
 
           for (const part of result.content) {
-            controller.enqueue(part);
+            switch (part.type) {
+              case 'text': {
+                controller.enqueue({ type: 'text-start', id: String(id) });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: String(id),
+                  delta: part.text,
+                });
+                controller.enqueue({ type: 'text-end', id: String(id) });
+                id++;
+                break;
+              }
+              case 'reasoning': {
+                controller.enqueue({ type: 'reasoning-start', id: String(id) });
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  id: String(id),
+                  delta: part.text,
+                });
+                controller.enqueue({ type: 'reasoning-end', id: String(id) });
+                id++;
+                break;
+              }
+              default: {
+                controller.enqueue(part);
+                break;
+              }
+            }
           }
 
           controller.enqueue({
