@@ -32,8 +32,6 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { AnthropicTool } from './anthropic-api-types';
-import { LanguageModelV2ProviderDefinedServerTool } from '@ai-sdk/provider';
 
 const citationSchemas = {
   webSearchResult: z.object({
@@ -513,23 +511,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         case 'web_search_tool_result': {
           if (Array.isArray(part.content)) {
             for (const result of part.content) {
-              if (result.type === 'web_search_result') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: this.generateId(),
-                  url: result.url,
-                  title: result.title,
-                  providerMetadata: {
-                    anthropic: {
-                      encryptedContent: result.encrypted_content,
-                      pageAge: result.page_age ?? null,
-                    },
+              content.push({
+                type: 'source',
+                sourceType: 'url',
+                id: this.generateId(),
+                url: result.url,
+                title: result.title,
+                providerMetadata: {
+                  anthropic: {
+                    encryptedContent: result.encrypted_content,
+                    pageAge: result.page_age ?? null,
                   },
-                });
-              }
+                },
+              });
             }
-          } else if (part.content.type === 'web_search_tool_result_error') {
+          } else {
             throw new APICallError({
               message: `Web search failed: ${part.content.error_code}`,
               url: 'web_search_api',
