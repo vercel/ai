@@ -2227,7 +2227,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             `data: {"type":"content_block_start","index":3,"content_block":{"type":"text","text":""}}\n\n`,
             `data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"Based on the search results,"}}\n\n`,
             `data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" here's a comprehensive overview of current"}}\n\n`,
-            `data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" stock market trends: \n\nMarket Performance:"}}\n\n`,
+            `data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" stock market trends: \\n\nMarket Performance:"}}\n\n`,
             `data: {"type":"content_block_stop","index":3}\n\n`,
             `data: {"type":"content_block_start","index":4,"content_block":{"citations":[],"type":"text","text":""}}\n\n`,
             `data: {"type":"content_block_delta","index":4,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","cited_text":"Through Friday's close, the S&P 500 was up up 2% since the start of the year, while the Nasdaq Composite had gained 1.1% and the Dow Jones Industrial ...","url":"https://www.investopedia.com/dow-jones-today-06092025-11750420","title":"Markets News, June 9, 2025: Stocks Rise as Investors Await News on US-China Trade Talks; S&P 500, Nasdaq Trading at Highest Levels Since February","encrypted_index":"EpEBCioIBBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDGJyCJ7HnEGjHLeB8hoMsaQDATkym4QTF6g9IjCnRoiZ2XE66u8kx6lBEwocXiyHus1/YL2l9cPwS8Zs/PL9uplW+u0XlETlS0z1ZtYqFQ/TIKRThFDiYozcZ8zgG4IN8pCHLhgE"}}}\n\n`,
@@ -2461,8 +2461,8 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "text",
               },
               {
-                "error": [AI_JSONParseError: JSON parsing failed: Text: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" stock market trends: .
-            Error message: Unterminated string in JSON at position 99],
+                "error": [AI_JSONParseError: JSON parsing failed: Text: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" stock market trends: \\n.
+            Error message: Unterminated string in JSON at position 101],
                 "type": "error",
               },
               {
