@@ -1,5 +1,17 @@
 # @ai-sdk/luma
 
+## 1.0.0-alpha.16
+
+### Patch Changes
+
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [7435eb5]
+- Updated dependencies [44f4aba]
+- Updated dependencies [5e57fae]
+  - @ai-sdk/provider-utils@3.0.0-alpha.16
+  - @ai-sdk/provider@2.0.0-alpha.16
+
 ## 1.0.0-alpha.15
 
 ### Patch Changes

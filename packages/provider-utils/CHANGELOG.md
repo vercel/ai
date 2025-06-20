@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-alpha.16
+
+### Major Changes
+
+- e025824: refactoring (ai): restructure provider-defined tools
+
+### Patch Changes
+
+- Updated dependencies [0d06df6]
+- Updated dependencies [7435eb5]
+- Updated dependencies [44f4aba]
+- Updated dependencies [5e57fae]
+  - @ai-sdk/provider@2.0.0-alpha.16
+
 ## 3.0.0-alpha.15
 
 ### Patch Changes

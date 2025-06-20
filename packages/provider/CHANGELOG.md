@@ -1,5 +1,14 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.16
+
+### Major Changes
+
+- 0d06df6: chore (ai): remove v1 providers
+- 7435eb5: feat: upgrade speech models to v2 specification
+- 44f4aba: feat: upgrade transcription models to v2 specification
+- 5e57fae: refactoring (provider): restructure tool result output
+
 ## 2.0.0-alpha.15
 
 ### Patch Changes

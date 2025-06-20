@@ -1,5 +1,26 @@
 # ai
 
+## 5.0.0-alpha.16
+
+### Major Changes
+
+- 9ad0484: feat (ai): automatic tool execution error handling
+
+### Patch Changes
+
+- f2b041e: Fix custom `fetch` in HttpChatTransport
+- 102b066: fix (ai): fix invalid fetch call
+- e862b5b: feat (ai): allow sync tool.execute
+- 7bd025b: fix (ai): fix sync tool execute with streamText
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [7435eb5]
+- Updated dependencies [44f4aba]
+- Updated dependencies [5e57fae]
+  - @ai-sdk/provider-utils@3.0.0-alpha.16
+  - @ai-sdk/provider@2.0.0-alpha.16
+  - @ai-sdk/gateway@1.0.0-alpha.16
+
 ## 5.0.0-alpha.15
 
 ### Major Changes
