@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { Tool, ToolCallOptions, ToolInputSchema } from '@ai-sdk/provider-utils';
+import {
+  Tool,
+  ToolCallOptions,
+  ToolExecuteFunction,
+  ToolInputSchema,
+} from '@ai-sdk/provider-utils';
 import { tool } from './tool';
 
 describe('tool helper', () => {
@@ -32,10 +37,7 @@ describe('tool helper', () => {
 
     expectTypeOf(toolType).toEqualTypeOf<Tool<never, 'test'>>();
     expectTypeOf(toolType.execute).toMatchTypeOf<
-      (
-        input: undefined,
-        options: ToolCallOptions,
-      ) => PromiseLike<'test'> | 'test'
+      ToolExecuteFunction<never, 'test'>
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<undefined>();
