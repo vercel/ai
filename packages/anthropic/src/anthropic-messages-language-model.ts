@@ -506,7 +506,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'server_tool_use': {
-          continue;
+          if (part.name === 'web_search') {
+            content.push({
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: part.id,
+              toolName: part.name,
+              input: JSON.stringify(part.input),
+            });
+          }
+
+          break;
         }
         case 'web_search_tool_result': {
           if (Array.isArray(part.content)) {

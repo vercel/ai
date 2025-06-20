@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer, mockId } from '@ai-sdk/provider-utils/test';
 import { APICallError } from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
 
@@ -272,6 +272,11 @@ describe('Anthropic Web Search Server-Side Tool', () => {
       },
     });
 
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+      generateId: mockId(),
+    })('claude-3-5-sonnet-latest');
+
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
       tools: [
@@ -286,26 +291,34 @@ describe('Anthropic Web Search Server-Side Tool', () => {
       ],
     });
 
-    expect(result.content).toHaveLength(2);
-
-    expect(result.content[0]).toEqual({
-      type: 'source',
-      sourceType: 'url',
-      id: expect.any(String),
-      url: 'https://example.com/ai-news',
-      title: 'Latest AI Developments',
-      providerMetadata: {
-        anthropic: {
-          encryptedContent: 'encrypted_content_123',
-          pageAge: 'January 15, 2025',
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"query":"latest AI news"}",
+          "toolCallId": "tool_1",
+          "toolCallType": "function",
+          "toolName": "web_search",
+          "type": "tool-call",
         },
-      },
-    });
-
-    expect(result.content[1]).toEqual({
-      type: 'text',
-      text: 'Based on recent articles, AI continues to advance rapidly.',
-    });
+        {
+          "id": "id-0",
+          "providerMetadata": {
+            "anthropic": {
+              "encryptedContent": "encrypted_content_123",
+              "pageAge": "January 15, 2025",
+            },
+          },
+          "sourceType": "url",
+          "title": "Latest AI Developments",
+          "type": "source",
+          "url": "https://example.com/ai-news",
+        },
+        {
+          "text": "Based on recent articles, AI continues to advance rapidly.",
+          "type": "text",
+        },
+      ]
+    `);
   });
 
   it('should handle server-side web search errors', async () => {
