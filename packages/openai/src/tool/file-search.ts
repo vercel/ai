@@ -43,4 +43,4 @@ export function fileSearch(options: FileSearchArgs = {}): {
       query: z.string(),
     }),
   };
-} 
+}

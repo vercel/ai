@@ -48,4 +48,4 @@ export function webSearchPreview(options: WebSearchPreviewArgs = {}): {
     },
     inputSchema: z.object({}),
   };
-} 
+}
