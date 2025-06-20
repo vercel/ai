@@ -70,9 +70,11 @@ function createTestModel({
       modelId: 'mock-model-id',
       timestamp: new Date(0),
     },
-    { type: 'text', text: 'Hello' },
-    { type: 'text', text: ', ' },
-    { type: 'text', text: `world!` },
+    { type: 'text-start', id: '1' },
+    { type: 'text-delta', id: '1', delta: 'Hello' },
+    { type: 'text-delta', id: '1', delta: ', ' },
+    { type: 'text-delta', id: '1', delta: `world!` },
+    { type: 'text-end', id: '1' },
     {
       type: 'finish',
       finishReason: 'stop',
@@ -103,7 +105,9 @@ const modelWithSources = new MockLanguageModelV2({
         title: 'Example',
         providerMetadata: { provider: { custom: 'value' } },
       },
-      { type: 'text', text: 'Hello!' },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'source',
         sourceType: 'url',
@@ -133,7 +137,9 @@ const modelWithDocumentSources = new MockLanguageModelV2({
         filename: 'example.pdf',
         providerMetadata: { provider: { custom: 'doc-value' } },
       },
-      { type: 'text', text: 'Hello from document!' },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello from document!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'source',
         sourceType: 'document',
@@ -159,7 +165,9 @@ const modelWithFiles = new MockLanguageModelV2({
         data: 'Hello World',
         mediaType: 'text/plain',
       },
-      { type: 'text', text: 'Hello!' },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'file',
         data: 'QkFVRw==',
@@ -183,48 +191,56 @@ const modelWithReasoning = new MockLanguageModelV2({
         modelId: 'mock-model-id',
         timestamp: new Date(0),
       },
+      { type: 'reasoning-start', id: '1' },
       {
-        type: 'reasoning',
-        text: 'I will open the conversation',
+        type: 'reasoning-delta',
+        id: '1',
+        delta: 'I will open the conversation',
       },
       {
-        type: 'reasoning',
-        text: ' with witty banter. ',
+        type: 'reasoning-delta',
+        id: '1',
+        delta: ' with witty banter. ',
       },
       {
-        type: 'reasoning',
-        text: '',
+        type: 'reasoning-delta',
+        id: '1',
+        delta: '',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
         } as SharedV2ProviderMetadata,
       },
-      { type: 'reasoning-part-finish' },
+      { type: 'reasoning-end', id: '1' },
       {
-        type: 'reasoning',
-        text: '',
+        type: 'reasoning-start',
+        id: '2',
         providerMetadata: {
           testProvider: { redactedData: 'redacted-reasoning-data' },
         },
       },
-      { type: 'reasoning-part-finish' },
+      { type: 'reasoning-end', id: '2' },
+      { type: 'reasoning-start', id: '3' },
       {
-        type: 'reasoning',
-        text: 'Once the user has relaxed,',
+        type: 'reasoning-delta',
+        id: '3',
+        delta: 'Once the user has relaxed,',
       },
       {
-        type: 'reasoning',
-        text: ' I will pry for valuable information.',
+        type: 'reasoning-delta',
+        id: '3',
+        delta: ' I will pry for valuable information.',
       },
       {
-        type: 'reasoning',
-        text: '',
+        type: 'reasoning-end',
+        id: '3',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        },
+        } as SharedV2ProviderMetadata,
       },
-      { type: 'reasoning-part-finish' },
-      { type: 'text', text: 'Hi' },
-      { type: 'text', text: ' there!' },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hi' },
+      { type: 'text-delta', id: '1', delta: ' there!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -250,9 +266,11 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -274,13 +292,15 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: '' },
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: '' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: '' },
-            { type: 'text', text: 'world!' },
-            { type: 'text', text: '' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -345,9 +365,11 @@ describe('streamText', () => {
                   modelId: 'response-model-id',
                   timestamp: new Date(5000),
                 },
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -412,9 +434,11 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -475,8 +499,7 @@ describe('streamText', () => {
                 },
                 {
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
+                  id: 'call-1',
                   toolName: 'tool1',
                   input: `{ "value": "value" }`,
                 },
@@ -514,58 +537,52 @@ describe('streamText', () => {
               timestamp: new Date(0),
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
+              type: 'tool-input-start',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolName: 'test-tool',
-              inputTextDelta: '{"',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              inputTextDelta: 'value',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '{"',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              inputTextDelta: '":"',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'value',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              inputTextDelta: 'Spark',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '":"',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              inputTextDelta: 'le',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'Spark',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              inputTextDelta: ' Day',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'le',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              inputTextDelta: '"}',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: ' Day',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '"}',
+            },
+            {
+              type: 'tool-input-end',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
             },
             {
               type: 'tool-call',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolName: 'test-tool',
               input: '{"value":"Sparkle Day"}',
             },
@@ -602,8 +619,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -646,8 +662,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -685,13 +700,15 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: '' },
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: '' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: '' },
-            { type: 'text', text: 'world!' },
-            { type: 'text', text: '' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -907,7 +924,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, World!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, World!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1120,9 +1139,11 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: 'world!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
           ]),
         }),
         prompt: 'test-input',
@@ -1164,24 +1185,13 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              inputTextDelta: '{ "value":',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              inputTextDelta: ' "value" }',
-            },
+            { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+            { type: 'tool-input-delta', id: 'call-1', delta: '{ "value":' },
+            { type: 'tool-input-delta', id: 'call-1', delta: ' "value" }' },
+            { type: 'tool-input-end', id: 'call-1' },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -1335,7 +1345,9 @@ describe('streamText', () => {
         model: createTestModel({
           stream: convertArrayToReadableStream([
             { type: 'stream-start', warnings: [] },
-            { type: 'text', text: 'Hello, World!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, World!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1358,7 +1370,9 @@ describe('streamText', () => {
         model: createTestModel({
           stream: convertArrayToReadableStream([
             { type: 'stream-start', warnings: [] },
-            { type: 'text', text: 'Hello, World!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, World!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1613,7 +1627,12 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: 'Hello' });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
               queueMicrotask(() => {
                 controller.error(
                   Object.assign(new Error('Stream aborted'), {
@@ -1635,7 +1654,12 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: 'Hello' });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
               queueMicrotask(() => {
                 controller.error(
                   Object.assign(new Error('Response aborted'), {
@@ -1657,7 +1681,12 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: 'Hello' });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
               queueMicrotask(() => {
                 controller.error(Object.assign(new Error('Some error')));
               });
@@ -1676,7 +1705,12 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: 'Hello' });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
               queueMicrotask(() => {
                 controller.error(Object.assign(new Error('Some error')));
               });
@@ -1704,9 +1738,11 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: 'world!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1752,7 +1788,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1782,7 +1820,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1804,7 +1844,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1889,7 +1931,9 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1920,7 +1964,9 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2045,8 +2091,7 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -2089,8 +2134,7 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -2148,33 +2192,16 @@ describe('streamText', () => {
       const resultObject = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
-            {
-              type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              inputTextDelta: '{"value": "',
-            },
-            {
-              type: 'reasoning',
-              reasoningType: 'text',
-              text: 'Feeling clever',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              inputTextDelta: 'test',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              inputTextDelta: '"}',
-            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            { type: 'tool-input-start', id: '2', toolName: 'tool1' },
+            { type: 'tool-input-delta', id: '2', delta: '{"value": "' },
+            { type: 'reasoning-start', id: '3' },
+            { type: 'reasoning-delta', id: '3', delta: 'Feeling clever' },
+            { type: 'reasoning-end', id: '3' },
+            { type: 'tool-input-delta', id: '2', delta: 'test' },
+            { type: 'tool-input-delta', id: '2', delta: '"}' },
             {
               type: 'source',
               sourceType: 'url',
@@ -2183,14 +2210,17 @@ describe('streamText', () => {
               title: 'Example',
               providerMetadata: { provider: { custom: 'value' } },
             },
+            { type: 'tool-input-end', id: '2' },
             {
               type: 'tool-call',
-              toolCallId: '1',
-              toolCallType: 'function',
+              id: '2',
               toolName: 'tool1',
               input: `{ "value": "test" }`,
+              providerMetadata: { provider: { custom: 'value' } },
             },
-            { type: 'text', text: ' World' },
+            { type: 'text-start', id: '4' },
+            { type: 'text-delta', id: '4', delta: ' World' },
+            { type: 'text-end', id: '4' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2255,16 +2285,17 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: ', ' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', ' },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
-            { type: 'text', text: `world!` },
+            { type: 'text-delta', id: '1', delta: `world!` },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2360,8 +2391,10 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, ' },
-            { type: 'text', text: 'world!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, ' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2381,12 +2414,13 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, ' },
-            { type: 'text', text: 'world!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, ' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -2470,13 +2504,21 @@ describe('streamText', () => {
                         timestamp: new Date(0),
                       },
                       {
-                        type: 'reasoning',
-                        reasoningType: 'text',
-                        text: 'thinking',
+                        type: 'reasoning-start',
+                        id: 'id-0',
+                      },
+                      {
+                        type: 'reasoning-delta',
+                        id: 'id-0',
+                        delta: 'thinking',
+                      },
+                      {
+                        type: 'reasoning-end',
+                        id: 'id-0',
                       },
                       {
                         type: 'tool-call',
-                        toolCallType: 'function',
+                        id: 'call-1',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         input: `{ "value": "value" }`,
@@ -2558,8 +2600,10 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(1000),
                       },
-                      { type: 'text', text: 'Hello, ' },
-                      { type: 'text', text: `world!` },
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                      { type: 'text-delta', id: '1', delta: `world!` },
+                      { type: 'text-end', id: '1' },
                       {
                         type: 'finish',
                         finishReason: 'stop',
@@ -2754,8 +2798,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'tool-call',
-                        toolCallType: 'function',
-                        toolCallId: 'call-1',
+                        id: 'call-1',
                         toolName: 'tool1',
                         input: `{ "value": "value" }`,
                       },
@@ -2776,8 +2819,10 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(1000),
                       },
-                      { type: 'text', text: 'Hello, ' },
-                      { type: 'text', text: `world!` },
+                      { type: 'text-start', id: '2' },
+                      { type: 'text-delta', id: '2', delta: 'Hello, ' },
+                      { type: 'text-delta', id: '2', delta: `world!` },
+                      { type: 'text-end', id: '2' },
                       {
                         type: 'finish',
                         finishReason: 'stop',
@@ -3303,15 +3348,16 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(0),
                       },
+                      { type: 'reasoning-start', id: 'id-0' },
                       {
-                        type: 'reasoning',
-                        reasoningType: 'text',
-                        text: 'thinking',
+                        type: 'reasoning-delta',
+                        id: 'id-0',
+                        delta: 'thinking',
                       },
+                      { type: 'reasoning-end', id: 'id-0' },
                       {
                         type: 'tool-call',
-                        toolCallType: 'function',
-                        toolCallId: 'call-1',
+                        id: 'call-1',
                         toolName: 'tool1',
                         input: `{ "value": "value" }`,
                       },
@@ -3392,8 +3438,10 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(1000),
                       },
-                      { type: 'text', text: 'Hello, ' },
-                      { type: 'text', text: `world!` },
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                      { type: 'text-delta', id: '1', delta: `world!` },
+                      { type: 'text-end', id: '1' },
                       {
                         type: 'finish',
                         finishReason: 'stop',
@@ -4396,13 +4444,21 @@ describe('streamText', () => {
                         timestamp: new Date(0),
                       },
                       {
-                        type: 'reasoning',
-                        reasoningType: 'text',
-                        text: 'thinking',
+                        type: 'reasoning-start',
+                        id: 'id-0',
+                      },
+                      {
+                        type: 'reasoning-delta',
+                        id: 'id-0',
+                        delta: 'thinking',
+                      },
+                      {
+                        type: 'reasoning-end',
+                        id: 'id-0',
                       },
                       {
                         type: 'tool-call',
-                        toolCallType: 'function',
+                        id: 'call-1',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         input: `{ "value": "value" }`,
@@ -4641,9 +4697,11 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -4809,8 +4867,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -4849,8 +4906,7 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
+              id: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
             },
@@ -5599,7 +5655,9 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5640,7 +5698,9 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'length',
@@ -5669,12 +5729,13 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'world!' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
+                id: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -5715,12 +5776,13 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'world!' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
+                id: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -5768,12 +5830,13 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'world!' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
+                id: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
@@ -5809,7 +5872,9 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5839,7 +5904,9 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5882,16 +5949,18 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
-              { type: 'text', text: ', ' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
+                id: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
-              { type: 'text', text: `world!` },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5935,16 +6004,17 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
-              { type: 'text', text: ', ' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
+                id: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
-              { type: 'text', text: `world!` },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5986,16 +6056,17 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
-              { type: 'text', text: ', ' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
+                id: 'call-1',
                 toolName: 'tool1',
                 input: `{ "value": "value" }`,
               },
-              { type: 'text', text: `world!` },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6271,9 +6342,11 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'STOP' },
-              { type: 'text', text: ' World' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'STOP' },
+              { type: 'text-delta', id: '1', delta: ' World' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6346,9 +6419,11 @@ describe('streamText', () => {
         const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'STOP' },
-              { type: 'text', text: ' World' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'STOP' },
+              { type: 'text-delta', id: '1', delta: ' World' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6376,12 +6451,14 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6405,9 +6482,11 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: ',' },
-              { type: 'text', text: ' world!' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: ',' },
+              { type: 'text-delta', id: '1', delta: ' world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6437,12 +6516,14 @@ describe('streamText', () => {
               callOptions = args;
               return {
                 stream: convertArrayToReadableStream([
-                  { type: 'text', text: '{ ' },
-                  { type: 'text', text: '"value": ' },
-                  { type: 'text', text: `"Hello, ` },
-                  { type: 'text', text: `world` },
-                  { type: 'text', text: `!"` },
-                  { type: 'text', text: ' }' },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: '{ ' },
+                  { type: 'text-delta', id: '1', delta: '"value": ' },
+                  { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                  { type: 'text-delta', id: '1', delta: `world` },
+                  { type: 'text-delta', id: '1', delta: `!"` },
+                  { type: 'text-delta', id: '1', delta: ' }' },
+                  { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -6512,12 +6593,14 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6547,12 +6630,14 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6582,10 +6667,12 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world!" }` },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world!" }` },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6610,11 +6697,13 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world!" ` },
-              { type: 'text', text: '}' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world!" ` },
+              { type: 'text-delta', id: '1', delta: '}' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6641,11 +6730,13 @@ describe('streamText', () => {
         const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world!" ` },
-              { type: 'text', text: '}' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world!" ` },
+              { type: 'text-delta', id: '1', delta: '}' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -6692,9 +6783,11 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -6763,7 +6856,9 @@ describe('streamText', () => {
             modelId: 'test-model',
             timestamp: new Date(0),
           },
-          { type: 'text', text: 'Hello, world!' },
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+          { type: 'text-end', id: '1' },
           {
             type: 'finish',
             finishReason: 'stop',
@@ -6811,7 +6906,9 @@ describe('streamText', () => {
             modelId: 'test-model',
             timestamp: new Date(0),
           },
-          { type: 'text', text: 'Hello, world!' },
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+          { type: 'text-end', id: '1' },
           {
             type: 'finish',
             finishReason: 'stop',
@@ -6892,7 +6989,9 @@ describe('streamText', () => {
             modelId: 'test-model',
             timestamp: new Date(0),
           },
-          { type: 'text', text: 'Hello, world!' },
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+          { type: 'text-end', id: '1' },
           {
             type: 'finish',
             finishReason: 'stop',
@@ -6966,17 +7065,19 @@ describe('streamText', () => {
           capturedOptions = options;
           return {
             stream: convertArrayToReadableStream([
-              { type: 'stream-start' as const, warnings: [] },
+              { type: 'stream-start', warnings: [] },
               {
-                type: 'response-metadata' as const,
+                type: 'response-metadata',
                 id: 'test-id',
                 modelId: 'test-model',
                 timestamp: new Date(0),
               },
-              { type: 'text' as const, text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
-                type: 'finish' as const,
-                finishReason: 'stop' as const,
+                type: 'finish',
+                finishReason: 'stop',
                 usage: testUsage,
               },
             ]),
