@@ -1,4 +1,5 @@
 import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
 import {
   audioMediaTypeSignatures,
@@ -8,7 +9,6 @@ import { download } from '../../src/util/download';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { ProviderOptions } from '../types/provider-metadata';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { TranscriptionResult } from './transcribe-result';

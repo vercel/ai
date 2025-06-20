@@ -1,4 +1,4 @@
-import { Tool } from '../tool/tool';
+import { Tool } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from './create-tool-model-output';
 
 describe('createToolModelOutput', () => {

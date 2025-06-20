@@ -5,7 +5,6 @@ import {
   detectMediaType,
 } from '../../src/util/detect-media-type';
 import { prepareRetries } from '../../src/util/prepare-retries';
-import { ProviderOptions } from '../types/provider-metadata';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
@@ -13,6 +12,7 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 
 /**
 Generates speech audio using a speech model.

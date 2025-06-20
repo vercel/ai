@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { Tool, ToolInputSchema } from '../tool';
 import { JSONObject } from '@ai-sdk/provider';
+import { Tool, ToolInputSchema } from '@ai-sdk/provider-utils';
 
 export const LATEST_PROTOCOL_VERSION = '2024-11-05';
 export const SUPPORTED_PROTOCOL_VERSIONS = [

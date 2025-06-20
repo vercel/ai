@@ -6,6 +6,7 @@ import {
 import {
   createIdGenerator,
   InferSchema,
+  ProviderOptions,
   safeParseJSON,
   Schema,
 } from '@ai-sdk/provider-utils';
@@ -36,7 +37,7 @@ import {
 } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
+import { ProviderMetadata } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';

@@ -1,4 +1,4 @@
-import { ModelMessage } from '../../core/prompt/message';
+import { ModelMessage } from '@ai-sdk/provider-utils';
 import { convertToModelMessages } from './convert-to-model-messages';
 
 describe('convertToModelMessages', () => {

@@ -1,30 +1,16 @@
 import { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
+import {
+  FilePart,
+  ImagePart,
+  ProviderOptions,
+  ReasoningPart,
+  TextPart,
+  ToolResultPart,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { jsonValueSchema } from '../types/json-value';
-import {
-  providerMetadataSchema,
-  ProviderOptions,
-} from '../types/provider-metadata';
-import { DataContent, dataContentSchema } from './data-content';
-
-/**
-Text content part of a prompt. It contains a string of text.
- */
-export interface TextPart {
-  type: 'text';
-
-  /**
-The text content.
-   */
-  text: string;
-
-  /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-  providerOptions?: ProviderOptions;
-}
+import { providerMetadataSchema } from '../types/provider-metadata';
+import { dataContentSchema } from './data-content';
 
 /**
 @internal
@@ -34,35 +20,6 @@ export const textPartSchema: z.ZodType<TextPart> = z.object({
   text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
 });
-
-/**
-Image content part of a prompt. It contains an image.
- */
-export interface ImagePart {
-  type: 'image';
-
-  /**
-Image data. Can either be:
-
-- data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-- URL: a URL that points to the image
-   */
-  image: DataContent | URL;
-
-  /**
-Optional IANA media type of the image.
-
-@see https://www.iana.org/assignments/media-types/media-types.xhtml
-   */
-  mediaType?: string;
-
-  /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-  providerOptions?: ProviderOptions;
-}
 
 /**
 @internal
@@ -75,40 +32,6 @@ export const imagePartSchema: z.ZodType<ImagePart> = z.object({
 });
 
 /**
-File content part of a prompt. It contains a file.
- */
-export interface FilePart {
-  type: 'file';
-
-  /**
-File data. Can either be:
-
-- data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-- URL: a URL that points to the image
-   */
-  data: DataContent | URL;
-
-  /**
-Optional filename of the file.
-   */
-  filename?: string;
-
-  /**
-IANA media type of the file.
-
-@see https://www.iana.org/assignments/media-types/media-types.xhtml
-   */
-  mediaType: string;
-
-  /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-  providerOptions?: ProviderOptions;
-}
-
-/**
 @internal
  */
 export const filePartSchema: z.ZodType<FilePart> = z.object({
@@ -118,25 +41,6 @@ export const filePartSchema: z.ZodType<FilePart> = z.object({
   mediaType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
 });
-
-/**
- * Reasoning content part of a prompt. It contains a reasoning.
- */
-export interface ReasoningPart {
-  type: 'reasoning';
-
-  /**
-The reasoning text.
-   */
-  text: string;
-
-  /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-  providerOptions?: ProviderOptions;
-}
 
 /**
 @internal
@@ -186,35 +90,6 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
   input: z.unknown(),
   providerOptions: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
-
-/**
-Tool result content part of a prompt. It contains the result of the tool call with the matching ID.
- */
-export interface ToolResultPart {
-  type: 'tool-result';
-
-  /**
-ID of the tool call that this result is associated with.
- */
-  toolCallId: string;
-
-  /**
-Name of the tool that generated this result.
-  */
-  toolName: string;
-
-  /**
-Result of the tool call. This is a JSON-serializable object.
-   */
-  output: LanguageModelV2ToolResultOutput;
-
-  /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-  providerOptions?: ProviderOptions;
-}
 
 /**
 @internal

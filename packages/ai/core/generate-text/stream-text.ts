@@ -3,7 +3,11 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
 } from '@ai-sdk/provider';
-import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  IdGenerator,
+  ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
@@ -55,7 +59,7 @@ import {
   LanguageModel,
   ToolChoice,
 } from '../types/language-model';
-import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
+import { ProviderMetadata } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { Output } from './output';

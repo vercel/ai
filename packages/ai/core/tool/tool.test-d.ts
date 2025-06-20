@@ -1,7 +1,6 @@
-import { expectTypeOf } from 'vitest';
-import { Tool, tool } from '.';
 import { z } from 'zod';
-import { ToolCallOptions, ToolInputSchema } from './tool';
+import { Tool, ToolCallOptions, ToolInputSchema } from '@ai-sdk/provider-utils';
+import { tool } from './tool';
 
 describe('tool helper', () => {
   it('should work with no parameters and no output', () => {
