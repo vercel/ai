@@ -5554,12 +5554,12 @@ describe('streamText', () => {
           TextStreamPart<{ tool1: Tool<{ value: string }> }>
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'text') {
-              chunk.text = chunk.text.toUpperCase();
+            if (chunk.type === 'text-delta') {
+              chunk.delta = chunk.delta.toUpperCase();
             }
 
-            if (chunk.type === 'tool-call-delta') {
-              chunk.inputTextDelta = chunk.inputTextDelta.toUpperCase();
+            if (chunk.type === 'tool-input-delta') {
+              chunk.delta = chunk.delta.toUpperCase();
             }
 
             // assuming test arg structure:
@@ -6220,14 +6220,14 @@ describe('streamText', () => {
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
-              if (chunk.type !== 'text') {
+              if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
               }
 
               controller.enqueue({
                 ...chunk,
-                text: `${chunk.text.toUpperCase()},`,
+                delta: `${chunk.delta.toUpperCase()},`,
               });
             },
           });
@@ -6237,14 +6237,14 @@ describe('streamText', () => {
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
-              if (chunk.type !== 'text') {
+              if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
               }
 
               controller.enqueue({
                 ...chunk,
-                text: chunk.text.replaceAll(',', ''),
+                delta: chunk.delta.replaceAll(',', ''),
               });
             },
           });
@@ -6275,12 +6275,12 @@ describe('streamText', () => {
             // stream buffering and scanning to correctly emit prior text
             // and to detect all STOP occurrences.
             transform(chunk, controller) {
-              if (chunk.type !== 'text') {
+              if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
               }
 
-              if (chunk.text.includes('STOP')) {
+              if (chunk.delta.includes('STOP')) {
                 stopStream();
 
                 controller.enqueue({
