@@ -33,6 +33,7 @@ export function webSearch_20250305(options: WebSearch20250305Args = {}): {
   id: 'anthropic.web_search_20250305';
   name: 'web_search';
   args: WebSearch20250305Args;
+  inputSchema: z.ZodType<{ query: string }>;
 } {
   return {
     type: 'provider-defined-server',
@@ -44,5 +45,8 @@ export function webSearch_20250305(options: WebSearch20250305Args = {}): {
       blockedDomains: options.blockedDomains,
       userLocation: options.userLocation,
     },
+    inputSchema: z.object({
+      query: z.string(),
+    }),
   };
 }

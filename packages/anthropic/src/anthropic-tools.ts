@@ -2,9 +2,9 @@ import { bash_20241022 } from './tool/bash_20241022';
 import { bash_20250124 } from './tool/bash_20250124';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
-import { textEditor_20241022 } from './tool/textEditor_20241022';
-import { textEditor_20250124 } from './tool/textEditor_20250124';
-import { webSearch_20250305 } from './tool/webSearch_20250305';
+import { textEditor_20241022 } from './tool/text-editor_20241022';
+import { textEditor_20250124 } from './tool/text-editor_20250124';
+import { webSearch_20250305 } from './tool/web-search_20250305';
 
 export const anthropicTools = {
   /**

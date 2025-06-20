@@ -4,7 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
-import { webSearch_20250305ArgsSchema } from './tool/webSearch_20250305';
+import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 
 function isWebSearchTool(
   tool: unknown,

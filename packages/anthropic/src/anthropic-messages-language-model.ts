@@ -32,8 +32,6 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { AnthropicTool } from './anthropic-api-types';
-import { LanguageModelV2ProviderDefinedServerTool } from '@ai-sdk/provider';
 
 const citationSchemas = {
   webSearchResult: z.object({
@@ -508,28 +506,36 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'server_tool_use': {
-          continue;
+          if (part.name === 'web_search') {
+            content.push({
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: part.id,
+              toolName: part.name,
+              input: JSON.stringify(part.input),
+            });
+          }
+
+          break;
         }
         case 'web_search_tool_result': {
           if (Array.isArray(part.content)) {
             for (const result of part.content) {
-              if (result.type === 'web_search_result') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: this.generateId(),
-                  url: result.url,
-                  title: result.title,
-                  providerMetadata: {
-                    anthropic: {
-                      encryptedContent: result.encrypted_content,
-                      pageAge: result.page_age ?? null,
-                    },
+              content.push({
+                type: 'source',
+                sourceType: 'url',
+                id: this.generateId(),
+                url: result.url,
+                title: result.title,
+                providerMetadata: {
+                  anthropic: {
+                    encryptedContent: result.encrypted_content,
+                    pageAge: result.page_age ?? null,
                   },
-                });
-              }
+                },
+              });
             }
-          } else if (part.content.type === 'web_search_tool_result_error') {
+          } else {
             throw new APICallError({
               message: `Web search failed: ${part.content.error_code}`,
               url: 'web_search_api',
@@ -621,7 +627,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'web_search_tool_result'
       | undefined = undefined;
 
-    const config = this.config;
     const generateId = this.generateId;
 
     return {
@@ -686,34 +691,35 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   }
 
                   case 'server_tool_use': {
-                    // server_tool_use is just metadata about the tool usage
-                    // We don't generate synthetic content for it
+                    if (value.content_block.name === 'web_search') {
+                      toolCallContentBlocks[value.index] = {
+                        toolCallId: value.content_block.id,
+                        toolName: value.content_block.name,
+                        jsonText: '',
+                      };
+                    }
+
                     return;
                   }
 
                   case 'web_search_tool_result': {
                     if (Array.isArray(value.content_block.content)) {
                       for (const result of value.content_block.content) {
-                        if (result.type === 'web_search_result') {
-                          controller.enqueue({
-                            type: 'source',
-                            sourceType: 'url',
-                            id: generateId(),
-                            url: result.url,
-                            title: result.title,
-                            providerMetadata: {
-                              anthropic: {
-                                encryptedContent: result.encrypted_content,
-                                pageAge: result.page_age ?? null,
-                              },
+                        controller.enqueue({
+                          type: 'source',
+                          sourceType: 'url',
+                          id: generateId(),
+                          url: result.url,
+                          title: result.title,
+                          providerMetadata: {
+                            anthropic: {
+                              encryptedContent: result.encrypted_content,
+                              pageAge: result.page_age ?? null,
                             },
-                          });
-                        }
+                          },
+                        });
                       }
-                    } else if (
-                      value.content_block.content.type ===
-                      'web_search_tool_result_error'
-                    ) {
+                    } else {
                       controller.enqueue({
                         type: 'error',
                         error: {
