@@ -1,3 +1,5 @@
+import { SharedV2ProviderMetadata } from '../..';
+
 /**
 The configuration of a tool that is defined by the provider.
  */

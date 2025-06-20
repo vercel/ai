@@ -8,19 +8,59 @@ import { LanguageModelV2Usage } from './language-model-v2-usage';
 
 export type LanguageModelV2StreamPart =
   // Text blocks:
-  | { type: 'text-start'; id: string }
-  | { type: 'text-delta'; id: string; delta: string }
-  | { type: 'text-end'; id: string }
+  | {
+      type: 'text-start';
+      providerMetadata?: SharedV2ProviderMetadata;
+      id: string;
+    }
+  | {
+      type: 'text-delta';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+      delta: string;
+    }
+  | {
+      type: 'text-end';
+      providerMetadata?: SharedV2ProviderMetadata;
+      id: string;
+    }
 
   // Reasoning blocks:
-  | { type: 'reasoning-start'; id: string }
-  | { type: 'reasoning-delta'; id: string; delta: string }
-  | { type: 'reasoning-end'; id: string }
+  | {
+      type: 'reasoning-start';
+      providerMetadata?: SharedV2ProviderMetadata;
+      id: string;
+    }
+  | {
+      type: 'reasoning-delta';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+      delta: string;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
 
   // Tool calls:
-  | { type: 'tool-input-start'; id: string; toolName: string }
-  | { type: 'tool-input-delta'; id: string; delta: string }
-  | { type: 'tool-input-end'; id: string }
+  | {
+      type: 'tool-input-start';
+      id: string;
+      toolName: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-end';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
   | {
       type: 'tool-call';
       id: string;
@@ -31,6 +71,8 @@ export type LanguageModelV2StreamPart =
   parameters schema of the tool.
      */
       input: string;
+
+      providerMetadata?: SharedV2ProviderMetadata;
     }
 
   // Files and sources:

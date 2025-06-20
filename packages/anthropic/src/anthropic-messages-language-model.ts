@@ -607,13 +607,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
 
-    const toolCallContentBlocks: Record<
+    const contentBlocks: Record<
       number,
-      {
-        toolCallId: string;
-        toolName: string;
-        jsonText: string;
-      }
+      | {
+          type: 'tool-call';
+          toolCallId: string;
+          toolName: string;
+          input: string;
+        }
+      | { type: 'text' | 'reasoning' }
     > = {};
 
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
@@ -662,41 +664,74 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 blockType = contentBlockType;
 
                 switch (contentBlockType) {
-                  case 'text':
+                  case 'text': {
+                    contentBlocks[value.index] = { type: 'text' };
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: String(value.index),
+                    });
+                    return;
+                  }
+
                   case 'thinking': {
-                    return; // ignored
+                    contentBlocks[value.index] = { type: 'reasoning' };
+                    controller.enqueue({
+                      type: 'reasoning-start',
+                      id: String(value.index),
+                    });
+                    return;
                   }
 
                   case 'redacted_thinking': {
+                    contentBlocks[value.index] = { type: 'reasoning' };
                     controller.enqueue({
-                      type: 'reasoning',
-                      text: '',
+                      type: 'reasoning-start',
+                      id: String(value.index),
                       providerMetadata: {
                         anthropic: {
                           redactedData: value.content_block.data,
                         } satisfies AnthropicReasoningMetadata,
                       },
                     });
-                    controller.enqueue({ type: 'reasoning-part-finish' });
                     return;
                   }
 
                   case 'tool_use': {
-                    toolCallContentBlocks[value.index] = {
-                      toolCallId: value.content_block.id,
-                      toolName: value.content_block.name,
-                      jsonText: '',
-                    };
+                    contentBlocks[value.index] =
+                      jsonResponseTool != null
+                        ? { type: 'text' }
+                        : {
+                            type: 'tool-call',
+                            toolCallId: value.content_block.id,
+                            toolName: value.content_block.name,
+                            input: '',
+                          };
+
+                    controller.enqueue(
+                      jsonResponseTool != null
+                        ? { type: 'text-start', id: String(value.index) }
+                        : {
+                            type: 'tool-input-start',
+                            id: String(value.index),
+                            toolName: value.content_block.name,
+                          },
+                    );
                     return;
                   }
 
                   case 'server_tool_use': {
                     if (value.content_block.name === 'web_search') {
-                      toolCallContentBlocks[value.index] = {
+                      contentBlocks[value.index] = {
+                        type: 'tool-call',
                         toolCallId: value.content_block.id,
                         toolName: value.content_block.name,
-                        jsonText: '',
+                        input: '',
                       };
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: String(value.index),
+                        toolName: value.content_block.name,
+                      });
                     }
 
                     return;
@@ -743,22 +778,45 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
               case 'content_block_stop': {
                 // when finishing a tool call block, send the full tool call:
-                if (toolCallContentBlocks[value.index] != null) {
-                  const contentBlock = toolCallContentBlocks[value.index];
+                if (contentBlocks[value.index] != null) {
+                  const contentBlock = contentBlocks[value.index];
 
-                  // when a json response tool is used, the tool call is returned as text,
-                  // so we ignore the tool call content:
-                  if (jsonResponseTool == null) {
-                    controller.enqueue({
-                      type: 'tool-call',
-                      toolCallType: 'function',
-                      toolCallId: contentBlock.toolCallId,
-                      toolName: contentBlock.toolName,
-                      input: contentBlock.jsonText,
-                    });
+                  switch (contentBlock.type) {
+                    case 'text': {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: String(value.index),
+                      });
+                      break;
+                    }
+
+                    case 'reasoning': {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: String(value.index),
+                      });
+                      break;
+                    }
+
+                    case 'tool-call':
+                      // when a json response tool is used, the tool call is returned as text,
+                      // so we ignore the tool call content:
+                      if (jsonResponseTool == null) {
+                        controller.enqueue({
+                          type: 'tool-input-end',
+                          id: contentBlock.toolCallId,
+                        });
+                        controller.enqueue({
+                          type: 'tool-call',
+                          id: contentBlock.toolCallId,
+                          toolName: contentBlock.toolName,
+                          input: contentBlock.input,
+                        });
+                      }
+                      break;
                   }
 
-                  delete toolCallContentBlocks[value.index];
+                  delete contentBlocks[value.index];
                 }
 
                 blockType = undefined; // reset block type
@@ -777,8 +835,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     }
 
                     controller.enqueue({
-                      type: 'text',
-                      text: value.delta.text,
+                      type: 'text-delta',
+                      id: String(value.index),
+                      delta: value.delta.text,
                     });
 
                     return;
@@ -786,8 +845,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                   case 'thinking_delta': {
                     controller.enqueue({
-                      type: 'reasoning',
-                      text: value.delta.thinking,
+                      type: 'reasoning-delta',
+                      id: String(value.index),
+                      delta: value.delta.thinking,
                     });
 
                     return;
@@ -797,43 +857,46 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     // signature are only supported on thinking blocks:
                     if (blockType === 'thinking') {
                       controller.enqueue({
-                        type: 'reasoning',
-                        text: '',
+                        type: 'reasoning-delta',
+                        id: String(value.index),
+                        delta: '',
                         providerMetadata: {
                           anthropic: {
                             signature: value.delta.signature,
                           } satisfies AnthropicReasoningMetadata,
                         },
                       });
-                      controller.enqueue({ type: 'reasoning-part-finish' });
                     }
 
                     return;
                   }
 
                   case 'input_json_delta': {
-                    const contentBlock = toolCallContentBlocks[value.index];
+                    const contentBlock = contentBlocks[value.index];
 
-                    if (!contentBlock) {
-                      return;
+                    if (jsonResponseTool == null) {
+                      if (contentBlock?.type !== 'tool-call') {
+                        return;
+                      }
+
+                      controller.enqueue({
+                        type: 'tool-input-delta',
+                        id: contentBlock.toolCallId,
+                        delta: value.delta.partial_json,
+                      });
+                    } else {
+                      if (contentBlock?.type !== 'tool-call') {
+                        return;
+                      }
+
+                      controller.enqueue({
+                        type: 'tool-input-delta',
+                        id: contentBlock.toolCallId,
+                        delta: value.delta.partial_json,
+                      });
+
+                      contentBlock.input += value.delta.partial_json;
                     }
-
-                    controller.enqueue(
-                      jsonResponseTool != null
-                        ? {
-                            type: 'text',
-                            text: value.delta.partial_json,
-                          }
-                        : {
-                            type: 'tool-call-delta',
-                            toolCallType: 'function',
-                            toolCallId: contentBlock.toolCallId,
-                            toolName: contentBlock.toolName,
-                            inputTextDelta: value.delta.partial_json,
-                          },
-                    );
-
-                    contentBlock.jsonText += value.delta.partial_json;
 
                     return;
                   }
