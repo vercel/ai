@@ -1,13 +1,10 @@
 import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
-import {
-  createProviderDefinedClientToolFactory,
-  Tool,
-  ToolExecuteFunction,
-  ToolInputSchema,
-} from '@ai-sdk/provider-utils';
+import { Tool, ToolExecuteFunction } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { computer_20241022 } from './tool/computer_20241022';
 import { textEditor_20241022 } from './tool/textEditor_20241022';
+import { textEditor_20250124 } from './tool/textEditor_20250124';
+import { bashTool_20241022 } from './tool/bashTool_20241022';
 
 // TODO remove
 type ExecuteFunction<PARAMETERS, RESULT> =
@@ -16,55 +13,6 @@ type ExecuteFunction<PARAMETERS, RESULT> =
       args: PARAMETERS,
       options: { abortSignal?: AbortSignal },
     ) => Promise<RESULT>);
-
-const Bash20241022InputSchema = z.object({
-  command: z.string(),
-  restart: z.boolean().optional(),
-});
-
-type Bash20241022Input = z.infer<typeof Bash20241022InputSchema>;
-
-/**
- * Creates a tool for running a bash command. Must have name "bash".
- *
- * Image results are supported.
- *
- * @param execute - The function to execute the tool. Optional.
- */
-function bashTool_20241022<RESULT>(
-  options: {
-    execute?: ToolExecuteFunction<
-      {
-        /**
-         * The bash command to run. Required unless the tool is being restarted.
-         */
-        command: string;
-
-        /**
-         * Specifying true will restart this tool. Otherwise, leave this unspecified.
-         */
-        restart?: boolean;
-      },
-      RESULT
-    >;
-    toModelOutput?: Tool<Bash20241022Input, RESULT>['toModelOutput'];
-    onInputStart?: Tool<Bash20241022Input, RESULT>['onInputStart'];
-    onInputDelta?: Tool<Bash20241022Input, RESULT>['onInputDelta'];
-    onInputAvailable?: Tool<Bash20241022Input, RESULT>['onInputAvailable'];
-  } = {},
-): Tool<Bash20241022Input, RESULT> {
-  return {
-    type: 'provider-defined-client',
-    id: 'anthropic.bash_20241022',
-    args: {},
-    inputSchema: Bash20241022InputSchema,
-    execute: options.execute,
-    toModelOutput: options.toModelOutput,
-    onInputStart: options.onInputStart,
-    onInputDelta: options.onInputDelta,
-    onInputAvailable: options.onInputAvailable,
-  };
-}
 
 const Bash20250124Parameters = z.object({
   command: z.string(),
@@ -113,61 +61,6 @@ function bashTool_20250124<RESULT>(
     toModelOutput: options.toModelOutput,
   };
 }
-
-const TextEditor20250124InputSchema = z.object({
-  command: z.enum(['view', 'create', 'str_replace', 'insert', 'undo_edit']),
-  path: z.string(),
-  file_text: z.string().optional(),
-  insert_line: z.number().int().optional(),
-  new_str: z.string().optional(),
-  old_str: z.string().optional(),
-  view_range: z.array(z.number().int()).optional(),
-});
-
-type TextEditor20250124Input = {
-  /**
-   * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`, `undo_edit`.
-   */
-  command: 'view' | 'create' | 'str_replace' | 'insert' | 'undo_edit';
-
-  /**
-   * Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
-   */
-  path: string;
-
-  /**
-   * Required parameter of `create` command, with the content of the file to be created.
-   */
-  file_text?: string;
-
-  /**
-   * Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`.
-   */
-  insert_line?: number;
-
-  /**
-   * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
-   */
-  new_str?: string;
-
-  /**
-   * Required parameter of `str_replace` command containing the string in `path` to replace.
-   */
-  old_str?: string;
-
-  /**
-   * Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.
-   */
-  view_range?: number[];
-};
-
-const textEditor_20250124 = createProviderDefinedClientToolFactory<
-  TextEditor20250124Input,
-  {}
->({
-  id: 'anthropic.text_editor_20250124',
-  inputSchema: TextEditor20250124InputSchema,
-});
 
 const Computer20250124Parameters = z.object({
   action: z.enum([
@@ -362,7 +255,15 @@ function webSearchTool_20250305(
 }
 
 export const anthropicTools = {
+  /**
+   * Creates a tool for running a bash command. Must have name "bash".
+   *
+   * Image results are supported.
+   *
+   * @param execute - The function to execute the tool. Optional.
+   */
   bash_20241022: bashTool_20241022,
+
   bash_20250124: bashTool_20250124,
 
   /**
