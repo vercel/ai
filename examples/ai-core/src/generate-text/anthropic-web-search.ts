@@ -27,6 +27,17 @@ async function main() {
   console.log('Finish reason:', result.finishReason);
   console.log('Usage:', result.usage);
 
+  // typed tool results for tools with execute method:
+  for (const toolResult of result.toolResults) {
+    switch (toolResult.toolName) {
+      case 'web_search': {
+        toolResult.input.query; // string
+        toolResult.output.results; // string
+        break;
+      }
+    }
+  }
+
   // if (result.sources.length > 0) {
   //   console.log();
   //   for (const source of result.sources) {
