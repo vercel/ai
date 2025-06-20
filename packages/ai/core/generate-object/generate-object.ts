@@ -472,7 +472,7 @@ export async function generateObject<SCHEMA, RESULT>({
       let request: LanguageModelRequestMetadata;
       let logprobs: LogProbs | undefined;
       let resultProviderMetadata: ProviderMetadata | undefined;
-
+      let reasoning: string | undefined;
       switch (mode) {
         case 'json': {
           const standardizedPrompt = standardizePrompt({
@@ -602,7 +602,7 @@ export async function generateObject<SCHEMA, RESULT>({
           resultProviderMetadata = generateResult.providerMetadata;
           request = generateResult.request ?? {};
           response = generateResult.responseData;
-
+          reasoning = generateResult.reasoning;
           break;
         }
 
@@ -728,7 +728,7 @@ export async function generateObject<SCHEMA, RESULT>({
           resultProviderMetadata = generateResult.providerMetadata;
           request = generateResult.request ?? {};
           response = generateResult.responseData;
-
+          reasoning = generateResult.reasoning;
           break;
         }
 
@@ -828,6 +828,7 @@ export async function generateObject<SCHEMA, RESULT>({
         usage: calculateLanguageModelUsage(usage),
         warnings,
         request,
+        reasoning,
         response: {
           ...response,
           headers: rawResponse?.headers,
@@ -850,7 +851,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly providerMetadata: GenerateObjectResult<T>['providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
   readonly request: GenerateObjectResult<T>['request'];
-
+  readonly reasoning: GenerateObjectResult<T>['reasoning'];
   constructor(options: {
     object: GenerateObjectResult<T>['object'];
     finishReason: GenerateObjectResult<T>['finishReason'];
@@ -860,6 +861,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     providerMetadata: GenerateObjectResult<T>['providerMetadata'];
     response: GenerateObjectResult<T>['response'];
     request: GenerateObjectResult<T>['request'];
+    reasoning: GenerateObjectResult<T>['reasoning'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
@@ -870,6 +872,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.response = options.response;
     this.request = options.request;
     this.logprobs = options.logprobs;
+    this.reasoning = options.reasoning;
   }
 
   toJsonResponse(init?: ResponseInit): Response {
