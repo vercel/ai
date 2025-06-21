@@ -427,6 +427,7 @@ function createOutputTransformStream<
     });
   }
 
+  let firstTextChunkId: string | undefined = undefined;
   let text = '';
   let textChunk = '';
   let lastPublishedJson = '';
@@ -441,7 +442,11 @@ function createOutputTransformStream<
     partialOutput?: PARTIAL_OUTPUT;
   }) {
     controller.enqueue({
-      part: { type: 'text', text: textChunk },
+      part: {
+        type: 'text',
+        id: firstTextChunkId!,
+        text: textChunk,
+      },
       partialOutput,
     });
     textChunk = '';
@@ -453,11 +458,37 @@ function createOutputTransformStream<
   >({
     async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
-      if (chunk.type === 'finish-step') {
+      if (chunk.type === 'finish-step' && textChunk.length > 0) {
         publishTextChunk({ controller });
       }
 
-      if (chunk.type !== 'text') {
+      if (
+        chunk.type !== 'text' &&
+        chunk.type !== 'text-start' &&
+        chunk.type !== 'text-end'
+      ) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      // we have to pick a text chunk which contains the json text
+      // since we are streaming, we have to pick the first text chunk
+      if (firstTextChunkId == null) {
+        firstTextChunkId = chunk.id;
+      } else if (chunk.id !== firstTextChunkId) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      if (chunk.type === 'text-start') {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      if (chunk.type === 'text-end') {
+        if (textChunk.length > 0) {
+          publishTextChunk({ controller });
+        }
         controller.enqueue({ part: chunk, partialOutput: undefined });
         return;
       }
@@ -474,13 +505,6 @@ function createOutputTransformStream<
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedJson = currentJson;
         }
-      }
-    },
-
-    flush(controller) {
-      // publish remaining text (there should be none if the content was correctly formatted):
-      if (textChunk.length > 0) {
-        publishTextChunk({ controller });
       }
     },
   });
@@ -647,7 +671,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'text') {
           const activeText = activeTextContent[part.id];
 
-          // TODO error if nullish
+          if (activeText == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `text part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
+          }
 
           activeText.text += part.text;
           activeText.providerMetadata = part.providerMetadata;
@@ -670,7 +703,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'reasoning') {
           const activeReasoning = activeReasoningContent[part.id];
 
-          // TODO error if nullish
+          if (activeReasoning == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `reasoning part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
+          }
 
           activeReasoning.text += part.text;
           activeReasoning.providerMetadata = part.providerMetadata;
@@ -1073,23 +1115,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
-                    case 'text-start': {
+                    case 'text-start':
+                    case 'text-end': {
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'text-delta': {
-                      controller.enqueue({
-                        type: 'text',
-                        id: chunk.id,
-                        text: chunk.delta,
-                        providerMetadata: chunk.providerMetadata,
-                      });
-                      break;
-                    }
-
-                    case 'text-end': {
-                      controller.enqueue(chunk);
+                      if (chunk.delta.length > 0) {
+                        controller.enqueue({
+                          type: 'text',
+                          id: chunk.id,
+                          text: chunk.delta,
+                          providerMetadata: chunk.providerMetadata,
+                        });
+                      }
                       break;
                     }
 
@@ -1100,13 +1140,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'reasoning-delta': {
-                      controller.enqueue({
-                        type: 'reasoning',
-                        id: chunk.id,
-                        text: chunk.delta,
-                        providerMetadata: chunk.providerMetadata,
-                      });
-
+                      if (chunk.delta.length > 0) {
+                        controller.enqueue({
+                          type: 'reasoning',
+                          id: chunk.id,
+                          text: chunk.delta,
+                          providerMetadata: chunk.providerMetadata,
+                        });
+                      }
                       break;
                     }
 
@@ -1663,6 +1704,14 @@ However, the LLM results are expected to be small enough to not cause issues.
                   messageMetadata: messageMetadataValue,
                 });
               }
+              break;
+            }
+
+            case 'text-start':
+            case 'text-end':
+            case 'reasoning-start':
+            case 'reasoning-end':
+            case 'tool-input-end': {
               break;
             }
 
