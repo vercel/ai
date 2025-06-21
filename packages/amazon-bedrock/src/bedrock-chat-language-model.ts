@@ -431,7 +431,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               }
             }
 
-            if (value.contentBlockStart?.contentBlockIndex != null && !value.contentBlockStart?.start?.toolUse) {
+            if (
+              value.contentBlockStart?.contentBlockIndex != null &&
+              !value.contentBlockStart?.start?.toolUse
+            ) {
               const blockIndex = value.contentBlockStart.contentBlockIndex;
               contentBlocks[blockIndex] = { type: 'text' };
               controller.enqueue({
@@ -446,7 +449,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               value.contentBlockDelta.delta.text
             ) {
               const blockIndex = value.contentBlockDelta.contentBlockIndex || 0;
-              
+
               if (contentBlocks[blockIndex] == null) {
                 contentBlocks[blockIndex] = { type: 'text' };
                 controller.enqueue({
@@ -454,7 +457,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                   id: String(blockIndex),
                 });
               }
-              
+
               controller.enqueue({
                 type: 'text-delta',
                 id: String(blockIndex),
@@ -465,7 +468,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             if (value.contentBlockStop?.contentBlockIndex != null) {
               const blockIndex = value.contentBlockStop.contentBlockIndex;
               const contentBlock = contentBlocks[blockIndex];
-              
+
               if (contentBlock != null) {
                 if (contentBlock.type === 'reasoning') {
                   controller.enqueue({
@@ -489,7 +492,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     input: contentBlock.jsonText,
                   });
                 }
-                
+
                 delete contentBlocks[blockIndex];
               }
             }
@@ -500,8 +503,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               value.contentBlockDelta.delta.reasoningContent
             ) {
               const blockIndex = value.contentBlockDelta.contentBlockIndex || 0;
-              const reasoningContent = value.contentBlockDelta.delta.reasoningContent;
-              
+              const reasoningContent =
+                value.contentBlockDelta.delta.reasoningContent;
+
               if ('text' in reasoningContent && reasoningContent.text) {
                 if (contentBlocks[blockIndex] == null) {
                   contentBlocks[blockIndex] = { type: 'reasoning' };
@@ -510,7 +514,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     id: String(blockIndex),
                   });
                 }
-                
+
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
@@ -554,7 +558,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 toolName: toolUse.name!,
                 jsonText: '',
               };
-              
+
               controller.enqueue({
                 type: 'tool-input-start',
                 id: toolUse.toolUseId!,
@@ -570,7 +574,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             ) {
               const blockIndex = contentBlockDelta.contentBlockIndex!;
               const contentBlock = contentBlocks[blockIndex];
-              
+
               if (contentBlock?.type === 'tool-call') {
                 const delta = contentBlockDelta.delta.toolUse.input ?? '';
 

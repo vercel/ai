@@ -16,14 +16,14 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Bedrock API Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Bedrock API failed', 
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }), 
-      { 
-        status: 500, 
-        headers: { 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({
+        error: 'Bedrock API failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
   }
-} 
+}

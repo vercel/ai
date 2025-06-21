@@ -51,4 +51,4 @@ export default function Chat() {
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
-} 
+}
