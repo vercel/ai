@@ -687,6 +687,9 @@ importers:
       '@ai-sdk/rsc':
         specifier: workspace:*
         version: link:../../packages/rsc
+      '@ai-sdk/xai':
+        specifier: workspace:*
+        version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
         version: 1.10.2

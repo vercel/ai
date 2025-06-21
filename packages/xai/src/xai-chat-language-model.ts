@@ -259,7 +259,6 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallType: 'function',
           toolCallId: toolCall.id,
           toolName: toolCall.function.name,
           input: toolCall.function.arguments,
@@ -330,6 +329,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let isFirstChunk = true;
+    const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
 
     const self = this;
 
@@ -339,10 +339,6 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof xaiChatChunkSchema>>,
           LanguageModelV2StreamPart
         >({
-          start(controller) {
-            controller.enqueue({ type: 'stream-start', warnings });
-          },
-
           transform(chunk, controller) {
             // Emit raw chunk if requested (before anything else)
             if (options.includeRawChunks) {
@@ -400,6 +396,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             }
 
             const delta = choice.delta;
+            const choiceIndex = choice.index;
 
             // process text content
             if (delta.content != null && delta.content.length > 0) {
@@ -414,7 +411,21 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
                 return;
               }
 
-              controller.enqueue({ type: 'text', text: textContent });
+              const blockId = value.id || String(choiceIndex);
+
+              if (contentBlocks[blockId] == null) {
+                contentBlocks[blockId] = { type: 'text' };
+                controller.enqueue({
+                  type: 'text-start',
+                  id: blockId,
+                });
+              }
+
+              controller.enqueue({
+                type: 'text-delta',
+                id: blockId,
+                delta: textContent,
+              });
             }
 
             // process reasoning content
@@ -422,9 +433,20 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
               delta.reasoning_content != null &&
               delta.reasoning_content.length > 0
             ) {
+              const blockId = `${value.id || choiceIndex}-reasoning`;
+
+              if (contentBlocks[blockId] == null) {
+                contentBlocks[blockId] = { type: 'reasoning' };
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: blockId,
+                });
+              }
+
               controller.enqueue({
-                type: 'reasoning',
-                text: delta.reasoning_content,
+                type: 'reasoning-delta',
+                id: blockId,
+                delta: delta.reasoning_content,
               });
             }
 
@@ -432,26 +454,64 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             if (delta.tool_calls != null) {
               for (const toolCall of delta.tool_calls) {
                 // xai tool calls come in one piece (like mistral)
+                const toolCallId = toolCall.id;
+
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
+                  type: 'tool-input-start',
+                  id: toolCallId,
                   toolName: toolCall.function.name,
-                  inputTextDelta: toolCall.function.arguments,
                 });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCallId,
+                  delta: toolCall.function.arguments,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCallId,
+                });
+
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
+                  toolCallId: toolCallId,
                   toolName: toolCall.function.name,
                   input: toolCall.function.arguments,
                 });
               }
             }
+
+            if (choice?.finish_reason != null) {
+              for (const [blockId, block] of Object.entries(contentBlocks)) {
+                if (block.type === 'text') {
+                  controller.enqueue({
+                    type: 'text-end',
+                    id: blockId,
+                  });
+                }
+              }
+
+              for (const [blockId, block] of Object.entries(contentBlocks)) {
+                if (block.type === 'reasoning') {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: blockId,
+                  });
+                }
+              }
+            }
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage,
+              providerMetadata: {
+                xai: {},
+              },
+            });
           },
         }),
       ),
