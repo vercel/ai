@@ -899,4 +899,130 @@ describe('smoothStream', () => {
       `);
     });
   });
+
+  describe('text part id changes', () => {
+    it('should change the id when the text part id changes', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'text-start', id: '2' },
+        { text: 'I will check the', type: 'text', id: '1' },
+        { text: ' weather in Lon', type: 'text', id: '1' },
+        { text: 'don.', type: 'text', id: '1' },
+        { text: 'I will check the', type: 'text', id: '2' },
+        { text: ' weather in Lon', type: 'text', id: '2' },
+        { text: 'don.', type: 'text', id: '2' },
+        { type: 'text-end', id: '1' },
+        { type: 'text-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "2",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "will ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "check ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "the ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "weather ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "in ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "London.",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "I ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "will ",
+            "type": "text",
+          },
+          {
+            "id": "2",
+            "text": "check ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "the ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "weather ",
+            "type": "text",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "in ",
+            "type": "text",
+          },
+          {
+            "id": "2",
+            "text": "London.",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "id": "2",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+  });
 });

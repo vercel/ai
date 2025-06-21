@@ -91,7 +91,6 @@ export function smoothStream<TOOLS extends ToolSet>({
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        // TODO test for id change
         if (chunk.type !== 'text') {
           if (buffer.length > 0) {
             controller.enqueue({ type: 'text', text: buffer, id });
@@ -100,6 +99,11 @@ export function smoothStream<TOOLS extends ToolSet>({
 
           controller.enqueue(chunk);
           return;
+        }
+
+        if (chunk.id !== id && buffer.length > 0) {
+          controller.enqueue({ type: 'text', text: buffer, id });
+          buffer = '';
         }
 
         buffer += chunk.text;
