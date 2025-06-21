@@ -727,7 +727,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       };
                       controller.enqueue({
                         type: 'tool-input-start',
-                        id: String(value.index),
+                        id: value.content_block.id,
                         toolName: value.content_block.name,
                       });
                     }
@@ -871,6 +871,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                   case 'input_json_delta': {
                     const contentBlock = contentBlocks[value.index];
+                    const delta = value.delta.partial_json;
 
                     if (jsonResponseTool == null) {
                       if (contentBlock?.type !== 'tool-call') {
@@ -880,8 +881,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'tool-input-delta',
                         id: contentBlock.toolCallId,
-                        delta: value.delta.partial_json,
+                        delta,
                       });
+
+                      contentBlock.input += delta;
                     } else {
                       if (contentBlock?.type !== 'tool-call') {
                         return;
@@ -890,10 +893,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'tool-input-delta',
                         id: contentBlock.toolCallId,
-                        delta: value.delta.partial_json,
+                        delta,
                       });
-
-                      contentBlock.input += value.delta.partial_json;
                     }
 
                     return;

@@ -1759,7 +1759,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "tool-input-end",
           },
           {
-            "input": "",
+            "input": "{"value":"Sparkle Day"}",
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolName": "test-tool",
             "type": "tool-call",
@@ -2349,7 +2349,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "id": "1",
+                "id": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -2388,7 +2388,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "tool-input-end",
               },
               {
-                "input": "",
+                "input": "{"query": "latest stock market trends financial news June 20 2025"}",
                 "toolCallId": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
                 "toolName": "web_search",
                 "type": "tool-call",
