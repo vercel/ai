@@ -491,8 +491,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             } else if (isTextDeltaChunk(value)) {
               controller.enqueue({
-                type: 'text',
-                text: value.delta,
+                type: 'text-delta',
+                id: value.item_id,
+                delta: value.delta,
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
               controller.enqueue({
@@ -560,6 +561,7 @@ const usageSchema = z.object({
 
 const textDeltaChunkSchema = z.object({
   type: z.literal('response.output_text.delta'),
+  item_id: z.string(),
   delta: z.string(),
 });
 

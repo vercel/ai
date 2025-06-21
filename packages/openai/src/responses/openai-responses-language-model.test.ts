@@ -1169,12 +1169,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-start",
           },
           {
-            "text": "Hello,",
-            "type": "text",
+            "delta": "Hello,",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
           },
           {
-            "text": " World!",
-            "type": "text",
+            "delta": " World!",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
@@ -1238,8 +1240,9 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-start",
           },
           {
-            "text": "Hello,",
-            "type": "text",
+            "delta": "Hello,",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
@@ -1434,12 +1437,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-start",
           },
           {
-            "text": "Last week",
-            "type": "text",
+            "delta": "Last week",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
           },
           {
-            "text": " in San Francisco",
-            "type": "text",
+            "delta": " in San Francisco",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
           },
           {
             "id": "id-0",
@@ -1449,12 +1454,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com",
           },
           {
-            "text": " a themed party",
-            "type": "text",
+            "delta": " a themed party",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
           },
           {
-            "text": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
-            "type": "text",
+            "delta": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
           },
           {
             "id": "id-1",
@@ -1464,8 +1471,9 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com",
           },
           {
-            "text": ".",
-            "type": "text",
+            "delta": ".",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
           },
           {
             "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
@@ -1575,8 +1583,9 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-start",
           },
           {
-            "text": "Taqueria La Cumbre",
-            "type": "text",
+            "delta": "Taqueria La Cumbre",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
           },
           {
             "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
