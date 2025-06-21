@@ -391,20 +391,27 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "",
-          "type": "text",
+          "delta": "World!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
