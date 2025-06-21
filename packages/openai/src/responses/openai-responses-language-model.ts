@@ -439,6 +439,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.call_id,
                   toolName: value.item.name,
                 });
+              } else if (value.item.type === 'message') {
+                controller.enqueue({
+                  type: 'text-start',
+                  id: value.item.id,
+                });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'function_call') {
@@ -455,6 +460,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
                   input: value.item.arguments,
+                });
+              } else if (value.item.type === 'message') {
+                controller.enqueue({
+                  type: 'text-end',
+                  id: value.item.id,
                 });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
@@ -578,12 +588,31 @@ const responseCreatedChunkSchema = z.object({
   }),
 });
 
+const responseOutputItemAddedSchema = z.object({
+  type: z.literal('response.output_item.added'),
+  output_index: z.number(),
+  item: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('message'),
+      id: z.string(),
+    }),
+    z.object({
+      type: z.literal('function_call'),
+      id: z.string(),
+      call_id: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+    }),
+  ]),
+});
+
 const responseOutputItemDoneSchema = z.object({
   type: z.literal('response.output_item.done'),
   output_index: z.number(),
   item: z.discriminatedUnion('type', [
     z.object({
       type: z.literal('message'),
+      id: z.string(),
     }),
     z.object({
       type: z.literal('function_call'),
@@ -601,23 +630,6 @@ const responseFunctionCallArgumentsDeltaSchema = z.object({
   item_id: z.string(),
   output_index: z.number(),
   delta: z.string(),
-});
-
-const responseOutputItemAddedSchema = z.object({
-  type: z.literal('response.output_item.added'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-    }),
-  ]),
 });
 
 const responseAnnotationAddedSchema = z.object({
@@ -649,9 +661,9 @@ const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
   responseCreatedChunkSchema,
+  responseOutputItemAddedSchema,
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
-  responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
   responseReasoningSummaryPartDoneSchema,
