@@ -300,10 +300,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const generateId = this.config.generateId;
     let hasToolCalls = false;
     
-    // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
     let currentReasoningBlockId: string | null = null;
-    let blockCounter = 0;
 
     return {
       stream: response.pipeThrough(
@@ -353,12 +351,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             if (content != null) {
               // Process text parts individually to handle reasoning parts
               const parts = content.parts ?? [];
-              for (const part of parts) {
+              for (let partIndex = 0; partIndex < parts.length; partIndex++) {
+                const part = parts[partIndex];
                 if (
                   'text' in part &&
                   part.text != null &&
                   part.text.length > 0
                 ) {
+                  const partId = String(partIndex);
+                  
                   if (part.thought === true) {
                     // End any active text block before starting reasoning
                     if (currentTextBlockId !== null) {
@@ -369,9 +370,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       currentTextBlockId = null;
                     }
                     
-                    // Start new reasoning block if not already active
-                    if (currentReasoningBlockId === null) {
-                      currentReasoningBlockId = String(blockCounter++);
+                    if (currentReasoningBlockId !== partId) {
+                      if (currentReasoningBlockId !== null) {
+                        controller.enqueue({
+                          type: 'reasoning-end',
+                          id: currentReasoningBlockId,
+                        });
+                      }
+                      
+                      currentReasoningBlockId = partId;
                       controller.enqueue({
                         type: 'reasoning-start',
                         id: currentReasoningBlockId,
@@ -394,8 +401,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     }
                     
                     // Start new text block if not already active
-                    if (currentTextBlockId === null) {
-                      currentTextBlockId = String(blockCounter++);
+                    if (currentTextBlockId !== partId) {
+                      // End previous text block if different part  
+                      if (currentTextBlockId !== null) {
+                        controller.enqueue({
+                          type: 'text-end',
+                          id: currentTextBlockId,
+                        });
+                      }
+                      
+                      currentTextBlockId = partId;
                       controller.enqueue({
                         type: 'text-start',
                         id: currentTextBlockId,

@@ -2057,15 +2057,14 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    const events = await convertReadableStreamToArray(stream);
-    const contentEvents = events.filter(
-      event => 
-        event.type === 'text-start' || event.type === 'text-delta' || event.type === 'text-end' ||
-        event.type === 'reasoning-start' || event.type === 'reasoning-delta' || event.type === 'reasoning-end',
-    );
+    const allEvents = await convertReadableStreamToArray(stream);
 
-    expect(contentEvents).toMatchInlineSnapshot(`
+    expect(allEvents).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "0",
           "type": "text-start",
@@ -2080,43 +2079,77 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "id": "1",
+          "id": "0",
           "type": "reasoning-start",
         },
         {
           "delta": "This is a thought process.",
-          "id": "1",
+          "id": "0",
           "type": "reasoning-delta",
         },
         {
-          "id": "1",
+          "id": "0",
           "type": "reasoning-end",
         },
         {
-          "id": "2",
+          "id": "0",
           "type": "text-start",
         },
         {
           "delta": "Visible text part 2.",
-          "id": "2",
+          "id": "0",
           "type": "text-delta",
         },
         {
-          "id": "2",
+          "id": "0",
           "type": "text-end",
         },
         {
-          "id": "3",
+          "id": "0",
           "type": "reasoning-start",
         },
         {
           "delta": "Another internal thought.",
-          "id": "3",
+          "id": "0",
           "type": "reasoning-delta",
         },
         {
-          "id": "3",
+          "id": "0",
           "type": "reasoning-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "google": {
+              "groundingMetadata": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 10,
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 30,
+          },
         },
       ]
     `);
