@@ -669,6 +669,9 @@ importers:
       '@ai-sdk/google-vertex':
         specifier: workspace:*
         version: link:../../packages/google-vertex
+      '@ai-sdk/mistral':
+        specifier: workspace:*
+        version: link:../../packages/mistral
       '@ai-sdk/openai':
         specifier: workspace:*
         version: link:../../packages/openai

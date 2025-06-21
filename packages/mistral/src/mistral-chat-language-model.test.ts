@@ -146,7 +146,6 @@ describe('doGenerate', () => {
         {
           "input": "{"location": "paris"}",
           "toolCallId": "gSIMJiOkT",
-          "toolCallType": "function",
           "toolName": "weatherTool",
           "type": "tool-call",
         },
@@ -450,34 +449,33 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
           "id": "6e2cd91750904b7092f49bdca9083de1",
           "modelId": "mistral-small-latest",
           "timestamp": 2024-03-22T08:46:15.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "world!",
-          "type": "text",
+          "delta": "world!",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -509,30 +507,33 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
           "id": "6e2cd91750904b7092f49bdca9083de1",
           "modelId": "mistral-small-latest",
           "timestamp": 2024-03-22T08:46:15.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": "and",
-          "type": "text",
+          "delta": "prefix",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": " more content",
-          "type": "text",
+          "delta": " and",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "",
-          "type": "text",
+          "delta": " more content",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -586,30 +587,28 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
           "id": "ad6f7ce6543c4d0890280ae184fe4dd8",
           "modelId": "mistral-large-latest",
           "timestamp": 2024-03-25T11:10:23.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "yfBEybNYi",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
         },
         {
-          "inputTextDelta": "{"value":"Sparkle Day"}",
-          "toolCallId": "yfBEybNYi",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "{"value":"Sparkle Day"}",
+          "id": "yfBEybNYi",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "yfBEybNYi",
+          "type": "tool-input-end",
         },
         {
           "input": "{"value":"Sparkle Day"}",
           "toolCallId": "yfBEybNYi",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -749,26 +748,28 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
           "id": "stream-object-id",
           "modelId": "mistral-small-latest",
           "timestamp": 2024-03-22T08:46:15.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": ", world!",
-          "type": "text",
+          "delta": ", world!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -804,80 +805,28 @@ describe('doStream with raw chunks', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "rawValue": {
-            "choices": [
-              {
-                "delta": {
-                  "content": "Hello",
-                  "role": "assistant",
-                },
-                "finish_reason": null,
-                "index": 0,
-              },
-            ],
-            "created": 1234567890,
-            "id": "cmpl-123",
-            "model": "mistral-large-latest",
-            "object": "chat.completion.chunk",
-          },
-          "type": "raw",
-        },
-        {
           "id": "cmpl-123",
           "modelId": "mistral-large-latest",
           "timestamp": 2009-02-13T23:31:30.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "rawValue": {
-            "choices": [
-              {
-                "delta": {
-                  "content": " world",
-                },
-                "finish_reason": null,
-                "index": 0,
-              },
-            ],
-            "created": 1234567890,
-            "id": "cmpl-456",
-            "model": "mistral-large-latest",
-            "object": "chat.completion.chunk",
-          },
-          "type": "raw",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": " world",
-          "type": "text",
+          "delta": " world",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "rawValue": {
-            "choices": [
-              {
-                "delta": {},
-                "finish_reason": "stop",
-                "index": 0,
-              },
-            ],
-            "created": 1234567890,
-            "id": "cmpl-789",
-            "model": "mistral-large-latest",
-            "object": "chat.completion.chunk",
-            "usage": {
-              "completion_tokens": 5,
-              "prompt_tokens": 10,
-              "total_tokens": 15,
-            },
-          },
-          "type": "raw",
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
