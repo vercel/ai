@@ -195,12 +195,14 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: '<think>' },
-              { type: 'text', text: 'ana' },
-              { type: 'text', text: 'lyzing the request' },
-              { type: 'text', text: '</think>' },
-              { type: 'text', text: 'Here' },
-              { type: 'text', text: ' is the response' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '<think>' },
+              { type: 'text-delta', id: '1', delta: 'ana' },
+              { type: 'text-delta', id: '1', delta: 'lyzing the request' },
+              { type: 'text-delta', id: '1', delta: '</think>' },
+              { type: 'text-delta', id: '1', delta: 'Here' },
+              { type: 'text-delta', id: '1', delta: ' is the response' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -231,23 +233,44 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
               "text": "ana",
               "type": "reasoning",
             },
             {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
               "text": "lyzing the request",
               "type": "reasoning",
             },
             {
-              "type": "reasoning-part-finish",
+              "id": "reasoning-0",
+              "type": "reasoning-end",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "Here",
               "type": "text",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": " is the response",
               "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
             },
             {
               "finishReason": "stop",
@@ -293,10 +316,14 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
+              { type: 'text-start', id: '1' },
               {
-                type: 'text',
-                text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+                type: 'text-delta',
+                id: '1',
+                delta:
+                  '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
               },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -327,28 +354,54 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
               "text": "analyzing the request",
               "type": "reasoning",
             },
             {
-              "type": "reasoning-part-finish",
+              "id": "reasoning-0",
+              "type": "reasoning-end",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "Here is the response",
               "type": "text",
             },
             {
+              "id": "reasoning-1",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-1",
+              "providerMetadata": undefined,
               "text": "
           thinking about the response",
               "type": "reasoning",
             },
             {
-              "type": "reasoning-part-finish",
+              "id": "reasoning-1",
+              "type": "reasoning-end",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "
           more",
               "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
             },
             {
               "finishReason": "stop",
@@ -394,10 +447,12 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: '<think>' },
-              { type: 'text', text: 'ana' },
-              { type: 'text', text: 'lyzing the request\n' },
-              { type: 'text', text: '</think>' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '<think>' },
+              { type: 'text-delta', id: '1', delta: 'ana' },
+              { type: 'text-delta', id: '1', delta: 'lyzing the request\n' },
+              { type: 'text-delta', id: '1', delta: '</think>' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -428,16 +483,33 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
               "text": "ana",
               "type": "reasoning",
             },
             {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
               "text": "lyzing the request
           ",
               "type": "reasoning",
             },
             {
-              "type": "reasoning-part-finish",
+              "id": "reasoning-0",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
             },
             {
               "finishReason": "stop",
@@ -483,10 +555,12 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'ana' },
-              { type: 'text', text: 'lyzing the request\n' },
-              { type: 'text', text: '</think>' },
-              { type: 'text', text: 'this is the response' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'ana' },
+              { type: 'text-delta', id: '1', delta: 'lyzing the request\n' },
+              { type: 'text-delta', id: '1', delta: '</think>' },
+              { type: 'text-delta', id: '1', delta: 'this is the response' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -528,20 +602,39 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
               "text": "ana",
               "type": "reasoning",
             },
             {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
               "text": "lyzing the request
           ",
               "type": "reasoning",
             },
             {
-              "type": "reasoning-part-finish",
+              "id": "reasoning-0",
+              "type": "reasoning-end",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "this is the response",
               "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
             },
             {
               "finishReason": "stop",
@@ -587,21 +680,53 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "ana",
               "type": "text",
             },
             {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "lyzing the request
           ",
               "type": "text",
             },
             {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "</think>",
               "type": "text",
             },
             {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "this is the response",
               "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
             },
             {
               "finishReason": "stop",
