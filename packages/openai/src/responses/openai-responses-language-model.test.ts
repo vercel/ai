@@ -1529,7 +1529,9 @@ describe('OpenAIResponsesLanguageModel', () => {
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      expect(
+        await convertReadableStreamToArray(stream),
+      ).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -1542,26 +1544,31 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "**Exploring burrito origins**
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "**Exploring burrito origins**
 
         The user is",
-            "type": "reasoning",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
           },
           {
-            "text": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
-            "type": "reasoning",
+            "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
           },
           {
-            "type": "reasoning-part-finish",
-          },
-          {
-            "text": "**Investigating burrito origins**
+            "delta": "**Investigating burrito origins**
 
         There's a fascinating debate about who created the Mission burrito.",
-            "type": "reasoning",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
           },
           {
-            "type": "reasoning-part-finish",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-end",
           },
           {
             "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
