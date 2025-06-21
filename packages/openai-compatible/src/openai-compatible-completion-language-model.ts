@@ -250,8 +250,6 @@ export class OpenAICompatibleCompletionLanguageModel
       totalTokens: undefined,
     };
     let isFirstChunk = true;
-    
-    const activeParts: Array<{ id: string; type: 'text' }> = [];
 
     return {
       stream: response.pipeThrough(
@@ -287,6 +285,8 @@ export class OpenAICompatibleCompletionLanguageModel
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
               });
+
+              controller.enqueue({ type: 'text-start', id: '0' });
             }
 
             if (value.usage != null) {
@@ -304,39 +304,19 @@ export class OpenAICompatibleCompletionLanguageModel
             }
 
             if (choice?.text != null && choice.text.length > 0) {
-              const textBlockId = '0';
-              
-              const isActive = activeParts.some(
-                active => active.id === textBlockId && active.type === 'text'
-              );
-              
-              if (!isActive) {
-                activeParts.push({ id: textBlockId, type: 'text' });
-                
-                controller.enqueue({
-                  type: 'text-start',
-                  id: textBlockId,
-                });
-              }
-              
               controller.enqueue({
                 type: 'text-delta',
-                id: textBlockId,
+                id: '0',
                 delta: choice.text,
               });
             }
           },
 
           flush(controller) {
-            for (const activePart of activeParts) {
-              if (activePart.type === 'text') {
-                controller.enqueue({
-                  type: 'text-end',
-                  id: activePart.id,
-                });
-              }
+            if (!isFirstChunk) {
+              controller.enqueue({ type: 'text-end', id: '0' });
             }
-            
+
             controller.enqueue({
               type: 'finish',
               finishReason,
