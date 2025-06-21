@@ -1985,68 +1985,85 @@ describe('doStream', () => {
           candidates: [
             {
               content: {
-                parts: [{ text: 'Visible text part 1. ' }],
+                parts: [
+                  {
+                    text: 'I need to think about this carefully. The user wants a simple explanation.',
+                    thought: true,
+                  },
+                ],
                 role: 'model',
               },
               index: 0,
-              safetyRatings: SAFETY_RATINGS,
             },
           ],
+          usageMetadata: {
+            promptTokenCount: 14,
+            totalTokenCount: 84,
+            thoughtsTokenCount: 70,
+          },
         })}\n\n`,
         `data: ${JSON.stringify({
           candidates: [
             {
               content: {
-                parts: [{ text: 'This is a thought process.', thought: true }],
+                parts: [
+                  {
+                    text: 'Let me organize my thoughts and provide a clear answer.',
+                    thought: true,
+                  },
+                ],
                 role: 'model',
               },
               index: 0,
-              safetyRatings: SAFETY_RATINGS,
             },
           ],
+          usageMetadata: {
+            promptTokenCount: 14,
+            totalTokenCount: 156,
+            thoughtsTokenCount: 142,
+          },
         })}\n\n`,
         `data: ${JSON.stringify({
           candidates: [
             {
               content: {
-                parts: [{ text: 'Visible text part 2.' }],
+                parts: [
+                  {
+                    text: 'Here is a simple explanation: ',
+                  },
+                ],
                 role: 'model',
               },
               index: 0,
-              safetyRatings: SAFETY_RATINGS,
             },
           ],
+          usageMetadata: {
+            promptTokenCount: 14,
+            candidatesTokenCount: 8,
+            totalTokenCount: 164,
+            thoughtsTokenCount: 142,
+          },
         })}\n\n`,
         `data: ${JSON.stringify({
           candidates: [
             {
               content: {
-                // currently ignored:
-                parts: [{ thoughtSignature: 'test-signature', thought: true }],
-                role: 'model',
-              },
-              finishReason: 'STOP', // Mark finish reason in a chunk that has content
-              index: 0,
-              safetyRatings: SAFETY_RATINGS,
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Another internal thought.', thought: true }],
+                parts: [
+                  {
+                    text: 'The concept works because of basic principles.',
+                  },
+                ],
                 role: 'model',
               },
               finishReason: 'STOP',
               index: 0,
-              safetyRatings: SAFETY_RATINGS,
             },
           ],
           usageMetadata: {
-            promptTokenCount: 10,
-            candidatesTokenCount: 20,
-            totalTokenCount: 30,
+            promptTokenCount: 14,
+            candidatesTokenCount: 18,
+            totalTokenCount: 174,
+            thoughtsTokenCount: 142,
           },
         })}\n\n`,
       ],
@@ -2067,72 +2084,55 @@ describe('doStream', () => {
         },
         {
           "id": "0",
-          "type": "text-start",
-        },
-        {
-          "delta": "Visible text part 1. ",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
-          "id": "0",
           "type": "reasoning-start",
         },
         {
-          "delta": "This is a thought process.",
+          "delta": "I need to think about this carefully. The user wants a simple explanation.",
           "id": "0",
           "type": "reasoning-delta",
         },
         {
-          "delta": "Visible text part 2.",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
-          "delta": "Another internal thought.",
+          "delta": "Let me organize my thoughts and provide a clear answer.",
           "id": "0",
           "type": "reasoning-delta",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
         },
         {
           "id": "0",
           "type": "reasoning-end",
         },
         {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is a simple explanation: ",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "delta": "The concept works because of basic principles.",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
+        },
+        {
           "finishReason": "stop",
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
-              "safetyRatings": [
-                {
-                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HATE_SPEECH",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HARASSMENT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                  "probability": "NEGLIGIBLE",
-                },
-              ],
+              "safetyRatings": null,
             },
           },
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
-            "inputTokens": 10,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 30,
+            "inputTokens": 14,
+            "outputTokens": 18,
+            "reasoningTokens": 142,
+            "totalTokens": 174,
           },
         },
       ]
