@@ -126,7 +126,6 @@ describe('result.content', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
