@@ -1229,6 +1229,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
+                    case 'tool-input-end': {
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'tool-input-delta': {
                       const tool = tools?.[chunk.toolName];
 

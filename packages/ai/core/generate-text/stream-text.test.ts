@@ -5554,7 +5554,7 @@ describe('streamText', () => {
           TextStreamPart<{ tool1: Tool<{ value: string }> }>
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'text') {
+            if (chunk.type === 'text' || chunk.type === 'reasoning') {
               chunk.text = chunk.text.toUpperCase();
             }
 
@@ -6322,42 +6322,42 @@ describe('streamText', () => {
         expect(result).toMatchInlineSnapshot(`
           [
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "HELLO",
               "type": "text",
             },
             {
-              "reasoningType": "text",
-              "text": "Feeling clever",
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": "FEELING CLEVER",
               "type": "reasoning",
             },
             {
-              "toolCallId": "1",
+              "id": "call-1",
               "toolName": "tool1",
-              "type": "tool-call-streaming-start",
+              "type": "tool-input-start",
             },
             {
-              "inputTextDelta": "{"VALUE": "",
-              "toolCallId": "1",
-              "toolName": "tool1",
-              "type": "tool-call-delta",
+              "delta": "{"VALUE": "",
+              "id": "call-1",
+              "type": "tool-input-delta",
             },
             {
-              "inputTextDelta": "TEST",
-              "toolCallId": "1",
-              "toolName": "tool1",
-              "type": "tool-call-delta",
+              "delta": "TEST",
+              "id": "call-1",
+              "type": "tool-input-delta",
             },
             {
-              "inputTextDelta": ""}",
-              "toolCallId": "1",
-              "toolName": "tool1",
-              "type": "tool-call-delta",
+              "delta": ""}",
+              "id": "call-1",
+              "type": "tool-input-delta",
             },
             {
               "input": {
                 "value": "TEST",
               },
-              "toolCallId": "1",
+              "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
             },
@@ -6366,11 +6366,13 @@ describe('streamText', () => {
                 "value": "TEST",
               },
               "output": "TEST-RESULT",
-              "toolCallId": "1",
+              "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": " WORLD",
               "type": "text",
             },
