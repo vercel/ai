@@ -300,8 +300,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const generateId = this.config.generateId;
     let hasToolCalls = false;
     
-    let currentTextBlockId: string | null = null;
-    let currentReasoningBlockId: string | null = null;
+    const activeParts: Array<{ id: string; type: 'text' | 'reasoning' }> = [];
 
     return {
       stream: response.pipeThrough(
@@ -360,66 +359,38 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 ) {
                   const partId = String(partIndex);
                   
-                  if (part.thought === true) {
-                    // End any active text block before starting reasoning
-                    if (currentTextBlockId !== null) {
-                      controller.enqueue({
-                        type: 'text-end',
-                        id: currentTextBlockId,
-                      });
-                      currentTextBlockId = null;
-                    }
+                  const blockType = part.thought === true ? 'reasoning' : 'text';
+                  
+                  const isActive = activeParts.some(
+                    active => active.id === partId && active.type === blockType
+                  );
+                  
+                  if (!isActive) {
+                    activeParts.push({ id: partId, type: blockType });
                     
-                    if (currentReasoningBlockId !== partId) {
-                      if (currentReasoningBlockId !== null) {
-                        controller.enqueue({
-                          type: 'reasoning-end',
-                          id: currentReasoningBlockId,
-                        });
-                      }
-                      
-                      currentReasoningBlockId = partId;
+                    if (blockType === 'reasoning') {
                       controller.enqueue({
                         type: 'reasoning-start',
-                        id: currentReasoningBlockId,
+                        id: partId,
+                      });
+                    } else {
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: partId,
                       });
                     }
-                    
+                  }
+                  
+                  if (blockType === 'reasoning') {
                     controller.enqueue({
                       type: 'reasoning-delta',
-                      id: currentReasoningBlockId,
+                      id: partId,
                       delta: part.text,
                     });
                   } else {
-                    // End any active reasoning block before starting text
-                    if (currentReasoningBlockId !== null) {
-                      controller.enqueue({
-                        type: 'reasoning-end',
-                        id: currentReasoningBlockId,
-                      });
-                      currentReasoningBlockId = null;
-                    }
-                    
-                    // Start new text block if not already active
-                    if (currentTextBlockId !== partId) {
-                      // End previous text block if different part  
-                      if (currentTextBlockId !== null) {
-                        controller.enqueue({
-                          type: 'text-end',
-                          id: currentTextBlockId,
-                        });
-                      }
-                      
-                      currentTextBlockId = partId;
-                      controller.enqueue({
-                        type: 'text-start',
-                        id: currentTextBlockId,
-                      });
-                    }
-                    
                     controller.enqueue({
                       type: 'text-delta',
-                      id: currentTextBlockId,
+                      id: partId,
                       delta: part.text,
                     });
                   }
@@ -499,18 +470,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
-            // Close any open blocks before finishing
-            if (currentTextBlockId !== null) {
-              controller.enqueue({
-                type: 'text-end',
-                id: currentTextBlockId,
-              });
-            }
-            if (currentReasoningBlockId !== null) {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: currentReasoningBlockId,
-              });
+            for (const activePart of activeParts) {
+              if (activePart.type === 'text') {
+                controller.enqueue({
+                  type: 'text-end',
+                  id: activePart.id,
+                });
+              } else if (activePart.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: activePart.id,
+                });
+              }
             }
             
             controller.enqueue({
@@ -551,16 +522,6 @@ function getToolCallsFromParts({
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),
       }));
-}
-
-function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts?.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
-
-  return textParts == null || textParts.length === 0
-    ? undefined
-    : textParts.map(part => part.text).join('');
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {

@@ -2076,10 +2076,6 @@ describe('doStream', () => {
         },
         {
           "id": "0",
-          "type": "text-end",
-        },
-        {
-          "id": "0",
           "type": "reasoning-start",
         },
         {
@@ -2088,30 +2084,18 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
-          "id": "0",
-          "type": "reasoning-end",
-        },
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
           "delta": "Visible text part 2.",
           "id": "0",
           "type": "text-delta",
         },
         {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "id": "0",
-          "type": "reasoning-start",
-        },
-        {
           "delta": "Another internal thought.",
           "id": "0",
           "type": "reasoning-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "id": "0",

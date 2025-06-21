@@ -241,6 +241,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let isFirstChunk = true;
+    
+    const activeParts: Array<{ id: string; type: 'text' }> = [];
 
     return {
       stream: response.pipeThrough(
@@ -298,15 +300,40 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
               providerMetadata.openai.logprobs = choice.logprobs;
             }
 
-            if (choice?.text != null) {
+            if (choice?.text != null && choice.text.length > 0) {
+              const textBlockId = '0';
+              
+              const isActive = activeParts.some(
+                active => active.id === textBlockId && active.type === 'text'
+              );
+              
+              if (!isActive) {
+                activeParts.push({ id: textBlockId, type: 'text' });
+                
+                controller.enqueue({
+                  type: 'text-start',
+                  id: textBlockId,
+                });
+              }
+              
               controller.enqueue({
-                type: 'text',
-                text: choice.text,
+                type: 'text-delta',
+                id: textBlockId,
+                delta: choice.text,
               });
             }
           },
 
           flush(controller) {
+            for (const activePart of activeParts) {
+              if (activePart.type === 'text') {
+                controller.enqueue({
+                  type: 'text-end',
+                  id: activePart.id,
+                });
+              }
+            }
+            
             controller.enqueue({
               type: 'finish',
               finishReason,
