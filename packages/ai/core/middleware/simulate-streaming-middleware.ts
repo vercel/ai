@@ -26,18 +26,24 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
           for (const part of result.content) {
             switch (part.type) {
               case 'text': {
-                controller.enqueue({ type: 'text-start', id: String(id) });
-                controller.enqueue({
-                  type: 'text-delta',
-                  id: String(id),
-                  delta: part.text,
-                });
-                controller.enqueue({ type: 'text-end', id: String(id) });
-                id++;
+                if (part.text.length > 0) {
+                  controller.enqueue({ type: 'text-start', id: String(id) });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: String(id),
+                    delta: part.text,
+                  });
+                  controller.enqueue({ type: 'text-end', id: String(id) });
+                  id++;
+                }
                 break;
               }
               case 'reasoning': {
-                controller.enqueue({ type: 'reasoning-start', id: String(id) });
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: String(id),
+                  providerMetadata: part.providerMetadata,
+                });
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(id),
