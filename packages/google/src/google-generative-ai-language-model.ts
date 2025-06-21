@@ -299,7 +299,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
-
+    
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
     let currentReasoningBlockId: string | null = null;
@@ -368,7 +368,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       });
                       currentTextBlockId = null;
                     }
-
+                    
                     // Start new reasoning block if not already active
                     if (currentReasoningBlockId === null) {
                       currentReasoningBlockId = String(blockCounter++);
@@ -377,7 +377,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                         id: currentReasoningBlockId,
                       });
                     }
-
+                    
                     controller.enqueue({
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
@@ -392,7 +392,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       });
                       currentReasoningBlockId = null;
                     }
-
+                    
                     // Start new text block if not already active
                     if (currentTextBlockId === null) {
                       currentTextBlockId = String(blockCounter++);
@@ -401,7 +401,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                         id: currentTextBlockId,
                       });
                     }
-
+                    
                     controller.enqueue({
                       type: 'text-delta',
                       id: currentTextBlockId,
@@ -497,7 +497,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 id: currentReasoningBlockId,
               });
             }
-
+            
             controller.enqueue({
               type: 'finish',
               finishReason,

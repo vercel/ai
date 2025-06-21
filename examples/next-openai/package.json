@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/deepseek": "workspace:*",
     "@ai-sdk/fireworks": "workspace:*",
