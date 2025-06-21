@@ -104,8 +104,8 @@ export async function callCompletionApi({
                 }
 
                 const streamPart = part.value;
-                if (streamPart.type === 'text') {
-                  result += streamPart.text;
+                if (streamPart.type === 'text-delta') {
+                  result += streamPart.delta;
                   setCompletion(result);
                 } else if (streamPart.type === 'error') {
                   throw new Error(streamPart.errorText);
