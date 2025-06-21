@@ -45,8 +45,10 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'Hello, ' },
-        { type: 'text', text: 'world!' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+        { type: 'text-delta', id: 'text-1', delta: 'world!' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -149,7 +151,13 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -312,7 +320,13 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -521,8 +535,14 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'I will ' },
-        { type: 'text', text: 'use a tool to get the weather in London.' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'I will ' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'use a tool to get the weather in London.',
+        },
+        { type: 'text-end', id: 'text-1' },
         {
           type: 'tool-input-available',
           toolCallId: 'tool-call-id',
@@ -536,8 +556,10 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London ' },
-        { type: 'text', text: 'is sunny.' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: 'The weather in London ' },
+        { type: 'text-delta', id: 'text-2', delta: 'is sunny.' },
+        { type: 'text-end', id: 'text-2' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -800,7 +822,13 @@ describe('processUIMessageStream', () => {
           },
         },
         { type: 'reasoning-part-finish' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1100,7 +1128,13 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1254,14 +1288,16 @@ describe('processUIMessageStream', () => {
           },
         },
         { type: 'start-step' },
-        { type: 'text', text: 't1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 't1' },
         {
           type: 'message-metadata',
           messageMetadata: {
             metadata: 'metadata-1',
           },
         },
-        { type: 'text', text: 't2' },
+        { type: 'text-delta', id: 'text-1', delta: 't2' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         {
           type: 'finish',
@@ -1436,7 +1472,9 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 't1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 't1' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
         {
@@ -1543,7 +1581,9 @@ describe('processUIMessageStream', () => {
           },
         },
         { type: 'start-step' },
-        { type: 'text', text: 't1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 't1' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1834,8 +1874,10 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'Hello, ' },
-        { type: 'text', text: 'world!' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+        { type: 'text-delta', id: 'text-1', delta: 'world!' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1955,7 +1997,9 @@ describe('processUIMessageStream', () => {
           },
         },
         { type: 'reasoning-part-finish' },
-        { type: 'text', text: 'Hi there!' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hi there!' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -2258,7 +2302,13 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         {
           type: 'source-url',
           sourceId: 'source-id',
@@ -2368,13 +2418,17 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'Here is a file:' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Here is a file:' },
+        { type: 'text-end', id: 'text-1' },
         {
           type: 'file',
           url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
           mediaType: 'text/plain',
         },
-        { type: 'text', text: 'And another one:' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: 'And another one:' },
+        { type: 'text-end', id: 'text-2' },
         {
           type: 'file',
           url: 'data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9',
@@ -2454,13 +2508,17 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "text": "Here is a file:And another one:",
+                  "text": "Here is a file:",
                   "type": "text",
                 },
                 {
                   "mediaType": "text/plain",
                   "type": "file",
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+                },
+                {
+                  "text": "And another one:",
+                  "type": "text",
                 },
               ],
               "role": "assistant",
@@ -2475,13 +2533,17 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "text": "Here is a file:And another one:",
+                  "text": "Here is a file:",
                   "type": "text",
                 },
                 {
                   "mediaType": "text/plain",
                   "type": "file",
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+                },
+                {
+                  "text": "And another one:",
+                  "type": "text",
                 },
                 {
                   "mediaType": "application/json",
@@ -2506,13 +2568,17 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "text": "Here is a file:And another one:",
+              "text": "Here is a file:",
               "type": "text",
             },
             {
               "mediaType": "text/plain",
               "type": "file",
               "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+            },
+            {
+              "text": "And another one:",
+              "type": "text",
             },
             {
               "mediaType": "application/json",

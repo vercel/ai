@@ -10,8 +10,17 @@ import { ProviderMetadata } from '../../core/types/provider-metadata';
 
 export const uiMessageStreamPartSchema = z.union([
   z.strictObject({
-    type: z.literal('text'),
-    text: z.string(),
+    type: z.literal('text-start'),
+    id: z.string(),
+  }),
+  z.strictObject({
+    type: z.literal('text-delta'),
+    id: z.string(),
+    delta: z.string(),
+  }),
+  z.strictObject({
+    type: z.literal('text-end'),
+    id: z.string(),
   }),
   z.strictObject({
     type: z.literal('error'),
@@ -109,10 +118,9 @@ export type UIMessageStreamPart<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
 > =
-  | {
-      type: 'text';
-      text: string;
-    }
+  | { type: 'text-start'; id: string }
+  | { type: 'text-delta'; delta: string; id: string }
+  | { type: 'text-end'; id: string }
   | {
       type: 'error';
       errorText: string;

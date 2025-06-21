@@ -1589,11 +1589,22 @@ However, the LLM results are expected to be small enough to not cause issues.
 
           const partType = part.type;
           switch (partType) {
+            case 'text-start': {
+              controller.enqueue({ type: 'text-start', id: part.id });
+              break;
+            }
+
             case 'text': {
               controller.enqueue({
-                type: 'text',
-                text: part.text,
+                type: 'text-delta',
+                id: part.id,
+                delta: part.text,
               });
+              break;
+            }
+
+            case 'text-end': {
+              controller.enqueue({ type: 'text-end', id: part.id });
               break;
             }
 
@@ -1726,8 +1737,6 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'text-start':
-            case 'text-end':
             case 'reasoning-start':
             case 'reasoning-end':
             case 'tool-input-end': {

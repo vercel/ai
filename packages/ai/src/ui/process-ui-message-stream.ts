@@ -27,7 +27,7 @@ import { UIDataTypesToSchemas } from './chat';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
-  activeTextPart: TextUIPart | undefined;
+  activeTextParts: Record<string, TextUIPart>;
   activeReasoningPart: ReasoningUIPart | undefined;
   partialToolCalls: Record<
     string,
@@ -55,7 +55,7 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
               InferUIMessageTools<UI_MESSAGE>
             >[],
           } as UI_MESSAGE),
-    activeTextPart: undefined,
+    activeTextParts: {},
     activeReasoningPart: undefined,
     partialToolCalls: {},
   };
@@ -144,18 +144,21 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
           }
 
           switch (part.type) {
-            case 'text': {
-              if (state.activeTextPart == null) {
-                state.activeTextPart = {
-                  type: 'text',
-                  text: part.text,
-                };
-                state.message.parts.push(state.activeTextPart);
-              } else {
-                state.activeTextPart.text += part.text;
-              }
+            case 'text-start': {
+              const textPart: TextUIPart = { type: 'text', text: '' };
+              state.activeTextParts[part.id] = textPart;
+              state.message.parts.push(textPart);
+              break;
+            }
 
+            case 'text-delta': {
+              state.activeTextParts[part.id].text += part.delta;
               write();
+              break;
+            }
+
+            case 'text-end': {
+              delete state.activeTextParts[part.id];
               break;
             }
 
@@ -373,7 +376,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'finish-step': {
               // reset the current text and reasoning parts
-              state.activeTextPart = undefined;
+              state.activeTextParts = {};
               state.activeReasoningPart = undefined;
               break;
             }
