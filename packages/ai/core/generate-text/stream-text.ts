@@ -1608,14 +1608,33 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
+            case 'reasoning-start': {
+              controller.enqueue({
+                type: 'reasoning-start',
+                id: part.id,
+                providerMetadata: part.providerMetadata,
+              });
+              break;
+            }
+
             case 'reasoning': {
               if (sendReasoning) {
                 controller.enqueue({
-                  type: 'reasoning',
-                  text: part.text,
+                  type: 'reasoning-delta',
+                  id: part.id,
+                  delta: part.text,
                   providerMetadata: part.providerMetadata,
                 });
               }
+              break;
+            }
+
+            case 'reasoning-end': {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: part.id,
+                providerMetadata: part.providerMetadata,
+              });
               break;
             }
 

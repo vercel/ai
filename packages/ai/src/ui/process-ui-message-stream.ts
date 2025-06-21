@@ -28,7 +28,7 @@ import { UIDataTypesToSchemas } from './chat';
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextParts: Record<string, TextUIPart>;
-  activeReasoningPart: ReasoningUIPart | undefined;
+  activeReasoningParts: Record<string, ReasoningUIPart>;
   partialToolCalls: Record<
     string,
     { text: string; index: number; toolName: string }
@@ -56,7 +56,7 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
             >[],
           } as UI_MESSAGE),
     activeTextParts: {},
-    activeReasoningPart: undefined,
+    activeReasoningParts: {},
     partialToolCalls: {},
   };
 }
@@ -162,28 +162,38 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
-            case 'reasoning': {
-              if (state.activeReasoningPart == null) {
-                state.activeReasoningPart = {
-                  type: 'reasoning',
-                  text: part.text,
-                  providerMetadata: part.providerMetadata,
-                };
-                state.message.parts.push(state.activeReasoningPart);
-              } else {
-                state.activeReasoningPart.text += part.text;
-                state.activeReasoningPart.providerMetadata =
-                  part.providerMetadata;
-              }
+            case 'reasoning-start': {
+              const reasoningPart: ReasoningUIPart = {
+                type: 'reasoning',
+                text: '',
+                providerMetadata: part.providerMetadata,
+              };
+              state.activeReasoningParts[part.id] = reasoningPart;
+              state.message.parts.push(reasoningPart);
 
               write();
               break;
             }
 
-            case 'reasoning-part-finish': {
-              if (state.activeReasoningPart != null) {
-                state.activeReasoningPart = undefined;
+            case 'reasoning-delta': {
+              const reasoningPart = state.activeReasoningParts[part.id];
+              reasoningPart.text += part.delta;
+              reasoningPart.providerMetadata =
+                part.providerMetadata ?? reasoningPart.providerMetadata;
+              write();
+              break;
+            }
+
+            case 'reasoning-end': {
+              const reasoningPart = state.activeReasoningParts[part.id];
+              reasoningPart.providerMetadata =
+                part.providerMetadata ?? reasoningPart.providerMetadata;
+              delete state.activeReasoningParts[part.id];
+
+              if (part.providerMetadata != null) {
+                write();
               }
+
               break;
             }
 
@@ -377,7 +387,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'finish-step': {
               // reset the current text and reasoning parts
               state.activeTextParts = {};
-              state.activeReasoningPart = undefined;
+              state.activeReasoningParts = {};
               break;
             }
 

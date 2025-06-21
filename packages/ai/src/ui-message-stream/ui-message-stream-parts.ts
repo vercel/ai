@@ -121,6 +121,18 @@ export type UIMessageStreamPart<
   | { type: 'text-start'; id: string }
   | { type: 'text-delta'; delta: string; id: string }
   | { type: 'text-end'; id: string }
+  | { type: 'reasoning-start'; id: string; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'reasoning-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
       type: 'error';
       errorText: string;
@@ -150,14 +162,6 @@ export type UIMessageStreamPart<
       type: 'tool-input-delta';
       toolCallId: string;
       inputTextDelta: string;
-    }
-  | {
-      type: 'reasoning';
-      text: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'reasoning-part-finish';
     }
   | {
       type: 'source-url';
