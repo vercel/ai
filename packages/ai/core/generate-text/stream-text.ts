@@ -1061,6 +1061,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
+
+          // keep track of step content before any stream transformations to send the
+          // raw information to telemetry
           const stepContent: Array<ContentPart<TOOLS>> = [];
 
           const activeToolCallToolNames: Record<string, string> = {};
@@ -1357,7 +1360,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     // append to messages for the next step:
                     responseMessages.push(
                       ...toResponseMessages({
-                        content: stepContent,
+                        content:
+                          // use transformed content to create the messages for the next step:
+                          recordedSteps[recordedSteps.length - 1].content,
                         tools,
                       }),
                     );
