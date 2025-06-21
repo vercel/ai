@@ -397,12 +397,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     > = {};
     let hasToolCalls = false;
 
-    // Track the last summary_index received in reasoning summary chunks.
-    // When the provider switches to a different summary_index we emit a
-    // `reasoning-part-finish` marker so downstream consumers can separate
-    // distinct reasoning parts.
-    let lastReasoningSummaryIndex: number | null = null;
-
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -444,6 +438,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'text-start',
                   id: value.item.id,
                 });
+              } else if (value.item.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: value.item.id,
+                });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'function_call') {
@@ -464,6 +463,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-end',
+                  id: value.item.id,
+                });
+              } else if (value.item.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-end',
                   id: value.item.id,
                 });
               }
@@ -491,23 +495,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 text: value.delta,
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
-              // When the summary_index changes, mark the end of the previous
-              // reasoning part before streaming the new one.
-              if (
-                lastReasoningSummaryIndex !== null &&
-                value.summary_index !== lastReasoningSummaryIndex
-              ) {
-                controller.enqueue({ type: 'reasoning-part-finish' });
-              }
-
-              lastReasoningSummaryIndex = value.summary_index;
-
               controller.enqueue({
-                type: 'reasoning',
-                text: value.delta,
+                type: 'reasoning-delta',
+                delta: value.delta,
+                id: value.item_id,
               });
-            } else if (isResponseReasoningSummaryPartDoneChunk(value)) {
-              controller.enqueue({ type: 'reasoning-part-finish' });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
@@ -597,6 +589,10 @@ const responseOutputItemAddedSchema = z.object({
       id: z.string(),
     }),
     z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+    }),
+    z.object({
       type: z.literal('function_call'),
       id: z.string(),
       call_id: z.string(),
@@ -612,6 +608,10 @@ const responseOutputItemDoneSchema = z.object({
   item: z.discriminatedUnion('type', [
     z.object({
       type: z.literal('message'),
+      id: z.string(),
+    }),
+    z.object({
+      type: z.literal('reasoning'),
       id: z.string(),
     }),
     z.object({
