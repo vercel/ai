@@ -1062,10 +1062,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
 
-          // keep track of step content before any stream transformations to send the
-          // raw information to telemetry
-          const stepContent: Array<ContentPart<TOOLS>> = [];
-
           const activeToolCallToolNames: Record<string, string> = {};
 
           let stepFinishReason: FinishReason = 'unknown';
@@ -1082,6 +1078,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             modelId: model.modelId,
           };
 
+          // raw text as it comes from the provider. recorded for telemetry.
+          let activeText = '';
+
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
@@ -1089,8 +1088,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
-                  console.log('chunk2', chunk);
-
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
@@ -1134,6 +1131,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           text: chunk.delta,
                           providerMetadata: chunk.providerMetadata,
                         });
+                        activeText += chunk.delta;
                       }
                       break;
                     }
@@ -1160,21 +1158,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
                       stepToolCalls.push(chunk);
-                      stepContent.push(chunk);
                       break;
                     }
 
                     case 'tool-result': {
                       controller.enqueue(chunk);
                       stepToolOutputs.push(chunk);
-                      stepContent.push(chunk);
                       break;
                     }
 
                     case 'tool-error': {
                       controller.enqueue(chunk);
                       stepToolOutputs.push(chunk);
-                      stepContent.push(chunk);
                       break;
                     }
 
@@ -1208,13 +1203,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'file': {
-                      stepContent.push(chunk);
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'source': {
-                      stepContent.push(chunk);
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1293,11 +1286,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         attributes: {
                           'ai.response.finishReason': stepFinishReason,
                           'ai.response.text': {
-                            output: () =>
-                              stepContent
-                                .filter(part => part.type === 'text')
-                                .map(part => part.text)
-                                .join(''),
+                            output: () => activeText,
                           },
                           'ai.response.toolCalls': {
                             output: () => stepToolCallsJson,
