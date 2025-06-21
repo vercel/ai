@@ -285,6 +285,8 @@ export class OpenAICompatibleCompletionLanguageModel
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
               });
+
+              controller.enqueue({ type: 'text-start', id: '0' });
             }
 
             if (value.usage != null) {
@@ -301,15 +303,20 @@ export class OpenAICompatibleCompletionLanguageModel
               );
             }
 
-            if (choice?.text != null) {
+            if (choice?.text != null && choice.text.length > 0) {
               controller.enqueue({
-                type: 'text',
-                text: choice.text,
+                type: 'text-delta',
+                id: '0',
+                delta: choice.text,
               });
             }
           },
 
           flush(controller) {
+            if (!isFirstChunk) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,

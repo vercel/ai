@@ -89,8 +89,14 @@ export function toUIMessageStream(
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(
       new TransformStream<string, UIMessageStreamPart>({
+        start: async controller => {
+          controller.enqueue({ type: 'text-start', id: '1' });
+        },
         transform: async (chunk, controller) => {
-          controller.enqueue({ type: 'text', text: chunk });
+          controller.enqueue({ type: 'text-delta', delta: chunk, id: '1' });
+        },
+        flush: async controller => {
+          controller.enqueue({ type: 'text-end', id: '1' });
         },
       }),
     );

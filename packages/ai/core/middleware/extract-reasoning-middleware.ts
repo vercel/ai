@@ -81,11 +81,18 @@ export function extractReasoningMiddleware({
     wrapStream: async ({ doStream }) => {
       const { stream, ...rest } = await doStream();
 
-      let isFirstReasoning = true;
-      let isFirstText = true;
-      let afterSwitch = false;
-      let isReasoning = startWithReasoning;
-      let buffer = '';
+      const reasoningExtractions: Record<
+        string,
+        {
+          isFirstReasoning: boolean;
+          isFirstText: boolean;
+          afterSwitch: boolean;
+          isReasoning: boolean;
+          buffer: string;
+          idCounter: number;
+          textId: string;
+        }
+      > = {};
 
       return {
         stream: stream.pipeThrough(
@@ -94,71 +101,112 @@ export function extractReasoningMiddleware({
             LanguageModelV2StreamPart
           >({
             transform: (chunk, controller) => {
-              if (chunk.type !== 'text') {
+              if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
               }
 
-              buffer += chunk.text;
+              if (reasoningExtractions[chunk.id] == null) {
+                reasoningExtractions[chunk.id] = {
+                  isFirstReasoning: true,
+                  isFirstText: true,
+                  afterSwitch: false,
+                  isReasoning: startWithReasoning,
+                  buffer: '',
+                  idCounter: 0,
+                  textId: chunk.id,
+                };
+              }
+
+              const activeExtraction = reasoningExtractions[chunk.id];
+
+              activeExtraction.buffer += chunk.delta;
 
               function publish(text: string) {
                 if (text.length > 0) {
                   const prefix =
-                    afterSwitch &&
-                    (isReasoning ? !isFirstReasoning : !isFirstText)
+                    activeExtraction.afterSwitch &&
+                    (activeExtraction.isReasoning
+                      ? !activeExtraction.isFirstReasoning
+                      : !activeExtraction.isFirstText)
                       ? separator
                       : '';
 
+                  if (
+                    (activeExtraction.afterSwitch &&
+                      activeExtraction.isReasoning) ||
+                    activeExtraction.isFirstReasoning
+                  ) {
+                    controller.enqueue({
+                      type: 'reasoning-start',
+                      id: `reasoning-${activeExtraction.idCounter}`,
+                    });
+                  }
+
                   controller.enqueue(
-                    isReasoning
+                    activeExtraction.isReasoning
                       ? {
-                          type: 'reasoning',
-                          text: prefix + text,
+                          type: 'reasoning-delta',
+                          delta: prefix + text,
+                          id: `reasoning-${activeExtraction.idCounter}`,
                         }
                       : {
-                          type: 'text',
-                          text: prefix + text,
+                          type: 'text-delta',
+                          delta: prefix + text,
+                          id: activeExtraction.textId,
                         },
                   );
-                  afterSwitch = false;
+                  activeExtraction.afterSwitch = false;
 
-                  if (isReasoning) {
-                    isFirstReasoning = false;
+                  if (activeExtraction.isReasoning) {
+                    activeExtraction.isFirstReasoning = false;
                   } else {
-                    isFirstText = false;
+                    activeExtraction.isFirstText = false;
                   }
                 }
               }
 
               do {
-                const nextTag = isReasoning ? closingTag : openingTag;
-                const startIndex = getPotentialStartIndex(buffer, nextTag);
+                const nextTag = activeExtraction.isReasoning
+                  ? closingTag
+                  : openingTag;
+
+                const startIndex = getPotentialStartIndex(
+                  activeExtraction.buffer,
+                  nextTag,
+                );
 
                 // no opening or closing tag found, publish the buffer
                 if (startIndex == null) {
-                  publish(buffer);
-                  buffer = '';
+                  publish(activeExtraction.buffer);
+                  activeExtraction.buffer = '';
                   break;
                 }
 
                 // publish text before the tag
-                publish(buffer.slice(0, startIndex));
+                publish(activeExtraction.buffer.slice(0, startIndex));
 
                 const foundFullMatch =
-                  startIndex + nextTag.length <= buffer.length;
+                  startIndex + nextTag.length <= activeExtraction.buffer.length;
 
                 if (foundFullMatch) {
-                  buffer = buffer.slice(startIndex + nextTag.length);
+                  activeExtraction.buffer = activeExtraction.buffer.slice(
+                    startIndex + nextTag.length,
+                  );
 
                   // reasoning part finished:
-                  if (isReasoning) {
-                    controller.enqueue({ type: 'reasoning-part-finish' });
+                  if (activeExtraction.isReasoning) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: `reasoning-${activeExtraction.idCounter++}`,
+                    });
                   }
 
-                  isReasoning = !isReasoning;
-                  afterSwitch = true;
+                  activeExtraction.isReasoning = !activeExtraction.isReasoning;
+                  activeExtraction.afterSwitch = true;
                 } else {
-                  buffer = buffer.slice(startIndex);
+                  activeExtraction.buffer =
+                    activeExtraction.buffer.slice(startIndex);
                   break;
                 }
               } while (true);

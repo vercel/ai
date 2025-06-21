@@ -215,7 +215,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
-          toolCallType: 'function' as const,
           toolCallId: this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args),
@@ -301,6 +300,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const generateId = this.config.generateId;
     let hasToolCalls = false;
 
+    // Track active blocks to group consecutive parts of same type
+    let currentTextBlockId: string | null = null;
+    let currentReasoningBlockId: string | null = null;
+    let blockCounter = 0;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -356,9 +360,53 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                   part.text.length > 0
                 ) {
                   if (part.thought === true) {
-                    controller.enqueue({ type: 'reasoning', text: part.text });
+                    // End any active text block before starting reasoning
+                    if (currentTextBlockId !== null) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: currentTextBlockId,
+                      });
+                      currentTextBlockId = null;
+                    }
+
+                    // Start new reasoning block if not already active
+                    if (currentReasoningBlockId === null) {
+                      currentReasoningBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: currentReasoningBlockId,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      id: currentReasoningBlockId,
+                      delta: part.text,
+                    });
                   } else {
-                    controller.enqueue({ type: 'text', text: part.text });
+                    // End any active reasoning block before starting text
+                    if (currentReasoningBlockId !== null) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: currentReasoningBlockId,
+                      });
+                      currentReasoningBlockId = null;
+                    }
+
+                    // Start new text block if not already active
+                    if (currentTextBlockId === null) {
+                      currentTextBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: currentTextBlockId,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: currentTextBlockId,
+                      delta: part.text,
+                    });
                   }
                 }
               }
@@ -382,16 +430,24 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               if (toolCallDeltas != null) {
                 for (const toolCall of toolCallDeltas) {
                   controller.enqueue({
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: toolCall.toolCallId,
+                    type: 'tool-input-start',
+                    id: toolCall.toolCallId,
                     toolName: toolCall.toolName,
-                    inputTextDelta: toolCall.args,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.toolCallId,
+                    delta: toolCall.args,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.toolCallId,
                   });
 
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallType: 'function',
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,
                     input: toolCall.args,
@@ -428,6 +484,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            // Close any open blocks before finishing
+            if (currentTextBlockId !== null) {
+              controller.enqueue({
+                type: 'text-end',
+                id: currentTextBlockId,
+              });
+            }
+            if (currentReasoningBlockId !== null) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: currentReasoningBlockId,
+              });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -462,7 +532,6 @@ function getToolCallsFromParts({
     ? undefined
     : functionCallParts.map(part => ({
         type: 'tool-call' as const,
-        toolCallType: 'function' as const,
         toolCallId: generateId(),
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),

@@ -10,7 +10,6 @@ describe('parseToolCall', () => {
     const result = await parseToolCall({
       toolCall: {
         type: 'tool-call',
-        toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
         input: '{"param1": "test", "param2": 42}',
@@ -40,7 +39,6 @@ describe('parseToolCall', () => {
     const result = await parseToolCall({
       toolCall: {
         type: 'tool-call',
-        toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
         input: '',
@@ -68,7 +66,6 @@ describe('parseToolCall', () => {
       parseToolCall({
         toolCall: {
           type: 'tool-call',
-          toolCallType: 'function',
           toolName: 'testTool',
           toolCallId: '123',
           input: '{}',
@@ -86,7 +83,6 @@ describe('parseToolCall', () => {
       parseToolCall({
         toolCall: {
           type: 'tool-call',
-          toolCallType: 'function',
           toolName: 'nonExistentTool',
           toolCallId: '123',
           input: '{}',
@@ -111,7 +107,6 @@ describe('parseToolCall', () => {
       parseToolCall({
         toolCall: {
           type: 'tool-call',
-          toolCallType: 'function',
           toolName: 'testTool',
           toolCallId: '123',
           input: '{"param1": "test"}', // Missing required param2
@@ -143,7 +138,6 @@ describe('parseToolCall', () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
-          toolCallType: 'function',
           toolName: 'testTool',
           toolCallId: '123',
           input: 'invalid json', // This will trigger repair
@@ -191,7 +185,6 @@ describe('parseToolCall', () => {
         parseToolCall({
           toolCall: {
             type: 'tool-call',
-            toolCallType: 'function',
             toolName: 'testTool',
             toolCallId: '123',
             input: 'invalid json',
@@ -219,7 +212,6 @@ describe('parseToolCall', () => {
       const resultPromise = parseToolCall({
         toolCall: {
           type: 'tool-call',
-          toolCallType: 'function',
           toolName: 'testTool',
           toolCallId: '123',
           input: 'invalid json',

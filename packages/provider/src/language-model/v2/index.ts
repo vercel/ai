@@ -15,6 +15,5 @@ export * from './language-model-v2-source';
 export * from './language-model-v2-stream-part';
 export * from './language-model-v2-text';
 export * from './language-model-v2-tool-call';
-export * from './language-model-v2-tool-call-delta';
 export * from './language-model-v2-tool-choice';
 export * from './language-model-v2-usage';

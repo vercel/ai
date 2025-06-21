@@ -9,28 +9,76 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
-import { ContentPart } from './content-part';
-import { DefaultGeneratedFileWithType } from './generated-file';
+import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
+import { Source } from '../types/language-model';
+import { ToolCallUnion } from './tool-call';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
-  | ContentPart<TOOLS>
+  // Text blocks:
+  | {
+      type: 'text-start';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
+  | {
+      type: 'text-delta';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+      delta: string;
+    }
+  | {
+      type: 'text-end';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
+
+  // Reasoning blocks:
+  | {
+      type: 'reasoning-start';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+    }
+  | {
+      type: 'reasoning-delta';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+      delta: string;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+
+  // Tool calls:
+  | {
+      type: 'tool-input-start';
+      id: string;
+      toolName: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | ({ type: 'source' } & Source)
+  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
+  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
+  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
+  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
+  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
-  | { type: 'reasoning-part-finish' }
-  | {
-      type: 'tool-call-streaming-start';
-      toolCallId: string;
-      toolName: string;
-    }
-  | {
-      type: 'tool-call-delta';
-      toolCallId: string;
-      toolName: string;
-      inputTextDelta: string;
-    }
   | {
       type: 'response-metadata';
       id?: string;
@@ -43,14 +91,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
-  | {
-      type: 'error';
-      error: unknown;
-    }
-  | {
-      type: 'raw';
-      rawValue: unknown;
-    };
+  | { type: 'error'; error: unknown }
+  | { type: 'raw'; rawValue: unknown };
 
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
@@ -82,9 +124,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       toolResultsStreamController = controller;
     },
   });
-
-  // keep track of active tool calls for tool call streaming:
-  const activeToolCalls: Record<string, boolean> = {};
 
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
@@ -124,18 +163,18 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       switch (chunkType) {
         // forward:
         case 'stream-start':
-        case 'finish':
-        case 'text':
-        case 'reasoning':
-        case 'reasoning-part-finish':
+        case 'text-start':
+        case 'text-delta':
+        case 'text-end':
+        case 'reasoning-start':
+        case 'reasoning-delta':
+        case 'reasoning-end':
+        case 'tool-input-start':
+        case 'tool-input-delta':
+        case 'tool-input-end':
         case 'source':
         case 'response-metadata':
-        case 'error': {
-          controller.enqueue(chunk);
-          break;
-        }
-
-        // forward raw chunks to be part of the fullStream
+        case 'error':
         case 'raw': {
           controller.enqueue(chunk);
           break;
@@ -152,25 +191,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        // forward with less information:
-        case 'tool-call-delta': {
-          if (!activeToolCalls[chunk.toolCallId]) {
-            controller.enqueue({
-              type: 'tool-call-streaming-start',
-              toolCallId: chunk.toolCallId,
-              toolName: chunk.toolName,
-            });
-
-            activeToolCalls[chunk.toolCallId] = true;
-          }
-
-          controller.enqueue({
-            type: 'tool-call-delta',
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName,
-            inputTextDelta: chunk.inputTextDelta,
-          });
-
+        case 'finish': {
+          finishChunk = {
+            type: 'finish',
+            finishReason: chunk.finishReason,
+            usage: chunk.usage,
+            providerMetadata: chunk.providerMetadata,
+          };
           break;
         }
 
@@ -274,10 +301,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               });
             }
           } catch (error) {
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error,
-            });
+            toolResultsStreamController!.enqueue({ type: 'error', error });
           }
 
           break;

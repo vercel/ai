@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 
 export const maxDuration = 30;
 
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     providerOptions: {
       google: { responseModalities: ['TEXT', 'IMAGE'] },
     },
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

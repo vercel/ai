@@ -739,7 +739,6 @@ function asToolCalls(content: Array<LanguageModelV2Content>) {
   }
 
   return parts.map(toolCall => ({
-    toolCallType: toolCall.toolCallType,
     toolCallId: toolCall.toolCallId,
     toolName: toolCall.toolName,
     input: toolCall.input,

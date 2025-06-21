@@ -21,7 +21,7 @@ import { XaiChatLanguageModel } from './xai-chat-language-model';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
+  errorToMessage: (data: XaiErrorData) => data.error.message,
 };
 
 export interface XaiProvider extends ProviderV2 {
@@ -102,7 +102,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   const createImageModel = (modelId: XaiImageModelId) => {
     return new OpenAICompatibleImageModel(modelId, {
       provider: 'xai.image',
-      url: ({ path }) => `${baseURL}${path}`,
+      url: ({ path }: { path: string }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: xaiErrorStructure,

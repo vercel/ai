@@ -13,7 +13,7 @@ describe('createUIMessageStreamResponse', () => {
         'Custom-Header': 'test',
       },
       stream: convertArrayToReadableStream([
-        { type: 'text', text: 'test-data' },
+        { type: 'text-delta', id: '1', delta: 'test-data' },
       ]),
     });
 
@@ -41,7 +41,7 @@ describe('createUIMessageStreamResponse', () => {
       ),
     ).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","text":"test-data"}
+        "data: {"type":"text-delta","id":"1","delta":"test-data"}
 
       ",
         "data: [DONE]
@@ -87,8 +87,8 @@ describe('createUIMessageStreamResponse', () => {
     const response = createUIMessageStreamResponse({
       status: 200,
       stream: convertArrayToReadableStream([
-        { type: 'text', text: 'test-data-1' },
-        { type: 'text', text: 'test-data-2' },
+        { type: 'text-delta', id: '1', delta: 'test-data-1' },
+        { type: 'text-delta', id: '1', delta: 'test-data-2' },
       ]),
       consumeSseStream,
     });
@@ -106,10 +106,10 @@ describe('createUIMessageStreamResponse', () => {
 
     expect(responseData).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","text":"test-data-1"}
+        "data: {"type":"text-delta","id":"1","delta":"test-data-1"}
 
       ",
-        "data: {"type":"text","text":"test-data-2"}
+        "data: {"type":"text-delta","id":"1","delta":"test-data-2"}
 
       ",
         "data: [DONE]
@@ -124,10 +124,10 @@ describe('createUIMessageStreamResponse', () => {
     // Verify consumeSseStream received the same data
     expect(consumedData).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","text":"test-data-1"}
+        "data: {"type":"text-delta","id":"1","delta":"test-data-1"}
 
       ",
-        "data: {"type":"text","text":"test-data-2"}
+        "data: {"type":"text-delta","id":"1","delta":"test-data-2"}
 
       ",
         "data: [DONE]
@@ -154,7 +154,7 @@ describe('createUIMessageStreamResponse', () => {
     const response = createUIMessageStreamResponse({
       status: 200,
       stream: convertArrayToReadableStream([
-        { type: 'text', text: 'test-data' },
+        { type: 'text-delta', id: '1', delta: 'test-data' },
       ]),
       consumeSseStream,
     });
@@ -170,7 +170,7 @@ describe('createUIMessageStreamResponse', () => {
 
     expect(responseData).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","text":"test-data"}
+        "data: {"type":"text-delta","id":"1","delta":"test-data"}
 
       ",
         "data: [DONE]
@@ -204,7 +204,7 @@ describe('createUIMessageStreamResponse', () => {
     const response = createUIMessageStreamResponse({
       status: 200,
       stream: convertArrayToReadableStream([
-        { type: 'text', text: 'sync-test' },
+        { type: 'text-delta', id: '1', delta: 'sync-test' },
       ]),
       consumeSseStream,
     });
@@ -217,7 +217,7 @@ describe('createUIMessageStreamResponse', () => {
 
     expect(responseData).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","text":"sync-test"}
+        "data: {"type":"text-delta","id":"1","delta":"sync-test"}
 
       ",
         "data: [DONE]
@@ -237,7 +237,7 @@ describe('createUIMessageStreamResponse', () => {
     const response = createUIMessageStreamResponse({
       status: 200,
       stream: convertArrayToReadableStream([
-        { type: 'text', text: 'error-test' },
+        { type: 'text-delta', id: '1', delta: 'error-test' },
       ]),
       consumeSseStream,
     });
@@ -249,7 +249,7 @@ describe('createUIMessageStreamResponse', () => {
 
     expect(responseData).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","text":"error-test"}
+        "data: {"type":"text-delta","id":"1","delta":"error-test"}
 
       ",
         "data: [DONE]

@@ -15,12 +15,22 @@ describe('toUIMessageStream', () => {
       .toMatchInlineSnapshot(`
         [
           {
-            "text": "Hello",
-            "type": "text",
+            "id": "1",
+            "type": "text-start",
           },
           {
-            "text": "World",
-            "type": "text",
+            "delta": "Hello",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": "World",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
           },
         ]
       `);

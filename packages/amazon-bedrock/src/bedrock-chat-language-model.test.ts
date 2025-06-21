@@ -178,16 +178,31 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": ", ",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "2",
+          "type": "text-start",
+        },
+        {
+          "delta": "World!",
+          "id": "2",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -265,23 +280,27 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "inputTextDelta": "{"value":",
-          "toolCallId": "tool-use-id",
-          "toolCallType": "function",
+          "id": "tool-use-id",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "inputTextDelta": ""Sparkle Day"}",
-          "toolCallId": "tool-use-id",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "{"value":",
+          "id": "tool-use-id",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id",
+          "type": "tool-input-end",
         },
         {
           "input": "{"value":"Sparkle Day"}",
           "toolCallId": "tool-use-id",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -394,44 +413,52 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "inputTextDelta": "{"value1":",
-          "toolCallId": "tool-use-id-1",
-          "toolCallType": "function",
+          "id": "tool-use-id-1",
           "toolName": "test-tool-1",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "inputTextDelta": "{"value2":",
-          "toolCallId": "tool-use-id-2",
-          "toolCallType": "function",
+          "delta": "{"value1":",
+          "id": "tool-use-id-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id-2",
           "toolName": "test-tool-2",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "inputTextDelta": ""Sparkle Day"}",
-          "toolCallId": "tool-use-id-2",
-          "toolCallType": "function",
-          "toolName": "test-tool-2",
-          "type": "tool-call-delta",
+          "delta": "{"value2":",
+          "id": "tool-use-id-2",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": ""Sparkle Day"}",
-          "toolCallId": "tool-use-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool-1",
-          "type": "tool-call-delta",
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id-2",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id-1",
+          "type": "tool-input-end",
         },
         {
           "input": "{"value1":"Sparkle Day"}",
           "toolCallId": "tool-use-id-1",
-          "toolCallType": "function",
           "toolName": "test-tool-1",
           "type": "tool-call",
         },
         {
+          "id": "tool-use-id-2",
+          "type": "tool-input-end",
+        },
+        {
           "input": "{"value2":"Sparkle Day"}",
           "toolCallId": "tool-use-id-2",
-          "toolCallType": "function",
           "toolName": "test-tool-2",
           "type": "tool-call",
         },
@@ -770,8 +797,13 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -1012,8 +1044,13 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -1128,28 +1165,37 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "I am thinking",
-          "type": "reasoning",
+          "id": "0",
+          "type": "reasoning-start",
         },
         {
-          "text": " about this problem...",
-          "type": "reasoning",
+          "delta": "I am thinking",
+          "id": "0",
+          "type": "reasoning-delta",
         },
         {
+          "delta": " about this problem...",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "",
+          "id": "0",
           "providerMetadata": {
             "bedrock": {
               "signature": "abc123signature",
             },
           },
-          "text": "",
-          "type": "reasoning",
+          "type": "reasoning-delta",
         },
         {
-          "type": "reasoning-part-finish",
+          "id": "1",
+          "type": "text-start",
         },
         {
-          "text": "Based on my reasoning, the answer is 42.",
-          "type": "text",
+          "delta": "Based on my reasoning, the answer is 42.",
+          "id": "1",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -1203,20 +1249,23 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "delta": "",
+          "id": "0",
           "providerMetadata": {
             "bedrock": {
               "redactedData": "redacted-reasoning-data",
             },
           },
-          "text": "",
-          "type": "reasoning",
+          "type": "reasoning-delta",
         },
         {
-          "type": "reasoning-part-finish",
+          "id": "1",
+          "type": "text-start",
         },
         {
-          "text": "Here is my answer.",
-          "type": "text",
+          "delta": "Here is my answer.",
+          "id": "1",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -1273,8 +1322,13 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
           "rawValue": {

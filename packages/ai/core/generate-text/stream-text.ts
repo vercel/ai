@@ -135,8 +135,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
         | 'reasoning'
         | 'source'
         | 'tool-call'
-        | 'tool-call-streaming-start'
-        | 'tool-call-delta'
+        | 'tool-input-start'
+        | 'tool-input-delta'
         | 'tool-result'
         | 'raw';
     }
@@ -427,6 +427,7 @@ function createOutputTransformStream<
     });
   }
 
+  let firstTextChunkId: string | undefined = undefined;
   let text = '';
   let textChunk = '';
   let lastPublishedJson = '';
@@ -441,7 +442,11 @@ function createOutputTransformStream<
     partialOutput?: PARTIAL_OUTPUT;
   }) {
     controller.enqueue({
-      part: { type: 'text', text: textChunk },
+      part: {
+        type: 'text',
+        id: firstTextChunkId!,
+        text: textChunk,
+      },
       partialOutput,
     });
     textChunk = '';
@@ -453,11 +458,37 @@ function createOutputTransformStream<
   >({
     async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
-      if (chunk.type === 'finish-step') {
+      if (chunk.type === 'finish-step' && textChunk.length > 0) {
         publishTextChunk({ controller });
       }
 
-      if (chunk.type !== 'text') {
+      if (
+        chunk.type !== 'text' &&
+        chunk.type !== 'text-start' &&
+        chunk.type !== 'text-end'
+      ) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      // we have to pick a text chunk which contains the json text
+      // since we are streaming, we have to pick the first text chunk
+      if (firstTextChunkId == null) {
+        firstTextChunkId = chunk.id;
+      } else if (chunk.id !== firstTextChunkId) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      if (chunk.type === 'text-start') {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      if (chunk.type === 'text-end') {
+        if (textChunk.length > 0) {
+          publishTextChunk({ controller });
+        }
         controller.enqueue({ part: chunk, partialOutput: undefined });
         return;
       }
@@ -474,13 +505,6 @@ function createOutputTransformStream<
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedJson = currentJson;
         }
-      }
-    },
-
-    flush(controller) {
-      // publish remaining text (there should be none if the content was correctly formatted):
-      if (textChunk.length > 0) {
-        publishTextChunk({ controller });
       }
     },
   });
@@ -579,10 +603,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     // needs the updated steps to determine if another step is needed.
     let stepFinish!: DelayedPromise<void>;
 
-    let activeReasoningPart:
-      | undefined
-      | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
-
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     const recordedResponseMessages: Array<ResponseMessage> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
@@ -592,6 +612,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     const recordedSteps: StepResult<TOOLS>[] = [];
 
     let rootSpan!: Span;
+
+    let activeTextContent: Record<
+      string,
+      {
+        type: 'text';
+        text: string;
+        providerMetadata: ProviderMetadata | undefined;
+      }
+    > = {};
+
+    let activeReasoningContent: Record<
+      string,
+      {
+        type: 'reasoning';
+        text: string;
+        providerMetadata: ProviderMetadata | undefined;
+      }
+    > = {};
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
@@ -608,8 +646,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
-          part.type === 'tool-call-streaming-start' ||
-          part.type === 'tool-call-delta' ||
+          part.type === 'tool-input-start' ||
+          part.type === 'tool-input-delta' ||
           part.type === 'raw'
         ) {
           await onChunk?.({ chunk: part });
@@ -619,34 +657,85 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           await onError({ error: wrapGatewayError(part.error) });
         }
 
+        if (part.type === 'text-start') {
+          activeTextContent[part.id] = {
+            type: 'text',
+            text: '',
+            providerMetadata: part.providerMetadata,
+          };
+
+          recordedContent.push(activeTextContent[part.id]);
+        }
+
         if (part.type === 'text') {
-          const latestContent = recordedContent[recordedContent.length - 1];
-          if (latestContent?.type === 'text') {
-            latestContent.text += part.text;
-          } else {
-            recordedContent.push({ type: 'text', text: part.text });
+          const activeText = activeTextContent[part.id];
+
+          if (activeText == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `text part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
           }
+
+          activeText.text += part.text;
+          activeText.providerMetadata = part.providerMetadata;
+        }
+
+        if (part.type === 'text-end') {
+          delete activeTextContent[part.id];
+        }
+
+        if (part.type === 'reasoning-start') {
+          activeReasoningContent[part.id] = {
+            type: 'reasoning',
+            text: '',
+            providerMetadata: part.providerMetadata,
+          };
+
+          recordedContent.push(activeReasoningContent[part.id]);
         }
 
         if (part.type === 'reasoning') {
-          if (activeReasoningPart == null) {
-            activeReasoningPart = {
-              type: 'reasoning',
-              text: part.text,
-              providerMetadata: part.providerMetadata,
-            };
-            recordedContent.push(activeReasoningPart);
-          } else {
-            activeReasoningPart.text += part.text;
-            activeReasoningPart.providerMetadata = part.providerMetadata;
+          const activeReasoning = activeReasoningContent[part.id];
+
+          if (activeReasoning == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `reasoning part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
           }
+
+          activeReasoning.text += part.text;
+          activeReasoning.providerMetadata =
+            part.providerMetadata ?? activeReasoning.providerMetadata;
         }
 
-        if (
-          part.type === 'reasoning-part-finish' &&
-          activeReasoningPart != null
-        ) {
-          activeReasoningPart = undefined;
+        if (part.type === 'reasoning-end') {
+          const activeReasoning = activeReasoningContent[part.id];
+
+          if (activeReasoning == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `reasoning part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
+          }
+
+          activeReasoning.providerMetadata =
+            part.providerMetadata ?? activeReasoning.providerMetadata;
+
+          delete activeReasoningContent[part.id];
         }
 
         if (part.type === 'file') {
@@ -699,7 +788,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedSteps.push(currentStepResult);
 
           recordedContent = [];
-          activeReasoningPart = undefined;
+          activeReasoningContent = {};
+          activeTextContent = {};
 
           recordedResponseMessages.push(...stepMessages);
 
@@ -987,11 +1077,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
-          const stepContent: Array<ContentPart<TOOLS>> = [];
 
-          let activeReasoningPart:
-            | undefined
-            | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
+          const activeToolCallToolNames: Record<string, string> = {};
 
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
@@ -1001,24 +1088,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           };
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
-          let stepText = '';
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: currentDate(),
             modelId: model.modelId,
           };
 
-          async function publishTextChunk({
-            controller,
-            chunk,
-          }: {
-            controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>;
-            chunk: TextStreamPart<TOOLS> & { type: 'text' };
-          }) {
-            controller.enqueue(chunk);
-
-            stepText += chunk.text;
-          }
+          // raw text as it comes from the provider. recorded for telemetry.
+          let activeText = '';
 
           self.addStream(
             streamWithToolResults.pipeThrough(
@@ -1054,40 +1131,40 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     });
                   }
 
-                  // Filter out empty text deltas
-                  if (chunk.type === 'text' && chunk.text.length === 0) {
-                    return;
-                  }
-
                   const chunkType = chunk.type;
                   switch (chunkType) {
-                    case 'text': {
-                      await publishTextChunk({ controller, chunk });
+                    case 'text-start':
+                    case 'text-end': {
+                      controller.enqueue(chunk);
                       break;
                     }
 
-                    case 'reasoning': {
-                      controller.enqueue(chunk);
-
-                      if (activeReasoningPart == null) {
-                        activeReasoningPart = {
-                          type: 'reasoning',
-                          text: chunk.text,
+                    case 'text-delta': {
+                      if (chunk.delta.length > 0) {
+                        controller.enqueue({
+                          type: 'text',
+                          id: chunk.id,
+                          text: chunk.delta,
                           providerMetadata: chunk.providerMetadata,
-                        };
-                        stepContent.push(activeReasoningPart);
-                      } else {
-                        activeReasoningPart.text += chunk.text;
-                        activeReasoningPart.providerMetadata =
-                          chunk.providerMetadata;
+                        });
+                        activeText += chunk.delta;
                       }
-
                       break;
                     }
 
-                    case 'reasoning-part-finish': {
-                      activeReasoningPart = undefined;
+                    case 'reasoning-start':
+                    case 'reasoning-end': {
                       controller.enqueue(chunk);
+                      break;
+                    }
+
+                    case 'reasoning-delta': {
+                      controller.enqueue({
+                        type: 'reasoning',
+                        id: chunk.id,
+                        text: chunk.delta,
+                        providerMetadata: chunk.providerMetadata,
+                      });
                       break;
                     }
 
@@ -1095,21 +1172,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
                       stepToolCalls.push(chunk);
-                      stepContent.push(chunk);
                       break;
                     }
 
                     case 'tool-result': {
                       controller.enqueue(chunk);
                       stepToolOutputs.push(chunk);
-                      stepContent.push(chunk);
                       break;
                     }
 
                     case 'tool-error': {
                       controller.enqueue(chunk);
                       stepToolOutputs.push(chunk);
-                      stepContent.push(chunk);
                       break;
                     }
 
@@ -1143,23 +1217,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'file': {
-                      stepContent.push(chunk);
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'source': {
-                      stepContent.push(chunk);
                       controller.enqueue(chunk);
                       break;
                     }
 
-                    case 'tool-call-streaming-start': {
-                      const tool = tools?.[chunk.toolName];
+                    case 'tool-input-start': {
+                      activeToolCallToolNames[chunk.id] = chunk.toolName;
 
+                      const tool = tools?.[chunk.toolName];
                       if (tool?.onInputStart != null) {
                         await tool.onInputStart({
-                          toolCallId: chunk.toolCallId,
+                          toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
                         });
@@ -1169,13 +1242,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
-                    case 'tool-call-delta': {
-                      const tool = tools?.[chunk.toolName];
+                    case 'tool-input-end': {
+                      delete activeToolCallToolNames[chunk.id];
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
+                    case 'tool-input-delta': {
+                      const toolName = activeToolCallToolNames[chunk.id];
+                      const tool = tools?.[toolName];
 
                       if (tool?.onInputDelta != null) {
                         await tool.onInputDelta({
-                          inputTextDelta: chunk.inputTextDelta,
-                          toolCallId: chunk.toolCallId,
+                          inputTextDelta: chunk.delta,
+                          toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
                         });
@@ -1219,7 +1299,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         telemetry,
                         attributes: {
                           'ai.response.finishReason': stepFinishReason,
-                          'ai.response.text': { output: () => stepText },
+                          'ai.response.text': {
+                            output: () => activeText,
+                          },
                           'ai.response.toolCalls': {
                             output: () => stepToolCallsJson,
                           },
@@ -1281,7 +1363,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     // append to messages for the next step:
                     responseMessages.push(
                       ...toResponseMessages({
-                        content: stepContent,
+                        content:
+                          // use transformed content to create the messages for the next step:
+                          recordedSteps[recordedSteps.length - 1].content,
                         tools,
                       }),
                     );
@@ -1504,10 +1588,30 @@ However, the LLM results are expected to be small enough to not cause issues.
 
           const partType = part.type;
           switch (partType) {
+            case 'text-start': {
+              controller.enqueue({ type: 'text-start', id: part.id });
+              break;
+            }
+
             case 'text': {
               controller.enqueue({
-                type: 'text',
-                text: part.text,
+                type: 'text-delta',
+                id: part.id,
+                delta: part.text,
+              });
+              break;
+            }
+
+            case 'text-end': {
+              controller.enqueue({ type: 'text-end', id: part.id });
+              break;
+            }
+
+            case 'reasoning-start': {
+              controller.enqueue({
+                type: 'reasoning-start',
+                id: part.id,
+                providerMetadata: part.providerMetadata,
               });
               break;
             }
@@ -1515,18 +1619,21 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'reasoning': {
               if (sendReasoning) {
                 controller.enqueue({
-                  type: 'reasoning',
-                  text: part.text,
+                  type: 'reasoning-delta',
+                  id: part.id,
+                  delta: part.text,
                   providerMetadata: part.providerMetadata,
                 });
               }
               break;
             }
 
-            case 'reasoning-part-finish': {
-              if (sendReasoning) {
-                controller.enqueue({ type: 'reasoning-part-finish' });
-              }
+            case 'reasoning-end': {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: part.id,
+                providerMetadata: part.providerMetadata,
+              });
               break;
             }
 
@@ -1563,20 +1670,20 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'tool-call-streaming-start': {
+            case 'tool-input-start': {
               controller.enqueue({
                 type: 'tool-input-start',
-                toolCallId: part.toolCallId,
+                toolCallId: part.id,
                 toolName: part.toolName,
               });
               break;
             }
 
-            case 'tool-call-delta': {
+            case 'tool-input-delta': {
               controller.enqueue({
                 type: 'tool-input-delta',
-                toolCallId: part.toolCallId,
-                inputTextDelta: part.inputTextDelta,
+                toolCallId: part.id,
+                inputTextDelta: part.delta,
               });
               break;
             }
@@ -1645,6 +1752,10 @@ However, the LLM results are expected to be small enough to not cause issues.
                   messageMetadata: messageMetadataValue,
                 });
               }
+              break;
+            }
+
+            case 'tool-input-end': {
               break;
             }
 

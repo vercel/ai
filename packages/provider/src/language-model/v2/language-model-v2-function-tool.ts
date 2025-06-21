@@ -1,4 +1,5 @@
 import { JSONSchema7 } from 'json-schema';
+import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 
 /**
 A tool has a name, a description, and a set of parameters.
@@ -28,4 +29,9 @@ The parameters that the tool expects. The language model uses this to
 understand the tool's input requirements and to provide matching suggestions.
    */
   inputSchema: JSONSchema7;
+
+  /**
+The provider-specific metadata for the tool.
+   */
+  providerMetadata?: SharedV2ProviderMetadata;
 };
