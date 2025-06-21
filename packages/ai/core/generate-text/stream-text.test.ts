@@ -7093,24 +7093,32 @@ describe('streamText', () => {
   });
 
   describe('mixed multi content streaming with interleaving parts', () => {
-    describe('mixed text blocks', () => {
+    describe('mixed text and reasoning blocks', () => {
       let result: StreamTextResult<any, any>;
 
       beforeEach(async () => {
         result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'reasoning-start', id: '0' },
               { type: 'text-start', id: '1' },
+              { type: 'reasoning-delta', id: '0', delta: 'Thinking...' },
               { type: 'text-delta', id: '1', delta: 'Hello' },
               { type: 'text-delta', id: '1', delta: ', ' },
               { type: 'text-start', id: '2' },
-              { type: 'text-delta', id: '2', delta: `This` },
-              { type: 'text-delta', id: '2', delta: `is` },
+              { type: 'text-delta', id: '2', delta: `This ` },
+              { type: 'text-delta', id: '2', delta: `is ` },
+              { type: 'reasoning-start', id: '3' },
+              { type: 'reasoning-delta', id: '0', delta: `I'm thinking...` },
+              { type: 'reasoning-delta', id: '3', delta: `Separate thoughts` },
               { type: 'text-delta', id: '2', delta: `a` },
               { type: 'text-delta', id: '1', delta: `world!` },
-              { type: 'text-end', id: '1' },
-              { type: 'text-delta', id: '2', delta: `test` },
+              { type: 'reasoning-end', id: '0' },
+              { type: 'text-delta', id: '2', delta: ` test.` },
               { type: 'text-end', id: '2' },
+              { type: 'reasoning-end', id: '3' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -7119,13 +7127,255 @@ describe('streamText', () => {
             ]),
           }),
           prompt: 'test-input',
+          _internal: {
+            currentDate: mockValues(new Date(2000)),
+            generateId: mockId(),
+          },
         });
+      });
+
+      it('should return the full stream with the correct parts', async () => {
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "0",
+              "providerMetadata": undefined,
+              "text": "Thinking...",
+              "type": "reasoning",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": ", ",
+              "type": "text",
+            },
+            {
+              "id": "2",
+              "type": "text-start",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": "This ",
+              "type": "text",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": "is ",
+              "type": "text",
+            },
+            {
+              "id": "3",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "0",
+              "providerMetadata": undefined,
+              "text": "I'm thinking...",
+              "type": "reasoning",
+            },
+            {
+              "id": "3",
+              "providerMetadata": undefined,
+              "text": "Separate thoughts",
+              "type": "reasoning",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": "a",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "world!",
+              "type": "text",
+            },
+            {
+              "id": "0",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": " test.",
+              "type": "text",
+            },
+            {
+              "id": "2",
+              "type": "text-end",
+            },
+            {
+              "id": "3",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
       });
 
       it('should return the content parts in the correct order', async () => {
         await result.consumeStream();
 
-        expect(await result.content).toMatchInlineSnapshot();
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "Thinking...I'm thinking...",
+              "type": "reasoning",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Hello, world!",
+              "type": "text",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "This is a test.",
+              "type": "text",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Separate thoughts",
+              "type": "reasoning",
+            },
+          ]
+        `);
+      });
+
+      it('should return the step content parts in the correct order', async () => {
+        await result.consumeStream();
+
+        expect(await result.steps).toMatchInlineSnapshot(`
+          [
+            DefaultStepResult {
+              "content": [
+                {
+                  "providerMetadata": undefined,
+                  "text": "Thinking...I'm thinking...",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "This is a test.",
+                  "type": "text",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "Separate thoughts",
+                  "type": "reasoning",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "Thinking...I'm thinking...",
+                        "type": "reasoning",
+                      },
+                      {
+                        "providerMetadata": undefined,
+                        "text": "Hello, world!",
+                        "type": "text",
+                      },
+                      {
+                        "providerMetadata": undefined,
+                        "text": "This is a test.",
+                        "type": "text",
+                      },
+                      {
+                        "providerOptions": undefined,
+                        "text": "Separate thoughts",
+                        "type": "reasoning",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ]
+        `);
       });
     });
   });

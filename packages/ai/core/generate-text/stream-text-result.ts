@@ -320,10 +320,30 @@ If an error occurs, it is passed to the optional `onError` callback.
 
 export type TextStreamPart<TOOLS extends ToolSet> =
   | {
+      type: 'text-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'text-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
       type: 'text';
       id: string;
       providerMetadata?: ProviderMetadata;
       text: string;
+    }
+  | {
+      type: 'reasoning-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'reasoning';
@@ -335,6 +355,11 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'tool-input-start';
       id: string;
       toolName: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-end';
+      id: string;
       providerMetadata?: ProviderMetadata;
     }
   | {
