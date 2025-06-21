@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  // Ask OpenAI for a streaming completion given the prompt  
+  // Ask OpenAI for a streaming completion given the prompt
   const result = streamText({
     model: openai('gpt-3.5-turbo-instruct'),
     prompt,
