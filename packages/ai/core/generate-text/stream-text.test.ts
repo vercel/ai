@@ -382,9 +382,74 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": ", ",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "response-id",
+              "modelId": "response-model-id",
+              "timestamp": 1970-01-01T00:00:05.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send reasoning deltas', async () => {
@@ -393,9 +458,136 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "I will open the conversation",
+            "type": "reasoning",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": " with witty banter. ",
+            "type": "reasoning",
+          },
+          {
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1234567890",
+              },
+            },
+            "text": "",
+            "type": "reasoning",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "providerMetadata": {
+              "testProvider": {
+                "redactedData": "redacted-reasoning-data",
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "3",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "3",
+            "providerMetadata": undefined,
+            "text": "Once the user has relaxed,",
+            "type": "reasoning",
+          },
+          {
+            "id": "3",
+            "providerMetadata": undefined,
+            "text": " I will pry for valuable information.",
+            "type": "reasoning",
+          },
+          {
+            "id": "3",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1234567890",
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hi",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": " there!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send sources', async () => {
@@ -404,9 +596,86 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "123",
+            "providerMetadata": {
+              "provider": {
+                "custom": "value",
+              },
+            },
+            "sourceType": "url",
+            "title": "Example",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "id": "456",
+            "providerMetadata": {
+              "provider": {
+                "custom": "value2",
+              },
+            },
+            "sourceType": "url",
+            "title": "Example 2",
+            "type": "source",
+            "url": "https://example.com/2",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send files', async () => {
@@ -417,7 +686,79 @@ describe('streamText', () => {
 
       expect(
         await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "Hello World",
+              "mediaType": "text/plain",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "type": "file",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "QkFVRw==",
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "type": "file",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
@@ -455,9 +796,74 @@ describe('streamText', () => {
         },
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": ", ",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-2000",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:02.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send tool calls', async () => {
@@ -602,9 +1008,100 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "toolName": "test-tool",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{"",
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "value",
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "":"",
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "Spark",
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "le",
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": " Day",
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""}",
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "type": "tool-input-end",
+          },
+          {
+            "input": {
+              "value": "Sparkle Day",
+            },
+            "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            "toolName": "test-tool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": 3,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": 10,
+              "totalTokens": 23,
+            },
+          },
+          {
+            "finishReason": "tool-calls",
+            "totalUsage": {
+              "cachedInputTokens": 3,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": 10,
+              "totalTokens": 23,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send tool results', async () => {
@@ -719,9 +1216,74 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": ", ",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should forward error in doStream as error stream part', async () => {
@@ -2011,6 +2573,7 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
+                "providerMetadata": undefined,
                 "text": "Hi there!",
                 "type": "text",
               },
@@ -2181,7 +2744,102 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect(await result.steps).toMatchSnapshot();
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "content": [
+              {
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "I will open the conversation with witty banter. ",
+                "type": "reasoning",
+              },
+              {
+                "providerMetadata": {
+                  "testProvider": {
+                    "redactedData": "redacted-reasoning-data",
+                  },
+                },
+                "text": "",
+                "type": "reasoning",
+              },
+              {
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Once the user has relaxed, I will pry for valuable information.",
+                "type": "reasoning",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Hi there!",
+                "type": "text",
+              },
+            ],
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "1234567890",
+                        },
+                      },
+                      "text": "I will open the conversation with witty banter. ",
+                      "type": "reasoning",
+                    },
+                    {
+                      "providerOptions": {
+                        "testProvider": {
+                          "redactedData": "redacted-reasoning-data",
+                        },
+                      },
+                      "text": "",
+                      "type": "reasoning",
+                    },
+                    {
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "1234567890",
+                        },
+                      },
+                      "text": "Once the user has relaxed, I will pry for valuable information.",
+                      "type": "reasoning",
+                    },
+                    {
+                      "providerMetadata": undefined,
+                      "text": "Hi there!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
     });
 
     it('should add the sources from the model response to the step result', async () => {

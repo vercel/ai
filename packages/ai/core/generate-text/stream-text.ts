@@ -715,10 +715,27 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           }
 
           activeReasoning.text += part.text;
-          activeReasoning.providerMetadata = part.providerMetadata;
+          activeReasoning.providerMetadata =
+            part.providerMetadata ?? activeReasoning.providerMetadata;
         }
 
         if (part.type === 'reasoning-end') {
+          const activeReasoning = activeReasoningContent[part.id];
+
+          if (activeReasoning == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `reasoning part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
+          }
+
+          activeReasoning.providerMetadata =
+            part.providerMetadata ?? activeReasoning.providerMetadata;
+
           delete activeReasoningContent[part.id];
         }
 
@@ -1143,14 +1160,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'reasoning-delta': {
-                      if (chunk.delta.length > 0) {
-                        controller.enqueue({
-                          type: 'reasoning',
-                          id: chunk.id,
-                          text: chunk.delta,
-                          providerMetadata: chunk.providerMetadata,
-                        });
-                      }
+                      controller.enqueue({
+                        type: 'reasoning',
+                        id: chunk.id,
+                        text: chunk.delta,
+                        providerMetadata: chunk.providerMetadata,
+                      });
                       break;
                     }
 
