@@ -684,9 +684,8 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchInlineSnapshot(`
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
         [
           {
             "type": "start",
@@ -1345,13 +1344,19 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"text","text":"Hello"}
+          "data: {"type":"text-start","id":"1"}
 
         ",
-          "data: {"type":"text","text":", "}
+          "data: {"type":"text-delta","id":"1","delta":"Hello"}
 
         ",
-          "data: {"type":"text","text":"world!"}
+          "data: {"type":"text-delta","id":"1","delta":", "}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"world!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"finish-step"}
@@ -1410,13 +1415,19 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"text","text":"Hello"}
+          "data: {"type":"text-start","id":"1"}
 
         ",
-          "data: {"type":"text","text":", "}
+          "data: {"type":"text-delta","id":"1","delta":"Hello"}
 
         ",
-          "data: {"type":"text","text":"world!"}
+          "data: {"type":"text-delta","id":"1","delta":", "}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"world!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"finish-step"}
@@ -1503,7 +1514,31 @@ describe('streamText', () => {
 
       await mockResponse.waitForEnd();
 
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+      expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+        [
+          "data: {"type":"start"}
+
+        ",
+          "data: {"type":"start-step"}
+
+        ",
+          "data: {"type":"text-start","id":"1"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello, World!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
+
+        ",
+          "data: {"type":"finish-step"}
+
+        ",
+          "data: [DONE]
+
+        ",
+        ]
+      `);
     });
 
     it('should write reasoning content to a Node.js response-like object', async () => {
@@ -1538,40 +1573,49 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"reasoning","text":"I will open the conversation"}
+          "data: {"type":"reasoning-start","id":"1"}
 
         ",
-          "data: {"type":"reasoning","text":" with witty banter. "}
+          "data: {"type":"reasoning-delta","id":"1","delta":"I will open the conversation"}
 
         ",
-          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+          "data: {"type":"reasoning-delta","id":"1","delta":" with witty banter. "}
 
         ",
-          "data: {"type":"reasoning-part-finish"}
+          "data: {"type":"reasoning-delta","id":"1","delta":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 
         ",
-          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
+          "data: {"type":"reasoning-end","id":"1"}
 
         ",
-          "data: {"type":"reasoning-part-finish"}
+          "data: {"type":"reasoning-start","id":"2","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
 
         ",
-          "data: {"type":"reasoning","text":"Once the user has relaxed,"}
+          "data: {"type":"reasoning-end","id":"2"}
 
         ",
-          "data: {"type":"reasoning","text":" I will pry for valuable information."}
+          "data: {"type":"reasoning-start","id":"3"}
 
         ",
-          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+          "data: {"type":"reasoning-delta","id":"3","delta":"Once the user has relaxed,"}
 
         ",
-          "data: {"type":"reasoning-part-finish"}
+          "data: {"type":"reasoning-delta","id":"3","delta":" I will pry for valuable information."}
 
         ",
-          "data: {"type":"text","text":"Hi"}
+          "data: {"type":"reasoning-end","id":"3","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 
         ",
-          "data: {"type":"text","text":" there!"}
+          "data: {"type":"text-start","id":"1"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hi"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":" there!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"finish-step"}
@@ -1622,7 +1666,13 @@ describe('streamText', () => {
           "data: {"type":"source-url","sourceId":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
 
         ",
-          "data: {"type":"text","text":"Hello!"}
+          "data: {"type":"text-start","id":"1"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"source-url","sourceId":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
@@ -1674,7 +1724,13 @@ describe('streamText', () => {
           "data: {"type":"file","mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}
 
         ",
-          "data: {"type":"text","text":"Hello!"}
+          "data: {"type":"text-start","id":"1"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"file","mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
@@ -1738,9 +1794,49 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream();
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": ", ",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": "world!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts', async () => {
@@ -1793,6 +1889,7 @@ describe('streamText', () => {
           { key5: 'value5' },
           { key6: 'value6' },
           { key7: 'value7' },
+          { key8: 'value8' },
         ),
       });
 
@@ -1816,8 +1913,8 @@ describe('streamText', () => {
               "type": "message-metadata",
             },
             {
-              "text": "Hello",
-              "type": "text",
+              "id": "1",
+              "type": "text-start",
             },
             {
               "messageMetadata": {
@@ -1826,8 +1923,9 @@ describe('streamText', () => {
               "type": "message-metadata",
             },
             {
-              "text": ", ",
-              "type": "text",
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
             },
             {
               "messageMetadata": {
@@ -1836,8 +1934,9 @@ describe('streamText', () => {
               "type": "message-metadata",
             },
             {
-              "text": "world!",
-              "type": "text",
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
             },
             {
               "messageMetadata": {
@@ -1846,7 +1945,9 @@ describe('streamText', () => {
               "type": "message-metadata",
             },
             {
-              "type": "finish-step",
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
             },
             {
               "messageMetadata": {
@@ -1855,8 +1956,27 @@ describe('streamText', () => {
               "type": "message-metadata",
             },
             {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
               "messageMetadata": {
                 "key7": "value7",
+              },
+              "type": "message-metadata",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "messageMetadata": {
+                "key8": "value8",
+              },
+              "type": "message-metadata",
+            },
+            {
+              "messageMetadata": {
+                "key8": "value8",
               },
               "type": "finish",
             },
@@ -1922,9 +2042,35 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream({ sendFinish: false });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello, World!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+        ]
+      `);
     });
 
     it('should omit message start event when sendStart is false', async () => {
@@ -1947,9 +2093,34 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream({ sendStart: false });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello, World!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send reasoning content when sendReasoning is true', async () => {
@@ -1960,9 +2131,116 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream({ sendReasoning: true });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "I will open the conversation",
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": " with witty banter. ",
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": "",
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1234567890",
+              },
+            },
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "providerMetadata": {
+              "testProvider": {
+                "redactedData": "redacted-reasoning-data",
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "2",
+            "providerMetadata": undefined,
+            "type": "reasoning-end",
+          },
+          {
+            "id": "3",
+            "providerMetadata": undefined,
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "Once the user has relaxed,",
+            "id": "3",
+            "providerMetadata": undefined,
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": " I will pry for valuable information.",
+            "id": "3",
+            "providerMetadata": undefined,
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "3",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1234567890",
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hi",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": " there!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send source content when sendSources is true', async () => {
@@ -1973,9 +2251,61 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream({ sendSources: true });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "providerMetadata": {
+              "provider": {
+                "custom": "value",
+              },
+            },
+            "sourceId": "123",
+            "title": "Example",
+            "type": "source-url",
+            "url": "https://example.com",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "providerMetadata": {
+              "provider": {
+                "custom": "value2",
+              },
+            },
+            "sourceId": "456",
+            "title": "Example 2",
+            "type": "source-url",
+            "url": "https://example.com/2",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send document source content when sendSources is true', async () => {
@@ -1986,9 +2316,63 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream({ sendSources: true });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "filename": "example.pdf",
+            "mediaType": "application/pdf",
+            "providerMetadata": {
+              "provider": {
+                "custom": "doc-value",
+              },
+            },
+            "sourceId": "doc-123",
+            "title": "Document Example",
+            "type": "source-document",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello from document!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "filename": undefined,
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "provider": {
+                "custom": "doc-value2",
+              },
+            },
+            "sourceId": "doc-456",
+            "title": "Text Document",
+            "type": "source-document",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send file content', async () => {
@@ -1999,9 +2383,49 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream();
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "mediaType": "text/plain",
+            "type": "file",
+            "url": "data:text/plain;base64,Hello World",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "mediaType": "image/jpeg",
+            "type": "file",
+            "url": "data:image/jpeg;base64,QkFVRw==",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
   });
 
@@ -2031,33 +2455,39 @@ describe('streamText', () => {
 
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
-          [
-            "data: {"type":"start"}
+        [
+          "data: {"type":"start"}
 
-          ",
-            "data: {"type":"start-step"}
+        ",
+          "data: {"type":"start-step"}
 
-          ",
-            "data: {"type":"text","text":"Hello"}
+        ",
+          "data: {"type":"text-start","id":"1"}
 
-          ",
-            "data: {"type":"text","text":", "}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello"}
 
-          ",
-            "data: {"type":"text","text":"world!"}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":", "}
 
-          ",
-            "data: {"type":"finish-step"}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"world!"}
 
-          ",
-            "data: {"type":"finish"}
+        ",
+          "data: {"type":"text-end","id":"1"}
 
-          ",
-            "data: [DONE]
+        ",
+          "data: {"type":"finish-step"}
 
-          ",
-          ]
-        `);
+        ",
+          "data: {"type":"finish"}
+
+        ",
+          "data: [DONE]
+
+        ",
+        ]
+      `);
     });
 
     it('should create a Response with a data stream and custom headers', async () => {
@@ -2092,33 +2522,39 @@ describe('streamText', () => {
         `);
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
-          [
-            "data: {"type":"start"}
+        [
+          "data: {"type":"start"}
 
-          ",
-            "data: {"type":"start-step"}
+        ",
+          "data: {"type":"start-step"}
 
-          ",
-            "data: {"type":"text","text":"Hello"}
+        ",
+          "data: {"type":"text-start","id":"1"}
 
-          ",
-            "data: {"type":"text","text":", "}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello"}
 
-          ",
-            "data: {"type":"text","text":"world!"}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":", "}
 
-          ",
-            "data: {"type":"finish-step"}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"world!"}
 
-          ",
-            "data: {"type":"finish"}
+        ",
+          "data: {"type":"text-end","id":"1"}
 
-          ",
-            "data: [DONE]
+        ",
+          "data: {"type":"finish-step"}
 
-          ",
-          ]
-        `);
+        ",
+          "data: {"type":"finish"}
+
+        ",
+          "data: [DONE]
+
+        ",
+        ]
+      `);
     });
 
     it('should mask error messages by default', async () => {
@@ -2406,16 +2842,27 @@ describe('streamText', () => {
               "type": "start-step",
             },
             {
-              "text": "Hello",
-              "type": "text",
+              "id": "1",
+              "type": "text-start",
             },
             {
-              "text": ", ",
-              "type": "text",
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
             },
             {
-              "text": "world!",
-              "type": "text",
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
             },
             {
               "type": "finish-step",
@@ -5019,56 +5466,77 @@ describe('streamText', () => {
       it('should have correct ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "messageId": undefined,
-                "messageMetadata": undefined,
-                "type": "start",
+          [
+            {
+              "messageId": undefined,
+              "messageMetadata": undefined,
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "0",
+              "providerMetadata": undefined,
+              "type": "reasoning-start",
+            },
+            {
+              "delta": "thinking",
+              "id": "0",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "0",
+              "providerMetadata": undefined,
+              "type": "reasoning-end",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "type": "start-step",
-              },
-              {
-                "providerMetadata": undefined,
-                "text": "thinking",
-                "type": "reasoning",
-              },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-input-available",
-              },
-              {
-                "output": "result1",
-                "toolCallId": "call-1",
-                "type": "tool-output-available",
-              },
-              {
-                "type": "finish-step",
-              },
-              {
-                "type": "start-step",
-              },
-              {
-                "text": "Hello, ",
-                "type": "text",
-              },
-              {
-                "text": "world!",
-                "type": "text",
-              },
-              {
-                "type": "finish-step",
-              },
-              {
-                "messageMetadata": undefined,
-                "type": "finish",
-              },
-            ]
-          `);
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-input-available",
+            },
+            {
+              "output": "result1",
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello, ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "messageMetadata": undefined,
+              "type": "finish",
+            },
+          ]
+        `);
       });
     });
 
@@ -6703,56 +7171,77 @@ describe('streamText', () => {
       it('should have correct ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "messageId": undefined,
-                "messageMetadata": undefined,
-                "type": "start",
+          [
+            {
+              "messageId": undefined,
+              "messageMetadata": undefined,
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "id-0",
+              "providerMetadata": undefined,
+              "type": "reasoning-start",
+            },
+            {
+              "delta": "thinking",
+              "id": "id-0",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "id-0",
+              "providerMetadata": undefined,
+              "type": "reasoning-end",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "type": "start-step",
-              },
-              {
-                "providerMetadata": undefined,
-                "text": "thinking",
-                "type": "reasoning",
-              },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-input-available",
-              },
-              {
-                "output": "RESULT1",
-                "toolCallId": "call-1",
-                "type": "tool-output-available",
-              },
-              {
-                "type": "finish-step",
-              },
-              {
-                "type": "start-step",
-              },
-              {
-                "text": "Hello, ",
-                "type": "text",
-              },
-              {
-                "text": "world!",
-                "type": "text",
-              },
-              {
-                "type": "finish-step",
-              },
-              {
-                "messageMetadata": undefined,
-                "type": "finish",
-              },
-            ]
-          `);
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-input-available",
+            },
+            {
+              "output": "RESULT1",
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello, ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "messageMetadata": undefined,
+              "type": "finish",
+            },
+          ]
+        `);
       });
     });
 

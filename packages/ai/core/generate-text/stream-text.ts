@@ -636,7 +636,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
     >({
       async transform(chunk, controller) {
-        console.log('chunk', chunk);
         controller.enqueue(chunk); // forward the chunk to the next stream
 
         const { part } = chunk;
@@ -1756,8 +1755,6 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'reasoning-start':
-            case 'reasoning-end':
             case 'tool-input-end': {
               break;
             }
