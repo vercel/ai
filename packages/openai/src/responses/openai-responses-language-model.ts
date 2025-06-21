@@ -318,7 +318,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         case 'function_call': {
           content.push({
             type: 'tool-call' as const,
-            toolCallType: 'function' as const,
             toolCallId: part.call_id,
             toolName: part.name,
             input: part.arguments,
@@ -436,11 +435,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 };
 
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
+                  type: 'tool-input-start',
+                  id: value.item.call_id,
+                  toolName: value.item.name,
+                });
+              }
+            } else if (isResponseOutputItemDoneChunk(value)) {
+              if (value.item.type === 'function_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.call_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
-                  inputTextDelta: value.item.arguments,
+                  input: value.item.arguments,
                 });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
@@ -448,11 +462,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
               if (toolCall != null) {
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  inputTextDelta: value.delta,
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: value.delta,
                 });
               }
             } else if (isResponseCreatedChunk(value)) {
@@ -486,19 +498,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             } else if (isResponseReasoningSummaryPartDoneChunk(value)) {
               controller.enqueue({ type: 'reasoning-part-finish' });
-            } else if (
-              isResponseOutputItemDoneChunk(value) &&
-              value.item.type === 'function_call'
-            ) {
-              ongoingToolCalls[value.output_index] = undefined;
-              hasToolCalls = true;
-              controller.enqueue({
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: value.item.call_id,
-                toolName: value.item.name,
-                input: value.item.arguments,
-              });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
