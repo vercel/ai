@@ -336,7 +336,6 @@ describe('doGenerate', () => {
         {
           "input": "{"value":"example value"}",
           "toolCallId": "test-id",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1577,16 +1576,27 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "world!",
-          "type": "text",
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "world!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -2049,26 +2059,64 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
     const contentEvents = events.filter(
-      event => event.type === 'text' || event.type === 'reasoning',
+      event => 
+        event.type === 'text-start' || event.type === 'text-delta' || event.type === 'text-end' ||
+        event.type === 'reasoning-start' || event.type === 'reasoning-delta' || event.type === 'reasoning-end',
     );
 
     expect(contentEvents).toMatchInlineSnapshot(`
       [
         {
-          "text": "Visible text part 1. ",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": "This is a thought process.",
-          "type": "reasoning",
+          "delta": "Visible text part 1. ",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "Visible text part 2.",
-          "type": "text",
+          "id": "0",
+          "type": "text-end",
         },
         {
-          "text": "Another internal thought.",
-          "type": "reasoning",
+          "id": "1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "This is a thought process.",
+          "id": "1",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "2",
+          "type": "text-start",
+        },
+        {
+          "delta": "Visible text part 2.",
+          "id": "2",
+          "type": "text-delta",
+        },
+        {
+          "id": "2",
+          "type": "text-end",
+        },
+        {
+          "id": "3",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Another internal thought.",
+          "id": "3",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "3",
+          "type": "reasoning-end",
         },
       ]
     `);
