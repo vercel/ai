@@ -1063,6 +1063,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let warnings: LanguageModelV2CallWarning[] | undefined;
           const stepContent: Array<ContentPart<TOOLS>> = [];
 
+          const activeToolCallToolNames: Record<string, string> = {};
+
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
             inputTokens: undefined,
@@ -1215,8 +1217,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'tool-input-start': {
-                      const tool = tools?.[chunk.toolName];
+                      activeToolCallToolNames[chunk.id] = chunk.toolName;
 
+                      const tool = tools?.[chunk.toolName];
                       if (tool?.onInputStart != null) {
                         await tool.onInputStart({
                           toolCallId: chunk.id,
@@ -1230,17 +1233,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'tool-input-end': {
+                      delete activeToolCallToolNames[chunk.id];
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'tool-input-delta': {
-                      const tool = tools?.[chunk.toolName];
+                      const toolName = activeToolCallToolNames[chunk.id];
+                      const tool = tools?.[toolName];
 
                       if (tool?.onInputDelta != null) {
                         await tool.onInputDelta({
-                          inputTextDelta: chunk.inputTextDelta,
-                          toolCallId: chunk.toolCallId,
+                          inputTextDelta: chunk.delta,
+                          toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
                         });
