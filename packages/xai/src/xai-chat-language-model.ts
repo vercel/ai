@@ -479,33 +479,20 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
 
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallId: toolCallId,
+                  toolCallId,
                   toolName: toolCall.function.name,
                   input: toolCall.function.arguments,
                 });
-              }
-            }
-
-            if (choice?.finish_reason != null) {
-              for (const [blockId, block] of Object.entries(contentBlocks)) {
-                if (block.type === 'text') {
-                  controller.enqueue({
-                    type: 'text-end',
-                    id: blockId,
-                  });
-                }
               }
             }
           },
 
           flush(controller) {
             for (const [blockId, block] of Object.entries(contentBlocks)) {
-              if (block.type === 'reasoning') {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: blockId,
-                });
-              }
+              controller.enqueue({
+                type: block.type === 'text' ? 'text-end' : 'reasoning-end',
+                id: blockId,
+              });
             }
 
             controller.enqueue({ type: 'finish', finishReason, usage });

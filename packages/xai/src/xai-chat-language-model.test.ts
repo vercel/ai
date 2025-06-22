@@ -1265,12 +1265,12 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "text-end",
-          },
-          {
             "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b-reasoning",
             "type": "reasoning-end",
+          },
+          {
+            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
