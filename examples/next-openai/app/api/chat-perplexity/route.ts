@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { perplexity } from '@ai-sdk/perplexity';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export const maxDuration = 30;
@@ -9,9 +9,9 @@ export async function POST(req: Request) {
   const prompt = convertToModelMessages(messages);
 
   const result = streamText({
-    model: xai('grok-beta'),
+    model: perplexity('sonar-reasoning'),
     prompt,
   });
 
   return result.toUIMessageStreamResponse();
-}
+} 

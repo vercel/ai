@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { google } from '@ai-sdk/google';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export const maxDuration = 30;
@@ -9,9 +9,9 @@ export async function POST(req: Request) {
   const prompt = convertToModelMessages(messages);
 
   const result = streamText({
-    model: xai('grok-beta'),
+    model: google('gemini-2.0-flash'),
     prompt,
   });
 
   return result.toUIMessageStreamResponse();
-}
+} 

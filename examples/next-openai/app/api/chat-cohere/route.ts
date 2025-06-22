@@ -1,6 +1,7 @@
-import { xai } from '@ai-sdk/xai';
+import { cohere } from '@ai-sdk/cohere';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -9,9 +10,9 @@ export async function POST(req: Request) {
   const prompt = convertToModelMessages(messages);
 
   const result = streamText({
-    model: xai('grok-beta'),
+    model: cohere('command-r-plus'),
     prompt,
   });
 
   return result.toUIMessageStreamResponse();
-}
+} 
