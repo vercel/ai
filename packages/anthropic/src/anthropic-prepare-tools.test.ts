@@ -42,25 +42,22 @@ it('should correctly prepare function tools', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
-it('should correctly prepare provider-defined-client tools', () => {
+it('should correctly prepare provider-defined tools', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined-client',
+        type: 'provider-defined',
         id: 'anthropic.computer_20241022',
-        name: 'computer',
         args: { displayWidthPx: 800, displayHeightPx: 600, displayNumber: 1 },
       },
       {
-        type: 'provider-defined-client',
+        type: 'provider-defined',
         id: 'anthropic.text_editor_20241022',
-        name: 'text_editor',
         args: {},
       },
       {
-        type: 'provider-defined-client',
+        type: 'provider-defined',
         id: 'anthropic.bash_20241022',
-        name: 'bash',
         args: {},
       },
     ],
@@ -90,9 +87,8 @@ it('should add warnings for unsupported tools', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined-client',
+        type: 'provider-defined',
         id: 'unsupported.tool',
-        name: 'unsupportedProviderTool',
         args: {},
       },
     ],
@@ -103,9 +99,8 @@ it('should add warnings for unsupported tools', () => {
     {
       type: 'unsupported-tool',
       tool: {
-        type: 'provider-defined-client',
+        type: 'provider-defined',
         id: 'unsupported.tool',
-        name: 'unsupportedProviderTool',
         args: {},
       },
     },

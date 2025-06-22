@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
 type WebSearchPreviewArgs = {
@@ -31,21 +32,14 @@ export const webSearchPreviewArgsSchema = z.object({
     .optional(),
 });
 
-export function webSearchPreview(options: WebSearchPreviewArgs = {}): {
-  type: 'provider-defined-server';
-  id: 'openai.web_search_preview';
-  name: 'web_search_preview';
-  args: WebSearchPreviewArgs;
-  inputSchema: z.ZodType<{}>;
-} {
-  return {
-    type: 'provider-defined-server',
+export function webSearchPreview(options: WebSearchPreviewArgs = {}) {
+  return tool({
+    type: 'provider-defined',
     id: 'openai.web_search_preview',
-    name: 'web_search_preview',
     args: {
       searchContextSize: options.searchContextSize,
       userLocation: options.userLocation,
     },
     inputSchema: z.object({}),
-  };
+  });
 }

@@ -1,7 +1,6 @@
 import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2FunctionTool } from './language-model-v2-function-tool';
-import { LanguageModelV2ProviderDefinedClientTool } from './language-model-v2-provider-defined-client-tool';
-import { LanguageModelV2ProviderDefinedServerTool } from './language-model-v2-provider-defined-server-tool';
+import { LanguageModelV2ProviderDefinedTool } from './language-model-v2-provider-defined-tool';
 
 /**
 Warning from the model provider for this call. The call will proceed, but e.g.
@@ -15,10 +14,7 @@ export type LanguageModelV2CallWarning =
     }
   | {
       type: 'unsupported-tool';
-      tool:
-        | LanguageModelV2FunctionTool
-        | LanguageModelV2ProviderDefinedClientTool
-        | LanguageModelV2ProviderDefinedServerTool;
+      tool: LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool;
       details?: string;
     }
   | {

@@ -1,5 +1,4 @@
 import {
-  JSONSchema7,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
@@ -45,11 +44,7 @@ export function prepareTools({
           },
         });
         break;
-      case 'provider-defined-client':
-        // OpenAI doesn't have client-side tools currently
-        toolWarnings.push({ type: 'unsupported-tool', tool });
-        break;
-      case 'provider-defined-server':
+      case 'provider-defined':
         switch (tool.id) {
           case 'openai.file_search':
             const fileSearchArgs = fileSearchArgsSchema.parse(tool.args);

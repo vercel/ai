@@ -50,19 +50,27 @@ it('should correctly prepare function tools', () => {
 it('should correctly prepare provider-defined-server tools', () => {
   const result = prepareTools({
     tools: [
-      fileSearch({
-        vectorStoreIds: ['vs_123'],
-        maxResults: 10,
-        searchType: 'semantic',
-      }),
-      webSearchPreview({
-        searchContextSize: 'high',
-        userLocation: {
-          type: 'approximate',
-          city: 'San Francisco',
-          region: 'CA',
+      {
+        type: 'provider-defined',
+        id: 'openai.file_search',
+        args: {
+          vectorStoreIds: ['vs_123'],
+          maxResults: 10,
+          searchType: 'semantic',
         },
-      }),
+      },
+      {
+        type: 'provider-defined',
+        id: 'openai.web_search_preview',
+        args: {
+          searchContextSize: 'high',
+          userLocation: {
+            type: 'approximate',
+            city: 'San Francisco',
+            region: 'CA',
+          },
+        },
+      },
     ],
     structuredOutputs: false,
   });
@@ -91,9 +99,8 @@ it('should add warnings for unsupported tools', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined-server',
+        type: 'provider-defined',
         id: 'openai.unsupported_tool',
-        name: 'unsupportedTool',
         args: {},
       },
     ],
@@ -105,20 +112,19 @@ it('should add warnings for unsupported tools', () => {
     {
       type: 'unsupported-tool',
       tool: {
-        type: 'provider-defined-server',
+        type: 'provider-defined',
         id: 'openai.unsupported_tool',
-        name: 'unsupportedTool',
         args: {},
       },
     },
   ]);
 });
 
-it('should add warnings for unsupported provider-defined-client tools', () => {
+it('should add warnings for unsupported provider-defined tools', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined-client',
+        type: 'provider-defined',
         id: 'some.client_tool',
         name: 'clientTool',
         args: {},
@@ -132,7 +138,7 @@ it('should add warnings for unsupported provider-defined-client tools', () => {
     {
       type: 'unsupported-tool',
       tool: {
-        type: 'provider-defined-client',
+        type: 'provider-defined',
         id: 'some.client_tool',
         name: 'clientTool',
         args: {},

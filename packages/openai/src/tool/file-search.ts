@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
 type FileSearchArgs = {
@@ -23,17 +24,10 @@ export const fileSearchArgsSchema = z.object({
   searchType: z.enum(['auto', 'keyword', 'semantic']).optional(),
 });
 
-export function fileSearch(options: FileSearchArgs = {}): {
-  type: 'provider-defined-server';
-  id: 'openai.file_search';
-  name: 'file_search';
-  args: FileSearchArgs;
-  inputSchema: z.ZodType<{ query: string }>;
-} {
-  return {
-    type: 'provider-defined-server',
+export function fileSearch(options: FileSearchArgs = {}) {
+  return tool({
+    type: 'provider-defined',
     id: 'openai.file_search',
-    name: 'file_search',
     args: {
       vectorStoreIds: options.vectorStoreIds,
       maxResults: options.maxResults,
@@ -42,5 +36,5 @@ export function fileSearch(options: FileSearchArgs = {}): {
     inputSchema: z.object({
       query: z.string(),
     }),
-  };
+  });
 }
