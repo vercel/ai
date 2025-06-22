@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { HumeConfig } from './hume-config';
 import { humeFailedResponseHandler } from './hume-error';
 import { HumeSpeechAPITypes } from './hume-api-types';
+import 'dotenv/config';
 
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
 const humeSpeechCallOptionsSchema = z.object({
@@ -108,6 +109,7 @@ export class HumeSpeechModel implements SpeechModelV2 {
     outputFormat = 'mp3',
     speed,
     instructions,
+    language,
     providerOptions,
   }: Parameters<SpeechModelV2['doGenerate']>[0]) {
     const warnings: SpeechModelV2CallWarning[] = [];
@@ -181,6 +183,14 @@ export class HumeSpeechModel implements SpeechModelV2 {
           (requestBody as Record<string, unknown>)[key] = value;
         }
       }
+    }
+
+    if (language) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'language',
+        details: `Hume speech models do not support language selection. Language parameter "${language}" was ignored.`,
+      });
     }
 
     return {

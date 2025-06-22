@@ -10,6 +10,7 @@ import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import { OpenAISpeechModelId } from './openai-speech-options';
 import { OpenAISpeechAPITypes } from './openai-api-types';
+import 'dotenv/config';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({
@@ -45,6 +46,7 @@ export class OpenAISpeechModel implements SpeechModelV2 {
     outputFormat = 'mp3',
     speed,
     instructions,
+    language,
     providerOptions,
   }: Parameters<SpeechModelV2['doGenerate']>[0]) {
     const warnings: SpeechModelV2CallWarning[] = [];
@@ -88,6 +90,14 @@ export class OpenAISpeechModel implements SpeechModelV2 {
           requestBody[key] = value;
         }
       }
+    }
+
+    if (language) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'language',
+        details: `OpenAI speech models do not support language selection. Language parameter "${language}" was ignored.`,
+      });
     }
 
     return {

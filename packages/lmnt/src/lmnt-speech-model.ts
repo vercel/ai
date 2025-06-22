@@ -10,6 +10,8 @@ import { LMNTConfig } from './lmnt-config';
 import { lmntFailedResponseHandler } from './lmnt-error';
 import { LMNTSpeechModelId } from './lmnt-speech-options';
 import { LMNTSpeechAPITypes } from './lmnt-api-types';
+import 'dotenv/config';
+
 
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
 const lmntSpeechCallOptionsSchema = z.object({
@@ -109,6 +111,7 @@ export class LMNTSpeechModel implements SpeechModelV2 {
     voice = 'ava',
     outputFormat = 'mp3',
     speed,
+    language,
     providerOptions,
   }: Parameters<SpeechModelV2['doGenerate']>[0]) {
     const warnings: SpeechModelV2CallWarning[] = [];
@@ -151,6 +154,7 @@ export class LMNTSpeechModel implements SpeechModelV2 {
         temperature: lmntOptions.temperature ?? undefined,
         top_p: lmntOptions.topP ?? undefined,
         sample_rate: lmntOptions.sampleRate ?? undefined,
+
       };
 
       for (const key in speechModelOptions) {
@@ -162,6 +166,13 @@ export class LMNTSpeechModel implements SpeechModelV2 {
           requestBody[key] = value;
         }
       }
+
+      const finalLanguage = language ?? lmntOptions.language;
+      if (finalLanguage) {
+        requestBody.language = finalLanguage;
+      }
+    } else if (language) {
+      requestBody.language = language;
     }
 
     return {

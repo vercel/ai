@@ -80,6 +80,19 @@ import { lmnt } from '@ai-sdk/lmnt';
 const result = await generateSpeech({
   model: lmnt.speech('aurora'),
   text: 'Hello, world!',
+  language: 'en', // Standardized language parameter
+});
+```
+
+You can also use provider-specific options as an alternative:
+
+```ts highlight="6"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { lmnt } from '@ai-sdk/lmnt';
+
+const result = await generateSpeech({
+  model: lmnt.speech('aurora'),
+  text: 'Hello, world!',
   providerOptions: { lmnt: { language: 'en' } },
 });
 ```
