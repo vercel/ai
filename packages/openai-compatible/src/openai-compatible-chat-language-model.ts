@@ -248,7 +248,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallType: 'function',
           toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
@@ -369,6 +368,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     };
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
+    let isActiveReasoning = false;
+    let isActiveText = false;
 
     return {
       stream: response.pipeThrough(
@@ -463,16 +464,31 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
             // enqueue reasoning before text deltas:
             if (delta.reasoning_content != null) {
+              if (!isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = true;
+              }
+
               controller.enqueue({
-                type: 'reasoning',
-                text: delta.reasoning_content,
+                type: 'reasoning-delta',
+                id: 'reasoning-0',
+                delta: delta.reasoning_content,
               });
             }
 
             if (delta.content != null) {
+              if (!isActiveText) {
+                controller.enqueue({ type: 'text-start', id: 'txt-0' });
+                isActiveText = true;
+              }
+
               controller.enqueue({
-                type: 'text',
-                text: delta.content,
+                type: 'text-delta',
+                id: 'txt-0',
+                delta: delta.content,
               });
             }
 
@@ -502,6 +518,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                     });
                   }
 
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallDelta.id,
+                    toolName: toolCallDelta.function.name,
+                  });
+
                   toolCalls[index] = {
                     id: toolCallDelta.id,
                     type: 'function',
@@ -521,11 +543,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                     // send delta if the argument text has already started:
                     if (toolCall.function.arguments.length > 0) {
                       controller.enqueue({
-                        type: 'tool-call-delta',
-                        toolCallType: 'function',
-                        toolCallId: toolCall.id,
+                        type: 'tool-input-start',
+                        id: toolCall.id,
                         toolName: toolCall.function.name,
-                        inputTextDelta: toolCall.function.arguments,
                       });
                     }
 
@@ -533,8 +553,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                     // (some providers send the full tool call in one chunk):
                     if (isParsableJson(toolCall.function.arguments)) {
                       controller.enqueue({
+                        type: 'tool-input-end',
+                        id: toolCall.id,
+                      });
+
+                      controller.enqueue({
                         type: 'tool-call',
-                        toolCallType: 'function',
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
                         input: toolCall.function.arguments,
@@ -560,11 +584,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
                 // send delta
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  inputTextDelta: toolCallDelta.function.arguments ?? '',
+                  type: 'tool-input-delta',
+                  id: toolCall.id,
+                  delta: toolCallDelta.function.arguments ?? '',
                 });
 
                 // check if tool call is complete
@@ -574,8 +596,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                   isParsableJson(toolCall.function.arguments)
                 ) {
                   controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.id,
+                  });
+
+                  controller.enqueue({
                     type: 'tool-call',
-                    toolCallType: 'function',
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
                     input: toolCall.function.arguments,
@@ -587,6 +613,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (isActiveReasoning) {
+              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            }
+
+            if (isActiveText) {
+              controller.enqueue({ type: 'text-end', id: 'txt-0' });
+            }
+
             const providerMetadata: SharedV2ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
