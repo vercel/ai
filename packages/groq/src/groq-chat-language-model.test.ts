@@ -481,16 +481,27 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "delta": ", ",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -545,16 +556,35 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "I think,",
-          "type": "reasoning",
+          "id": "reasoning-0",
+          "type": "reasoning-start",
         },
         {
-          "text": "therefore I am.",
-          "type": "reasoning",
+          "delta": "I think,",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "delta": "therefore I am.",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -1246,8 +1276,13 @@ describe('doStream with raw chunks', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
           "rawValue": {
@@ -1268,8 +1303,9 @@ describe('doStream with raw chunks', () => {
           "type": "raw",
         },
         {
-          "text": " world",
-          "type": "text",
+          "delta": " world",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
           "rawValue": {
@@ -1293,6 +1329,10 @@ describe('doStream with raw chunks', () => {
             },
           },
           "type": "raw",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",

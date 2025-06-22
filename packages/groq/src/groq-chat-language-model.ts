@@ -262,6 +262,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let isFirstChunk = true;
+    let isActiveText = false;
+    let isActiveReasoning = false;
 
     let providerMetadata: SharedV2ProviderMetadata | undefined;
     return {
@@ -325,16 +327,31 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
             const delta = choice.delta;
 
             if (delta.reasoning != null && delta.reasoning.length > 0) {
+              if (!isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = true;
+              }
+
               controller.enqueue({
-                type: 'reasoning',
-                text: delta.reasoning,
+                type: 'reasoning-delta',
+                id: 'reasoning-0',
+                delta: delta.reasoning,
               });
             }
 
             if (delta.content != null && delta.content.length > 0) {
+              if (!isActiveText) {
+                controller.enqueue({ type: 'text-start', id: 'txt-0' });
+                isActiveText = true;
+              }
+
               controller.enqueue({
-                type: 'text',
-                text: delta.content,
+                type: 'text-delta',
+                id: 'txt-0',
+                delta: delta.content,
               });
             }
 
@@ -459,6 +476,14 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (isActiveReasoning) {
+              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            }
+
+            if (isActiveText) {
+              controller.enqueue({ type: 'text-end', id: 'txt-0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
