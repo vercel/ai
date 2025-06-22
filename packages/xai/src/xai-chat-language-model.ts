@@ -495,27 +495,20 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
                   });
                 }
               }
-
-              for (const [blockId, block] of Object.entries(contentBlocks)) {
-                if (block.type === 'reasoning') {
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: blockId,
-                  });
-                }
-              }
             }
           },
 
           flush(controller) {
-            controller.enqueue({
-              type: 'finish',
-              finishReason,
-              usage,
-              providerMetadata: {
-                xai: {},
-              },
-            });
+            for (const [blockId, block] of Object.entries(contentBlocks)) {
+              if (block.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: blockId,
+                });
+              }
+            }
+
+            controller.enqueue({ type: 'finish', finishReason, usage });
           },
         }),
       ),

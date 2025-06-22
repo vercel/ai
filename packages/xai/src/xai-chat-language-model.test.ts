@@ -740,9 +740,6 @@ describe('XaiChatLanguageModel', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": {
-              "xai": {},
-            },
             "type": "finish",
             "usage": {
               "inputTokens": 4,
@@ -806,9 +803,6 @@ describe('XaiChatLanguageModel', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": {
-              "xai": {},
-            },
             "type": "finish",
             "usage": {
               "inputTokens": 4,
@@ -887,9 +881,6 @@ describe('XaiChatLanguageModel', () => {
           },
           {
             "finishReason": "tool-calls",
-            "providerMetadata": {
-              "xai": {},
-            },
             "type": "finish",
             "usage": {
               "inputTokens": 183,
@@ -1075,9 +1066,6 @@ describe('XaiChatLanguageModel', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": {
-              "xai": {},
-            },
             "type": "finish",
             "usage": {
               "inputTokens": 4,
@@ -1286,9 +1274,6 @@ describe('XaiChatLanguageModel', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": {
-              "xai": {},
-            },
             "type": "finish",
             "usage": {
               "inputTokens": 15,
@@ -1432,9 +1417,6 @@ describe('doStream with raw chunks', () => {
         },
         {
           "finishReason": "stop",
-          "providerMetadata": {
-            "xai": {},
-          },
           "type": "finish",
           "usage": {
             "inputTokens": 10,
