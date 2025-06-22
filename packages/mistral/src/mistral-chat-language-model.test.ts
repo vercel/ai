@@ -449,6 +449,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "id": "53ff663126294946a6b7a4747b70597e",
           "modelId": "mistral-small-latest",
           "timestamp": 2025-06-21T20:33:16.000Z,
@@ -506,6 +510,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "53ff663126294946a6b7a4747b70597e",
           "modelId": "mistral-small-latest",
@@ -586,6 +594,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "a8f32d91e5b64c2f9e7b3a8d4f6c1e5a",
           "modelId": "mistral-large-latest",
@@ -748,6 +760,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "id": "b9e43f82d6c74a1e9f5b2c8e7a9d4f6b",
           "modelId": "mistral-small-latest",
           "timestamp": 2025-06-21T20:41:40.000Z,
@@ -805,6 +821,30 @@ describe('doStream with raw chunks', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                  "role": "assistant",
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+              },
+            ],
+            "created": 1750538600,
+            "id": "c7d54e93f8a64b2e9c1f5a8b7d9e2f4c",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+          },
+          "type": "raw",
+        },
+        {
           "id": "c7d54e93f8a64b2e9c1f5a8b7d9e2f4c",
           "modelId": "mistral-large-latest",
           "timestamp": 2025-06-21T20:43:20.000Z,
@@ -820,9 +860,50 @@ describe('doStream with raw chunks', () => {
           "type": "text-delta",
         },
         {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": " world",
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+              },
+            ],
+            "created": 1750538601,
+            "id": "d8e65fa4g9b75c3f0d2g6b9c8e0f3g5d",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+          },
+          "type": "raw",
+        },
+        {
           "delta": " world",
           "id": "0",
           "type": "text-delta",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+              },
+            ],
+            "created": 1750538602,
+            "id": "e9f76gb5h0c86d4g1e3h7c0d9f1g4h6e",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
+          },
+          "type": "raw",
         },
         {
           "id": "0",

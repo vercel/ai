@@ -236,7 +236,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args } = await this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const body = { ...args, stream: true };
 
@@ -268,7 +268,16 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof mistralChatChunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
@@ -298,7 +307,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
               const delta = choice.delta;
 
               const textContent = extractTextContent(delta.content);
-              
+
               if (textContent != null && textContent.length > 0) {
                 const blockId = String(outputIndex);
 
@@ -360,7 +369,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                     });
                   }
                 }
-
               }
             }
           },
