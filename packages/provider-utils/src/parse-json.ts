@@ -29,9 +29,9 @@ export async function parseJSON(options: {
  * @returns {Promise<T>} - The parsed object.
  */
 export async function parseJSON<
-  SCHEMA extends z4.$ZodType | z3.Schema | Validator,
-  VALUE = InferSchema<SCHEMA>,
->(options: { text: string; schema: SCHEMA }): Promise<VALUE>;
+  VALIDATOR extends z4.$ZodType | z3.Schema | Validator,
+  VALUE = InferSchema<VALIDATOR>,
+>(options: { text: string; schema: VALIDATOR }): Promise<VALUE>;
 export async function parseJSON<
   SCHEMA extends z4.$ZodType | z3.Schema | Validator,
   VALUE = InferSchema<SCHEMA>,
