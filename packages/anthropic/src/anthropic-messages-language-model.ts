@@ -522,7 +522,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: 'web_search',
-              result: part.content,
+              result: part.content.map(result => ({
+                url: result.url,
+                title: result.title,
+                pageAge: result.page_age ?? null,
+                encryptedContent: result.encrypted_content,
+                type: result.type,
+              })),
             });
 
             for (const result of part.content) {
@@ -534,7 +540,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 title: result.title,
                 providerMetadata: {
                   anthropic: {
-                    encryptedContent: result.encrypted_content,
                     pageAge: result.page_age ?? null,
                   },
                 },

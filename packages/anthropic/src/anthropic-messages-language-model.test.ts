@@ -1101,8 +1101,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               "result": [
                 {
-                  "encrypted_content": "encrypted_content_123",
-                  "page_age": "January 15, 2025",
+                  "encryptedContent": "encrypted_content_123",
+                  "pageAge": "January 15, 2025",
                   "title": "Latest AI Developments",
                   "type": "web_search_result",
                   "url": "https://example.com/ai-news",
@@ -1116,7 +1116,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               "id": "id-0",
               "providerMetadata": {
                 "anthropic": {
-                  "encryptedContent": "encrypted_content_123",
                   "pageAge": "January 15, 2025",
                 },
               },

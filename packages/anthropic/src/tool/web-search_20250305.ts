@@ -42,9 +42,14 @@ export function webSearch_20250305(options: WebSearch20250305Args = {}) {
     inputSchema: z.object({
       query: z.string(),
     }),
-    // TODO define the actual output schema
-    outputSchema: z.object({
-      query: z.string(),
-    }),
+    outputSchema: z.array(
+      z.object({
+        url: z.string(),
+        title: z.string(),
+        pageAge: z.string().nullable(),
+        encryptedContent: z.string(),
+        type: z.string(),
+      }),
+    ),
   });
 }
