@@ -435,6 +435,11 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
+          "delta": "",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
           "id": "0",
           "type": "text-end",
         },

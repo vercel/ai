@@ -310,7 +310,7 @@ export class OpenAICompatibleCompletionLanguageModel
               );
             }
 
-            if (choice?.text != null && choice.text.length > 0) {
+            if (choice?.text != null) {
               controller.enqueue({
                 type: 'text-delta',
                 id: '0',
