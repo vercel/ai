@@ -243,12 +243,16 @@ export class OpenAICompatibleCompletionLanguageModel
       fetch: this.config.fetch,
     });
 
+    const self = this;
+
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
     };
+    let responseId: string | null = null;
+    let textBlockId: string | null = null;
     let isFirstChunk = true;
 
     return {
@@ -262,6 +266,10 @@ export class OpenAICompatibleCompletionLanguageModel
           },
 
           transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -281,12 +289,20 @@ export class OpenAICompatibleCompletionLanguageModel
             if (isFirstChunk) {
               isFirstChunk = false;
 
-              controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
+              responseId = value.id || null;
+              textBlockId = value.id || '0';
 
-              controller.enqueue({ type: 'text-start', id: '0' });
+                const responseMetadata = getResponseMetadata(value);
+                controller.enqueue({
+                  type: 'response-metadata',
+                  ...(responseId && { id: responseId }),
+                  ...responseMetadata,
+                });
+
+              controller.enqueue({
+                type: 'text-start',
+                id: textBlockId!,
+              });
             }
 
             if (value.usage != null) {
@@ -306,21 +322,29 @@ export class OpenAICompatibleCompletionLanguageModel
             if (choice?.text != null && choice.text.length > 0) {
               controller.enqueue({
                 type: 'text-delta',
-                id: '0',
+                id: textBlockId!,
                 delta: choice.text,
               });
             }
           },
 
           flush(controller) {
-            if (!isFirstChunk) {
-              controller.enqueue({ type: 'text-end', id: '0' });
+            if (textBlockId != null) {
+              controller.enqueue({
+                type: 'text-end',
+                id: textBlockId,
+              });
             }
 
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage,
+              providerMetadata: {
+                [self.config.provider.split('.')[0]]: {
+                  ...(responseId && { responseId }),
+                },
+              },
             });
           },
         }),
