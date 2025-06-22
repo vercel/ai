@@ -173,7 +173,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         // Cohere sometimes returns `null` for tool call arguments for tools
         // defined as having no arguments.
         input: toolCall.function.arguments.replace(/^null$/, '{}'),
-        toolCallType: 'function',
       });
     }
 
@@ -222,15 +221,14 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
 
-    let pendingToolCallDelta: {
-      toolCallId: string;
-      toolName: string;
-      inputTextDelta: string;
-    } = {
-      toolCallId: '',
-      toolName: '',
-      inputTextDelta: '',
-    };
+    let pendingToolCall: {
+      id: string;
+      name: string;
+      arguments: string;
+      hasFinished: boolean;
+    } | null = null;
+
+    let isActiveText = false;
 
     return {
       stream: response.pipeThrough(
@@ -258,76 +256,97 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
             const type = value.type;
 
             switch (type) {
+              case 'content-start': {
+                if (!isActiveText) {
+                  controller.enqueue({ type: 'text-start', id: '0' });
+                  isActiveText = true;
+                }
+                return;
+              }
+
               case 'content-delta': {
+                if (!isActiveText) {
+                  controller.enqueue({ type: 'text-start', id: '0' });
+                  isActiveText = true;
+                }
+
                 controller.enqueue({
-                  type: 'text',
-                  text: value.delta.message.content.text,
+                  type: 'text-delta',
+                  id: '0',
+                  delta: value.delta.message.content.text,
                 });
+                return;
+              }
+
+              case 'content-end': {
+                if (isActiveText) {
+                  controller.enqueue({ type: 'text-end', id: '0' });
+                  isActiveText = false;
+                }
                 return;
               }
 
               case 'tool-call-start': {
-                // The start message is the only one that specifies the tool id and name.
-                pendingToolCallDelta = {
-                  toolCallId: value.delta.message.tool_calls.id,
-                  toolName: value.delta.message.tool_calls.function.name,
-                  inputTextDelta:
-                    value.delta.message.tool_calls.function.arguments,
+                const toolId = value.delta.message.tool_calls.id;
+                const toolName = value.delta.message.tool_calls.function.name;
+                const initialArgs = value.delta.message.tool_calls.function.arguments;
+
+                pendingToolCall = {
+                  id: toolId,
+                  name: toolName,
+                  arguments: initialArgs,
+                  hasFinished: false,
                 };
 
-                // Provide visibility into the beginning of the tool call even
-                // though we likely don't have full arguments yet.
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallId: pendingToolCallDelta.toolCallId,
-                  toolName: pendingToolCallDelta.toolName,
-                  toolCallType: 'function',
-                  inputTextDelta: pendingToolCallDelta.inputTextDelta,
+                  type: 'tool-input-start',
+                  id: toolId,
+                  toolName: toolName,
                 });
+
+                if (initialArgs.length > 0) {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolId,
+                    delta: initialArgs,
+                  });
+                }
                 return;
               }
 
               case 'tool-call-delta': {
-                // Accumulate the arguments for the tool call.
-                pendingToolCallDelta.inputTextDelta +=
-                  value.delta.message.tool_calls.function.arguments;
+                if (pendingToolCall && !pendingToolCall.hasFinished) {
+                  const argsDelta = value.delta.message.tool_calls.function.arguments;
+                  pendingToolCall.arguments += argsDelta;
 
-                // Provide visibility into the updated arguments for the tool call, even though we
-                // may have more arguments still coming.
-                controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallId: pendingToolCallDelta.toolCallId,
-                  toolName: pendingToolCallDelta.toolName,
-                  toolCallType: 'function',
-                  inputTextDelta:
-                    value.delta.message.tool_calls.function.arguments,
-                });
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: pendingToolCall.id,
+                    delta: argsDelta,
+                  });
+                }
                 return;
               }
 
               case 'tool-call-end': {
-                // Post the full tool call now that we have all of the arguments.
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: pendingToolCallDelta.toolCallId,
-                  toolName: pendingToolCallDelta.toolName,
-                  toolCallType: 'function',
-                  input: JSON.stringify(
-                    JSON.parse(
-                      pendingToolCallDelta.inputTextDelta?.trim() || '{}',
-                    ),
-                  ),
-                });
+                if (pendingToolCall && !pendingToolCall.hasFinished) {
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: pendingToolCall.id,
+                  });
 
-                // Clear the pending tool call. We rely on the API always
-                // following a start with an end. We do not defensively clear a
-                // previous accumulation of a pending tool call in
-                // non-tool-related events.
-                pendingToolCallDelta = {
-                  toolCallId: '',
-                  toolName: '',
-                  inputTextDelta: '',
-                };
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: pendingToolCall.id,
+                    toolName: pendingToolCall.name,
+                    input: JSON.stringify(
+                      JSON.parse(pendingToolCall.arguments?.trim() || '{}'),
+                    ),
+                  });
+
+                  pendingToolCall.hasFinished = true;
+                  pendingToolCall = null;
+                }
                 return;
               }
 
@@ -336,7 +355,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                   type: 'response-metadata',
                   id: value.id ?? undefined,
                 });
-
                 return;
               }
 
@@ -347,6 +365,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 usage.inputTokens = tokens.input_tokens;
                 usage.outputTokens = tokens.output_tokens;
                 usage.totalTokens = tokens.input_tokens + tokens.output_tokens;
+                return;
               }
 
               default: {
@@ -356,6 +375,10 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (isActiveText) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,

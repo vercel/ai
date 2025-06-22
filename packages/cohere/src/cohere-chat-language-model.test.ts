@@ -123,7 +123,6 @@ describe('doGenerate', () => {
         {
           "input": "{"value":"example value"}",
           "toolCallId": "test-id-1",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -435,7 +434,6 @@ describe('doGenerate', () => {
         {
           "input": "{}",
           "toolCallId": "test-id-1",
-          "toolCallType": "function",
           "toolName": "currentTime",
           "type": "tool-call",
         },
@@ -785,11 +783,13 @@ describe('doStream', () => {
       type: 'stream-chunks',
       headers,
       chunks: [
-        `event: message-start\ndata: {"type":"message-start","id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb"}\n\n`,
+        `event: message-start\ndata: {"type":"message-start","id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}\n\n`,
+        `event: content-start\ndata: {"type":"content-start","index":0,"delta":{"message":{"content":{"type":"text","text":""}}}}\n\n`,
         ...content.map(
           text =>
-            `event: content-delta\ndata: {"type":"content-delta","delta":{"message":{"content":{"text":"${text}"}}}}\n\n`,
+            `event: content-delta\ndata: {"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"${text}"}}}}\n\n`,
         ),
+        `event: content-end\ndata: {"type":"content-end","index":0}\n\n`,
         `event: message-end\ndata: {"type":"message-end","delta":` +
           `{"finish_reason":"${finish_reason}",` +
           `"usage":{"tokens":{"input_tokens":${usage.input_tokens},"output_tokens":${usage.output_tokens}}}}}\n\n`,
@@ -824,16 +824,27 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -852,7 +863,7 @@ describe('doStream', () => {
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        `event: message-start\ndata: {"type":"message-start","id":"29f14a5a-11de-4cae-9800-25e4747408ea"}\n\n`,
+        `event: message-start\ndata: {"type":"message-start","id":"29f14a5a-11de-4cae-9800-25e4747408ea","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}\n\n`,
         `event: tool-call-start\ndata: {"type":"tool-call-start","delta":{"message":{"tool_calls":{"id":"test-id-1","type":"function","function":{"name":"test-tool","arguments":""}}}}}\n\n`,
         `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"{\\n    \\""}}}}}\n\n`,
         `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"ticker"}}}}}\n\n`,
@@ -901,88 +912,69 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "inputTextDelta": "",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
+          "id": "test-id-1",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "inputTextDelta": "{
+          "delta": "{
           "",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": "ticker",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "ticker",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": "_",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "_",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": "symbol",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "symbol",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": "":",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "":",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": " "",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": " "",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": "AAPL",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "AAPL",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": """,
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": """,
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": "
+          "delta": "
       ",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "inputTextDelta": "}",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "}",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id-1",
+          "type": "tool-input-end",
         },
         {
           "input": "{"ticker_symbol":"AAPL"}",
           "toolCallId": "test-id-1",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1001,9 +993,9 @@ describe('doStream', () => {
     // Check if the tool call ID is the same in the tool call delta and the tool call
     const toolCallIds = responseArray
       .filter(
-        chunk => chunk.type === 'tool-call-delta' || chunk.type === 'tool-call',
+        chunk => chunk.type === 'tool-input-delta' || chunk.type === 'tool-call',
       )
-      .map(chunk => chunk.toolCallId);
+      .map(chunk => chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id);
 
     expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });
@@ -1161,7 +1153,7 @@ describe('doStream', () => {
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        `event: message-start\ndata: {"type":"message-start","id":"test-id"}\n\n`,
+        `event: message-start\ndata: {"type":"message-start","id":"test-id","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}\n\n`,
         `event: tool-call-start\ndata: {"type":"tool-call-start","delta":{"message":{"tool_calls":{"id":"test-id-1","type":"function","function":{"name":"test-tool","arguments":""}}}}}\n\n`,
         `event: tool-call-end\ndata: {"type":"tool-call-end"}\n\n`,
         `event: message-end\ndata: {"type":"message-end","delta":{"finish_reason":"COMPLETE","usage":{"tokens":{"input_tokens":10,"output_tokens":5}}}}\n\n`,
@@ -1198,16 +1190,17 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "inputTextDelta": "",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
+          "id": "test-id-1",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
+        },
+        {
+          "id": "test-id-1",
+          "type": "tool-input-end",
         },
         {
           "input": "{}",
           "toolCallId": "test-id-1",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1240,8 +1233,32 @@ describe('doStream', () => {
       [
         {
           "rawValue": {
+            "delta": {
+              "message": {
+                "citations": [],
+                "content": [],
+                "role": "assistant",
+                "tool_calls": [],
+                "tool_plan": "",
+              },
+            },
             "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
             "type": "message-start",
+          },
+          "type": "raw",
+        },
+        {
+          "rawValue": {
+            "delta": {
+              "message": {
+                "content": {
+                  "text": "",
+                  "type": "text",
+                },
+              },
+            },
+            "index": 0,
+            "type": "content-start",
           },
           "type": "raw",
         },
@@ -1254,6 +1271,7 @@ describe('doStream', () => {
                 },
               },
             },
+            "index": 0,
             "type": "content-delta",
           },
           "type": "raw",
@@ -1267,7 +1285,15 @@ describe('doStream', () => {
                 },
               },
             },
+            "index": 0,
             "type": "content-delta",
+          },
+          "type": "raw",
+        },
+        {
+          "rawValue": {
+            "index": 0,
+            "type": "content-end",
           },
           "type": "raw",
         },
