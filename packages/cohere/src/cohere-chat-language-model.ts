@@ -289,7 +289,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
               case 'tool-call-start': {
                 const toolId = value.delta.message.tool_calls.id;
                 const toolName = value.delta.message.tool_calls.function.name;
-                const initialArgs = value.delta.message.tool_calls.function.arguments;
+                const initialArgs =
+                  value.delta.message.tool_calls.function.arguments;
 
                 pendingToolCall = {
                   id: toolId,
@@ -316,7 +317,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
               case 'tool-call-delta': {
                 if (pendingToolCall && !pendingToolCall.hasFinished) {
-                  const argsDelta = value.delta.message.tool_calls.function.arguments;
+                  const argsDelta =
+                    value.delta.message.tool_calls.function.arguments;
                   pendingToolCall.arguments += argsDelta;
 
                   controller.enqueue({

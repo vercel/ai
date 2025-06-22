@@ -993,9 +993,10 @@ describe('doStream', () => {
     // Check if the tool call ID is the same in the tool call delta and the tool call
     const toolCallIds = responseArray
       .filter(
-        chunk => chunk.type === 'tool-input-delta' || chunk.type === 'tool-call',
+        chunk =>
+          chunk.type === 'tool-input-delta' || chunk.type === 'tool-call',
       )
-      .map(chunk => chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id);
+      .map(chunk => (chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id));
 
     expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });
