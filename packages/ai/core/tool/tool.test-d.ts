@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import {
   Tool,
-  ToolCallOptions,
   ToolExecuteFunction,
   FlexibleSchema,
 } from '@ai-sdk/provider-utils';
@@ -37,7 +36,7 @@ describe('tool helper', () => {
 
     expectTypeOf(toolType).toEqualTypeOf<Tool<never, 'test'>>();
     expectTypeOf(toolType.execute).toMatchTypeOf<
-      ToolExecuteFunction<never, 'test'>
+      ToolExecuteFunction<never, 'test'> | undefined
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<undefined>();
@@ -54,10 +53,7 @@ describe('tool helper', () => {
 
     expectTypeOf(toolType).toEqualTypeOf<Tool<{ number: number }, 'test'>>();
     expectTypeOf(toolType.execute).toMatchTypeOf<
-      (
-        input: { number: number },
-        options: ToolCallOptions,
-      ) => PromiseLike<'test'> | 'test'
+      ToolExecuteFunction<{ number: number }, 'test'> | undefined
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<

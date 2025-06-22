@@ -36,12 +36,11 @@ async function main() {
   // typed tool results for tools with execute method:
   for (const toolResult of result.toolResults) {
     switch (toolResult.toolName) {
-      // NOT AVAILABLE (NO EXECUTE METHOD)
-      // case 'cityAttractions': {
-      //   toolResult.input.city; // string
-      //   toolResult.result;
-      //   break;
-      // }
+      case 'cityAttractions': {
+        toolResult.input.city; // string
+        toolResult.output; // any since no outputSchema is provided
+        break;
+      }
 
       case 'weather': {
         toolResult.input.location; // string

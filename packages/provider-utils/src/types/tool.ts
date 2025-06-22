@@ -25,6 +25,8 @@ export type ToolExecuteFunction<INPUT, OUTPUT> = (
   options: ToolCallOptions,
 ) => PromiseLike<OUTPUT> | OUTPUT;
 
+// 0 extends 1 & N checks for any
+// [N] extends [never] checks for never
 type NeverOptional<N, T> = 0 extends 1 & N
   ? Partial<T>
   : [N] extends [never]
@@ -56,20 +58,35 @@ It is also used to validate the output of the language model.
 Use descriptions to make the input understandable for the language model.
    */
     inputSchema: FlexibleSchema<INPUT>;
+
+    /**
+     * Optional function that is called when the argument streaming starts.
+     * Only called when the tool is used in a streaming context.
+     */
+    onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
+
+    /**
+     * Optional function that is called when an argument streaming delta is available.
+     * Only called when the tool is used in a streaming context.
+     */
+    onInputDelta?: (
+      options: { inputTextDelta: string } & ToolCallOptions,
+    ) => void | PromiseLike<void>;
+
+    /**
+     * Optional function that is called when a tool call can be started,
+     * even if the execute function is not provided.
+     */
+    onInputAvailable?: (
+      options: {
+        input: [INPUT] extends [never] ? undefined : INPUT;
+      } & ToolCallOptions,
+    ) => void | PromiseLike<void>;
   }
 > &
   NeverOptional<
     OUTPUT,
     {
-      /**
-An async function that is called with the arguments from the tool call and produces a result.
-If not provided, the tool will not be executed automatically.
-
-@args is the input of the tool call.
-@options.abortSignal is a signal that can be used to abort the tool call.
-      */
-      execute: ToolExecuteFunction<INPUT, OUTPUT>;
-
       /**
 Optional conversion function that maps the tool result to an output that can be used by the language model.
 
@@ -78,31 +95,25 @@ If not provided, the tool result will be sent as a JSON object.
       toModelOutput?: (
         output: OUTPUT,
       ) => LanguageModelV2ToolResultPart['output'];
+    } & (
+      | {
+          /**
+An async function that is called with the arguments from the tool call and produces a result.
+If not provided, the tool will not be executed automatically.
 
-      /**
-       * Optional function that is called when the argument streaming starts.
-       * Only called when the tool is used in a streaming context.
-       */
-      onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
+@args is the input of the tool call.
+@options.abortSignal is a signal that can be used to abort the tool call.
+      */
+          execute: ToolExecuteFunction<INPUT, OUTPUT>;
 
-      /**
-       * Optional function that is called when an argument streaming delta is available.
-       * Only called when the tool is used in a streaming context.
-       */
-      onInputDelta?: (
-        options: { inputTextDelta: string } & ToolCallOptions,
-      ) => void | PromiseLike<void>;
+          outputSchema?: FlexibleSchema<OUTPUT>;
+        }
+      | {
+          outputSchema: FlexibleSchema<OUTPUT>;
 
-      /**
-       * Optional function that is called when a tool call can be started,
-       * even if the execute function is not provided.
-       */
-      onInputAvailable?: (
-        options: {
-          input: [INPUT] extends [never] ? undefined : INPUT;
-        } & ToolCallOptions,
-      ) => void | PromiseLike<void>;
-    }
+          execute?: never;
+        }
+    )
   > &
   (
     | {
