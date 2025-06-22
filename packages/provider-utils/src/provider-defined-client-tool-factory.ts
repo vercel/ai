@@ -1,4 +1,5 @@
-import { Tool, ToolExecuteFunction, ToolInputSchema } from './types/tool';
+import { Tool, ToolExecuteFunction } from './types/tool';
+import { FlexibleSchema } from './schema';
 
 export type ProviderDefinedClientToolFactory<INPUT, ARGS extends object> = <
   OUTPUT,
@@ -20,7 +21,7 @@ export function createProviderDefinedClientToolFactory<
   inputSchema,
 }: {
   id: string;
-  inputSchema: ToolInputSchema<INPUT>;
+  inputSchema: FlexibleSchema<INPUT>;
 }): ProviderDefinedClientToolFactory<INPUT, ARGS> {
   return <OUTPUT>({
     execute,

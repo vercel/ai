@@ -3,7 +3,7 @@ import {
   Tool,
   ToolCallOptions,
   ToolExecuteFunction,
-  ToolInputSchema,
+  FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { tool } from './tool';
 
@@ -26,7 +26,7 @@ describe('tool helper', () => {
     expectTypeOf(toolType.execute).toEqualTypeOf<undefined>();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<Function>();
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<
-      ToolInputSchema<{ number: number }>
+      FlexibleSchema<{ number: number }>
     >();
   });
 
@@ -61,7 +61,7 @@ describe('tool helper', () => {
     >();
     expectTypeOf(toolType.execute).not.toEqualTypeOf<undefined>();
     expectTypeOf(toolType.inputSchema).toEqualTypeOf<
-      ToolInputSchema<{ number: number }>
+      FlexibleSchema<{ number: number }>
     >();
   });
 });
