@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { Output, stepCountIs } from '.';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
-import { tool } from '../tool/tool';
+import { tool } from '@ai-sdk/provider-utils';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';

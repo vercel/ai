@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 type WebSearch20250305Args = {
@@ -28,17 +29,10 @@ export const webSearch_20250305ArgsSchema = z.object({
     .optional(),
 });
 
-export function webSearch_20250305(options: WebSearch20250305Args = {}): {
-  type: 'provider-defined-server';
-  id: 'anthropic.web_search_20250305';
-  name: 'web_search';
-  args: WebSearch20250305Args;
-  inputSchema: z.ZodType<{ query: string }>;
-} {
-  return {
+export function webSearch_20250305(options: WebSearch20250305Args = {}) {
+  return tool({
     type: 'provider-defined-server',
     id: 'anthropic.web_search_20250305',
-    name: 'web_search',
     args: {
       maxUses: options.maxUses,
       allowedDomains: options.allowedDomains,
@@ -48,5 +42,9 @@ export function webSearch_20250305(options: WebSearch20250305Args = {}): {
     inputSchema: z.object({
       query: z.string(),
     }),
-  };
+    // TODO define the actual output schema
+    outputSchema: z.object({
+      query: z.string(),
+    }),
+  });
 }
