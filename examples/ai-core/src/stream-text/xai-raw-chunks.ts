@@ -33,4 +33,4 @@ async function main() {
   console.log('Final text:', await result.text);
 }
 
-main().catch(console.error); 
+main().catch(console.error);

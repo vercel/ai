@@ -339,6 +339,10 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof xaiChatChunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             // Emit raw chunk if requested (before anything else)
             if (options.includeRawChunks) {

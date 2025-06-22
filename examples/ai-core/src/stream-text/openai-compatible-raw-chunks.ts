@@ -23,7 +23,7 @@ async function main() {
 
   for await (const chunk of result.fullStream) {
     console.log('Chunk type:', chunk.type, 'Chunk:', JSON.stringify(chunk));
-    
+
     if (chunk.type === 'text') {
       textChunkCount++;
       console.log('Text chunk', textChunkCount, ':', chunk.text);
@@ -48,4 +48,4 @@ async function main() {
   console.log('Final text:', await result.text);
 }
 
-main().catch(console.error); 
+main().catch(console.error);

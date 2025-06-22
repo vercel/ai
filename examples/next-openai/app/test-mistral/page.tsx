@@ -11,8 +11,10 @@ export default function TestMistral() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      <h1 className="mb-4 text-xl font-bold">Mistral Block-Based Streaming Test</h1>
-      
+      <h1 className="mb-4 text-xl font-bold">
+        Mistral Block-Based Streaming Test
+      </h1>
+
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
@@ -53,4 +55,4 @@ export default function TestMistral() {
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
-} 
+}

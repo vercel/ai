@@ -706,6 +706,10 @@ describe('XaiChatLanguageModel', () => {
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
             "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "modelId": "grok-beta",
             "timestamp": 2025-06-21T20:29:38.000Z,
@@ -767,6 +771,10 @@ describe('XaiChatLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "modelId": "grok-beta",
@@ -847,6 +855,10 @@ describe('XaiChatLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "a9648117-740c-4270-9e07-6a8457f23b7a",
             "modelId": "grok-beta",
@@ -1026,6 +1038,10 @@ describe('XaiChatLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
             "modelId": "grok-beta",
@@ -1228,6 +1244,10 @@ describe('XaiChatLanguageModel', () => {
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
             "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "modelId": "grok-3-mini",
             "timestamp": 2025-06-21T20:35:20.000Z,
@@ -1304,6 +1324,10 @@ describe('doStream with raw chunks', () => {
 
     expect(chunks).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "rawValue": {
             "choices": [
