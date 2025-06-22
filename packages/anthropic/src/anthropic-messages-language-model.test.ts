@@ -1099,6 +1099,20 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "tool-call",
             },
             {
+              "result": [
+                {
+                  "encrypted_content": "encrypted_content_123",
+                  "page_age": "January 15, 2025",
+                  "title": "Latest AI Developments",
+                  "type": "web_search_result",
+                  "url": "https://example.com/ai-news",
+                },
+              ],
+              "toolCallId": "tool_1",
+              "toolName": "web_search",
+              "type": "tool-result",
+            },
+            {
               "id": "id-0",
               "providerMetadata": {
                 "anthropic": {

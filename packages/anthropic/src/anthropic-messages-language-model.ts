@@ -518,6 +518,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         }
         case 'web_search_tool_result': {
           if (Array.isArray(part.content)) {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_search',
+              result: part.content,
+            });
+
             for (const result of part.content) {
               content.push({
                 type: 'source',
