@@ -1,17 +1,6 @@
-import {
-  JSONObject,
-  JSONValue,
-  LanguageModelV2ToolResultPart,
-} from '@ai-sdk/provider';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4/core';
-import { Schema } from '../schema';
+import { JSONValue, LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
+import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
-
-export type ToolInputSchema<T = JSONObject> =
-  | z4.$ZodType<T>
-  | z3.Schema<T>
-  | Schema<T>;
 
 export interface ToolCallOptions {
   /**
@@ -66,7 +55,7 @@ The schema of the input that the tool expects. The language model will use this 
 It is also used to validate the output of the language model.
 Use descriptions to make the input understandable for the language model.
    */
-    inputSchema: ToolInputSchema<INPUT>;
+    inputSchema: FlexibleSchema<INPUT>;
   }
 > &
   NeverOptional<

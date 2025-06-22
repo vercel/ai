@@ -26,6 +26,8 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   readonly jsonSchema: JSONSchema7;
 };
 
+export type FlexibleSchema<T> = z4.$ZodType<T> | z3.Schema<T> | Schema<T>;
+
 export type InferSchema<SCHEMA> = SCHEMA extends z3.Schema
   ? z3.infer<SCHEMA>
   : SCHEMA extends z4.$ZodType
