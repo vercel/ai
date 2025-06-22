@@ -7,10 +7,7 @@ import {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
-import {
-  convertToBase64,
-  convertUint8ArrayToBase64,
-} from '@ai-sdk/provider-utils';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV2Prompt,
@@ -137,7 +134,7 @@ export function convertToGoogleGenerativeAIMessages(
               name: part.toolName,
               response: {
                 name: part.toolName,
-                content: part.output,
+                content: part.output.value,
               },
             },
           })),

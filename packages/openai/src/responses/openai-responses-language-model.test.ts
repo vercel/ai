@@ -655,9 +655,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           tools: [
             {
-              type: 'provider-defined-client',
+              type: 'provider-defined',
               id: 'openai.web_search_preview',
-              name: 'web_search_preview',
               args: {
                 searchContextSize: 'high',
                 userLocation: {
@@ -695,9 +694,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           tools: [
             {
-              type: 'provider-defined-client',
+              type: 'provider-defined',
               id: 'openai.web_search_preview',
-              name: 'web_search_preview',
               args: {
                 searchContextSize: 'high',
                 userLocation: {
@@ -906,14 +904,12 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "input": "{"location":"San Francisco"}",
               "toolCallId": "call_0NdsJqOS8N3J9l2p0p4WpYU9",
-              "toolCallType": "function",
               "toolName": "weather",
               "type": "tool-call",
             },
             {
               "input": "{"city":"San Francisco"}",
               "toolCallId": "call_gexo0HtjUfmAIW4gjNOgyrcr",
-              "toolCallType": "function",
               "toolName": "cityAttractions",
               "type": "tool-call",
             },
@@ -1167,12 +1163,22 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "Hello,",
-            "type": "text",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
           },
           {
-            "text": " World!",
-            "type": "text",
+            "delta": "Hello,",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "delta": " World!",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -1228,8 +1234,17 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "Hello,",
-            "type": "text",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello,",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "type": "text-end",
           },
           {
             "finishReason": "length",
@@ -1292,72 +1307,62 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "inputTextDelta": "",
-            "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
-            "toolCallType": "function",
+            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
             "toolName": "currentLocation",
-            "type": "tool-call-delta",
+            "type": "tool-input-start",
           },
           {
-            "inputTextDelta": "{}",
-            "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
-            "toolCallType": "function",
-            "toolName": "currentLocation",
-            "type": "tool-call-delta",
+            "delta": "{}",
+            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+            "type": "tool-input-end",
           },
           {
             "input": "{}",
             "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
-            "toolCallType": "function",
             "toolName": "currentLocation",
             "type": "tool-call",
           },
           {
-            "inputTextDelta": "",
-            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "toolCallType": "function",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
             "toolName": "weather",
-            "type": "tool-call-delta",
+            "type": "tool-input-start",
           },
           {
-            "inputTextDelta": "{",
-            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "toolCallType": "function",
-            "toolName": "weather",
-            "type": "tool-call-delta",
+            "delta": "{",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
           },
           {
-            "inputTextDelta": ""location",
-            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "toolCallType": "function",
-            "toolName": "weather",
-            "type": "tool-call-delta",
+            "delta": ""location",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
           },
           {
-            "inputTextDelta": "":",
-            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "toolCallType": "function",
-            "toolName": "weather",
-            "type": "tool-call-delta",
+            "delta": "":",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
           },
           {
-            "inputTextDelta": ""Rome",
-            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "toolCallType": "function",
-            "toolName": "weather",
-            "type": "tool-call-delta",
+            "delta": ""Rome",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
           },
           {
-            "inputTextDelta": ""}",
-            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "toolCallType": "function",
-            "toolName": "weather",
-            "type": "tool-call-delta",
+            "delta": ""}",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_X2PAkDJInno9VVnNkDrfhboW",
+            "type": "tool-input-end",
           },
           {
             "input": "{"location":"Rome"}",
             "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
-            "toolCallType": "function",
             "toolName": "weather",
             "type": "tool-call",
           },
@@ -1426,12 +1431,18 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "Last week",
-            "type": "text",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-start",
           },
           {
-            "text": " in San Francisco",
-            "type": "text",
+            "delta": "Last week",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
+          },
+          {
+            "delta": " in San Francisco",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
           },
           {
             "id": "id-0",
@@ -1441,12 +1452,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com",
           },
           {
-            "text": " a themed party",
-            "type": "text",
+            "delta": " a themed party",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
           },
           {
-            "text": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
-            "type": "text",
+            "delta": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
           },
           {
             "id": "id-1",
@@ -1456,8 +1469,13 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com",
           },
           {
-            "text": ".",
-            "type": "text",
+            "delta": ".",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -1484,16 +1502,24 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
+        // warning: tests chunks below may not be accurate
         chunks: [
           `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","status":"in_progress","summary":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"rs_68082c0556348191af675cee0453109b","output_index":1,"content_index":0,"part":{"type":"summary_text","text":"","annotations":[]}}\n\n`,
           `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"delta":"**Exploring burrito origins**\\n\\nThe user is"}\n\n`,
           `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"delta":" curious about the debate regarding Taqueria La Cumbre and El Farolito."}\n\n`,
           `data:{"type":"response.reasoning_summary_text.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}\n\n`,
           `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":1,"delta":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}\n\n`,
           `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":1,"part":{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":1,"content_index":0,"part":{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","summary":[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}]}}\n\n`,
           `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
           `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
           `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"delta":"Taqueria La Cumbre"}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"text":"Taqueria La Cumbre"}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}]}}\n\n`,
           `data:{"type":"response.completed","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","summary":[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."},{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}]},{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":350},"total_tokens":1021},"user":null,"metadata":{}}}\n\n`,
         ],
       };
@@ -1522,30 +1548,44 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "**Exploring burrito origins**
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "**Exploring burrito origins**
 
         The user is",
-            "type": "reasoning",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
           },
           {
-            "text": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
-            "type": "reasoning",
+            "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
           },
           {
-            "type": "reasoning-part-finish",
-          },
-          {
-            "text": "**Investigating burrito origins**
+            "delta": "**Investigating burrito origins**
 
         There's a fascinating debate about who created the Mission burrito.",
-            "type": "reasoning",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
           },
           {
-            "type": "reasoning-part-finish",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-end",
           },
           {
-            "text": "Taqueria La Cumbre",
-            "type": "text",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
+          },
+          {
+            "delta": "Taqueria La Cumbre",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",

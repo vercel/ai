@@ -25,9 +25,13 @@ async function main() {
               .string()
               .describe('The location to get the weather for'),
           }),
-          execute: async ({ location }) => ({
+          execute: ({ location }) => ({
             location,
             temperature: 72 + Math.floor(Math.random() * 21) - 10,
+          }),
+          toModelOutput: ({ location, temperature }) => ({
+            type: 'text',
+            value: `The weather in ${location} is ${temperature} degrees Fahrenheit.`,
           }),
         }),
       },
@@ -42,6 +46,12 @@ async function main() {
     process.stdout.write('\n\n');
 
     messages.push(...(await result.response).messages);
+
+    console.log(
+      (await result.steps)
+        .map(step => JSON.stringify(step.request.body))
+        .join('\n'),
+    );
   }
 }
 

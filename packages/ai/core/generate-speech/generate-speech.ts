@@ -1,11 +1,10 @@
-import { JSONValue, SpeechModelV1 } from '@ai-sdk/provider';
+import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
 import { NoSpeechGeneratedError } from '../../src/error/no-speech-generated-error';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../../src/util/detect-media-type';
 import { prepareRetries } from '../../src/util/prepare-retries';
-import { ProviderOptions } from '../types/provider-metadata';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
@@ -13,6 +12,7 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 
 /**
 Generates speech audio using a speech model.
@@ -46,7 +46,7 @@ export async function generateSpeech({
   /**
 The speech model to use.
      */
-  model: SpeechModelV1;
+  model: SpeechModelV2;
 
   /**
 The text to convert to speech.

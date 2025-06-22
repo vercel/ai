@@ -29,14 +29,17 @@ async function main() {
           const bytes = new Uint8Array(arrayBuffer);
           return { bytes };
         },
-        experimental_toToolResultContent(result) {
-          return [
-            {
-              type: 'image',
-              data: Buffer.from(result.bytes).toString('base64'),
-              mediaType: 'image/jpeg',
-            },
-          ];
+        toModelOutput(result) {
+          return {
+            type: 'content',
+            value: [
+              {
+                type: 'image',
+                data: Buffer.from(result.bytes).toString('base64'),
+                mediaType: 'image/jpeg',
+              },
+            ],
+          };
         },
       }),
     },

@@ -90,7 +90,7 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'quux',
             toolName: 'thwomp',
-            output: { oof: '321rab' },
+            output: { type: 'json', value: { oof: '321rab' } },
           },
         ],
       },
@@ -115,6 +115,55 @@ describe('tool calls', () => {
         role: 'tool',
         content: JSON.stringify({ oof: '321rab' }),
         tool_call_id: 'quux',
+      },
+    ]);
+  });
+
+  it('should handle text output type in tool results', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { query: 'weather' },
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'It is sunny today' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-1',
+            function: {
+              name: 'getWeather',
+              arguments: JSON.stringify({ query: 'weather' }),
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'It is sunny today',
+        tool_call_id: 'call-1',
       },
     ]);
   });
@@ -435,7 +484,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-result',
             toolCallId: 'call123',
             toolName: 'calculator',
-            output: { stepOne: 'data chunk 1' },
+            output: { type: 'json', value: { stepOne: 'data chunk 1' } },
           },
           {
             type: 'tool-result',
@@ -444,7 +493,7 @@ describe('provider-specific metadata merging', () => {
             providerOptions: {
               openaiCompatible: { partial: true },
             },
-            output: { stepTwo: 'data chunk 2' },
+            output: { type: 'json', value: { stepTwo: 'data chunk 2' } },
           },
         ],
       },

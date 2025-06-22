@@ -413,7 +413,7 @@ describe('tool calls', () => {
               type: 'tool-result',
               toolCallId: 'quux',
               toolName: 'thwomp',
-              output: { oof: '321rab' },
+              output: { type: 'json', value: { oof: '321rab' } },
             },
           ],
         },
@@ -441,5 +441,44 @@ describe('tool calls', () => {
         tool_call_id: 'quux',
       },
     ]);
+  });
+
+  it('should handle different tool output types', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'text-tool',
+              toolName: 'text-tool',
+              output: { type: 'text', value: 'Hello world' },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'error-tool',
+              toolName: 'error-tool',
+              output: { type: 'error', value: 'Something went wrong' },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Hello world",
+          "role": "tool",
+          "tool_call_id": "text-tool",
+        },
+        {
+          "content": "Something went wrong",
+          "role": "tool",
+          "tool_call_id": "error-tool",
+        },
+      ]
+    `);
   });
 });

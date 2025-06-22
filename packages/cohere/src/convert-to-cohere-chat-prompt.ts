@@ -114,11 +114,27 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
       }
       case 'tool': {
         messages.push(
-          ...content.map(toolResult => ({
-            role: 'tool' as const,
-            content: JSON.stringify(toolResult.output),
-            tool_call_id: toolResult.toolCallId,
-          })),
+          ...content.map(toolResult => {
+            const output = toolResult.output;
+
+            let contentValue: string;
+            switch (output.type) {
+              case 'text':
+              case 'error':
+                contentValue = output.value;
+                break;
+              case 'content':
+              case 'json':
+                contentValue = JSON.stringify(output.value);
+                break;
+            }
+
+            return {
+              role: 'tool' as const,
+              content: contentValue,
+              tool_call_id: toolResult.toolCallId,
+            };
+          }),
         );
 
         break;

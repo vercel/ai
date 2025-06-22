@@ -1,7 +1,7 @@
 import {
-  TranscriptionModelV1,
-  TranscriptionModelV1CallOptions,
-  TranscriptionModelV1CallWarning,
+  TranscriptionModelV2,
+  TranscriptionModelV2CallOptions,
+  TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -20,7 +20,7 @@ import {
 } from './openai-transcription-options';
 
 export type OpenAITranscriptionCallOptions = Omit<
-  TranscriptionModelV1CallOptions,
+  TranscriptionModelV2CallOptions,
   'providerOptions'
 > & {
   providerOptions?: {
@@ -95,8 +95,8 @@ const languageMap = {
   welsh: 'cy',
 };
 
-export class OpenAITranscriptionModel implements TranscriptionModelV1 {
-  readonly specificationVersion = 'v1';
+export class OpenAITranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
@@ -112,7 +112,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     mediaType,
     providerOptions,
   }: OpenAITranscriptionCallOptions) {
-    const warnings: TranscriptionModelV1CallWarning[] = [];
+    const warnings: TranscriptionModelV2CallWarning[] = [];
 
     // Parse provider options
     const openAIOptions = await parseProviderOptions({
@@ -156,7 +156,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
   async doGenerate(
     options: OpenAITranscriptionCallOptions,
-  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 

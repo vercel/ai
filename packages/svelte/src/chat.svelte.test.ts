@@ -48,10 +48,12 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', text: 'Hello' }),
-        formatStreamPart({ type: 'text', text: ',' }),
-        formatStreamPart({ type: 'text', text: ' world' }),
-        formatStreamPart({ type: 'text', text: '.' }),
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -119,7 +121,11 @@ describe('data protocol stream', () => {
         parts: [{ text: 'hi', type: 'text' }],
       });
       await vi.waitFor(() => expect(chat.status).toBe('submitted'));
-      controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
+      controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+      controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
       await vi.waitFor(() => expect(chat.status).toBe('streaming'));
       controller.close();
       await appendOperation;
@@ -145,10 +151,12 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', text: 'Hello' }),
-        formatStreamPart({ type: 'text', text: ',' }),
-        formatStreamPart({ type: 'text', text: ' world' }),
-        formatStreamPart({ type: 'text', text: '.' }),
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
         formatStreamPart({
           type: 'finish',
           messageMetadata: {
@@ -381,6 +389,7 @@ describe('onToolCall', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -395,6 +404,7 @@ describe('onToolCall', () => {
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
+        errorText: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -443,6 +453,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: undefined,
@@ -463,6 +474,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
@@ -483,6 +495,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -504,6 +517,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -525,6 +539,7 @@ describe('tool invocations', () => {
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
+        errorText: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -555,6 +570,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -577,6 +593,7 @@ describe('tool invocations', () => {
     expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
+        errorText: undefined,
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
@@ -606,6 +623,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -623,6 +641,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'output-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -664,6 +683,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
+          errorText: undefined,
           input: { testArg: 'test-value' },
           output: undefined,
           toolCallId: 'tool-call-0',
@@ -683,6 +703,7 @@ describe('tool invocations', () => {
       expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'output-available',
+          errorText: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -745,7 +766,15 @@ describe('maxSteps', () => {
         },
         {
           type: 'stream-chunks',
-          chunks: [formatStreamPart({ type: 'text', text: 'final result' })],
+          chunks: [
+            formatStreamPart({ type: 'text-start', id: '0' }),
+            formatStreamPart({
+              type: 'text-delta',
+              id: '0',
+              delta: 'final result',
+            }),
+            formatStreamPart({ type: 'text-end', id: '0' }),
+          ],
         },
       ];
 
@@ -773,6 +802,7 @@ describe('maxSteps', () => {
             "metadata": undefined,
             "parts": [
               {
+                "errorText": undefined,
                 "input": {
                   "testArg": "test-value",
                 },
@@ -858,8 +888,17 @@ describe('file attachments with data url', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to message with text attachment',
+          type: 'text-start',
+          id: '0',
+        }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to message with text attachment',
+        }),
+        formatStreamPart({
+          type: 'text-end',
+          id: '0',
         }),
       ],
     };
@@ -936,8 +975,17 @@ describe('file attachments with data url', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to message with image attachment',
+          type: 'text-start',
+          id: '0',
+        }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to message with image attachment',
+        }),
+        formatStreamPart({
+          type: 'text-end',
+          id: '0',
         }),
       ],
     };
@@ -1024,8 +1072,17 @@ describe('file attachments with url', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to message with image attachment',
+          type: 'text-start',
+          id: '0',
+        }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to message with image attachment',
+        }),
+        formatStreamPart({
+          type: 'text-end',
+          id: '0',
         }),
       ],
     };
@@ -1112,8 +1169,17 @@ describe('file attachments with empty text content', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to message with image attachment',
+          type: 'text-start',
+          id: '0',
+        }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to message with image attachment',
+        }),
+        formatStreamPart({
+          type: 'text-end',
+          id: '0',
         }),
       ],
     };
@@ -1192,11 +1258,27 @@ describe('reload', () => {
     server.urls['/api/chat'].response = [
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'first response' })],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: '0',
+            delta: 'first response',
+          }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'second response' })],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: '0',
+            delta: 'second response',
+          }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
     ];
 
@@ -1315,10 +1397,12 @@ describe('generateId function', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({ type: 'start', messageId: '123' }),
-        formatStreamPart({ type: 'text', text: 'Hello' }),
-        formatStreamPart({ type: 'text', text: ',' }),
-        formatStreamPart({ type: 'text', text: ' world' }),
-        formatStreamPart({ type: 'text', text: '.' }),
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 

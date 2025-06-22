@@ -180,10 +180,24 @@ export function convertToOpenAIChatMessages({
 
       case 'tool': {
         for (const toolResponse of content) {
+          const output = toolResponse.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error':
+              contentValue = output.value;
+              break;
+            case 'content':
+            case 'json':
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.output),
+            content: contentValue,
           });
         }
         break;

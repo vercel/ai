@@ -1,3 +1,4 @@
+import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
 import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
 
@@ -6,13 +7,17 @@ The data types that can be used in the UI message for the UI message data parts.
  */
 export type UIDataTypes = Record<string, unknown>;
 
-export type UITools = Record<
-  string,
-  {
-    input: unknown;
-    output: unknown | undefined;
-  }
->;
+export type UITool = {
+  input: unknown;
+  output: unknown | undefined;
+};
+
+export type InferUITool<TOOL extends Tool> = {
+  input: InferToolInput<TOOL>;
+  output: InferToolOutput<TOOL>;
+};
+
+export type UITools = Record<string, UITool>;
 
 /**
 AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
@@ -172,6 +177,11 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         state: 'output-available';
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
+      }
+    | {
+        state: 'output-error';
+        input: TOOLS[NAME]['input'];
+        errorText: string;
       }
   );
 }>;

@@ -31,10 +31,12 @@ describe('prepareSubmitMessagesRequest', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', text: 'Hello' }),
-        formatStreamPart({ type: 'text', text: ',' }),
-        formatStreamPart({ type: 'text', text: ' world' }),
-        formatStreamPart({ type: 'text', text: '.' }),
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -89,10 +91,12 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', text: 'Hello' }),
-        formatStreamPart({ type: 'text', text: ',' }),
-        formatStreamPart({ type: 'text', text: ' world' }),
-        formatStreamPart({ type: 'text', text: '.' }),
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -138,7 +142,11 @@ describe('data protocol stream', () => {
         expect(screen.getByTestId('status')).toHaveTextContent('submitted');
       });
 
-      controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
+      controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+      controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('streaming');
@@ -166,7 +174,10 @@ describe('data protocol stream', () => {
           expect(screen.getByTestId('status')).toHaveTextContent('submitted'),
         );
 
-        controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
+        controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+        controller.write(
+          formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        );
 
         await waitFor(() =>
           expect(screen.getByTestId('status')).toHaveTextContent('streaming'),
@@ -178,7 +189,10 @@ describe('data protocol stream', () => {
         });
         document.dispatchEvent(new Event('visibilitychange'));
 
-        controller.write(formatStreamPart({ type: 'text', text: ' world.' }));
+        controller.write(
+          formatStreamPart({ type: 'text-delta', id: '0', delta: ' world.' }),
+        );
+        controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
         controller.close();
 
         await waitFor(() =>
@@ -212,10 +226,12 @@ describe('data protocol stream', () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text', text: 'Hello' }),
-        formatStreamPart({ type: 'text', text: ',' }),
-        formatStreamPart({ type: 'text', text: ' world' }),
-        formatStreamPart({ type: 'text', text: '.' }),
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
         formatStreamPart({ type: 'finish' }),
       ],
     };
@@ -302,11 +318,27 @@ describe('regenerate', () => {
     server.urls['/api/chat'].response = [
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'first response' })],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: '0',
+            delta: 'first response',
+          }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'second response' })],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: '0',
+            delta: 'second response',
+          }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
     ];
 
@@ -363,7 +395,15 @@ describe('tool invocations', () => {
       // DO NOT REMOVE: used to ensure test does not have side-effects
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'extra text' })],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: '0',
+            delta: 'extra text',
+          }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
     ];
 
@@ -468,7 +508,15 @@ describe('tool invocations', () => {
       // DO NOT REMOVE: used to ensure test does not have side-effects
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'extra text' })],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: '0',
+            delta: 'extra text',
+          }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
     ];
 
@@ -523,7 +571,15 @@ describe('tool invocations', () => {
       // DO NOT REMOVE: used to ensure test does not have side-effects
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'extra text' })],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: '0',
+            delta: 'extra text',
+          }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
     ];
 
@@ -554,12 +610,15 @@ describe('tool invocations', () => {
       );
     });
 
+    controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
     controller.write(
       formatStreamPart({
-        type: 'text',
-        text: 'more text',
+        type: 'text-delta',
+        id: '0',
+        delta: 'more text',
       }),
     );
+    controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
     controller.close();
 
     // DO NOT REMOVE: used to ensure test does not have side-effects
@@ -576,7 +635,15 @@ describe('tool invocations', () => {
       // DO NOT REMOVE: used to ensure test does not have side-effects
       {
         type: 'stream-chunks',
-        chunks: [formatStreamPart({ type: 'text', text: 'extra text' })],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: '0',
+            delta: 'extra text',
+          }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
     ];
 
@@ -641,9 +708,15 @@ describe('file attachments with data url', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to message with text attachment',
+          type: 'text-start',
+          id: '0',
         }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to message with text attachment',
+        }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -699,9 +772,15 @@ describe('file attachments with data url', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to message with image attachment',
+          type: 'text-start',
+          id: '0',
         }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to message with image attachment',
+        }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -761,9 +840,15 @@ describe('file attachments with url', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to message with image attachment',
+          type: 'text-start',
+          id: '0',
         }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to message with image attachment',
+        }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -815,9 +900,15 @@ describe('attachments with empty submit', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to empty message with attachment',
+          type: 'text-start',
+          id: '0',
         }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to empty message with attachment',
+        }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -874,9 +965,15 @@ describe('should append message with attachments', () => {
       type: 'stream-chunks',
       chunks: [
         formatStreamPart({
-          type: 'text',
-          text: 'Response to message with image attachment',
+          type: 'text-start',
+          id: '0',
         }),
+        formatStreamPart({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Response to message with image attachment',
+        }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
       ],
     };
 

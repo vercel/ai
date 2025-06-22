@@ -1,8 +1,6 @@
+import { Tool } from '@ai-sdk/provider-utils';
 import { ValueOf } from '../../src/util/value-of';
-import { Tool } from '../tool';
 import { ToolSet } from './tool-set';
-
-export type { ToolCall } from '@ai-sdk/provider-utils';
 
 // transforms the tools into a tool call union
 export type ToolCallUnion<TOOLS extends ToolSet> = ValueOf<{

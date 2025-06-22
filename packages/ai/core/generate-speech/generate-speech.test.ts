@@ -1,9 +1,9 @@
 import {
   JSONValue,
-  SpeechModelV1,
-  SpeechModelV1CallWarning,
+  SpeechModelV2,
+  SpeechModelV2CallWarning,
 } from '@ai-sdk/provider';
-import { MockSpeechModelV1 } from '../test/mock-speech-model-v1';
+import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { generateSpeech } from './generate-speech';
 import {
   GeneratedAudioFile,
@@ -21,7 +21,7 @@ const sampleText = 'This is a sample text to convert to speech.';
 
 const createMockResponse = (options: {
   audio: GeneratedAudioFile;
-  warnings?: SpeechModelV1CallWarning[];
+  warnings?: SpeechModelV2CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
@@ -42,10 +42,10 @@ describe('generateSpeech', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<SpeechModelV1['doGenerate']>[0];
+    let capturedArgs!: Parameters<SpeechModelV2['doGenerate']>[0];
 
     await generateSpeech({
-      model: new MockSpeechModelV1({
+      model: new MockSpeechModelV2({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -73,7 +73,7 @@ describe('generateSpeech', () => {
 
   it('should return warnings', async () => {
     const result = await generateSpeech({
-      model: new MockSpeechModelV1({
+      model: new MockSpeechModelV2({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -103,7 +103,7 @@ describe('generateSpeech', () => {
 
   it('should return the audio data', async () => {
     const result = await generateSpeech({
-      model: new MockSpeechModelV1({
+      model: new MockSpeechModelV2({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -130,7 +130,7 @@ describe('generateSpeech', () => {
     it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(
         generateSpeech({
-          model: new MockSpeechModelV1({
+          model: new MockSpeechModelV2({
             doGenerate: async () =>
               createMockResponse({
                 audio: new DefaultGeneratedAudioFile({
@@ -157,7 +157,7 @@ describe('generateSpeech', () => {
     it('should include response headers in error when no audio generated', async () => {
       await expect(
         generateSpeech({
-          model: new MockSpeechModelV1({
+          model: new MockSpeechModelV2({
             doGenerate: async () =>
               createMockResponse({
                 audio: new DefaultGeneratedAudioFile({
@@ -192,7 +192,7 @@ describe('generateSpeech', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await generateSpeech({
-      model: new MockSpeechModelV1({
+      model: new MockSpeechModelV2({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,

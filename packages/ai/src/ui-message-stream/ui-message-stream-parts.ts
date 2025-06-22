@@ -10,8 +10,17 @@ import { ProviderMetadata } from '../../core/types/provider-metadata';
 
 export const uiMessageStreamPartSchema = z.union([
   z.strictObject({
-    type: z.literal('text'),
-    text: z.string(),
+    type: z.literal('text-start'),
+    id: z.string(),
+  }),
+  z.strictObject({
+    type: z.literal('text-delta'),
+    id: z.string(),
+    delta: z.string(),
+  }),
+  z.strictObject({
+    type: z.literal('text-end'),
+    id: z.string(),
   }),
   z.strictObject({
     type: z.literal('error'),
@@ -37,7 +46,11 @@ export const uiMessageStreamPartSchema = z.union([
     type: z.literal('tool-output-available'),
     toolCallId: z.string(),
     output: z.unknown(),
-    providerMetadata: z.any().optional(),
+  }),
+  z.strictObject({
+    type: z.literal('tool-output-error'),
+    toolCallId: z.string(),
+    errorText: z.string(),
   }),
   z.strictObject({
     type: z.literal('reasoning'),
@@ -105,9 +118,20 @@ export type UIMessageStreamPart<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
 > =
+  | { type: 'text-start'; id: string }
+  | { type: 'text-delta'; delta: string; id: string }
+  | { type: 'text-end'; id: string }
+  | { type: 'reasoning-start'; id: string; providerMetadata?: ProviderMetadata }
   | {
-      type: 'text';
-      text: string;
+      type: 'reasoning-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'error';
@@ -123,7 +147,11 @@ export type UIMessageStreamPart<
       type: 'tool-output-available';
       toolCallId: string;
       output: unknown;
-      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-output-error';
+      toolCallId: string;
+      errorText: string;
     }
   | {
       type: 'tool-input-start';
@@ -134,14 +162,6 @@ export type UIMessageStreamPart<
       type: 'tool-input-delta';
       toolCallId: string;
       inputTextDelta: string;
-    }
-  | {
-      type: 'reasoning';
-      text: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'reasoning-part-finish';
     }
   | {
       type: 'source-url';

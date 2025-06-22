@@ -1,18 +1,16 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedClientTool,
-  LanguageModelV2ProviderDefinedServerTool,
+  LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { stepCountIs, Output } from '.';
-import { ToolExecutionError } from '../../src/error/tool-execution-error';
+import { Output, stepCountIs } from '.';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
-import { tool } from '../tool/tool';
+import { tool } from '@ai-sdk/provider-utils';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
@@ -127,7 +125,6 @@ describe('result.content', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
               input: `{ "value": "value" }`,
@@ -701,9 +698,10 @@ describe('options.stopWhen', () => {
                         type: 'tool-result',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        output: 'result1',
-                        content: undefined,
-                        isError: undefined,
+                        output: {
+                          type: 'text',
+                          value: 'result1',
+                        },
                         providerOptions: undefined,
                       },
                     ],
@@ -907,9 +905,10 @@ describe('options.stopWhen', () => {
                       type: 'tool-result',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
-                      output: 'result1',
-                      content: undefined,
-                      isError: undefined,
+                      output: {
+                        type: 'text',
+                        value: 'result1',
+                      },
                       providerOptions: undefined,
                     },
                   ],
@@ -1166,7 +1165,10 @@ describe('options.stopWhen', () => {
                     {
                       "content": [
                         {
-                          "output": "result1",
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -1236,7 +1238,10 @@ describe('options.stopWhen', () => {
                     {
                       "content": [
                         {
-                          "output": "result1",
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -1362,11 +1367,7 @@ describe('options.abortSignal', () => {
 describe('options.activeTools', () => {
   it('should filter available tools to only the ones in activeTools', async () => {
     let tools:
-      | (
-          | LanguageModelV2FunctionTool
-          | LanguageModelV2ProviderDefinedClientTool
-          | LanguageModelV2ProviderDefinedServerTool
-        )[]
+      | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
       | undefined;
 
     await generateText({
@@ -1513,7 +1514,70 @@ describe('telemetry', () => {
       },
     });
 
-    expect(tracer.jsonSpans).toMatchSnapshot();
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.generateText",
+            "ai.prompt": "{"prompt":"test-input"}",
+            "ai.response.finishReason": "stop",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.completionTokens": 10,
+            "ai.usage.promptTokens": 3,
+            "operation.name": "ai.generateText",
+          },
+          "events": [],
+          "name": "ai.generateText",
+        },
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.generateText.doGenerate",
+            "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+            "ai.prompt.toolChoice": "{"type":"auto"}",
+            "ai.prompt.tools": [
+              "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+            ],
+            "ai.response.finishReason": "stop",
+            "ai.response.id": "test-id",
+            "ai.response.model": "mock-model-id",
+            "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.completionTokens": 10,
+            "ai.usage.promptTokens": 3,
+            "gen_ai.request.model": "mock-model-id",
+            "gen_ai.response.finish_reasons": [
+              "stop",
+            ],
+            "gen_ai.response.id": "test-id",
+            "gen_ai.response.model": "mock-model-id",
+            "gen_ai.system": "mock-provider",
+            "gen_ai.usage.input_tokens": 3,
+            "gen_ai.usage.output_tokens": 10,
+            "operation.name": "ai.generateText.doGenerate",
+          },
+          "events": [],
+          "name": "ai.generateText.doGenerate",
+        },
+        {
+          "attributes": {
+            "ai.operationId": "ai.toolCall",
+            "ai.toolCall.id": "call-1",
+            "ai.toolCall.input": "{"value":"value"}",
+            "ai.toolCall.name": "tool1",
+            "ai.toolCall.result": ""result1"",
+            "operation.name": "ai.toolCall",
+          },
+          "events": [],
+          "name": "ai.toolCall",
+        },
+      ]
+    `);
   });
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
@@ -1931,40 +1995,91 @@ describe('options.output', () => {
 });
 
 describe('tool execution errors', () => {
-  it('should throw a ToolExecutionError when a tool execution throws an error', async () => {
-    await expect(async () => {
-      await generateText({
-        model: new MockLanguageModelV2({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-            ],
-          }),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => {
-              throw new Error('test error');
+  let result: GenerateTextResult<any, any>;
+
+  beforeEach(async () => {
+    result = await generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
             },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            throw new Error('test error');
           },
         },
-        prompt: 'test-input',
-      });
-    }).rejects.toThrow(
-      new ToolExecutionError({
-        toolName: 'tool1',
-        toolCallId: 'call-1',
-        toolInput: { value: 'value' },
-        cause: new Error('test error'),
-      }),
-    );
+      },
+      prompt: 'test-input',
+    });
+  });
+
+  it('should add tool error part to the content', async () => {
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "error": [Error: test error],
+          "input": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-error",
+        },
+      ]
+    `);
+  });
+
+  it('should include error result in response messages', async () => {
+    expect(result.response.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "error",
+                "value": "test error",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 });

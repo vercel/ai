@@ -41,7 +41,11 @@ async function main() {
       }
 
       case 'tool-result': {
-        toolResponses.push(delta);
+        const transformedDelta: ToolResultPart = {
+          ...delta,
+          output: { type: 'json', value: delta.output },
+        };
+        toolResponses.push(transformedDelta);
 
         process.stdout.write(
           `\nTool response: '${delta.toolName}' ${JSON.stringify(

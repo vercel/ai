@@ -61,12 +61,14 @@ const mockTextModel = new MockLanguageModelV2({
   doStream: async () => {
     return {
       stream: convertArrayToReadableStream([
-        { type: 'text', text: '{ ' },
-        { type: 'text', text: '"content": ' },
-        { type: 'text', text: `"Hello, ` },
-        { type: 'text', text: `world` },
-        { type: 'text', text: `!"` },
-        { type: 'text', text: ' }' },
+        { type: 'text-start', id: '0' },
+        { type: 'text-delta', id: '0', delta: '{ ' },
+        { type: 'text-delta', id: '0', delta: '"content": ' },
+        { type: 'text-delta', id: '0', delta: `"Hello, ` },
+        { type: 'text-delta', id: '0', delta: `world` },
+        { type: 'text-delta', id: '0', delta: `!"` },
+        { type: 'text-delta', id: '0', delta: ' }' },
+        { type: 'text-end', id: '0' },
         {
           type: 'finish',
           finishReason: 'stop',
@@ -241,10 +243,13 @@ describe('options.headers', () => {
 
           return {
             stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '0' },
               {
-                type: 'text',
-                text: '{ "content": "headers test" }',
+                type: 'text-delta',
+                id: '0',
+                delta: '{ "content": "headers test" }',
               },
+              { type: 'text-end', id: '0' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -273,10 +278,13 @@ describe('options.providerMetadata', () => {
 
           return {
             stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '0' },
               {
-                type: 'text',
-                text: '{ "content": "provider metadata test" }',
+                type: 'text-delta',
+                id: '0',
+                delta: '{ "content": "provider metadata test" }',
               },
+              { type: 'text-end', id: '0' },
               {
                 type: 'finish',
                 finishReason: 'stop',

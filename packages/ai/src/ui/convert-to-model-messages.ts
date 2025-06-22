@@ -1,6 +1,10 @@
+import {
+  AssistantContent,
+  ModelMessage,
+  ToolResultPart,
+} from '@ai-sdk/provider-utils';
 import { ToolSet } from '../../core/generate-text/tool-set';
-import { ToolResultPart } from '../../core/prompt/content-part';
-import { AssistantContent, ModelMessage } from '../../core/prompt/message';
+import { createToolModelOutput } from '../../core/prompt/create-tool-model-output';
 import { MessageConversionError } from '../../core/prompt/message-conversion-error';
 import {
   FileUIPart,
@@ -17,11 +21,10 @@ import {
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
-export function convertToModelMessages<TOOLS extends ToolSet = never>(
+export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
-  options?: { tools?: TOOLS },
+  options?: { tools?: ToolSet },
 ): ModelMessage[] {
-  const tools = options?.tools ?? ({} as TOOLS);
   const modelMessages: ModelMessage[] = [];
 
   for (const message of messages) {
@@ -122,34 +125,33 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
               modelMessages.push({
                 role: 'tool',
                 content: toolParts.map((toolPart): ToolResultPart => {
-                  if (toolPart.state !== 'output-available') {
-                    throw new MessageConversionError({
-                      originalMessage: message,
-                      message:
-                        'ToolInvocation must have a result: ' +
-                        JSON.stringify(toolPart),
-                    });
-                  }
+                  switch (toolPart.state) {
+                    case 'output-error':
+                    case 'output-available': {
+                      const toolName = getToolName(toolPart);
 
-                  const toolName = getToolName(toolPart);
-                  const { toolCallId, output } = toolPart;
-
-                  const tool = tools[toolName];
-                  return tool?.experimental_toToolResultContent != null
-                    ? {
+                      return {
                         type: 'tool-result',
-                        toolCallId,
+                        toolCallId: toolPart.toolCallId,
                         toolName,
-                        output: tool.experimental_toToolResultContent(output),
-                        experimental_content:
-                          tool.experimental_toToolResultContent(output),
-                      }
-                    : {
-                        type: 'tool-result',
-                        toolCallId,
-                        toolName,
-                        output,
+                        output: createToolModelOutput({
+                          output:
+                            toolPart.state === 'output-error'
+                              ? toolPart.errorText
+                              : toolPart.output,
+                          tool: options?.tools?.[toolName],
+                          isError: toolPart.state === 'output-error',
+                        }),
                       };
+                    }
+
+                    default: {
+                      throw new MessageConversionError({
+                        originalMessage: message,
+                        message: `Unsupported tool part state: ${toolPart.state}`,
+                      });
+                    }
+                  }
                 }),
               });
             }

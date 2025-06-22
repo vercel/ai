@@ -23,20 +23,3 @@ Result of the tool call. This is the result of the tool's execution.
      */
   output: OUTPUT;
 }
-
-export type ToolResultContent = Array<
-  | {
-      type: 'text';
-      text: string;
-    }
-  | {
-      type: 'image';
-      data: string; // base64 encoded png image, e.g. screenshot
-      mediaType?: string; // e.g. 'image/png';
-
-      /**
-       * @deprecated Use `mediaType` instead.
-       */
-      mimeType?: string; // e.g. 'image/png';
-    }
->;

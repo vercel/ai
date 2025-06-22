@@ -10,6 +10,7 @@ import {
   AnthropicAssistantMessage,
   AnthropicCacheControl,
   AnthropicMessagesPrompt,
+  AnthropicToolResultContent,
   AnthropicUserMessage,
 } from './anthropic-api-types';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
@@ -258,35 +259,46 @@ export async function convertToAnthropicMessagesPrompt({
                     ? getCacheControl(message.providerOptions)
                     : undefined);
 
-                const toolResultContent =
-                  part.content != null
-                    ? part.content.map(part => {
-                        switch (part.type) {
-                          case 'text':
-                            return {
-                              type: 'text' as const,
-                              text: part.text,
-                              cache_control: undefined,
-                            };
-                          case 'image':
-                            return {
-                              type: 'image' as const,
-                              source: {
-                                type: 'base64' as const,
-                                media_type: part.mediaType ?? 'image/jpeg',
-                                data: part.data,
-                              },
-                              cache_control: undefined,
-                            };
-                        }
-                      })
-                    : JSON.stringify(part.output);
+                const output = part.output;
+                let contentValue: AnthropicToolResultContent['content'];
+                switch (output.type) {
+                  case 'content':
+                    contentValue = output.value.map(contentPart => {
+                      switch (contentPart.type) {
+                        case 'text':
+                          return {
+                            type: 'text',
+                            text: contentPart.text,
+                            cache_control: undefined,
+                          };
+                        case 'image':
+                          return {
+                            type: 'image',
+                            source: {
+                              type: 'base64',
+                              media_type: contentPart.mediaType ?? 'image/jpeg',
+                              data: contentPart.data,
+                            },
+                            cache_control: undefined,
+                          };
+                      }
+                    });
+                    break;
+                  case 'text':
+                  case 'error':
+                    contentValue = output.value;
+                    break;
+                  case 'json':
+                  default:
+                    contentValue = JSON.stringify(output.value);
+                    break;
+                }
 
                 anthropicContent.push({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
-                  content: toolResultContent,
-                  is_error: part.isError,
+                  content: contentValue,
+                  is_error: output.type === 'error' ? true : undefined,
                   cache_control: cacheControl,
                 });
               }

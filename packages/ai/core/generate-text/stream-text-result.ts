@@ -1,8 +1,9 @@
+import { ReasoningPart } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
 import { InferUIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 import { InferUIMessageMetadata, UIMessage } from '../../src/ui/ui-messages';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
-import { ReasoningPart } from '../prompt/content-part';
 import {
   CallWarning,
   FinishReason,
@@ -17,9 +18,8 @@ import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
-import { ToolResultUnion } from './tool-result';
+import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
-import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -319,19 +319,60 @@ If an error occurs, it is passed to the optional `onError` callback.
 }
 
 export type TextStreamPart<TOOLS extends ToolSet> =
-  | ContentPart<TOOLS>
-  | { type: 'reasoning-part-finish' }
   | {
-      type: 'tool-call-streaming-start';
-      toolCallId: string;
-      toolName: string;
+      type: 'text-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
     }
   | {
-      type: 'tool-call-delta';
-      toolCallId: string;
-      toolName: string;
-      inputTextDelta: string;
+      type: 'text-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
     }
+  | {
+      type: 'text';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+      text: string;
+    }
+  | {
+      type: 'reasoning-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+      text: string;
+    }
+  | {
+      type: 'tool-input-start';
+      id: string;
+      toolName: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | ({ type: 'source' } & Source)
+  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
+  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
+  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
+  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
   | {
       type: 'start-step';
       request: LanguageModelRequestMetadata;

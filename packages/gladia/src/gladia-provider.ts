@@ -1,8 +1,8 @@
-import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
+import { TranscriptionModelV2, ProviderV2 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 
-export interface GladiaProvider extends Pick<ProviderV1, 'transcriptionModel'> {
+export interface GladiaProvider extends Pick<ProviderV2, 'transcriptionModel'> {
   (): {
     transcription: GladiaTranscriptionModel;
   };
@@ -10,7 +10,7 @@ export interface GladiaProvider extends Pick<ProviderV1, 'transcriptionModel'> {
   /**
 Creates a model for transcription.
    */
-  transcription(): TranscriptionModelV1;
+  transcription(): TranscriptionModelV2;
 }
 
 export interface GladiaProviderSettings {

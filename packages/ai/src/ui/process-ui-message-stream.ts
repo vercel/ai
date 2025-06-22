@@ -27,8 +27,8 @@ import { UIDataTypesToSchemas } from './chat';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
-  activeTextPart: TextUIPart | undefined;
-  activeReasoningPart: ReasoningUIPart | undefined;
+  activeTextParts: Record<string, TextUIPart>;
+  activeReasoningParts: Record<string, ReasoningUIPart>;
   partialToolCalls: Record<
     string,
     { text: string; index: number; toolName: string }
@@ -55,8 +55,8 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
               InferUIMessageTools<UI_MESSAGE>
             >[],
           } as UI_MESSAGE),
-    activeTextPart: undefined,
-    activeReasoningPart: undefined,
+    activeTextParts: {},
+    activeReasoningParts: {},
     partialToolCalls: {},
   };
 }
@@ -99,6 +99,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | { state: 'input-streaming'; input: unknown }
               | { state: 'input-available'; input: unknown }
               | { state: 'output-available'; input: unknown; output: unknown }
+              | { state: 'output-error'; input: unknown; errorText: string }
             ),
           ) {
             const part = state.message.parts.find(
@@ -110,6 +111,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               part.state = options.state;
               (part as any).input = (options as any).input;
               (part as any).output = (options as any).output;
+              (part as any).errorText = (options as any).errorText;
             } else {
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
@@ -117,6 +119,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: options.state,
                 input: (options as any).input,
                 output: (options as any).output,
+                errorText: (options as any).errorText,
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
@@ -141,43 +144,56 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
           }
 
           switch (part.type) {
-            case 'text': {
-              if (state.activeTextPart == null) {
-                state.activeTextPart = {
-                  type: 'text',
-                  text: part.text,
-                };
-                state.message.parts.push(state.activeTextPart);
-              } else {
-                state.activeTextPart.text += part.text;
-              }
+            case 'text-start': {
+              const textPart: TextUIPart = { type: 'text', text: '' };
+              state.activeTextParts[part.id] = textPart;
+              state.message.parts.push(textPart);
+              break;
+            }
+
+            case 'text-delta': {
+              state.activeTextParts[part.id].text += part.delta;
+              write();
+              break;
+            }
+
+            case 'text-end': {
+              delete state.activeTextParts[part.id];
+              break;
+            }
+
+            case 'reasoning-start': {
+              const reasoningPart: ReasoningUIPart = {
+                type: 'reasoning',
+                text: '',
+                providerMetadata: part.providerMetadata,
+              };
+              state.activeReasoningParts[part.id] = reasoningPart;
+              state.message.parts.push(reasoningPart);
 
               write();
               break;
             }
 
-            case 'reasoning': {
-              if (state.activeReasoningPart == null) {
-                state.activeReasoningPart = {
-                  type: 'reasoning',
-                  text: part.text,
-                  providerMetadata: part.providerMetadata,
-                };
-                state.message.parts.push(state.activeReasoningPart);
-              } else {
-                state.activeReasoningPart.text += part.text;
-                state.activeReasoningPart.providerMetadata =
-                  part.providerMetadata;
-              }
-
+            case 'reasoning-delta': {
+              const reasoningPart = state.activeReasoningParts[part.id];
+              reasoningPart.text += part.delta;
+              reasoningPart.providerMetadata =
+                part.providerMetadata ?? reasoningPart.providerMetadata;
               write();
               break;
             }
 
-            case 'reasoning-part-finish': {
-              if (state.activeReasoningPart != null) {
-                state.activeReasoningPart = undefined;
+            case 'reasoning-end': {
+              const reasoningPart = state.activeReasoningParts[part.id];
+              reasoningPart.providerMetadata =
+                part.providerMetadata ?? reasoningPart.providerMetadata;
+              delete state.activeReasoningParts[part.id];
+
+              if (part.providerMetadata != null) {
+                write();
               }
+
               break;
             }
 
@@ -327,6 +343,41 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'tool-output-error': {
+              const toolInvocations = state.message.parts.filter(isToolUIPart);
+
+              if (toolInvocations == null) {
+                throw new Error('tool_result must be preceded by a tool_call');
+              }
+
+              // find if there is any tool invocation with the same toolCallId
+              // and replace it with the result
+              const toolInvocationIndex = toolInvocations.findIndex(
+                invocation => invocation.toolCallId === part.toolCallId,
+              );
+
+              if (toolInvocationIndex === -1) {
+                throw new Error(
+                  'tool_result must be preceded by a tool_call with the same toolCallId',
+                );
+              }
+
+              const toolName = getToolName(
+                toolInvocations[toolInvocationIndex],
+              );
+
+              updateToolInvocationPart({
+                toolCallId: part.toolCallId,
+                toolName,
+                state: 'output-error',
+                input: (toolInvocations[toolInvocationIndex] as any).input,
+                errorText: part.errorText,
+              });
+
+              write();
+              break;
+            }
+
             case 'start-step': {
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
@@ -335,8 +386,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'finish-step': {
               // reset the current text and reasoning parts
-              state.activeTextPart = undefined;
-              state.activeReasoningPart = undefined;
+              state.activeTextParts = {};
+              state.activeReasoningParts = {};
               break;
             }
 

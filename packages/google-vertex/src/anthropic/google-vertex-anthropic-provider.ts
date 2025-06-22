@@ -12,7 +12,6 @@ import {
 import {
   anthropicTools,
   AnthropicMessagesLanguageModel,
-  AnthropicMessagesModelId,
 } from '@ai-sdk/anthropic/internal';
 import { GoogleVertexAnthropicMessagesModelId } from './google-vertex-anthropic-messages-options';
 export interface GoogleVertexAnthropicProvider extends ProviderV2 {

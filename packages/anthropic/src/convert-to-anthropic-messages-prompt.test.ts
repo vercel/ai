@@ -283,7 +283,10 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              output: { test: 'This is a tool message' },
+              output: {
+                type: 'json',
+                value: { test: 'This is a tool message' },
+              },
             },
           ],
         },
@@ -323,13 +326,16 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              output: { test: 'This is a tool message' },
+              output: {
+                type: 'json',
+                value: { test: 'This is a tool message' },
+              },
             },
             {
               type: 'tool-result',
               toolName: 'tool-2',
               toolCallId: 'tool-call-2',
-              output: { something: 'else' },
+              output: { type: 'json', value: { something: 'else' } },
             },
           ],
         },
@@ -375,7 +381,10 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'tool-1',
               toolCallId: 'tool-call-1',
-              output: { test: 'This is a tool message' },
+              output: {
+                type: 'json',
+                value: { test: 'This is a tool message' },
+              },
             },
           ],
         },
@@ -420,18 +429,20 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolName: 'image-generator',
               toolCallId: 'image-gen-1',
-              output: 'Image generated successfully',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Image generated successfully',
-                },
-                {
-                  type: 'image',
-                  data: 'AAECAw==',
-                  mediaType: 'image/png',
-                },
-              ],
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'Image generated successfully',
+                  },
+                  {
+                    type: 'image',
+                    data: 'AAECAw==',
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
             },
           ],
         },
@@ -440,34 +451,43 @@ describe('tool messages', () => {
       warnings: [],
     });
 
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'tool_result',
-                tool_use_id: 'image-gen-1',
-                is_error: undefined,
-                content: [
-                  { type: 'text', text: 'Image generated successfully' },
-                  {
-                    type: 'image',
-                    source: {
-                      type: 'base64',
-                      data: 'AAECAw==',
-                      media_type: 'image/png',
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Image generated successfully",
+                      "type": "text",
                     },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      betas: new Set(),
-    });
+                    {
+                      "cache_control": undefined,
+                      "source": {
+                        "data": "AAECAw==",
+                        "media_type": "image/png",
+                        "type": "base64",
+                      },
+                      "type": "image",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "image-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
   });
 });
 
@@ -1086,7 +1106,7 @@ describe('cache control', () => {
                 type: 'tool-result',
                 toolName: 'test',
                 toolCallId: 'test',
-                output: { test: 'test' },
+                output: { type: 'json', value: { test: 'test' } },
                 providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
@@ -1131,13 +1151,13 @@ describe('cache control', () => {
                 type: 'tool-result',
                 toolName: 'test',
                 toolCallId: 'part1',
-                output: { test: 'part1' },
+                output: { type: 'json', value: { test: 'part1' } },
               },
               {
                 type: 'tool-result',
                 toolName: 'test',
                 toolCallId: 'part2',
-                output: { test: 'part2' },
+                output: { type: 'json', value: { test: 'part2' } },
               },
             ],
             providerOptions: {

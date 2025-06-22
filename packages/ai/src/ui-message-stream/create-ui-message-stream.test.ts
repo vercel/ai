@@ -5,21 +5,32 @@ import { createUIMessageStream } from './create-ui-message-stream';
 import { UIMessageStreamPart } from './ui-message-stream-parts';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 import { consumeStream } from '../util/consume-stream';
-import { UIDataTypes, UIMessage } from '../ui';
+import { UIMessage } from '../ui/ui-messages';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
-        writer.write({ type: 'text', text: '1a' });
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: '1a' });
+        writer.write({ type: 'text-end', id: '1' });
       },
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "text": "1a",
-          "type": "text",
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "1a",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
         },
       ]
     `);
@@ -31,8 +42,8 @@ describe('createUIMessageStream', () => {
         writer.merge(
           new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: '1a' });
-              controller.enqueue({ type: 'text', text: '1b' });
+              controller.enqueue({ type: 'text-delta', id: '1', delta: '1a' });
+              controller.enqueue({ type: 'text-delta', id: '1', delta: '1b' });
               controller.close();
             },
           }),
@@ -43,12 +54,14 @@ describe('createUIMessageStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "text": "1a",
-          "type": "text",
+          "delta": "1a",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "1b",
-          "type": "text",
+          "delta": "1b",
+          "id": "1",
+          "type": "text-delta",
         },
       ]
     `);
@@ -60,7 +73,7 @@ describe('createUIMessageStream', () => {
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
         await wait.promise;
-        writer.write({ type: 'text', text: '1a' });
+        writer.write({ type: 'text-delta', id: '1', delta: '1a' });
       },
     });
 
@@ -69,8 +82,9 @@ describe('createUIMessageStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "text": "1a",
-          "type": "text",
+          "delta": "1a",
+          "id": "1",
+          "type": "text-delta",
         },
       ]
     `);
@@ -82,7 +96,7 @@ describe('createUIMessageStream', () => {
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
-        writer.write({ type: 'text', text: 'data-part-1' });
+        writer.write({ type: 'text-delta', id: '1', delta: 'data-part-1' });
 
         writer.merge(
           new ReadableStream({
@@ -92,9 +106,9 @@ describe('createUIMessageStream', () => {
           }),
         );
 
-        controller1!.enqueue({ type: 'text', text: '1a' });
-        writer.write({ type: 'text', text: 'data-part-2' });
-        controller1!.enqueue({ type: 'text', text: '1b' });
+        controller1!.enqueue({ type: 'text-delta', id: '1', delta: '1a' });
+        writer.write({ type: 'text-delta', id: '1', delta: 'data-part-2' });
+        controller1!.enqueue({ type: 'text-delta', id: '1', delta: '1b' });
 
         writer.merge(
           new ReadableStream({
@@ -104,59 +118,69 @@ describe('createUIMessageStream', () => {
           }),
         );
 
-        writer.write({ type: 'text', text: 'data-part-3' });
+        writer.write({ type: 'text-delta', id: '1', delta: 'data-part-3' });
       },
     });
 
-    controller2!.enqueue({ type: 'text', text: '2a' });
-    controller1!.enqueue({ type: 'text', text: '1c' });
-    controller2!.enqueue({ type: 'text', text: '2b' });
+    controller2!.enqueue({ type: 'text-delta', id: '2', delta: '2a' });
+    controller1!.enqueue({ type: 'text-delta', id: '1', delta: '1c' });
+    controller2!.enqueue({ type: 'text-delta', id: '2', delta: '2b' });
     controller2!.close();
-    controller1!.enqueue({ type: 'text', text: '1d' });
-    controller1!.enqueue({ type: 'text', text: '1e' });
+    controller1!.enqueue({ type: 'text-delta', id: '1', delta: '1d' });
+    controller1!.enqueue({ type: 'text-delta', id: '1', delta: '1e' });
     controller1!.close();
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "text": "data-part-1",
-          "type": "text",
+          "delta": "data-part-1",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "data-part-2",
-          "type": "text",
+          "delta": "data-part-2",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "data-part-3",
-          "type": "text",
+          "delta": "data-part-3",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "1a",
-          "type": "text",
+          "delta": "1a",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "2a",
-          "type": "text",
+          "delta": "2a",
+          "id": "2",
+          "type": "text-delta",
         },
         {
-          "text": "1b",
-          "type": "text",
+          "delta": "1b",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "2b",
-          "type": "text",
+          "delta": "2b",
+          "id": "2",
+          "type": "text-delta",
         },
         {
-          "text": "1c",
-          "type": "text",
+          "delta": "1c",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "1d",
-          "type": "text",
+          "delta": "1d",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "1e",
-          "type": "text",
+          "delta": "1e",
+          "id": "1",
+          "type": "text-delta",
         },
       ]
     `);
@@ -186,25 +210,28 @@ describe('createUIMessageStream', () => {
       onError: () => 'error-message',
     });
 
-    controller1!.enqueue({ type: 'text', text: '1a' });
+    controller1!.enqueue({ type: 'text-delta', id: '1', delta: '1a' });
     controller1!.error(new Error('1-error'));
-    controller2!.enqueue({ type: 'text', text: '2a' });
-    controller2!.enqueue({ type: 'text', text: '2b' });
+    controller2!.enqueue({ type: 'text-delta', id: '2', delta: '2a' });
+    controller2!.enqueue({ type: 'text-delta', id: '2', delta: '2b' });
     controller2!.close();
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
-          "text": "1a",
-          "type": "text",
+          "delta": "1a",
+          "id": "1",
+          "type": "text-delta",
         },
         {
-          "text": "2a",
-          "type": "text",
+          "delta": "2a",
+          "id": "2",
+          "type": "text-delta",
         },
         {
-          "text": "2b",
-          "type": "text",
+          "delta": "2b",
+          "id": "2",
+          "type": "text-delta",
         },
         {
           "errorText": "error-message",
@@ -255,17 +282,27 @@ describe('createUIMessageStream', () => {
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
-        writer.write({ type: 'text', text: '1a' });
+        writer.write({ type: 'text-delta', id: '1', delta: '1a' });
         uiMessageStreamWriter = writer;
       },
     });
 
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      { type: 'text', text: '1a' },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "delta": "1a",
+          "id": "1",
+          "type": "text-delta",
+        },
+      ]
+    `);
 
     expect(() =>
-      uiMessageStreamWriter!.write({ type: 'text', text: '1b' }),
+      uiMessageStreamWriter!.write({
+        type: 'text-delta',
+        id: '1',
+        delta: '1b',
+      }),
     ).not.toThrow();
   });
 
@@ -300,7 +337,7 @@ describe('createUIMessageStream', () => {
     // function is finished
     expect(done).toBe(true);
 
-    controller1!.enqueue({ type: 'text', text: '1a' });
+    controller1!.enqueue({ type: 'text-delta', id: '1', delta: '1a' });
     await pull();
 
     // controller1 is still open, create 2nd stream
@@ -318,15 +355,25 @@ describe('createUIMessageStream', () => {
     await delay(); // relinquish control
 
     // it should still be able to write to controller2
-    controller2!.enqueue({ type: 'text', text: '2a' });
+    controller2!.enqueue({ type: 'text-delta', id: '2', delta: '2a' });
     controller2!.close();
 
     await pull();
 
-    expect(result).toEqual([
-      { type: 'text', text: '1a' },
-      { type: 'text', text: '2a' },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "delta": "1a",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "delta": "2a",
+          "id": "2",
+          "type": "text-delta",
+        },
+      ]
+    `);
   });
 
   it('should handle onFinish without original messages', async () => {
@@ -334,7 +381,9 @@ describe('createUIMessageStream', () => {
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
-        writer.write({ type: 'text', text: '1a' });
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: '1a' });
+        writer.write({ type: 'text-end', id: '1' });
       },
       onFinish: options => {
         recordedOptions.push(options);
@@ -382,7 +431,9 @@ describe('createUIMessageStream', () => {
 
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
-        writer.write({ type: 'text', text: '1b' });
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: '1b' });
+        writer.write({ type: 'text-end', id: '1' });
       },
       originalMessages: [
         {

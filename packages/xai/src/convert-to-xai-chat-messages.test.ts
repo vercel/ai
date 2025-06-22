@@ -127,7 +127,7 @@ describe('convertToXaiChatMessages', () => {
             type: 'tool-result',
             toolCallId: 'call_123',
             toolName: 'weather',
-            output: { temperature: 20 },
+            output: { type: 'json', value: { temperature: 20 } },
           },
         ],
       },

@@ -374,63 +374,35 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-  function prepareStreamResponse({
-    content = [],
-    finish_reason = 'stop',
-    usage = {
-      prompt_tokens: 10,
-      total_tokens: 372,
-      completion_tokens: 362,
-    },
-    headers,
-  }: {
-    content?: string[];
-    usage?: {
-      prompt_tokens: number;
-      total_tokens: number;
-      completion_tokens: number;
-    };
-    finish_reason?: string;
-    headers?: Record<string, string>;
-  }) {
+  function prepareEmptyStreamResponse(headers?: Record<string, string>) {
     server.urls['https://my.api.com/v1/completions'].response = {
       type: 'stream-chunks',
       headers,
       chunks: [
-        ...content.map(text => {
-          return (
-            `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,` +
-            `"choices":[{"text":"${text}","index":0,"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`
-          );
-        }),
-        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
-          `"choices":[{"text":"","index":0,"finish_reason":"${finish_reason}"}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
-        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
-          `"model":"gpt-3.5-turbo-instruct","usage":${JSON.stringify(
-            usage,
-          )},"choices":[]}\n\n`,
+        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,"model":"gpt-3.5-turbo-instruct","choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,"model":"gpt-3.5-turbo-instruct","usage":{"prompt_tokens":10,"completion_tokens":0,"total_tokens":10},"choices":[]}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
   }
 
   it('should stream text deltas', async () => {
-    prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
-      finish_reason: 'stop',
-      usage: {
-        prompt_tokens: 10,
-        total_tokens: 372,
-        completion_tokens: 362,
-      },
-    });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,"model":"gpt-3.5-turbo-instruct","choices":[{"text":"Hello","index":0,"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,"model":"gpt-3.5-turbo-instruct","choices":[{"text":",","index":0,"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,"model":"gpt-3.5-turbo-instruct","choices":[{"text":" World!","index":0,"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,"model":"gpt-3.5-turbo-instruct","choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,"model":"gpt-3.5-turbo-instruct","usage":{"prompt_tokens":10,"completion_tokens":362,"total_tokens":372},"choices":[]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
     });
-
-    // note: space moved to last chunk bc of trimming
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
@@ -444,20 +416,32 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "delta": ",",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "",
-          "type": "text",
+          "delta": " World!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -476,8 +460,7 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
-          `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+        `data: {"error":{"message":"The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -554,7 +537,7 @@ describe('doStream', () => {
   );
 
   it('should send request body', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -592,9 +575,7 @@ describe('doStream', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareStreamResponse({
-      headers: { 'test-header': 'test-value' },
-    });
+    prepareEmptyStreamResponse({ 'test-header': 'test-value' });
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -613,7 +594,7 @@ describe('doStream', () => {
   });
 
   it('should pass the model and the prompt', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -638,7 +619,7 @@ describe('doStream', () => {
   });
 
   it('should pass headers', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     const provider = createOpenAICompatible({
       baseURL: 'https://my.api.com/v1/',
@@ -666,7 +647,7 @@ describe('doStream', () => {
   });
 
   it('should include provider-specific options', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     await model.doStream({
       providerOptions: {
@@ -697,7 +678,7 @@ describe('doStream', () => {
   });
 
   it('should not include provider-specific options for different provider', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     await model.doStream({
       providerOptions: {

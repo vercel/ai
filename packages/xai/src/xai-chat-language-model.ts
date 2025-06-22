@@ -259,7 +259,6 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallType: 'function',
           toolCallId: toolCall.id,
           toolName: toolCall.function.name,
           input: toolCall.function.arguments,
@@ -330,6 +329,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let isFirstChunk = true;
+    const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
 
     const self = this;
 
@@ -400,10 +400,11 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             }
 
             const delta = choice.delta;
+            const choiceIndex = choice.index;
 
             // process text content
             if (delta.content != null && delta.content.length > 0) {
-              let textContent = delta.content;
+              const textContent = delta.content;
 
               // skip if this content duplicates the last assistant message
               const lastMessage = body.messages[body.messages.length - 1];
@@ -414,7 +415,21 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
                 return;
               }
 
-              controller.enqueue({ type: 'text', text: textContent });
+              const blockId = `text-${value.id || choiceIndex}`;
+
+              if (contentBlocks[blockId] == null) {
+                contentBlocks[blockId] = { type: 'text' };
+                controller.enqueue({
+                  type: 'text-start',
+                  id: blockId,
+                });
+              }
+
+              controller.enqueue({
+                type: 'text-delta',
+                id: blockId,
+                delta: textContent,
+              });
             }
 
             // process reasoning content
@@ -422,9 +437,20 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
               delta.reasoning_content != null &&
               delta.reasoning_content.length > 0
             ) {
+              const blockId = `reasoning-${value.id || choiceIndex}`;
+
+              if (contentBlocks[blockId] == null) {
+                contentBlocks[blockId] = { type: 'reasoning' };
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: blockId,
+                });
+              }
+
               controller.enqueue({
-                type: 'reasoning',
-                text: delta.reasoning_content,
+                type: 'reasoning-delta',
+                id: blockId,
+                delta: delta.reasoning_content,
               });
             }
 
@@ -432,17 +458,28 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             if (delta.tool_calls != null) {
               for (const toolCall of delta.tool_calls) {
                 // xai tool calls come in one piece (like mistral)
+                const toolCallId = toolCall.id;
+
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
+                  type: 'tool-input-start',
+                  id: toolCallId,
                   toolName: toolCall.function.name,
-                  inputTextDelta: toolCall.function.arguments,
                 });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCallId,
+                  delta: toolCall.function.arguments,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCallId,
+                });
+
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
+                  toolCallId,
                   toolName: toolCall.function.name,
                   input: toolCall.function.arguments,
                 });
@@ -451,6 +488,13 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            for (const [blockId, block] of Object.entries(contentBlocks)) {
+              controller.enqueue({
+                type: block.type === 'text' ? 'text-end' : 'reasoning-end',
+                id: blockId,
+              });
+            }
+
             controller.enqueue({ type: 'finish', finishReason, usage });
           },
         }),

@@ -125,10 +125,24 @@ export function convertToOpenAIResponsesMessages({
 
       case 'tool': {
         for (const part of content) {
+          const output = part.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error':
+              contentValue = output.value;
+              break;
+            case 'content':
+            case 'json':
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           messages.push({
             type: 'function_call_output',
             call_id: part.toolCallId,
-            output: JSON.stringify(part.output),
+            output: contentValue,
           });
         }
 
