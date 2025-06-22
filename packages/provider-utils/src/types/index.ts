@@ -19,6 +19,8 @@ export type {
   ToolCallOptions,
   ToolExecuteFunction,
   ToolInputSchema,
+  InferToolInput,
+  InferToolOutput,
 } from './tool';
 export type { ToolCall } from './tool-call';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';
