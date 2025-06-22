@@ -14,14 +14,14 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-options';
+import { XaiChatLanguageModel } from './xai-chat-language-model';
+import { XaiChatModelId } from './xai-chat-options';
 import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
 import { XaiImageModelId } from './xai-image-settings';
-import { XaiChatLanguageModel } from './xai-chat-language-model';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorDataSchema,
-  errorToMessage: (data: XaiErrorData) => data.error.message,
+  errorToMessage: data => data.error.message,
 };
 
 export interface XaiProvider extends ProviderV2 {
@@ -89,10 +89,9 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   });
 
   const createLanguageModel = (modelId: XaiChatModelId) => {
-    const structuredOutputs = supportsStructuredOutputs(modelId);
     return new XaiChatLanguageModel(modelId, {
       provider: 'xai.chat',
-      baseURL: baseURL,
+      baseURL,
       headers: getHeaders,
       generateId,
       fetch: options.fetch,
@@ -102,7 +101,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   const createImageModel = (modelId: XaiImageModelId) => {
     return new OpenAICompatibleImageModel(modelId, {
       provider: 'xai.image',
-      url: ({ path }: { path: string }) => `${baseURL}${path}`,
+      url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: xaiErrorStructure,
