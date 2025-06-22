@@ -16,9 +16,9 @@ export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
 export * from './post-to-api';
 export {
-  createProviderDefinedClientToolFactory,
-  type ProviderDefinedClientToolFactory,
-} from './provider-defined-client-tool-factory';
+  createProviderDefinedToolFactory,
+  type ProviderDefinedToolFactory,
+} from './provider-defined-tool-factory';
 export * from './remove-undefined-entries';
 export * from './resolve';
 export * from './response-handler';

@@ -1,7 +1,7 @@
-import { createProviderDefinedClientToolFactory } from '@ai-sdk/provider-utils';
+import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const computer_20250124 = createProviderDefinedClientToolFactory<
+export const computer_20250124 = createProviderDefinedToolFactory<
   {
     /**
      * - `key`: Press a key or key-combination on the keyboard.

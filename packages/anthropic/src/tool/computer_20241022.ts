@@ -1,7 +1,7 @@
-import { createProviderDefinedClientToolFactory } from '@ai-sdk/provider-utils';
+import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const computer_20241022 = createProviderDefinedClientToolFactory<
+export const computer_20241022 = createProviderDefinedToolFactory<
   {
     /**
      * The action to perform. The available actions are:

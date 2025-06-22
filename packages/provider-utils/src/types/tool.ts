@@ -46,7 +46,7 @@ export type Tool<
   /**
 An optional description of what the tool does.
 Will be used by the language model to decide whether to use the tool.
-Not used for provider-defined-client tools.
+Not used for provider-defined tools.
    */
   description?: string;
 } & NeverOptional<
@@ -124,25 +124,9 @@ Function tool.
       }
     | {
         /**
-Provider-defined-client tool.
+Provider-defined tool.
      */
-        type: 'provider-defined-client';
-
-        /**
-The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
-     */
-        id: `${string}.${string}`;
-
-        /**
-The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
-     */
-        args: Record<string, unknown>;
-      }
-    | {
-        /**
-Provider-defined-server tool.
-     */
-        type: 'provider-defined-server';
+        type: 'provider-defined';
 
         /**
 The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
