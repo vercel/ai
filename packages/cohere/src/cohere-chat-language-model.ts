@@ -228,8 +228,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       hasFinished: boolean;
     } | null = null;
 
-    let isActiveText = false;
-
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -257,32 +255,27 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
             switch (type) {
               case 'content-start': {
-                if (!isActiveText) {
-                  controller.enqueue({ type: 'text-start', id: '0' });
-                  isActiveText = true;
-                }
+                controller.enqueue({
+                  type: 'text-start',
+                  id: String(value.index),
+                });
                 return;
               }
 
               case 'content-delta': {
-                if (!isActiveText) {
-                  controller.enqueue({ type: 'text-start', id: '0' });
-                  isActiveText = true;
-                }
-
                 controller.enqueue({
                   type: 'text-delta',
-                  id: '0',
+                  id: String(value.index),
                   delta: value.delta.message.content.text,
                 });
                 return;
               }
 
               case 'content-end': {
-                if (isActiveText) {
-                  controller.enqueue({ type: 'text-end', id: '0' });
-                  isActiveText = false;
-                }
+                controller.enqueue({
+                  type: 'text-end',
+                  id: String(value.index),
+                });
                 return;
               }
 
@@ -377,10 +370,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
-            if (isActiveText) {
-              controller.enqueue({ type: 'text-end', id: '0' });
-            }
-
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -466,9 +455,11 @@ const cohereChatChunkSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('content-start'),
+    index: z.number(),
   }),
   z.object({
     type: z.literal('content-delta'),
+    index: z.number(),
     delta: z.object({
       message: z.object({
         content: z.object({
@@ -479,6 +470,7 @@ const cohereChatChunkSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('content-end'),
+    index: z.number(),
   }),
   z.object({
     type: z.literal('message-start'),
