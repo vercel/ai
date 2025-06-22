@@ -970,20 +970,32 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "delta": "",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "delta": ", ",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -1040,20 +1052,40 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Let me think",
-          "type": "reasoning",
+          "id": "reasoning-0",
+          "type": "reasoning-start",
         },
         {
-          "text": " about this",
-          "type": "reasoning",
+          "delta": "Let me think",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
         },
         {
-          "text": "Here's",
-          "type": "text",
+          "delta": " about this",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
         },
         {
-          "text": " my response",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here's",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " my response",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -1422,8 +1454,13 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
@@ -1464,6 +1501,10 @@ describe('doStream', () => {
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-call",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "tool-calls",
@@ -2073,8 +2114,13 @@ describe('raw chunks', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
           "rawValue": {
@@ -2086,6 +2132,10 @@ describe('raw chunks', () => {
             ],
           },
           "type": "raw",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",

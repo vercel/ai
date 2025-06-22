@@ -368,6 +368,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     };
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
+    let isActiveReasoning = false;
+    let isActiveText = false;
 
     return {
       stream: response.pipeThrough(
@@ -462,16 +464,31 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
             // enqueue reasoning before text deltas:
             if (delta.reasoning_content != null) {
+              if (!isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = true;
+              }
+
               controller.enqueue({
-                type: 'reasoning',
-                text: delta.reasoning_content,
+                type: 'reasoning-delta',
+                id: 'reasoning-0',
+                delta: delta.reasoning_content,
               });
             }
 
             if (delta.content != null) {
+              if (!isActiveText) {
+                controller.enqueue({ type: 'text-start', id: 'txt-0' });
+                isActiveText = true;
+              }
+
               controller.enqueue({
-                type: 'text',
-                text: delta.content,
+                type: 'text-delta',
+                id: 'txt-0',
+                delta: delta.content,
               });
             }
 
@@ -596,6 +613,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (isActiveReasoning) {
+              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            }
+
+            if (isActiveText) {
+              controller.enqueue({ type: 'text-end', id: 'txt-0' });
+            }
+
             const providerMetadata: SharedV2ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
