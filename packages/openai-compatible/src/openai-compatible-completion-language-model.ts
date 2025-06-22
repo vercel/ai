@@ -243,16 +243,12 @@ export class OpenAICompatibleCompletionLanguageModel
       fetch: this.config.fetch,
     });
 
-    const self = this;
-
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let responseId: string | null = null;
-    let textBlockId: string | null = null;
     let isFirstChunk = true;
 
     return {
@@ -289,19 +285,16 @@ export class OpenAICompatibleCompletionLanguageModel
             if (isFirstChunk) {
               isFirstChunk = false;
 
-              responseId = value.id || null;
-              textBlockId = value.id || '0';
-
-                const responseMetadata = getResponseMetadata(value);
-                controller.enqueue({
-                  type: 'response-metadata',
-                  ...(responseId && { id: responseId }),
-                  ...responseMetadata,
-                });
+              const responseMetadata = getResponseMetadata(value);
+              controller.enqueue({
+                type: 'response-metadata',
+                ...(value.id && { id: value.id }),
+                ...responseMetadata,
+              });
 
               controller.enqueue({
                 type: 'text-start',
-                id: textBlockId!,
+                id: '0',
               });
             }
 
@@ -322,29 +315,21 @@ export class OpenAICompatibleCompletionLanguageModel
             if (choice?.text != null && choice.text.length > 0) {
               controller.enqueue({
                 type: 'text-delta',
-                id: textBlockId!,
+                id: '0',
                 delta: choice.text,
               });
             }
           },
 
           flush(controller) {
-            if (textBlockId != null) {
-              controller.enqueue({
-                type: 'text-end',
-                id: textBlockId,
-              });
+            if (!isFirstChunk) {
+              controller.enqueue({ type: 'text-end', id: '0' });
             }
 
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage,
-              providerMetadata: {
-                [self.config.provider.split('.')[0]]: {
-                  ...(responseId && { responseId }),
-                },
-              },
             });
           },
         }),

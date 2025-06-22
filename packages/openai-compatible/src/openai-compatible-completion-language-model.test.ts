@@ -416,35 +416,30 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "id": "cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT",
+          "id": "0",
           "type": "text-start",
         },
         {
           "delta": "Hello",
-          "id": "cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT",
+          "id": "0",
           "type": "text-delta",
         },
         {
           "delta": ",",
-          "id": "cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT",
+          "id": "0",
           "type": "text-delta",
         },
         {
           "delta": " World!",
-          "id": "cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT",
+          "id": "0",
           "type": "text-delta",
         },
         {
-          "id": "cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT",
+          "id": "0",
           "type": "text-end",
         },
         {
           "finishReason": "stop",
-          "providerMetadata": {
-            "test-provider": {
-              "responseId": "cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT",
-            },
-          },
           "type": "finish",
           "usage": {
             "inputTokens": 10,
@@ -487,9 +482,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "error",
-          "providerMetadata": {
-            "test-provider": {},
-          },
           "type": "finish",
           "usage": {
             "inputTokens": undefined,
@@ -527,9 +519,6 @@ describe('doStream', () => {
           },
           {
             "finishReason": "error",
-            "providerMetadata": {
-              "test-provider": {},
-            },
             "type": "finish",
             "usage": {
               "inputTokens": undefined,
