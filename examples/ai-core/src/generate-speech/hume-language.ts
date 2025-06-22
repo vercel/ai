@@ -18,4 +18,4 @@ async function main() {
   await saveAudioFile(result.audio);
 }
 
-main().catch(console.error); 
+main().catch(console.error);

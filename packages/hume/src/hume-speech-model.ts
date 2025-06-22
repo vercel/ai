@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { HumeConfig } from './hume-config';
 import { humeFailedResponseHandler } from './hume-error';
 import { HumeSpeechAPITypes } from './hume-api-types';
-import 'dotenv/config';
 
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
 const humeSpeechCallOptionsSchema = z.object({

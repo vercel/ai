@@ -10,7 +10,6 @@ import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import { OpenAISpeechModelId } from './openai-speech-options';
 import { OpenAISpeechAPITypes } from './openai-api-types';
-import 'dotenv/config';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({

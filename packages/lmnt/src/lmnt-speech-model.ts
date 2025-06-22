@@ -10,8 +10,6 @@ import { LMNTConfig } from './lmnt-config';
 import { lmntFailedResponseHandler } from './lmnt-error';
 import { LMNTSpeechModelId } from './lmnt-speech-options';
 import { LMNTSpeechAPITypes } from './lmnt-api-types';
-import 'dotenv/config';
-
 
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
 const lmntSpeechCallOptionsSchema = z.object({
@@ -154,7 +152,6 @@ export class LMNTSpeechModel implements SpeechModelV2 {
         temperature: lmntOptions.temperature ?? undefined,
         top_p: lmntOptions.topP ?? undefined,
         sample_rate: lmntOptions.sampleRate ?? undefined,
-
       };
 
       for (const key in speechModelOptions) {
