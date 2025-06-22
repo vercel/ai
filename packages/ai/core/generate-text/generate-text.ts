@@ -775,16 +775,19 @@ function asContent<TOOLS extends ToolSet>({
           )!;
         }
 
-        // case 'tool-result': {
-        //   return {
-        //     type: 'tool-result' as const,
-        //     toolCallId: part.toolCallId,
-        //     toolName: part.toolName as keyof TOOLS & string,
-        //     input: part.input,
-        //     output: part.result,
-        //     isServerSide: true,
-        //   };
-        // }
+        case 'tool-result': {
+          const toolCall = toolCalls.find(
+            toolCall => toolCall.toolCallId === part.toolCallId,
+          )!;
+
+          return {
+            type: 'tool-result' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName as keyof TOOLS & string,
+            input: toolCall.input,
+            output: part.result,
+          } as ToolResultUnion<TOOLS>;
+        }
       }
     }),
     ...toolOutputs,
