@@ -7,11 +7,13 @@ async function main() {
       doStream: async () => ({
         stream: simulateReadableStream({
           chunks: [
-            { type: 'text', text: '你好你好你好你好你好' },
-            { type: 'text', text: '你好你好你好你好你好' },
-            { type: 'text', text: '你好你好你好你好你好' },
-            { type: 'text', text: '你好你好你好你好你好' },
-            { type: 'text', text: '你好你好你好你好你好' },
+            { type: 'text-start', id: '0' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-end', id: '0' },
             {
               type: 'finish',
               finishReason: 'stop',
