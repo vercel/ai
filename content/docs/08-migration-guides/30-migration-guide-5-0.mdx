@@ -2237,8 +2237,11 @@ const result = await generateText({
 ```
 
 ```tsx filename="AI SDK 5.0"
-// experimental_continueSteps has been removed
-// Use newer models with higher output token limits instead
+const result = await generateText({
+  // experimental_continueSteps has been removed
+  // Use newer models with higher output token limits instead
+  // ...
+});
 ```
 
 ### Image Generation Changes
