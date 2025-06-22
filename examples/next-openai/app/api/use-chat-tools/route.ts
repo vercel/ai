@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferToolInput,
   InferUITool,
   stepCountIs,
   streamText,
@@ -50,12 +49,14 @@ const askForConfirmationTool = tool({
   inputSchema: z.object({
     message: z.string().describe('The message to ask for confirmation.'),
   }),
+  outputSchema: z.string(),
 });
 
 const getLocationTool = tool({
   description:
     'Get the user location. Always ask for confirmation before using this tool.',
   inputSchema: z.object({}),
+  outputSchema: z.string(),
 });
 
 export type UseChatToolsMessage = UIMessage<
@@ -63,14 +64,8 @@ export type UseChatToolsMessage = UIMessage<
   UIDataTypes,
   {
     getWeatherInformation: InferUITool<typeof getWeatherInformationTool>;
-    askForConfirmation: {
-      input: InferToolInput<typeof askForConfirmationTool>;
-      output: string;
-    };
-    getLocation: {
-      input: InferToolInput<typeof getLocationTool>;
-      output: string;
-    };
+    askForConfirmation: InferUITool<typeof askForConfirmationTool>;
+    getLocation: InferUITool<typeof getLocationTool>;
   }
 >;
 
