@@ -45,8 +45,10 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'Hello, ' },
-        { type: 'text', text: 'world!' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+        { type: 'text-delta', id: 'text-1', delta: 'world!' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -149,7 +151,13 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -312,7 +320,13 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -521,8 +535,14 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'I will ' },
-        { type: 'text', text: 'use a tool to get the weather in London.' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'I will ' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'use a tool to get the weather in London.',
+        },
+        { type: 'text-end', id: 'text-1' },
         {
           type: 'tool-input-available',
           toolCallId: 'tool-call-id',
@@ -536,8 +556,10 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London ' },
-        { type: 'text', text: 'is sunny.' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: 'The weather in London ' },
+        { type: 'text-delta', id: 'text-2', delta: 'is sunny.' },
+        { type: 'text-end', id: 'text-2' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -770,15 +792,21 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'reasoning', text: 'I will ' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
         {
-          type: 'reasoning',
-          text: 'use a tool to get the weather in London.',
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'I will ',
           providerMetadata: {
             testProvider: { signature: '1234567890' },
           },
         },
-        { type: 'reasoning-part-finish' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'use a tool to get the weather in London.',
+        },
+        { type: 'reasoning-end', id: 'reasoning-1' },
         {
           type: 'tool-input-available',
           toolCallId: 'tool-call-id',
@@ -792,15 +820,23 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
+        { type: 'reasoning-start', id: 'reasoning-2' },
         {
-          type: 'reasoning',
-          text: 'I know know the weather in London.',
+          type: 'reasoning-delta',
+          id: 'reasoning-2',
+          delta: 'I now know the weather in London.',
           providerMetadata: {
             testProvider: { signature: 'abc123' },
           },
         },
-        { type: 'reasoning-part-finish' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'reasoning-end', id: 'reasoning-2' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -839,6 +875,27 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "providerMetadata": undefined,
+                  "text": "",
+                  "type": "reasoning",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
                   "text": "I will ",
                   "type": "reasoning",
                 },
@@ -964,12 +1021,8 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
-                    },
-                  },
-                  "text": "I know know the weather in London.",
+                  "providerMetadata": undefined,
+                  "text": "",
                   "type": "reasoning",
                 },
               ],
@@ -1014,7 +1067,52 @@ describe('processUIMessageStream', () => {
                       "signature": "abc123",
                     },
                   },
-                  "text": "I know know the weather in London.",
+                  "text": "I now know the weather in London.",
+                  "type": "reasoning",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "abc123",
+                    },
+                  },
+                  "text": "I now know the weather in London.",
                   "type": "reasoning",
                 },
                 {
@@ -1068,7 +1166,7 @@ describe('processUIMessageStream', () => {
                   "signature": "abc123",
                 },
               },
-              "text": "I know know the weather in London.",
+              "text": "I now know the weather in London.",
               "type": "reasoning",
             },
             {
@@ -1100,7 +1198,13 @@ describe('processUIMessageStream', () => {
         },
         { type: 'finish-step' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1254,14 +1358,16 @@ describe('processUIMessageStream', () => {
           },
         },
         { type: 'start-step' },
-        { type: 'text', text: 't1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 't1' },
         {
           type: 'message-metadata',
           messageMetadata: {
             metadata: 'metadata-1',
           },
         },
-        { type: 'text', text: 't2' },
+        { type: 'text-delta', id: 'text-1', delta: 't2' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         {
           type: 'finish',
@@ -1436,7 +1542,9 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 't1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 't1' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
         {
@@ -1543,7 +1651,9 @@ describe('processUIMessageStream', () => {
           },
         },
         { type: 'start-step' },
-        { type: 'text', text: 't1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 't1' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1834,8 +1944,10 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'Hello, ' },
-        { type: 'text', text: 'world!' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+        { type: 'text-delta', id: 'text-1', delta: 'world!' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1925,37 +2037,49 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
         {
-          type: 'reasoning',
-          text: 'I will open the conversation',
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'I will open the conversation',
         },
         {
-          type: 'reasoning',
-          text: ' with witty banter. ',
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: ' with witty banter. ',
           providerMetadata: {
             testProvider: { signature: '1234567890' },
           },
         },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'reasoning-start', id: 'reasoning-2' },
         {
-          type: 'reasoning',
-          text: 'redacted-data',
+          type: 'reasoning-delta',
+          id: 'reasoning-2',
+          delta: 'redacted-data',
           providerMetadata: {
             testProvider: { isRedacted: true },
           },
         },
+        { type: 'reasoning-end', id: 'reasoning-2' },
+        { type: 'reasoning-start', id: 'reasoning-3' },
         {
-          type: 'reasoning',
-          text: 'Once the user has relaxed,',
+          type: 'reasoning-delta',
+          id: 'reasoning-3',
+          delta: 'Once the user has relaxed,',
         },
         {
-          type: 'reasoning',
-          text: ' I will pry for valuable information.',
+          type: 'reasoning-delta',
+          id: 'reasoning-3',
+          delta: ' I will pry for valuable information.',
           providerMetadata: {
             testProvider: { signature: 'abc123' },
           },
         },
-        { type: 'reasoning-part-finish' },
-        { type: 'text', text: 'Hi there!' },
+        { type: 'reasoning-end', id: 'reasoning-3' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hi there!' },
+        { type: 'text-end', id: 'text-1' },
         { type: 'finish-step' },
         { type: 'finish' },
       ]);
@@ -1981,6 +2105,23 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": undefined,
               "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "",
+                  "type": "reasoning",
+                },
+              ],
               "role": "assistant",
             },
           },
@@ -2033,27 +2174,15 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": {
                     "testProvider": {
-                      "isRedacted": true,
+                      "signature": "1234567890",
                     },
                   },
-                  "text": "I will open the conversation with witty banter. redacted-data",
+                  "text": "I will open the conversation with witty banter. ",
                   "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
                 },
                 {
                   "providerMetadata": undefined,
-                  "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed,",
+                  "text": "",
                   "type": "reasoning",
                 },
               ],
@@ -2071,10 +2200,19 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": {
                     "testProvider": {
-                      "signature": "abc123",
+                      "signature": "1234567890",
                     },
                   },
-                  "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
+                  "text": "I will open the conversation with witty banter. ",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "isRedacted": true,
+                    },
+                  },
+                  "text": "redacted-data",
                   "type": "reasoning",
                 },
               ],
@@ -2092,10 +2230,137 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": {
                     "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "text": "I will open the conversation with witty banter. ",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "isRedacted": true,
+                    },
+                  },
+                  "text": "redacted-data",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "",
+                  "type": "reasoning",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "text": "I will open the conversation with witty banter. ",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "isRedacted": true,
+                    },
+                  },
+                  "text": "redacted-data",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "Once the user has relaxed,",
+                  "type": "reasoning",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "text": "I will open the conversation with witty banter. ",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "isRedacted": true,
+                    },
+                  },
+                  "text": "redacted-data",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
                       "signature": "abc123",
                     },
                   },
-                  "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
+                  "text": "Once the user has relaxed, I will pry for valuable information.",
+                  "type": "reasoning",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "text": "I will open the conversation with witty banter. ",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "isRedacted": true,
+                    },
+                  },
+                  "text": "redacted-data",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "abc123",
+                    },
+                  },
+                  "text": "Once the user has relaxed, I will pry for valuable information.",
                   "type": "reasoning",
                 },
                 {
@@ -2122,10 +2387,28 @@ describe('processUIMessageStream', () => {
             {
               "providerMetadata": {
                 "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "text": "I will open the conversation with witty banter. ",
+              "type": "reasoning",
+            },
+            {
+              "providerMetadata": {
+                "testProvider": {
+                  "isRedacted": true,
+                },
+              },
+              "text": "redacted-data",
+              "type": "reasoning",
+            },
+            {
+              "providerMetadata": {
+                "testProvider": {
                   "signature": "abc123",
                 },
               },
-              "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
+              "text": "Once the user has relaxed, I will pry for valuable information.",
               "type": "reasoning",
             },
             {
@@ -2258,7 +2541,13 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'The weather in London is sunny.' },
+        { type: 'text-start', id: 'text-1' },
+        {
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'The weather in London is sunny.',
+        },
+        { type: 'text-end', id: 'text-1' },
         {
           type: 'source-url',
           sourceId: 'source-id',
@@ -2368,13 +2657,17 @@ describe('processUIMessageStream', () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
-        { type: 'text', text: 'Here is a file:' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Here is a file:' },
+        { type: 'text-end', id: 'text-1' },
         {
           type: 'file',
           url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
           mediaType: 'text/plain',
         },
-        { type: 'text', text: 'And another one:' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: 'And another one:' },
+        { type: 'text-end', id: 'text-2' },
         {
           type: 'file',
           url: 'data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9',
@@ -2454,13 +2747,17 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "text": "Here is a file:And another one:",
+                  "text": "Here is a file:",
                   "type": "text",
                 },
                 {
                   "mediaType": "text/plain",
                   "type": "file",
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+                },
+                {
+                  "text": "And another one:",
+                  "type": "text",
                 },
               ],
               "role": "assistant",
@@ -2475,13 +2772,17 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
-                  "text": "Here is a file:And another one:",
+                  "text": "Here is a file:",
                   "type": "text",
                 },
                 {
                   "mediaType": "text/plain",
                   "type": "file",
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+                },
+                {
+                  "text": "And another one:",
+                  "type": "text",
                 },
                 {
                   "mediaType": "application/json",
@@ -2506,13 +2807,17 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
-              "text": "Here is a file:And another one:",
+              "text": "Here is a file:",
               "type": "text",
             },
             {
               "mediaType": "text/plain",
               "type": "file",
               "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+            },
+            {
+              "text": "And another one:",
+              "type": "text",
             },
             {
               "mediaType": "application/json",

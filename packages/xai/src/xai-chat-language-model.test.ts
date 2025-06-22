@@ -168,7 +168,6 @@ describe('XaiChatLanguageModel', () => {
           {
             "input": "{"location": "paris"}",
             "toolCallId": "call_test123",
-            "toolCallType": "function",
             "toolName": "weatherTool",
             "type": "tool-call",
           },
@@ -677,20 +676,20 @@ describe('XaiChatLanguageModel', () => {
         type: 'stream-chunks',
         headers,
         chunks: [
-          `data: {"id":"test-stream-id","object":"chat.completion.chunk",` +
-            `"created":1699472111,"model":"grok-beta","choices":[{"index":0,` +
-            `"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe","object":"chat.completion.chunk",` +
+            `"created":1750537778,"model":"grok-beta","choices":[{"index":0,` +
+            `"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
           ...content.map(text => {
             return (
-              `data: {"id":"test-stream-id","object":"chat.completion.chunk",` +
-              `"created":1699472111,"model":"grok-beta","choices":[{"index":0,` +
-              `"delta":{"role":"assistant","content":"${text}"},"finish_reason":null}]}\n\n`
+              `data: {"id":"35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe","object":"chat.completion.chunk",` +
+              `"created":1750537778,"model":"grok-beta","choices":[{"index":0,` +
+              `"delta":{"role":"assistant","content":"${text}"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`
             );
           }),
-          `data: {"id":"test-stream-id","object":"chat.completion.chunk",` +
-            `"created":1699472111,"model":"grok-beta","choices":[{"index":0,` +
+          `data: {"id":"35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe","object":"chat.completion.chunk",` +
+            `"created":1750537778,"model":"grok-beta","choices":[{"index":0,` +
             `"delta":{"content":""},"finish_reason":"stop"}],` +
-            `"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
+            `"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32},"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
           `data: [DONE]\n\n`,
         ],
       };
@@ -711,22 +710,33 @@ describe('XaiChatLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "test-stream-id",
+            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "modelId": "grok-beta",
-            "timestamp": 2023-11-08T19:35:11.000Z,
+            "timestamp": 2025-06-21T20:29:38.000Z,
             "type": "response-metadata",
           },
           {
-            "text": "Hello",
-            "type": "text",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-start",
           },
           {
-            "text": ", ",
-            "type": "text",
+            "delta": "Hello",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-delta",
           },
           {
-            "text": "world!",
-            "type": "text",
+            "delta": ", ",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-delta",
+          },
+          {
+            "delta": "world!",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-delta",
+          },
+          {
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -763,22 +773,33 @@ describe('XaiChatLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "test-stream-id",
+            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "modelId": "grok-beta",
-            "timestamp": 2023-11-08T19:35:11.000Z,
+            "timestamp": 2025-06-21T20:29:38.000Z,
             "type": "response-metadata",
           },
           {
-            "text": "prefix",
-            "type": "text",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-start",
           },
           {
-            "text": " and",
-            "type": "text",
+            "delta": "prefix",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-delta",
           },
           {
-            "text": " more content",
-            "type": "text",
+            "delta": " and",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-delta",
+          },
+          {
+            "delta": " more content",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-delta",
+          },
+          {
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -798,12 +819,12 @@ describe('XaiChatLanguageModel', () => {
       server.urls['https://api.x.ai/v1/chat/completions'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data: {"id":"test-stream-tool-id","object":"chat.completion.chunk","created":1699472111,"model":"grok-beta",` +
-            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-          `data: {"id":"test-stream-tool-id","object":"chat.completion.chunk","created":1699472111,"model":"grok-beta",` +
-            `"choices":[{"index":0,"delta":{"content":null,"tool_calls":[{"id":"call_test123","type":"function","function":{"name":"test-tool","arguments":` +
+          `data: {"id":"a9648117-740c-4270-9e07-6a8457f23b7a","object":"chat.completion.chunk","created":1750535985,"model":"grok-beta",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
+          `data: {"id":"a9648117-740c-4270-9e07-6a8457f23b7a","object":"chat.completion.chunk","created":1750535985,"model":"grok-beta",` +
+            `"choices":[{"index":0,"delta":{"content":null,"tool_calls":[{"id":"call_yfBEybNYi","type":"function","function":{"name":"test-tool","arguments":` +
             `"{\\"value\\":\\"Sparkle Day\\"}"` +
-            `}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":183,"total_tokens":316,"completion_tokens":133}}\n\n`,
+            `}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":183,"total_tokens":316,"completion_tokens":133},"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
           'data: [DONE]\n\n',
         ],
       };
@@ -833,22 +854,28 @@ describe('XaiChatLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "test-stream-tool-id",
+            "id": "a9648117-740c-4270-9e07-6a8457f23b7a",
             "modelId": "grok-beta",
-            "timestamp": 2023-11-08T19:35:11.000Z,
+            "timestamp": 2025-06-21T19:59:45.000Z,
             "type": "response-metadata",
           },
           {
-            "inputTextDelta": "{"value":"Sparkle Day"}",
-            "toolCallId": "call_test123",
-            "toolCallType": "function",
+            "id": "call_yfBEybNYi",
             "toolName": "test-tool",
-            "type": "tool-call-delta",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{"value":"Sparkle Day"}",
+            "id": "call_yfBEybNYi",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_yfBEybNYi",
+            "type": "tool-input-end",
           },
           {
             "input": "{"value":"Sparkle Day"}",
-            "toolCallId": "call_test123",
-            "toolCallType": "function",
+            "toolCallId": "call_yfBEybNYi",
             "toolName": "test-tool",
             "type": "tool-call",
           },
@@ -975,14 +1002,14 @@ describe('XaiChatLanguageModel', () => {
       server.urls['https://api.x.ai/v1/chat/completions'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data: {"id":"citations-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-beta",` +
-            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-          `data: {"id":"citations-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-beta",` +
-            `"choices":[{"index":0,"delta":{"content":"Latest AI news"},"finish_reason":null}]}\n\n`,
-          `data: {"id":"citations-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-beta",` +
+          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-beta",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
+          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-beta",` +
+            `"choices":[{"index":0,"delta":{"content":"Latest AI news"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
+          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-beta",` +
             `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
             `"usage":{"prompt_tokens":4,"total_tokens":34,"completion_tokens":30},` +
-            `"citations":["https://example.com/source1","https://example.com/source2"]}\n\n`,
+            `"citations":["https://example.com/source1","https://example.com/source2"],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
           `data: [DONE]\n\n`,
         ],
       };
@@ -1007,14 +1034,19 @@ describe('XaiChatLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "citations-stream",
+            "id": "c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
             "modelId": "grok-beta",
-            "timestamp": 2023-11-08T19:35:11.000Z,
+            "timestamp": 2025-06-21T20:36:40.000Z,
             "type": "response-metadata",
           },
           {
-            "text": "Latest AI news",
-            "type": "text",
+            "id": "text-c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
+            "type": "text-start",
+          },
+          {
+            "delta": "Latest AI news",
+            "id": "text-c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
+            "type": "text-delta",
           },
           {
             "id": "test-id",
@@ -1027,6 +1059,10 @@ describe('XaiChatLanguageModel', () => {
             "sourceType": "url",
             "type": "source",
             "url": "https://example.com/source2",
+          },
+          {
+            "id": "text-c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -1170,17 +1206,17 @@ describe('XaiChatLanguageModel', () => {
       server.urls['https://api.x.ai/v1/chat/completions'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{"reasoning_content":"Let me calculate: "},"finish_reason":null}]}\n\n`,
-          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{"reasoning_content":"101 * 3 = 303"},"finish_reason":null}]}\n\n`,
-          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{"content":"The answer is 303."},"finish_reason":null}]}\n\n`,
-          `data: {"id":"reasoning-stream","object":"chat.completion.chunk","created":1699472111,"model":"grok-3-mini",` +
+          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"Let me calculate: "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{"reasoning_content":"101 * 3 = 303"},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
+            `"choices":[{"index":0,"delta":{"content":"The answer is 303."},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
+          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
             `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
-            `"usage":{"prompt_tokens":15,"total_tokens":35,"completion_tokens":20,"completion_tokens_details":{"reasoning_tokens":10}}}\n\n`,
+            `"usage":{"prompt_tokens":15,"total_tokens":35,"completion_tokens":20,"completion_tokens_details":{"reasoning_tokens":10}},"system_fingerprint":"fp_reasoning_v1"}\n\n`,
           `data: [DONE]\n\n`,
         ],
       };
@@ -1200,22 +1236,41 @@ describe('XaiChatLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "reasoning-stream",
+            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "modelId": "grok-3-mini",
-            "timestamp": 2023-11-08T19:35:11.000Z,
+            "timestamp": 2025-06-21T20:35:20.000Z,
             "type": "response-metadata",
           },
           {
-            "text": "Let me calculate: ",
-            "type": "reasoning",
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "reasoning-start",
           },
           {
-            "text": "101 * 3 = 303",
-            "type": "reasoning",
+            "delta": "Let me calculate: ",
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "reasoning-delta",
           },
           {
-            "text": "The answer is 303.",
-            "type": "text",
+            "delta": "101 * 3 = 303",
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "text-start",
+          },
+          {
+            "delta": "The answer is 303.",
+            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "text-delta",
+          },
+          {
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -1238,9 +1293,9 @@ describe('doStream with raw chunks', () => {
     server.urls['https://api.x.ai/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-456","object":"chat.completion.chunk","created":1234567890,"model":"grok-beta","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-789","object":"chat.completion.chunk","created":1234567890,"model":"grok-beta","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15},"citations":["https://example.com"]}\n\n`,
+        `data: {"id":"d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d","object":"chat.completion.chunk","created":1750538300,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
+        `data: {"id":"e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b","object":"chat.completion.chunk","created":1750538301,"model":"grok-beta","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
+        `data: {"id":"f3b58c9a-4e7f-5d9e-ab2c-8e6f9d0e3b5c","object":"chat.completion.chunk","created":1750538302,"model":"grok-beta","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15},"citations":["https://example.com"],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -1270,22 +1325,28 @@ describe('doStream with raw chunks', () => {
                 "index": 0,
               },
             ],
-            "created": 1234567890,
-            "id": "chatcmpl-123",
+            "created": 1750538300,
+            "id": "d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
             "model": "grok-beta",
             "object": "chat.completion.chunk",
+            "system_fingerprint": "fp_13a6dc65a6",
           },
           "type": "raw",
         },
         {
-          "id": "chatcmpl-123",
+          "id": "d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
           "modelId": "grok-beta",
-          "timestamp": 2009-02-13T23:31:30.000Z,
+          "timestamp": 2025-06-21T20:38:20.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "text-d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "text-d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
+          "type": "text-delta",
         },
         {
           "rawValue": {
@@ -1298,16 +1359,22 @@ describe('doStream with raw chunks', () => {
                 "index": 0,
               },
             ],
-            "created": 1234567890,
-            "id": "chatcmpl-456",
+            "created": 1750538301,
+            "id": "e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
             "model": "grok-beta",
             "object": "chat.completion.chunk",
+            "system_fingerprint": "fp_13a6dc65a6",
           },
           "type": "raw",
         },
         {
-          "text": " world",
-          "type": "text",
+          "id": "text-e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
+          "type": "text-start",
+        },
+        {
+          "delta": " world",
+          "id": "text-e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
+          "type": "text-delta",
         },
         {
           "rawValue": {
@@ -1321,10 +1388,11 @@ describe('doStream with raw chunks', () => {
             "citations": [
               "https://example.com",
             ],
-            "created": 1234567890,
-            "id": "chatcmpl-789",
+            "created": 1750538302,
+            "id": "f3b58c9a-4e7f-5d9e-ab2c-8e6f9d0e3b5c",
             "model": "grok-beta",
             "object": "chat.completion.chunk",
+            "system_fingerprint": "fp_13a6dc65a6",
             "usage": {
               "completion_tokens": 5,
               "prompt_tokens": 10,
@@ -1338,6 +1406,14 @@ describe('doStream with raw chunks', () => {
           "sourceType": "url",
           "type": "source",
           "url": "https://example.com",
+        },
+        {
+          "id": "text-d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
+          "type": "text-end",
+        },
+        {
+          "id": "text-e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",

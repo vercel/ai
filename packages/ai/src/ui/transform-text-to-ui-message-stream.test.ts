@@ -20,16 +20,27 @@ describe('transformTextToUiMessageStream', () => {
             "type": "start-step",
           },
           {
-            "text": "Hello",
-            "type": "text",
+            "id": "text-1",
+            "type": "text-start",
           },
           {
-            "text": " ",
-            "type": "text",
+            "delta": "Hello",
+            "id": "text-1",
+            "type": "text-delta",
           },
           {
-            "text": "World",
-            "type": "text",
+            "delta": " ",
+            "id": "text-1",
+            "type": "text-delta",
+          },
+          {
+            "delta": "World",
+            "id": "text-1",
+            "type": "text-delta",
+          },
+          {
+            "id": "text-1",
+            "type": "text-end",
           },
           {
             "type": "finish-step",
@@ -56,6 +67,14 @@ describe('transformTextToUiMessageStream', () => {
             "type": "start-step",
           },
           {
+            "id": "text-1",
+            "type": "text-start",
+          },
+          {
+            "id": "text-1",
+            "type": "text-end",
+          },
+          {
             "type": "finish-step",
           },
           {
@@ -72,24 +91,33 @@ describe('transformTextToUiMessageStream', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-        [
-          {
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "text": "Complete message",
-            "type": "text",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "type": "finish",
-          },
-        ]
-      `);
+      [
+        {
+          "type": "start",
+        },
+        {
+          "type": "start-step",
+        },
+        {
+          "id": "text-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Complete message",
+          "id": "text-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "text-1",
+          "type": "text-end",
+        },
+        {
+          "type": "finish-step",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
   });
 });

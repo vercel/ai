@@ -23,28 +23,6 @@ export type XaiChatModelId =
   | 'grok-beta'
   | (string & {});
 
-/**
- * https://docs.x.ai/docs/guides/structured-outputs
- */
-export function supportsStructuredOutputs(modelId: XaiChatModelId) {
-  return [
-    'grok-3',
-    'grok-3-beta',
-    'grok-3-latest',
-    'grok-3-fast',
-    'grok-3-fast-beta',
-    'grok-3-fast-latest',
-    'grok-3-mini',
-    'grok-3-mini-beta',
-    'grok-3-mini-latest',
-    'grok-3-mini-fast',
-    'grok-3-mini-fast-beta',
-    'grok-3-mini-fast-latest',
-    'grok-2-1212',
-    'grok-2-vision-1212',
-  ].includes(modelId);
-}
-
 // search source schemas
 const webSourceSchema = z.object({
   type: z.literal('web'),

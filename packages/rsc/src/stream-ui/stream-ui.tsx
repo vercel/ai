@@ -300,17 +300,18 @@ functionality that can be fully encapsulated in the provider.
             break;
           }
 
-          case 'text': {
-            content += value.text;
+          case 'text-delta': {
+            content += value.delta;
             render({
               renderer: textRender,
-              args: [{ content, done: false, delta: value.text }],
+              args: [{ content, done: false, delta: value.delta }],
               streamableUI: ui,
             });
             break;
           }
 
-          case 'tool-call-delta': {
+          case 'tool-input-start':
+          case 'tool-input-delta': {
             hasToolCall = true;
             break;
           }

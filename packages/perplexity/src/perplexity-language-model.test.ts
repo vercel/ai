@@ -363,16 +363,27 @@ describe('PerplexityLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "Hello",
-            "type": "text",
+            "id": "0",
+            "type": "text-start",
           },
           {
-            "text": ", ",
-            "type": "text",
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
           },
           {
-            "text": "World!",
-            "type": "text",
+            "delta": ", ",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "delta": "World!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -434,16 +445,27 @@ describe('PerplexityLanguageModel', () => {
             "url": "https://example.com/456",
           },
           {
-            "text": "Hello",
-            "type": "text",
+            "id": "0",
+            "type": "text-start",
           },
           {
-            "text": ", ",
-            "type": "text",
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
           },
           {
-            "text": "World!",
-            "type": "text",
+            "delta": ", ",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "delta": "World!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -514,16 +536,27 @@ describe('PerplexityLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "Hello",
-            "type": "text",
+            "id": "0",
+            "type": "text-start",
           },
           {
-            "text": ", ",
-            "type": "text",
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
           },
           {
-            "text": "World!",
-            "type": "text",
+            "delta": ", ",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "delta": "World!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -585,16 +618,27 @@ describe('PerplexityLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "text": "Hello",
-            "type": "text",
+            "id": "0",
+            "type": "text-start",
           },
           {
-            "text": ", ",
-            "type": "text",
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
           },
           {
-            "text": "World!",
-            "type": "text",
+            "delta": ", ",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "delta": "World!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -708,8 +752,13 @@ describe('PerplexityLanguageModel', () => {
             "url": "https://example.com",
           },
           {
-            "text": "Hello",
-            "type": "text",
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
           },
           {
             "rawValue": {
@@ -761,6 +810,10 @@ describe('PerplexityLanguageModel', () => {
             "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.
         Error message: [{"code":"invalid_literal","expected":"assistant","path":["choices",0,"delta","role"],"message":"Invalid literal value, expected \\"assistant\\""},{"code":"invalid_type","expected":"string","received":"undefined","path":["choices",0,"delta","content"],"message":"Required"}]],
             "type": "error",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
           },
           {
             "finishReason": "unknown",

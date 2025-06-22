@@ -208,7 +208,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallType: 'function',
           toolCallId: toolCall.id,
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
@@ -258,8 +257,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let chunkNumber = 0;
-    let trimLeadingSpace = false;
+
+    let isFirstChunk = true;
+    let activeText = false;
 
     return {
       stream: response.pipeThrough(
@@ -282,11 +282,11 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
               return;
             }
 
-            chunkNumber++;
-
             const value = chunk.value;
 
-            if (chunkNumber === 1) {
+            if (isFirstChunk) {
+              isFirstChunk = false;
+
               controller.enqueue({
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
@@ -300,74 +300,70 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             }
 
             const choice = value.choices[0];
-
-            if (choice?.finish_reason != null) {
-              finishReason = mapMistralFinishReason(choice.finish_reason);
-            }
-
-            if (choice?.delta == null) {
-              return;
-            }
-
             const delta = choice.delta;
 
-            // extract text content.
-            // image content or reference content is currently ignored.
             const textContent = extractTextContent(delta.content);
 
-            // when there is a trailing assistant message, mistral will send the
-            // content of that message again. we skip this repeated content to
-            // avoid duplication, e.g. in continuation mode.
-            if (chunkNumber <= 2) {
-              const lastMessage = body.messages[body.messages.length - 1];
-
-              if (
-                lastMessage.role === 'assistant' &&
-                textContent === lastMessage.content.trimEnd()
-              ) {
-                // Mistral moves the trailing space from the prefix to the next chunk.
-                // We trim the leading space to avoid duplication.
-                if (textContent.length < lastMessage.content.length) {
-                  trimLeadingSpace = true;
-                }
-
-                // skip the repeated content:
-                return;
+            if (textContent != null && textContent.length > 0) {
+              if (!activeText) {
+                controller.enqueue({ type: 'text-start', id: '0' });
+                activeText = true;
               }
-            }
 
-            if (textContent != null) {
               controller.enqueue({
-                type: 'text',
-                text: trimLeadingSpace ? textContent.trimStart() : textContent,
+                type: 'text-delta',
+                id: '0',
+                delta: textContent,
               });
-
-              trimLeadingSpace = false;
             }
 
-            if (delta.tool_calls != null) {
+            if (delta?.tool_calls != null) {
               for (const toolCall of delta.tool_calls) {
-                // mistral tool calls come in one piece:
+                const toolCallId = toolCall.id;
+                const toolName = toolCall.function.name;
+                const input = toolCall.function.arguments;
+
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  inputTextDelta: toolCall.function.arguments,
+                  type: 'tool-input-start',
+                  id: toolCallId,
+                  toolName,
                 });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCallId,
+                  delta: input,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCallId,
+                });
+
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  input: toolCall.function.arguments,
+                  toolCallId,
+                  toolName,
+                  input,
                 });
               }
+            }
+
+            if (choice.finish_reason != null) {
+              finishReason = mapMistralFinishReason(choice.finish_reason);
             }
           },
 
           flush(controller) {
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            if (activeText) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage,
+            });
           },
         }),
       ),

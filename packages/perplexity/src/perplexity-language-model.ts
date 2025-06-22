@@ -245,6 +245,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       },
     };
     let isFirstChunk = true;
+    let isActive = false;
 
     const self = this;
 
@@ -321,14 +322,24 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
             const textContent = delta.content;
 
             if (textContent != null) {
+              if (!isActive) {
+                controller.enqueue({ type: 'text-start', id: '0' });
+                isActive = true;
+              }
+
               controller.enqueue({
-                type: 'text',
-                text: textContent,
+                type: 'text-delta',
+                id: '0',
+                delta: textContent,
               });
             }
           },
 
           flush(controller) {
+            if (isActive) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
