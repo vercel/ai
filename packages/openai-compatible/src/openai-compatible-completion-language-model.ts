@@ -285,11 +285,9 @@ export class OpenAICompatibleCompletionLanguageModel
             if (isFirstChunk) {
               isFirstChunk = false;
 
-              const responseMetadata = getResponseMetadata(value);
               controller.enqueue({
                 type: 'response-metadata',
-                ...(value.id && { id: value.id }),
-                ...responseMetadata,
+                ...getResponseMetadata(value),
               });
 
               controller.enqueue({
