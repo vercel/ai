@@ -1142,6 +1142,7 @@ for await (const chunk of result.fullStream) {
 ```
 
 This pattern enables:
+
 - **Multiple concurrent content blocks**: Multiple text parts can stream simultaneously with different IDs
 - **Better UI control**: You can track the lifecycle of each content block
 - **Content block differentiation**: Distinguish between different parts of the same type
@@ -1729,7 +1730,7 @@ The `LanguageModelV2StreamPart` type has been significantly expanded to support 
 
 ```tsx filename="AI SDK 4.0"
 // V4: Simple stream parts
-type LanguageModelV2StreamPart = 
+type LanguageModelV2StreamPart =
   | { type: 'text-delta'; textDelta: string }
   | { type: 'reasoning'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: string };
@@ -1737,34 +1738,85 @@ type LanguageModelV2StreamPart =
 
 ```tsx filename="AI SDK 5.0"
 // V5: Enhanced stream parts with IDs and lifecycle events
-type LanguageModelV2StreamPart = 
+type LanguageModelV2StreamPart =
   // Text blocks with start/delta/end pattern
-  | { type: 'text-start'; id: string; providerMetadata?: SharedV2ProviderMetadata }
-  | { type: 'text-delta'; id: string; delta: string; providerMetadata?: SharedV2ProviderMetadata }
-  | { type: 'text-end'; id: string; providerMetadata?: SharedV2ProviderMetadata }
+  | {
+      type: 'text-start';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'text-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'text-end';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
 
-  // Reasoning blocks with start/delta/end pattern  
-  | { type: 'reasoning-start'; id: string; providerMetadata?: SharedV2ProviderMetadata }
-  | { type: 'reasoning-delta'; id: string; delta: string; providerMetadata?: SharedV2ProviderMetadata }
-  | { type: 'reasoning-end'; id: string; providerMetadata?: SharedV2ProviderMetadata }
+  // Reasoning blocks with start/delta/end pattern
+  | {
+      type: 'reasoning-start';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
 
   // Tool input streaming
-  | { type: 'tool-input-start'; id: string; toolName: string; providerMetadata?: SharedV2ProviderMetadata }
-  | { type: 'tool-input-delta'; id: string; delta: string; providerMetadata?: SharedV2ProviderMetadata }
-  | { type: 'tool-input-end'; id: string; providerMetadata?: SharedV2ProviderMetadata }
+  | {
+      type: 'tool-input-start';
+      id: string;
+      toolName: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-end';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
 
   // Enhanced tool calls
-  | { type: 'tool-call'; toolCallId: string; toolName: string; input: string; providerMetadata?: SharedV2ProviderMetadata }
+  | {
+      type: 'tool-call';
+      toolCallId: string;
+      toolName: string;
+      input: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
 
   // Stream lifecycle events
   | { type: 'stream-start'; warnings: Array<LanguageModelV2CallWarning> }
-  | { type: 'finish'; usage: LanguageModelV2Usage; finishReason: LanguageModelV2FinishReason; providerMetadata?: SharedV2ProviderMetadata };
+  | {
+      type: 'finish';
+      usage: LanguageModelV2Usage;
+      finishReason: LanguageModelV2FinishReason;
+      providerMetadata?: SharedV2ProviderMetadata;
+    };
 ```
 
 This requires provider implementations to:
 
 1. **Generate unique IDs** for each content block
-2. **Emit start events** before beginning to stream content 
+2. **Emit start events** before beginning to stream content
 3. **Stream deltas** with the associated ID
 4. **Emit end events** when content blocks complete
 5. **Handle concurrent content** by maintaining multiple active blocks
@@ -2460,6 +2512,7 @@ const weatherTool = tool({
 ```
 
 This enables:
+
 - **Better type inference** for tool outputs
 - **Server-side tools** without execute functions
 - **Validation** of tool outputs
@@ -2506,6 +2559,7 @@ const result = await generateText({
 ```
 
 Available tools:
+
 - **`fileSearch`**: Search through uploaded documents using OpenAI's file search
 - **`webSearchPreview`**: Web search capabilities (preview feature)
 
@@ -2562,7 +2616,7 @@ const weatherTool = tool({
 | Provider Options for Embeddings                                 | `move-provider-options` (messages only)           |
 | Raw Response → Response                                         | `replace-rawresponse-with-response`               |
 | **Streaming Changes**                                           |                                                   |
-| Stream Protocol: Single Chunks → Start/Delta/End Pattern       | `migrate-streaming-to-start-delta-end`            |
+| Stream Protocol: Single Chunks → Start/Delta/End Pattern        | `migrate-streaming-to-start-delta-end`            |
 | Text Delta Properties (`textDelta` → `delta`)                   | `replace-textdelta-with-text`                     |
 | onChunk Callback with New Stream Types                          | _N/A_ (handled by TypeScript)                     |
 | Reasoning Streaming Pattern                                     | _N/A_ (new feature)                               |
@@ -2582,7 +2636,7 @@ const weatherTool = tool({
 | **Provider Interface Changes**                                  |                                                   |
 | Language Model V2 Import                                        | `import-LanguageModelV2-from-provider-package`    |
 | Middleware Rename                                               | `import-LanguageModelV2-from-provider-package`    |
-| Stream Part Type Changes (LanguageModelV2StreamPart)            | _N/A_ (provider implementation change)             |
+| Stream Part Type Changes (LanguageModelV2StreamPart)            | _N/A_ (provider implementation change)            |
 | Usage Token Properties                                          | `replace-usage-token-properties`                  |
 | Raw Response → Response                                         | `replace-rawresponse-with-response`               |
 | Experimental Wrappers Removal                                   | `remove-experimental-wrap-language-model`         |
