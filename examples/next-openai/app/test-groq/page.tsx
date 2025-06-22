@@ -11,7 +11,9 @@ export default function TestGroq() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      <h1 className="mb-4 text-xl font-bold">Groq Block-Based Streaming Test</h1>
+      <h1 className="mb-4 text-xl font-bold">
+        Groq Block-Based Streaming Test
+      </h1>
 
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
@@ -53,4 +55,4 @@ export default function TestGroq() {
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
-} 
+}

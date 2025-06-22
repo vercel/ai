@@ -54,4 +54,4 @@ async function main() {
   console.log('Final text:', fullText);
 }
 
-main().catch(console.error); 
+main().catch(console.error);
