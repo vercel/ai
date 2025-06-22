@@ -1,4 +1,4 @@
-import { Tool, tool } from '@ai-sdk/provider-utils';
+import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 type WebSearch20250305Args = {
