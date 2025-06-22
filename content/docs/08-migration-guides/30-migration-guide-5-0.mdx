@@ -1102,9 +1102,11 @@ const { embeddings, usage } = await embedMany({
 
 ### Streaming Changes
 
-#### Stream Text Delta Changes
+The streaming architecture has been completely redesigned in v5 to support better content differentiation, concurrent streaming of multiple parts, and improved real-time UX.
 
-Stream text deltas have been restructured.
+#### Stream Protocol: Single Chunks → Start/Delta/End Pattern
+
+The fundamental streaming pattern has changed from single chunks to a three-phase pattern with unique IDs for each content block.
 
 ```tsx filename="AI SDK 4.0"
 for await (const chunk of result.fullStream) {
@@ -1120,9 +1122,88 @@ for await (const chunk of result.fullStream) {
 ```tsx filename="AI SDK 5.0"
 for await (const chunk of result.fullStream) {
   switch (chunk.type) {
-    case 'text': {
-      // Changed from 'text-delta'
-      process.stdout.write(chunk.text); // Changed from 'textDelta'
+    case 'text-start': {
+      // New: Initialize a text block with unique ID
+      console.log(`Starting text block: ${chunk.id}`);
+      break;
+    }
+    case 'text-delta': {
+      // Changed: Now includes ID and uses 'delta' property
+      process.stdout.write(chunk.delta); // Changed from 'textDelta'
+      break;
+    }
+    case 'text-end': {
+      // New: Finalize the text block
+      console.log(`Completed text block: ${chunk.id}`);
+      break;
+    }
+  }
+}
+```
+
+This pattern enables:
+- **Multiple concurrent content blocks**: Multiple text parts can stream simultaneously with different IDs
+- **Better UI control**: You can track the lifecycle of each content block
+- **Content block differentiation**: Distinguish between different parts of the same type
+
+#### Reasoning Streaming Pattern
+
+Reasoning content now follows the same start/delta/end pattern:
+
+```tsx filename="AI SDK 4.0"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'reasoning': {
+      // Single chunk with full reasoning text
+      console.log('Reasoning:', chunk.text);
+      break;
+    }
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'reasoning-start': {
+      console.log(`Starting reasoning block: ${chunk.id}`);
+      break;
+    }
+    case 'reasoning-delta': {
+      process.stdout.write(chunk.delta);
+      break;
+    }
+    case 'reasoning-end': {
+      console.log(`Completed reasoning block: ${chunk.id}`);
+      break;
+    }
+  }
+}
+```
+
+#### Tool Input Streaming
+
+Tool inputs can now be streamed as they're being generated:
+
+```tsx filename="AI SDK 5.0"
+for await (const chunk of result.fullStream) {
+  switch (chunk.type) {
+    case 'tool-input-start': {
+      console.log(`Starting tool input for ${chunk.toolName}: ${chunk.id}`);
+      break;
+    }
+    case 'tool-input-delta': {
+      // Stream the JSON input as it's being generated
+      process.stdout.write(chunk.delta);
+      break;
+    }
+    case 'tool-input-end': {
+      console.log(`Completed tool input: ${chunk.id}`);
+      break;
+    }
+    case 'tool-call': {
+      // Final tool call with complete input
+      console.log('Tool call:', chunk.toolName, chunk.input);
       break;
     }
   }
@@ -1130,6 +1211,116 @@ for await (const chunk of result.fullStream) {
 ```
 
 **Codemod:** `replace-textdelta-with-text`
+
+#### onChunk Callback Changes
+
+The `onChunk` callback now receives the new streaming chunk types with IDs and the start/delta/end pattern.
+
+```tsx filename="AI SDK 4.0"
+const result = streamText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a story',
+  onChunk({ chunk }) {
+    switch (chunk.type) {
+      case 'text-delta': {
+        // Single property with text content
+        console.log('Text delta:', chunk.textDelta);
+        break;
+      }
+    }
+  },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const result = streamText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a story',
+  onChunk({ chunk }) {
+    switch (chunk.type) {
+      case 'text-start': {
+        // New: Track when a text block starts
+        console.log('Text block started:', chunk.id);
+        break;
+      }
+      case 'text-delta': {
+        // Changed: Now uses 'delta' property and includes ID
+        console.log(`Text delta for ${chunk.id}:`, chunk.delta);
+        break;
+      }
+      case 'text-end': {
+        // New: Track when a text block completes
+        console.log('Text block completed:', chunk.id);
+        break;
+      }
+      case 'reasoning-start': {
+        console.log('Reasoning started:', chunk.id);
+        break;
+      }
+      case 'reasoning-delta': {
+        console.log(`Reasoning delta for ${chunk.id}:`, chunk.delta);
+        break;
+      }
+      case 'reasoning-end': {
+        console.log('Reasoning completed:', chunk.id);
+        break;
+      }
+      case 'tool-input-start': {
+        console.log(`Tool input started for ${chunk.toolName}:`, chunk.id);
+        break;
+      }
+      case 'tool-input-delta': {
+        console.log(`Tool input delta for ${chunk.id}:`, chunk.delta);
+        break;
+      }
+      case 'tool-input-end': {
+        console.log('Tool input completed:', chunk.id);
+        break;
+      }
+    }
+  },
+});
+```
+
+This enables much more sophisticated real-time UX patterns, such as:
+
+```tsx filename="AI SDK 5.0"
+// Track multiple concurrent content blocks
+const activeBlocks = new Map();
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a story with reasoning',
+  onChunk({ chunk }) {
+    switch (chunk.type) {
+      case 'text-start':
+      case 'reasoning-start': {
+        activeBlocks.set(chunk.id, { type: chunk.type, content: '' });
+        break;
+      }
+      case 'text-delta':
+      case 'reasoning-delta': {
+        const block = activeBlocks.get(chunk.id);
+        if (block) {
+          block.content += chunk.delta;
+          // Update UI for this specific block
+          updateBlockInUI(chunk.id, block.content);
+        }
+        break;
+      }
+      case 'text-end':
+      case 'reasoning-end': {
+        const block = activeBlocks.get(chunk.id);
+        if (block) {
+          finalizeBlockInUI(chunk.id, block.content);
+          activeBlocks.delete(chunk.id);
+        }
+        break;
+      }
+    }
+  },
+});
+```
 
 #### File Stream Parts Restructure
 
@@ -1531,6 +1722,76 @@ Token usage properties have been renamed for consistency.
 ```
 
 **Codemod:** `replace-usage-token-properties`
+
+#### Stream Part Type Changes
+
+The `LanguageModelV2StreamPart` type has been significantly expanded to support the new streaming architecture with start/delta/end patterns and IDs.
+
+```tsx filename="AI SDK 4.0"
+// V4: Simple stream parts
+type LanguageModelV2StreamPart = 
+  | { type: 'text-delta'; textDelta: string }
+  | { type: 'reasoning'; text: string }
+  | { type: 'tool-call'; toolCallId: string; toolName: string; input: string };
+```
+
+```tsx filename="AI SDK 5.0"
+// V5: Enhanced stream parts with IDs and lifecycle events
+type LanguageModelV2StreamPart = 
+  // Text blocks with start/delta/end pattern
+  | { type: 'text-start'; id: string; providerMetadata?: SharedV2ProviderMetadata }
+  | { type: 'text-delta'; id: string; delta: string; providerMetadata?: SharedV2ProviderMetadata }
+  | { type: 'text-end'; id: string; providerMetadata?: SharedV2ProviderMetadata }
+
+  // Reasoning blocks with start/delta/end pattern  
+  | { type: 'reasoning-start'; id: string; providerMetadata?: SharedV2ProviderMetadata }
+  | { type: 'reasoning-delta'; id: string; delta: string; providerMetadata?: SharedV2ProviderMetadata }
+  | { type: 'reasoning-end'; id: string; providerMetadata?: SharedV2ProviderMetadata }
+
+  // Tool input streaming
+  | { type: 'tool-input-start'; id: string; toolName: string; providerMetadata?: SharedV2ProviderMetadata }
+  | { type: 'tool-input-delta'; id: string; delta: string; providerMetadata?: SharedV2ProviderMetadata }
+  | { type: 'tool-input-end'; id: string; providerMetadata?: SharedV2ProviderMetadata }
+
+  // Enhanced tool calls
+  | { type: 'tool-call'; toolCallId: string; toolName: string; input: string; providerMetadata?: SharedV2ProviderMetadata }
+
+  // Stream lifecycle events
+  | { type: 'stream-start'; warnings: Array<LanguageModelV2CallWarning> }
+  | { type: 'finish'; usage: LanguageModelV2Usage; finishReason: LanguageModelV2FinishReason; providerMetadata?: SharedV2ProviderMetadata };
+```
+
+This requires provider implementations to:
+
+1. **Generate unique IDs** for each content block
+2. **Emit start events** before beginning to stream content 
+3. **Stream deltas** with the associated ID
+4. **Emit end events** when content blocks complete
+5. **Handle concurrent content** by maintaining multiple active blocks
+
+```tsx filename="AI SDK 5.0"
+// Example provider implementation
+async function* streamResponse(prompt: string) {
+  const textId = generateId();
+  const reasoningId = generateId();
+
+  // Start both text and reasoning concurrently
+  yield { type: 'text-start', id: textId };
+  yield { type: 'reasoning-start', id: reasoningId };
+
+  // Stream deltas for both blocks
+  yield { type: 'reasoning-delta', id: reasoningId, delta: 'Let me think about this...' };
+  yield { type: 'text-delta', id: textId, delta: 'Hello' };
+  yield { type: 'reasoning-delta', id: reasoningId, delta: ' The user is greeting me.' };
+  yield { type: 'text-delta', id: textId, delta: ', how can I help?' };
+
+  // End both blocks
+  yield { type: 'reasoning-end', id: reasoningId };
+  yield { type: 'text-end', id: textId };
+
+  yield { type: 'finish', usage: { ... }, finishReason: 'stop' };
+}
+```
 
 #### Raw Response → Response
 
@@ -2170,6 +2431,106 @@ const stream = createUIMessageStream({
 return createUIMessageStreamResponse({ stream });
 ```
 
+## New Features in v5
+
+While the sections above focus on breaking changes and migrations, AI SDK v5 also introduces several new features that enhance functionality without requiring code changes.
+
+### Tool Output Schema
+
+Tools can now optionally specify an output schema for better type inference and validation:
+
+```tsx filename="AI SDK 5.0"
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = tool({
+  description: 'Get weather information',
+  inputSchema: z.object({
+    city: z.string(),
+  }),
+  outputSchema: z.object({
+    temperature: z.number(),
+    conditions: z.string(),
+  }),
+  execute: async ({ city }) => ({
+    temperature: 72,
+    conditions: 'sunny',
+  }),
+});
+```
+
+This enables:
+- **Better type inference** for tool outputs
+- **Server-side tools** without execute functions
+- **Validation** of tool outputs
+
+### Tool Type Inference Helpers
+
+New utility types simplify working with tool types:
+
+```tsx filename="AI SDK 5.0"
+import { InferToolInput, InferToolOutput, InferUITool } from 'ai';
+
+// Infer input and output types from tool definitions
+type WeatherInput = InferToolInput<typeof weatherTool>;
+type WeatherOutput = InferToolOutput<typeof weatherTool>;
+type WeatherUITool = InferUITool<typeof weatherTool>;
+
+// Use in UI message type definitions
+type MyUIMessage = UIMessage<
+  never,
+  UIDataTypes,
+  {
+    weather: WeatherUITool;
+  }
+>;
+```
+
+### OpenAI Provider-Defined Tools
+
+New built-in tools for OpenAI:
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  tools: {
+    file_search: openai.tools.fileSearch(),
+    web_search_preview: openai.tools.webSearchPreview({
+      searchContextSize: 'high',
+    }),
+  },
+  messages,
+});
+```
+
+Available tools:
+- **`fileSearch`**: Search through uploaded documents using OpenAI's file search
+- **`webSearchPreview`**: Web search capabilities (preview feature)
+
+### Enhanced Tool Streaming
+
+Tools now support fine-grained streaming callbacks:
+
+```tsx filename="AI SDK 5.0"
+const weatherTool = tool({
+  inputSchema: z.object({ city: z.string() }),
+  onInputStart: ({ toolCallId }) => {
+    console.log('Tool input streaming started:', toolCallId);
+  },
+  onInputDelta: ({ inputTextDelta, toolCallId }) => {
+    console.log('Tool input delta:', inputTextDelta);
+  },
+  onInputAvailable: ({ input, toolCallId }) => {
+    console.log('Tool input ready:', input);
+  },
+  execute: async ({ city }) => {
+    return `Weather in ${city}: sunny, 72°F`;
+  },
+});
+```
+
 ## Codemod Table
 
 | Change                                                          | Codemod                                           |
@@ -2201,8 +2562,12 @@ return createUIMessageStreamResponse({ stream });
 | Provider Options for Embeddings                                 | `move-provider-options` (messages only)           |
 | Raw Response → Response                                         | `replace-rawresponse-with-response`               |
 | **Streaming Changes**                                           |                                                   |
+| Stream Protocol: Single Chunks → Start/Delta/End Pattern       | `migrate-streaming-to-start-delta-end`            |
+| Text Delta Properties (`textDelta` → `delta`)                   | `replace-textdelta-with-text`                     |
+| onChunk Callback with New Stream Types                          | _N/A_ (handled by TypeScript)                     |
+| Reasoning Streaming Pattern                                     | _N/A_ (new feature)                               |
+| Tool Input Streaming                                            | _N/A_ (new feature)                               |
 | Generate Text Result Structure                                  | `replace-generatetext-text-property`              |
-| Stream Text Delta Changes                                       | `replace-textdelta-with-text`                     |
 | File Stream Parts Restructure                                   | `flatten-streamtext-file-properties`              |
 | Source Stream Parts Restructure                                 | `restructure-source-stream-parts`                 |
 | **Data Streaming Changes**                                      |                                                   |
@@ -2217,6 +2582,7 @@ return createUIMessageStreamResponse({ stream });
 | **Provider Interface Changes**                                  |                                                   |
 | Language Model V2 Import                                        | `import-LanguageModelV2-from-provider-package`    |
 | Middleware Rename                                               | `import-LanguageModelV2-from-provider-package`    |
+| Stream Part Type Changes (LanguageModelV2StreamPart)            | _N/A_ (provider implementation change)             |
 | Usage Token Properties                                          | `replace-usage-token-properties`                  |
 | Raw Response → Response                                         | `replace-rawresponse-with-response`               |
 | Experimental Wrappers Removal                                   | `remove-experimental-wrap-language-model`         |
