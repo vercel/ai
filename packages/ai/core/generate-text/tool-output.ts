@@ -1,5 +1,5 @@
 import { ValueOf } from '../../src/util/value-of';
-import { Tool } from '@ai-sdk/provider-utils';
+import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
 import { ToolSet } from './tool-set';
 
 // limits the tools to those that have execute !== undefined
@@ -15,8 +15,8 @@ type ToToolResultObject<TOOLS extends ToolSet> = ValueOf<{
     type: 'tool-result';
     toolCallId: string;
     toolName: NAME & string;
-    input: TOOLS[NAME] extends Tool<infer P> ? P : never;
-    output: Awaited<ReturnType<Exclude<TOOLS[NAME]['execute'], undefined>>>;
+    input: InferToolInput<TOOLS[NAME]>;
+    output: InferToolOutput<TOOLS[NAME]>;
   };
 }>;
 
@@ -33,7 +33,7 @@ type ToToolErrorObject<TOOLS extends ToolSet> = ValueOf<{
     type: 'tool-error';
     toolCallId: string;
     toolName: NAME & string;
-    input: TOOLS[NAME] extends Tool<infer P> ? P : never;
+    input: InferToolInput<TOOLS[NAME]>;
     error: unknown;
   };
 }>;

@@ -18,6 +18,9 @@ export {
 export { DefaultChatTransport } from './default-chat-transport';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
+  type UITool,
+  type InferUITool,
+  type UITools,
   type DataUIPart,
   type FileUIPart,
   type ReasoningUIPart,
