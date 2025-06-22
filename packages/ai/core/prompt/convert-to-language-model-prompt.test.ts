@@ -1,4 +1,3 @@
-import { tool } from '../tool/tool';
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,

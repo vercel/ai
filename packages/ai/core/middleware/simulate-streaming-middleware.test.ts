@@ -6,7 +6,7 @@ import {
 import { streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import { tool } from '../tool/tool';
+import { tool } from '@ai-sdk/provider-utils';
 import { simulateStreamingMiddleware } from './simulate-streaming-middleware';
 
 const DEFAULT_SETTINGs = {
