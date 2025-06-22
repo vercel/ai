@@ -1,4 +1,4 @@
-import { tool } from '@ai-sdk/provider-utils';
+import { Tool, tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 type WebSearch20250305Args = {
@@ -29,7 +29,23 @@ export const webSearch_20250305ArgsSchema = z.object({
     .optional(),
 });
 
-export function webSearch_20250305(options: WebSearch20250305Args = {}) {
+const inputSchema = z.object({
+  query: z.string(),
+});
+
+const outputSchema = z.array(
+  z.object({
+    url: z.string(),
+    title: z.string(),
+    pageAge: z.string().nullable(),
+    encryptedContent: z.string(),
+    type: z.string(),
+  }),
+);
+
+export function webSearch_20250305(
+  options: WebSearch20250305Args = {},
+): Tool<z.infer<typeof inputSchema>, z.infer<typeof outputSchema>> {
   return tool({
     type: 'provider-defined-server',
     id: 'anthropic.web_search_20250305',
@@ -39,17 +55,7 @@ export function webSearch_20250305(options: WebSearch20250305Args = {}) {
       blockedDomains: options.blockedDomains,
       userLocation: options.userLocation,
     },
-    inputSchema: z.object({
-      query: z.string(),
-    }),
-    outputSchema: z.array(
-      z.object({
-        url: z.string(),
-        title: z.string(),
-        pageAge: z.string().nullable(),
-        encryptedContent: z.string(),
-        type: z.string(),
-      }),
-    ),
+    inputSchema,
+    outputSchema,
   });
 }

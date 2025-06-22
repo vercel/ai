@@ -10,12 +10,14 @@ import {
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-const webSearchTool = anthropic.tools.webSearch_20250305();
-
 export type SourcesChatMessage = UIMessage<
   never,
   UIDataTypes,
-  { web_search: InferUITool<typeof webSearchTool> }
+  {
+    web_search: InferUITool<
+      ReturnType<typeof anthropic.tools.webSearch_20250305>
+    >;
+  }
 >;
 
 export async function POST(req: Request) {
@@ -24,7 +26,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: anthropic('claude-3-5-sonnet-latest'),
     tools: {
-      web_search: webSearchTool,
+      web_search: anthropic.tools.webSearch_20250305(),
     },
     messages: convertToModelMessages(messages),
   });
