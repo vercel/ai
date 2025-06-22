@@ -3,8 +3,6 @@ import {
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { fileSearchArgsSchema } from './tool/file-search';
-import { webSearchPreviewArgsSchema } from './tool/web-search-preview';
 import { OpenAITools, OpenAIToolChoice } from './openai-types';
 
 export function prepareTools({
@@ -47,20 +45,30 @@ export function prepareTools({
       case 'provider-defined':
         switch (tool.id) {
           case 'openai.file_search':
-            const fileSearchArgs = fileSearchArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'file_search',
-              vector_store_ids: fileSearchArgs.vectorStoreIds,
-              max_results: fileSearchArgs.maxResults,
-              search_type: fileSearchArgs.searchType,
+              vector_store_ids: tool.args.vectorStoreIds as string[],
+              max_results: tool.args.maxResults as number,
+              search_type: tool.args.searchType as
+                | 'auto'
+                | 'keyword'
+                | 'semantic',
             });
             break;
           case 'openai.web_search_preview':
-            const webSearchArgs = webSearchPreviewArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'web_search_preview',
-              search_context_size: webSearchArgs.searchContextSize,
-              user_location: webSearchArgs.userLocation,
+              search_context_size: tool.args.searchContextSize as
+                | 'low'
+                | 'medium'
+                | 'high',
+              user_location: tool.args.userLocation as {
+                type?: 'approximate';
+                city?: string;
+                region?: string;
+                country?: string;
+                timezone?: string;
+              },
             });
             break;
           default:

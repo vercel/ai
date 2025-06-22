@@ -4,7 +4,6 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
-import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 
 function isWebSearchTool(
   tool: unknown,
@@ -107,15 +106,19 @@ export function prepareTools({
             });
             break;
           case 'anthropic.web_search_20250305':
-            const args = webSearch_20250305ArgsSchema.parse(tool.args);
-
             anthropicTools.push({
               type: 'web_search_20250305',
               name: 'web_search',
-              max_uses: args.maxUses,
-              allowed_domains: args.allowedDomains,
-              blocked_domains: args.blockedDomains,
-              user_location: args.userLocation,
+              max_uses: tool.args.maxUses as number,
+              allowed_domains: tool.args.allowedDomains as string[],
+              blocked_domains: tool.args.blockedDomains as string[],
+              user_location: tool.args.userLocation as {
+                type: 'approximate';
+                city?: string;
+                region?: string;
+                country?: string;
+                timezone?: string;
+              },
             });
 
             break;
