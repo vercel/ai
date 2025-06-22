@@ -13,7 +13,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
     .mockImplementation(({ settingValue }) => settingValue),
   withoutTrailingSlash: vi.fn().mockImplementation(url => url),
   createJsonErrorResponseHandler: vi.fn(),
-  createProviderDefinedClientToolFactory: vi.fn(),
+  createProviderDefinedToolFactory: vi.fn(),
 }));
 
 vi.mock('@ai-sdk/anthropic/internal', async () => {

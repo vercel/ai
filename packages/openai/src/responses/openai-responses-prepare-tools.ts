@@ -45,7 +45,7 @@ export function prepareResponsesTools({
           strict: strict ? true : undefined,
         });
         break;
-      case 'provider-defined-client':
+      case 'provider-defined':
         switch (tool.id) {
           case 'openai.web_search_preview':
             openaiTools.push({

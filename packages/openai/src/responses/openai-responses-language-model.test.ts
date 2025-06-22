@@ -655,9 +655,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           tools: [
             {
-              type: 'provider-defined-client',
+              type: 'provider-defined',
               id: 'openai.web_search_preview',
-              name: 'web_search_preview',
               args: {
                 searchContextSize: 'high',
                 userLocation: {
@@ -695,9 +694,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           tools: [
             {
-              type: 'provider-defined-client',
+              type: 'provider-defined',
               id: 'openai.web_search_preview',
-              name: 'web_search_preview',
               args: {
                 searchContextSize: 'high',
                 userLocation: {

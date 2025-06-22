@@ -1,7 +1,7 @@
-import { createProviderDefinedClientToolFactory } from '@ai-sdk/provider-utils';
+import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import z from 'zod/v4';
 
-export const bash_20250124 = createProviderDefinedClientToolFactory<
+export const bash_20250124 = createProviderDefinedToolFactory<
   {
     /**
      * The bash command to run. Required unless the tool is being restarted.

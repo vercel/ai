@@ -56,12 +56,12 @@ export function prepareTools({
           input_schema: tool.inputSchema,
         });
         break;
-      case 'provider-defined-client':
+      case 'provider-defined':
         switch (tool.id) {
           case 'anthropic.computer_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
-              name: tool.name,
+              name: 'computer',
               type: 'computer_20250124',
               display_width_px: tool.args.displayWidthPx as number,
               display_height_px: tool.args.displayHeightPx as number,
@@ -71,7 +71,7 @@ export function prepareTools({
           case 'anthropic.computer_20241022':
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
-              name: tool.name,
+              name: 'computer',
               type: 'computer_20241022',
               display_width_px: tool.args.displayWidthPx as number,
               display_height_px: tool.args.displayHeightPx as number,
@@ -81,44 +81,37 @@ export function prepareTools({
           case 'anthropic.text_editor_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
-              name: tool.name,
+              name: 'text_editor',
               type: 'text_editor_20250124',
             });
             break;
           case 'anthropic.text_editor_20241022':
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
-              name: tool.name,
+              name: 'text_editor',
               type: 'text_editor_20241022',
             });
             break;
           case 'anthropic.bash_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
-              name: tool.name,
+              name: 'bash',
               type: 'bash_20250124',
             });
             break;
           case 'anthropic.bash_20241022':
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
-              name: tool.name,
+              name: 'bash',
               type: 'bash_20241022',
             });
             break;
-          default:
-            toolWarnings.push({ type: 'unsupported-tool', tool });
-            break;
-        }
-        break;
-      case 'provider-defined-server':
-        switch (tool.id) {
           case 'anthropic.web_search_20250305':
             const args = webSearch_20250305ArgsSchema.parse(tool.args);
 
             anthropicTools.push({
               type: 'web_search_20250305',
-              name: tool.name,
+              name: 'web_search',
               max_uses: args.maxUses,
               allowed_domains: args.allowedDomains,
               blocked_domains: args.blockedDomains,
