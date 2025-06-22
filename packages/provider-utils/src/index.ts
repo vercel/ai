@@ -22,7 +22,13 @@ export {
 export * from './remove-undefined-entries';
 export * from './resolve';
 export * from './response-handler';
-export { asSchema, jsonSchema, type InferSchema, type Schema } from './schema';
+export {
+  asSchema,
+  jsonSchema,
+  type FlexibleSchema,
+  type InferSchema,
+  type Schema,
+} from './schema';
 export * from './uint8-utils';
 export * from './validate-types';
 export * from './validator';

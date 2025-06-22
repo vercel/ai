@@ -1,6 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import { groq } from '@ai-sdk/groq';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
+// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -9,7 +10,7 @@ export async function POST(req: Request) {
   const prompt = convertToModelMessages(messages);
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: groq('llama-3.3-70b-versatile'),
     prompt,
   });
 

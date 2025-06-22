@@ -8,3 +8,12 @@ export type {
 export { createMCPClient as experimental_createMCPClient } from './mcp/mcp-client';
 export type { MCPTransport } from './mcp/mcp-transport';
 export { tool } from './tool';
+
+// re-export types from provider-utils
+export type {
+  Tool,
+  ToolCallOptions,
+  ToolExecuteFunction,
+  InferToolInput,
+  InferToolOutput,
+} from '@ai-sdk/provider-utils';

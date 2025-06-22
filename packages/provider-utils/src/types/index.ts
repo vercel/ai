@@ -18,7 +18,6 @@ export type {
   Tool,
   ToolCallOptions,
   ToolExecuteFunction,
-  ToolInputSchema,
   InferToolInput,
   InferToolOutput,
 } from './tool';
