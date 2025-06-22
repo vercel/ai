@@ -492,7 +492,8 @@ const result = await generateText({
 const result = await generateText({
   model: openai('gpt-4'),
   prompt: 'Hello',
-  providerOptions: {  // Input parameter renamed
+  providerOptions: {
+    // Input parameter renamed
     openai: { store: false },
   },
 });
