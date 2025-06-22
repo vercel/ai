@@ -47,6 +47,30 @@ Will be used by the language model to decide whether to use the tool.
 Not used for provider-defined-client tools.
    */
   description?: string;
+
+  /**
+   * Optional function that is called when the argument streaming starts.
+   * Only called when the tool is used in a streaming context.
+   */
+  onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
+
+  /**
+   * Optional function that is called when an argument streaming delta is available.
+   * Only called when the tool is used in a streaming context.
+   */
+  onInputDelta?: (
+    options: { inputTextDelta: string } & ToolCallOptions,
+  ) => void | PromiseLike<void>;
+
+  /**
+   * Optional function that is called when a tool call can be started,
+   * even if the execute function is not provided.
+   */
+  onInputAvailable?: (
+    options: {
+      input: INPUT extends never ? undefined : INPUT;
+    } & ToolCallOptions,
+  ) => void | PromiseLike<void>;
 } & NeverOptional<
   INPUT,
   {
@@ -78,30 +102,6 @@ If not provided, the tool result will be sent as a JSON object.
       toModelOutput?: (
         output: OUTPUT,
       ) => LanguageModelV2ToolResultPart['output'];
-
-      /**
-       * Optional function that is called when the argument streaming starts.
-       * Only called when the tool is used in a streaming context.
-       */
-      onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
-
-      /**
-       * Optional function that is called when an argument streaming delta is available.
-       * Only called when the tool is used in a streaming context.
-       */
-      onInputDelta?: (
-        options: { inputTextDelta: string } & ToolCallOptions,
-      ) => void | PromiseLike<void>;
-
-      /**
-       * Optional function that is called when a tool call can be started,
-       * even if the execute function is not provided.
-       */
-      onInputAvailable?: (
-        options: {
-          input: [INPUT] extends [never] ? undefined : INPUT;
-        } & ToolCallOptions,
-      ) => void | PromiseLike<void>;
     }
   > &
   (
