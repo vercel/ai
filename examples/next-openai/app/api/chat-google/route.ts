@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export const maxDuration = 30;
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const prompt = convertToModelMessages(messages);
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: google('gemini-2.0-flash'),
     prompt,
   });
 

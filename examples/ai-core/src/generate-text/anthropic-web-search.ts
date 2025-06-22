@@ -32,7 +32,7 @@ async function main() {
     switch (toolResult.toolName) {
       case 'web_search': {
         toolResult.input.query; // string
-        toolResult.output.results; // string
+        // toolResult.output.results; // string
         break;
       }
     }
