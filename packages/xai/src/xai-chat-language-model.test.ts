@@ -716,26 +716,26 @@ describe('XaiChatLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-start",
           },
           {
             "delta": "Hello",
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-delta",
           },
           {
             "delta": ", ",
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-delta",
           },
           {
             "delta": "world!",
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-delta",
           },
           {
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-end",
           },
           {
@@ -779,26 +779,26 @@ describe('XaiChatLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-start",
           },
           {
             "delta": "prefix",
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-delta",
           },
           {
             "delta": " and",
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-delta",
           },
           {
             "delta": " more content",
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-delta",
           },
           {
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
+            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
             "type": "text-end",
           },
           {
@@ -1040,12 +1040,12 @@ describe('XaiChatLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "id": "c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
+            "id": "text-c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
             "type": "text-start",
           },
           {
             "delta": "Latest AI news",
-            "id": "c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
+            "id": "text-c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
             "type": "text-delta",
           },
           {
@@ -1061,7 +1061,7 @@ describe('XaiChatLanguageModel', () => {
             "url": "https://example.com/source2",
           },
           {
-            "id": "c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
+            "id": "text-c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
             "type": "text-end",
           },
           {
@@ -1242,34 +1242,34 @@ describe('XaiChatLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b-reasoning",
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "reasoning-start",
           },
           {
             "delta": "Let me calculate: ",
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b-reasoning",
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "reasoning-delta",
           },
           {
             "delta": "101 * 3 = 303",
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b-reasoning",
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "reasoning-delta",
           },
           {
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-start",
           },
           {
             "delta": "The answer is 303.",
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-delta",
           },
           {
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b-reasoning",
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "reasoning-end",
           },
           {
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-end",
           },
           {
@@ -1340,12 +1340,12 @@ describe('doStream with raw chunks', () => {
           "type": "response-metadata",
         },
         {
-          "id": "d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
+          "id": "text-d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
           "type": "text-start",
         },
         {
           "delta": "Hello",
-          "id": "d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
+          "id": "text-d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
           "type": "text-delta",
         },
         {
@@ -1368,12 +1368,12 @@ describe('doStream with raw chunks', () => {
           "type": "raw",
         },
         {
-          "id": "e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
+          "id": "text-e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
           "type": "text-start",
         },
         {
           "delta": " world",
-          "id": "e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
+          "id": "text-e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
           "type": "text-delta",
         },
         {
@@ -1408,11 +1408,11 @@ describe('doStream with raw chunks', () => {
           "url": "https://example.com",
         },
         {
-          "id": "d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
+          "id": "text-d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
           "type": "text-end",
         },
         {
-          "id": "e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
+          "id": "text-e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
           "type": "text-end",
         },
         {

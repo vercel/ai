@@ -404,7 +404,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
 
             // process text content
             if (delta.content != null && delta.content.length > 0) {
-              let textContent = delta.content;
+              const textContent = delta.content;
 
               // skip if this content duplicates the last assistant message
               const lastMessage = body.messages[body.messages.length - 1];
@@ -415,7 +415,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
                 return;
               }
 
-              const blockId = value.id || String(choiceIndex);
+              const blockId = `text-${value.id || choiceIndex}`;
 
               if (contentBlocks[blockId] == null) {
                 contentBlocks[blockId] = { type: 'text' };
@@ -437,7 +437,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
               delta.reasoning_content != null &&
               delta.reasoning_content.length > 0
             ) {
-              const blockId = `${value.id || choiceIndex}-reasoning`;
+              const blockId = `reasoning-${value.id || choiceIndex}`;
 
               if (contentBlocks[blockId] == null) {
                 contentBlocks[blockId] = { type: 'reasoning' };
