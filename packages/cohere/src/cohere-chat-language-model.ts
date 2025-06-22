@@ -295,7 +295,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: toolId,
-                  toolName: toolName,
+                  toolName,
                 });
 
                 if (initialArgs.length > 0) {
