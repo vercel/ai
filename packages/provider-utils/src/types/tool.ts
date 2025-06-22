@@ -155,3 +155,9 @@ The arguments for configuring the tool. Must match the expected arguments define
         args: Record<string, unknown>;
       }
   );
+
+export type InferToolInput<TOOL extends Tool> =
+  TOOL extends Tool<infer INPUT, any> ? INPUT : never;
+
+export type InferToolOutput<TOOL extends Tool> =
+  TOOL extends Tool<any, infer OUTPUT> ? OUTPUT : never;

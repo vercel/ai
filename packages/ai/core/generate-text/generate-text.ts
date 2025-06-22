@@ -774,6 +774,17 @@ function asContent<TOOLS extends ToolSet>({
             toolCall => toolCall.toolCallId === part.toolCallId,
           )!;
         }
+
+        // case 'tool-result': {
+        //   return {
+        //     type: 'tool-result' as const,
+        //     toolCallId: part.toolCallId,
+        //     toolName: part.toolName as keyof TOOLS & string,
+        //     input: part.input,
+        //     output: part.result,
+        //     isServerSide: true,
+        //   };
+        // }
       }
     }),
     ...toolOutputs,
