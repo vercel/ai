@@ -43,9 +43,7 @@ const outputSchema = z.array(
   }),
 );
 
-export function webSearch_20250305(
-  options: WebSearch20250305Args = {},
-): Tool<z.infer<typeof inputSchema>, z.infer<typeof outputSchema>> {
+export function webSearch_20250305(options: WebSearch20250305Args = {}) {
   return tool({
     type: 'provider-defined-server',
     id: 'anthropic.web_search_20250305',
