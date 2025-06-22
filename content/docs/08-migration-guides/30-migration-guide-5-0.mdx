@@ -115,7 +115,8 @@ const { messages } = useChat({
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { useChat, DefaultChatTransport } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 
 const { messages } = useChat({
   transport: new DefaultChatTransport({
@@ -146,7 +147,8 @@ return (
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { useChat, DefaultChatTransport } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 const [input, setInput] = useState('');
@@ -156,7 +158,7 @@ const { messages, sendMessage } = useChat({
 
 const handleSubmit = e => {
   e.preventDefault();
-  sendMessage([{ type: 'text', text: input }]);
+  sendMessage({ text: input });
   setInput('');
 };
 
@@ -197,8 +199,10 @@ append(
 ```tsx filename="AI SDK 5.0"
 const { sendMessage } = useChat();
 
-// Simple text message
-// Defaults to `user` role
+// Simple text message (most common usage)
+sendMessage({ text: 'Hello' });
+
+// Or with explicit parts array
 sendMessage({
   parts: [{ type: 'text', text: 'Hello' }],
 });
@@ -260,7 +264,8 @@ const { messages, input, handleSubmit } = useChat({
 
 ```vue filename="@ai-sdk/vue v2"
 <script setup>
-import { Chat, DefaultChatTransport } from '@ai-sdk/vue';
+import { Chat } from '@ai-sdk/vue';
+import { DefaultChatTransport } from 'ai';
 import { ref } from 'vue';
 
 const input = ref('');
@@ -269,7 +274,7 @@ const chat = new Chat({
 });
 
 const handleSubmit = () => {
-  chat.sendMessage([{ type: 'text', text: input.value }]);
+  chat.sendMessage({ text: input.value });
   input.value = '';
 };
 </script>
@@ -313,7 +318,8 @@ const chatInstance = chat({
 ```
 
 ```js filename="@ai-sdk/svelte v2"
-import { chat, DefaultChatTransport } from '@ai-sdk/svelte'; // TODO: NEED TO VERIFY
+import { chat } from '@ai-sdk/svelte';
+import { DefaultChatTransport } from 'ai';
 
 const chatInstance = chat(() => ({
   transport: new DefaultChatTransport({ api: '/api/chat' }),
@@ -349,7 +355,7 @@ let input = '';
 const { messages, sendMessage } = chatInstance;
 
 const handleSubmit = () => {
-  sendMessage([{ type: 'text', text: input }]);
+  sendMessage({ text: input });
   input = '';
 };
 ```
@@ -470,7 +476,7 @@ import { UIMessage, CreateUIMessage } from 'ai';
 
 #### Provider Metadata → Provider Options
 
-The `providerMetadata` parameter has been renamed to `providerOptions`.
+The `providerMetadata` input parameter has been renamed to `providerOptions`. Note that the returned metadata in results is still called `providerMetadata`.
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
@@ -486,10 +492,13 @@ const result = await generateText({
 const result = await generateText({
   model: openai('gpt-4'),
   prompt: 'Hello',
-  providerOptions: {
+  providerOptions: {  // Input parameter renamed
     openai: { store: false },
   },
 });
+
+// Returned metadata still uses providerMetadata:
+console.log(result.providerMetadata?.openai.logprobs);
 ```
 
 **Codemod:** `replace-provider-metadata-with-provider-options`
@@ -1411,7 +1420,7 @@ const stream = createUIMessageStream({
     writer.write({ type: 'data', value: ['initialized call'] });
     writer.write({ type: 'text', value: 'Hello' });
     writer.write({
-      type: 'source-url', // TODO DOUBLE CHECK THIS
+      type: 'source-url',
       value: {
         type: 'source',
         id: 'source-1',
@@ -1423,7 +1432,7 @@ const stream = createUIMessageStream({
 });
 ```
 
-**Codemod:** `migrate-to-data-stream-protocol-v2` // TODO: Gregor to confirm this has been updated to UIMessageStream
+**Codemod:** `migrate-to-ui-message-stream`
 
 #### Streaming API Restructure
 
@@ -2150,7 +2159,7 @@ const { messages } = useChat<MyUIMessage>({
 
 ### Step Control: maxSteps → stopWhen
 
-The `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution.
+For core functions like `generateText` and `streamText`, the `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution. Note that `useChat` still supports the `maxSteps` parameter.
 
 ```tsx filename="AI SDK 4.0"
 // V4: Simple numeric limit
@@ -2194,10 +2203,9 @@ const result = await generateText({
   stopWhen: hasToolCall('finalizeTask'), // Stop when specific tool is called
 });
 
-// useChat with stopWhen
+// useChat still uses maxSteps
 const { messages } = useChat({
-  api: '/api/chat',
-  // stopWhen is configured on the server side in the API route
+  maxSteps: 3, // Still available in useChat
 });
 ```
 
@@ -2628,7 +2636,7 @@ const weatherTool = tool({
 | File Stream Parts Restructure                                   | `flatten-streamtext-file-properties`              |
 | Source Stream Parts Restructure                                 | `restructure-source-stream-parts`                 |
 | **Data Streaming Changes**                                      |                                                   |
-| Stream Protocol v2                                              | `migrate-to-data-stream-protocol-v2`              |
+| Stream Protocol v2                                              | `migrate-to-ui-message-stream`                    |
 | Stream Naming Changes                                           | `rename-datastream-transform-stream`              |
 | **Hook Changes**                                                |                                                   |
 | Send Extra Message Fields Default                               | `remove-sendExtraMessageFields`                   |
