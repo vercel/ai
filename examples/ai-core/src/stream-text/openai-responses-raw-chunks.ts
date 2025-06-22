@@ -10,7 +10,9 @@ async function main() {
     prompt: [
       {
         role: 'user',
-        content: [{ type: 'text', text: 'How many "r"s are in the word "strawberry"?' }],
+        content: [
+          { type: 'text', text: 'How many "r"s are in the word "strawberry"?' },
+        ],
       },
     ],
     providerOptions: {
@@ -69,4 +71,4 @@ async function main() {
   console.log('Final reasoning:', fullReasoning);
 }
 
-main().catch(console.error); 
+main().catch(console.error);

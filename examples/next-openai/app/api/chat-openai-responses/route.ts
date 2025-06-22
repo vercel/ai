@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
-
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -21,4 +20,4 @@ export async function POST(req: Request) {
   });
 
   return result.toUIMessageStreamResponse();
-} 
+}

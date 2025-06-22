@@ -11,7 +11,9 @@ export default function TestOpenAIResponses() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      <h1 className="mb-4 text-xl font-bold">OpenAI Responses Block-Based Streaming Test</h1>
+      <h1 className="mb-4 text-xl font-bold">
+        OpenAI Responses Block-Based Streaming Test
+      </h1>
 
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap mb-4">
@@ -23,7 +25,10 @@ export default function TestOpenAIResponses() {
               return <div key={index}>{part.text}</div>;
             } else if (part.type === 'reasoning') {
               return (
-                <div key={index} className="mt-2 p-2 bg-blue-50 border-l-2 border-blue-300 text-blue-800 text-sm">
+                <div
+                  key={index}
+                  className="mt-2 p-2 bg-blue-50 border-l-2 border-blue-300 text-blue-800 text-sm"
+                >
                   <strong>Reasoning:</strong> {part.text}
                 </div>
               );
@@ -61,4 +66,4 @@ export default function TestOpenAIResponses() {
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
-} 
+}
