@@ -237,7 +237,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
-
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -253,14 +252,14 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage: LanguageModelV2Usage = {
+    const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
     };
 
-    const contentBlocks: Record<string, { type: 'text' | 'tool-call' }> = {};
-    let chunkNumber = 0;
+    let isFirstChunk = true;
+    let activeText = false;
 
     return {
       stream: response.pipeThrough(
@@ -285,9 +284,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
             const value = chunk.value;
 
-            chunkNumber++;
+            if (isFirstChunk) {
+              isFirstChunk = false;
 
-            if (chunkNumber === 1) {
               controller.enqueue({
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
@@ -295,85 +294,71 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.usage != null) {
-              usage = {
-                inputTokens: value.usage.prompt_tokens,
-                outputTokens: value.usage.completion_tokens,
-                totalTokens: value.usage.total_tokens,
-              };
+              usage.inputTokens = value.usage.prompt_tokens;
+              usage.outputTokens = value.usage.completion_tokens;
+              usage.totalTokens = value.usage.total_tokens;
             }
 
-            for (const choice of value.choices ?? []) {
-              const outputIndex = choice.index;
-              const delta = choice.delta;
+            const choice = value.choices[0];
+            const delta = choice.delta;
 
-              const textContent = extractTextContent(delta.content);
+            const textContent = extractTextContent(delta.content);
 
-              if (textContent != null && textContent.length > 0) {
-                const blockId = String(outputIndex);
+            if (textContent != null && textContent.length > 0) {
+              if (!activeText) {
+                controller.enqueue({ type: 'text-start', id: '0' });
+                activeText = true;
+              }
 
-                if (contentBlocks[blockId] == null) {
-                  contentBlocks[blockId] = { type: 'text' };
-                  controller.enqueue({
-                    type: 'text-start',
-                    id: blockId,
-                  });
-                }
+              controller.enqueue({
+                type: 'text-delta',
+                id: '0',
+                delta: textContent,
+              });
+            }
+
+            if (delta?.tool_calls != null) {
+              for (const toolCall of delta.tool_calls) {
+                const toolCallId = toolCall.id;
+                const toolName = toolCall.function.name;
+                const input = toolCall.function.arguments;
 
                 controller.enqueue({
-                  type: 'text-delta',
-                  id: blockId,
-                  delta: textContent,
+                  type: 'tool-input-start',
+                  id: toolCallId,
+                  toolName,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCallId,
+                  delta: input,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCallId,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId,
+                  toolName,
+                  input,
                 });
               }
+            }
 
-              if (delta?.tool_calls != null) {
-                for (const toolCall of delta.tool_calls) {
-                  const toolCallId = toolCall.id;
-                  const toolName = toolCall.function.name;
-                  const input = toolCall.function.arguments;
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName: toolName,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCallId,
-                    delta: input,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCallId,
-                    toolName: toolName,
-                    input: input,
-                  });
-                }
-              }
-
-              if (choice.finish_reason != null) {
-                finishReason = mapMistralFinishReason(choice.finish_reason);
-
-                for (const [blockId, block] of Object.entries(contentBlocks)) {
-                  if (block.type === 'text') {
-                    controller.enqueue({
-                      type: 'text-end',
-                      id: blockId,
-                    });
-                  }
-                }
-              }
+            if (choice.finish_reason != null) {
+              finishReason = mapMistralFinishReason(choice.finish_reason);
             }
           },
 
           flush(controller) {
+            if (activeText) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
