@@ -4,6 +4,8 @@ import { LanguageModelV2File } from './language-model-v2-file';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2ResponseMetadata } from './language-model-v2-response-metadata';
 import { LanguageModelV2Source } from './language-model-v2-source';
+import { LanguageModelV2ToolCall } from './language-model-v2-tool-call';
+import { LanguageModelV2ToolResult } from './language-model-v2-tool-result';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
 export type LanguageModelV2StreamPart =
@@ -43,7 +45,7 @@ export type LanguageModelV2StreamPart =
       providerMetadata?: SharedV2ProviderMetadata;
     }
 
-  // Tool calls:
+  // Tool calls and results:
   | {
       type: 'tool-input-start';
       id: string;
@@ -61,19 +63,8 @@ export type LanguageModelV2StreamPart =
       id: string;
       providerMetadata?: SharedV2ProviderMetadata;
     }
-  | {
-      type: 'tool-call';
-      toolCallId: string;
-      toolName: string;
-
-      /**
-  Stringified JSON object with the tool call arguments. Must match the
-  parameters schema of the tool.
-     */
-      input: string;
-
-      providerMetadata?: SharedV2ProviderMetadata;
-    }
+  | LanguageModelV2ToolCall
+  | LanguageModelV2ToolResult
 
   // Files and sources:
   | LanguageModelV2File

@@ -748,8 +748,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   }
 
                   case 'web_search_tool_result': {
-                    if (Array.isArray(value.content_block.content)) {
-                      for (const result of value.content_block.content) {
+                    const part = value.content_block;
+
+                    if (Array.isArray(part.content)) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'web_search',
+                        result: part.content.map(result => ({
+                          url: result.url,
+                          title: result.title,
+                          pageAge: result.page_age ?? null,
+                          encryptedContent: result.encrypted_content,
+                          type: result.type,
+                        })),
+                      });
+
+                      for (const result of part.content) {
                         controller.enqueue({
                           type: 'source',
                           sourceType: 'url',
@@ -758,7 +773,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           title: result.title,
                           providerMetadata: {
                             anthropic: {
-                              encryptedContent: result.encrypted_content,
                               pageAge: result.page_age ?? null,
                             },
                           },
@@ -769,8 +783,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         type: 'error',
                         error: {
                           type: 'web-search-error',
-                          message: `Web search failed: ${value.content_block.content.error_code}`,
-                          code: value.content_block.content.error_code,
+                          message: `Web search failed: ${part.content.error_code}`,
+                          code: part.content.error_code,
                         },
                       });
                     }
