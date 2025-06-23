@@ -1722,6 +1722,7 @@ describe('generateText', () => {
                   toolCallId: 'call-1',
                   toolName: 'web_search',
                   input: `{ "value": "value" }`,
+                  providerExecuted: true,
                 },
                 {
                   type: 'tool-result',
@@ -1742,6 +1743,7 @@ describe('generateText', () => {
             },
           },
           prompt: 'test-input',
+          stopWhen: stepCountIs(4),
         });
       });
 
@@ -1752,7 +1754,7 @@ describe('generateText', () => {
               "input": {
                 "value": "value",
               },
-              "providerExecuted": undefined,
+              "providerExecuted": true,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -1769,6 +1771,10 @@ describe('generateText', () => {
             },
           ]
         `);
+      });
+
+      it('should only execute a single step', async () => {
+        expect(result.steps.length).toBe(1);
       });
     });
   });
