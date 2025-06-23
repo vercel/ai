@@ -4,6 +4,20 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
+import { z } from 'zod/v4';
+
+const webSearch_20250305ArgsSchema = z.object({
+  maxUses: z.number().optional(),
+  allowedDomains: z.array(z.string()).optional(),
+  blockedDomains: z.array(z.string()).optional(),
+  userLocation: z.object({
+    type: z.literal('approximate'),
+    city: z.string().optional(),
+    region: z.string().optional(),
+    country: z.string().optional(),
+    timezone: z.string().optional(),
+  }).optional(),
+});
 
 function isWebSearchTool(
   tool: unknown,
@@ -105,23 +119,18 @@ export function prepareTools({
               type: 'bash_20241022',
             });
             break;
-          case 'anthropic.web_search_20250305':
+          case 'anthropic.web_search_20250305': {
+            const validatedArgs = webSearch_20250305ArgsSchema.parse(tool.args);
             anthropicTools.push({
               type: 'web_search_20250305',
               name: 'web_search',
-              max_uses: tool.args.maxUses as number,
-              allowed_domains: tool.args.allowedDomains as string[],
-              blocked_domains: tool.args.blockedDomains as string[],
-              user_location: tool.args.userLocation as {
-                type: 'approximate';
-                city?: string;
-                region?: string;
-                country?: string;
-                timezone?: string;
-              },
+              max_uses: validatedArgs.maxUses,
+              allowed_domains: validatedArgs.allowedDomains,
+              blocked_domains: validatedArgs.blockedDomains,
+              user_location: validatedArgs.userLocation,
             });
-
             break;
+          }
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
@@ -177,3 +186,4 @@ export function prepareTools({
     }
   }
 }
+

@@ -4,6 +4,26 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAITools, OpenAIToolChoice } from './openai-types';
+import { fileSearch } from './tool/file-search';
+import { webSearchPreview } from './tool/web-search-preview'; 
+import { z } from 'zod/v4';
+
+const fileSearchArgsSchema = z.object({
+  vectorStoreIds: z.array(z.string()).optional(),
+  maxResults: z.number().optional(),
+  searchType: z.enum(['auto', 'keyword', 'semantic']).optional(),
+});
+
+const webSearchPreviewArgsSchema = z.object({
+  searchContextSize: z.enum(['low', 'medium', 'high']).optional(),
+  userLocation: z.object({
+    type: z.literal('approximate'),
+    city: z.string().optional(),
+    region: z.string().optional(),
+    country: z.string().optional(),
+    timezone: z.string().optional(),
+  }).optional(),
+});
 
 export function prepareTools({
   tools,
@@ -45,31 +65,21 @@ export function prepareTools({
       case 'provider-defined':
         switch (tool.id) {
           case 'openai.file_search': {
+            const validatedArgs = fileSearchArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'file_search',
-              vector_store_ids: tool.args.vectorStoreIds as string[],
-              max_results: tool.args.maxResults as number,
-              search_type: tool.args.searchType as
-                | 'auto'
-                | 'keyword'
-                | 'semantic',
+              vector_store_ids: validatedArgs.vectorStoreIds,
+              max_results: validatedArgs.maxResults,
+              search_type: validatedArgs.searchType,
             });
             break;
           }
           case 'openai.web_search_preview': {
+            const validatedArgs = webSearchPreviewArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'web_search_preview',
-              search_context_size: tool.args.searchContextSize as
-                | 'low'
-                | 'medium'
-                | 'high',
-              user_location: tool.args.userLocation as {
-                type: 'approximate';
-                city?: string;
-                region?: string;
-                country?: string;
-                timezone?: string;
-              },
+              search_context_size: validatedArgs.searchContextSize,
+              user_location: validatedArgs.userLocation,
             });
             break;
           }
