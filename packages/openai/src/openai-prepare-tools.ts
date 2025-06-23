@@ -4,25 +4,6 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAITools, OpenAIToolChoice } from './openai-types';
-import { z } from 'zod';
-
-// Validation schemas for provider-defined tool args
-const fileSearchArgsSchema = z.object({
-  vectorStoreIds: z.array(z.string()).optional(),
-  maxResults: z.number().optional(),
-  searchType: z.enum(['auto', 'keyword', 'semantic']).optional(),
-});
-
-const webSearchPreviewArgsSchema = z.object({
-  searchContextSize: z.enum(['low', 'medium', 'high']).optional(),
-  userLocation: z.object({
-    type: z.literal('approximate').optional(),
-    city: z.string().optional(),
-    region: z.string().optional(),
-    country: z.string().optional(),
-    timezone: z.string().optional(),
-  }).optional(),
-});
 
 export function prepareTools({
   tools,
