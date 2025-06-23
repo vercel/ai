@@ -7,16 +7,13 @@ import {
   UIMessage,
 } from 'ai';
 
-// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-export type OpenAIWebSearchMessage = UIMessage<
+export type OpenAIFileSearchMessage = UIMessage<
   never,
   UIDataTypes,
   {
-    web_search_preview: InferUITool<
-      ReturnType<typeof openai.tools.webSearchPreview>
-    >;
+    file_search: InferUITool<ReturnType<typeof openai.tools.fileSearch>>;
   }
 >;
 
@@ -26,14 +23,10 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
     tools: {
-      web_search_preview: openai.tools.webSearchPreview({
-        searchContextSize: 'high',
-        userLocation: {
-          type: 'approximate',
-          city: 'San Francisco',
-          region: 'California',
-          country: 'US',
-        },
+      file_search: openai.tools.fileSearch({
+        maxResults: 10,
+        searchType: 'semantic',
+        // vectorStoreIds: ['vs_123'], // optional: specify vector store IDs
       }),
     },
     messages: convertToModelMessages(messages),

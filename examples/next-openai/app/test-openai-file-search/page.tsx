@@ -3,20 +3,20 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/component/chat-input';
-import { OpenAIWebSearchMessage } from '@/app/api/chat-openai-web-search/route';
+import { OpenAIFileSearchMessage } from '@/app/api/chat-openai-file-search/route';
 
-export default function TestOpenAIWebSearch() {
+export default function TestOpenAIFileSearch() {
   const { error, status, sendMessage, messages, regenerate, stop } =
-    useChat<OpenAIWebSearchMessage>({
+    useChat<OpenAIFileSearchMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-web-search',
+        api: '/api/chat-openai-file-search',
       }),
     });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <h1 className="mb-4 text-xl font-bold">
-        OpenAI Web Search Block-Based Streaming Test
+        OpenAI File Search Block-Based Streaming Test
       </h1>
 
       {messages.map(message => (
@@ -27,7 +27,7 @@ export default function TestOpenAIWebSearch() {
               return <div key={index}>{part.text}</div>;
             }
 
-            if (part.type === 'tool-web_search_preview') {
+            if (part.type === 'tool-file_search') {
               if (part.state === 'input-available') {
                 return (
                   <pre
@@ -45,10 +45,22 @@ export default function TestOpenAIWebSearch() {
                     className="overflow-auto p-2 text-sm bg-gray-100 rounded"
                   >
                     {JSON.stringify(part.input, null, 2)}
-                    {`\n\nDONE - Web search completed`}
+                    {`\n\nDONE - File search completed`}
                   </pre>
                 );
               }
+            }
+
+            if (part.type === 'source-document') {
+              return (
+                <span key={index}>
+                  [
+                  <span className="text-sm font-bold text-green-600">
+                    {part.title || part.filename || 'Document'}
+                  </span>
+                  ]
+                </span>
+              );
             }
 
             if (part.type === 'source-url') {
