@@ -1,7 +1,7 @@
 import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 
 /**
-Tool result that has been executed server-side by the provider.
+Result of a tool call that has been executed by the provider.
  */
 export type LanguageModelV2ToolResult = {
   type: 'tool-result';
