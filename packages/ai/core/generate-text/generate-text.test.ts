@@ -1788,6 +1788,71 @@ describe('generateText', () => {
     });
   });
 
+  describe('provider-executed tools', () => {
+    describe('single provider-executed tool call', async () => {
+      let result: GenerateTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'web_search',
+                  input: `{ "value": "value" }`,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'web_search',
+                  result: `{ "value": "result1" }`,
+                },
+              ],
+            }),
+          }),
+          tools: {
+            web_search: {
+              type: 'provider-defined',
+              id: 'test.web_search',
+              inputSchema: z.object({ value: z.string() }),
+              outputSchema: z.object({ value: z.string() }),
+              args: {},
+            },
+          },
+          prompt: 'test-input',
+        });
+      });
+
+      it('should include tool calls and results in the content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "isProviderSide": true,
+              "output": "{ "value": "result1" }",
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+  });
+
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
