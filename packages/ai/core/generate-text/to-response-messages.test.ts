@@ -182,7 +182,7 @@ describe('toResponseMessages', () => {
           "content": [
             {
               "output": {
-                "type": "error",
+                "type": "error-text",
                 "value": "Tool error",
               },
               "toolCallId": "123",

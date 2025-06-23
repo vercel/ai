@@ -119,11 +119,12 @@ export function convertToOpenAICompatibleChatMessages(
           let contentValue: string;
           switch (output.type) {
             case 'text':
-            case 'error':
+            case 'error-text':
               contentValue = output.value;
               break;
             case 'content':
             case 'json':
+            case 'error-json':
               contentValue = JSON.stringify(output.value);
               break;
           }

@@ -15,7 +15,7 @@ export function createToolModelOutput({
   isError: boolean;
 }): LanguageModelV2ToolResultOutput {
   if (isError) {
-    return { type: 'error', value: getErrorMessage(output) };
+    return { type: 'error-text', value: getErrorMessage(output) };
   }
 
   if (tool?.toModelOutput) {

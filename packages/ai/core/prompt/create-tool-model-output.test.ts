@@ -11,7 +11,7 @@ describe('createToolModelOutput', () => {
       });
 
       expect(result).toEqual({
-        type: 'error',
+        type: 'error-text',
         value: 'Error message',
       });
     });
@@ -25,7 +25,7 @@ describe('createToolModelOutput', () => {
       });
 
       expect(result).toEqual({
-        type: 'error',
+        type: 'error-text',
         value: JSON.stringify(errorOutput),
       });
     });
@@ -45,7 +45,7 @@ describe('createToolModelOutput', () => {
       });
 
       expect(result).toEqual({
-        type: 'error',
+        type: 'error-text',
         value: JSON.stringify(complexError),
       });
     });
@@ -282,7 +282,7 @@ describe('createToolModelOutput', () => {
       });
 
       expect(result).toEqual({
-        type: 'error',
+        type: 'error-text',
         value: 'Error occurred',
       });
     });
@@ -295,7 +295,7 @@ describe('createToolModelOutput', () => {
       });
 
       expect(result).toEqual({
-        type: 'error',
+        type: 'error-text',
         value: 'unknown error',
       });
     });

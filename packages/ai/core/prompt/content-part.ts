@@ -106,8 +106,12 @@ export const outputSchema: z.ZodType<LanguageModelV2ToolResultOutput> =
       value: jsonValueSchema,
     }),
     z.object({
-      type: z.literal('error'),
+      type: z.literal('error-text'),
       value: z.string(),
+    }),
+    z.object({
+      type: z.literal('error-json'),
+      value: jsonValueSchema,
     }),
     z.object({
       type: z.literal('content'),

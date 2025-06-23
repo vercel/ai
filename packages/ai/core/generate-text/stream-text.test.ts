@@ -8326,7 +8326,7 @@ describe('streamText', () => {
                   "content": [
                     {
                       "output": {
-                        "type": "error",
+                        "type": "error-text",
                         "value": "test error",
                       },
                       "toolCallId": "call-1",
@@ -8376,7 +8376,7 @@ describe('streamText', () => {
             "content": [
               {
                 "output": {
-                  "type": "error",
+                  "type": "error-text",
                   "value": "test error",
                 },
                 "toolCallId": "call-1",

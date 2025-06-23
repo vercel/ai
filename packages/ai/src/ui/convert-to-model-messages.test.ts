@@ -265,7 +265,7 @@ describe('convertToModelMessages', () => {
             "content": [
               {
                 "output": {
-                  "type": "error",
+                  "type": "error-text",
                   "value": "Error: Invalid input",
                 },
                 "toolCallId": "call1",

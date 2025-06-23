@@ -286,10 +286,11 @@ export async function convertToAnthropicMessagesPrompt({
                     });
                     break;
                   case 'text':
-                  case 'error':
+                  case 'error-text':
                     contentValue = output.value;
                     break;
                   case 'json':
+                  case 'error-json':
                   default:
                     contentValue = JSON.stringify(output.value);
                     break;
@@ -299,7 +300,10 @@ export async function convertToAnthropicMessagesPrompt({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
                   content: contentValue,
-                  is_error: output.type === 'error' ? true : undefined,
+                  is_error:
+                    output.type === 'error-text' || output.type === 'error-json'
+                      ? true
+                      : undefined,
                   cache_control: cacheControl,
                 });
               }

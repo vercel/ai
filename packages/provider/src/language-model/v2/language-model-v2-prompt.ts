@@ -185,14 +185,10 @@ Result of the tool call.
 }
 
 export type LanguageModelV2ToolResultOutput =
-  | {
-      type: 'text';
-      value: string;
-    }
-  | {
-      type: 'json';
-      value: JSONValue;
-    }
+  | { type: 'text'; value: string }
+  | { type: 'json'; value: JSONValue }
+  | { type: 'error-text'; value: string }
+  | { type: 'error-json'; value: JSONValue }
   | {
       type: 'content';
       value: Array<
@@ -219,8 +215,4 @@ IANA media type of the image.
             mediaType?: string;
           }
       >;
-    }
-  | {
-      type: 'error'; // TODO error text vs error json
-      value: string;
     };

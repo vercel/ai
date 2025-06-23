@@ -1,4 +1,4 @@
-import { getErrorMessage } from '@ai-sdk/provider-utils';
+import { JSONValue } from '@ai-sdk/provider';
 import {
   AssistantContent,
   AssistantModelMessage,
@@ -64,7 +64,6 @@ export function toResponseMessages<TOOLS extends ToolSet>({
               isError: false,
             }),
             providerExecuted: true,
-            // TODO provider options
           };
         case 'tool-error':
           return {
@@ -72,10 +71,9 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             toolCallId: part.toolCallId,
             toolName: part.toolName,
             output: {
-              type: 'error',
-              value: getErrorMessage(part.error), // TODO error json
+              type: 'error-json',
+              value: part.error as JSONValue,
             },
-            // TODO provider options
           };
       }
     });
