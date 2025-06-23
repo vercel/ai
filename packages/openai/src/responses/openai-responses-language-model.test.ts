@@ -1658,4 +1658,216 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
   });
+
+  describe('server-side tools', () => {
+    const TEST_PROMPT = [
+      {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'text' as const,
+            text: 'Search for recent news about San Francisco tech events, then check the status of our server-side tool implementation.',
+          },
+        ],
+      },
+    ];
+
+    function prepareJsonResponse(body: any) {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body,
+      };
+    }
+
+    it('should enable server-side web search when using openai.tools.webSearchPreview', async () => {
+      prepareJsonResponse({
+        id: 'resp_67cf2b2f6bd081909be2c8054ddef0eb',
+        object: 'response',
+        created_at: 1741630255,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o-mini',
+        output: [
+          {
+            type: 'web_search_call',
+            id: 'ws_67cf2b3051e88190b006770db6fdb13d',
+            status: 'completed',
+          },
+          {
+            type: 'message',
+            id: 'msg_67cf2b35467481908f24412e4fd40d66',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
+                annotations: [
+                  {
+                    type: 'url_citation',
+                    start_index: 0,
+                    end_index: 50,
+                    url: 'https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai',
+                    title:
+                      'Discover Tech Events & Activities in San Francisco, CA | Eventbrite',
+                  },
+                  {
+                    type: 'url_citation',
+                    start_index: 51,
+                    end_index: 100,
+                    url: 'https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai',
+                    title: 'AI+ SF Summit: AI agents are the next big thing',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        usage: { input_tokens: 1359, output_tokens: 624 },
+      });
+
+      const result = await createModel('gpt-4o-mini').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search_preview',
+            args: {
+              searchContextSize: 'high',
+              userLocation: {
+                type: 'approximate',
+                city: 'San Francisco',
+                region: 'California',
+                country: 'US',
+              },
+            },
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "",
+            "providerExecuted": true,
+            "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "web_search_preview",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+            },
+            "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "web_search_preview",
+            "type": "tool-result",
+          },
+          {
+            "text": "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
+            "type": "text",
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "Discover Tech Events & Activities in San Francisco, CA | Eventbrite",
+            "type": "source",
+            "url": "https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai",
+          },
+          {
+            "id": "id-1",
+            "sourceType": "url",
+            "title": "AI+ SF Summit: AI agents are the next big thing",
+            "type": "source",
+            "url": "https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai",
+          },
+        ]
+      `);
+    });
+
+    it('should handle computer use tool calls', async () => {
+      prepareJsonResponse({
+        id: 'resp_computer_test',
+        object: 'response',
+        created_at: 1741630255,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o-mini',
+        output: [
+          {
+            type: 'computer_call',
+            id: 'computer_67cf2b3051e88190b006770db6fdb13d',
+            status: 'completed',
+          },
+          {
+            type: 'message',
+            id: 'msg_computer_test',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: "I've completed the computer task.",
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 50 },
+      });
+
+      const result = await createModel('gpt-4o-mini').doGenerate({
+        prompt: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Use the computer to complete a task.',
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.computer_use',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "",
+            "providerExecuted": true,
+            "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "computer_use",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+              "type": "computer_use_tool_result",
+            },
+            "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "computer_use",
+            "type": "tool-result",
+          },
+          {
+            "text": "I've completed the computer task.",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+  });
 });

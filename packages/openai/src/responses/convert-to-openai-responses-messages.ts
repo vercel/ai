@@ -109,9 +109,7 @@ export function convertToOpenAIResponsesMessages({
               break;
             }
             case 'tool-call': {
-              const isProviderExecuted =
-                part.providerOptions?.openai?.providerExecuted === true;
-              if (isProviderExecuted) {
+              if (part.providerExecuted) {
                 break;
               }
 
@@ -120,6 +118,18 @@ export function convertToOpenAIResponsesMessages({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
+              });
+              break;
+            }
+
+            case 'tool-result': {
+              if (part.providerExecuted) {
+                break;
+              }
+
+              warnings.push({
+                type: 'other',
+                message: `tool result parts in assistant messages are not supported for OpenAI responses`,
               });
               break;
             }

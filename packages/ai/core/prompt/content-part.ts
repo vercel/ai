@@ -140,4 +140,4 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   toolName: z.string(),
   output: outputSchema,
   providerOptions: providerMetadataSchema.optional(),
-}) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
+}) as z.ZodType<ToolResultPart>;
