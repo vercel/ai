@@ -546,6 +546,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               });
             }
           } else {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_search',
+              isError: true,
+              result: {
+                type: 'web_search_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+            });
+
             throw new APICallError({
               message: `Web search failed: ${part.content.error_code}`,
               url: 'web_search_api',
