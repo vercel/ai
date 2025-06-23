@@ -270,8 +270,8 @@ A function that attempts to repair a tool call that failed to parse.
         let currentModelResponse: Awaited<
           ReturnType<LanguageModelV2['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
-        let currentToolCalls: ToolCallArray<TOOLS> = [];
-        let currentToolOutputs: Array<ToolOutput<TOOLS>> = [];
+        let clientToolCalls: ToolCallArray<TOOLS> = [];
+        let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
@@ -412,7 +412,7 @@ A function that attempts to repair a tool call that failed to parse.
           );
 
           // parse tool calls:
-          currentToolCalls = await Promise.all(
+          const stepToolCalls = await Promise.all(
             currentModelResponse.content
               .filter(
                 (part): part is LanguageModelV2ToolCall =>
@@ -429,12 +429,29 @@ A function that attempts to repair a tool call that failed to parse.
               ),
           );
 
+          // notify the tools that the tool calls are available:
+          for (const toolCall of stepToolCalls) {
+            const tool = tools![toolCall.toolName];
+            if (tool?.onInputAvailable != null) {
+              await tool.onInputAvailable({
+                input: toolCall.input,
+                toolCallId: toolCall.toolCallId,
+                messages: stepInputMessages,
+                abortSignal,
+              });
+            }
+          }
+
+          clientToolCalls = stepToolCalls.filter(
+            toolCall => toolCall.providerExecuted !== true,
+          );
+
           // execute tools:
-          currentToolOutputs =
+          clientToolOutputs =
             tools == null
               ? []
               : await executeTools({
-                  toolCalls: currentToolCalls,
+                  toolCalls: clientToolCalls,
                   tools,
                   tracer,
                   telemetry,
@@ -445,8 +462,8 @@ A function that attempts to repair a tool call that failed to parse.
           // content:
           const stepContent = asContent({
             content: currentModelResponse.content,
-            toolCalls: currentToolCalls,
-            toolOutputs: currentToolOutputs,
+            toolCalls: stepToolCalls,
+            toolOutputs: clientToolOutputs,
           });
 
           // append to messages for potential next step:
@@ -476,9 +493,9 @@ A function that attempts to repair a tool call that failed to parse.
           await onStepFinish?.(currentStepResult);
         } while (
           // there are tool calls:
-          currentToolCalls.length > 0 &&
+          clientToolCalls.length > 0 &&
           // all current tool calls have outputs (incl. execution errors):
-          currentToolOutputs.length === currentToolCalls.length &&
+          clientToolOutputs.length === clientToolCalls.length &&
           // continue until a stop condition is met:
           !(await isStopConditionMet({ stopConditions, steps }))
         );
@@ -547,15 +564,6 @@ async function executeTools<TOOLS extends ToolSet>({
   const toolOutputs = await Promise.all(
     toolCalls.map(async ({ toolCallId, toolName, input }) => {
       const tool = tools[toolName];
-
-      if (tool?.onInputAvailable != null) {
-        await tool.onInputAvailable({
-          input,
-          toolCallId,
-          messages,
-          abortSignal,
-        });
-      }
 
       if (tool?.execute == null) {
         return undefined;
@@ -773,6 +781,36 @@ function asContent<TOOLS extends ToolSet>({
           return toolCalls.find(
             toolCall => toolCall.toolCallId === part.toolCallId,
           )!;
+        }
+
+        case 'tool-result': {
+          const toolCall = toolCalls.find(
+            toolCall => toolCall.toolCallId === part.toolCallId,
+          )!;
+
+          if (toolCall == null) {
+            throw new Error(`Tool call ${part.toolCallId} not found.`);
+          }
+
+          if (part.isError) {
+            return {
+              type: 'tool-error' as const,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName as keyof TOOLS & string,
+              input: toolCall.input,
+              error: part.result,
+              providerExecuted: true,
+            } as ToolErrorUnion<TOOLS>;
+          }
+
+          return {
+            type: 'tool-result' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName as keyof TOOLS & string,
+            input: toolCall.input,
+            output: part.result,
+            providerExecuted: true,
+          } as ToolResultUnion<TOOLS>;
         }
       }
     }),

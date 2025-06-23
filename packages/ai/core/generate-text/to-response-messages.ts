@@ -1,12 +1,13 @@
+import { JSONValue } from '@ai-sdk/provider';
 import {
   AssistantContent,
   AssistantModelMessage,
   ToolContent,
   ToolModelMessage,
 } from '../prompt';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { ContentPart } from './content-part';
 import { ToolSet } from './tool-set';
-import { createToolModelOutput } from '../prompt/create-tool-model-output';
 
 /**
 Converts the result of a `generateText` or `streamText` call to a list of response messages.
@@ -21,11 +22,11 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
   const content: AssistantContent = inputContent
+    .filter(part => part.type !== 'source')
     .filter(
       part =>
-        part.type !== 'tool-result' &&
-        part.type !== 'tool-error' &&
-        part.type !== 'source',
+        (part.type !== 'tool-result' || part.providerExecuted) &&
+        (part.type !== 'tool-error' || part.providerExecuted),
     )
     .filter(part => part.type !== 'text' || part.text.length > 0)
     .map(part => {
@@ -34,18 +35,47 @@ export function toResponseMessages<TOOLS extends ToolSet>({
           return part;
         case 'reasoning':
           return {
-            type: 'reasoning' as const,
+            type: 'reasoning',
             text: part.text,
             providerOptions: part.providerMetadata,
           };
         case 'file':
           return {
-            type: 'file' as const,
+            type: 'file',
             data: part.file.base64,
             mediaType: part.file.mediaType,
           };
         case 'tool-call':
-          return part;
+          return {
+            type: 'tool-call',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            input: part.input,
+            providerExecuted: part.providerExecuted,
+          };
+        case 'tool-result':
+          return {
+            type: 'tool-result',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: createToolModelOutput({
+              tool: tools?.[part.toolName],
+              output: part.output,
+              errorMode: 'none',
+            }),
+            providerExecuted: true,
+          };
+        case 'tool-error':
+          return {
+            type: 'tool-result',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: createToolModelOutput({
+              tool: tools?.[part.toolName],
+              output: part.error,
+              errorMode: 'json',
+            }),
+          };
       }
     });
 
@@ -58,6 +88,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 
   const toolResultContent: ToolContent = inputContent
     .filter(part => part.type === 'tool-result' || part.type === 'tool-error')
+    .filter(part => !part.providerExecuted)
     .map(toolResult => ({
       type: 'tool-result',
       toolCallId: toolResult.toolCallId,
@@ -68,7 +99,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
           toolResult.type === 'tool-result'
             ? toolResult.output
             : toolResult.error,
-        isError: toolResult.type === 'tool-error',
+        errorMode: toolResult.type === 'tool-error' ? 'text' : 'none',
       }),
     }));
 

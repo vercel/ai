@@ -835,6 +835,87 @@ describe('assistant messages', () => {
       },
     ]);
   });
+
+  it('should convert anthropic web_search tool call and result parts', async () => {
+    const warnings: LanguageModelV2CallWarning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                query: 'San Francisco major news events June 22 2025',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+              toolName: 'web_search',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    url: 'https://patch.com/california/san-francisco/calendar',
+                    title: 'San Francisco Calendar',
+                    pageAge: null,
+                    encryptedContent: 'encrypted-content',
+                    type: 'event',
+                  },
+                ],
+              },
+              toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+              toolName: 'web_search',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                  "input": {
+                    "query": "San Francisco major news events June 22 2025",
+                  },
+                  "name": "web_search",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "encrypted_content": "encrypted-content",
+                      "page_age": null,
+                      "title": "San Francisco Calendar",
+                      "type": "event",
+                      "url": "https://patch.com/california/san-francisco/calendar",
+                    },
+                  ],
+                  "tool_use_id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                  "type": "web_search_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
 });
 
 describe('cache control', () => {

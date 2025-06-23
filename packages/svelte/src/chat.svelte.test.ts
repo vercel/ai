@@ -394,6 +394,7 @@ describe('onToolCall', () => {
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -410,6 +411,7 @@ describe('onToolCall', () => {
         input: { testArg: 'test-value' },
         output:
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+        providerExecuted: undefined,
       },
     ]);
   });
@@ -458,6 +460,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: undefined,
           output: undefined,
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -479,6 +482,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: { testArg: 't' },
           output: undefined,
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -500,6 +504,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -522,6 +527,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -544,6 +550,7 @@ describe('tool invocations', () => {
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
         output: 'test-result',
+        providerExecuted: undefined,
       },
     ]);
   });
@@ -575,6 +582,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -598,6 +606,7 @@ describe('tool invocations', () => {
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
         output: 'test-result',
+        providerExecuted: undefined,
       },
     ]);
   });
@@ -628,6 +637,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -646,6 +656,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: 'test-result',
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -688,6 +699,7 @@ describe('tool invocations', () => {
           output: undefined,
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -708,6 +720,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: 'test-result',
+          providerExecuted: undefined,
         },
       ]);
     });
@@ -807,6 +820,7 @@ describe('maxSteps', () => {
                   "testArg": "test-value",
                 },
                 "output": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
+                "providerExecuted": undefined,
                 "state": "output-available",
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",

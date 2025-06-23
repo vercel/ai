@@ -95,11 +95,30 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             options: {
               toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
               toolCallId: string;
+              providerExecuted?: boolean;
             } & (
-              | { state: 'input-streaming'; input: unknown }
-              | { state: 'input-available'; input: unknown }
-              | { state: 'output-available'; input: unknown; output: unknown }
-              | { state: 'output-error'; input: unknown; errorText: string }
+              | {
+                  state: 'input-streaming';
+                  input: unknown;
+                  providerExecuted?: boolean;
+                }
+              | {
+                  state: 'input-available';
+                  input: unknown;
+                  providerExecuted?: boolean;
+                }
+              | {
+                  state: 'output-available';
+                  input: unknown;
+                  output: unknown;
+                  providerExecuted?: boolean;
+                }
+              | {
+                  state: 'output-error';
+                  input: unknown;
+                  errorText: string;
+                  providerExecuted?: boolean;
+                }
             ),
           ) {
             const part = state.message.parts.find(
@@ -107,19 +126,27 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 isToolUIPart(part) && part.toolCallId === options.toolCallId,
             ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
 
+            const anyOptions = options as any;
+            const anyPart = part as any;
+
             if (part != null) {
               part.state = options.state;
-              (part as any).input = (options as any).input;
-              (part as any).output = (options as any).output;
-              (part as any).errorText = (options as any).errorText;
+              anyPart.input = anyOptions.input;
+              anyPart.output = anyOptions.output;
+              anyPart.errorText = anyOptions.errorText;
+
+              // once providerExecuted is set, it stays for streaming
+              anyPart.providerExecuted =
+                anyOptions.providerExecuted ?? part.providerExecuted;
             } else {
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
                 toolCallId: options.toolCallId,
                 state: options.state,
-                input: (options as any).input,
-                output: (options as any).output,
-                errorText: (options as any).errorText,
+                input: anyOptions.input,
+                output: anyOptions.output,
+                errorText: anyOptions.errorText,
+                providerExecuted: anyOptions.providerExecuted,
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
@@ -250,6 +277,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolName: part.toolName,
                 state: 'input-streaming',
                 input: undefined,
+                providerExecuted: part.providerExecuted,
               });
 
               write();
@@ -282,6 +310,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolName: part.toolName,
                 state: 'input-available',
                 input: part.input,
+                providerExecuted: part.providerExecuted,
               });
 
               write();
@@ -289,7 +318,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // invoke the onToolCall callback if it exists. This is blocking.
               // In the future we should make this non-blocking, which
               // requires additional state management for error handling etc.
-              if (onToolCall) {
+              // Skip calling onToolCall for provider-executed tools since they are already executed
+              if (onToolCall && !part.providerExecuted) {
                 const result = await onToolCall({
                   toolCall: part,
                 });
@@ -337,6 +367,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: 'output-available',
                 input: (toolInvocations[toolInvocationIndex] as any).input,
                 output: part.output,
+                providerExecuted: part.providerExecuted,
               });
 
               write();
@@ -372,6 +403,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: 'output-error',
                 input: (toolInvocations[toolInvocationIndex] as any).input,
                 errorText: part.errorText,
+                providerExecuted: part.providerExecuted,
               });
 
               write();

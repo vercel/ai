@@ -105,6 +105,7 @@ describe('toResponseMessages', () => {
             },
             {
               "input": {},
+              "providerExecuted": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -169,6 +170,7 @@ describe('toResponseMessages', () => {
             },
             {
               "input": {},
+              "providerExecuted": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -180,7 +182,7 @@ describe('toResponseMessages', () => {
           "content": [
             {
               "output": {
-                "type": "error",
+                "type": "error-text",
                 "value": "Tool error",
               },
               "toolCallId": "123",
@@ -333,6 +335,7 @@ describe('toResponseMessages', () => {
             },
             {
               "input": {},
+              "providerExecuted": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -511,6 +514,7 @@ describe('toResponseMessages', () => {
             },
             {
               "input": {},
+              "providerExecuted": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -550,6 +554,7 @@ describe('toResponseMessages', () => {
           "content": [
             {
               "input": {},
+              "providerExecuted": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -568,5 +573,102 @@ describe('toResponseMessages', () => {
     });
 
     expect(result).toEqual([]);
+  });
+
+  describe('provider-executed tool calls', () => {
+    it('should include provider-executed tool calls and results', () => {
+      const result = toResponseMessages({
+        content: [
+          {
+            type: 'text',
+            text: 'Let me search for recent news from San Francisco.',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+            toolName: 'web_search',
+            input: {
+              query: 'San Francisco major news events June 22 2025',
+            },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+            toolName: 'web_search',
+            input: {
+              query: 'San Francisco major news events June 22 2025',
+            },
+            output: [
+              { url: 'https://patch.com/california/san-francisco/calendar' },
+            ],
+            providerExecuted: true,
+          },
+          {
+            type: 'text',
+            text: 'Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025). Here are the main highlights:\n\n1. Juneteenth Celebration:\n',
+          },
+        ],
+        tools: {
+          web_search: tool({
+            type: 'provider-defined',
+            id: 'test.web_search',
+            inputSchema: z.object({
+              query: z.string(),
+            }),
+            outputSchema: z.array(
+              z.object({
+                url: z.string(),
+              }),
+            ),
+            args: {},
+          }),
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me search for recent news from San Francisco.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "query": "San Francisco major news events June 22 2025",
+                },
+                "providerExecuted": true,
+                "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": [
+                    {
+                      "url": "https://patch.com/california/san-francisco/calendar",
+                    },
+                  ],
+                },
+                "providerExecuted": true,
+                "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025). Here are the main highlights:
+
+        1. Juneteenth Celebration:
+        ",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
   });
 });

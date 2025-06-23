@@ -1,4 +1,4 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
+import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // Args validation schema
@@ -32,13 +32,30 @@ export const webSearch_20250305ArgsSchema = z.object({
     .optional(),
 });
 
-export const webSearch_20250305 = createProviderDefinedToolFactory<
+export const webSearch_20250305OutputSchema = z.array(
+  z.object({
+    url: z.string(),
+    title: z.string(),
+    pageAge: z.string().nullable(),
+    encryptedContent: z.string(),
+    type: z.string(),
+  }),
+);
+
+const factory = createProviderDefinedToolFactoryWithOutputSchema<
   {
     /**
      * The search query to execute.
      */
     query: string;
   },
+  Array<{
+    url: string;
+    title: string;
+    pageAge: string | null;
+    encryptedContent: string;
+    type: string;
+  }>,
   {
     /**
      * Maximum number of web searches Claude can perform during the conversation.
@@ -71,4 +88,11 @@ export const webSearch_20250305 = createProviderDefinedToolFactory<
   inputSchema: z.object({
     query: z.string(),
   }),
+  outputSchema: webSearch_20250305OutputSchema,
 });
+
+export const webSearch_20250305 = (
+  args: Parameters<typeof factory>[0] = {}, // default
+) => {
+  return factory(args);
+};

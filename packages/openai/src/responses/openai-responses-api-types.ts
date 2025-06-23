@@ -7,7 +7,9 @@ export type OpenAIResponsesMessage =
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
-  | OpenAIResponsesFunctionCallOutput;
+  | OpenAIResponsesFunctionCallOutput
+  | OpenAIWebSearchCall
+  | OpenAIComputerCall;
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -25,7 +27,11 @@ export type OpenAIResponsesUserMessage = {
 
 export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
-  content: Array<{ type: 'output_text'; text: string }>;
+  content: Array<
+    | { type: 'output_text'; text: string }
+    | OpenAIWebSearchCall
+    | OpenAIComputerCall
+  >;
 };
 
 export type OpenAIResponsesFunctionCall = {
@@ -39,6 +45,18 @@ export type OpenAIResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
   output: string;
+};
+
+export type OpenAIWebSearchCall = {
+  type: 'web_search_call';
+  id: string;
+  status?: string;
+};
+
+export type OpenAIComputerCall = {
+  type: 'computer_call';
+  id: string;
+  status?: string;
 };
 
 export type OpenAIResponsesTool =

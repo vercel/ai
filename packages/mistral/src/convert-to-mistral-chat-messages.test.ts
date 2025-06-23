@@ -224,7 +224,7 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'tool-call-id-4',
             toolName: 'error-tool',
-            output: { type: 'error', value: 'Invalid input provided' },
+            output: { type: 'error-text', value: 'Invalid input provided' },
           },
         ],
       },

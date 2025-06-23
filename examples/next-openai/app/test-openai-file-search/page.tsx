@@ -1,20 +1,24 @@
 'use client';
 
-import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { SourcesChatMessage } from '@/app/api/use-chat-sources/route';
+import ChatInput from '@/component/chat-input';
+import { OpenAIFileSearchMessage } from '@/app/api/chat-openai-file-search/route';
 
-export default function Chat() {
+export default function TestOpenAIFileSearch() {
   const { error, status, sendMessage, messages, regenerate, stop } =
-    useChat<SourcesChatMessage>({
-      transport: new DefaultChatTransport({ api: '/api/use-chat-sources' }),
+    useChat<OpenAIFileSearchMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/chat-openai-file-search',
+      }),
     });
 
-  console.log(messages);
-
   return (
-    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      <h1 className="mb-4 text-xl font-bold">
+        OpenAI File Search Block-Based Streaming Test
+      </h1>
+
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
@@ -23,11 +27,8 @@ export default function Chat() {
               return <div key={index}>{part.text}</div>;
             }
 
-            if (part.type === 'tool-web_search') {
-              if (
-                part.state === 'input-available' ||
-                part.state === 'input-streaming'
-              ) {
+            if (part.type === 'tool-file_search') {
+              if (part.state === 'input-available') {
                 return (
                   <pre
                     key={index}
@@ -44,10 +45,22 @@ export default function Chat() {
                     className="overflow-auto p-2 text-sm bg-gray-100 rounded"
                   >
                     {JSON.stringify(part.input, null, 2)}
-                    {`\n\nDONE - ${part.output.length} results`}
+                    {`\n\nDONE - File search completed`}
                   </pre>
                 );
               }
+            }
+
+            if (part.type === 'source-document') {
+              return (
+                <span key={index}>
+                  [
+                  <span className="text-sm font-bold text-green-600">
+                    {part.title || part.filename || 'Document'}
+                  </span>
+                  ]
+                </span>
+              );
             }
 
             if (part.type === 'source-url') {
@@ -57,6 +70,7 @@ export default function Chat() {
                   <a
                     href={part.url}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="text-sm font-bold text-blue-500 hover:underline"
                   >
                     {part.title ?? new URL(part.url).hostname}
@@ -65,6 +79,8 @@ export default function Chat() {
                 </span>
               );
             }
+
+            return null;
           })}
         </div>
       ))}
@@ -74,7 +90,7 @@ export default function Chat() {
           {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
+            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
             onClick={stop}
           >
             Stop
@@ -87,7 +103,7 @@ export default function Chat() {
           <div className="text-red-500">An error occurred.</div>
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
+            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
             onClick={() => regenerate()}
           >
             Retry

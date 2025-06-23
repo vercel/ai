@@ -511,6 +511,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               toolCallId: part.id,
               toolName: part.name,
               input: JSON.stringify(part.input),
+              providerExecuted: true,
             });
           }
 
@@ -518,6 +519,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         }
         case 'web_search_tool_result': {
           if (Array.isArray(part.content)) {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_search',
+              result: part.content.map(result => ({
+                url: result.url,
+                title: result.title,
+                pageAge: result.page_age ?? null,
+                encryptedContent: result.encrypted_content,
+                type: result.type,
+              })),
+              providerExecuted: true,
+            });
+
             for (const result of part.content) {
               content.push({
                 type: 'source',
@@ -527,18 +542,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 title: result.title,
                 providerMetadata: {
                   anthropic: {
-                    encryptedContent: result.encrypted_content,
                     pageAge: result.page_age ?? null,
                   },
                 },
               });
             }
           } else {
-            throw new APICallError({
-              message: `Web search failed: ${part.content.error_code}`,
-              url: 'web_search_api',
-              requestBodyValues: { tool_use_id: part.tool_use_id },
-              data: { error_code: part.content.error_code },
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'web_search',
+              isError: true,
+              result: {
+                type: 'web_search_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+              providerExecuted: true,
             });
           }
           break;
@@ -612,6 +631,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           toolCallId: string;
           toolName: string;
           input: string;
+          providerExecuted?: boolean;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -724,11 +744,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         toolCallId: value.content_block.id,
                         toolName: value.content_block.name,
                         input: '',
+                        providerExecuted: true,
                       };
                       controller.enqueue({
                         type: 'tool-input-start',
                         id: value.content_block.id,
                         toolName: value.content_block.name,
+                        providerExecuted: true,
                       });
                     }
 
@@ -736,8 +758,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   }
 
                   case 'web_search_tool_result': {
-                    if (Array.isArray(value.content_block.content)) {
-                      for (const result of value.content_block.content) {
+                    const part = value.content_block;
+
+                    if (Array.isArray(part.content)) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'web_search',
+                        result: part.content.map(result => ({
+                          url: result.url,
+                          title: result.title,
+                          pageAge: result.page_age ?? null,
+                          encryptedContent: result.encrypted_content,
+                          type: result.type,
+                        })),
+                        providerExecuted: true,
+                      });
+
+                      for (const result of part.content) {
                         controller.enqueue({
                           type: 'source',
                           sourceType: 'url',
@@ -746,7 +784,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           title: result.title,
                           providerMetadata: {
                             anthropic: {
-                              encryptedContent: result.encrypted_content,
                               pageAge: result.page_age ?? null,
                             },
                           },
@@ -754,12 +791,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       }
                     } else {
                       controller.enqueue({
-                        type: 'error',
-                        error: {
-                          type: 'web-search-error',
-                          message: `Web search failed: ${value.content_block.content.error_code}`,
-                          code: value.content_block.content.error_code,
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'web_search',
+                        isError: true,
+                        result: {
+                          type: 'web_search_tool_result_error',
+                          errorCode: part.content.error_code,
                         },
+                        providerExecuted: true,
                       });
                     }
                     return;
@@ -804,12 +844,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           type: 'tool-input-end',
                           id: contentBlock.toolCallId,
                         });
-                        controller.enqueue({
-                          type: 'tool-call',
-                          toolCallId: contentBlock.toolCallId,
-                          toolName: contentBlock.toolName,
-                          input: contentBlock.input,
-                        });
+                        controller.enqueue(contentBlock);
                       }
                       break;
                   }

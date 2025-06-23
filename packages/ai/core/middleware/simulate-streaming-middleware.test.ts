@@ -532,76 +532,78 @@ describe('simulateStreamingMiddleware', () => {
 
     expect(await convertAsyncIterableToArray(result.fullStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "type": "start",
-        },
-        {
-          "request": {},
-          "type": "start-step",
-          "warnings": [],
-        },
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "text": "This is a test response",
-          "type": "text",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "input": {
-            "expression": "2+2",
+        [
+          {
+            "type": "start",
           },
-          "toolCallId": "tool-1",
-          "toolName": "calculator",
-          "type": "tool-call",
-        },
-        {
-          "input": {
-            "location": "New York",
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
           },
-          "toolCallId": "tool-2",
-          "toolName": "weather",
-          "type": "tool-call",
-        },
-        {
-          "finishReason": "tool-calls",
-          "providerMetadata": undefined,
-          "response": {
-            "headers": undefined,
-            "id": "id-4",
-            "modelId": "mock-model-id",
-            "timestamp": 2025-01-01T00:00:00.000Z,
+          {
+            "id": "0",
+            "type": "text-start",
           },
-          "type": "finish-step",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
+          {
+            "id": "0",
+            "providerMetadata": undefined,
+            "text": "This is a test response",
+            "type": "text",
           },
-        },
-        {
-          "finishReason": "tool-calls",
-          "totalUsage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 5,
-            "outputTokens": 10,
-            "reasoningTokens": 3,
-            "totalTokens": 18,
+          {
+            "id": "0",
+            "type": "text-end",
           },
-          "type": "finish",
-        },
-      ]
-    `);
+          {
+            "input": {
+              "expression": "2+2",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "tool-1",
+            "toolName": "calculator",
+            "type": "tool-call",
+          },
+          {
+            "input": {
+              "location": "New York",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "tool-2",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-4",
+              "modelId": "mock-model-id",
+              "timestamp": 2025-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+          },
+          {
+            "finishReason": "tool-calls",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
   });
 
   it('should preserve additional metadata in the response', async () => {

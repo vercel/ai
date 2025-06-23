@@ -459,7 +459,7 @@ describe('tool calls', () => {
               type: 'tool-result',
               toolCallId: 'error-tool',
               toolName: 'error-tool',
-              output: { type: 'error', value: 'Something went wrong' },
+              output: { type: 'error-text', value: 'Something went wrong' },
             },
           ],
         },

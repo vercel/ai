@@ -168,20 +168,24 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
     | {
         state: 'input-streaming';
         input: DeepPartial<TOOLS[NAME]['input']>;
+        providerExecuted?: boolean;
       }
     | {
         state: 'input-available';
         input: TOOLS[NAME]['input'];
+        providerExecuted?: boolean;
       }
     | {
         state: 'output-available';
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
+        providerExecuted?: boolean;
       }
     | {
         state: 'output-error';
         input: TOOLS[NAME]['input'];
         errorText: string;
+        providerExecuted?: boolean;
       }
   );
 }>;

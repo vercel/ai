@@ -9,6 +9,7 @@ export type ToolCallUnion<TOOLS extends ToolSet> = ValueOf<{
     toolCallId: string;
     toolName: NAME & string;
     input: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
+    providerExecuted?: boolean;
   };
 }>;
 

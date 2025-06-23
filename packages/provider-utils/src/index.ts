@@ -18,6 +18,8 @@ export * from './post-to-api';
 export {
   createProviderDefinedToolFactory,
   type ProviderDefinedToolFactory,
+  createProviderDefinedToolFactoryWithOutputSchema,
+  type ProviderDefinedToolFactoryWithOutputSchema,
 } from './provider-defined-tool-factory';
 export * from './remove-undefined-entries';
 export * from './resolve';

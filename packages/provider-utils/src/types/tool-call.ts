@@ -17,4 +17,10 @@ Name of the tool that is being called.
 Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
    */
   input: INPUT;
+
+  /**
+   * Whether the tool call will be executed by the provider.
+   * If this flag is not set or is false, the tool call will be executed by the client.
+   */
+  providerExecuted?: boolean;
 }

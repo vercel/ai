@@ -3,6 +3,7 @@ import {
   ReasoningPart,
   TextPart,
   ToolCallPart,
+  ToolResultPart,
 } from './content-part';
 import { ProviderOptions } from './provider-options';
 
@@ -27,4 +28,4 @@ It can be a string or an array of text, image, reasoning, redacted reasoning, an
  */
 export type AssistantContent =
   | string
-  | Array<TextPart | FilePart | ReasoningPart | ToolCallPart>;
+  | Array<TextPart | FilePart | ReasoningPart | ToolCallPart | ToolResultPart>;

@@ -259,9 +259,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 type: z.literal('web_search_call'),
+                id: z.string(),
+                status: z.string().optional(),
               }),
               z.object({
                 type: z.literal('computer_call'),
+                id: z.string(),
+                status: z.string().optional(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -317,10 +321,51 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
         case 'function_call': {
           content.push({
-            type: 'tool-call' as const,
+            type: 'tool-call',
             toolCallId: part.call_id,
             toolName: part.name,
             input: part.arguments,
+          });
+          break;
+        }
+
+        case 'web_search_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'web_search_preview',
+            input: '',
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'web_search_preview',
+            result: { status: part.status || 'completed' },
+            providerExecuted: true,
+          });
+          break;
+        }
+
+        case 'computer_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'computer_use',
+            input: '',
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'computer_use',
+            result: {
+              type: 'computer_use_tool_result',
+              status: part.status || 'completed',
+            },
+            providerExecuted: true,
           });
           break;
         }
@@ -433,6 +478,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.call_id,
                   toolName: value.item.name,
                 });
+              } else if (value.item.type === 'web_search_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'web_search_preview',
+                  toolCallId: value.item.id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'web_search_preview',
+                });
+              } else if (value.item.type === 'computer_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'computer_use',
+                  toolCallId: value.item.id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'computer_use',
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-start',
@@ -459,6 +526,60 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
                   input: value.item.arguments,
+                });
+              } else if (value.item.type === 'web_search_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search_preview',
+                  input: '',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search_preview',
+                  result: {
+                    type: 'web_search_tool_result',
+                    status: value.item.status || 'completed',
+                  },
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'computer_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'computer_use',
+                  input: '',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'computer_use',
+                  result: {
+                    type: 'computer_use_tool_result',
+                    status: value.item.status || 'completed',
+                  },
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
@@ -601,6 +722,16 @@ const responseOutputItemAddedSchema = z.object({
       name: z.string(),
       arguments: z.string(),
     }),
+    z.object({
+      type: z.literal('web_search_call'),
+      id: z.string(),
+      status: z.string(),
+    }),
+    z.object({
+      type: z.literal('computer_call'),
+      id: z.string(),
+      status: z.string(),
+    }),
   ]),
 });
 
@@ -622,6 +753,16 @@ const responseOutputItemDoneSchema = z.object({
       call_id: z.string(),
       name: z.string(),
       arguments: z.string(),
+      status: z.literal('completed'),
+    }),
+    z.object({
+      type: z.literal('web_search_call'),
+      id: z.string(),
+      status: z.literal('completed'),
+    }),
+    z.object({
+      type: z.literal('computer_call'),
+      id: z.string(),
       status: z.literal('completed'),
     }),
   ]),

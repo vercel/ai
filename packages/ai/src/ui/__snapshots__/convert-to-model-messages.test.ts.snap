@@ -10,6 +10,7 @@ exports[`convertToModelMessages > assistant message > should handle assistant me
       },
       {
         "input": {},
+        "providerExecuted": undefined,
         "toolCallId": "call1",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -69,6 +70,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "input": {
           "value": "value-1",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -100,6 +102,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "input": {
           "value": "value-2",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -108,6 +111,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "input": {
           "value": "value-3",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -144,6 +148,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "input": {
           "value": "value-4",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -189,6 +194,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "input": {
           "value": "value-1",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -216,6 +222,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "input": {
           "value": "value-2",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -224,6 +231,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "input": {
           "value": "value-3",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -260,6 +268,7 @@ exports[`convertToModelMessages > assistant message > should handle conversation
         "input": {
           "value": "value-4",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -292,6 +301,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
         "input": {
           "value": "value-1",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -319,6 +329,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
         "input": {
           "value": "value-2",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-2",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -327,6 +338,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
         "input": {
           "value": "value-3",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-3",
         "toolName": "screenshot",
         "type": "tool-call",
@@ -363,6 +375,7 @@ exports[`convertToModelMessages > multiple messages > should handle conversation
         "input": {
           "value": "value-4",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-4",
         "toolName": "screenshot",
         "type": "tool-call",
