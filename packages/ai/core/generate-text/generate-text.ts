@@ -462,7 +462,7 @@ A function that attempts to repair a tool call that failed to parse.
           // content:
           const stepContent = asContent({
             content: currentModelResponse.content,
-            toolCalls: currentToolCalls,
+            toolCalls: stepToolCalls,
             toolOutputs: currentToolOutputs,
           });
 
@@ -787,6 +787,11 @@ function asContent<TOOLS extends ToolSet>({
           const toolCall = toolCalls.find(
             toolCall => toolCall.toolCallId === part.toolCallId,
           )!;
+
+          if (toolCall == null) {
+            // TODO AI SDK error
+            throw new Error(`Tool call ${part.toolCallId} not found.`);
+          }
 
           return {
             type: 'tool-result' as const,
