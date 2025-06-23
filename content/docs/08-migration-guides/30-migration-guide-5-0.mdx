@@ -3,6 +3,9 @@ title: Migrate AI SDK 4.0 to 5.0
 description: Learn how to upgrade AI SDK 4.0 to 5.0.
 ---
 
+// NOTE: change to 4.3?
+// NOTE: need to review titles for clarity and accuracy
+
 # Migrate AI SDK 4.0 to 5.0
 
 <Note>
@@ -21,7 +24,7 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0.
 1. Verify your project is working as expected.
 1. Commit your changes.
 
-## AI SDK 5.0 package versions
+## AI SDK 5.0 Package Versions
 
 You need to update the following packages to the following versions in your `package.json` file(s):
 
@@ -60,379 +63,17 @@ npx @ai-sdk/codemod <codemod-name> <path>
 
 See also the [table of codemods](#codemod-table).
 
-## Package Structure Changes
+## AI SDK Core Changes
 
-### `@ai-sdk/rsc` Package Extraction
+### generateText and streamText Changes
 
-The `ai/rsc` export has been extracted to a separate package `@ai-sdk/rsc`.
-
-```tsx filename="AI SDK 4.0"
-import { createStreamableValue } from 'ai/rsc';
-```
-
-```tsx filename="AI SDK 5.0"
-import { createStreamableValue } from '@ai-sdk/rsc';
-```
-
-<Note>Don't forget to install the new package: `npm install @ai-sdk/rsc`</Note>
-
-**Codemod:** `rsc-package`
-
-### React UI Hooks Moved to `@ai-sdk/react`
-
-The deprecated `ai/react` export has been removed in favor of `@ai-sdk/react`.
-
-```tsx filename="AI SDK 4.0"
-import { useChat } from 'ai/react';
-```
-
-```tsx filename="AI SDK 5.0"
-import { useChat } from '@ai-sdk/react';
-```
-
-<Note>
-  Don't forget to install the new package: `npm install @ai-sdk/react`
-</Note>
-
-**Codemod:** `move-react-to-ai-sdk`
-
-## useChat Changes
-
-The `useChat` hook has undergone significant changes in v5, with new transport architecture and removal of managed input state.
-
-### Chat Transport Architecture
-
-Configuration is now handled through transport objects instead of direct API options.
-
-```tsx filename="AI SDK 4.0"
-import { useChat } from '@ai-sdk/react';
-
-const { messages } = useChat({
-  api: '/api/chat',
-  credentials: 'include',
-  headers: { 'Custom-Header': 'value' },
-});
-```
-
-```tsx filename="AI SDK 5.0"
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-
-const { messages } = useChat({
-  transport: new DefaultChatTransport({
-    api: '/api/chat',
-    credentials: 'include',
-    headers: { 'Custom-Header': 'value' },
-  }),
-});
-```
-
-### Removed Managed Input State
-
-The `useChat` hook no longer manages input state internally. You must now manage input state manually.
-
-```tsx filename="AI SDK 4.0"
-import { useChat } from '@ai-sdk/react';
-
-const { messages, input, handleInputChange, handleSubmit } = useChat({
-  api: '/api/chat',
-});
-
-return (
-  <form onSubmit={handleSubmit}>
-    <input value={input} onChange={handleInputChange} />
-    <button type="submit">Send</button>
-  </form>
-);
-```
-
-```tsx filename="AI SDK 5.0"
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { useState } from 'react';
-
-const [input, setInput] = useState('');
-const { messages, sendMessage } = useChat({
-  transport: new DefaultChatTransport({ api: '/api/chat' }),
-});
-
-const handleSubmit = e => {
-  e.preventDefault();
-  sendMessage({ text: input });
-  setInput('');
-};
-
-return (
-  <form onSubmit={handleSubmit}>
-    <input value={input} onChange={e => setInput(e.target.value)} />
-    <button type="submit">Send</button>
-  </form>
-);
-```
-
-Key changes:
-
-- `input`, `setInput`, `handleInputChange`, `handleSubmit` removed
-- Use `sendMessage()` to send messages
-- Messages are sent as parts arrays instead of strings
-
-### Message Sending: `append` → `sendMessage`
-
-The `append` function has been replaced with `sendMessage` and requires structured message format.
-
-```tsx filename="AI SDK 4.0"
-const { append } = useChat();
-
-// Simple text message
-append({ role: 'user', content: 'Hello' });
-
-// With custom body
-append(
-  {
-    role: 'user',
-    content: 'Hello',
-  },
-  { body: { imageUrl: 'https://...' } },
-);
-```
-
-```tsx filename="AI SDK 5.0"
-const { sendMessage } = useChat();
-
-// Simple text message (most common usage)
-sendMessage({ text: 'Hello' });
-
-// Or with explicit parts array
-sendMessage({
-  parts: [{ type: 'text', text: 'Hello' }],
-});
-
-// With custom body (via request options)
-sendMessage(
-  { role: 'user', parts: [{ type: 'text', text: 'Hello' }] },
-  { body: { imageUrl: 'https://...' } },
-);
-```
-
-Migration steps:
-
-1. Replace `append` with `sendMessage` in destructuring
-2. Convert `content` strings to `parts` arrays
-3. Move custom data to request options `body` parameter
-
-### Message Regeneration: `reload` → `regenerate`
-
-The `reload` function has been renamed to `regenerate` with enhanced functionality.
-
-```tsx filename="AI SDK 4.0"
-const { reload } = useChat();
-
-// Regenerate last message
-reload();
-```
-
-```tsx filename="AI SDK 5.0"
-const { regenerate } = useChat();
-
-// Regenerate last message
-regenerate();
-
-// Regenerate specific message
-regenerate({ messageId: 'message-123' });
-```
-
-Migration steps:
-
-1. Replace `reload` with `regenerate` in destructuring
-2. Optionally use the new `messageId` parameter for targeted regeneration
-
-### `@ai-sdk/vue` Changes
-
-The Vue.js integration has been completely restructured, replacing the `useChat` composable with a `Chat` class.
-
-#### useChat Composable Replaced with Chat Class
-
-```vue filename="@ai-sdk/vue v1"
-<script setup>
-import { useChat } from '@ai-sdk/vue';
-
-const { messages, input, handleSubmit } = useChat({
-  api: '/api/chat',
-});
-</script>
-```
-
-```vue filename="@ai-sdk/vue v2"
-<script setup>
-import { Chat } from '@ai-sdk/vue';
-import { DefaultChatTransport } from 'ai';
-import { ref } from 'vue';
-
-const input = ref('');
-const chat = new Chat({
-  transport: new DefaultChatTransport({ api: '/api/chat' }),
-});
-
-const handleSubmit = () => {
-  chat.sendMessage({ text: input.value });
-  input.value = '';
-};
-</script>
-```
-
-#### Message Structure Changes
-
-Messages now use a `parts` array instead of a `content` string.
-
-```vue filename="@ai-sdk/vue v1"
-<template>
-  <div v-for="message in messages" :key="message.id">
-    <div>{{ message.role }}: {{ message.content }}</div>
-  </div>
-</template>
-```
-
-```vue filename="@ai-sdk/vue v2"
-<template>
-  <div v-for="message in chat.messages" :key="message.id">
-    <div>{{ message.role }}:</div>
-    <div v-for="part in message.parts" :key="part.type">
-      <span v-if="part.type === 'text'">{{ part.text }}</span>
-    </div>
-  </div>
-</template>
-```
-
-### `@ai-sdk/svelte` Changes
-
-The Svelte integration has also been updated with new constructor patterns and readonly properties.
-
-#### Constructor API Changes
-
-```js filename="@ai-sdk/svelte v1"
-import { chat } from '@ai-sdk/svelte';
-
-const chatInstance = chat({
-  api: '/api/chat',
-});
-```
-
-```js filename="@ai-sdk/svelte v2"
-import { chat } from '@ai-sdk/svelte';
-import { DefaultChatTransport } from 'ai';
-
-const chatInstance = chat(() => ({
-  transport: new DefaultChatTransport({ api: '/api/chat' }),
-}));
-```
-
-#### Properties Made Readonly
-
-Properties are now readonly and must be updated using setter methods.
-
-```js filename="@ai-sdk/svelte v1"
-// Direct property mutation was allowed
-chatInstance.messages = [...chatInstance.messages, newMessage];
-```
-
-```js filename="@ai-sdk/svelte v2"
-// Must use setter methods
-chatInstance.setMessages([...chatInstance.messages, newMessage]);
-```
-
-#### Removed Managed Input
-
-Like React and Vue, input management has been removed from the Svelte integration.
-
-```js filename="@ai-sdk/svelte v1"
-// Input was managed internally
-const { messages, input, handleSubmit } = chatInstance;
-```
-
-```js filename="@ai-sdk/svelte v2"
-// Must manage input state manually
-let input = '';
-const { messages, sendMessage } = chatInstance;
-
-const handleSubmit = () => {
-  sendMessage({ text: input });
-  input = '';
-};
-```
-
-### `@ai-sdk/ui-utils` Package Removal
-
-The `@ai-sdk/ui-utils` package has been removed and its exports moved to the main `ai` package.
-
-```tsx filename="AI SDK 4.0"
-import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
-```
-
-```tsx filename="AI SDK 5.0"
-import { getTextFromDataUrl } from 'ai';
-```
-
-**Codemod:** `move-ui-utils-to-ai`
-
-### LangChain Adapter Moved to `@ai-sdk/langchain`
-
-The `LangChainAdapter` has been moved to `@ai-sdk/langchain` and the API has been updated to use UI message streams.
-
-```tsx filename="AI SDK 4.0"
-import { LangChainAdapter } from 'ai';
-
-const response = LangChainAdapter.toDataStreamResponse(stream);
-```
-
-```tsx filename="AI SDK 5.0"
-import { toUIMessageStream } from '@ai-sdk/langchain';
-import { createUIMessageStreamResponse } from 'ai';
-
-const response = createUIMessageStreamResponse({
-  stream: toUIMessageStream(stream),
-});
-```
-
-<Note>
-  Don't forget to install the new package: `npm install @ai-sdk/langchain`
-</Note>
-
-**Codemod:** `move-langchain-adapter`
-
-### LlamaIndex Adapter Moved to `@ai-sdk/llamaindex`
-
-The `LlamaIndexAdapter` has been extracted to a separate package `@ai-sdk/llamaindex` and follows the same UI message stream pattern.
-
-```tsx filename="AI SDK 4.0"
-import { LlamaIndexAdapter } from 'ai';
-
-const response = LlamaIndexAdapter.toDataStreamResponse(stream);
-```
-
-```tsx filename="AI SDK 5.0"
-import { toUIMessageStream } from '@ai-sdk/llamaindex';
-import { createUIMessageStreamResponse } from 'ai';
-
-const response = createUIMessageStreamResponse({
-  stream: toUIMessageStream(stream),
-});
-```
-
-<Note>
-  Don't forget to install the new package: `npm install @ai-sdk/llamaindex`
-</Note>
-
-**Codemod:** `replace-llamaindex-adapter`
-
-## Core API Changes
-
-### Maximum Output Tokens
+#### Maximum Output Tokens
 
 The `maxTokens` parameter has been renamed to `maxOutputTokens` for clarity.
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-4.1'),
   maxTokens: 1024,
   prompt: 'Hello, world!',
 });
@@ -440,7 +81,7 @@ const result = await generateText({
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-4.1'),
   maxOutputTokens: 1024,
   prompt: 'Hello, world!',
 });
@@ -448,9 +89,11 @@ const result = await generateText({
 
 **Codemod:** `rename-max-tokens-to-max-output-tokens`
 
-### Type System Changes
+### Message and Type System Changes
 
-#### `CoreMessage` → `ModelMessage`
+#### Core Type Renames
+
+##### `CoreMessage` → `ModelMessage`
 
 ```tsx filename="AI SDK 4.0"
 import { CoreMessage } from 'ai';
@@ -462,7 +105,7 @@ import { ModelMessage } from 'ai';
 
 **Codemod:** `rename-core-message-to-model-message`
 
-#### `Message` → `UIMessage`
+##### `Message` → `UIMessage`
 
 ```tsx filename="AI SDK 4.0"
 import { Message, CreateMessage } from 'ai';
@@ -474,7 +117,172 @@ import { UIMessage, CreateUIMessage } from 'ai';
 
 **Codemod:** `rename-message-to-ui-message`
 
-#### Provider Metadata → Provider Options
+### UIMessage Changes
+
+#### Content → Parts Array
+
+// note: do we need this for message content parts too?
+
+For `UIMessage`s (previously called `Message`), the `.content` property has been replaced with a `parts` array structure.
+
+```tsx filename="AI SDK 4.0"
+import { type Message } from 'ai'; // v4 Message type
+
+// Messages (useChat) - had content property
+const message: Message = {
+  id: '1',
+  role: 'user',
+  content: 'Bonjour!',
+};
+```
+
+```tsx filename="AI SDK 5.0"
+import { type UIMessage, type ModelMessage } from 'ai';
+
+// UIMessages (useChat) - now use parts array
+const uiMessage: UIMessage = {
+  id: '1',
+  role: 'user',
+  parts: [{ type: 'text', text: 'Bonjour!' }],
+};
+```
+
+**Codemod:** `replace-content-with-parts`
+
+#### Data Role Removed
+
+// NOTE: move to core changes (done)
+// another idea that ui message changes should go in core
+// only things directly related to useChat should be in useChat section
+
+The `data` role has been removed from UI messages.
+
+```tsx filename="AI SDK 4.0"
+const message = {
+  role: 'data',
+  content: 'Some content',
+  data: { customField: 'value' },
+};
+```
+
+```tsx filename="AI SDK 5.0"
+// V5: Use UI message streams with custom data parts
+const stream = createUIMessageStream({
+  execute({ writer }) {
+    // Write custom data instead of message annotations
+    writer.write({
+      type: 'data-custom',
+      id: 'custom-1',
+      data: { customField: 'value' },
+    });
+  },
+});
+```
+
+#### UIMessage Reasoning Structure
+
+// note: section for all message changes?
+
+The reasoning property on UI messages has been moved to parts.
+
+```tsx filename="AI SDK 4.0"
+const message: Message = {
+  role: 'assistant',
+  content: 'Hello',
+  reasoning: 'I will greet the user',
+};
+```
+
+```tsx filename="AI SDK 5.0"
+const message: UIMessage = {
+  role: 'assistant',
+  parts: [
+    {
+      type: 'reasoning',
+      text: 'I will greet the user',
+    },
+    {
+      type: 'text',
+      text: 'Hello',
+    },
+  ],
+};
+```
+
+#### Reasoning Part Property Rename
+
+The `reasoning` property on reasoning UI parts has been renamed to `text`.
+
+```tsx filename="AI SDK 4.0"
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'reasoning') {
+      return (
+        <div key={index} className="reasoning-display">
+          {part.reasoning}
+        </div>
+      );
+    }
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'reasoning') {
+      return (
+        <div key={index} className="reasoning-display">
+          {part.text}
+        </div>
+      );
+    }
+  });
+}
+```
+
+### Stream Data Removal
+
+// NOTE: move to core changes
+// probably want to show the useChat element here too
+// maybe message annotations too?
+
+The `StreamData` class has been completely removed and replaced with UI message streams for custom data.
+
+```tsx filename="AI SDK 4.0"
+import { StreamData } from 'ai';
+
+const streamData = new StreamData();
+streamData.append('custom-data');
+streamData.close();
+```
+
+```tsx filename="AI SDK 5.0"
+import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+
+const stream = createUIMessageStream({
+  execute({ writer }) {
+    // Write custom data parts
+    writer.write({
+      type: 'data-custom',
+      id: 'custom-1',
+      data: 'custom-data',
+    });
+
+    // Can merge with LLM streams
+    const result = streamText({
+      model: openai('gpt-4.1'),
+      messages,
+    });
+
+    writer.merge(result.toUIMessageStream());
+  },
+});
+
+return createUIMessageStreamResponse({ stream });
+```
+
+##### Provider Metadata → Provider Options
 
 The `providerMetadata` input parameter has been renamed to `providerOptions`. Note that the returned metadata in results is still called `providerMetadata`.
 
@@ -499,214 +307,17 @@ const result = await generateText({
 });
 
 // Returned metadata still uses providerMetadata:
-console.log(result.providerMetadata?.openai.logprobs);
+console.log(result.providerMetadata?.openai);
 ```
 
 **Codemod:** `replace-provider-metadata-with-provider-options`
-
-### Message Structure Changes
-
-#### UI Message Structure: Content → Parts Array
-
-For `UIMessage`s, the `.content` property has been replaced with a `parts` array structure. However, `ModelMessage` still supports the `content` property.
-
-```tsx filename="AI SDK 4.0"
-import { type Message } from 'ai'; // v4 Message type
-
-// UI Messages (useChat) - had content property
-const uiMessage: Message = {
-  id: '1',
-  role: 'user',
-  content: 'Bonjour!',
-};
-
-// Model Messages (generateText) - used content property
-const result = await generateText({
-  messages: [
-    {
-      role: 'user',
-      content: 'Bonjour!',
-    },
-  ],
-});
-```
-
-```tsx filename="AI SDK 5.0"
-import { type UIMessage, type ModelMessage } from 'ai';
-
-// UI Messages (useChat) - now use parts array
-const uiMessage: UIMessage = {
-  id: '1',
-  role: 'user',
-  parts: [{ type: 'text', text: 'Bonjour!' }],
-};
-
-// Model Messages (generateText) - content still supported
-const modelMessages: ModelMessage[] = [
-  {
-    role: 'user',
-    content: 'Bonjour!', // Still works with string
-  },
-];
-
-// ModelMessage also supports parts array for complex content
-const complexModelMessage: ModelMessage = {
-  role: 'user',
-  content: [
-    { type: 'text', text: 'What do you see?' },
-    { type: 'file', data: imageBuffer, mediaType: 'image/png' },
-  ],
-};
-```
-
-**Codemod:** `replace-content-with-parts`
-
-#### Tool Handling: Invocations → Typed Tool Parts
-
-Tool handling has been completely redesigned from generic tool invocations to typed tool parts with streaming states.
-
-```tsx filename="AI SDK 4.0"
-import { type Message } from 'ai';
-
-// V4: Tool invocations were separate properties
-{
-  messages.map((message: Message) => (
-    <>
-      {message.toolInvocations?.map(toolInvocation => (
-        <pre key={toolInvocation.toolCallId}>
-          {toolInvocation.toolName}
-          Args: {JSON.stringify(toolInvocation.args, null, 2)}
-          Result: {toolInvocation.result}
-        </pre>
-      ))}
-    </>
-  ));
-}
-```
-
-```tsx filename="AI SDK 5.0"
-import { type UIMessage } from 'ai';
-
-// V5: Tools are typed parts with specific naming: tool-${toolName}
-{
-  messages.map((message: UIMessage) => (
-    <>
-      {message.parts.map((part, index) => {
-        switch (part.type) {
-          case 'text':
-            return <div key={index}>{part.text}</div>;
-
-          case 'tool-getWeatherInformation': {
-            switch (part.state) {
-              case 'input-streaming':
-                return (
-                  <pre key={index}>{JSON.stringify(part.input, null, 2)}</pre>
-                );
-              case 'input-available':
-                return (
-                  <div key={index}>
-                    Getting weather for {part.input.city}...
-                  </div>
-                );
-              case 'output-available':
-                return <div key={index}>Weather: {part.output}</div>;
-            }
-            break;
-          }
-
-          case 'tool-askForConfirmation': {
-            switch (part.state) {
-              case 'input-available':
-                return (
-                  <div key={index}>
-                    {part.input.message}
-                    <button
-                      onClick={() =>
-                        addToolResult({
-                          toolCallId: part.toolCallId,
-                          output: 'Yes, confirmed.',
-                        })
-                      }
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                );
-              case 'output-available':
-                return <div key={index}>Confirmed: {part.output}</div>;
-            }
-            break;
-          }
-        }
-      })}
-    </>
-  ));
-}
-```
-
-Key changes:
-
-- **Type-safe naming**: `tool-${toolName}` instead of generic `tool-invocation`
-- **Streaming states**: `input-streaming`, `input-available`, `output-available`
-- **Property names**: `input`/`output` instead of `args`/`result`
-- **Better client interaction**: Built-in support for user confirmation flows
-
-#### Attachments → Parts
-
-The `experimental_attachments` property has been replaced with the parts array.
-
-```tsx filename="AI SDK 4.0"
-{
-  messages.map(message => (
-    <div className="flex flex-col gap-2">
-      {message.content}
-
-      <div className="flex flex-row gap-2">
-        {message.experimental_attachments?.map((attachment, index) =>
-          attachment.contentType?.includes('image/') ? (
-            <img src={attachment.url} alt={attachment.name} />
-          ) : attachment.contentType?.includes('text/') ? (
-            <div className="w-32 h-24 p-2 overflow-hidden text-xs border rounded-md ellipsis text-zinc-500">
-              {getTextFromDataUrl(attachment.url)}
-            </div>
-          ) : null,
-        )}
-      </div>
-    </div>
-  ));
-}
-```
-
-```tsx filename="AI SDK 5.0"
-{
-  messages.map(message => (
-    <div>
-      {message.parts.map((part, index) => {
-        if (part.type === 'text') {
-          return <div key={index}>{part.text}</div>;
-        }
-
-        if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
-          return (
-            <div key={index}>
-              <img src={part.url} />
-            </div>
-          );
-        }
-      })}
-    </div>
-  ));
-}
-```
-
-**Codemod:** `replace-content-with-parts`
 
 #### Tool Definition Changes (parameters → inputSchema)
 
 Tool definitions have been updated to use `inputSchema` instead of `parameters` and error classes have been renamed.
 
 ```tsx filename="AI SDK 4.0"
-import { tool, InvalidToolArgumentsError } from 'ai';
+import { tool } from 'ai';
 
 const weatherTool = tool({
   description: 'Get the weather for a city',
@@ -717,15 +328,10 @@ const weatherTool = tool({
     return `Weather in ${city}`;
   },
 });
-
-throw new InvalidToolArgumentsError({
-  toolName: 'weather',
-  arguments: invalidArgs,
-});
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { tool, InvalidToolInputError } from 'ai';
+import { tool } from 'ai';
 
 const weatherTool = tool({
   description: 'Get the weather for a city',
@@ -736,11 +342,69 @@ const weatherTool = tool({
     return `Weather in ${city}`;
   },
 });
+```
 
-throw new InvalidToolInputError({
-  toolName: 'weather',
-  input: invalidInput,
-});
+### Tool Property Changes (args/result → input/output)
+
+Tool call and result properties have been renamed for better consistency with schemas.
+
+```tsx filename="AI SDK 4.0"
+// Tool calls used "args" and "result"
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'tool-call':
+      console.log('Tool args:', part.args);
+      break;
+    case 'tool-result':
+      console.log('Tool result:', part.result);
+      break;
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0"
+// Tool calls now use "input" and "output"
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'tool-call':
+      console.log('Tool input:', part.input);
+      break;
+    case 'tool-result':
+      console.log('Tool output:', part.output);
+      break;
+  }
+}
+```
+
+### Tool Part Type Changes (UIMessage)
+
+// note: move to UIMessage section?
+
+In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic types.
+
+```tsx filename="AI SDK 4.0"
+// Generic tool-invocation type
+{
+  message.parts.map(part => {
+    if (part.type === 'tool-invocation') {
+      return <div>{part.toolInvocation.toolName}</div>;
+    }
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+// Type-safe tool parts with specific names
+{
+  message.parts.map(part => {
+    switch (part.type) {
+      case 'tool-getWeatherInformation':
+        return <div>Getting weather...</div>;
+      case 'tool-askForConfirmation':
+        return <div>Asking for confirmation...</div>;
+    }
+  });
+}
 ```
 
 #### Media Type Standardization
@@ -749,7 +413,7 @@ throw new InvalidToolInputError({
 
 ```tsx filename="AI SDK 4.0"
 const result = await streamText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   messages: [
     {
       role: 'user',
@@ -767,7 +431,7 @@ const result = await streamText({
 
 ```tsx filename="AI SDK 5.0"
 const result = await streamText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   messages: [
     {
       role: 'user',
@@ -855,7 +519,7 @@ In `generateText()` and `streamText()` results, reasoning properties have been r
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-4-sonnet-20250514'),
   prompt: 'Explain your reasoning',
 });
 
@@ -865,7 +529,7 @@ console.log(result.reasoningDetails); // Array of reasoning details
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-4-sonnet-20250514'),
   prompt: 'Explain your reasoning',
 });
 
@@ -875,183 +539,677 @@ console.log(result.reasoning); // Array of reasoning details
 
 **Codemod:** `rename-reasoning-properties`
 
-#### UI Message Reasoning Structure
+### Continuation Steps Removal
 
-The reasoning property on UI messages has been moved to parts.
-
-```tsx filename="AI SDK 4.0"
-const message: UIMessage = {
-  role: 'assistant',
-  content: 'Hello',
-  reasoning: 'I will greet the user',
-};
-```
-
-```tsx filename="AI SDK 5.0"
-const message: UIMessage = {
-  role: 'assistant',
-  parts: [
-    {
-      type: 'reasoning',
-      text: 'I will greet the user',
-    },
-    {
-      type: 'text',
-      text: 'Hello',
-    },
-  ],
-};
-```
-
-#### Reasoning Part Property Rename
-
-The `reasoning` property on reasoning UI parts has been renamed to `text`.
-
-```tsx filename="AI SDK 4.0"
-{
-  message.parts.map((part, index) => {
-    if (part.type === 'reasoning') {
-      return (
-        <div key={index} className="reasoning-display">
-          {part.reasoning}
-        </div>
-      );
-    }
-  });
-}
-```
-
-```tsx filename="AI SDK 5.0"
-{
-  message.parts.map((part, index) => {
-    if (part.type === 'reasoning') {
-      return (
-        <div key={index} className="reasoning-display">
-          {part.text}
-        </div>
-      );
-    }
-  });
-}
-```
-
-### Provider-Specific Changes
-
-#### OpenAI
-
-##### Structured Outputs Default
-
-Structured outputs are now enabled by default for supported OpenAI models.
+The `experimental_continueSteps` option has been removed from `generateText()`.
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
+  experimental_continueSteps: true,
+  // ...
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: openai('gpt-4o-2024-08-06'),
-  // structuredOutputs: true is now the default
+  // experimental_continueSteps has been removed
+  // Use newer models with higher output token limits instead
+  // ...
 });
 ```
 
-##### Compatibility Option Removal
+### Image Generation Changes
 
-The `compatibility` option has been removed; strict mode is now the default.
+Image model settings have been moved to `providerOptions`.
 
 ```tsx filename="AI SDK 4.0"
-const openai = createOpenAI({
-  compatibility: 'strict',
+await generateImage({
+  model: luma.image('photon-flash-1', {
+    maxImagesPerCall: 5,
+    pollIntervalMillis: 500,
+  }),
+  prompt,
+  n: 10,
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
-const openai = createOpenAI({
-  // strict compatibility is now the default
-});
-```
-
-**Codemod:** `remove-openai-compatibility`
-
-##### Legacy Function Calls Removal
-
-The `useLegacyFunctionCalls` option has been removed.
-
-```tsx filename="AI SDK 4.0"
-const result = streamText({
-  model: openai('gpt-4o', { useLegacyFunctionCalls: true }),
-});
-```
-
-```tsx filename="AI SDK 5.0"
-const result = streamText({
-  model: openai('gpt-4o'),
-});
-```
-
-#### Simulate Streaming Middleware
-
-The `simulateStreaming` model option has been replaced with middleware.
-
-```tsx filename="AI SDK 4.0"
-const result = generateText({
-  model: openai('gpt-4o', { simulateStreaming: true }),
-  prompt: 'Hello, world!',
-});
-```
-
-```tsx filename="AI SDK 5.0"
-import { simulateStreamingMiddleware, wrapLanguageModel } from 'ai';
-
-const model = wrapLanguageModel({
-  model: openai('gpt-4o'),
-  middleware: simulateStreamingMiddleware(),
-});
-
-const result = generateText({
-  model,
-  prompt: 'Hello, world!',
-});
-```
-
-**Codemod:** `replace-simulate-streaming`
-
-#### Amazon Bedrock
-
-##### Snake Case → Camel Case
-
-Provider options have been updated to use camelCase.
-
-```tsx filename="AI SDK 4.0"
-const result = await generateText({
-  model: bedrock('amazon.titan-tg1-large'),
-  prompt: 'Hello, world!',
+await generateImage({
+  model: luma.image('photon-flash-1'),
+  prompt,
+  n: 10,
+  maxImagesPerCall: 5,
   providerOptions: {
-    bedrock: {
-      reasoning_config: {
-        /* ... */
-      },
-    },
+    luma: { pollIntervalMillis: 500 },
+  },
+});
+```
+
+**Codemod:** `move-image-model-maxImagesPerCall`
+
+### Step Result Changes
+
+#### Step Type Removal
+
+The `stepType` property has been removed from step results.
+
+```tsx filename="AI SDK 4.0"
+steps.forEach(step => {
+  switch (step.stepType) {
+    case 'initial':
+      console.log('Initial step');
+      break;
+    case 'tool-result':
+      console.log('Tool result step');
+      break;
+    case 'done':
+      console.log('Final step');
+      break;
+  }
+});
+```
+
+```tsx filename="AI SDK 5.0"
+steps.forEach((step, index) => {
+  if (index === 0) {
+    console.log('Initial step');
+  } else if (step.toolResults.length > 0) {
+    console.log('Tool result step');
+  } else {
+    console.log('Final step');
+  }
+});
+```
+
+### Step Control: maxSteps → stopWhen
+
+// NOTE:
+// 1) think about suggested pattern for maxSteps vs stopWhen
+// answer here is main stopping conditions on the server with stopWhen, then have maxSteps > 1 in useChat hook for client side tool-calling
+// 2) do a better job at describing stopWhen are the stopping conditions when there are tool results
+
+For core functions like `generateText` and `streamText`, the `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution. Note that `useChat` still supports the `maxSteps` parameter. The `stopWhen` parameter is a condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Note that `useChat` still supports the `maxSteps` parameter
+
+```tsx filename="AI SDK 4.0"
+// V4: Simple numeric limit
+const result = await generateText({
+  model: openai('gpt-4'),
+  messages,
+  maxSteps: 5, // Stop after a maxmimum of 5 steps
+});
+
+// useChat with maxSteps
+const { messages } = useChat({
+  maxSteps: 3, // Stop after a maximum of 3 steps
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { stepCountIs, hasToolCall } from 'ai';
+
+// V5: Function-based stopping conditions
+const result = await generateText({
+  model: openai('gpt-4'),
+  messages,
+  stopWhen: stepCountIs(5), // Stop at step 5
+});
+
+// Built-in helper functions
+const result = await generateText({
+  model: openai('gpt-4'),
+  messages,
+  stopWhen: hasToolCall('finalizeTask'), // Stop when specific tool is called
+});
+
+// useChat still uses maxSteps
+const { messages } = useChat({
+  maxSteps: 3, // Still available in useChat
+});
+```
+
+**Common stopping patterns:**
+
+```tsx filename="AI SDK 5.0"
+// Stop after N steps (equivalent to old maxSteps)
+stopWhen: stepCountIs(5);
+
+// Stop when specific tool is called
+stopWhen: hasToolCall('finalizeTask');
+
+// Stop based on step content
+stopWhen: ({ steps }) => {
+  const lastStep = steps[steps.length - 1];
+  return lastStep?.text?.includes('DONE') || steps.length >= 10;
+};
+```
+
+#### Usage vs Total Usage
+
+Usage properties now distinguish between single step and total usage.
+
+```tsx filename="AI SDK 4.0"
+// usage contained total token usage across all steps
+console.log(result.usage);
+```
+
+```tsx filename="AI SDK 5.0"
+// usage contains token usage from the final step only
+console.log(result.usage);
+// totalUsage contains total token usage across all steps
+console.log(result.totalUsage);
+```
+
+## AI SDK UI Changes
+
+### Package Structure Changes
+
+### `@ai-sdk/rsc` Package Extraction
+
+The `ai/rsc` export has been extracted to a separate package `@ai-sdk/rsc`.
+
+```tsx filename="AI SDK 4.0"
+import { createStreamableValue } from 'ai/rsc';
+```
+
+```tsx filename="AI SDK 5.0"
+import { createStreamableValue } from '@ai-sdk/rsc';
+```
+
+<Note>Don't forget to install the new package: `npm install @ai-sdk/rsc`</Note>
+
+**Codemod:** `rsc-package`
+
+### React UI Hooks Moved to `@ai-sdk/react`
+
+The deprecated `ai/react` export has been removed in favor of `@ai-sdk/react`.
+
+```tsx filename="AI SDK 4.0"
+import { useChat } from 'ai/react';
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+```
+
+<Note>
+  Don't forget to install the new package: `npm install @ai-sdk/react`
+</Note>
+
+**Codemod:** `move-react-to-ai-sdk`
+
+### useChat Changes
+
+The `useChat` hook has undergone significant changes in v5, with new transport architecture, removal of managed input state, and more.
+
+#### Chat Transport Architecture
+
+Configuration is now handled through transport objects instead of direct API options.
+
+```tsx filename="AI SDK 4.0"
+import { useChat } from '@ai-sdk/react';
+
+const { messages } = useChat({
+  api: '/api/chat',
+  credentials: 'include',
+  headers: { 'Custom-Header': 'value' },
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
+const { messages } = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+    credentials: 'include',
+    headers: { 'Custom-Header': 'value' },
+  }),
+});
+```
+
+#### Removed Managed Input State
+
+The `useChat` hook no longer manages input state internally. You must now manage input state manually.
+
+```tsx filename="AI SDK 4.0"
+import { useChat } from '@ai-sdk/react';
+
+export default function Page() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    api: '/api/chat',
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input value={input} onChange={handleInputChange} />
+      <button type="submit">Send</button>
+    </form>
+  );
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+
+export default function Page() {
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/chat' }),
+  });
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    sendMessage({ text: input });
+    setInput('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input value={input} onChange={e => setInput(e.target.value)} />
+      <button type="submit">Send</button>
+    </form>
+  );
+}
+```
+
+#### Message Sending: `append` → `sendMessage`
+
+The `append` function has been replaced with `sendMessage` and requires structured message format.
+
+```tsx filename="AI SDK 4.0"
+const { append } = useChat();
+
+// Simple text message
+append({ role: 'user', content: 'Hello' });
+
+// With custom body
+append(
+  {
+    role: 'user',
+    content: 'Hello',
+  },
+  { body: { imageUrl: 'https://...' } },
+);
+```
+
+```tsx filename="AI SDK 5.0"
+const { sendMessage } = useChat();
+
+// Simple text message (most common usage)
+sendMessage({ text: 'Hello' });
+
+// Or with explicit parts array
+sendMessage({
+  parts: [{ type: 'text', text: 'Hello' }],
+});
+
+// With custom body (via request options)
+sendMessage(
+  { role: 'user', parts: [{ type: 'text', text: 'Hello' }] },
+  { body: { imageUrl: 'https://...' } },
+);
+```
+
+#### Message Regeneration: `reload` → `regenerate`
+
+The `reload` function has been renamed to `regenerate` with enhanced functionality.
+
+```tsx filename="AI SDK 4.0"
+const { reload } = useChat();
+
+// Regenerate last message
+reload();
+```
+
+```tsx filename="AI SDK 5.0"
+const { regenerate } = useChat();
+
+// Regenerate last message
+regenerate();
+
+// Regenerate specific message
+regenerate({ messageId: 'message-123' });
+```
+
+#### onResponse Removal
+
+The `onResponse` callback has been removed from `useChat` and `useCompletion`.
+
+```tsx filename="AI SDK 4.0"
+const { messages } = useChat({
+  onResponse(response) {
+    // handle response
   },
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
-const result = await generateText({
-  model: bedrock('amazon.titan-tg1-large'),
-  prompt: 'Hello, world!',
-  providerOptions: {
-    bedrock: {
-      reasoningConfig: {
-        /* ... */
-      },
-    },
-  },
+const { messages } = useChat({
+  // onResponse is no longer available
 });
 ```
 
-**Codemod:** `replace-bedrock-snake-case`
+#### Send Extra Message Fields Default
+
+The `sendExtraMessageFields` option has been removed and is now the default behavior.
+
+```tsx filename="AI SDK 4.0"
+const { messages } = useChat({
+  sendExtraMessageFields: true,
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const { messages } = useChat({
+  // sendExtraMessageFields is now the default
+});
+```
+
+**Codemod:** `remove-sendExtraMessageFields`
+
+#### Keep Last Message on Error Removal
+
+The `keepLastMessageOnError` option has been removed as it's no longer needed.
+
+```tsx filename="AI SDK 4.0"
+const { messages } = useChat({
+  keepLastMessageOnError: true,
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const { messages } = useChat({
+  // keepLastMessageOnError is no longer needed
+});
+```
+
+#### Chat Request Options Changes
+
+// NOTE: maybe remove allowEmptySubmit?
+
+The `data` and `allowEmptySubmit` options have been removed from `ChatRequestOptions`.
+
+```tsx filename="AI SDK 4.0"
+handleSubmit(e, {
+  data: { imageUrl: 'https://...' },
+  body: { custom: 'value' },
+  allowEmptySubmit: true,
+});
+```
+
+```tsx filename="AI SDK 5.0"
+sendMessage(
+  {
+    /* yourMessage */
+  },
+  {
+    body: {
+      custom: 'value',
+      imageUrl: 'https://...', // Move data to body
+    },
+  },
+);
+```
+
+#### Request Options Type Rename
+
+`RequestOptions` has been renamed to `CompletionRequestOptions`.
+
+```tsx filename="AI SDK 4.0"
+import type { RequestOptions } from 'ai';
+```
+
+```tsx filename="AI SDK 5.0"
+import type { CompletionRequestOptions } from 'ai';
+```
+
+**Codemod:** `rename-request-options`
+
+#### Loading State Changes
+
+The deprecated `isLoading` helper has been removed in favor of `status`.
+
+```tsx filename="AI SDK 4.0"
+const { isLoading } = useChat();
+```
+
+```tsx filename="AI SDK 5.0"
+const { status } = useChat();
+// Use state instead of isLoading for more granular control
+```
+
+#### Resume Stream Support
+
+The resume functionality has been moved from `experimental_resume` to `resumeStream`.
+
+```tsx filename="AI SDK 4.0"
+// Resume was experimental
+const { messages } = useChat({
+  experimental_resume: true,
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const { messages } = useChat({
+  resumeStream: true, // Resume interrupted streams
+});
+```
+
+### `@ai-sdk/vue` Changes
+
+The Vue.js integration has been completely restructured, replacing the `useChat` composable with a `Chat` class.
+
+#### useChat Replaced with Chat Class
+
+```vue filename="@ai-sdk/vue v1"
+<script setup>
+import { useChat } from '@ai-sdk/vue';
+
+const { messages, input, handleSubmit } = useChat({
+  api: '/api/chat',
+});
+</script>
+```
+
+```vue filename="@ai-sdk/vue v2"
+<script setup>
+import { Chat } from '@ai-sdk/vue';
+import { DefaultChatTransport } from 'ai';
+import { ref } from 'vue';
+
+const input = ref('');
+const chat = new Chat({
+  transport: new DefaultChatTransport({ api: '/api/chat' }),
+});
+
+const handleSubmit = () => {
+  chat.sendMessage({ text: input.value });
+  input.value = '';
+};
+</script>
+```
+
+#### Message Structure Changes
+
+Messages now use a `parts` array instead of a `content` string.
+
+```vue filename="@ai-sdk/vue v1"
+<template>
+  <div v-for="message in messages" :key="message.id">
+    <div>{{ message.role }}: {{ message.content }}</div>
+  </div>
+</template>
+```
+
+```vue filename="@ai-sdk/vue v2"
+<template>
+  <div v-for="message in chat.messages" :key="message.id">
+    <div>{{ message.role }}:</div>
+    <div v-for="part in message.parts" :key="part.type">
+      <span v-if="part.type === 'text'">{{ part.text }}</span>
+    </div>
+  </div>
+</template>
+```
+
+### `@ai-sdk/svelte` Changes
+
+The Svelte integration has also been updated with new constructor patterns and readonly properties.
+
+#### Constructor API Changes
+
+```js filename="@ai-sdk/svelte v1"
+import { chat } from '@ai-sdk/svelte';
+
+const chatInstance = chat({
+  api: '/api/chat',
+});
+```
+
+```js filename="@ai-sdk/svelte v2"
+import { chat } from '@ai-sdk/svelte';
+import { DefaultChatTransport } from 'ai';
+
+const chatInstance = chat(() => ({
+  transport: new DefaultChatTransport({ api: '/api/chat' }),
+}));
+```
+
+##### Properties Made Readonly
+
+Properties are now readonly and must be updated using setter methods.
+
+```js filename="@ai-sdk/svelte v1"
+// Direct property mutation was allowed
+chatInstance.messages = [...chatInstance.messages, newMessage];
+```
+
+```js filename="@ai-sdk/svelte v2"
+// Must use setter methods
+chatInstance.setMessages([...chatInstance.messages, newMessage]);
+```
+
+##### Removed Managed Input
+
+Like React and Vue, input management has been removed from the Svelte integration.
+
+```js filename="@ai-sdk/svelte v1"
+// Input was managed internally
+const { messages, input, handleSubmit } = chatInstance;
+```
+
+```js filename="@ai-sdk/svelte v2"
+// Must manage input state manually
+let input = '';
+const { messages, sendMessage } = chatInstance;
+
+const handleSubmit = () => {
+  sendMessage({ text: input });
+  input = '';
+};
+```
+
+#### `@ai-sdk/ui-utils` Package Removal
+
+The `@ai-sdk/ui-utils` package has been removed and its exports moved to the main `ai` package.
+
+```tsx filename="AI SDK 4.0"
+import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
+```
+
+```tsx filename="AI SDK 5.0"
+import { getTextFromDataUrl } from 'ai';
+```
+
+**Codemod:** `move-ui-utils-to-ai`
+
+### useCompletion Changes
+
+The `data` property has been removed from the `useCompletion` hook.
+
+```tsx filename="AI SDK 4.0"
+const {
+  completion,
+  handleSubmit,
+  data, // No longer available
+} = useCompletion();
+```
+
+```tsx filename="AI SDK 5.0"
+const {
+  completion,
+  handleSubmit,
+  // data property removed entirely
+} = useCompletion();
+```
+
+### useAssistant Removal
+
+The `useAssistant` hook has been removed.
+
+```tsx filename="AI SDK 4.0"
+import { useAssistant } from '@ai-sdk/react';
+```
+
+```tsx filename="AI SDK 5.0"
+// useAssistant has been removed
+// Use useChat with appropriate configuration instead
+```
+
+For an implementation of the assistant functionality with AI SDK v5, see this [example repository](https://github.com/vercel-labs/ai-sdk-openai-assistants-api).
+
+#### Attachments → File Parts
+
+The `experimental_attachments` property has been replaced with the parts array.
+
+```tsx filename="AI SDK 4.0"
+{
+  messages.map(message => (
+    <div className="flex flex-col gap-2">
+      {message.content}
+
+      <div className="flex flex-row gap-2">
+        {message.experimental_attachments?.map((attachment, index) =>
+          attachment.contentType?.includes('image/') ? (
+            <img src={attachment.url} alt={attachment.name} />
+          ) : attachment.contentType?.includes('text/') ? (
+            <div className="w-32 h-24 p-2 overflow-hidden text-xs border rounded-md ellipsis text-zinc-500">
+              {getTextFromDataUrl(attachment.url)}
+            </div>
+          ) : null,
+        )}
+      </div>
+    </div>
+  ));
+}
+```
+
+```tsx filename="AI SDK 5.0"
+{
+  messages.map(message => (
+    <div>
+      {message.parts.map((part, index) => {
+        if (part.type === 'text') {
+          return <div key={index}>{part.text}</div>;
+        }
+
+        if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
+          return (
+            <div key={index}>
+              <img src={part.url} />
+            </div>
+          );
+        }
+      })}
+    </div>
+  ));
+}
+```
+
+**Codemod:** `replace-content-with-parts`
 
 ### Embedding Changes
 
@@ -1110,9 +1268,61 @@ const { embeddings, usage } = await embedMany({
 });
 ```
 
-### Streaming Changes
+#### LangChain Adapter Moved to `@ai-sdk/langchain`
+
+The `LangChainAdapter` has been moved to `@ai-sdk/langchain` and the API has been updated to use UI message streams.
+
+```tsx filename="AI SDK 4.0"
+import { LangChainAdapter } from 'ai';
+
+const response = LangChainAdapter.toDataStreamResponse(stream);
+```
+
+```tsx filename="AI SDK 5.0"
+import { toUIMessageStream } from '@ai-sdk/langchain';
+import { createUIMessageStreamResponse } from 'ai';
+
+const response = createUIMessageStreamResponse({
+  stream: toUIMessageStream(stream),
+});
+```
+
+<Note>
+  Don't forget to install the new package: `npm install @ai-sdk/langchain`
+</Note>
+
+**Codemod:** `move-langchain-adapter`
+
+#### LlamaIndex Adapter Moved to `@ai-sdk/llamaindex`
+
+The `LlamaIndexAdapter` has been extracted to a separate package `@ai-sdk/llamaindex` and follows the same UI message stream pattern.
+
+```tsx filename="AI SDK 4.0"
+import { LlamaIndexAdapter } from 'ai';
+
+const response = LlamaIndexAdapter.toDataStreamResponse(stream);
+```
+
+```tsx filename="AI SDK 5.0"
+import { toUIMessageStream } from '@ai-sdk/llamaindex';
+import { createUIMessageStreamResponse } from 'ai';
+
+const response = createUIMessageStreamResponse({
+  stream: toUIMessageStream(stream),
+});
+```
+
+<Note>
+  Don't forget to install the new package: `npm install @ai-sdk/llamaindex`
+</Note>
+
+**Codemod:** `replace-llamaindex-adapter`
+
+## Streaming Architecture
 
 The streaming architecture has been completely redesigned in v5 to support better content differentiation, concurrent streaming of multiple parts, and improved real-time UX.
+
+### Stream Protocol Changes
 
 #### Stream Protocol: Single Chunks → Start/Delta/End Pattern
 
@@ -1150,12 +1360,6 @@ for await (const chunk of result.fullStream) {
   }
 }
 ```
-
-This pattern enables:
-
-- **Multiple concurrent content blocks**: Multiple text parts can stream simultaneously with different IDs
-- **Better UI control**: You can track the lifecycle of each content block
-- **Content block differentiation**: Distinguish between different parts of the same type
 
 #### Reasoning Streaming Pattern
 
@@ -1229,7 +1433,7 @@ The `onChunk` callback now receives the new streaming chunk types with IDs and t
 
 ```tsx filename="AI SDK 4.0"
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-4.1'),
   prompt: 'Write a story',
   onChunk({ chunk }) {
     switch (chunk.type) {
@@ -1243,9 +1447,11 @@ const result = streamText({
 });
 ```
 
+// NOTE: NOT ACCURATE (we're using extract ts type in onChunk - awaiting confirmation)
+
 ```tsx filename="AI SDK 5.0"
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-4.1'),
   prompt: 'Write a story',
   onChunk({ chunk }) {
     switch (chunk.type) {
@@ -1286,46 +1492,6 @@ const result = streamText({
       }
       case 'tool-input-end': {
         console.log('Tool input completed:', chunk.id);
-        break;
-      }
-    }
-  },
-});
-```
-
-This enables much more sophisticated real-time UX patterns, such as:
-
-```tsx filename="AI SDK 5.0"
-// Track multiple concurrent content blocks
-const activeBlocks = new Map();
-
-const result = streamText({
-  model: openai('gpt-4o'),
-  prompt: 'Write a story with reasoning',
-  onChunk({ chunk }) {
-    switch (chunk.type) {
-      case 'text-start':
-      case 'reasoning-start': {
-        activeBlocks.set(chunk.id, { type: chunk.type, content: '' });
-        break;
-      }
-      case 'text-delta':
-      case 'reasoning-delta': {
-        const block = activeBlocks.get(chunk.id);
-        if (block) {
-          block.content += chunk.delta;
-          // Update UI for this specific block
-          updateBlockInUI(chunk.id, block.content);
-        }
-        break;
-      }
-      case 'text-end':
-      case 'reasoning-end': {
-        const block = activeBlocks.get(chunk.id);
-        if (block) {
-          finalizeBlockInUI(chunk.id, block.content);
-          activeBlocks.delete(chunk.id);
-        }
         break;
       }
     }
@@ -1389,9 +1555,44 @@ for await (const part of result.fullStream) {
 
 **Codemod:** `restructure-source-stream-parts`
 
-### Data Streaming Changes
+#### Finish Event Changes
 
-#### Stream Protocol v2
+Stream finish events have been renamed for consistency.
+
+```tsx filename="AI SDK 4.0"
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'step-finish': {
+      console.log('Step finished:', part.finishReason);
+      break;
+    }
+    case 'finish': {
+      console.log('Usage:', part.usage);
+      break;
+    }
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0"
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'finish-step': {
+      // Renamed from 'step-finish'
+      console.log('Step finished:', part.finishReason);
+      break;
+    }
+    case 'finish': {
+      console.log('Total Usage:', part.totalUsage); // Changed from 'usage'
+      break;
+    }
+  }
+}
+```
+
+### Stream Protocol Changes
+
+#### Proprietary Protocol -> Server-Sent Events
 
 The data stream protocol has been updated to use Server-Sent Events.
 
@@ -1435,7 +1636,7 @@ const stream = createUIMessageStream({
 
 **Codemod:** `migrate-to-ui-message-stream`
 
-#### Streaming API Restructure
+#### Data Stream Response Helper Functions Renamed
 
 The streaming API has been completely restructured from data streams to UI message streams.
 
@@ -1443,7 +1644,7 @@ The streaming API has been completely restructured from data streams to UI messa
 // Express/Node.js servers
 app.post('/stream', async (req, res) => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4.1'),
     prompt: 'Generate content',
   });
 
@@ -1452,7 +1653,7 @@ app.post('/stream', async (req, res) => {
 
 // Next.js API routes
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-4.1'),
   prompt: 'Generate content',
 });
 
@@ -1463,7 +1664,7 @@ return result.toDataStreamResponse();
 // Express/Node.js servers
 app.post('/stream', async (req, res) => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-4.1'),
     prompt: 'Generate content',
   });
 
@@ -1472,14 +1673,14 @@ app.post('/stream', async (req, res) => {
 
 // Next.js API routes
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-4.1'),
   prompt: 'Generate content',
 });
 
 return result.toUIMessageStreamResponse();
 ```
 
-#### Stream Naming Changes
+#### Stream Transform Function Renaming
 
 Various stream-related functions have been renamed for consistency.
 
@@ -1492,162 +1693,6 @@ import { JsonToSseTransformStream } from 'ai';
 ```
 
 **Codemod:** `rename-datastream-transform-stream`
-
-#### UI Message Stream Changes
-
-DataStream methods have been renamed to UIMessage methods.
-
-```tsx filename="AI SDK 4.0"
-const result = streamText({ model, prompt });
-result.pipeDataStreamToResponse(res);
-```
-
-```tsx filename="AI SDK 5.0"
-const result = streamText({ model, prompt });
-result.pipeUIMessageStreamToResponse(res);
-```
-
-### Hook Changes
-
-#### useChat Changes
-
-##### Send Extra Message Fields Default
-
-The `sendExtraMessageFields` option has been removed and is now the default behavior.
-
-```tsx filename="AI SDK 4.0"
-const { messages } = useChat({
-  sendExtraMessageFields: true,
-});
-```
-
-```tsx filename="AI SDK 5.0"
-const { messages } = useChat({
-  // sendExtraMessageFields is now the default
-});
-```
-
-**Codemod:** `remove-sendExtraMessageFields`
-
-##### Keep Last Message on Error Removal
-
-The `keepLastMessageOnError` option has been removed as it's no longer needed.
-
-```tsx filename="AI SDK 4.0"
-const { messages } = useChat({
-  keepLastMessageOnError: true,
-});
-```
-
-```tsx filename="AI SDK 5.0"
-const { messages } = useChat({
-  // keepLastMessageOnError is no longer needed
-});
-```
-
-##### Chat Request Options Changes
-
-The `data` and `allowEmptySubmit` options have been removed from `ChatRequestOptions`.
-
-```tsx filename="AI SDK 4.0"
-handleSubmit(e, {
-  data: { imageUrl: 'https://...' },
-  body: { custom: 'value' },
-});
-```
-
-```tsx filename="AI SDK 5.0"
-sendMessage(
-  {
-    /* yourMessage */
-  },
-  {
-    body: {
-      custom: 'value',
-      imageUrl: 'https://...', // Move data to body
-    },
-  },
-);
-```
-
-##### Request Options Type Rename
-
-`RequestOptions` has been renamed to `CompletionRequestOptions`.
-
-```tsx filename="AI SDK 4.0"
-import type { RequestOptions } from 'ai';
-```
-
-```tsx filename="AI SDK 5.0"
-import type { CompletionRequestOptions } from 'ai';
-```
-
-**Codemod:** `rename-request-options`
-
-##### Loading State Changes
-
-The deprecated `isLoading` helper has been removed in favor of `status`.
-
-```tsx filename="AI SDK 4.0"
-const { isLoading } = useChat();
-```
-
-```tsx filename="AI SDK 5.0"
-const { status } = useChat();
-// Use state instead of isLoading for more granular control
-```
-
-##### Resume Stream Support
-
-The resume functionality has been moved from `experimental_resume` to `resumeStream`.
-
-```tsx filename="AI SDK 4.0"
-// Resume was experimental
-const { messages } = useChat({
-  experimental_resume: true,
-});
-```
-
-```tsx filename="AI SDK 5.0"
-const { messages } = useChat({
-  resumeStream: true, // Resume interrupted streams
-});
-```
-
-#### useCompletion Changes
-
-The `data` property has been removed from the `useCompletion` hook.
-
-```tsx filename="AI SDK 4.0"
-const {
-  completion,
-  handleSubmit,
-  data, // No longer available
-} = useCompletion();
-```
-
-```tsx filename="AI SDK 5.0"
-const {
-  completion,
-  handleSubmit,
-  // data property removed entirely
-} = useCompletion();
-```
-
-#### useAssistant Removal
-
-The `useAssistant` hook has been removed.
-
-```tsx filename="AI SDK 4.0"
-import { useAssistant } from '@ai-sdk/react';
-```
-
-```tsx filename="AI SDK 5.0"
-// useAssistant has been removed
-// Use useChat with appropriate configuration instead
-```
-
-// TODO: Add link to assitant api example @jeremy
 
 ### Utility Changes
 
@@ -1736,7 +1781,7 @@ Token usage properties have been renamed for consistency.
 
 #### Stream Part Type Changes
 
-The `LanguageModelV2StreamPart` type has been significantly expanded to support the new streaming architecture with start/delta/end patterns and IDs.
+The `LanguageModelV2StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
 
 ```tsx filename="AI SDK 4.0"
 // V4: Simple stream parts
@@ -1821,38 +1866,6 @@ type LanguageModelV2StreamPart =
       finishReason: LanguageModelV2FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
     };
-```
-
-This requires provider implementations to:
-
-1. **Generate unique IDs** for each content block
-2. **Emit start events** before beginning to stream content
-3. **Stream deltas** with the associated ID
-4. **Emit end events** when content blocks complete
-5. **Handle concurrent content** by maintaining multiple active blocks
-
-```tsx filename="AI SDK 5.0"
-// Example provider implementation
-async function* streamResponse(prompt: string) {
-  const textId = generateId();
-  const reasoningId = generateId();
-
-  // Start both text and reasoning concurrently
-  yield { type: 'text-start', id: textId };
-  yield { type: 'reasoning-start', id: reasoningId };
-
-  // Stream deltas for both blocks
-  yield { type: 'reasoning-delta', id: reasoningId, delta: 'Let me think about this...' };
-  yield { type: 'text-delta', id: textId, delta: 'Hello' };
-  yield { type: 'reasoning-delta', id: reasoningId, delta: ' The user is greeting me.' };
-  yield { type: 'text-delta', id: textId, delta: ', how can I help?' };
-
-  // End both blocks
-  yield { type: 'reasoning-end', id: reasoningId };
-  yield { type: 'text-end', id: textId };
-
-  yield { type: 'finish', usage: { ... }, finishReason: 'stop' };
-}
 ```
 
 #### Raw Response → Response
@@ -1940,7 +1953,7 @@ const result = await generateText({
     return {
       activeTools: ['weatherTool'],
       system: 'Be helpful and concise.',
-      toolChoice: 'auto', // Can also configure toolChoice, model, etc.
+      // Can also configure toolChoice, model, etc.
     };
   },
 });
@@ -1974,426 +1987,127 @@ await generateText({
 });
 ```
 
-### Callback Changes
+## Provider & Model Changes
 
-#### onResponse Removal
+### OpenAI
 
-The `onResponse` callback has been removed from `useChat` and `useCompletion`.
+#### Structured Outputs Default
 
-```tsx filename="AI SDK 4.0"
-const { messages } = useChat({
-  onResponse(response) {
-    // handle response
-  },
-});
-```
-
-```tsx filename="AI SDK 5.0"
-const { messages } = useChat({
-  // onResponse is no longer available
-});
-```
-
-### Tool System Overhaul
-
-The tool system has been completely redesigned for better type safety, streaming support, and client interaction.
-
-#### Tool Part Types and Naming
-
-In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic types.
-
-```tsx filename="AI SDK 4.0"
-// V4: Generic tool-invocation type
-{
-  message.parts.map(part => {
-    if (part.type === 'tool-invocation') {
-      return <div>{part.toolInvocation.toolName}</div>;
-    }
-  });
-}
-```
-
-```tsx filename="AI SDK 5.0"
-// V5: Type-safe tool parts with specific names
-{
-  message.parts.map(part => {
-    switch (part.type) {
-      case 'tool-getWeatherInformation':
-        return <div>Getting weather...</div>;
-      case 'tool-askForConfirmation':
-        return <div>Asking for confirmation...</div>;
-    }
-  });
-}
-```
-
-#### Tool Property Changes (args/result → input/output)
-
-Tool call and result properties have been renamed for better consistency with schemas.
-
-```tsx filename="AI SDK 4.0"
-// Tool calls used "args" and "result"
-for await (const part of result.fullStream) {
-  switch (part.type) {
-    case 'tool-call':
-      console.log('Tool args:', part.args);
-      break;
-    case 'tool-result':
-      console.log('Tool result:', part.result);
-      break;
-  }
-}
-```
-
-```tsx filename="AI SDK 5.0"
-// Tool calls now use "input" and "output"
-for await (const part of result.fullStream) {
-  switch (part.type) {
-    case 'tool-call':
-      console.log('Tool input:', part.input);
-      break;
-    case 'tool-result':
-      console.log('Tool output:', part.output);
-      break;
-  }
-}
-```
-
-#### Tool States and Streaming
-
-V5 introduces multiple tool states for better UX during tool execution.
-
-```tsx filename="AI SDK 4.0"
-// V4: Simple binary state (invoked or completed)
-{
-  toolInvocation.result ? (
-    <div>Result: {toolInvocation.result}</div>
-  ) : (
-    <div>Tool executing...</div>
-  );
-}
-```
-
-```tsx filename="AI SDK 5.0"
-// V5: Granular states with streaming support
-{
-  part.type === 'tool-getWeatherInformation' && (
-    <>
-      {part.state === 'input-streaming' && (
-        <pre>Streaming input: {JSON.stringify(part.input, null, 2)}</pre>
-      )}
-      {part.state === 'input-available' && (
-        <div>Getting weather for {part.input.city}...</div>
-      )}
-      {part.state === 'output-available' && <div>Weather: {part.output}</div>}
-    </>
-  );
-}
-```
-
-This change aligns with `inputSchema` and `outputSchema` from MCP tools and provides better consistency.
-
-#### Type Safety for Tools
-
-To get full type safety and auto-completion for the new tool parts, you need to define your own message type that includes your tool definitions.
-
-```tsx filename="AI SDK 4.0"
-import { type Message } from 'ai';
-
-// V4: Basic Message type without tool typing
-const { messages } = useChat();
-
-// No type safety for tool properties
-{
-  messages.map(message =>
-    message.toolInvocations?.map(tool => (
-      <div>{tool.toolName}</div> // No auto-completion
-    )),
-  );
-}
-```
-
-```tsx filename="AI SDK 5.0"
-import { type UIMessage, type UIDataTypes } from 'ai';
-
-// Step 1: Define your custom message type with tool definitions
-export type MyUIMessage = UIMessage<
-  never, // Message metadata type (use `never` if not needed)
-  UIDataTypes, // Data parts type (usually just UIDataTypes)
-  {
-    // Define your tools with input/output types
-    getWeatherInformation: {
-      input: { city: string };
-      output: string;
-    };
-    askForConfirmation: {
-      input: { message: string };
-      output: string;
-    };
-  }
->;
-
-// Step 2: Use your custom type in useChat
-const { messages } = useChat<MyUIMessage>({
-  // ... configuration
-});
-
-// Step 3: Get full type safety and auto-completion
-{
-  messages.map(message =>
-    message.parts.map(part => {
-      switch (part.type) {
-        case 'tool-getWeatherInformation': {
-          // Full type safety - TypeScript knows about input.city and output
-          switch (part.state) {
-            case 'input-available':
-              return <div>Getting weather for {part.input.city}</div>;
-            case 'output-available':
-              return <div>Weather: {part.output}</div>;
-          }
-        }
-      }
-    }),
-  );
-}
-```
-
-### Step Control: maxSteps → stopWhen
-
-For core functions like `generateText` and `streamText`, the `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution. Note that `useChat` still supports the `maxSteps` parameter.
-
-```tsx filename="AI SDK 4.0"
-// V4: Simple numeric limit
-const result = await generateText({
-  model: openai('gpt-4'),
-  messages,
-  maxSteps: 5, // Stop after exactly 5 steps
-});
-
-// useChat with maxSteps
-const { messages } = useChat({
-  maxSteps: 3, // Stop after 3 steps
-});
-```
-
-```tsx filename="AI SDK 5.0"
-import { stepCountIs, hasToolCall } from 'ai';
-
-// V5: Function-based stopping conditions
-const result = await generateText({
-  model: openai('gpt-4'),
-  messages,
-  stopWhen: stepCountIs(5), // Stop when step count reaches 5
-});
-
-// Custom stopping condition
-const result = await generateText({
-  model: openai('gpt-4'),
-  messages,
-  stopWhen: ({ steps }) => {
-    // Stop if we have 5 steps OR if the last step has no tool calls
-    const lastStep = steps[steps.length - 1];
-    return steps.length >= 5 || lastStep?.toolCalls?.length === 0;
-  },
-});
-
-// Built-in helper functions
-const result = await generateText({
-  model: openai('gpt-4'),
-  messages,
-  stopWhen: hasToolCall('finalizeTask'), // Stop when specific tool is called
-});
-
-// useChat still uses maxSteps
-const { messages } = useChat({
-  maxSteps: 3, // Still available in useChat
-});
-```
-
-**Common stopping patterns:**
-
-```tsx filename="AI SDK 5.0"
-// Stop after N steps (equivalent to old maxSteps)
-stopWhen: stepCountIs(5);
-
-// Stop when specific tool is called
-stopWhen: hasToolCall('finalizeTask');
-
-// Stop based on step content
-stopWhen: ({ steps }) => {
-  const lastStep = steps[steps.length - 1];
-  return lastStep?.text?.includes('DONE') || steps.length >= 10;
-};
-
-// Complex conditions
-stopWhen: ({ steps }) =>
-  steps.length >= 10 ||
-  steps.some(step =>
-    step.toolCalls?.some(call => call.toolName === 'finalizeTask'),
-  ) ||
-  steps[steps.length - 1]?.toolCalls?.length === 0;
-```
-
-### Continuation Steps Removal
-
-The `experimental_continueSteps` option has been removed from `generateText()`.
+Structured outputs are now enabled by default for supported OpenAI models.
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  experimental_continueSteps: true,
-  // ...
+  model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  // experimental_continueSteps has been removed
-  // Use newer models with higher output token limits instead
-  // ...
+  model: openai('gpt-4.1-2024-08-06'),
+  // structuredOutputs: true is now the default
 });
 ```
 
-### Image Generation Changes
+#### Compatibility Option Removal
 
-Image model settings have been moved to `providerOptions`.
+The `compatibility` option has been removed; strict mode is now the default.
 
 ```tsx filename="AI SDK 4.0"
-await generateImage({
-  model: luma.image('photon-flash-1', {
-    maxImagesPerCall: 5,
-    pollIntervalMillis: 500,
-  }),
-  prompt,
-  n: 10,
+const openai = createOpenAI({
+  compatibility: 'strict',
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
-await generateImage({
-  model: luma.image('photon-flash-1'),
-  prompt,
-  n: 10,
-  maxImagesPerCall: 5,
+const openai = createOpenAI({
+  // strict compatibility is now the default
+});
+```
+
+**Codemod:** `remove-openai-compatibility`
+
+#### Legacy Function Calls Removal
+
+The `useLegacyFunctionCalls` option has been removed.
+
+```tsx filename="AI SDK 4.0"
+const result = streamText({
+  model: openai('gpt-4.1', { useLegacyFunctionCalls: true }),
+});
+```
+
+```tsx filename="AI SDK 5.0"
+const result = streamText({
+  model: openai('gpt-4.1'),
+});
+```
+
+#### Simulate Streaming
+
+The `simulateStreaming` model option has been replaced with middleware.
+
+```tsx filename="AI SDK 4.0"
+const result = generateText({
+  model: openai('gpt-4.1', { simulateStreaming: true }),
+  prompt: 'Hello, world!',
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { simulateStreamingMiddleware, wrapLanguageModel } from 'ai';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4.1'),
+  middleware: simulateStreamingMiddleware(),
+});
+
+const result = generateText({
+  model,
+  prompt: 'Hello, world!',
+});
+```
+
+**Codemod:** `replace-simulate-streaming`
+
+### Amazon Bedrock
+
+#### Snake Case → Camel Case
+
+Provider options have been updated to use camelCase.
+
+```tsx filename="AI SDK 4.0"
+const result = await generateText({
+  model: bedrock('amazon.titan-tg1-large'),
+  prompt: 'Hello, world!',
   providerOptions: {
-    luma: { pollIntervalMillis: 500 },
+    bedrock: {
+      reasoning_config: {
+        /* ... */
+      },
+    },
   },
 });
 ```
 
-**Codemod:** `move-image-model-maxImagesPerCall`
-
-### Step Result Changes
-
-#### Step Type Removal
-
-The `stepType` property has been removed from step results.
-
-```tsx filename="AI SDK 4.0"
-steps.forEach(step => {
-  switch (step.stepType) {
-    case 'initial':
-      console.log('Initial step');
-      break;
-    case 'tool-result':
-      console.log('Tool result step');
-      break;
-    case 'done':
-      console.log('Final step');
-      break;
-  }
-});
-```
-
 ```tsx filename="AI SDK 5.0"
-steps.forEach((step, index) => {
-  if (index === 0) {
-    console.log('Initial step');
-  } else if (step.toolResults.length > 0) {
-    console.log('Tool result step');
-  } else {
-    console.log('Final step');
-  }
-});
-```
-
-#### Usage vs Total Usage
-
-Usage properties now distinguish between single step and total usage.
-
-```tsx filename="AI SDK 4.0"
-// usage contained total token usage across all steps
-console.log(result.usage);
-```
-
-```tsx filename="AI SDK 5.0"
-// usage contains token usage from the final step only
-console.log(result.usage);
-// totalUsage contains total token usage across all steps
-console.log(result.totalUsage);
-```
-
-### Stream Event Changes
-
-Stream event types have been renamed for consistency.
-
-```tsx filename="AI SDK 4.0"
-for await (const part of result.fullStream) {
-  switch (part.type) {
-    case 'step-finish': {
-      console.log('Step finished:', part.finishReason);
-      break;
-    }
-    case 'finish': {
-      console.log('Usage:', part.usage);
-      break;
-    }
-  }
-}
-```
-
-```tsx filename="AI SDK 5.0"
-for await (const part of result.fullStream) {
-  switch (part.type) {
-    case 'finish-step': {
-      // Renamed from 'step-finish'
-      console.log('Step finished:', part.finishReason);
-      break;
-    }
-    case 'finish': {
-      console.log('Total Usage:', part.totalUsage); // Changed from 'usage'
-      break;
-    }
-  }
-}
-```
-
-### UI Message Role Changes
-
-The `data` role has been removed from UI messages.
-
-```tsx filename="AI SDK 4.0"
-const message = {
-  role: 'data',
-  content: 'Some content',
-  data: { customField: 'value' },
-};
-```
-
-```tsx filename="AI SDK 5.0"
-// V5: Use UI message streams with custom data parts
-const stream = createUIMessageStream({
-  execute({ writer }) {
-    // Write custom data instead of message annotations
-    writer.write({
-      type: 'data-custom',
-      id: 'custom-1',
-      data: { customField: 'value' },
-    });
+const result = await generateText({
+  model: bedrock('amazon.titan-tg1-large'),
+  prompt: 'Hello, world!',
+  providerOptions: {
+    bedrock: {
+      reasoningConfig: {
+        /* ... */
+      },
+    },
   },
 });
 ```
+
+**Codemod:** `replace-bedrock-snake-case`
 
 ### File Part Changes
+
+// NOTE: move to useChat section
 
 File parts now use `.url` instead of `.data` and `.mimeType`.
 
@@ -2436,6 +2150,8 @@ File parts now use `.url` instead of `.data` and `.mimeType`.
 
 ### Provider-Utils Changes
 
+// NOTE: move to core changes
+
 Deprecated `CoreTool*` types have been removed.
 
 ```tsx filename="AI SDK 4.0"
@@ -2458,44 +2174,9 @@ import {
 } from '@ai-sdk/provider-utils';
 ```
 
-### Stream Data Removal
-
-The `StreamData` class has been completely removed and replaced with UI message streams for custom data.
-
-```tsx filename="AI SDK 4.0"
-import { StreamData } from 'ai';
-
-const streamData = new StreamData();
-streamData.append('custom-data');
-streamData.close();
-```
-
-```tsx filename="AI SDK 5.0"
-import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
-
-const stream = createUIMessageStream({
-  execute({ writer }) {
-    // Write custom data parts
-    writer.write({
-      type: 'data-custom',
-      id: 'custom-1',
-      data: 'custom-data',
-    });
-
-    // Can merge with LLM streams
-    const result = streamText({
-      model: openai('gpt-4o'),
-      messages,
-    });
-
-    writer.merge(result.toUIMessageStream());
-  },
-});
-
-return createUIMessageStreamResponse({ stream });
-```
-
 ## New Features in v5
+
+// note: probably makes more sense to have this in the announcement post -> point there
 
 While the sections above focus on breaking changes and migrations, AI SDK v5 also introduces several new features that enhance functionality without requiring code changes.
 
@@ -2523,18 +2204,13 @@ const weatherTool = tool({
 });
 ```
 
-This enables:
-
-- **Better type inference** for tool outputs
-- **Server-side tools** without execute functions
-- **Validation** of tool outputs
-
 ### Tool Type Inference Helpers
 
 New utility types simplify working with tool types:
 
 ```tsx filename="AI SDK 5.0"
 import { InferToolInput, InferToolOutput, InferUITool } from 'ai';
+import { weatherTool } from './weatherTool';
 
 // Infer input and output types from tool definitions
 type WeatherInput = InferToolInput<typeof weatherTool>;
@@ -2543,15 +2219,15 @@ type WeatherUITool = InferUITool<typeof weatherTool>;
 
 // Use in UI message type definitions
 type MyUIMessage = UIMessage<
-  never,
-  UIDataTypes,
+  never, // metadata type
+  UIDataTypes, // data parts type
   {
     weather: WeatherUITool;
   }
 >;
 ```
 
-### OpenAI Provider-Defined Tools
+### OpenAI Provider-Executed Tools
 
 New built-in tools for OpenAI:
 
@@ -2559,7 +2235,7 @@ New built-in tools for OpenAI:
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-4.1'),
   tools: {
     file_search: openai.tools.fileSearch(),
     web_search_preview: openai.tools.webSearchPreview({
@@ -2574,6 +2250,14 @@ Available tools:
 
 - **`fileSearch`**: Search through uploaded documents using OpenAI's file search
 - **`webSearchPreview`**: Web search capabilities (preview feature)
+
+When using provider-defined tools like `fileSearch` and `webSearchPreview`, the tool execution results are automatically added to the message history, providing context for subsequent interactions:
+
+This automatic message history inclusion ensures that:
+
+- Tool execution context is preserved across conversation turns
+- Follow-up questions can reference previously searched information
+- The full conversation flow is maintained for debugging and logging
 
 ### Enhanced Tool Streaming
 
