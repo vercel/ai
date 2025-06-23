@@ -58,6 +58,22 @@ export const uiMessageStreamPartSchema = z.union([
     providerMetadata: z.record(z.any()).optional(),
   }),
   z.strictObject({
+    type: z.literal('reasoning-start'),
+    id: z.string(),
+    providerMetadata: z.record(z.any()).optional(),
+  }),
+  z.strictObject({
+    type: z.literal('reasoning-delta'),
+    id: z.string(),
+    delta: z.string(),
+    providerMetadata: z.record(z.any()).optional(),
+  }),
+  z.strictObject({
+    type: z.literal('reasoning-end'),
+    id: z.string(),
+    providerMetadata: z.record(z.any()).optional(),
+  }),
+  z.strictObject({
     type: z.literal('reasoning-part-finish'),
   }),
   z.strictObject({
