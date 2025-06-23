@@ -10,6 +10,7 @@ type ToToolResultObject<TOOLS extends ToolSet> = ValueOf<{
     toolName: NAME & string;
     input: InferToolInput<TOOLS[NAME]>;
     output: InferToolOutput<TOOLS[NAME]>;
+    providerExecuted?: boolean;
   };
 }>;
 
@@ -26,6 +27,7 @@ type ToToolErrorObject<TOOLS extends ToolSet> = ValueOf<{
     toolName: NAME & string;
     input: InferToolInput<TOOLS[NAME]>;
     error: unknown;
+    providerExecuted?: boolean;
   };
 }>;
 

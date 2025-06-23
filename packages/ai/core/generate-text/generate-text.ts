@@ -799,7 +799,7 @@ function asContent<TOOLS extends ToolSet>({
             toolName: part.toolName as keyof TOOLS & string,
             input: toolCall.input,
             output: part.result,
-            isProviderSide: true,
+            providerExecuted: true,
           } as ToolResultUnion<TOOLS>;
         }
       }

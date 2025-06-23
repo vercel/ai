@@ -1,12 +1,13 @@
+import { getErrorMessage } from '@ai-sdk/provider-utils';
 import {
   AssistantContent,
   AssistantModelMessage,
   ToolContent,
   ToolModelMessage,
 } from '../prompt';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { ContentPart } from './content-part';
 import { ToolSet } from './tool-set';
-import { createToolModelOutput } from '../prompt/create-tool-model-output';
 
 /**
 Converts the result of a `generateText` or `streamText` call to a list of response messages.
@@ -21,11 +22,11 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
   const content: AssistantContent = inputContent
+    .filter(part => part.type !== 'source')
     .filter(
       part =>
-        part.type !== 'tool-result' &&
-        part.type !== 'tool-error' &&
-        part.type !== 'source',
+        (part.type !== 'tool-result' || part.providerExecuted) &&
+        (part.type !== 'tool-error' || part.providerExecuted),
     )
     .filter(part => part.type !== 'text' || part.text.length > 0)
     .map(part => {
@@ -50,11 +51,27 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             toolCallId: part.toolCallId,
             toolName: part.toolName,
             input: part.input,
-            providerOptions: part.providerExecuted
-              ? {
-                  anthropic: { providerExecuted: true },
-                }
-              : undefined,
+            providerExecuted: part.providerExecuted,
+          };
+        case 'tool-result':
+          return {
+            type: 'tool-result',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: part.output, // TODO convert to LanguageModelV2ToolResultOutput
+            providerExecuted: true,
+            // TODO provider options
+          };
+        case 'tool-error':
+          return {
+            type: 'tool-result',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: {
+              type: 'error',
+              value: getErrorMessage(part.error), // TODO error json
+            },
+            // TODO provider options
           };
       }
     });
@@ -68,7 +85,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 
   const toolResultContent: ToolContent = inputContent
     .filter(part => part.type === 'tool-result' || part.type === 'tool-error')
-    .filter(part => !('isProviderSide' in part) || !part.isProviderSide)
+    .filter(part => !part.providerExecuted)
     .map(toolResult => ({
       type: 'tool-result',
       toolCallId: toolResult.toolCallId,

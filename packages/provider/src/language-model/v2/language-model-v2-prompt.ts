@@ -33,6 +33,7 @@ export type LanguageModelV2Message =
           | LanguageModelV2FilePart
           | LanguageModelV2ReasoningPart
           | LanguageModelV2ToolCallPart
+          | LanguageModelV2ToolResultPart
         >;
       }
     | {
@@ -141,6 +142,12 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
   input: unknown;
 
   /**
+   * Whether the tool call will be executed by the provider.
+   * If this flag is not set or is false, the tool call will be executed by the client.
+   */
+  providerExecuted?: boolean;
+
+  /**
    * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
@@ -214,6 +221,6 @@ IANA media type of the image.
       >;
     }
   | {
-      type: 'error';
+      type: 'error'; // TODO error text vs error json
       value: string;
     };

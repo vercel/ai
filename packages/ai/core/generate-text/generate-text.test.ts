@@ -1167,7 +1167,7 @@ describe('generateText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerOptions": undefined,
+                            "providerExecuted": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -1242,7 +1242,7 @@ describe('generateText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerOptions": undefined,
+                            "providerExecuted": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -1857,8 +1857,8 @@ describe('generateText', () => {
               "input": {
                 "value": "value",
               },
-              "isProviderSide": true,
               "output": "{ "value": "result1" }",
+              "providerExecuted": true,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
@@ -2148,7 +2148,7 @@ describe('generateText', () => {
                 "input": {
                   "value": "value",
                 },
-                "providerOptions": undefined,
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -2234,10 +2234,10 @@ describe('generateText', () => {
             "input": {
               "value": "test",
             },
-            "isProviderSide": true,
             "output": {
               "example": "example",
             },
+            "providerExecuted": true,
             "toolCallId": "call-1",
             "toolName": "providerTool",
             "type": "tool-result",
@@ -2252,10 +2252,10 @@ describe('generateText', () => {
             "input": {
               "value": "test",
             },
-            "isProviderSide": true,
             "output": {
               "example": "example",
             },
+            "providerExecuted": true,
             "toolCallId": "call-1",
             "toolName": "providerTool",
             "type": "tool-result",
