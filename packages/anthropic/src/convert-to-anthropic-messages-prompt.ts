@@ -401,6 +401,11 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-call': {
+                const isProviderExecuted = part.providerOptions?.anthropic?.providerExecuted === true;
+                if (isProviderExecuted) {
+                  break;
+                }
+
                 anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,

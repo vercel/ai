@@ -109,6 +109,11 @@ export function convertToOpenAIResponsesMessages({
               break;
             }
             case 'tool-call': {
+              const isProviderExecuted = part.providerOptions?.openai?.providerExecuted === true;
+              if (isProviderExecuted) {
+                break;
+              }
+
               messages.push({
                 type: 'function_call',
                 call_id: part.toolCallId,

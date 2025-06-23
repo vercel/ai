@@ -2218,7 +2218,7 @@ describe('generateText', () => {
       // tool should not be executed by client
       expect(toolExecuted).toBe(false);
 
-      // tool call should be included in content
+      // tool call should still be included in content
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
@@ -2230,6 +2230,24 @@ describe('generateText', () => {
             "toolName": "providerTool",
             "type": "tool-call",
           },
+          {
+            "input": {
+              "value": "test",
+            },
+            "isProviderSide": true,
+            "output": {
+              "example": "example",
+            },
+            "toolCallId": "call-1",
+            "toolName": "providerTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+
+      // tool results should be empty since the tool wasn't executed
+      expect(result.toolResults).toMatchInlineSnapshot(`
+        [
           {
             "input": {
               "value": "test",
