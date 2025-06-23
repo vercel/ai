@@ -8,6 +8,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onSte
         "input": {
           "value": "value",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-call",
@@ -36,6 +37,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onSte
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -93,6 +95,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onSte
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -147,6 +150,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         "input": {
           "value": "value",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-call",
@@ -188,6 +192,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         "input": {
           "value": "value",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-call",
@@ -216,6 +221,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -273,6 +279,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -327,6 +334,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "input": {
           "value": "value",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-call",
@@ -355,6 +363,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -412,6 +421,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -466,6 +476,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "input": {
           "value": "value",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-call",
@@ -507,6 +518,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "input": {
           "value": "value",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-call",
@@ -535,6 +547,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -592,6 +605,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -715,6 +729,7 @@ exports[`generateText > result.response.messages > should contain assistant resp
         "input": {
           "value": "value",
         },
+        "providerExecuted": undefined,
         "toolCallId": "call-1",
         "toolName": "tool1",
         "type": "tool-call",

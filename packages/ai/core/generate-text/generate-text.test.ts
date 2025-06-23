@@ -147,62 +147,63 @@ describe('generateText', () => {
       });
 
       expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, world!",
-          "type": "text",
-        },
-        {
-          "id": "123",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value",
+        [
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+          {
+            "id": "123",
+            "providerMetadata": {
+              "provider": {
+                "custom": "value",
+              },
             },
+            "sourceType": "url",
+            "title": "Example",
+            "type": "source",
+            "url": "https://example.com",
           },
-          "sourceType": "url",
-          "title": "Example",
-          "type": "source",
-          "url": "https://example.com",
-        },
-        {
-          "file": DefaultGeneratedFile {
-            "base64Data": "AQID",
-            "mediaType": "image/png",
-            "uint8ArrayData": Uint8Array [
-              1,
-              2,
-              3,
-            ],
+          {
+            "file": DefaultGeneratedFile {
+              "base64Data": "AQID",
+              "mediaType": "image/png",
+              "uint8ArrayData": Uint8Array [
+                1,
+                2,
+                3,
+              ],
+            },
+            "type": "file",
           },
-          "type": "file",
-        },
-        {
-          "text": "I will open the conversation with witty banter.",
-          "type": "reasoning",
-        },
-        {
-          "input": {
-            "value": "value",
+          {
+            "text": "I will open the conversation with witty banter.",
+            "type": "reasoning",
           },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-        {
-          "text": "More text",
-          "type": "text",
-        },
-        {
-          "input": {
-            "value": "value",
+          {
+            "input": {
+              "value": "value",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
           },
-          "output": "result1",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ]
-    `);
+          {
+            "text": "More text",
+            "type": "text",
+          },
+          {
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ]
+      `);
     });
   });
 
@@ -373,14 +374,19 @@ describe('generateText', () => {
         assertType<string>(result.toolCalls[0].input.value);
       }
 
-      expect(result.toolCalls).toStrictEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          input: { value: 'value' },
-        },
-      ]);
+      expect(result.toolCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "value",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ]
+      `);
     });
   });
 
@@ -1122,155 +1128,159 @@ describe('generateText', () => {
 
       it('stopConditionCalls should be called for each stop condition', () => {
         expect(stopConditionCalls).toMatchInlineSnapshot(`
-        [
-          {
-            "number": 0,
-            "steps": [
-              DefaultStepResult {
-                "content": [
-                  {
-                    "input": {
-                      "value": "value",
-                    },
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-call",
-                  },
-                  {
-                    "input": {
-                      "value": "value",
-                    },
-                    "output": "result1",
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-result",
-                  },
-                ],
-                "finishReason": "tool-calls",
-                "providerMetadata": undefined,
-                "request": {},
-                "response": {
-                  "body": undefined,
-                  "headers": undefined,
-                  "id": "test-id-1-from-model",
-                  "messages": [
+          [
+            {
+              "number": 0,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
                     {
-                      "content": [
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
                     },
                     {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "result1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
                     },
                   ],
-                  "modelId": "test-response-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": 10,
-                  "outputTokens": 5,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 15,
-                },
-                "warnings": [],
-              },
-            ],
-          },
-          {
-            "number": 1,
-            "steps": [
-              DefaultStepResult {
-                "content": [
-                  {
-                    "input": {
-                      "value": "value",
-                    },
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-call",
-                  },
-                  {
-                    "input": {
-                      "value": "value",
-                    },
-                    "output": "result1",
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-result",
-                  },
-                ],
-                "finishReason": "tool-calls",
-                "providerMetadata": undefined,
-                "request": {},
-                "response": {
-                  "body": undefined,
-                  "headers": undefined,
-                  "id": "test-id-1-from-model",
-                  "messages": [
-                    {
-                      "content": [
-                        {
-                          "input": {
-                            "value": "value",
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "body": undefined,
+                    "headers": undefined,
+                    "id": "test-id-1-from-model",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
                           },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "test-response-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 10,
+                    "outputTokens": 5,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 15,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+            {
+              "number": 1,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
                     },
                     {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "result1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
                     },
                   ],
-                  "modelId": "test-response-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "body": undefined,
+                    "headers": undefined,
+                    "id": "test-id-1-from-model",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "test-response-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 10,
+                    "outputTokens": 5,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 15,
+                  },
+                  "warnings": [],
                 },
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": 10,
-                  "outputTokens": 5,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 15,
-                },
-                "warnings": [],
-              },
-            ],
-          },
-        ]
-      `);
+              ],
+            },
+          ]
+        `);
       });
     });
   });
@@ -1777,14 +1787,19 @@ describe('generateText', () => {
         assertType<string>(result.toolCalls[0].input.value);
       }
 
-      assert.deepStrictEqual(result.toolCalls, [
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          input: { value: 'value' },
-        },
-      ]);
+      expect(result.toolCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "value",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ]
+      `);
     });
   });
 
@@ -1833,6 +1848,7 @@ describe('generateText', () => {
               "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2100,60 +2116,62 @@ describe('generateText', () => {
 
     it('should add tool error part to the content', async () => {
       expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "input": {
-            "value": "value",
+        [
+          {
+            "input": {
+              "value": "value",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
           },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-        {
-          "error": [Error: test error],
-          "input": {
-            "value": "value",
+          {
+            "error": [Error: test error],
+            "input": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-error",
           },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-error",
-        },
-      ]
-    `);
+        ]
+      `);
     });
 
     it('should include error result in response messages', async () => {
       expect(result.response.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "content": [
-            {
-              "input": {
-                "value": "value",
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
               },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "error",
-                "value": "test error",
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error",
+                  "value": "test error",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
               },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-      ]
-    `);
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
     });
   });
 });

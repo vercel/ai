@@ -108,38 +108,40 @@ describe('runToolsTransformation', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "input": {
-            "value": "test",
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-call",
           },
-          "toolCallId": "call-1",
-          "toolName": "syncTool",
-          "type": "tool-call",
-        },
-        {
-          "input": {
-            "value": "test",
+          {
+            "input": {
+              "value": "test",
+            },
+            "output": "test-sync-result",
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-result",
           },
-          "output": "test-sync-result",
-          "toolCallId": "call-1",
-          "toolName": "syncTool",
-          "type": "tool-result",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 3,
-            "outputTokens": 10,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
           },
-        },
-      ]
-    `);
+        ]
+      `);
   });
 
   it('should handle sync tool execution', async () => {
@@ -176,38 +178,40 @@ describe('runToolsTransformation', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "input": {
-            "value": "test",
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-call",
           },
-          "toolCallId": "call-1",
-          "toolName": "syncTool",
-          "type": "tool-call",
-        },
-        {
-          "input": {
-            "value": "test",
+          {
+            "input": {
+              "value": "test",
+            },
+            "output": "test-sync-result",
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-result",
           },
-          "output": "test-sync-result",
-          "toolCallId": "call-1",
-          "toolName": "syncTool",
-          "type": "tool-result",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 3,
-            "outputTokens": 10,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
           },
-        },
-      ]
-    `);
+        ]
+      `);
   });
 
   it('should hold off on sending finish until the delayed tool result is received', async () => {
@@ -248,38 +252,40 @@ describe('runToolsTransformation', () => {
     const result = await convertReadableStreamToArray(transformedStream);
 
     expect(result).toMatchInlineSnapshot(`
-    [
-      {
-        "input": {
-          "value": "test",
+      [
+        {
+          "input": {
+            "value": "test",
+          },
+          "providerExecuted": undefined,
+          "toolCallId": "call-1",
+          "toolName": "delayedTool",
+          "type": "tool-call",
         },
-        "toolCallId": "call-1",
-        "toolName": "delayedTool",
-        "type": "tool-call",
-      },
-      {
-        "input": {
-          "value": "test",
+        {
+          "input": {
+            "value": "test",
+          },
+          "output": "test-delayed-result",
+          "providerExecuted": undefined,
+          "toolCallId": "call-1",
+          "toolName": "delayedTool",
+          "type": "tool-result",
         },
-        "output": "test-delayed-result",
-        "toolCallId": "call-1",
-        "toolName": "delayedTool",
-        "type": "tool-result",
-      },
-      {
-        "finishReason": "stop",
-        "providerMetadata": undefined,
-        "type": "finish",
-        "usage": {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
+        {
+          "finishReason": "stop",
+          "providerMetadata": undefined,
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
         },
-      },
-    ]
-  `);
+      ]
+    `);
   });
 
   it('should try to repair tool call when the tool name is not found', async () => {
@@ -326,37 +332,39 @@ describe('runToolsTransformation', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "input": {
-            "value": "test",
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "correctTool",
+            "type": "tool-call",
           },
-          "toolCallId": "call-1",
-          "toolName": "correctTool",
-          "type": "tool-call",
-        },
-        {
-          "input": {
-            "value": "test",
+          {
+            "input": {
+              "value": "test",
+            },
+            "output": "test-result",
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "correctTool",
+            "type": "tool-result",
           },
-          "output": "test-result",
-          "toolCallId": "call-1",
-          "toolName": "correctTool",
-          "type": "tool-result",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 3,
-            "outputTokens": 10,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
           },
-        },
-      ]
-    `);
+        ]
+      `);
   });
 });
