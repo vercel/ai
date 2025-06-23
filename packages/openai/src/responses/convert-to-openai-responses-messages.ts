@@ -109,7 +109,8 @@ export function convertToOpenAIResponsesMessages({
               break;
             }
             case 'tool-call': {
-              const isProviderExecuted = part.providerOptions?.openai?.providerExecuted === true;
+              const isProviderExecuted =
+                part.providerOptions?.openai?.providerExecuted === true;
               if (isProviderExecuted) {
                 break;
               }

@@ -401,7 +401,8 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-call': {
-                const isProviderExecuted = part.providerOptions?.anthropic?.providerExecuted === true;
+                const isProviderExecuted =
+                  part.providerOptions?.anthropic?.providerExecuted === true;
                 if (isProviderExecuted) {
                   break;
                 }

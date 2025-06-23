@@ -50,9 +50,11 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             toolCallId: part.toolCallId,
             toolName: part.toolName,
             input: part.input,
-            providerOptions: part.providerExecuted ? { 
-              anthropic: { providerExecuted: true } 
-            } : undefined,
+            providerOptions: part.providerExecuted
+              ? {
+                  anthropic: { providerExecuted: true },
+                }
+              : undefined,
           };
       }
     });
