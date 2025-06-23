@@ -41,6 +41,7 @@ export const uiMessageStreamPartSchema = z.union([
     toolCallId: z.string(),
     toolName: z.string(),
     input: z.unknown(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-available'),
@@ -158,6 +159,7 @@ export type UIMessageStreamPart<
       toolCallId: string;
       toolName: string;
       input: unknown;
+      providerExecuted?: boolean;
     }
   | {
       type: 'tool-output-available';

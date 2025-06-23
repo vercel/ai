@@ -289,7 +289,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // invoke the onToolCall callback if it exists. This is blocking.
               // In the future we should make this non-blocking, which
               // requires additional state management for error handling etc.
-              if (onToolCall) {
+              // Skip calling onToolCall for provider-executed tools since they are already executed
+              if (onToolCall && !part.providerExecuted) {
                 const result = await onToolCall({
                   toolCall: part,
                 });

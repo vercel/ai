@@ -3128,4 +3128,120 @@ describe('processUIMessageStream', () => {
       `);
     });
   });
+
+  describe('provider-executed tools', () => {
+    it('should not call onToolCall for provider-executed tools', async () => {
+      let onToolCallInvoked = false;
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-id',
+          output: { result: 'provider-result' },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          onToolCall: async () => {
+            onToolCallInvoked = true;
+            return 'client-result';
+          },
+          runUpdateMessageJob,
+        }),
+      });
+
+      expect(onToolCallInvoked).toBe(false);
+
+      expect(state.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": undefined,
+            "input": {
+              "query": "test",
+            },
+            "output": {
+              "result": "provider-result",
+            },
+            "state": "output-available",
+            "toolCallId": "tool-call-id",
+            "type": "tool-tool-name",
+          },
+        ]
+      `);
+    });
+
+    it('should call onToolCall for client-executed tools', async () => {
+      let onToolCallInvoked = false;
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          onToolCall: async () => {
+            onToolCallInvoked = true;
+            return 'client-result';
+          },
+          runUpdateMessageJob,
+        }),
+      });
+
+      expect(onToolCallInvoked).toBe(true);
+
+      expect(state.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": undefined,
+            "input": {
+              "query": "test",
+            },
+            "output": "client-result",
+            "state": "output-available",
+            "toolCallId": "tool-call-id",
+            "type": "tool-tool-name",
+          },
+        ]
+      `);
+    });
+  });
 });

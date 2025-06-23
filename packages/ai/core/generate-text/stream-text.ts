@@ -1694,6 +1694,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 input: part.input,
+                providerExecuted: part.providerExecuted,
               });
               break;
             }
