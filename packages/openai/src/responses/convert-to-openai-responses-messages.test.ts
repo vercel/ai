@@ -521,7 +521,12 @@ describe('convertToOpenAIResponsesMessages', () => {
               "role": "assistant",
             },
           ],
-          "warnings": [],
+          "warnings": [
+            {
+              "message": "tool result parts in assistant messages are not supported for OpenAI responses",
+              "type": "other",
+            },
+          ],
         }
       `);
     });
