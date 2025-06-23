@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createVertexAnthropic } from './google-vertex-anthropic-provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import {
@@ -14,6 +13,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   withoutTrailingSlash: vi.fn().mockImplementation(url => url),
   createJsonErrorResponseHandler: vi.fn(),
   createProviderDefinedToolFactory: vi.fn(),
+  createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
 }));
 
 vi.mock('@ai-sdk/anthropic/internal', async () => {
