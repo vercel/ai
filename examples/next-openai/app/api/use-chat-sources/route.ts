@@ -7,9 +7,6 @@ import {
   UIMessage,
 } from 'ai';
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
-
 export type SourcesChatMessage = UIMessage<
   never,
   UIDataTypes,
@@ -26,7 +23,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: anthropic('claude-3-5-sonnet-latest'),
     tools: {
-      web_search: anthropic.tools.webSearch_20250305({}),
+      web_search: anthropic.tools.webSearch_20250305(),
     },
     messages: convertToModelMessages(messages),
   });
