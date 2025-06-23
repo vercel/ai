@@ -7611,58 +7611,71 @@ describe('streamText', () => {
     });
   });
 
-  describe('provider-executed tools in roundtrips', () => {
-    it('should not execute provider-executed tools during multi-step generation', async () => {
-      let toolExecuted = false;
+  describe('provider-executed tools', () => {
+    describe('single provider-executed tool call and result', () => {
+      let result: StreamTextResult<any, any>;
 
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'providerTool',
-              input: `{ "value": "test" }`,
-              providerExecuted: true,
-            },
-            {
-              type: 'finish',
-              finishReason: 'tool-calls',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          providerTool: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => {
-              toolExecuted = true;
-              return `${value}-should-not-execute`;
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                input: `{ "value": "value" }`,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                result: `{ "value": "result1" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            web_search: {
+              type: 'provider-defined',
+              id: 'test.web_search',
+              inputSchema: z.object({ value: z.string() }),
+              outputSchema: z.object({ value: z.string() }),
+              args: {},
             },
           },
-        },
-        ...defaultSettings(),
+          prompt: 'test-input',
+        });
       });
 
-      await result.consumeStream();
-
-      // tool should not be executed by client
-      expect(toolExecuted).toBe(false);
-
-      // tool call should still be included in content
-      expect(await result.toolCalls).toMatchInlineSnapshot(`
-        [
-          {
-            "input": {
-              "value": "test",
+      it('should include provider-executed tool call and result', async () => {
+        await result.consumeStream();
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
             },
-            "providerExecuted": true,
-            "toolCallId": "call-1",
-            "toolName": "providerTool",
-            "type": "tool-call",
-          },
-        ]
-      `);
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "{ "value": "result1" }",
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
     });
   });
 

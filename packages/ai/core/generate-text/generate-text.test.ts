@@ -1841,7 +1841,7 @@ describe('generateText', () => {
         });
       });
 
-      it('should include tool calls and results in the content', async () => {
+      it('should include provider-executed tool calls and results in the content', async () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
