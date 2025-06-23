@@ -34,18 +34,26 @@ export function toResponseMessages<TOOLS extends ToolSet>({
           return part;
         case 'reasoning':
           return {
-            type: 'reasoning' as const,
+            type: 'reasoning',
             text: part.text,
             providerOptions: part.providerMetadata,
           };
         case 'file':
           return {
-            type: 'file' as const,
+            type: 'file',
             data: part.file.base64,
             mediaType: part.file.mediaType,
           };
         case 'tool-call':
-          return part;
+          return {
+            type: 'tool-call',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            input: part.input,
+            providerOptions: part.providerExecuted ? { 
+              anthropic: { providerExecuted: true } 
+            } : undefined,
+          };
       }
     });
 
@@ -58,6 +66,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 
   const toolResultContent: ToolContent = inputContent
     .filter(part => part.type === 'tool-result' || part.type === 'tool-error')
+    .filter(part => !('isProviderSide' in part) || !part.isProviderSide)
     .map(toolResult => ({
       type: 'tool-result',
       toolCallId: toolResult.toolCallId,

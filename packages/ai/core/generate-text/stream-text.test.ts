@@ -3815,7 +3815,7 @@ describe('streamText', () => {
                     "input": {
                       "value": "value",
                     },
-                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -3894,7 +3894,7 @@ describe('streamText', () => {
                         "input": {
                           "value": "value",
                         },
-                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
                         "toolCallId": "call-1",
                         "toolName": "tool1",
                         "type": "tool-call",
@@ -4445,7 +4445,7 @@ describe('streamText', () => {
                 "input": {
                   "value": "value",
                 },
-                "providerExecuted": undefined,
+                "providerOptions": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -4861,7 +4861,7 @@ describe('streamText', () => {
                         "input": {
                           "value": "value",
                         },
-                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
                         "toolCallId": "call-1",
                         "toolName": "tool1",
                         "type": "tool-call",
@@ -4946,7 +4946,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -5009,7 +5009,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -5127,7 +5127,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "value",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -5190,7 +5190,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "value",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -5327,7 +5327,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "value",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -5390,7 +5390,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "value",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -5453,7 +5453,7 @@ describe('streamText', () => {
                     "input": {
                       "value": "value",
                     },
-                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -5845,7 +5845,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -5903,7 +5903,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -5990,7 +5990,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -6048,7 +6048,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -6460,7 +6460,7 @@ describe('streamText', () => {
                         "input": {
                           "value": "value",
                         },
-                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
                         "toolCallId": "call-1",
                         "toolName": "tool1",
                         "type": "tool-call",
@@ -6545,7 +6545,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -6608,7 +6608,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -6726,7 +6726,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "value",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -6789,7 +6789,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "value",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -6926,7 +6926,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "value",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -6989,7 +6989,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "value",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -7052,7 +7052,7 @@ describe('streamText', () => {
                     "input": {
                       "value": "value",
                     },
-                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -7445,7 +7445,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -7532,7 +7532,7 @@ describe('streamText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -8383,7 +8383,7 @@ describe('streamText', () => {
                       "input": {
                         "value": "value",
                       },
-                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -8433,7 +8433,7 @@ describe('streamText', () => {
                 "input": {
                   "value": "value",
                 },
-                "providerExecuted": undefined,
+                "providerOptions": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -8859,7 +8859,7 @@ describe('streamText', () => {
                         "input": {
                           "value": "VALUE",
                         },
-                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
                         "toolCallId": "call-1",
                         "toolName": "tool1",
                         "type": "tool-call",
@@ -9077,7 +9077,7 @@ describe('streamText', () => {
                       "input": {
                         "value": "VALUE",
                       },
-                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -9156,7 +9156,7 @@ describe('streamText', () => {
                           "input": {
                             "value": "VALUE",
                           },
-                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -9338,7 +9338,7 @@ describe('streamText', () => {
                       "input": {
                         "value": "VALUE",
                       },
-                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",

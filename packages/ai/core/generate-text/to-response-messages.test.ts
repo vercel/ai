@@ -105,6 +105,7 @@ describe('toResponseMessages', () => {
             },
             {
               "input": {},
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -169,6 +170,7 @@ describe('toResponseMessages', () => {
             },
             {
               "input": {},
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -333,6 +335,7 @@ describe('toResponseMessages', () => {
             },
             {
               "input": {},
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -511,6 +514,7 @@ describe('toResponseMessages', () => {
             },
             {
               "input": {},
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -550,6 +554,7 @@ describe('toResponseMessages', () => {
           "content": [
             {
               "input": {},
+              "providerOptions": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",

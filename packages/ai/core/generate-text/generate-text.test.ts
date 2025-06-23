@@ -1167,7 +1167,7 @@ describe('generateText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -1242,7 +1242,7 @@ describe('generateText', () => {
                             "input": {
                               "value": "value",
                             },
-                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -2148,7 +2148,7 @@ describe('generateText', () => {
                 "input": {
                   "value": "value",
                 },
-                "providerExecuted": undefined,
+                "providerOptions": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
