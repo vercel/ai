@@ -1350,10 +1350,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   // to ensure that the recorded steps are complete:
                   await stepFinish.promise;
 
+                  const clientToolCalls = stepToolCalls.filter(
+                    toolCall => toolCall.providerExecuted !== true,
+                  );
+                  const clientToolOutputs = stepToolOutputs.filter(
+                    toolOutput => toolOutput.providerExecuted !== true,
+                  );
+
                   if (
-                    stepToolCalls.length > 0 &&
+                    clientToolCalls.length > 0 &&
                     // all current tool calls have outputs (incl. execution errors):
-                    stepToolOutputs.length === stepToolCalls.length &&
+                    clientToolOutputs.length === clientToolCalls.length &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
                       stopConditions,

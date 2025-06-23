@@ -7600,7 +7600,13 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
+          stopWhen: stepCountIs(4),
         });
+      });
+
+      it('should only execute a single step', async () => {
+        await result.consumeStream();
+        expect((await result.steps).length).toBe(1);
       });
 
       it('should include provider-executed tool call and result content', async () => {

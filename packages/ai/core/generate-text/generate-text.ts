@@ -270,8 +270,8 @@ A function that attempts to repair a tool call that failed to parse.
         let currentModelResponse: Awaited<
           ReturnType<LanguageModelV2['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
-        let currentToolCalls: ToolCallArray<TOOLS> = [];
-        let currentToolOutputs: Array<ToolOutput<TOOLS>> = [];
+        let clientToolCalls: ToolCallArray<TOOLS> = [];
+        let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const responseMessages: Array<ResponseMessage> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
@@ -442,16 +442,16 @@ A function that attempts to repair a tool call that failed to parse.
             }
           }
 
-          currentToolCalls = stepToolCalls.filter(
+          clientToolCalls = stepToolCalls.filter(
             toolCall => toolCall.providerExecuted !== true,
           );
 
           // execute tools:
-          currentToolOutputs =
+          clientToolOutputs =
             tools == null
               ? []
               : await executeTools({
-                  toolCalls: currentToolCalls,
+                  toolCalls: clientToolCalls,
                   tools,
                   tracer,
                   telemetry,
@@ -463,7 +463,7 @@ A function that attempts to repair a tool call that failed to parse.
           const stepContent = asContent({
             content: currentModelResponse.content,
             toolCalls: stepToolCalls,
-            toolOutputs: currentToolOutputs,
+            toolOutputs: clientToolOutputs,
           });
 
           // append to messages for potential next step:
@@ -493,9 +493,9 @@ A function that attempts to repair a tool call that failed to parse.
           await onStepFinish?.(currentStepResult);
         } while (
           // there are tool calls:
-          currentToolCalls.length > 0 &&
+          clientToolCalls.length > 0 &&
           // all current tool calls have outputs (incl. execution errors):
-          currentToolOutputs.length === currentToolCalls.length &&
+          clientToolOutputs.length === clientToolCalls.length &&
           // continue until a stop condition is met:
           !(await isStopConditionMet({ stopConditions, steps }))
         );
