@@ -1,5 +1,5 @@
 import { ValueOf } from '../../src/util/value-of';
-import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
+import { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
 import { ToolSet } from './tool-set';
 
 // transforms the tools into a tool result union
