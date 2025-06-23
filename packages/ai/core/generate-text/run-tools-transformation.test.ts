@@ -368,7 +368,7 @@ describe('runToolsTransformation', () => {
       `);
   });
 
-  it('should not execute provider-executed tools but still forward them', async () => {
+  it('should not call execute for provider-executed tool calls', async () => {
     let toolExecuted = false;
 
     const inputStream: ReadableStream<LanguageModelV2StreamPart> =
@@ -379,6 +379,13 @@ describe('runToolsTransformation', () => {
           toolName: 'providerTool',
           input: `{ "value": "test" }`,
           providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'providerTool',
+          providerExecuted: true,
+          result: { example: 'example' },
         },
         {
           type: 'finish',
@@ -408,8 +415,8 @@ describe('runToolsTransformation', () => {
 
     const result = await convertReadableStreamToArray(transformedStream);
 
-    // Tool should be forwarded but not executed
     expect(toolExecuted).toBe(false);
+
     expect(result).toMatchInlineSnapshot(`
       [
         {
@@ -420,6 +427,17 @@ describe('runToolsTransformation', () => {
           "toolCallId": "call-1",
           "toolName": "providerTool",
           "type": "tool-call",
+        },
+        {
+          "input": {
+            "value": "test",
+          },
+          "output": {
+            "example": "example",
+          },
+          "toolCallId": "call-1",
+          "toolName": "providerTool",
+          "type": "tool-result",
         },
         {
           "finishReason": "stop",
