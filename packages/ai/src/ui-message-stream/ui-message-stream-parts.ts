@@ -30,6 +30,7 @@ export const uiMessageStreamPartSchema = z.union([
     type: z.literal('tool-input-start'),
     toolCallId: z.string(),
     toolName: z.string(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-input-delta'),
@@ -41,20 +42,39 @@ export const uiMessageStreamPartSchema = z.union([
     toolCallId: z.string(),
     toolName: z.string(),
     input: z.unknown(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-available'),
     toolCallId: z.string(),
     output: z.unknown(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-output-error'),
     toolCallId: z.string(),
     errorText: z.string(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning'),
     text: z.string(),
+    providerMetadata: z.record(z.any()).optional(),
+  }),
+  z.strictObject({
+    type: z.literal('reasoning-start'),
+    id: z.string(),
+    providerMetadata: z.record(z.any()).optional(),
+  }),
+  z.strictObject({
+    type: z.literal('reasoning-delta'),
+    id: z.string(),
+    delta: z.string(),
+    providerMetadata: z.record(z.any()).optional(),
+  }),
+  z.strictObject({
+    type: z.literal('reasoning-end'),
+    id: z.string(),
     providerMetadata: z.record(z.any()).optional(),
   }),
   z.strictObject({
@@ -142,21 +162,25 @@ export type UIMessageStreamPart<
       toolCallId: string;
       toolName: string;
       input: unknown;
+      providerExecuted?: boolean;
     }
   | {
       type: 'tool-output-available';
       toolCallId: string;
       output: unknown;
+      providerExecuted?: boolean;
     }
   | {
       type: 'tool-output-error';
       toolCallId: string;
       errorText: string;
+      providerExecuted?: boolean;
     }
   | {
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
+      providerExecuted?: boolean;
     }
   | {
       type: 'tool-input-delta';

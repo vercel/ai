@@ -104,7 +104,29 @@ export function convertToModelMessages(
                     toolCallId: part.toolCallId,
                     toolName,
                     input: part.input,
+                    providerExecuted: part.providerExecuted,
                   });
+
+                  if (
+                    part.providerExecuted === true &&
+                    (part.state === 'output-available' ||
+                      part.state === 'output-error')
+                  ) {
+                    content.push({
+                      type: 'tool-result',
+                      toolCallId: part.toolCallId,
+                      toolName,
+                      output: createToolModelOutput({
+                        output:
+                          part.state === 'output-error'
+                            ? part.errorText
+                            : part.output,
+                        tool: options?.tools?.[toolName],
+                        errorMode:
+                          part.state === 'output-error' ? 'json' : 'none',
+                      }),
+                    });
+                  }
                 }
               } else {
                 const _exhaustiveCheck: never = part;
@@ -118,7 +140,9 @@ export function convertToModelMessages(
             });
 
             // check if there are tool invocations with results in the block
-            const toolParts = block.filter(isToolUIPart);
+            const toolParts = block
+              .filter(isToolUIPart)
+              .filter(part => part.providerExecuted !== true);
 
             // tool message with tool results
             if (toolParts.length > 0) {
@@ -140,7 +164,8 @@ export function convertToModelMessages(
                               ? toolPart.errorText
                               : toolPart.output,
                           tool: options?.tools?.[toolName],
-                          isError: toolPart.state === 'output-error',
+                          errorMode:
+                            toolPart.state === 'output-error' ? 'text' : 'none',
                         }),
                       };
                     }

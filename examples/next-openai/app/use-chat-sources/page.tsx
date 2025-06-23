@@ -11,6 +11,8 @@ export default function Chat() {
       transport: new DefaultChatTransport({ api: '/api/use-chat-sources' }),
     });
 
+  console.log(messages);
+
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages.map(message => (
@@ -22,8 +24,29 @@ export default function Chat() {
             }
 
             if (part.type === 'tool-web_search') {
-              if (part.state === 'input-available') {
-                return <div key={index}>{JSON.stringify(part.input)}</div>;
+              if (
+                part.state === 'input-available' ||
+                part.state === 'input-streaming'
+              ) {
+                return (
+                  <pre
+                    key={index}
+                    className="overflow-auto p-2 text-sm bg-gray-100 rounded"
+                  >
+                    {JSON.stringify(part.input, null, 2)}
+                  </pre>
+                );
+              }
+              if (part.state === 'output-available') {
+                return (
+                  <pre
+                    key={index}
+                    className="overflow-auto p-2 text-sm bg-gray-100 rounded"
+                  >
+                    {JSON.stringify(part.input, null, 2)}
+                    {`\n\nDONE - ${part.output.length} results`}
+                  </pre>
+                );
               }
             }
 

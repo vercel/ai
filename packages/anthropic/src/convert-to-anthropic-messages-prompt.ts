@@ -16,6 +16,7 @@ import {
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV2DataContent): string {
   if (typeof data === 'string') {
@@ -285,10 +286,11 @@ export async function convertToAnthropicMessagesPrompt({
                     });
                     break;
                   case 'text':
-                  case 'error':
+                  case 'error-text':
                     contentValue = output.value;
                     break;
                   case 'json':
+                  case 'error-json':
                   default:
                     contentValue = JSON.stringify(output.value);
                     break;
@@ -298,7 +300,10 @@ export async function convertToAnthropicMessagesPrompt({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
                   content: contentValue,
-                  is_error: output.type === 'error' ? true : undefined,
+                  is_error:
+                    output.type === 'error-text' || output.type === 'error-json'
+                      ? true
+                      : undefined,
                   cache_control: cacheControl,
                 });
               }
@@ -401,6 +406,27 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-call': {
+                if (part.providerExecuted) {
+                  if (part.toolName === 'web_search') {
+                    anthropicContent.push({
+                      type: 'server_tool_use',
+                      id: part.toolCallId,
+                      name: 'web_search',
+                      input: part.input,
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
+
+                  warnings.push({
+                    type: 'other',
+                    message: `provider executed tool call for tool ${part.toolName} is not supported`,
+                  });
+
+                  break;
+                }
+
                 anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,
@@ -408,6 +434,47 @@ export async function convertToAnthropicMessagesPrompt({
                   input: part.input,
                   cache_control: cacheControl,
                 });
+                break;
+              }
+
+              case 'tool-result': {
+                if (part.toolName === 'web_search') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const webSearchOutput = webSearch_20250305OutputSchema.parse(
+                    output.value,
+                  );
+
+                  anthropicContent.push({
+                    type: 'web_search_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: webSearchOutput.map(result => ({
+                      url: result.url,
+                      title: result.title,
+                      page_age: result.pageAge,
+                      encrypted_content: result.encryptedContent,
+                      type: result.type,
+                    })),
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
+                warnings.push({
+                  type: 'other',
+                  message: `provider executed tool result for tool ${part.toolName} is not supported`,
+                });
+
                 break;
               }
             }

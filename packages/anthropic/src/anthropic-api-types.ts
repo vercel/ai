@@ -26,6 +26,8 @@ export interface AnthropicAssistantMessage {
     | AnthropicThinkingContent
     | AnthropicRedactedThinkingContent
     | AnthropicToolCallContent
+    | AnthropicServerToolUseContent
+    | AnthropicWebSearchToolResultContent
   >;
 }
 
@@ -87,11 +89,32 @@ export interface AnthropicToolCallContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicServerToolUseContent {
+  type: 'server_tool_use';
+  id: string;
+  name: 'web_search';
+  input: unknown;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
   content: string | Array<AnthropicTextContent | AnthropicImageContent>;
   is_error: boolean | undefined;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicWebSearchToolResultContent {
+  type: 'web_search_tool_result';
+  tool_use_id: string;
+  content: Array<{
+    url: string;
+    title: string;
+    page_age: string | null;
+    encrypted_content: string;
+    type: string;
+  }>;
   cache_control: AnthropicCacheControl | undefined;
 }
 

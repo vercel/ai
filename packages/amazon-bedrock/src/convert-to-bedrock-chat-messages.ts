@@ -156,10 +156,11 @@ export async function convertToBedrockChatMessages(
                     break;
                   }
                   case 'text':
-                  case 'error':
+                  case 'error-text':
                     toolResultContent = [{ text: output.value }];
                     break;
                   case 'json':
+                  case 'error-json':
                   default:
                     toolResultContent = [
                       { text: JSON.stringify(output.value) },

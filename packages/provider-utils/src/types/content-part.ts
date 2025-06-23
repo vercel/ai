@@ -130,6 +130,11 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
+
+  /**
+Whether the tool call was executed by the provider.
+ */
+  providerExecuted?: boolean;
 }
 
 /**

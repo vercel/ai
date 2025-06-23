@@ -71,6 +71,13 @@ console.log(audio);
       description: 'The speed of the speech generation.',
     },
     {
+      name: 'language',
+      type: 'string',
+      isOptional: true,
+      description:
+        'The language for speech generation. This should be an ISO 639-1 language code (e.g. "en", "es", "fr") or "auto" for automatic language detection. Provider support varies.',
+    },
+    {
       name: 'providerOptions',
       type: 'Record<string, Record<string, JSONValue>>',
       isOptional: true,

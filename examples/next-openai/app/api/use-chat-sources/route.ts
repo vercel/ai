@@ -1,17 +1,19 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { convertToModelMessages, streamText, UIDataTypes, UIMessage } from 'ai';
-
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+import {
+  convertToModelMessages,
+  InferUITool,
+  streamText,
+  UIDataTypes,
+  UIMessage,
+} from 'ai';
 
 export type SourcesChatMessage = UIMessage<
   never,
   UIDataTypes,
   {
-    web_search: {
-      input: { query: string };
-      output: never;
-    };
+    web_search: InferUITool<
+      ReturnType<typeof anthropic.tools.webSearch_20250305>
+    >;
   }
 >;
 

@@ -68,6 +68,7 @@ describe('generateSpeech', () => {
       outputFormat: undefined,
       instructions: undefined,
       speed: undefined,
+      language: undefined,
     });
   });
 

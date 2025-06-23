@@ -89,6 +89,7 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
   toolName: z.string(),
   input: z.unknown(),
   providerOptions: providerMetadataSchema.optional(),
+  providerExecuted: z.boolean().optional(),
 }) as z.ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
 
 /**
@@ -105,8 +106,12 @@ export const outputSchema: z.ZodType<LanguageModelV2ToolResultOutput> =
       value: jsonValueSchema,
     }),
     z.object({
-      type: z.literal('error'),
+      type: z.literal('error-text'),
       value: z.string(),
+    }),
+    z.object({
+      type: z.literal('error-json'),
+      value: jsonValueSchema,
     }),
     z.object({
       type: z.literal('content'),

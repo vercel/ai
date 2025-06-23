@@ -108,6 +108,7 @@ export class HumeSpeechModel implements SpeechModelV2 {
     outputFormat = 'mp3',
     speed,
     instructions,
+    language,
     providerOptions,
   }: Parameters<SpeechModelV2['doGenerate']>[0]) {
     const warnings: SpeechModelV2CallWarning[] = [];
@@ -181,6 +182,14 @@ export class HumeSpeechModel implements SpeechModelV2 {
           (requestBody as Record<string, unknown>)[key] = value;
         }
       }
+    }
+
+    if (language) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'language',
+        details: `Hume speech models do not support language selection. Language parameter "${language}" was ignored.`,
+      });
     }
 
     return {

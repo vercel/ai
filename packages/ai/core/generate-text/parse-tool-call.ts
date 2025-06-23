@@ -112,5 +112,6 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     toolCallId: toolCall.toolCallId,
     toolName,
     input: parseResult.value,
+    providerExecuted: toolCall.providerExecuted,
   };
 }
