@@ -23,15 +23,6 @@ const lmntSpeechCallOptionsSchema = z.object({
     .default('aurora'),
 
   /**
-   * The language of the input text.
-   * @default 'auto'
-   */
-  language: z
-    .union([z.enum(['auto', 'en']), z.string()])
-    .nullish()
-    .default('auto'),
-
-  /**
    * The audio format of the output.
    * @default 'mp3'
    */
@@ -163,12 +154,9 @@ export class LMNTSpeechModel implements SpeechModelV2 {
           requestBody[key] = value;
         }
       }
+    }
 
-      const finalLanguage = language ?? lmntOptions.language;
-      if (finalLanguage) {
-        requestBody.language = finalLanguage;
-      }
-    } else if (language) {
+    if (language) {
       requestBody.language = language;
     }
 
