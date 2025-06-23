@@ -123,17 +123,6 @@ export function convertToOpenAIResponsesMessages({
             }
 
             case 'tool-result': {
-              if (part.providerExecuted) {
-                if (part.toolName === 'web_search_preview') {
-                  messages.push({
-                    type: 'web_search_call',
-                    id: part.toolCallId,
-                    status: 'completed',
-                  });
-                }
-                break;
-              }
-
               warnings.push({
                 type: 'other',
                 message: `tool result parts in assistant messages are not supported for OpenAI responses`,
