@@ -84,19 +84,6 @@ const result = await generateSpeech({
 });
 ```
 
-You can also use provider-specific options as an alternative:
-
-```ts highlight="6"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { lmnt } from '@ai-sdk/lmnt';
-
-const result = await generateSpeech({
-  model: lmnt.speech('aurora'),
-  text: 'Hello, world!',
-  providerOptions: { lmnt: { language: 'en' } },
-});
-```
-
 ### Provider Options
 
 The LMNT provider accepts the following options:
