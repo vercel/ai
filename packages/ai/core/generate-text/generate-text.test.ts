@@ -2174,4 +2174,61 @@ describe('generateText', () => {
       `);
     });
   });
+
+  describe('provider-executed tools in roundtrips', () => {
+    it('should not execute provider-executed tools during multi-step generation', async () => {
+      let toolExecuted = false;
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'providerTool',
+                input: `{ "value": "test" }`,
+                providerExecuted: true,
+              },
+            ],
+            finishReason: 'tool-calls',
+          }),
+        }),
+        tools: {
+          providerTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              toolExecuted = true;
+              return `${value}-should-not-execute`;
+            },
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(2), // Allow multiple steps
+      });
+
+      // tool should not be executed by client
+      expect(toolExecuted).toBe(false);
+
+      // tool call should still be included in content
+      expect(result.toolCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": true,
+            "toolCallId": "call-1",
+            "toolName": "providerTool",
+            "type": "tool-call",
+          },
+        ]
+      `);
+
+      // tool results should be empty since the tool wasn't executed
+      expect(result.toolResults).toMatchInlineSnapshot(`[]`);
+    });
+  });
 });
