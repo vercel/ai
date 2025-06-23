@@ -8,7 +8,9 @@ import { OpenAIFileSearchMessage } from '@/app/api/chat-openai-file-search/route
 export default function TestOpenAIFileSearch() {
   const { error, status, sendMessage, messages, regenerate, stop } =
     useChat<OpenAIFileSearchMessage>({
-      transport: new DefaultChatTransport({ api: '/api/chat-openai-file-search' }),
+      transport: new DefaultChatTransport({
+        api: '/api/chat-openai-file-search',
+      }),
     });
 
   return (
@@ -112,4 +114,4 @@ export default function TestOpenAIFileSearch() {
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
-} 
+}

@@ -8,7 +8,9 @@ import { OpenAIWebSearchMessage } from '@/app/api/chat-openai-web-search/route';
 export default function TestOpenAIWebSearch() {
   const { error, status, sendMessage, messages, regenerate, stop } =
     useChat<OpenAIWebSearchMessage>({
-      transport: new DefaultChatTransport({ api: '/api/chat-openai-web-search' }),
+      transport: new DefaultChatTransport({
+        api: '/api/chat-openai-web-search',
+      }),
     });
 
   return (
@@ -100,4 +102,4 @@ export default function TestOpenAIWebSearch() {
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
-} 
+}
