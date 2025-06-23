@@ -488,7 +488,6 @@ describe('convertToOpenAIResponsesMessages', () => {
                     },
                   ],
                 },
-                providerExecuted: true,
               },
               {
                 type: 'text',
