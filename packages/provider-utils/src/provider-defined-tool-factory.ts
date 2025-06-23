@@ -47,3 +47,58 @@ export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
       onInputAvailable,
     });
 }
+
+export type ProviderDefinedToolFactoryWithOutputSchema<
+  INPUT,
+  OUTPUT,
+  ARGS extends object,
+> = (
+  options: ARGS & {
+    execute?: ToolExecuteFunction<INPUT, OUTPUT>;
+    toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
+    onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
+    onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
+    onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
+  },
+) => Tool<INPUT, OUTPUT>;
+
+export function createProviderDefinedToolFactoryWithOutputSchema<
+  INPUT,
+  OUTPUT,
+  ARGS extends object,
+>({
+  id,
+  inputSchema,
+  outputSchema,
+}: {
+  id: `${string}.${string}`;
+  inputSchema: FlexibleSchema<INPUT>;
+  outputSchema: FlexibleSchema<OUTPUT>;
+}): ProviderDefinedToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS> {
+  return ({
+    execute,
+    toModelOutput,
+    onInputStart,
+    onInputDelta,
+    onInputAvailable,
+    ...args
+  }: ARGS & {
+    execute?: ToolExecuteFunction<INPUT, OUTPUT>;
+    toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
+    onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
+    onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
+    onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
+  }): Tool<INPUT, OUTPUT> =>
+    tool({
+      type: 'provider-defined',
+      id,
+      args,
+      inputSchema,
+      outputSchema,
+      execute,
+      toModelOutput,
+      onInputStart,
+      onInputDelta,
+      onInputAvailable,
+    });
+}
