@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`options.stopWhen > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -139,7 +139,7 @@ exports[`options.stopWhen > 2 steps: initial, tool-result > onStepFinish should 
 ]
 `;
 
-exports[`options.stopWhen > 2 steps: initial, tool-result > result.response.messages should contain response messages from all steps 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > result.response.messages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -180,7 +180,7 @@ exports[`options.stopWhen > 2 steps: initial, tool-result > result.response.mess
 ]
 `;
 
-exports[`options.stopWhen > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -319,7 +319,7 @@ exports[`options.stopWhen > 2 steps: initial, tool-result > result.steps should 
 ]
 `;
 
-exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -458,7 +458,7 @@ exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > onS
 ]
 `;
 
-exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.response.messages should contain response messages from all steps 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.response.messages should contain response messages from all steps 1`] = `
 [
   {
     "content": [
@@ -499,7 +499,7 @@ exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > res
 ]
 `;
 
-exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -638,7 +638,7 @@ exports[`options.stopWhen > 2 steps: initial, tool-result with prepareStep > res
 ]
 `;
 
-exports[`result.files > should contain files 1`] = `
+exports[`generateText > result.files > should contain files 1`] = `
 [
   DefaultGeneratedFile {
     "base64Data": "AQID",
@@ -657,7 +657,7 @@ exports[`result.files > should contain files 1`] = `
 ]
 `;
 
-exports[`result.response > should contain response body and headers 1`] = `
+exports[`generateText > result.response > should contain response body and headers 1`] = `
 {
   "body": "test body",
   "headers": {
@@ -680,7 +680,7 @@ exports[`result.response > should contain response body and headers 1`] = `
 }
 `;
 
-exports[`result.response > should contain response body and headers 2`] = `
+exports[`generateText > result.response > should contain response body and headers 2`] = `
 {
   "body": "test body",
   "headers": {
@@ -703,7 +703,7 @@ exports[`result.response > should contain response body and headers 2`] = `
 }
 `;
 
-exports[`result.response.messages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
+exports[`generateText > result.response.messages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
 [
   {
     "content": [
@@ -739,7 +739,7 @@ exports[`result.response.messages > should contain assistant response message an
 ]
 `;
 
-exports[`result.response.messages > should contain assistant response message when there are no tool calls 1`] = `
+exports[`generateText > result.response.messages > should contain assistant response message when there are no tool calls 1`] = `
 [
   {
     "content": [
@@ -753,7 +753,7 @@ exports[`result.response.messages > should contain assistant response message wh
 ]
 `;
 
-exports[`result.response.messages > should contain reasoning 1`] = `
+exports[`generateText > result.response.messages > should contain reasoning 1`] = `
 [
   {
     "content": [
@@ -785,7 +785,7 @@ exports[`result.response.messages > should contain reasoning 1`] = `
 ]
 `;
 
-exports[`result.sources > should contain sources 1`] = `
+exports[`generateText > result.sources > should contain sources 1`] = `
 [
   {
     "id": "123",
@@ -814,7 +814,7 @@ exports[`result.sources > should contain sources 1`] = `
 ]
 `;
 
-exports[`result.steps > should add the reasoning from the model response to the step result 1`] = `
+exports[`generateText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -892,7 +892,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
 ]
 `;
 
-exports[`result.steps > should contain files 1`] = `
+exports[`generateText > result.steps > should contain files 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -964,7 +964,7 @@ exports[`result.steps > should contain files 1`] = `
 ]
 `;
 
-exports[`result.steps > should contain sources 1`] = `
+exports[`generateText > result.steps > should contain sources 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -1030,11 +1030,11 @@ exports[`result.steps > should contain sources 1`] = `
 ]
 `;
 
-exports[`result.text > should generate text 1`] = `[]`;
+exports[`generateText > result.text > should generate text 1`] = `[]`;
 
-exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+exports[`generateText > telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
 
-exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`generateText > telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -1089,7 +1089,7 @@ exports[`telemetry > should not record telemetry inputs / outputs when disabled 
 ]
 `;
 
-exports[`telemetry > should record telemetry data when enabled 1`] = `
+exports[`generateText > telemetry > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {
