@@ -789,8 +789,18 @@ function asContent<TOOLS extends ToolSet>({
           )!;
 
           if (toolCall == null) {
-            // TODO AI SDK error
             throw new Error(`Tool call ${part.toolCallId} not found.`);
+          }
+
+          if (part.isError) {
+            return {
+              type: 'tool-error' as const,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName as keyof TOOLS & string,
+              input: toolCall.input,
+              error: part.result,
+              providerExecuted: true,
+            } as ToolErrorUnion<TOOLS>;
           }
 
           return {

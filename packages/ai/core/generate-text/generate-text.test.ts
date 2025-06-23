@@ -1730,6 +1730,21 @@ describe('generateText', () => {
                   toolName: 'web_search',
                   result: `{ "value": "result1" }`,
                 },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-2',
+                  toolName: 'web_search',
+                  input: `{ "value": "value" }`,
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-2',
+                  toolName: 'web_search',
+                  result: 'ERROR',
+                  isError: true,
+                  providerExecuted: true,
+                },
               ],
             }),
           }),
@@ -1768,6 +1783,25 @@ describe('generateText', () => {
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "error": "ERROR",
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-error",
             },
           ]
         `);
