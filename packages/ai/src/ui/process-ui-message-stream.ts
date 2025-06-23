@@ -97,9 +97,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolCallId: string;
             } & (
               | { state: 'input-streaming'; input: unknown }
-              | { state: 'input-available'; input: unknown }
-              | { state: 'output-available'; input: unknown; output: unknown }
-              | { state: 'output-error'; input: unknown; errorText: string }
+              | {
+                  state: 'input-available';
+                  input: unknown;
+                  providerExecuted?: boolean;
+                }
+              | {
+                  state: 'output-available';
+                  input: unknown;
+                  output: unknown;
+                  providerExecuted?: boolean;
+                }
+              | {
+                  state: 'output-error';
+                  input: unknown;
+                  errorText: string;
+                  providerExecuted?: boolean;
+                }
             ),
           ) {
             const part = state.message.parts.find(
@@ -107,19 +121,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 isToolUIPart(part) && part.toolCallId === options.toolCallId,
             ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
 
+            const anyOptions = options as any;
+
             if (part != null) {
               part.state = options.state;
-              (part as any).input = (options as any).input;
-              (part as any).output = (options as any).output;
-              (part as any).errorText = (options as any).errorText;
+              (part as any).input = anyOptions.input;
+              (part as any).output = anyOptions.output;
+              (part as any).errorText = anyOptions.errorText;
+              (part as any).providerExecuted = anyOptions.providerExecuted;
             } else {
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
                 toolCallId: options.toolCallId,
                 state: options.state,
-                input: (options as any).input,
-                output: (options as any).output,
-                errorText: (options as any).errorText,
+                input: anyOptions.input,
+                output: anyOptions.output,
+                errorText: anyOptions.errorText,
+                providerExecuted: anyOptions.providerExecuted,
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
@@ -282,6 +300,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolName: part.toolName,
                 state: 'input-available',
                 input: part.input,
+                providerExecuted: part.providerExecuted,
               });
 
               write();
@@ -338,6 +357,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: 'output-available',
                 input: (toolInvocations[toolInvocationIndex] as any).input,
                 output: part.output,
+                providerExecuted: part.providerExecuted,
               });
 
               write();
@@ -373,6 +393,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: 'output-error',
                 input: (toolInvocations[toolInvocationIndex] as any).input,
                 errorText: part.errorText,
+                providerExecuted: part.providerExecuted,
               });
 
               write();
