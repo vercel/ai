@@ -1,9 +1,7 @@
 import { tool, Tool, ToolExecuteFunction } from './types/tool';
 import { FlexibleSchema } from './schema';
 
-export type ProviderDefinedClientToolFactory<INPUT, ARGS extends object> = <
-  OUTPUT,
->(
+export type ProviderDefinedToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
   options: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT>;
     outputSchema?: FlexibleSchema<OUTPUT>;
@@ -14,16 +12,13 @@ export type ProviderDefinedClientToolFactory<INPUT, ARGS extends object> = <
   },
 ) => Tool<INPUT, OUTPUT>;
 
-export function createProviderDefinedClientToolFactory<
-  INPUT,
-  ARGS extends object,
->({
+export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
   id,
   inputSchema,
 }: {
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
-}): ProviderDefinedClientToolFactory<INPUT, ARGS> {
+}): ProviderDefinedToolFactory<INPUT, ARGS> {
   return <OUTPUT>({
     execute,
     outputSchema,
@@ -54,7 +49,7 @@ export function createProviderDefinedClientToolFactory<
     });
 }
 
-export type ProviderDefinedServerToolFactory<
+export type ProviderDefinedToolFactoryWithOutputSchema<
   INPUT,
   OUTPUT,
   ARGS extends object,
@@ -68,7 +63,7 @@ export type ProviderDefinedServerToolFactory<
   },
 ) => Tool<INPUT, OUTPUT>;
 
-export function createProviderDefinedServerToolFactory<
+export function createProviderDefinedToolFactoryWithOutputSchema<
   INPUT,
   OUTPUT,
   ARGS extends object,
@@ -80,7 +75,7 @@ export function createProviderDefinedServerToolFactory<
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
   outputSchema: FlexibleSchema<OUTPUT>;
-}): ProviderDefinedServerToolFactory<INPUT, OUTPUT, ARGS> {
+}): ProviderDefinedToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS> {
   return ({
     execute,
     toModelOutput,
