@@ -53,10 +53,6 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
                 id++;
                 break;
               }
-              case 'tool-result': {
-                // TODO: implement
-                break;
-              }
               default: {
                 controller.enqueue(part);
                 break;
