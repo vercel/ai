@@ -1704,6 +1704,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
+                providerExecuted: part.providerExecuted,
               });
               break;
             }
@@ -1713,6 +1714,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
                 errorText: onError(part.error),
+                providerExecuted: part.providerExecuted,
               });
               break;
             }

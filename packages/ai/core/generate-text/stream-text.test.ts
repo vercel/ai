@@ -5535,6 +5535,7 @@ describe('streamText', () => {
               },
               {
                 "output": "result1",
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-output-available",
               },
@@ -7182,6 +7183,7 @@ describe('streamText', () => {
               },
               {
                 "output": "RESULT1",
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-output-available",
               },
@@ -7549,6 +7551,7 @@ describe('streamText', () => {
                 toolCallId: 'call-1',
                 toolName: 'web_search',
                 result: `{ "value": "result1" }`,
+                providerExecuted: true,
               },
               {
                 type: 'tool-call',
@@ -7603,7 +7606,7 @@ describe('streamText', () => {
                 "value": "value",
               },
               "output": "{ "value": "result1" }",
-              "providerExecuted": undefined,
+              "providerExecuted": true,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
@@ -7634,84 +7637,137 @@ describe('streamText', () => {
       it('should include provider-executed tool call and result in the full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
-            },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "input": {
-                "value": "value",
+            [
+              {
+                "type": "start",
               },
-              "providerExecuted": true,
-              "toolCallId": "call-1",
-              "toolName": "web_search",
-              "type": "tool-call",
-            },
-            {
-              "input": {
-                "value": "value",
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
               },
-              "output": "{ "value": "result1" }",
-              "providerExecuted": undefined,
-              "toolCallId": "call-1",
-              "toolName": "web_search",
-              "type": "tool-result",
-            },
-            {
-              "input": {
-                "value": "value",
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-call",
               },
-              "providerExecuted": true,
-              "toolCallId": "call-2",
-              "toolName": "web_search",
-              "type": "tool-call",
-            },
-            {
-              "error": "ERROR",
-              "input": {
-                "value": "value",
+              {
+                "input": {
+                  "value": "value",
+                },
+                "output": "{ "value": "result1" }",
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-result",
               },
-              "providerExecuted": true,
-              "toolCallId": "call-2",
-              "toolName": "web_search",
-              "type": "tool-error",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-2",
+                "toolName": "web_search",
+                "type": "tool-call",
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
+              {
+                "error": "ERROR",
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-2",
+                "toolName": "web_search",
+                "type": "tool-error",
               },
-            },
-            {
-              "finishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
               },
-              "type": "finish",
-            },
-          ]
-        `);
+              {
+                "finishReason": "stop",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      it('should include provider-executed tool call and result in the ui message stream', async () => {
+        expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "messageId": undefined,
+                "messageMetadata": undefined,
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-input-available",
+              },
+              {
+                "output": "{ "value": "result1" }",
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "type": "tool-output-available",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-2",
+                "toolName": "web_search",
+                "type": "tool-input-available",
+              },
+              {
+                "errorText": "ERROR",
+                "providerExecuted": true,
+                "toolCallId": "call-2",
+                "type": "tool-output-error",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "messageMetadata": undefined,
+                "type": "finish",
+              },
+            ]
+          `);
       });
     });
   });
@@ -8532,6 +8588,7 @@ describe('streamText', () => {
             },
             {
               "errorText": "test error",
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
