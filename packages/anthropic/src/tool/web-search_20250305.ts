@@ -32,6 +32,16 @@ export const webSearch_20250305ArgsSchema = z.object({
     .optional(),
 });
 
+export const webSearch_20250305OutputSchema = z.array(
+  z.object({
+    url: z.string(),
+    title: z.string(),
+    pageAge: z.string().nullable(),
+    encryptedContent: z.string(),
+    type: z.string(),
+  }),
+);
+
 export const webSearch_20250305 =
   createProviderDefinedToolFactoryWithOutputSchema<
     {
@@ -79,13 +89,5 @@ export const webSearch_20250305 =
     inputSchema: z.object({
       query: z.string(),
     }),
-    outputSchema: z.array(
-      z.object({
-        url: z.string(),
-        title: z.string(),
-        pageAge: z.string().nullable(),
-        encryptedContent: z.string(),
-        type: z.string(),
-      }),
-    ),
+    outputSchema: webSearch_20250305OutputSchema,
   });

@@ -89,6 +89,7 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
   toolName: z.string(),
   input: z.unknown(),
   providerOptions: providerMetadataSchema.optional(),
+  providerExecuted: z.boolean().optional(),
 }) as z.ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
 
 /**

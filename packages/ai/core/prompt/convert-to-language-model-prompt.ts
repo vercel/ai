@@ -144,6 +144,16 @@ export function convertToLanguageModelMessage({
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
                   input: part.input,
+                  providerExecuted: part.providerExecuted,
+                  providerOptions,
+                };
+              }
+              case 'tool-result': {
+                return {
+                  type: 'tool-result' as const,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  output: part.output,
                   providerOptions,
                 };
               }

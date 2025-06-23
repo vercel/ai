@@ -74,6 +74,7 @@ export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
           filePartSchema,
           reasoningPartSchema,
           toolCallPartSchema,
+          toolResultPartSchema,
         ]),
       ),
     ]),

@@ -58,7 +58,11 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             type: 'tool-result',
             toolCallId: part.toolCallId,
             toolName: part.toolName,
-            output: part.output, // TODO convert to LanguageModelV2ToolResultOutput
+            output: createToolModelOutput({
+              tool: tools?.[part.toolName],
+              output: part.output,
+              isError: false,
+            }),
             providerExecuted: true,
             // TODO provider options
           };

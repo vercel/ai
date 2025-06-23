@@ -644,11 +644,14 @@ describe('toResponseMessages', () => {
                 "type": "tool-call",
               },
               {
-                "output": [
-                  {
-                    "url": "https://patch.com/california/san-francisco/calendar",
-                  },
-                ],
+                "output": {
+                  "type": "json",
+                  "value": [
+                    {
+                      "url": "https://patch.com/california/san-francisco/calendar",
+                    },
+                  ],
+                },
                 "providerExecuted": true,
                 "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                 "toolName": "web_search",
