@@ -107,14 +107,14 @@ export function prepareTools({
             });
             break;
           case 'anthropic.web_search_20250305': {
-            const validatedArgs = webSearch_20250305ArgsSchema.parse(tool.args);
+            const args = webSearch_20250305ArgsSchema.parse(tool.args);
             anthropicTools.push({
               type: 'web_search_20250305',
               name: 'web_search',
-              max_uses: validatedArgs.maxUses,
-              allowed_domains: validatedArgs.allowedDomains,
-              blocked_domains: validatedArgs.blockedDomains,
-              user_location: validatedArgs.userLocation,
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              user_location: args.userLocation,
             });
             break;
           }

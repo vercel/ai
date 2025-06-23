@@ -47,21 +47,21 @@ export function prepareTools({
       case 'provider-defined':
         switch (tool.id) {
           case 'openai.file_search': {
-            const validatedArgs = fileSearchArgsSchema.parse(tool.args);
+            const args = fileSearchArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'file_search',
-              vector_store_ids: validatedArgs.vectorStoreIds,
-              max_results: validatedArgs.maxResults,
-              search_type: validatedArgs.searchType,
+              vector_store_ids: args.vectorStoreIds,
+              max_results: args.maxResults,
+              search_type: args.searchType,
             });
             break;
           }
           case 'openai.web_search_preview': {
-            const validatedArgs = webSearchPreviewArgsSchema.parse(tool.args);
+            const args = webSearchPreviewArgsSchema.parse(tool.args);
             openaiTools.push({
               type: 'web_search_preview',
-              search_context_size: validatedArgs.searchContextSize,
-              user_location: validatedArgs.userLocation,
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation,
             });
             break;
           }
