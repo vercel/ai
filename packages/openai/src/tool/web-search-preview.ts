@@ -18,25 +18,10 @@ export const webSearchPreview = createProviderDefinedToolFactory<
      * User location information to provide geographically relevant search results.
      */
     userLocation?: {
-      /**
-       * Type of location (always 'approximate')
-       */
       type: 'approximate';
-      /**
-       * Two-letter ISO country code (e.g., 'US', 'GB')
-       */
-      country?: string;
-      /**
-       * City name (free text, e.g., 'Minneapolis')
-       */
       city?: string;
-      /**
-       * Region name (free text, e.g., 'Minnesota')
-       */
       region?: string;
-      /**
-       * IANA timezone (e.g., 'America/Chicago')
-       */
+      country?: string;
       timezone?: string;
     };
   }

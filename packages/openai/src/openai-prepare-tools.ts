@@ -4,6 +4,25 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAITools, OpenAIToolChoice } from './openai-types';
+import { z } from 'zod';
+
+// Validation schemas for provider-defined tool args
+const fileSearchArgsSchema = z.object({
+  vectorStoreIds: z.array(z.string()).optional(),
+  maxResults: z.number().optional(),
+  searchType: z.enum(['auto', 'keyword', 'semantic']).optional(),
+});
+
+const webSearchPreviewArgsSchema = z.object({
+  searchContextSize: z.enum(['low', 'medium', 'high']).optional(),
+  userLocation: z.object({
+    type: z.literal('approximate').optional(),
+    city: z.string().optional(),
+    region: z.string().optional(),
+    country: z.string().optional(),
+    timezone: z.string().optional(),
+  }).optional(),
+});
 
 export function prepareTools({
   tools,
@@ -44,7 +63,7 @@ export function prepareTools({
         break;
       case 'provider-defined':
         switch (tool.id) {
-          case 'openai.file_search':
+          case 'openai.file_search': {
             openaiTools.push({
               type: 'file_search',
               vector_store_ids: tool.args.vectorStoreIds as string[],
@@ -55,7 +74,8 @@ export function prepareTools({
                 | 'semantic',
             });
             break;
-          case 'openai.web_search_preview':
+          }
+          case 'openai.web_search_preview': {
             openaiTools.push({
               type: 'web_search_preview',
               search_context_size: tool.args.searchContextSize as
@@ -63,7 +83,7 @@ export function prepareTools({
                 | 'medium'
                 | 'high',
               user_location: tool.args.userLocation as {
-                type?: 'approximate';
+                type: 'approximate';
                 city?: string;
                 region?: string;
                 country?: string;
@@ -71,6 +91,7 @@ export function prepareTools({
               },
             });
             break;
+          }
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
