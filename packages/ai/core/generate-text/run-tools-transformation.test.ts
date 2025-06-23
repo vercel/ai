@@ -367,4 +367,73 @@ describe('runToolsTransformation', () => {
         ]
       `);
   });
+
+  it('should not execute provider-executed tools but still forward them', async () => {
+    let toolExecuted = false;
+
+    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'providerTool',
+          input: `{ "value": "test" }`,
+          providerExecuted: true,
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]);
+
+    const transformedStream = runToolsTransformation({
+      tools: {
+        providerTool: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => {
+            toolExecuted = true;
+            return `${value}-should-not-execute`;
+          },
+        },
+      },
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+    });
+
+    const result = await convertReadableStreamToArray(transformedStream);
+
+    // Tool should be forwarded but not executed
+    expect(toolExecuted).toBe(false);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "input": {
+            "value": "test",
+          },
+          "providerExecuted": true,
+          "toolCallId": "call-1",
+          "toolName": "providerTool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": undefined,
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+        },
+      ]
+    `);
+  });
 });

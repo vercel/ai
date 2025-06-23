@@ -7609,6 +7609,61 @@ describe('streamText', () => {
     });
   });
 
+  describe('provider-executed tools in roundtrips', () => {
+    it('should not execute provider-executed tools during multi-step generation', async () => {
+      let toolExecuted = false;
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'providerTool',
+              input: `{ "value": "test" }`,
+              providerExecuted: true,
+            },
+            {
+              type: 'finish',
+              finishReason: 'tool-calls',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          providerTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              toolExecuted = true;
+              return `${value}-should-not-execute`;
+            },
+          },
+        },
+        ...defaultSettings(),
+      });
+
+      await result.consumeStream();
+
+      // tool should not be executed by client
+      expect(toolExecuted).toBe(false);
+
+      // tool call should still be included in content
+      expect(await result.toolCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": true,
+            "toolCallId": "call-1",
+            "toolName": "providerTool",
+            "type": "tool-call",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('options.providerMetadata', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({

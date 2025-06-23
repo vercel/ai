@@ -230,7 +230,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               });
             }
 
-            if (tool.execute != null) {
+            // Only execute tools that are not provider-executed:
+            if (tool.execute != null && toolCall.providerExecuted !== true) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
               outstandingToolResults.add(toolExecutionId);
 
