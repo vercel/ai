@@ -1789,7 +1789,7 @@ describe('generateText', () => {
   });
 
   describe('provider-executed tools', () => {
-    describe('single provider-executed tool call', async () => {
+    describe('single provider-executed tool call and result', () => {
       let result: GenerateTextResult<any, any>;
 
       beforeEach(async () => {
