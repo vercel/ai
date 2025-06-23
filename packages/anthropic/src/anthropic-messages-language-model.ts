@@ -530,6 +530,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 encryptedContent: result.encrypted_content,
                 type: result.type,
               })),
+              providerExecuted: true,
             });
 
             for (const result of part.content) {
@@ -556,6 +557,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 type: 'web_search_tool_result_error',
                 errorCode: part.content.error_code,
               },
+              providerExecuted: true,
             });
           }
           break;
@@ -769,6 +771,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           encryptedContent: result.encrypted_content,
                           type: result.type,
                         })),
+                        providerExecuted: true,
                       });
 
                       for (const result of part.content) {
@@ -795,6 +798,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           type: 'web_search_tool_result_error',
                           errorCode: part.content.error_code,
                         },
+                        providerExecuted: true,
                       });
                     }
                     return;

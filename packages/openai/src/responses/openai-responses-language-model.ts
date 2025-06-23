@@ -343,6 +343,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolCallId: part.id,
             toolName: 'web_search_preview',
             result: { status: part.status || 'completed' },
+            providerExecuted: true,
           });
           break;
         }
@@ -360,7 +361,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: 'computer_use',
-            result: { type: 'computer_use_tool_result', status: part.status || 'completed' },
+            result: {
+              type: 'computer_use_tool_result',
+              status: part.status || 'completed',
+            },
+            providerExecuted: true,
           });
           break;
         }
@@ -529,7 +534,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-input-end',
                   id: value.item.id,
-                });                
+                });
 
                 controller.enqueue({
                   type: 'tool-call',
@@ -543,7 +548,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'web_search_preview',
-                  result: { type: 'web_search_tool_result', status: value.item.status || 'completed' },
+                  result: {
+                    type: 'web_search_tool_result',
+                    status: value.item.status || 'completed',
+                  },
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -566,7 +575,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'computer_use',
-                  result: { type: 'computer_use_tool_result', status: value.item.status || 'completed' },
+                  result: {
+                    type: 'computer_use_tool_result',
+                    status: value.item.status || 'completed',
+                  },
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
                 controller.enqueue({

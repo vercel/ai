@@ -1064,6 +1064,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "tool-call",
             },
             {
+              "providerExecuted": true,
               "result": {
                 "status": "completed",
               },
@@ -1462,6 +1463,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "tool-call",
           },
           {
+            "providerExecuted": true,
             "result": {
               "status": "completed",
               "type": "web_search_tool_result",
