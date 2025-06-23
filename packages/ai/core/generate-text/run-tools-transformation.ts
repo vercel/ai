@@ -128,6 +128,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
 
+  // keep track of tool inputs for provider-side tool results
+  const toolInputs = new Map<string, unknown>();
+
   let canClose = false;
   let finishChunk:
     | (SingleRequestTextStreamPart<TOOLS> & { type: 'finish' })
@@ -215,6 +218,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             controller.enqueue(toolCall);
 
             const tool = tools![toolCall.toolName];
+
+            toolInputs.set(toolCall.toolCallId, toolCall.input);
 
             if (tool.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -304,6 +309,17 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             toolResultsStreamController!.enqueue({ type: 'error', error });
           }
 
+          break;
+        }
+
+        case 'tool-result': {
+          controller.enqueue({
+            type: 'tool-result' as const,
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName as keyof TOOLS & string,
+            input: toolInputs.get(chunk.toolCallId),
+            output: chunk.result,
+          } as ToolResultUnion<TOOLS>);
           break;
         }
 
