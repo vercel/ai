@@ -2175,8 +2175,8 @@ describe('generateText', () => {
     });
   });
 
-  describe('provider-executed tools in roundtrips', () => {
-    it('should not execute provider-executed tools during multi-step generation', async () => {
+  describe('provider-executed tools', () => {
+    it('should not call execute for provider-executed tool calls', async () => {
       let toolExecuted = false;
 
       const result = await generateText({
@@ -2192,8 +2192,15 @@ describe('generateText', () => {
                 input: `{ "value": "test" }`,
                 providerExecuted: true,
               },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'providerTool',
+                providerExecuted: true,
+                result: { example: 'example' },
+              },
             ],
-            finishReason: 'tool-calls',
+            finishReason: 'stop',
           }),
         }),
         tools: {
@@ -2206,14 +2213,13 @@ describe('generateText', () => {
           },
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(2), // Allow multiple steps
       });
 
       // tool should not be executed by client
       expect(toolExecuted).toBe(false);
 
-      // tool call should still be included in content
-      expect(result.toolCalls).toMatchInlineSnapshot(`
+      // tool call should be included in content
+      expect(result.content).toMatchInlineSnapshot(`
         [
           {
             "input": {
@@ -2224,11 +2230,20 @@ describe('generateText', () => {
             "toolName": "providerTool",
             "type": "tool-call",
           },
+          {
+            "input": {
+              "value": "test",
+            },
+            "isProviderSide": true,
+            "output": {
+              "example": "example",
+            },
+            "toolCallId": "call-1",
+            "toolName": "providerTool",
+            "type": "tool-result",
+          },
         ]
       `);
-
-      // tool results should be empty since the tool wasn't executed
-      expect(result.toolResults).toMatchInlineSnapshot(`[]`);
     });
   });
 });
