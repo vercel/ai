@@ -14,28 +14,30 @@ const webSearchPreviewArgsSchema = z.object({
   /**
    * User location information to provide geographically relevant search results.
    */
-  userLocation: z.object({
-    /**
-     * Type of location (always 'approximate')
-     */
-    type: z.literal('approximate'),
-    /**
-     * Two-letter ISO country code (e.g., 'US', 'GB')
-     */
-    country: z.string().optional(),
-    /**
-     * City name (free text, e.g., 'Minneapolis')
-     */
-    city: z.string().optional(),
-    /**
-     * Region name (free text, e.g., 'Minnesota')
-     */
-    region: z.string().optional(),
-    /**
-     * IANA timezone (e.g., 'America/Chicago')
-     */
-    timezone: z.string().optional(),
-  }).optional(),
+  userLocation: z
+    .object({
+      /**
+       * Type of location (always 'approximate')
+       */
+      type: z.literal('approximate'),
+      /**
+       * Two-letter ISO country code (e.g., 'US', 'GB')
+       */
+      country: z.string().optional(),
+      /**
+       * City name (free text, e.g., 'Minneapolis')
+       */
+      city: z.string().optional(),
+      /**
+       * Region name (free text, e.g., 'Minnesota')
+       */
+      region: z.string().optional(),
+      /**
+       * IANA timezone (e.g., 'America/Chicago')
+       */
+      timezone: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const webSearchPreview = createProviderDefinedToolFactory<

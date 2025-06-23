@@ -21,13 +21,15 @@ const webSearch_20250305ArgsSchema = z.object({
   /**
    * Optional user location information to provide geographically relevant search results.
    */
-  userLocation: z.object({
-    type: z.literal('approximate'),
-    city: z.string().optional(),
-    region: z.string().optional(),
-    country: z.string().optional(),
-    timezone: z.string().optional(),
-  }).optional(),
+  userLocation: z
+    .object({
+      type: z.literal('approximate'),
+      city: z.string().optional(),
+      region: z.string().optional(),
+      country: z.string().optional(),
+      timezone: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const webSearch_20250305 = createProviderDefinedToolFactory<
