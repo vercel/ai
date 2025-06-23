@@ -412,7 +412,7 @@ A function that attempts to repair a tool call that failed to parse.
           );
 
           // parse tool calls:
-          currentToolCalls = await Promise.all(
+          const stepToolCalls = await Promise.all(
             currentModelResponse.content
               .filter(
                 (part): part is LanguageModelV2ToolCall =>
@@ -427,6 +427,23 @@ A function that attempts to repair a tool call that failed to parse.
                   messages: stepInputMessages,
                 }),
               ),
+          );
+
+          // notify the tools that the tool calls are available:
+          for (const toolCall of stepToolCalls) {
+            const tool = tools![toolCall.toolName];
+            if (tool?.onInputAvailable != null) {
+              await tool.onInputAvailable({
+                input: toolCall.input,
+                toolCallId: toolCall.toolCallId,
+                messages: stepInputMessages,
+                abortSignal,
+              });
+            }
+          }
+
+          currentToolCalls = stepToolCalls.filter(
+            toolCall => toolCall.providerExecuted !== true,
           );
 
           // execute tools:
@@ -547,15 +564,6 @@ async function executeTools<TOOLS extends ToolSet>({
   const toolOutputs = await Promise.all(
     toolCalls.map(async ({ toolCallId, toolName, input }) => {
       const tool = tools[toolName];
-
-      if (tool?.onInputAvailable != null) {
-        await tool.onInputAvailable({
-          input,
-          toolCallId,
-          messages,
-          abortSignal,
-        });
-      }
 
       if (tool?.execute == null) {
         return undefined;

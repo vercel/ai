@@ -21,27 +21,27 @@ async function main() {
 
     const { text, toolCalls, toolResults, response } = await generateText({
       model: anthropic('claude-3-5-sonnet-latest'),
-      tools: { web_search: anthropic.tools.webSearch_20250305({}) },
+      tools: {
+        web_search: anthropic.tools.webSearch_20250305({
+          onInputAvailable: async ({ input }) => {
+            process.stdout.write(`\nTool call: '${JSON.stringify(input)}'`);
+          },
+        }),
+      },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
     });
 
     toolResponseAvailable = false;
 
-    if (text) {
-      process.stdout.write(`\nAssistant: ${text}`);
-    }
-
-    for (const { toolName, input } of toolCalls) {
-      process.stdout.write(
-        `\nTool call: '${toolName}' ${JSON.stringify(input)}`,
-      );
-    }
-
     for (const { toolName, output } of toolResults) {
       process.stdout.write(
         `\nTool response: '${toolName}' ${JSON.stringify(output)}`,
       );
+    }
+
+    if (text) {
+      process.stdout.write(`\nAssistant: ${text}`);
     }
 
     process.stdout.write('\n\n');

@@ -27,5 +27,5 @@ Result of the tool call. This is the result of the tool's execution.
 Whether the tool call was executed by the provider.
 If this flag is not set or is false, the tool call was executed by the client.
    */
-  isProviderExecuted?: boolean;
+  providerExecuted?: boolean;
 }
