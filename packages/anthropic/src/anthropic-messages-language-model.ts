@@ -784,11 +784,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       }
                     } else {
                       controller.enqueue({
-                        type: 'error',
-                        error: {
-                          type: 'web-search-error',
-                          message: `Web search failed: ${part.content.error_code}`,
-                          code: part.content.error_code,
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName: 'web_search',
+                        isError: true,
+                        result: {
+                          type: 'web_search_tool_result_error',
+                          errorCode: part.content.error_code,
                         },
                       });
                     }

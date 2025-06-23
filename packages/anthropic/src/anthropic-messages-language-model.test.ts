@@ -1148,20 +1148,37 @@ describe('AnthropicMessagesLanguageModel', () => {
           usage: { input_tokens: 10, output_tokens: 20 },
         });
 
-        await expect(() =>
-          model.doGenerate({
-            prompt: TEST_PROMPT,
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'anthropic.web_search_20250305',
-                args: {
-                  maxUses: 1,
-                },
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.web_search_20250305',
+              args: {
+                maxUses: 1,
               },
-            ],
-          }),
-        ).rejects.toThrow(APICallError);
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "isError": true,
+              "result": {
+                "errorCode": "max_uses_exceeded",
+                "type": "web_search_tool_result_error",
+              },
+              "toolCallId": "tool_1",
+              "toolName": "web_search",
+              "type": "tool-result",
+            },
+            {
+              "text": "I cannot search further due to limits.",
+              "type": "text",
+            },
+          ]
+        `);
       });
 
       it('should work alongside regular client-side tools', async () => {
