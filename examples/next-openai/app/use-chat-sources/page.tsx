@@ -11,6 +11,8 @@ export default function Chat() {
       transport: new DefaultChatTransport({ api: '/api/use-chat-sources' }),
     });
 
+  console.log(messages);
+
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages.map(message => (
@@ -22,7 +24,10 @@ export default function Chat() {
             }
 
             if (part.type === 'tool-web_search') {
-              if (part.state === 'input-available') {
+              if (
+                part.state === 'input-available' ||
+                part.state === 'input-streaming'
+              ) {
                 return (
                   <pre
                     key={index}
