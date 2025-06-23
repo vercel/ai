@@ -4644,6 +4644,7 @@ describe('streamText', () => {
                       "input": {
                         "value": "value",
                       },
+                      "providerExecuted": undefined,
                       "providerOptions": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
@@ -5759,6 +5760,7 @@ describe('streamText', () => {
                       "input": {
                         "value": "value",
                       },
+                      "providerExecuted": undefined,
                       "providerOptions": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
@@ -6130,31 +6132,6 @@ describe('streamText', () => {
             doStream: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0: {
-                  expect(tools).toStrictEqual([
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      inputSchema: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
-                    },
-                  ]);
-
-                  expect(toolChoice).toStrictEqual({ type: 'auto' });
-
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
                   return {
                     stream: convertArrayToReadableStream([
                       {
@@ -6186,65 +6163,6 @@ describe('streamText', () => {
                   };
                 }
                 case 1: {
-                  expect(tools).toStrictEqual([
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      inputSchema: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
-                    },
-                  ]);
-
-                  expect(toolChoice).toStrictEqual({ type: 'auto' });
-
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'reasoning',
-                          text: 'thinking',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'tool-call',
-                          toolCallId: 'call-1',
-                          toolName: 'tool1',
-                          input: { value: 'value' },
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'tool',
-                      content: [
-                        {
-                          type: 'tool-result',
-                          toolCallId: 'call-1',
-                          toolName: 'tool1',
-                          output: {
-                            type: 'text',
-                            value: 'RESULT1',
-                          },
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
                   return {
                     stream: convertArrayToReadableStream([
                       {
