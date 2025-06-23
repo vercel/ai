@@ -1057,6 +1057,21 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "status": "completed",
+              },
+              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-result",
+            },
+            {
               "text": "Last week in San Francisco, several notable events and developments took place:
 
           **Bruce Lee Statue in Chinatown**
@@ -1431,6 +1446,31 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "id": "ws_67cf3390e9608190869b5d45698a7067",
+            "toolName": "web_search_preview",
+            "type": "tool-input-start",
+          },
+          {
+            "id": "ws_67cf3390e9608190869b5d45698a7067",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "",
+            "providerExecuted": true,
+            "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
+            "toolName": "web_search_preview",
+            "type": "tool-call",
+          },
+          {
+            "result": {
+              "status": "completed",
+              "type": "web_search_tool_result",
+            },
+            "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
+            "toolName": "web_search_preview",
+            "type": "tool-result",
+          },
+          {
             "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
             "type": "text-start",
           },
@@ -1478,7 +1518,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": "tool-calls",
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
