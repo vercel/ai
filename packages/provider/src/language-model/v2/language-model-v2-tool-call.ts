@@ -16,4 +16,10 @@ parameters schema of the tool.
   input: string;
 
   providerMetadata?: SharedV2ProviderMetadata;
+
+  /**
+   * Whether the tool call will be executed by the provider.
+   * If this flag is not set or is false, the tool call will be executed by the client.
+   */
+  providerExecuted?: boolean;
 };

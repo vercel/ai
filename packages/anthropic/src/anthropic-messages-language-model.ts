@@ -511,6 +511,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               toolCallId: part.id,
               toolName: part.name,
               input: JSON.stringify(part.input),
+              providerExecuted: true,
             });
           }
 
@@ -628,6 +629,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           toolCallId: string;
           toolName: string;
           input: string;
+          providerExecuted?: boolean;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -740,6 +742,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         toolCallId: value.content_block.id,
                         toolName: value.content_block.name,
                         input: '',
+                        providerExecuted: true,
                       };
                       controller.enqueue({
                         type: 'tool-input-start',
@@ -836,12 +839,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           type: 'tool-input-end',
                           id: contentBlock.toolCallId,
                         });
-                        controller.enqueue({
-                          type: 'tool-call',
-                          toolCallId: contentBlock.toolCallId,
-                          toolName: contentBlock.toolName,
-                          input: contentBlock.input,
-                        });
+                        controller.enqueue(contentBlock);
                       }
                       break;
                   }

@@ -1088,6 +1088,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "input": "{"query":"latest AI news"}",
+              "providerExecuted": true,
               "toolCallId": "tool_1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2410,6 +2411,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               {
                 "input": "{"query": "latest stock market trends financial news June 20 2025"}",
+                "providerExecuted": true,
                 "toolCallId": "srvtoolu_01WLwJ9AzAmNar5vFyc4ye6X",
                 "toolName": "web_search",
                 "type": "tool-call",
