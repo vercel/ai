@@ -29,20 +29,6 @@ export const webSearch_20250305ArgsSchema = z.object({
     .optional(),
 });
 
-const inputSchema = z.object({
-  query: z.string(),
-});
-
-const outputSchema = z.array(
-  z.object({
-    url: z.string(),
-    title: z.string(),
-    pageAge: z.string().nullable(),
-    encryptedContent: z.string(),
-    type: z.string(),
-  }),
-);
-
 export function webSearch_20250305(options: WebSearch20250305Args = {}) {
   return tool({
     type: 'provider-defined',
@@ -53,7 +39,17 @@ export function webSearch_20250305(options: WebSearch20250305Args = {}) {
       blockedDomains: options.blockedDomains,
       userLocation: options.userLocation,
     },
-    inputSchema,
-    outputSchema,
+    inputSchema: z.object({
+      query: z.string(),
+    }),
+    outputSchema: z.array(
+      z.object({
+        url: z.string(),
+        title: z.string(),
+        pageAge: z.string().nullable(),
+        encryptedContent: z.string(),
+        type: z.string(),
+      }),
+    ),
   });
 }
