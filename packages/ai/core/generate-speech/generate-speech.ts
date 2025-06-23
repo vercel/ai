@@ -38,6 +38,7 @@ export async function generateSpeech({
   outputFormat,
   instructions,
   speed,
+  language,
   providerOptions = {},
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -72,6 +73,12 @@ The voice to use for speech generation.
   The speed of the speech generation.
    */
   speed?: number;
+
+  /**
+  The language for speech generation. This should be an ISO 639-1 language code (e.g. "en", "es", "fr")
+  or "auto" for automatic language detection. Provider support varies.
+   */
+  language?: string;
 
   /**
 Additional provider-specific options that are passed through to the provider
@@ -114,6 +121,7 @@ Only applicable for HTTP-based providers.
       outputFormat,
       instructions,
       speed,
+      language,
       abortSignal,
       headers,
       providerOptions,

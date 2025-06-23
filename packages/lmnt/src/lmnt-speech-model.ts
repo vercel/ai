@@ -23,15 +23,6 @@ const lmntSpeechCallOptionsSchema = z.object({
     .default('aurora'),
 
   /**
-   * The language of the input text.
-   * @default 'auto'
-   */
-  language: z
-    .union([z.enum(['auto', 'en']), z.string()])
-    .nullish()
-    .default('auto'),
-
-  /**
    * The audio format of the output.
    * @default 'mp3'
    */
@@ -109,6 +100,7 @@ export class LMNTSpeechModel implements SpeechModelV2 {
     voice = 'ava',
     outputFormat = 'mp3',
     speed,
+    language,
     providerOptions,
   }: Parameters<SpeechModelV2['doGenerate']>[0]) {
     const warnings: SpeechModelV2CallWarning[] = [];
@@ -162,6 +154,10 @@ export class LMNTSpeechModel implements SpeechModelV2 {
           requestBody[key] = value;
         }
       }
+    }
+
+    if (language) {
+      requestBody.language = language;
     }
 
     return {

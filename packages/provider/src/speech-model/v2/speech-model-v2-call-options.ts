@@ -30,6 +30,12 @@ export type SpeechModelV2CallOptions = {
   speed?: number;
 
   /**
+   * The language for speech generation. This should be an ISO 639-1 language code (e.g. "en", "es", "fr")
+   * or "auto" for automatic language detection. Provider support varies.
+   */
+  language?: string;
+
+  /**
    * Additional provider-specific options that are passed through to the provider
    * as body parameters.
    *

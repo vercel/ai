@@ -45,6 +45,7 @@ export class OpenAISpeechModel implements SpeechModelV2 {
     outputFormat = 'mp3',
     speed,
     instructions,
+    language,
     providerOptions,
   }: Parameters<SpeechModelV2['doGenerate']>[0]) {
     const warnings: SpeechModelV2CallWarning[] = [];
@@ -88,6 +89,14 @@ export class OpenAISpeechModel implements SpeechModelV2 {
           requestBody[key] = value;
         }
       }
+    }
+
+    if (language) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'language',
+        details: `OpenAI speech models do not support language selection. Language parameter "${language}" was ignored.`,
+      });
     }
 
     return {
