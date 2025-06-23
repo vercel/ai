@@ -61,7 +61,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             output: createToolModelOutput({
               tool: tools?.[part.toolName],
               output: part.output,
-              isError: false,
+              errorMode: 'none',
             }),
             providerExecuted: true,
           };
@@ -70,10 +70,11 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             type: 'tool-result',
             toolCallId: part.toolCallId,
             toolName: part.toolName,
-            output: {
-              type: 'error-json',
-              value: part.error as JSONValue,
-            },
+            output: createToolModelOutput({
+              tool: tools?.[part.toolName],
+              output: part.error,
+              errorMode: 'json',
+            }),
           };
       }
     });
@@ -98,7 +99,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
           toolResult.type === 'tool-result'
             ? toolResult.output
             : toolResult.error,
-        isError: toolResult.type === 'tool-error',
+        errorMode: toolResult.type === 'tool-error' ? 'text' : 'none',
       }),
     }));
 

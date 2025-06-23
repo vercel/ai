@@ -8,14 +8,16 @@ import { Tool } from '@ai-sdk/provider-utils';
 export function createToolModelOutput({
   output,
   tool,
-  isError,
+  errorMode,
 }: {
   output: unknown;
   tool: Tool | undefined;
-  isError: boolean;
+  errorMode: 'none' | 'text' | 'json';
 }): LanguageModelV2ToolResultOutput {
-  if (isError) {
+  if (errorMode === 'text') {
     return { type: 'error-text', value: getErrorMessage(output) };
+  } else if (errorMode === 'json') {
+    return { type: 'error-json', value: output as JSONValue };
   }
 
   if (tool?.toModelOutput) {

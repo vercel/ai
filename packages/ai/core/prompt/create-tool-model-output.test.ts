@@ -7,7 +7,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: 'Error message',
         tool: undefined,
-        isError: true,
+        errorMode: 'text',
       });
 
       expect(result).toEqual({
@@ -21,7 +21,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: errorOutput,
         tool: undefined,
-        isError: true,
+        errorMode: 'text',
       });
 
       expect(result).toEqual({
@@ -41,7 +41,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: complexError,
         tool: undefined,
-        isError: true,
+        errorMode: 'text',
       });
 
       expect(result).toEqual({
@@ -63,7 +63,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: 'test output',
         tool: mockTool,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -84,7 +84,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: complexOutput,
         tool: mockTool,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -107,7 +107,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: 'any output',
         tool: mockTool,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -125,7 +125,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: 'Simple string output',
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -142,7 +142,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: 'String output',
         tool: toolWithoutToModelOutput,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -155,7 +155,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: '',
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -171,7 +171,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: objectOutput,
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -185,7 +185,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: arrayOutput,
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -198,7 +198,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: 42,
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -211,7 +211,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: true,
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -224,7 +224,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: null,
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -256,7 +256,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: complexOutput,
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
@@ -278,7 +278,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: 'Error occurred',
         tool: mockTool,
-        isError: true,
+        errorMode: 'text',
       });
 
       expect(result).toEqual({
@@ -291,7 +291,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: undefined,
         tool: undefined,
-        isError: true,
+        errorMode: 'text',
       });
 
       expect(result).toEqual({
@@ -304,7 +304,7 @@ describe('createToolModelOutput', () => {
       const result = createToolModelOutput({
         output: undefined,
         tool: undefined,
-        isError: false,
+        errorMode: 'none',
       });
 
       expect(result).toEqual({
