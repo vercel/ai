@@ -656,6 +656,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: 'test-result',
+          providerExecuted: undefined,
         },
       ]);
     });
