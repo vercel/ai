@@ -22,4 +22,10 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
 Result of the tool call. This is the result of the tool's execution.
      */
   output: OUTPUT;
+
+  /**
+Whether the tool call was executed by the provider.
+If this flag is not set or is false, the tool call was executed by the client.
+   */
+  isProviderSide?: boolean;
 }
