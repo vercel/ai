@@ -1,6 +1,24 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
+// Args validation schema
+const fileSearchArgsSchema = z.object({
+  /**
+   * List of vector store IDs to search through. If not provided, searches all available vector stores.
+   */
+  vectorStoreIds: z.array(z.string()).optional(),
+
+  /**
+   * Maximum number of search results to return. Defaults to 10.
+   */
+  maxResults: z.number().optional(),
+
+  /**
+   * Type of search to perform. Defaults to 'auto'.
+   */
+  searchType: z.enum(['auto', 'keyword', 'semantic']).optional(),
+});
+
 export const fileSearch = createProviderDefinedToolFactory<
   {
     /**
@@ -8,25 +26,12 @@ export const fileSearch = createProviderDefinedToolFactory<
      */
     query: string;
   },
-  {
-    /**
-     * List of vector store IDs to search through. If not provided, searches all available vector stores.
-     */
-    vectorStoreIds?: string[];
-
-    /**
-     * Maximum number of search results to return. Defaults to 10.
-     */
-    maxResults?: number;
-
-    /**
-     * Type of search to perform. Defaults to 'auto'.
-     */
-    searchType?: 'auto' | 'keyword' | 'semantic';
-  }
+  z.infer<typeof fileSearchArgsSchema>
 >({
   id: 'openai.file_search',
   inputSchema: z.object({
     query: z.string(),
   }),
 });
+
+export { fileSearchArgsSchema };

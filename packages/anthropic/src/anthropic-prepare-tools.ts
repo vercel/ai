@@ -4,20 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
-import { z } from 'zod/v4';
-
-const webSearch_20250305ArgsSchema = z.object({
-  maxUses: z.number().optional(),
-  allowedDomains: z.array(z.string()).optional(),
-  blockedDomains: z.array(z.string()).optional(),
-  userLocation: z.object({
-    type: z.literal('approximate'),
-    city: z.string().optional(),
-    region: z.string().optional(),
-    country: z.string().optional(),
-    timezone: z.string().optional(),
-  }).optional(),
-});
+import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 
 function isWebSearchTool(
   tool: unknown,
