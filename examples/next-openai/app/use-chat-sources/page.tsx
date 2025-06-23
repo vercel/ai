@@ -23,7 +23,25 @@ export default function Chat() {
 
             if (part.type === 'tool-web_search') {
               if (part.state === 'input-available') {
-                return <div key={index}>{JSON.stringify(part.input)}</div>;
+                return (
+                  <pre
+                    key={index}
+                    className="overflow-auto p-2 text-sm bg-gray-100 rounded"
+                  >
+                    {JSON.stringify(part.input, null, 2)}
+                  </pre>
+                );
+              }
+              if (part.state === 'output-available') {
+                return (
+                  <pre
+                    key={index}
+                    className="overflow-auto p-2 text-sm bg-gray-100 rounded"
+                  >
+                    {JSON.stringify(part.input, null, 2)}
+                    {`\n\nDONE - ${part.output.length} results`}
+                  </pre>
+                );
               }
             }
 
