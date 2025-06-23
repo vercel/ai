@@ -556,13 +556,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 errorCode: part.content.error_code,
               },
             });
-
-            throw new APICallError({
-              message: `Web search failed: ${part.content.error_code}`,
-              url: 'web_search_api',
-              requestBodyValues: { tool_use_id: part.tool_use_id },
-              data: { error_code: part.content.error_code },
-            });
           }
           break;
         }
