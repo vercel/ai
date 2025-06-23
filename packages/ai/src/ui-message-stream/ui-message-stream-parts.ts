@@ -30,6 +30,7 @@ export const uiMessageStreamPartSchema = z.union([
     type: z.literal('tool-input-start'),
     toolCallId: z.string(),
     toolName: z.string(),
+    providerExecuted: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('tool-input-delta'),
@@ -179,6 +180,7 @@ export type UIMessageStreamPart<
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
+      providerExecuted?: boolean;
     }
   | {
       type: 'tool-input-delta';

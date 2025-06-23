@@ -750,6 +750,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         type: 'tool-input-start',
                         id: value.content_block.id,
                         toolName: value.content_block.name,
+                        providerExecuted: true,
                       });
                     }
 

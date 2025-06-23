@@ -95,8 +95,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             options: {
               toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
               toolCallId: string;
+              providerExecuted?: boolean;
             } & (
-              | { state: 'input-streaming'; input: unknown }
+              | {
+                  state: 'input-streaming';
+                  input: unknown;
+                  providerExecuted?: boolean;
+                }
               | {
                   state: 'input-available';
                   input: unknown;
@@ -122,13 +127,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
 
             const anyOptions = options as any;
+            const anyPart = part as any;
 
             if (part != null) {
               part.state = options.state;
-              (part as any).input = anyOptions.input;
-              (part as any).output = anyOptions.output;
-              (part as any).errorText = anyOptions.errorText;
-              (part as any).providerExecuted = anyOptions.providerExecuted;
+              anyPart.input = anyOptions.input;
+              anyPart.output = anyOptions.output;
+              anyPart.errorText = anyOptions.errorText;
+
+              // once providerExecuted is set, it stays for streaming
+              anyPart.providerExecuted =
+                anyOptions.providerExecuted ?? part.providerExecuted;
             } else {
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
@@ -268,6 +277,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolName: part.toolName,
                 state: 'input-streaming',
                 input: undefined,
+                providerExecuted: part.providerExecuted,
               });
 
               write();

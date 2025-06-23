@@ -3171,6 +3171,17 @@ describe('processUIMessageStream', () => {
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-1',
+          inputTextDelta: '{ "query": "test" }',
+        },
+        {
           type: 'tool-input-available',
           toolCallId: 'tool-call-1',
           toolName: 'tool-name',
@@ -3229,6 +3240,50 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": undefined,
               "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": undefined,
+                  "output": undefined,
+                  "providerExecuted": true,
+                  "state": "input-streaming",
+                  "toolCallId": "tool-call-1",
+                  "type": "tool-tool-name",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "providerExecuted": true,
+                  "state": "input-streaming",
+                  "toolCallId": "tool-call-1",
+                  "type": "tool-tool-name",
+                },
+              ],
               "role": "assistant",
             },
           },

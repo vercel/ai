@@ -51,6 +51,7 @@ export type LanguageModelV2StreamPart =
       id: string;
       toolName: string;
       providerMetadata?: SharedV2ProviderMetadata;
+      providerExecuted?: boolean;
     }
   | {
       type: 'tool-input-delta';

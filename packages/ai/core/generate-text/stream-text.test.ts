@@ -7540,6 +7540,21 @@ describe('streamText', () => {
           model: createTestModel({
             stream: convertArrayToReadableStream([
               {
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'web_search',
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-input-delta',
+                id: 'call-1',
+                delta: '{ "value": "value" }',
+              },
+              {
+                type: 'tool-input-end',
+                id: 'call-1',
+              },
+              {
                 type: 'tool-call',
                 toolCallId: 'call-1',
                 toolName: 'web_search',
@@ -7637,84 +7652,99 @@ describe('streamText', () => {
       it('should include provider-executed tool call and result in the full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "call-1",
+              "providerExecuted": true,
+              "toolName": "web_search",
+              "type": "tool-input-start",
+            },
+            {
+              "delta": "{ "value": "value" }",
+              "id": "call-1",
+              "type": "tool-input-delta",
+            },
+            {
+              "id": "call-1",
+              "type": "tool-input-end",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "toolName": "web_search",
-                "type": "tool-call",
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
+            },
+            {
+              "input": {
+                "value": "value",
               },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "output": "{ "value": "result1" }",
-                "providerExecuted": true,
-                "toolCallId": "call-1",
-                "toolName": "web_search",
-                "type": "tool-result",
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "error": "ERROR",
+              "input": {
+                "value": "value",
               },
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-2",
-                "toolName": "web_search",
-                "type": "tool-call",
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-error",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              {
-                "error": "ERROR",
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": true,
-                "toolCallId": "call-2",
-                "toolName": "web_search",
-                "type": "tool-error",
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
               },
-              {
-                "finishReason": "stop",
-                "providerMetadata": undefined,
-                "response": {
-                  "headers": undefined,
-                  "id": "id-0",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "finish-step",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": 3,
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
               },
-              {
-                "finishReason": "stop",
-                "totalUsage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": 3,
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
-                "type": "finish",
-              },
-            ]
-          `);
+              "type": "finish",
+            },
+          ]
+        `);
       });
 
       it('should include provider-executed tool call and result in the ui message stream', async () => {
@@ -7728,6 +7758,17 @@ describe('streamText', () => {
               },
               {
                 "type": "start-step",
+              },
+              {
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "inputTextDelta": "{ "value": "value" }",
+                "toolCallId": "call-1",
+                "type": "tool-input-delta",
               },
               {
                 "input": {
