@@ -7542,12 +7542,28 @@ describe('streamText', () => {
                 toolCallId: 'call-1',
                 toolName: 'web_search',
                 input: `{ "value": "value" }`,
+                providerExecuted: true,
               },
               {
                 type: 'tool-result',
                 toolCallId: 'call-1',
                 toolName: 'web_search',
                 result: `{ "value": "result1" }`,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'web_search',
+                input: `{ "value": "value" }`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-2',
+                toolName: 'web_search',
+                result: `ERROR`,
+                isError: true,
+                providerExecuted: true,
               },
               {
                 type: 'finish',
@@ -7565,11 +7581,11 @@ describe('streamText', () => {
               args: {},
             },
           },
-          prompt: 'test-input',
+          ...defaultSettings(),
         });
       });
 
-      it('should include provider-executed tool call and result', async () => {
+      it('should include provider-executed tool call and result content', async () => {
         await result.consumeStream();
         expect(await result.content).toMatchInlineSnapshot(`
           [
@@ -7577,7 +7593,7 @@ describe('streamText', () => {
               "input": {
                 "value": "value",
               },
-              "providerExecuted": undefined,
+              "providerExecuted": true,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -7587,9 +7603,113 @@ describe('streamText', () => {
                 "value": "value",
               },
               "output": "{ "value": "result1" }",
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "error": "ERROR",
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed tool call and result in the full stream', async () => {
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "{ "value": "result1" }",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "error": "ERROR",
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-error",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
             },
           ]
         `);

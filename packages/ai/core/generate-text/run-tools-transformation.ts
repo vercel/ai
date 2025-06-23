@@ -314,13 +314,27 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         case 'tool-result': {
-          controller.enqueue({
-            type: 'tool-result' as const,
-            toolCallId: chunk.toolCallId,
-            toolName: chunk.toolName as keyof TOOLS & string,
-            input: toolInputs.get(chunk.toolCallId),
-            output: chunk.result,
-          } as ToolResultUnion<TOOLS>);
+          const toolName = chunk.toolName as keyof TOOLS & string;
+
+          if (chunk.isError) {
+            toolResultsStreamController!.enqueue({
+              type: 'tool-error',
+              toolCallId: chunk.toolCallId,
+              toolName,
+              input: toolInputs.get(chunk.toolCallId),
+              providerExecuted: chunk.providerExecuted,
+              error: chunk.result,
+            } as ToolErrorUnion<TOOLS>);
+          } else {
+            controller.enqueue({
+              type: 'tool-result',
+              toolCallId: chunk.toolCallId,
+              toolName,
+              input: toolInputs.get(chunk.toolCallId),
+              output: chunk.result,
+              providerExecuted: chunk.providerExecuted,
+            } as ToolResultUnion<TOOLS>);
+          }
           break;
         }
 

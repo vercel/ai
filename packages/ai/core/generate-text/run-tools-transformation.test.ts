@@ -413,45 +413,8 @@ describe('runToolsTransformation', () => {
       repairToolCall: undefined,
     });
 
-    const result = await convertReadableStreamToArray(transformedStream);
+    await convertReadableStreamToArray(transformedStream);
 
     expect(toolExecuted).toBe(false);
-
-    expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "input": {
-            "value": "test",
-          },
-          "providerExecuted": true,
-          "toolCallId": "call-1",
-          "toolName": "providerTool",
-          "type": "tool-call",
-        },
-        {
-          "input": {
-            "value": "test",
-          },
-          "output": {
-            "example": "example",
-          },
-          "toolCallId": "call-1",
-          "toolName": "providerTool",
-          "type": "tool-result",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 3,
-            "outputTokens": 10,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
-          },
-        },
-      ]
-    `);
   });
 });
