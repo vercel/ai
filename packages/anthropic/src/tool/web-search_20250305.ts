@@ -2,7 +2,7 @@ import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // Args validation schema
-const webSearch_20250305ArgsSchema = z.object({
+export const webSearch_20250305ArgsSchema = z.object({
   /**
    * Maximum number of web searches Claude can perform during the conversation.
    */
@@ -72,5 +72,3 @@ export const webSearch_20250305 = createProviderDefinedToolFactory<
     query: z.string(),
   }),
 });
-
-export { webSearch_20250305ArgsSchema };

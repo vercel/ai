@@ -2,7 +2,7 @@ import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
 // Args validation schema
-const fileSearchArgsSchema = z.object({
+export const fileSearchArgsSchema = z.object({
   /**
    * List of vector store IDs to search through. If not provided, searches all available vector stores.
    */
@@ -48,5 +48,3 @@ export const fileSearch = createProviderDefinedToolFactory<
     query: z.string(),
   }),
 });
-
-export { fileSearchArgsSchema };

@@ -2,7 +2,7 @@ import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
 // Args validation schema
-const webSearchPreviewArgsSchema = z.object({
+export const webSearchPreviewArgsSchema = z.object({
   /**
    * Search context size to use for the web search.
    * - high: Most comprehensive context, highest cost, slower response
@@ -83,5 +83,3 @@ export const webSearchPreview = createProviderDefinedToolFactory<
   id: 'openai.web_search_preview',
   inputSchema: z.object({}),
 });
-
-export { webSearchPreviewArgsSchema };
