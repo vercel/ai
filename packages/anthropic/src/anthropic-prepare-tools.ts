@@ -106,9 +106,8 @@ export function prepareTools({
               type: 'bash_20241022',
             });
             break;
-          case 'anthropic.web_search_20250305':
+          case 'anthropic.web_search_20250305': {
             const args = webSearch_20250305ArgsSchema.parse(tool.args);
-
             anthropicTools.push({
               type: 'web_search_20250305',
               name: 'web_search',
@@ -117,8 +116,8 @@ export function prepareTools({
               blocked_domains: args.blockedDomains,
               user_location: args.userLocation,
             });
-
             break;
+          }
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
