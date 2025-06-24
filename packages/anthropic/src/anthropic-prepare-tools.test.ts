@@ -74,7 +74,7 @@ it('should correctly prepare provider-defined tools', () => {
       display_number: 1,
     },
     {
-      name: 'text_editor',
+      name: 'str_replace_editor',
       type: 'text_editor_20241022',
     },
     {

@@ -81,14 +81,14 @@ export function prepareTools({
           case 'anthropic.text_editor_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
-              name: 'text_editor',
+              name: 'str_replace_editor',
               type: 'text_editor_20250124',
             });
             break;
           case 'anthropic.text_editor_20241022':
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
-              name: 'text_editor',
+              name: 'str_replace_editor',
               type: 'text_editor_20241022',
             });
             break;
