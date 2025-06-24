@@ -385,9 +385,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       stream: true,
 
       // only include stream_options when in strict compatibility mode:
-      stream_options: this.config.includeUsage
-        ? { include_usage: true }
-        : undefined,
+      ...(this.config.includeUsage
+        ? { stream_options: { include_usage: true } }
+        : {}),
     };
 
     const metadataExtractor =
