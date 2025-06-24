@@ -41,6 +41,7 @@ export const textEditor_20241022 = createProviderDefinedToolFactory<
   {}
 >({
   id: 'anthropic.text_editor_20241022',
+  name: 'text_editor',
   inputSchema: z.object({
     command: z.enum(['view', 'create', 'str_replace', 'insert', 'undo_edit']),
     path: z.string(),

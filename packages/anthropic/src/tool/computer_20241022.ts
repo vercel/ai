@@ -58,6 +58,7 @@ export const computer_20241022 = createProviderDefinedToolFactory<
   }
 >({
   id: 'anthropic.computer_20241022',
+  name: 'computer',
   inputSchema: z.object({
     action: z.enum([
       'key',

@@ -1,6 +1,4 @@
 import { prepareTools } from './openai-prepare-tools';
-import { fileSearch } from './tool/file-search';
-import { webSearchPreview } from './tool/web-search-preview';
 
 it('should return undefined tools and toolChoice when tools are null', () => {
   const result = prepareTools({ tools: undefined, structuredOutputs: false });
@@ -53,6 +51,7 @@ it('should correctly prepare provider-defined-server tools', () => {
       {
         type: 'provider-defined',
         id: 'openai.file_search',
+        name: 'file_search',
         args: {
           vectorStoreIds: ['vs_123'],
           maxResults: 10,
@@ -62,6 +61,7 @@ it('should correctly prepare provider-defined-server tools', () => {
       {
         type: 'provider-defined',
         id: 'openai.web_search_preview',
+        name: 'web_search_preview',
         args: {
           searchContextSize: 'high',
           userLocation: {
@@ -101,6 +101,7 @@ it('should add warnings for unsupported tools', () => {
       {
         type: 'provider-defined',
         id: 'openai.unsupported_tool',
+        name: 'unsupported_tool',
         args: {},
       },
     ],

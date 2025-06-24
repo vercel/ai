@@ -846,6 +846,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {
                 maxUses: 3,
                 allowedDomains: ['arxiv.org', 'nature.com', 'mit.edu'],
@@ -882,6 +883,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {
                 maxUses: 2,
                 blockedDomains: ['reddit.com'],
@@ -916,6 +918,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {
                 maxUses: 1,
                 userLocation: {
@@ -962,6 +965,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {
                 maxUses: 1,
                 userLocation: {
@@ -1004,6 +1008,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {
                 maxUses: 1,
                 userLocation: {
@@ -1077,6 +1082,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {
                 maxUses: 5,
               },
@@ -1156,6 +1162,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {
                 maxUses: 1,
               },
@@ -1205,6 +1212,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {
                 maxUses: 1,
               },
@@ -2342,6 +2350,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'anthropic.web_search_20250305',
+              name: 'web_search',
               args: {},
             },
           ],
@@ -2632,7 +2641,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text-delta",
             },
             {
-              "delta": " stock market trends: 
+              "delta": " stock market trends:
 
           Market Performance:",
               "id": "3",

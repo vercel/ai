@@ -13,9 +13,11 @@ export type ProviderDefinedToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
 
 export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
   id,
+  name,
   inputSchema,
 }: {
   id: `${string}.${string}`;
+  name: string;
   inputSchema: FlexibleSchema<INPUT>;
 }): ProviderDefinedToolFactory<INPUT, ARGS> {
   return <OUTPUT>({
@@ -37,6 +39,7 @@ export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
     tool({
       type: 'provider-defined',
       id,
+      name,
       args,
       inputSchema,
       outputSchema,
@@ -68,10 +71,12 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
   ARGS extends object,
 >({
   id,
+  name,
   inputSchema,
   outputSchema,
 }: {
   id: `${string}.${string}`;
+  name: string;
   inputSchema: FlexibleSchema<INPUT>;
   outputSchema: FlexibleSchema<OUTPUT>;
 }): ProviderDefinedToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS> {
@@ -92,6 +97,7 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
     tool({
       type: 'provider-defined',
       id,
+      name,
       args,
       inputSchema,
       outputSchema,

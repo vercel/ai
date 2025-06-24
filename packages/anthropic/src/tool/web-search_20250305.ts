@@ -85,6 +85,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'anthropic.web_search_20250305',
+  name: 'web_search',
   inputSchema: z.object({
     query: z.string(),
   }),
