@@ -68,6 +68,7 @@ describe('GatewayProvider', () => {
         Authorization: 'Bearer test-api-key',
         'Custom-Header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
+        'x-ai-gateway-auth-method': 'api-key',
       });
     });
 
@@ -88,6 +89,7 @@ describe('GatewayProvider', () => {
         Authorization: 'Bearer mock-oidc-token',
         'Custom-Header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
+        'x-ai-gateway-auth-method': 'oidc',
       });
     });
 
@@ -402,6 +404,7 @@ describe('GatewayProvider', () => {
 
       // Verify that the API key was used in the Authorization header
       expect(headers.Authorization).toBe(`Bearer ${testApiKey}`);
+      expect(headers['x-ai-gateway-auth-method']).toBe('api-key');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
@@ -426,8 +429,9 @@ describe('GatewayProvider', () => {
       const envApiKey = 'env-api-key-123';
       process.env.AI_GATEWAY_API_KEY = envApiKey;
 
-      const token = await getGatewayAuthToken({});
-      expect(token).toBe(envApiKey);
+      const authResult = await getGatewayAuthToken({});
+      expect(authResult?.token).toBe(envApiKey);
+      expect(authResult?.authMethod).toBe('api-key');
       expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
 
@@ -436,8 +440,9 @@ describe('GatewayProvider', () => {
       const optionsApiKey = 'options-api-key-456';
       process.env.AI_GATEWAY_API_KEY = envApiKey;
 
-      const token = await getGatewayAuthToken({ apiKey: optionsApiKey });
-      expect(token).toBe(optionsApiKey);
+      const authResult = await getGatewayAuthToken({ apiKey: optionsApiKey });
+      expect(authResult?.token).toBe(optionsApiKey);
+      expect(authResult?.authMethod).toBe('api-key');
       expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
 
@@ -445,8 +450,10 @@ describe('GatewayProvider', () => {
       const oidcToken = 'oidc-token-789';
       vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
 
-      const token = await getGatewayAuthToken({});
-      expect(token).toBe(oidcToken);
+      const authResult = await getGatewayAuthToken({});
+      expect(authResult).not.toBeNull();
+      expect(authResult!.token).toBe(oidcToken);
+      expect(authResult!.authMethod).toBe('oidc');
       expect(getVercelOidcToken).toHaveBeenCalled();
     });
 
@@ -467,6 +474,7 @@ describe('GatewayProvider', () => {
       expect(headers).toEqual({
         Authorization: `Bearer ${envApiKey}`,
         'ai-gateway-protocol-version': expect.any(String),
+        'x-ai-gateway-auth-method': 'api-key',
       });
       expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
@@ -497,6 +505,7 @@ describe('GatewayProvider', () => {
 
       // Verify that the environment API key was used in the Authorization header
       expect(headers.Authorization).toBe(`Bearer ${envApiKey}`);
+      expect(headers['x-ai-gateway-auth-method']).toBe('api-key');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
@@ -507,30 +516,33 @@ describe('GatewayProvider', () => {
       const oidcToken = 'fallback-oidc-token';
       vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
 
-      const token = await getGatewayAuthToken({});
-      expect(token).toBe(''); // loadOptionalSetting returns empty string as-is
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
+      const authResult = await getGatewayAuthToken({});
+      expect(authResult?.token).toBe(oidcToken); // empty string is falsy, so it falls back to OIDC
+      expect(authResult?.authMethod).toBe('oidc');
+      expect(getVercelOidcToken).toHaveBeenCalled();
     });
 
-    it('should handle whitespace-only AI_GATEWAY_API_KEY and fall back to OIDC', async () => {
+    it('should handle whitespace-only AI_GATEWAY_API_KEY as valid API key', async () => {
       process.env.AI_GATEWAY_API_KEY = '   ';
       const oidcToken = 'fallback-oidc-token';
       vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
 
-      const token = await getGatewayAuthToken({});
-      expect(token).toBe('   '); // loadOptionalSetting returns whitespace string as-is
+      const authResult = await getGatewayAuthToken({});
+      expect(authResult?.token).toBe('   '); // loadOptionalSetting returns whitespace string as-is
+      expect(authResult?.authMethod).toBe('api-key'); // whitespace string is truthy, so it's considered an API key
       expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
   });
 
   describe('getGatewayAuthToken', () => {
     it('should prioritize apiKey when provided', async () => {
-      const token = await getGatewayAuthToken({ apiKey: 'test-api-key-123' });
-      expect(token).toBe('test-api-key-123');
+      const authResult = await getGatewayAuthToken({ apiKey: 'test-api-key-123' });
+      expect(authResult?.token).toBe('test-api-key-123');
+      expect(authResult?.authMethod).toBe('api-key');
       expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
 
-    it('should throw GatewayAuthenticationError when OIDC token is missing', async () => {
+    it('should return null when OIDC token is missing', async () => {
       vi.mocked(getVercelOidcToken).mockRejectedValueOnce(
         new GatewayAuthenticationError({
           message: 'Failed to get Vercel OIDC token for AI Gateway access.',
@@ -538,35 +550,37 @@ describe('GatewayProvider', () => {
         }),
       );
 
-      await expect(getGatewayAuthToken({})).rejects.toMatchObject({
-        name: 'GatewayAuthenticationError',
-        type: 'authentication_error',
-        statusCode: 401,
-        message: expect.stringContaining('Failed to get Vercel OIDC token'),
-      });
+      const result = await getGatewayAuthToken({});
+      expect(result).toBeNull();
     });
 
-    it('should rethrow other OIDC errors without modification', async () => {
+    it('should return null for other OIDC errors', async () => {
       const originalError = new Error('Some other OIDC-related error');
       vi.mocked(getVercelOidcToken).mockRejectedValueOnce(originalError);
 
-      await expect(getGatewayAuthToken({})).rejects.toThrow(originalError);
+      const result = await getGatewayAuthToken({});
+      expect(result).toBeNull();
     });
 
-    it('should pass through GatewayAuthenticationError from getVercelOidcToken', async () => {
+    it('should return null when GatewayAuthenticationError thrown from getVercelOidcToken', async () => {
       const authError = new GatewayAuthenticationError({
-        message: 'Failed to get Vercel OIDC token for AI Gateway access.',
+        message: 'OIDC token not available',
         statusCode: 401,
       });
       vi.mocked(getVercelOidcToken).mockRejectedValueOnce(authError);
 
-      try {
-        await getGatewayAuthToken({});
-        fail('Expected error was not thrown');
-      } catch (error) {
-        expect(error).toBe(authError); // Same instance, not wrapped
-        expect(error).toBeInstanceOf(GatewayAuthenticationError);
-      }
+      const result = await getGatewayAuthToken({});
+      expect(result).toBeNull();
+    });
+
+    it('should return oidc auth method when using OIDC token', async () => {
+      const oidcToken = 'valid-oidc-token';
+      vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
+
+      const authResult = await getGatewayAuthToken({});
+      expect(authResult).not.toBeNull();
+      expect(authResult!.token).toBe(oidcToken);
+      expect(authResult!.authMethod).toBe('oidc');
     });
   });
 

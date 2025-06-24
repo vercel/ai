@@ -213,7 +213,7 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toBe('Invalid API key provided');
+        expect(authError.message).toContain('No authentication provided');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }
@@ -755,7 +755,7 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toBe('Authentication failed for streaming');
+        expect(authError.message).toContain('No authentication provided');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }

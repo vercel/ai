@@ -43,6 +43,60 @@ describe('GatewayAuthenticationError', () => {
     expect(GatewayAuthenticationError.isInstance(otherError)).toBe(false);
     expect(GatewayError.isInstance(error)).toBe(true);
   });
+
+  describe('createContextualError', () => {
+    it('should create error for invalid API key only', () => {
+      const error = GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: true,
+        oidcTokenProvided: false,
+      });
+
+      expect(error.message).toContain('Invalid API key provided');
+      expect(error.statusCode).toBe(401);
+    });
+
+    it('should create error for invalid OIDC token only', () => {
+      const error = GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: false,
+        oidcTokenProvided: true,
+      });
+
+      expect(error.message).toContain('Invalid OIDC token provided');
+      expect(error.statusCode).toBe(401);
+    });
+
+    it('should create error for no authentication provided', () => {
+      const error = GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: false,
+        oidcTokenProvided: false,
+      });
+
+      expect(error.message).toContain('No authentication provided');
+      expect(error.message).toContain('VERCEL_OIDC_TOKEN');
+      expect(error.statusCode).toBe(401);
+    });
+
+    it('should prioritize API key error when both were provided', () => {
+      const error = GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: true,
+        oidcTokenProvided: true,
+      });
+
+      expect(error.message).toContain('Invalid API key provided');
+      expect(error.statusCode).toBe(401);
+    });
+
+    it('should create error for neither provided (legacy test)', () => {
+      const error = GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: false,
+        oidcTokenProvided: false,
+      });
+
+      expect(error.message).toContain('No authentication provided');
+      expect(error.message).toContain('VERCEL_OIDC_TOKEN');
+      expect(error.statusCode).toBe(401);
+    });
+  });
 });
 
 describe('GatewayInvalidRequestError', () => {

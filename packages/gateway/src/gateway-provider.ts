@@ -13,6 +13,7 @@ import {
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
+import { GatewayAuthenticationError } from './errors';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -65,13 +66,31 @@ How frequently to refresh the metadata cache in milliseconds.
 
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
-export async function getGatewayAuthToken(options: GatewayProviderSettings) {
-  return (
-    loadOptionalSetting({
-      settingValue: options.apiKey,
-      environmentVariableName: 'AI_GATEWAY_API_KEY',
-    }) ?? (await getVercelOidcToken())
-  );
+export async function getGatewayAuthToken(options: GatewayProviderSettings): Promise<{
+  token: string;
+  authMethod: 'api-key' | 'oidc';
+} | null> {
+  const apiKey = loadOptionalSetting({
+    settingValue: options.apiKey,
+    environmentVariableName: 'AI_GATEWAY_API_KEY',
+  });
+
+  if (apiKey) {
+    return {
+      token: apiKey,
+      authMethod: 'api-key',
+    };
+  }
+
+  try {
+    const oidcToken = await getVercelOidcToken();
+    return {
+      token: oidcToken,
+      authMethod: 'oidc',
+    };
+  } catch (error) {
+    return null;
+  }
 }
 
 /**
@@ -91,11 +110,21 @@ export function createGatewayProvider(
     'https://ai-gateway.vercel.sh/v1/ai';
 
   const getHeaders = async () => {
-    return {
-      Authorization: `Bearer ${await getGatewayAuthToken(options)}`,
-      'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-      ...options.headers,
-    };
+    const auth = await getGatewayAuthToken(options);
+    if (auth) {
+      return {
+        Authorization: `Bearer ${auth.token}`,
+        'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
+        'x-ai-gateway-auth-method': auth.authMethod,
+        ...options.headers,
+      };
+    }
+    
+    throw GatewayAuthenticationError.createContextualError({
+      apiKeyProvided: false,
+      oidcTokenProvided: false,
+      statusCode: 401,
+    });
   };
 
   const createLanguageModel = (modelId: GatewayModelId) => {
@@ -111,10 +140,10 @@ export function createGatewayProvider(
       settingValue: undefined,
       environmentVariableName: 'VERCEL_REGION',
     });
-    return new GatewayLanguageModel(modelId, {
+
+    const baseConfig = {
       provider: 'gateway',
       baseURL,
-      headers: getHeaders,
       fetch: options.fetch,
       o11yHeaders: async () => {
         const requestId = await getVercelRequestId();
@@ -125,6 +154,11 @@ export function createGatewayProvider(
           ...(requestId && { 'ai-o11y-request-id': requestId }),
         };
       },
+    };
+
+    return new GatewayLanguageModel(modelId, {
+      ...baseConfig,
+      headers: getHeaders,
     });
   };
 
@@ -132,18 +166,26 @@ export function createGatewayProvider(
     const now = options._internal?.currentDate?.().getTime() ?? Date.now();
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
       lastFetchTime = now;
-      pendingMetadata = new GatewayFetchMetadata({
-        baseURL,
-        headers: getHeaders,
-        fetch: options.fetch,
-      })
-        .getAvailableModels()
+      
+      const tryFetchWithAuth = async (headers: () => Promise<Record<string, string>>) => {
+        return new GatewayFetchMetadata({
+          baseURL,
+          headers,
+          fetch: options.fetch,
+        }).getAvailableModels();
+      };
+
+      pendingMetadata = (async () => {
+        return await tryFetchWithAuth(getHeaders);
+      })()
         .then(metadata => {
           metadataCache = metadata;
           return metadata;
         })
-        .catch((error: unknown) => {
-          throw asGatewayError(error);
+        .catch(async (error: unknown) => {
+          const headers = await getHeaders();
+          const authMethod = headers['x-ai-gateway-auth-method'] as 'api-key' | 'oidc';
+          throw asGatewayError(error, authMethod);
         });
     }
 
@@ -173,3 +215,5 @@ export function createGatewayProvider(
 }
 
 export const gateway = createGatewayProvider();
+
+

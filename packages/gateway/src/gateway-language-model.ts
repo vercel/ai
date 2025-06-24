@@ -71,7 +71,9 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         warnings: [],
       };
     } catch (error) {
-      throw asGatewayError(error);
+      const headers = await resolve(this.config.headers());
+      const authMethod = headers['x-ai-gateway-auth-method'] as 'api-key' | 'oidc';
+      throw asGatewayError(error, authMethod);
     }
   }
 
@@ -128,7 +130,9 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw asGatewayError(error);
+      const headers = await resolve(this.config.headers());
+      const authMethod = headers['x-ai-gateway-auth-method'] as 'api-key' | 'oidc';
+      throw asGatewayError(error, authMethod);
     }
   }
 
