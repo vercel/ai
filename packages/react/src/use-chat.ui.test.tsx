@@ -115,6 +115,7 @@ describe('data protocol stream', () => {
             {
               type: 'text',
               text: 'Hello, world.',
+              state: 'done',
             },
           ],
         },
@@ -284,6 +285,7 @@ describe('data protocol stream', () => {
             {
               type: 'text',
               text: 'Hello, world.',
+              state: 'done',
             },
           ],
         },
@@ -300,6 +302,7 @@ describe('data protocol stream', () => {
             },
             "parts": [
               {
+                "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
               },
@@ -382,6 +385,7 @@ describe('data protocol stream', () => {
               {
                 text: 'Hello, world.',
                 type: 'text',
+                state: 'done',
               },
             ],
             role: 'assistant',
@@ -505,6 +509,7 @@ describe('text stream', () => {
                 "type": "step-start",
               },
               {
+                "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
               },
@@ -1027,6 +1032,7 @@ describe('tool invocations', () => {
             {
               text: 'more text',
               type: 'text',
+              state: 'done',
             },
           ],
           role: 'assistant',
@@ -1443,6 +1449,7 @@ describe('file attachments with data url', () => {
             {
               text: 'Response to message with text attachment',
               type: 'text',
+              state: 'done',
             },
           ],
           role: 'assistant',
@@ -1533,6 +1540,7 @@ describe('file attachments with data url', () => {
             {
               type: 'text',
               text: 'Response to message with image attachment',
+              state: 'done',
             },
           ],
         },
@@ -1656,6 +1664,7 @@ describe('file attachments with url', () => {
             {
               type: 'text',
               text: 'Response to message with image attachment',
+              state: 'done',
             },
           ],
         },
@@ -1761,6 +1770,7 @@ describe('attachments with empty submit', () => {
             {
               type: 'text',
               text: 'Response to message with image attachment',
+              state: 'done',
             },
           ],
         },
@@ -1868,6 +1878,7 @@ describe('should send message with attachments', () => {
           id: 'id-2',
           parts: [
             {
+              state: 'done',
               text: 'Response to message with image attachment',
               type: 'text',
             },
