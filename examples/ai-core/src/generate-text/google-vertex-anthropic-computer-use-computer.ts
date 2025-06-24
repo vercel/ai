@@ -39,7 +39,7 @@ async function main() {
             value: [
               typeof result === 'string'
                 ? { type: 'text', text: result }
-                : { type: 'image', data: result.data, mediaType: 'image/png' },
+                : { type: 'media', data: result.data, mediaType: 'image/png' },
             ],
           };
         },

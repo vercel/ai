@@ -34,7 +34,7 @@ async function main() {
             type: 'content',
             value: [
               {
-                type: 'image',
+                type: 'media',
                 data: Buffer.from(result.bytes).toString('base64'),
                 mediaType: 'image/jpeg',
               },

@@ -145,7 +145,7 @@ const toolTests = (model: LanguageModelV2) => {
                   typeof result === 'string'
                     ? { type: 'text', text: result }
                     : {
-                        type: 'image',
+                        type: 'media',
                         data: result.data,
                         mediaType: 'image/png',
                       },
