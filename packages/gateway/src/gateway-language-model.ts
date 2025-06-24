@@ -20,7 +20,10 @@ import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 
 // Helper schema for validating the auth method header
-const gatewayAuthMethodSchema = z.union([z.literal('api-key'), z.literal('oidc')]);
+const gatewayAuthMethodSchema = z.union([
+  z.literal('api-key'),
+  z.literal('oidc'),
+]);
 
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
@@ -74,7 +77,12 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         warnings: [],
       };
     } catch (error) {
-      throw asGatewayError(error, gatewayAuthMethodSchema.parse((await resolve(this.config.headers()))['x-ai-gateway-auth-method']));
+      throw asGatewayError(
+        error,
+        gatewayAuthMethodSchema.parse(
+          (await resolve(this.config.headers()))['x-ai-gateway-auth-method'],
+        ),
+      );
     }
   }
 
@@ -131,7 +139,12 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw asGatewayError(error, gatewayAuthMethodSchema.parse((await resolve(this.config.headers()))['x-ai-gateway-auth-method']));
+      throw asGatewayError(
+        error,
+        gatewayAuthMethodSchema.parse(
+          (await resolve(this.config.headers()))['x-ai-gateway-auth-method'],
+        ),
+      );
     }
   }
 

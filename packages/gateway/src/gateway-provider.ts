@@ -68,7 +68,10 @@ How frequently to refresh the metadata cache in milliseconds.
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
 // Helper schema for validating the auth method header
-const gatewayAuthMethodSchema = z.union([z.literal('api-key'), z.literal('oidc')]);
+const gatewayAuthMethodSchema = z.union([
+  z.literal('api-key'),
+  z.literal('oidc'),
+]);
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
@@ -182,7 +185,12 @@ export function createGatewayProvider(
         .catch(async (error: unknown) => {
           try {
             const headers = await getHeaders();
-            throw asGatewayError(error, gatewayAuthMethodSchema.parse(headers['x-ai-gateway-auth-method']));
+            throw asGatewayError(
+              error,
+              gatewayAuthMethodSchema.parse(
+                headers['x-ai-gateway-auth-method'],
+              ),
+            );
           } catch (headerError) {
             throw asGatewayError(error);
           }
