@@ -25,12 +25,11 @@ The AI SDK 5 Beta is intended for:
 
 ## What to Expect in Beta
 
-- **No major breaking changes** - the core architecture is stable
-- **Minor breaking changes possible** - we may refine APIs based on your feedback
-- **Regular bug fixes and improvements** - active development continues
-- **Pin your versions** - use exact version numbers to avoid unexpected changes
+- **No major breaking changes** - the architecture is stable
+- **Minor breaking changes possible** - we may refine APIs for critical bugfixes
+- **Bug fixes and DX improvements** - active development continues
 
-Your feedback during this beta phase directly shapes the final stable release. Share your experiences through [GitHub issues](https://github.com/vercel/ai/issues/new/choose) or [discussions](https://github.com/vercel/ai/discussions).
+Your feedback during this beta phase directly shapes the final stable release. Share your experiences through [GitHub issues](https://github.com/vercel/ai/issues/new/choose).
 
 <Note type="warning">
   While more stable than alpha, you may still encounter bugs in this Beta
@@ -45,7 +44,7 @@ To install the AI SDK 5 Beta, run the following command:
 
 ```bash
 # replace with your provider and framework
-npm install ai@beta @ai-sdk/[your_provider]@beta @ai-sdk/[your_framework]@beta
+npm install ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta
 ```
 
 <Note type="warning">
@@ -55,15 +54,13 @@ npm install ai@beta @ai-sdk/[your_provider]@beta @ai-sdk/[your_framework]@beta
 
 ## What's new in AI SDK 5?
 
-AI SDK 5 is a complete redesign of the AI SDK's protocol and architecture based on everything we learned over the last two years of real-world usage. We also modernized the UI and protocols that have remained largely unchanged since AI SDK v2/3, creating a strong foundation for the future.
+AI SDK 5 is a redesign of the AI SDK's protocol and architecture based on everything we learned over the last two years of real-world usage. We also modernized the UI and protocols that have remained largely unchanged since AI SDK v2/3, to create a strong foundation for the future.
 
-### Why AI SDK 5?
+### Why a new specification (LanguageModelV2)?
 
 When we originally designed the v1 protocol over a year ago, the standard interaction pattern with language models was text in, text or tool call out. Today's LLMs go beyond text and tool calls, generating reasoning, sources, images and more. New use cases like computer-using agents introduce a fundamentally different approach to interacting with language models that made it impossible to support in a unified approach with our original architecture.
 
 We needed a protocol designed for this new reality. While this is a breaking change that we take seriously, it provided an opportunity to rebuild the foundation and add new features.
-
-While we designed AI SDK 5 to be a substantial improvement over previous versions, we're still in active development. You might encounter bugs or unexpected behavior. We appreciate your feedback and bug reports—they're essential to making this release better. Share your experiences and suggestions with us through [GitHub issues](https://github.com/vercel/ai/issues/new/choose) or [GitHub discussions](https://github.com/vercel/ai/discussions).
 
 ## New Features
 
