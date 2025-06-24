@@ -18,7 +18,7 @@ export class NoSuchProviderError extends NoSuchModelError {
     message = `No such provider: ${providerId} (available providers: ${availableProviders.join()})`,
   }: {
     modelId: string;
-    modelType: 'languageModel' | 'textEmbeddingModel';
+    modelType: 'languageModel' | 'textEmbeddingModel' | 'imageModel' | 'transcriptionModel' | 'speechModel';
     providerId: string;
     availableProviders: string[];
     message?: string;

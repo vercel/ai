@@ -4,6 +4,8 @@ import {
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
+  SpeechModelV2,
+  TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import { NoSuchProviderError } from './no-such-provider-error';
 
@@ -43,6 +45,24 @@ export interface ProviderRegistryProvider<
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): ImageModelV2;
+
+  transcriptionModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['transcriptionModel']>>[0]>}`
+      : never,
+  ): TranscriptionModelV2;
+  transcriptionModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): TranscriptionModelV2;
+
+  speechModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['speechModel']>>[0]>}`
+      : never,
+  ): SpeechModelV2;
+  speechModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): SpeechModelV2;
 }
 
 /**
@@ -100,13 +120,13 @@ class DefaultProviderRegistry<
     this.providers[id] = provider;
   }
 
-  private getProvider(id: string): ProviderV2 {
+  private getProvider(id: string, modelType: 'languageModel' | 'textEmbeddingModel' | 'imageModel' | 'transcriptionModel' | 'speechModel'): ProviderV2 {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {
       throw new NoSuchProviderError({
         modelId: id,
-        modelType: 'languageModel',
+        modelType,
         providerId: id,
         availableProviders: Object.keys(this.providers),
       });
@@ -117,7 +137,7 @@ class DefaultProviderRegistry<
 
   private splitId(
     id: string,
-    modelType: 'languageModel' | 'textEmbeddingModel' | 'imageModel',
+    modelType: 'languageModel' | 'textEmbeddingModel' | 'imageModel' | 'transcriptionModel' | 'speechModel',
   ): [string, string] {
     const index = id.indexOf(this.separator);
 
@@ -138,7 +158,7 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModelV2 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
-    const model = this.getProvider(providerId).languageModel?.(modelId);
+    const model = this.getProvider(providerId, 'languageModel').languageModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'languageModel' });
@@ -151,7 +171,7 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): EmbeddingModelV2<string> {
     const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
-    const provider = this.getProvider(providerId);
+    const provider = this.getProvider(providerId, 'textEmbeddingModel');
 
     const model = provider.textEmbeddingModel?.(modelId);
 
@@ -169,12 +189,42 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): ImageModelV2 {
     const [providerId, modelId] = this.splitId(id, 'imageModel');
-    const provider = this.getProvider(providerId);
+    const provider = this.getProvider(providerId, 'imageModel');
 
     const model = provider.imageModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'imageModel' });
+    }
+
+    return model;
+  }
+
+  transcriptionModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): TranscriptionModelV2 {
+    const [providerId, modelId] = this.splitId(id, 'transcriptionModel');
+    const provider = this.getProvider(providerId, 'transcriptionModel');
+
+    const model = provider.transcriptionModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'transcriptionModel' });
+    }
+
+    return model;
+  }
+
+  speechModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): SpeechModelV2 {
+    const [providerId, modelId] = this.splitId(id, 'speechModel');
+    const provider = this.getProvider(providerId, 'speechModel');
+
+    const model = provider.speechModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'speechModel' });
     }
 
     return model;

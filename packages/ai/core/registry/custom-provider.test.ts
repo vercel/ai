@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
+import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV2();
@@ -11,6 +13,8 @@ const mockFallbackProvider = {
   languageModel: vi.fn(),
   textEmbeddingModel: vi.fn(),
   imageModel: vi.fn(),
+  transcriptionModel: vi.fn(),
+  speechModel: vi.fn(),
 };
 
 describe('languageModel', () => {
@@ -100,5 +104,63 @@ describe('imageModel', () => {
     const provider = customProvider({});
 
     expect(() => provider.imageModel('test-model')).toThrow(NoSuchModelError);
+  });
+});
+
+describe('transcriptionModel', () => {
+  const mockTranscriptionModel = new MockTranscriptionModelV2();
+
+  it('should return the transcription model if it exists', () => {
+    const provider = customProvider({
+      transcriptionModels: { 'test-model': mockTranscriptionModel },
+    });
+
+    expect(provider.transcriptionModel('test-model')).toBe(mockTranscriptionModel);
+  });
+
+  it('should use fallback provider if model not found and fallback exists', () => {
+    mockFallbackProvider.transcriptionModel = vi.fn().mockReturnValue(mockTranscriptionModel);
+
+    const provider = customProvider({
+      fallbackProvider: mockFallbackProvider,
+    });
+
+    expect(provider.transcriptionModel('test-model')).toBe(mockTranscriptionModel);
+    expect(mockFallbackProvider.transcriptionModel).toHaveBeenCalledWith('test-model');
+  });
+
+  it('should throw NoSuchModelError if model not found and no fallback', () => {
+    const provider = customProvider({});
+
+    expect(() => provider.transcriptionModel('test-model')).toThrow(NoSuchModelError);
+  });
+});
+
+describe('speechModel', () => {
+  const mockSpeechModel = new MockSpeechModelV2();
+
+  it('should return the speech model if it exists', () => {
+    const provider = customProvider({
+      speechModels: { 'test-model': mockSpeechModel },
+    });
+
+    expect(provider.speechModel('test-model')).toBe(mockSpeechModel);
+  });
+
+  it('should use fallback provider if model not found and fallback exists', () => {
+    mockFallbackProvider.speechModel = vi.fn().mockReturnValue(mockSpeechModel);
+
+    const provider = customProvider({
+      fallbackProvider: mockFallbackProvider,
+    });
+
+    expect(provider.speechModel('test-model')).toBe(mockSpeechModel);
+    expect(mockFallbackProvider.speechModel).toHaveBeenCalledWith('test-model');
+  });
+
+  it('should throw NoSuchModelError if model not found and no fallback', () => {
+    const provider = customProvider({});
+
+    expect(() => provider.speechModel('test-model')).toThrow(NoSuchModelError);
   });
 });
