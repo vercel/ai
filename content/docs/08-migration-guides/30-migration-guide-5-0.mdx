@@ -3,9 +3,6 @@ title: Migrate AI SDK 4.0 to 5.0
 description: Learn how to upgrade AI SDK 4.0 to 5.0.
 ---
 
-// NOTE: change to 4.3?
-// NOTE: need to review titles for clarity and accuracy
-
 # Migrate AI SDK 4.0 to 5.0
 
 <Note>
@@ -29,8 +26,8 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0.
 You need to update the following packages to the following versions in your `package.json` file(s):
 
 - `ai` package: `5.0.*`
-- `@ai-sdk/provider` package: `1.0.*`
-- `@ai-sdk/provider-utils` package: `2.0.*`
+- `@ai-sdk/provider` package: `2.0.*`
+- `@ai-sdk/provider-utils` package: `3.0.*`
 - `@ai-sdk/*` packages: `2.0.*` (other `@ai-sdk` packages)
 
 ## Codemods
@@ -121,8 +118,6 @@ import { UIMessage, CreateUIMessage } from 'ai';
 
 #### Content → Parts Array
 
-// note: do we need this for message content parts too?
-
 For `UIMessage`s (previously called `Message`), the `.content` property has been replaced with a `parts` array structure.
 
 ```tsx filename="AI SDK 4.0"
@@ -151,10 +146,6 @@ const uiMessage: UIMessage = {
 
 #### Data Role Removed
 
-// NOTE: move to core changes (done)
-// another idea that ui message changes should go in core
-// only things directly related to useChat should be in useChat section
-
 The `data` role has been removed from UI messages.
 
 ```tsx filename="AI SDK 4.0"
@@ -180,8 +171,6 @@ const stream = createUIMessageStream({
 ```
 
 #### UIMessage Reasoning Structure
-
-// note: section for all message changes?
 
 The reasoning property on UI messages has been moved to parts.
 
@@ -241,11 +230,51 @@ The `reasoning` property on reasoning UI parts has been renamed to `text`.
 }
 ```
 
-### Stream Data Removal
+### File Part Changes
 
-// NOTE: move to core changes
-// probably want to show the useChat element here too
-// maybe message annotations too?
+File parts now use `.url` instead of `.data` and `.mimeType`.
+
+```tsx filename="AI SDK 4.0"
+{
+  messages.map(message => (
+    <div key={message.id}>
+      {message.parts.map((part, index) => {
+        if (part.type === 'text') {
+          return <div key={index}>{part.text}</div>;
+        } else if (part.type === 'file' && part.mimeType.startsWith('image/')) {
+          return (
+            <img
+              key={index}
+              src={`data:${part.mimeType};base64,${part.data}`}
+            />
+          );
+        }
+      })}
+    </div>
+  ));
+}
+```
+
+```tsx filename="AI SDK 5.0"
+{
+  messages.map(message => (
+    <div key={message.id}>
+      {message.parts.map((part, index) => {
+        if (part.type === 'text') {
+          return <div key={index}>{part.text}</div>;
+        } else if (
+          part.type === 'file' &&
+          part.mediaType.startsWith('image/')
+        ) {
+          return <img key={index} src={part.url} />;
+        }
+      })}
+    </div>
+  ));
+}
+```
+
+### Stream Data Removal
 
 The `StreamData` class has been completely removed and replaced with UI message streams for custom data.
 
@@ -378,8 +407,6 @@ for await (const part of result.fullStream) {
 
 ### Tool Part Type Changes (UIMessage)
 
-// note: move to UIMessage section?
-
 In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic types.
 
 ```tsx filename="AI SDK 4.0"
@@ -409,49 +436,7 @@ In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic typ
 
 #### Media Type Standardization
 
-`mimeType` has been renamed to `mediaType` for consistency.
-
-```tsx filename="AI SDK 4.0"
-const result = await streamText({
-  model: openai('gpt-4.1'),
-  messages: [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'file',
-          data: contents,
-          mimeType: 'application/pdf',
-        },
-      ],
-    },
-  ],
-});
-```
-
-```tsx filename="AI SDK 5.0"
-const result = await streamText({
-  model: openai('gpt-4.1'),
-  messages: [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'file',
-          data: contents,
-          mediaType: 'application/pdf',
-        },
-      ],
-    },
-  ],
-});
-```
-
-**Codemod:** `rename-mime-type-to-media-type`
-
-#### Image Type → File Type
-
-The separate image type has been consolidated into the file type.
+`mimeType` has been renamed to `mediaType` for consistency. Both image and file types are supported in model messages.
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
@@ -466,6 +451,11 @@ const result = await generateText({
           image: new Uint8Array([0, 1, 2, 3]),
           mimeType: 'image/png',
         },
+        {
+          type: 'file',
+          data: contents,
+          mimeType: 'application/pdf',
+        },
       ],
     },
   ],
@@ -481,9 +471,14 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'What do you see?' },
         {
-          type: 'file',
+          type: 'image',
           image: new Uint8Array([0, 1, 2, 3]),
           mediaType: 'image/png',
+        },
+        {
+          type: 'file',
+          data: contents,
+          mediaType: 'application/pdf',
         },
       ],
     },
@@ -491,7 +486,7 @@ const result = await generateText({
 });
 ```
 
-**Codemod:** `replace-image-type-with-file-type`
+**Codemod:** `rename-mime-type-to-media-type`
 
 ### Reasoning Support
 
@@ -623,19 +618,19 @@ steps.forEach((step, index) => {
 
 ### Step Control: maxSteps → stopWhen
 
-// NOTE:
-// 1) think about suggested pattern for maxSteps vs stopWhen
-// answer here is main stopping conditions on the server with stopWhen, then have maxSteps > 1 in useChat hook for client side tool-calling
-// 2) do a better job at describing stopWhen are the stopping conditions when there are tool results
+For core functions like `generateText` and `streamText`, the `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution. The `stopWhen` parameter defines conditions for stopping the generation **when the last step contains tool results**. When multiple conditions are provided as an array, the generation stops if any condition is met.
 
-For core functions like `generateText` and `streamText`, the `maxSteps` parameter has been replaced with `stopWhen`, which provides more flexible control over multi-step execution. Note that `useChat` still supports the `maxSteps` parameter. The `stopWhen` parameter is a condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Note that `useChat` still supports the `maxSteps` parameter
+**Recommended Pattern:**
+
+- Use `stopWhen` in server-side functions (`generateText`/`streamText`) for your main stopping logic
+- Use `maxSteps > 1` in `useChat` for client-side tool execution limits
 
 ```tsx filename="AI SDK 4.0"
 // V4: Simple numeric limit
 const result = await generateText({
   model: openai('gpt-4'),
   messages,
-  maxSteps: 5, // Stop after a maxmimum of 5 steps
+  maxSteps: 5, // Stop after a maximum of 5 steps
 });
 
 // useChat with maxSteps
@@ -647,23 +642,24 @@ const { messages } = useChat({
 ```tsx filename="AI SDK 5.0"
 import { stepCountIs, hasToolCall } from 'ai';
 
-// V5: Function-based stopping conditions
+// V5: Server-side - flexible stopping conditions with stopWhen
 const result = await generateText({
   model: openai('gpt-4'),
   messages,
-  stopWhen: stepCountIs(5), // Stop at step 5
+  // Only triggers when last step has tool results
+  stopWhen: stepCountIs(5), // Stop at step 5 if tools were called
 });
 
-// Built-in helper functions
+// Server-side - stop when specific tool is called
 const result = await generateText({
   model: openai('gpt-4'),
   messages,
-  stopWhen: hasToolCall('finalizeTask'), // Stop when specific tool is called
+  stopWhen: hasToolCall('finalizeTask'), // Stop when finalizeTask tool is called
 });
 
-// useChat still uses maxSteps
+// Client-side - useChat still uses maxSteps for tool execution limits
 const { messages } = useChat({
-  maxSteps: 3, // Still available in useChat
+  maxSteps: 3, // Limit client-side tool execution rounds
 });
 ```
 
@@ -671,17 +667,27 @@ const { messages } = useChat({
 
 ```tsx filename="AI SDK 5.0"
 // Stop after N steps (equivalent to old maxSteps)
+// Note: Only applies when the last step has tool results
 stopWhen: stepCountIs(5);
 
 // Stop when specific tool is called
 stopWhen: hasToolCall('finalizeTask');
 
-// Stop based on step content
+// Multiple conditions (stops if ANY condition is met)
+stopWhen: [
+  stepCountIs(10), // Maximum 10 steps
+  hasToolCall('submitOrder'), // Or when order is submitted
+];
+
+// Custom condition based on step content
 stopWhen: ({ steps }) => {
   const lastStep = steps[steps.length - 1];
-  return lastStep?.text?.includes('DONE') || steps.length >= 10;
+  // Custom logic - only triggers if last step has tool results
+  return lastStep?.text?.includes('COMPLETE');
 };
 ```
+
+**Important:** The `stopWhen` conditions are only evaluated when the last step contains tool results.
 
 #### Usage vs Total Usage
 
@@ -927,8 +933,6 @@ const { messages } = useChat({
 ```
 
 #### Chat Request Options Changes
-
-// NOTE: maybe remove allowEmptySubmit?
 
 The `data` and `allowEmptySubmit` options have been removed from `ChatRequestOptions`.
 
@@ -1447,51 +1451,47 @@ const result = streamText({
 });
 ```
 
-// NOTE: NOT ACCURATE (we're using extract ts type in onChunk - awaiting confirmation)
-
 ```tsx filename="AI SDK 5.0"
 const result = streamText({
   model: openai('gpt-4.1'),
   prompt: 'Write a story',
   onChunk({ chunk }) {
     switch (chunk.type) {
-      case 'text-start': {
-        // New: Track when a text block starts
-        console.log('Text block started:', chunk.id);
+      case 'text': {
+        // Text chunks now use single 'text' type
+        console.log('Text chunk:', chunk.text);
         break;
       }
-      case 'text-delta': {
-        // Changed: Now uses 'delta' property and includes ID
-        console.log(`Text delta for ${chunk.id}:`, chunk.delta);
+      case 'reasoning': {
+        // Reasoning chunks use single 'reasoning' type
+        console.log('Reasoning chunk:', chunk.text);
         break;
       }
-      case 'text-end': {
-        // New: Track when a text block completes
-        console.log('Text block completed:', chunk.id);
+      case 'source': {
+        console.log('Source chunk:', chunk);
         break;
       }
-      case 'reasoning-start': {
-        console.log('Reasoning started:', chunk.id);
-        break;
-      }
-      case 'reasoning-delta': {
-        console.log(`Reasoning delta for ${chunk.id}:`, chunk.delta);
-        break;
-      }
-      case 'reasoning-end': {
-        console.log('Reasoning completed:', chunk.id);
+      case 'tool-call': {
+        console.log('Tool call:', chunk.toolName, chunk.input);
         break;
       }
       case 'tool-input-start': {
-        console.log(`Tool input started for ${chunk.toolName}:`, chunk.id);
+        console.log(
+          `Tool input started for ${chunk.toolName}:`,
+          chunk.toolCallId,
+        );
         break;
       }
       case 'tool-input-delta': {
-        console.log(`Tool input delta for ${chunk.id}:`, chunk.delta);
+        console.log(`Tool input delta for ${chunk.toolCallId}:`, chunk.delta);
         break;
       }
-      case 'tool-input-end': {
-        console.log('Tool input completed:', chunk.id);
+      case 'tool-result': {
+        console.log('Tool result:', chunk.output);
+        break;
+      }
+      case 'raw': {
+        console.log('Raw chunk:', chunk);
         break;
       }
     }
@@ -2105,52 +2105,7 @@ const result = await generateText({
 
 **Codemod:** `replace-bedrock-snake-case`
 
-### File Part Changes
-
-// NOTE: move to useChat section
-
-File parts now use `.url` instead of `.data` and `.mimeType`.
-
-```tsx filename="AI SDK 4.0"
-{
-  messages.map(message => (
-    <div key={message.id}>
-      {message.parts.map((part, index) => {
-        if (part.type === 'text') {
-          return <div key={index}>{part.text}</div>;
-        } else if (part.type === 'file' && part.mimeType.startsWith('image/')) {
-          return (
-            <img
-              key={index}
-              src={`data:${part.mimeType};base64,${part.data}`}
-            />
-          );
-        }
-      })}
-    </div>
-  ));
-}
-```
-
-```tsx filename="AI SDK 5.0"
-{
-  messages.map(message => (
-    <div key={message.id}>
-      {message.parts.map((part, index) => {
-        if (part.type === 'text') {
-          return <div key={index}>{part.text}</div>;
-        } else if (part.type === 'file' && part.mimeType.startsWith('image/')) {
-          return <img key={index} src={part.url} />;
-        }
-      })}
-    </div>
-  ));
-}
-```
-
 ### Provider-Utils Changes
-
-// NOTE: move to core changes
 
 Deprecated `CoreTool*` types have been removed.
 
@@ -2172,113 +2127,6 @@ import {
   ToolCallUnion,
   ToolChoice,
 } from '@ai-sdk/provider-utils';
-```
-
-## New Features in v5
-
-// note: probably makes more sense to have this in the announcement post -> point there
-
-While the sections above focus on breaking changes and migrations, AI SDK v5 also introduces several new features that enhance functionality without requiring code changes.
-
-### Tool Output Schema
-
-Tools can now optionally specify an output schema for better type inference and validation:
-
-```tsx filename="AI SDK 5.0"
-import { tool } from 'ai';
-import { z } from 'zod';
-
-const weatherTool = tool({
-  description: 'Get weather information',
-  inputSchema: z.object({
-    city: z.string(),
-  }),
-  outputSchema: z.object({
-    temperature: z.number(),
-    conditions: z.string(),
-  }),
-  execute: async ({ city }) => ({
-    temperature: 72,
-    conditions: 'sunny',
-  }),
-});
-```
-
-### Tool Type Inference Helpers
-
-New utility types simplify working with tool types:
-
-```tsx filename="AI SDK 5.0"
-import { InferToolInput, InferToolOutput, InferUITool } from 'ai';
-import { weatherTool } from './weatherTool';
-
-// Infer input and output types from tool definitions
-type WeatherInput = InferToolInput<typeof weatherTool>;
-type WeatherOutput = InferToolOutput<typeof weatherTool>;
-type WeatherUITool = InferUITool<typeof weatherTool>;
-
-// Use in UI message type definitions
-type MyUIMessage = UIMessage<
-  never, // metadata type
-  UIDataTypes, // data parts type
-  {
-    weather: WeatherUITool;
-  }
->;
-```
-
-### OpenAI Provider-Executed Tools
-
-New built-in tools for OpenAI:
-
-```tsx filename="AI SDK 5.0"
-import { openai } from '@ai-sdk/openai';
-
-const result = await generateText({
-  model: openai('gpt-4.1'),
-  tools: {
-    file_search: openai.tools.fileSearch(),
-    web_search_preview: openai.tools.webSearchPreview({
-      searchContextSize: 'high',
-    }),
-  },
-  messages,
-});
-```
-
-Available tools:
-
-- **`fileSearch`**: Search through uploaded documents using OpenAI's file search
-- **`webSearchPreview`**: Web search capabilities (preview feature)
-
-When using provider-defined tools like `fileSearch` and `webSearchPreview`, the tool execution results are automatically added to the message history, providing context for subsequent interactions:
-
-This automatic message history inclusion ensures that:
-
-- Tool execution context is preserved across conversation turns
-- Follow-up questions can reference previously searched information
-- The full conversation flow is maintained for debugging and logging
-
-### Enhanced Tool Streaming
-
-Tools now support fine-grained streaming callbacks:
-
-```tsx filename="AI SDK 5.0"
-const weatherTool = tool({
-  inputSchema: z.object({ city: z.string() }),
-  onInputStart: ({ toolCallId }) => {
-    console.log('Tool input streaming started:', toolCallId);
-  },
-  onInputDelta: ({ inputTextDelta, toolCallId }) => {
-    console.log('Tool input delta:', inputTextDelta);
-  },
-  onInputAvailable: ({ input, toolCallId }) => {
-    console.log('Tool input ready:', input);
-  },
-  execute: async ({ city }) => {
-    return `Weather in ${city}: sunny, 72°F`;
-  },
-});
 ```
 
 ## Codemod Table
