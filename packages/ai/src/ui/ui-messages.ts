@@ -78,6 +78,11 @@ export type TextUIPart = {
    * The text content.
    */
   text: string;
+
+  /**
+   * The state of the text part.
+   */
+  state?: 'streaming' | 'done';
 };
 
 /**
@@ -90,6 +95,11 @@ export type ReasoningUIPart = {
    * The reasoning text.
    */
   text: string;
+
+  /**
+   * The state of the reasoning part.
+   */
+  state?: 'streaming' | 'done';
 
   /**
    * The provider metadata.

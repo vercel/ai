@@ -172,9 +172,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
           switch (part.type) {
             case 'text-start': {
-              const textPart: TextUIPart = { type: 'text', text: '' };
+              const textPart: TextUIPart = {
+                type: 'text',
+                text: '',
+                state: 'streaming',
+              };
               state.activeTextParts[part.id] = textPart;
               state.message.parts.push(textPart);
+              write();
               break;
             }
 
@@ -185,7 +190,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'text-end': {
+              const textPart = state.activeTextParts[part.id];
+              textPart.state = 'done';
               delete state.activeTextParts[part.id];
+              write();
               break;
             }
 
@@ -194,10 +202,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 type: 'reasoning',
                 text: '',
                 providerMetadata: part.providerMetadata,
+                state: 'streaming',
               };
               state.activeReasoningParts[part.id] = reasoningPart;
               state.message.parts.push(reasoningPart);
-
               write();
               break;
             }
@@ -215,12 +223,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               const reasoningPart = state.activeReasoningParts[part.id];
               reasoningPart.providerMetadata =
                 part.providerMetadata ?? reasoningPart.providerMetadata;
+              reasoningPart.state = 'done';
               delete state.activeReasoningParts[part.id];
 
-              if (part.providerMetadata != null) {
-                write();
-              }
-
+              write();
               break;
             }
 

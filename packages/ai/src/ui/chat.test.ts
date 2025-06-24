@@ -146,6 +146,7 @@ describe('chat', () => {
                 "type": "step-start",
               },
               {
+                "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
               },
@@ -189,6 +190,34 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "state": "streaming",
                   "text": "Hello",
                   "type": "text",
                 },
@@ -215,6 +244,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "state": "streaming",
                   "text": "Hello,",
                   "type": "text",
                 },
@@ -241,6 +271,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "state": "streaming",
                   "text": "Hello, world",
                   "type": "text",
                 },
@@ -267,6 +298,34 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "state": "streaming",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "state": "done",
                   "text": "Hello, world.",
                   "type": "text",
                 },
@@ -321,7 +380,9 @@ describe('chat', () => {
           {
             id: 'id-1',
             role: 'assistant',
-            parts: [{ text: 'How can I help you?', type: 'text' }],
+            parts: [
+              { text: 'How can I help you?', type: 'text', state: 'done' },
+            ],
           },
         ],
       });
@@ -375,6 +436,7 @@ describe('chat', () => {
                 "type": "step-start",
               },
               {
+                "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
               },
@@ -401,6 +463,7 @@ describe('chat', () => {
               "id": "id-1",
               "parts": [
                 {
+                  "state": "done",
                   "text": "How can I help you?",
                   "type": "text",
                 },
@@ -439,6 +502,34 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "newid-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "state": "streaming",
                   "text": "Hello",
                   "type": "text",
                 },
@@ -465,6 +556,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "state": "streaming",
                   "text": "Hello,",
                   "type": "text",
                 },
@@ -491,6 +583,7 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "state": "streaming",
                   "text": "Hello, world",
                   "type": "text",
                 },
@@ -517,6 +610,34 @@ describe('chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "state": "streaming",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "newid-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "state": "done",
                   "text": "Hello, world.",
                   "type": "text",
                 },
