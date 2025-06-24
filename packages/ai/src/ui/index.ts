@@ -16,13 +16,19 @@ export {
   convertToModelMessages,
 } from './convert-to-model-messages';
 export { DefaultChatTransport } from './default-chat-transport';
+export {
+  HttpChatTransport,
+  type HttpChatTransportInitOptions,
+  type PrepareReconnectToStreamRequest,
+  type PrepareSendMessagesRequest,
+} from './http-chat-transport';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
-  type UITool,
-  type InferUITool,
-  type UITools,
+  getToolName,
+  isToolUIPart,
   type DataUIPart,
   type FileUIPart,
+  type InferUITool,
   type ReasoningUIPart,
   type SourceUrlUIPart,
   type StepStartUIPart,
@@ -31,8 +37,8 @@ export {
   type UIDataTypes,
   type UIMessage,
   type UIMessagePart,
-  isToolUIPart,
-  getToolName,
+  type UITool,
+  type UITools,
 } from './ui-messages';
 export {
   type CompletionRequestOptions,
