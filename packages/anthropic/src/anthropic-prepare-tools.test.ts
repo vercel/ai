@@ -99,16 +99,19 @@ it('should add warnings for unsupported tools', () => {
   });
   expect(result.tools).toEqual([]);
   expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'provider-defined',
-        id: 'unsupported.tool',
-        args: {},
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "tool": {
+          "args": {},
+          "id": "unsupported.tool",
+          "name": "unsupported_tool",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
       },
-    },
-  ]);
+    ]
+  `);
 });
 
 it('should handle tool choice "auto"', () => {
