@@ -48,16 +48,19 @@ it('should correctly prepare provider-defined tools', () => {
       {
         type: 'provider-defined',
         id: 'anthropic.computer_20241022',
+        name: 'computer',
         args: { displayWidthPx: 800, displayHeightPx: 600, displayNumber: 1 },
       },
       {
         type: 'provider-defined',
         id: 'anthropic.text_editor_20241022',
+        name: 'text_editor',
         args: {},
       },
       {
         type: 'provider-defined',
         id: 'anthropic.bash_20241022',
+        name: 'bash',
         args: {},
       },
     ],
@@ -89,22 +92,26 @@ it('should add warnings for unsupported tools', () => {
       {
         type: 'provider-defined',
         id: 'unsupported.tool',
+        name: 'unsupported_tool',
         args: {},
       },
     ],
   });
   expect(result.tools).toEqual([]);
   expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'provider-defined',
-        id: 'unsupported.tool',
-        args: {},
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "tool": {
+          "args": {},
+          "id": "unsupported.tool",
+          "name": "unsupported_tool",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
       },
-    },
-  ]);
+    ]
+  `);
 });
 
 it('should handle tool choice "auto"', () => {

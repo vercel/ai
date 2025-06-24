@@ -129,9 +129,14 @@ Provider-defined tool.
         type: 'provider-defined';
 
         /**
-The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
-     */
+The ID of the tool. Should follow the format `<provider-name>.<unique-tool-name>`.
+   */
         id: `${string}.${string}`;
+
+        /**
+The name of the tool that the user must use in the tool set.
+ */
+        name: string;
 
         /**
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.

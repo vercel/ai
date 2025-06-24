@@ -44,6 +44,7 @@ export const fileSearch = createProviderDefinedToolFactory<
   }
 >({
   id: 'openai.file_search',
+  name: 'file_search',
   inputSchema: z.object({
     query: z.string(),
   }),

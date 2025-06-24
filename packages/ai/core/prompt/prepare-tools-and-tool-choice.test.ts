@@ -18,6 +18,7 @@ const mockTools: ToolSet = {
 const mockProviderDefinedTool: Tool = {
   type: 'provider-defined',
   id: 'provider.tool-id',
+  name: 'tool-id',
   args: { key: 'value' },
   inputSchema: z.object({}),
 };

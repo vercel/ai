@@ -657,6 +657,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.web_search_preview',
+              name: 'web_search_preview',
               args: {
                 searchContextSize: 'high',
                 userLocation: {
@@ -696,6 +697,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.web_search_preview',
+              name: 'web_search_preview',
               args: {
                 searchContextSize: 'high',
                 userLocation: {
@@ -1735,6 +1737,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             type: 'provider-defined',
             id: 'openai.web_search_preview',
+            name: 'web_search_preview',
             args: {
               searchContextSize: 'high',
               userLocation: {
@@ -1838,6 +1841,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             type: 'provider-defined',
             id: 'openai.computer_use',
+            name: 'computer_use',
             args: {},
           },
         ],

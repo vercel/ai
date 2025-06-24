@@ -46,6 +46,7 @@ it('should add warnings for provider-defined tools', () => {
       {
         type: 'provider-defined' as const,
         id: 'provider.tool',
+        name: 'tool',
         args: {},
       },
     ],
@@ -60,6 +61,7 @@ it('should add warnings for provider-defined tools', () => {
         tool: {
           type: 'provider-defined' as const,
           id: 'provider.tool',
+          name: 'tool',
           args: {},
         },
       },
