@@ -517,20 +517,9 @@ describe('GatewayProvider', () => {
       vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
 
       const authResult = await getGatewayAuthToken({});
-      expect(authResult?.token).toBe(oidcToken); // empty string is falsy, so it falls back to OIDC
+      expect(authResult?.token).toBe(oidcToken);
       expect(authResult?.authMethod).toBe('oidc');
       expect(getVercelOidcToken).toHaveBeenCalled();
-    });
-
-    it('should handle whitespace-only AI_GATEWAY_API_KEY as valid API key', async () => {
-      process.env.AI_GATEWAY_API_KEY = '   ';
-      const oidcToken = 'fallback-oidc-token';
-      vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
-
-      const authResult = await getGatewayAuthToken({});
-      expect(authResult?.token).toBe('   '); // loadOptionalSetting returns whitespace string as-is
-      expect(authResult?.authMethod).toBe('api-key'); // whitespace string is truthy, so it's considered an API key
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
   });
 

@@ -141,9 +141,10 @@ export function createGatewayProvider(
       environmentVariableName: 'VERCEL_REGION',
     });
 
-    const baseConfig = {
+    return new GatewayLanguageModel(modelId, {
       provider: 'gateway',
       baseURL,
+      headers: getHeaders,
       fetch: options.fetch,
       o11yHeaders: async () => {
         const requestId = await getVercelRequestId();
@@ -154,11 +155,6 @@ export function createGatewayProvider(
           ...(requestId && { 'ai-o11y-request-id': requestId }),
         };
       },
-    };
-
-    return new GatewayLanguageModel(modelId, {
-      ...baseConfig,
-      headers: getHeaders,
     });
   };
 
@@ -167,25 +163,26 @@ export function createGatewayProvider(
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
       lastFetchTime = now;
       
-      const tryFetchWithAuth = async (headers: () => Promise<Record<string, string>>) => {
-        return new GatewayFetchMetadata({
-          baseURL,
-          headers,
-          fetch: options.fetch,
-        }).getAvailableModels();
-      };
-
-      pendingMetadata = (async () => {
-        return await tryFetchWithAuth(getHeaders);
-      })()
+      pendingMetadata = new GatewayFetchMetadata({
+        baseURL,
+        headers: getHeaders,
+        fetch: options.fetch,
+      })
+        .getAvailableModels()
         .then(metadata => {
           metadataCache = metadata;
           return metadata;
         })
         .catch(async (error: unknown) => {
-          const headers = await getHeaders();
-          const authMethod = headers['x-ai-gateway-auth-method'] as 'api-key' | 'oidc';
-          throw asGatewayError(error, authMethod);
+          try {
+            const headers = await getHeaders();
+            const authMethod = 'x-ai-gateway-auth-method' in headers 
+              ? headers['x-ai-gateway-auth-method'] as 'api-key' | 'oidc' 
+              : undefined;
+            throw asGatewayError(error, authMethod);
+          } catch (headerError) {
+            throw asGatewayError(error);
+          }
         });
     }
 
