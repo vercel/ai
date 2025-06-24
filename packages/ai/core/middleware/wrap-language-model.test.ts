@@ -58,6 +58,7 @@ describe('wrapLanguageModel', () => {
     expect(transformParams).toHaveBeenCalledWith({
       params,
       type: 'generate',
+      model: expect.any(Object),
     });
 
     expect(mockModel.doGenerateCalls[0]).toStrictEqual({
@@ -123,6 +124,7 @@ describe('wrapLanguageModel', () => {
     expect(transformParams).toHaveBeenCalledWith({
       params,
       type: 'stream',
+      model: expect.any(Object),
     });
     expect(mockModel.doStreamCalls[0]).toStrictEqual({
       ...params,
@@ -244,11 +246,13 @@ describe('wrapLanguageModel', () => {
       expect(transformParams1).toHaveBeenCalledWith({
         params,
         type: 'generate',
+        model: expect.any(Object),
       });
 
       expect(transformParams2).toHaveBeenCalledWith({
         params: { ...params, transformationStep1: true },
         type: 'generate',
+        model: expect.any(Object),
       });
 
       expect(mockModel.doGenerateCalls[0]).toStrictEqual(
@@ -296,10 +300,12 @@ describe('wrapLanguageModel', () => {
       expect(transformParams1).toHaveBeenCalledWith({
         params,
         type: 'stream',
+        model: expect.any(Object),
       });
       expect(transformParams2).toHaveBeenCalledWith({
         params: expect.objectContaining({ transformationStep1: true }),
         type: 'stream',
+        model: mockModel,
       });
       expect(mockModel.doStreamCalls[0]).toStrictEqual(
         expect.objectContaining({
