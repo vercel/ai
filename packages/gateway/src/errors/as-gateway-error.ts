@@ -2,7 +2,10 @@ import { APICallError } from '@ai-sdk/provider';
 import { extractApiCallResponse, GatewayError } from '.';
 import { createGatewayErrorFromResponse } from './create-gateway-error';
 
-export function asGatewayError(error: unknown, authMethod?: 'api-key' | 'oidc') {
+export function asGatewayError(
+  error: unknown,
+  authMethod?: 'api-key' | 'oidc',
+) {
   if (GatewayError.isInstance(error)) {
     return error;
   }

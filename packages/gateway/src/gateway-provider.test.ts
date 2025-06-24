@@ -525,7 +525,9 @@ describe('GatewayProvider', () => {
 
   describe('getGatewayAuthToken', () => {
     it('should prioritize apiKey when provided', async () => {
-      const authResult = await getGatewayAuthToken({ apiKey: 'test-api-key-123' });
+      const authResult = await getGatewayAuthToken({
+        apiKey: 'test-api-key-123',
+      });
       expect(authResult?.token).toBe('test-api-key-123');
       expect(authResult?.authMethod).toBe('api-key');
       expect(getVercelOidcToken).not.toHaveBeenCalled();

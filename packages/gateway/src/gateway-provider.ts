@@ -66,7 +66,9 @@ How frequently to refresh the metadata cache in milliseconds.
 
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
-export async function getGatewayAuthToken(options: GatewayProviderSettings): Promise<{
+export async function getGatewayAuthToken(
+  options: GatewayProviderSettings,
+): Promise<{
   token: string;
   authMethod: 'api-key' | 'oidc';
 } | null> {
@@ -119,7 +121,7 @@ export function createGatewayProvider(
         ...options.headers,
       };
     }
-    
+
     throw GatewayAuthenticationError.createContextualError({
       apiKeyProvided: false,
       oidcTokenProvided: false,
@@ -162,7 +164,7 @@ export function createGatewayProvider(
     const now = options._internal?.currentDate?.().getTime() ?? Date.now();
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
       lastFetchTime = now;
-      
+
       pendingMetadata = new GatewayFetchMetadata({
         baseURL,
         headers: getHeaders,
@@ -176,9 +178,10 @@ export function createGatewayProvider(
         .catch(async (error: unknown) => {
           try {
             const headers = await getHeaders();
-            const authMethod = 'x-ai-gateway-auth-method' in headers 
-              ? headers['x-ai-gateway-auth-method'] as 'api-key' | 'oidc' 
-              : undefined;
+            const authMethod =
+              'x-ai-gateway-auth-method' in headers
+                ? (headers['x-ai-gateway-auth-method'] as 'api-key' | 'oidc')
+                : undefined;
             throw asGatewayError(error, authMethod);
           } catch (headerError) {
             throw asGatewayError(error);
@@ -212,5 +215,3 @@ export function createGatewayProvider(
 }
 
 export const gateway = createGatewayProvider();
-
-
