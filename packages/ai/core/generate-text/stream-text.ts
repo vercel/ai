@@ -1232,7 +1232,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       const tool = tools?.[chunk.toolName];
                       if (tool?.onInputStart != null) {
                         await tool.onInputStart({
-                          toolCallId: chunk.id,
+                          toolCallId: chunk.toolCallId,
                           messages: stepInputMessages,
                           abortSignal,
                         });
