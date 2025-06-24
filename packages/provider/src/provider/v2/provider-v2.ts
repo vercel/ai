@@ -50,7 +50,7 @@ The model id is then passed to the provider function to get the model.
 
 @returns {TranscriptionModel} The transcription model associated with the id
   */
-  readonly transcriptionModel?: (modelId: string) => TranscriptionModelV2;
+  transcriptionModel?(modelId: string): TranscriptionModelV2;
 
   /**
 Returns the speech model with the given id.
@@ -60,5 +60,5 @@ The model id is then passed to the provider function to get the model.
 
 @returns {SpeechModel} The speech model associated with the id
   */
-  readonly speechModel?: (modelId: string) => SpeechModelV2;
+  speechModel?(modelId: string): SpeechModelV2;
 }
