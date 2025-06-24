@@ -13,12 +13,21 @@ import {
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   LanguageModelV1ProviderMetadata,
+  LanguageModelV1ImagePart,
+  LanguageModelV1FilePart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   convertUint8ArrayToBase64,
   createIdGenerator,
 } from '@ai-sdk/provider-utils';
+
+import {
+  BEDROCK_IMAGE_MIME_TYPES,
+  type BedrockImageMimeType,
+  BEDROCK_DOCUMENT_MIME_TYPES,
+  type BedrockDocumentMimeType,
+} from './bedrock-api-types';
 
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
@@ -88,9 +97,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
 
                     bedrockContent.push({
                       image: {
-                        format: part.mimeType?.split(
-                          '/',
-                        )?.[1] as BedrockImageFormat,
+                        format: getBedrockImageFormat(part.mimeType),
                         source: {
                           bytes: convertUint8ArrayToBase64(
                             part.image ?? (part.image as Uint8Array),
@@ -109,11 +116,15 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
                       });
                     }
 
+                    if (!part.mimeType) {
+                      throw new Error(
+                        'File mime type is required in user message part content',
+                      );
+                    }
+
                     bedrockContent.push({
                       document: {
-                        format: part.mimeType?.split(
-                          '/',
-                        )?.[1] as BedrockDocumentFormat,
+                        format: getBedrockDocumentFormat(part.mimeType),
                         name: generateFileId(),
                         source: {
                           bytes: part.data,
@@ -145,12 +156,8 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
                                 'Image mime type is required in tool result part content',
                               );
                             }
-                            const format = part.mimeType.split('/')[1];
-                            if (!isBedrockImageFormat(format)) {
-                              throw new Error(
-                                `Unsupported image format: ${format}`,
-                              );
-                            }
+
+                            const format = getBedrockImageFormat(part.mimeType);
                             return {
                               image: {
                                 format,
@@ -282,8 +289,31 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
   return { system, messages };
 }
 
-function isBedrockImageFormat(format: string): format is BedrockImageFormat {
-  return ['jpeg', 'png', 'gif'].includes(format);
+function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
+  if (!mimeType) {
+    throw new Error('Image mime type is required in user message part content');
+  }
+
+  const format = BEDROCK_IMAGE_MIME_TYPES[mimeType as BedrockImageMimeType];
+  if (!format) {
+    throw new Error(
+      `Unsupported image mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_IMAGE_MIME_TYPES).join(', ')}`,
+    );
+  }
+
+  return format;
+}
+
+function getBedrockDocumentFormat(mimeType: string): BedrockDocumentFormat {
+  const format =
+    BEDROCK_DOCUMENT_MIME_TYPES[mimeType as BedrockDocumentMimeType];
+  if (!format) {
+    throw new Error(
+      `Unsupported file mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_DOCUMENT_MIME_TYPES).join(', ')}`,
+    );
+  }
+
+  return format;
 }
 
 function trimIfLast(
