@@ -1,5 +1,25 @@
 # @ai-sdk/provider
 
+## 2.0.0-alpha.16
+
+### Major Changes
+
+- 742b7be: feat: forward id, streaming start, streaming end of content blocks
+- 7cddb72: refactoring (provider): collapse provider defined tools into single definition
+- ccce59b: feat (provider): support changing provider, model, supportedUrls in middleware
+- e2b9e4b: feat (provider): add name for provider defined tools for future validation
+- 0d06df6: chore (ai): remove v1 providers
+- 7435eb5: feat: upgrade speech models to v2 specification
+- 44f4aba: feat: upgrade transcription models to v2 specification
+- 023ba40: feat (provider): support arbitrary media types in tool results
+- 5e57fae: refactoring (provider): restructure tool result output
+
+### Patch Changes
+
+- 472524a: spec (ai): add provider options to tools
+- dd3ff01: chore: add language setting to speechv2
+- cb68df0: feat: add transcription and speech model support to provider registry
+
 ## 2.0.0-alpha.15
 
 ### Patch Changes

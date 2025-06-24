@@ -1,5 +1,31 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-alpha.16
+
+### Major Changes
+
+- e025824: refactoring (ai): restructure provider-defined tools
+- 71f938d: feat (ai): add output schema for tools
+
+### Patch Changes
+
+- 45c1ea2: refactoring: introduce FlexibleSchema
+- bfdca8d: feat (ai): add InferToolInput and InferToolOutput helpers
+- 28a5ed5: refactoring: move tools helper into provider-utils
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+  - @ai-sdk/provider@2.0.0-alpha.16
+
 ## 3.0.0-alpha.15
 
 ### Patch Changes

@@ -1,5 +1,30 @@
 # @ai-sdk/gladia
 
+## 1.0.0-alpha.16
+
+### Patch Changes
+
+- cb68df0: feat: add transcription and speech model support to provider registry
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider@2.0.0-alpha.16
+  - @ai-sdk/provider-utils@3.0.0-alpha.16
+
 ## 1.0.0-alpha.15
 
 ### Patch Changes
