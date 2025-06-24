@@ -1,5 +1,44 @@
 # ai
 
+## 5.0.0-beta.1
+
+### Major Changes
+
+- 9ad0484: feat (ai): automatic tool execution error handling
+
+### Patch Changes
+
+- d88455d: feat (ai): expose http chat transport type
+- 4048ce3: fix (ai): add tests and examples for openai responses
+- f2b041e: Fix custom `fetch` in HttpChatTransport
+- cb68df0: feat: add transcription and speech model support to provider registry
+- 26695a3: feat (ui): add state for text and reasoning ui message parts
+- e7d2ce3: feat: provider-executed tools
+- 102b066: fix (ai): fix invalid fetch call
+- e862b5b: feat (ai): allow sync tool.execute
+- 7bd025b: fix (ai): fix sync tool execute with streamText
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [f77bc38]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider@2.0.0-beta.1
+  - @ai-sdk/provider-utils@3.0.0-beta.1
+  - @ai-sdk/gateway@1.0.0-beta.1
+
 ## 5.0.0-alpha.15
 
 ### Major Changes
