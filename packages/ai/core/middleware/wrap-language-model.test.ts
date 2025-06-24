@@ -17,7 +17,7 @@ describe('wrapLanguageModel', () => {
       expect(wrappedModel.modelId).toBe('test-model');
     });
 
-    it('it should use middleware overrideModelId if provided', () => {
+    it('should use middleware overrideModelId if provided', () => {
       const wrappedModel = wrapLanguageModel({
         model: new MockLanguageModelV2({
           modelId: 'test-model',
@@ -31,7 +31,7 @@ describe('wrapLanguageModel', () => {
       expect(wrappedModel.modelId).toBe('override-model');
     });
 
-    it('it should use modelId parameter if provided', () => {
+    it('should use modelId parameter if provided', () => {
       const wrappedModel = wrapLanguageModel({
         model: new MockLanguageModelV2({
           modelId: 'test-model',
@@ -60,7 +60,7 @@ describe('wrapLanguageModel', () => {
       expect(wrappedModel.provider).toBe('test-provider');
     });
 
-    it('it should use middleware overrideProvider if provided', () => {
+    it('should use middleware overrideProvider if provided', () => {
       const wrappedModel = wrapLanguageModel({
         model: new MockLanguageModelV2({
           provider: 'test-provider',
@@ -74,7 +74,7 @@ describe('wrapLanguageModel', () => {
       expect(wrappedModel.provider).toBe('override-provider');
     });
 
-    it('it should use providerId parameter if provided', () => {
+    it('should use providerId parameter if provided', () => {
       const wrappedModel = wrapLanguageModel({
         model: new MockLanguageModelV2({
           provider: 'test-provider',
@@ -265,7 +265,7 @@ describe('wrapLanguageModel', () => {
     expect(supportedUrlsCalled).toBe(true);
   });
 
-  describe('wrapLanguageModel with multiple middlewares', () => {
+  describe('multiple middlewares', () => {
     it('should call multiple transformParams middlewares in sequence for doGenerate', async () => {
       const mockModel = new MockLanguageModelV2({
         doGenerate: [],
