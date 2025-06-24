@@ -89,6 +89,43 @@ describe('wrapLanguageModel', () => {
     });
   });
 
+  describe('supportedUrls property', () => {
+    it('should pass through by default', async () => {
+      const supportedUrls = {
+        'original/*': [/^https:\/\/.*$/],
+      };
+
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({ supportedUrls }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+      });
+
+      expect(await wrappedModel.supportedUrls).toStrictEqual(supportedUrls);
+    });
+
+    it('should use middleware overrideSupportedUrls if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          supportedUrls: {
+            'original/*': [/^https:\/\/.*$/],
+          },
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+          overrideSupportedUrls: ({ model }) => ({
+            'override/*': [/^https:\/\/.*$/],
+          }),
+        },
+      });
+
+      expect(wrappedModel.supportedUrls).toStrictEqual({
+        'override/*': [/^https:\/\/.*$/],
+      });
+    });
+  });
+
   it('should call transformParams middleware for doGenerate', async () => {
     const mockModel = new MockLanguageModelV2({
       doGenerate: [],
@@ -215,21 +252,6 @@ describe('wrapLanguageModel', () => {
       params,
       model: mockModel,
     });
-  });
-
-  it('should pass through supportedUrls', async () => {
-    const supportedUrls = {
-      'image/*': [/^https:\/\/.*$/],
-    };
-
-    const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelV2({ supportedUrls }),
-      middleware: {
-        middlewareVersion: 'v2',
-      },
-    });
-
-    expect(await wrappedModel.supportedUrls).toStrictEqual(supportedUrls);
   });
 
   it('should support models that use "this" context in supportedUrls', async () => {
