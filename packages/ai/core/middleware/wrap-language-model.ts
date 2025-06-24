@@ -53,7 +53,9 @@ const doWrap = ({
     params: LanguageModelV2CallOptions;
     type: 'generate' | 'stream';
   }) {
-    return transformParams ? await transformParams({ params, type }) : params;
+    return transformParams
+      ? await transformParams({ params, type, model })
+      : params;
   }
 
   return {
