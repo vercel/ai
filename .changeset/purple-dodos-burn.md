@@ -4,6 +4,7 @@
 '@ai-sdk/deepgram': patch
 '@ai-sdk/gladia': patch
 '@ai-sdk/revai': patch
+'@ai-sdk/provider': patch
 'ai': patch
 ---
 
