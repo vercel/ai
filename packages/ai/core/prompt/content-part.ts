@@ -122,9 +122,9 @@ export const outputSchema: z.ZodType<LanguageModelV2ToolResultOutput> =
             text: z.string(),
           }),
           z.object({
-            type: z.literal('image'),
+            type: z.literal('media'),
             data: z.string(),
-            mediaType: z.string().optional(),
+            mediaType: z.string(),
           }),
         ]),
       ),

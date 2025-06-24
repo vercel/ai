@@ -1231,7 +1231,7 @@ describe('convertToLanguageModelMessage', () => {
               output: {
                 type: 'content',
                 value: [
-                  { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
+                  { type: 'media', data: 'dGVzdA==', mediaType: 'image/png' },
                 ],
               },
             },
@@ -1250,7 +1250,7 @@ describe('convertToLanguageModelMessage', () => {
                   {
                     "data": "dGVzdA==",
                     "mediaType": "image/png",
-                    "type": "image",
+                    "type": "media",
                   },
                 ],
               },
