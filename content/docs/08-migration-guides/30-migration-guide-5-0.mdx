@@ -3,20 +3,21 @@ title: Migrate AI SDK 4.0 to 5.0
 description: Learn how to upgrade AI SDK 4.0 to 5.0.
 ---
 
-# Migrate AI SDK 4.0 to 5.0
+# Migrate AI SDK 4.0 to 5.0 Beta
 
 <Note>
-  AI SDK 5.0 is a major release that introduces significant improvements in type
-  safety, consistency, and developer experience. This guide will help you
-  migrate from AI SDK 4.0 to 5.0.
+  AI SDK 5.0 is currently in beta and introduces significant improvements in
+  type safety, consistency, and developer experience. This guide will help you
+  migrate from AI SDK 4.0 to 5.0. We are continuously improving our automated
+  migration tools to make the upgrade process smoother. Note that you may want
+  to wait until GA for production projects - this is for early adopters who want
+  to help us.
 </Note>
 
 ## Recommended Migration Process
 
 1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
 1. Upgrade to AI SDK 5.0.
-1. Automatically migrate your code using [codemods](#codemods).
-   > If you don't want to use codemods, we recommend resolving all TypeScript errors after upgrading to AI SDK 5.0.
 1. Follow the breaking changes guide below.
 1. Verify your project is working as expected.
 1. Commit your changes.
@@ -25,40 +26,10 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0.
 
 You need to update the following packages to the following versions in your `package.json` file(s):
 
-- `ai` package: `5.0.*`
-- `@ai-sdk/provider` package: `2.0.*`
-- `@ai-sdk/provider-utils` package: `3.0.*`
-- `@ai-sdk/*` packages: `2.0.*` (other `@ai-sdk` packages)
-
-## Codemods
-
-The AI SDK provides Codemod transformations to help upgrade your codebase when a
-feature is deprecated, removed, or otherwise changed.
-
-Codemods are transformations that run on your codebase programmatically. They
-allow you to easily apply many changes without having to manually go through
-every file.
-
-<Note>
-  Codemods are intended as a tool to help you with the upgrade process. They may
-  not cover all of the changes you need to make. You may need to make additional
-  changes manually.
-</Note>
-
-You can run all codemods provided as part of the 5.0 upgrade process by running
-the following command from the root of your project:
-
-```sh
-npx @ai-sdk/codemod upgrade
-```
-
-Individual codemods can be run by specifying the name of the codemod:
-
-```sh
-npx @ai-sdk/codemod <codemod-name> <path>
-```
-
-See also the [table of codemods](#codemod-table).
+- `ai` package: `5.0.0-beta`
+- `@ai-sdk/provider` package: `2.0.0-beta`
+- `@ai-sdk/provider-utils` package: `3.0.0-beta`
+- `@ai-sdk/*` packages: `2.0.0-beta` (other `@ai-sdk` packages)
 
 ## AI SDK Core Changes
 
@@ -84,8 +55,6 @@ const result = await generateText({
 });
 ```
 
-**Codemod:** `rename-max-tokens-to-max-output-tokens`
-
 ### Message and Type System Changes
 
 #### Core Type Renames
@@ -100,8 +69,6 @@ import { CoreMessage } from 'ai';
 import { ModelMessage } from 'ai';
 ```
 
-**Codemod:** `rename-core-message-to-model-message`
-
 ##### `Message` → `UIMessage`
 
 ```tsx filename="AI SDK 4.0"
@@ -111,8 +78,6 @@ import { Message, CreateMessage } from 'ai';
 ```tsx filename="AI SDK 5.0"
 import { UIMessage, CreateUIMessage } from 'ai';
 ```
-
-**Codemod:** `rename-message-to-ui-message`
 
 ### UIMessage Changes
 
@@ -141,8 +106,6 @@ const uiMessage: UIMessage = {
   parts: [{ type: 'text', text: 'Bonjour!' }],
 };
 ```
-
-**Codemod:** `replace-content-with-parts`
 
 #### Data Role Removed
 
@@ -339,8 +302,6 @@ const result = await generateText({
 console.log(result.providerMetadata?.openai);
 ```
 
-**Codemod:** `replace-provider-metadata-with-provider-options`
-
 #### Tool Definition Changes (parameters → inputSchema)
 
 Tool definitions have been updated to use `inputSchema` instead of `parameters` and error classes have been renamed.
@@ -486,8 +447,6 @@ const result = await generateText({
 });
 ```
 
-**Codemod:** `rename-mime-type-to-media-type`
-
 ### Reasoning Support
 
 #### Reasoning Text Property Rename
@@ -505,8 +464,6 @@ for (const step of steps) {
   console.log(step.reasoningText);
 }
 ```
-
-**Codemod:** `rename-reasoning-to-reasoningText`
 
 #### Generate Text Reasoning Property Changes
 
@@ -531,8 +488,6 @@ const result = await generateText({
 console.log(result.reasoningText); // String reasoning text
 console.log(result.reasoning); // Array of reasoning details
 ```
-
-**Codemod:** `rename-reasoning-properties`
 
 ### Continuation Steps Removal
 
@@ -579,8 +534,6 @@ await generateImage({
   },
 });
 ```
-
-**Codemod:** `move-image-model-maxImagesPerCall`
 
 ### Step Result Changes
 
@@ -723,8 +676,6 @@ import { createStreamableValue } from '@ai-sdk/rsc';
 
 <Note>Don't forget to install the new package: `npm install @ai-sdk/rsc`</Note>
 
-**Codemod:** `rsc-package`
-
 ### React UI Hooks Moved to `@ai-sdk/react`
 
 The deprecated `ai/react` export has been removed in favor of `@ai-sdk/react`.
@@ -738,10 +689,8 @@ import { useChat } from '@ai-sdk/react';
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/react`
+  Don't forget to install the new package: `npm install @ai-sdk/react@beta`
 </Note>
-
-**Codemod:** `move-react-to-ai-sdk`
 
 ### useChat Changes
 
@@ -914,8 +863,6 @@ const { messages } = useChat({
 });
 ```
 
-**Codemod:** `remove-sendExtraMessageFields`
-
 #### Keep Last Message on Error Removal
 
 The `keepLastMessageOnError` option has been removed as it's no longer needed.
@@ -969,8 +916,6 @@ import type { RequestOptions } from 'ai';
 ```tsx filename="AI SDK 5.0"
 import type { CompletionRequestOptions } from 'ai';
 ```
-
-**Codemod:** `rename-request-options`
 
 #### Loading State Changes
 
@@ -1128,8 +1073,6 @@ import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import { getTextFromDataUrl } from 'ai';
 ```
 
-**Codemod:** `move-ui-utils-to-ai`
-
 ### useCompletion Changes
 
 The `data` property has been removed from the `useCompletion` hook.
@@ -1213,8 +1156,6 @@ The `experimental_attachments` property has been replaced with the parts array.
 }
 ```
 
-**Codemod:** `replace-content-with-parts`
-
 ### Embedding Changes
 
 #### Provider Options for Embeddings
@@ -1240,8 +1181,6 @@ const { embedding } = await embed({
 });
 ```
 
-**Codemod:** `move-provider-options` (messages only due to complexity)
-
 #### Raw Response → Response
 
 The `rawResponse` property has been renamed to `response`.
@@ -1253,8 +1192,6 @@ const { rawResponse } = await embed(/* */);
 ```tsx filename="AI SDK 5.0"
 const { response } = await embed(/* */);
 ```
-
-**Codemod:** `replace-rawresponse-with-response`
 
 #### Parallel Requests in embedMany
 
@@ -1292,10 +1229,8 @@ const response = createUIMessageStreamResponse({
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/langchain`
+  Don't forget to install the new package: `npm install @ai-sdk/langchain@beta`
 </Note>
-
-**Codemod:** `move-langchain-adapter`
 
 #### LlamaIndex Adapter Moved to `@ai-sdk/llamaindex`
 
@@ -1317,10 +1252,8 @@ const response = createUIMessageStreamResponse({
 ```
 
 <Note>
-  Don't forget to install the new package: `npm install @ai-sdk/llamaindex`
+  Don't forget to install the new package: `npm install @ai-sdk/llamaindex@beta`
 </Note>
-
-**Codemod:** `replace-llamaindex-adapter`
 
 ## Streaming Architecture
 
@@ -1429,8 +1362,6 @@ for await (const chunk of result.fullStream) {
 }
 ```
 
-**Codemod:** `replace-textdelta-with-text`
-
 #### onChunk Callback Changes
 
 The `onChunk` callback now receives the new streaming chunk types with IDs and the start/delta/end pattern.
@@ -1527,8 +1458,6 @@ for await (const chunk of result.fullStream) {
 }
 ```
 
-**Codemod:** `flatten-streamtext-file-properties`
-
 #### Source Stream Parts Restructure
 
 Source stream parts have been flattened.
@@ -1552,8 +1481,6 @@ for await (const part of result.fullStream) {
   }
 }
 ```
-
-**Codemod:** `restructure-source-stream-parts`
 
 #### Finish Event Changes
 
@@ -1634,8 +1561,6 @@ const stream = createUIMessageStream({
 });
 ```
 
-**Codemod:** `migrate-to-ui-message-stream`
-
 #### Data Stream Response Helper Functions Renamed
 
 The streaming API has been completely restructured from data streams to UI message streams.
@@ -1692,8 +1617,6 @@ import { DataStreamToSSETransformStream } from 'ai';
 import { JsonToSseTransformStream } from 'ai';
 ```
 
-**Codemod:** `rename-datastream-transform-stream`
-
 ### Utility Changes
 
 #### ID Generation Changes
@@ -1736,8 +1659,6 @@ import { LanguageModelV2 } from 'ai';
 import { LanguageModelV2 } from '@ai-sdk/provider';
 ```
 
-**Codemod:** `import-LanguageModelV2-from-provider-package`
-
 #### Middleware Rename
 
 `LanguageModelV1Middleware` has been renamed and moved.
@@ -1749,8 +1670,6 @@ import { LanguageModelV1Middleware } from 'ai';
 ```tsx filename="AI SDK 5.0"
 import { LanguageModelV2Middleware } from '@ai-sdk/provider';
 ```
-
-**Codemod:** `import-LanguageModelV2-from-provider-package`
 
 #### Usage Token Properties
 
@@ -1776,8 +1695,6 @@ Token usage properties have been renamed for consistency.
   }
 }
 ```
-
-**Codemod:** `replace-usage-token-properties`
 
 #### Stream Part Type Changes
 
@@ -1890,8 +1807,6 @@ Provider response objects have been updated.
 }
 ```
 
-**Codemod:** `replace-rawresponse-with-response`
-
 #### `wrapLanguageModel` now stable
 
 ```tsx filename="AI SDK 4.0"
@@ -1901,8 +1816,6 @@ import { experimental_wrapLanguageModel } from 'ai';
 ```tsx filename="AI SDK 5.0"
 import { wrapLanguageModel } from 'ai';
 ```
-
-**Codemod:** `remove-experimental-wrap-language-model`
 
 #### `activeTools` No Longer Experimental
 
@@ -2024,8 +1937,6 @@ const openai = createOpenAI({
 });
 ```
 
-**Codemod:** `remove-openai-compatibility`
-
 #### Legacy Function Calls Removal
 
 The `useLegacyFunctionCalls` option has been removed.
@@ -2067,8 +1978,6 @@ const result = generateText({
 });
 ```
 
-**Codemod:** `replace-simulate-streaming`
-
 ### Amazon Bedrock
 
 #### Snake Case → Camel Case
@@ -2103,8 +2012,6 @@ const result = await generateText({
 });
 ```
 
-**Codemod:** `replace-bedrock-snake-case`
-
 ### Provider-Utils Changes
 
 Deprecated `CoreTool*` types have been removed.
@@ -2128,76 +2035,3 @@ import {
   ToolChoice,
 } from '@ai-sdk/provider-utils';
 ```
-
-## Codemod Table
-
-| Change                                                          | Codemod                                           |
-| --------------------------------------------------------------- | ------------------------------------------------- |
-| **Package Structure Changes**                                   |                                                   |
-| `@ai-sdk/rsc` Package Extraction                                | `rsc-package`                                     |
-| React UI Hooks Moved to `@ai-sdk/react`                         | `move-react-to-ai-sdk`                            |
-| `@ai-sdk/ui-utils` Package Removal                              | `move-ui-utils-to-ai`                             |
-| LangChain Adapter Moved                                         | `move-langchain-adapter`                          |
-| LlamaIndex Adapter Moved                                        | `replace-llamaindex-adapter`                      |
-| **Core API Changes**                                            |                                                   |
-| Maximum Output Tokens                                           | `rename-max-tokens-to-max-output-tokens`          |
-| `CoreMessage` → `ModelMessage`                                  | `rename-core-message-to-model-message`            |
-| `Message` → `UIMessage`                                         | `rename-message-to-ui-message`                    |
-| Provider Metadata → Provider Options                            | `replace-provider-metadata-with-provider-options` |
-| Content → Parts Array                                           | `replace-content-with-parts`                      |
-| Attachments → Parts                                             | `replace-content-with-parts`                      |
-| Media Type Standardization                                      | `rename-mime-type-to-media-type`                  |
-| Image Type → File Type                                          | `replace-image-type-with-file-type`               |
-| Step Control (maxSteps → stopWhen)                              | _N/A_ (API change)                                |
-| **Reasoning Support**                                           |                                                   |
-| Reasoning Text Property Rename                                  | `rename-reasoning-to-reasoningText`               |
-| Generate Text Reasoning Properties                              | `rename-reasoning-properties`                     |
-| **Provider-Specific Changes**                                   |                                                   |
-| OpenAI Compatibility Option Removal                             | `remove-openai-compatibility`                     |
-| Simulate Streaming Middleware                                   | `replace-simulate-streaming`                      |
-| Amazon Bedrock Snake Case → Camel Case                          | `replace-bedrock-snake-case`                      |
-| **Embedding Changes**                                           |                                                   |
-| Provider Options for Embeddings                                 | `move-provider-options` (messages only)           |
-| Raw Response → Response                                         | `replace-rawresponse-with-response`               |
-| **Streaming Changes**                                           |                                                   |
-| Stream Protocol: Single Chunks → Start/Delta/End Pattern        | `migrate-streaming-to-start-delta-end`            |
-| Text Delta Properties (`textDelta` → `delta`)                   | `replace-textdelta-with-text`                     |
-| onChunk Callback with New Stream Types                          | _N/A_ (handled by TypeScript)                     |
-| Reasoning Streaming Pattern                                     | _N/A_ (new feature)                               |
-| Tool Input Streaming                                            | _N/A_ (new feature)                               |
-| Generate Text Result Structure                                  | `replace-generatetext-text-property`              |
-| File Stream Parts Restructure                                   | `flatten-streamtext-file-properties`              |
-| Source Stream Parts Restructure                                 | `restructure-source-stream-parts`                 |
-| **Data Streaming Changes**                                      |                                                   |
-| Stream Protocol v2                                              | `migrate-to-ui-message-stream`                    |
-| Stream Naming Changes                                           | `rename-datastream-transform-stream`              |
-| **Hook Changes**                                                |                                                   |
-| Send Extra Message Fields Default                               | `remove-sendExtraMessageFields`                   |
-| Request Options Type Rename                                     | `rename-request-options`                          |
-| Resume Stream Support                                           | _N/A_ (handled by TypeScript)                     |
-| **Utility Changes**                                             |                                                   |
-| Get UI Text Removal                                             | `remove-get-ui-text`                              |
-| **Provider Interface Changes**                                  |                                                   |
-| Language Model V2 Import                                        | `import-LanguageModelV2-from-provider-package`    |
-| Middleware Rename                                               | `import-LanguageModelV2-from-provider-package`    |
-| Stream Part Type Changes (LanguageModelV2StreamPart)            | _N/A_ (provider implementation change)            |
-| Usage Token Properties                                          | `replace-usage-token-properties`                  |
-| Raw Response → Response                                         | `replace-rawresponse-with-response`               |
-| Experimental Wrappers Removal                                   | `remove-experimental-wrap-language-model`         |
-| Active Tools No Longer Experimental                             | _N/A_ (handled by TypeScript)                     |
-| Prepare Step No Longer Experimental                             | _N/A_ (handled by TypeScript)                     |
-| **Callback Changes**                                            |                                                   |
-| onCompletion → onFinal                                          | `replace-oncompletion-with-onfinal`               |
-| **Tool Changes**                                                |                                                   |
-| Tool Part Types and Naming (tool-invocation → tool-${toolName}) | _N/A_ (handled by TypeScript)                     |
-| Tool Property Changes (args/result → input/output)              | _N/A_ (handled by TypeScript)                     |
-| Tool States and Streaming                                       | _N/A_ (new feature)                               |
-| Type Safety for Tools                                           | _N/A_ (requires custom type definition)           |
-| **Image Generation Changes**                                    |                                                   |
-| Image Model Settings                                            | `move-image-model-maxImagesPerCall`               |
-
-<Note>
-  Codemods marked as "messages only" provide warnings about complex changes that
-  need manual intervention. Changes marked as "N/A" either don't require
-  codemods (handled by TypeScript) or are too complex for automated migration.
-</Note>
