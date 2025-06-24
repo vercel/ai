@@ -109,16 +109,19 @@ it('should add warnings for unsupported tools', () => {
   });
   expect(result.tools).toEqual([]);
   expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'provider-defined',
-        id: 'openai.unsupported_tool',
-        args: {},
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "tool": {
+          "args": {},
+          "id": "openai.unsupported_tool",
+          "name": "unsupported_tool",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
       },
-    },
-  ]);
+    ]
+  `);
 });
 
 it('should add warnings for unsupported provider-defined tools', () => {
