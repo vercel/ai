@@ -273,6 +273,27 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should accumulate reasoning tokens', async () => {
+    prepareJsonResponse({
+      usage: {
+        promptTokenCount: 20,
+        candidatesTokenCount: 5,
+        totalTokenCount: 30,
+      },
+    });
+
+    const { usage } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toStrictEqual({
+      promptTokens: 20,
+      completionTokens: 10,
+    });
+  });
+
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -2189,7 +2210,7 @@ describe('doStream', () => {
           usageMetadata: {
             promptTokenCount: 15,
             candidatesTokenCount: 25,
-            totalTokenCount: 40,
+            totalTokenCount: 45,
           },
         })}\n\n`,
       ],
@@ -2220,7 +2241,7 @@ describe('doStream', () => {
     );
     expect(finishEvent?.type === 'finish' && finishEvent.usage).toStrictEqual({
       promptTokens: 15,
-      completionTokens: 25,
+      completionTokens: 30,
     });
   });
 });
