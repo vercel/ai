@@ -115,24 +115,34 @@ describe('transcriptionModel', () => {
       transcriptionModels: { 'test-model': mockTranscriptionModel },
     });
 
-    expect(provider.transcriptionModel('test-model')).toBe(mockTranscriptionModel);
+    expect(provider.transcriptionModel('test-model')).toBe(
+      mockTranscriptionModel,
+    );
   });
 
   it('should use fallback provider if model not found and fallback exists', () => {
-    mockFallbackProvider.transcriptionModel = vi.fn().mockReturnValue(mockTranscriptionModel);
+    mockFallbackProvider.transcriptionModel = vi
+      .fn()
+      .mockReturnValue(mockTranscriptionModel);
 
     const provider = customProvider({
       fallbackProvider: mockFallbackProvider,
     });
 
-    expect(provider.transcriptionModel('test-model')).toBe(mockTranscriptionModel);
-    expect(mockFallbackProvider.transcriptionModel).toHaveBeenCalledWith('test-model');
+    expect(provider.transcriptionModel('test-model')).toBe(
+      mockTranscriptionModel,
+    );
+    expect(mockFallbackProvider.transcriptionModel).toHaveBeenCalledWith(
+      'test-model',
+    );
   });
 
   it('should throw NoSuchModelError if model not found and no fallback', () => {
     const provider = customProvider({});
 
-    expect(() => provider.transcriptionModel('test-model')).toThrow(NoSuchModelError);
+    expect(() => provider.transcriptionModel('test-model')).toThrow(
+      NoSuchModelError,
+    );
   });
 });
 

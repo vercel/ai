@@ -120,7 +120,15 @@ class DefaultProviderRegistry<
     this.providers[id] = provider;
   }
 
-  private getProvider(id: string, modelType: 'languageModel' | 'textEmbeddingModel' | 'imageModel' | 'transcriptionModel' | 'speechModel'): ProviderV2 {
+  private getProvider(
+    id: string,
+    modelType:
+      | 'languageModel'
+      | 'textEmbeddingModel'
+      | 'imageModel'
+      | 'transcriptionModel'
+      | 'speechModel',
+  ): ProviderV2 {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {
@@ -137,7 +145,12 @@ class DefaultProviderRegistry<
 
   private splitId(
     id: string,
-    modelType: 'languageModel' | 'textEmbeddingModel' | 'imageModel' | 'transcriptionModel' | 'speechModel',
+    modelType:
+      | 'languageModel'
+      | 'textEmbeddingModel'
+      | 'imageModel'
+      | 'transcriptionModel'
+      | 'speechModel',
   ): [string, string] {
     const index = id.indexOf(this.separator);
 
@@ -158,7 +171,9 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModelV2 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
-    const model = this.getProvider(providerId, 'languageModel').languageModel?.(modelId);
+    const model = this.getProvider(providerId, 'languageModel').languageModel?.(
+      modelId,
+    );
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'languageModel' });
@@ -209,7 +224,10 @@ class DefaultProviderRegistry<
     const model = provider.transcriptionModel?.(modelId);
 
     if (model == null) {
-      throw new NoSuchModelError({ modelId: id, modelType: 'transcriptionModel' });
+      throw new NoSuchModelError({
+        modelId: id,
+        modelType: 'transcriptionModel',
+      });
     }
 
     return model;

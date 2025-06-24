@@ -14,4 +14,4 @@ async function main() {
   console.log('Segments:', result.segments);
 }
 
-main().catch(console.error); 
+main().catch(console.error);

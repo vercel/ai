@@ -10,4 +10,4 @@ async function main() {
   console.log('Generated audio:', audio);
 }
 
-main().catch(console.error); 
+main().catch(console.error);

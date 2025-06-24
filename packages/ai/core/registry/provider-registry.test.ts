@@ -370,7 +370,9 @@ describe('transcriptionModel', () => {
     const registry = createProviderRegistry({});
 
     // @ts-expect-error - should not accept arbitrary strings
-    expect(() => registry.transcriptionModel('model')).toThrowError(NoSuchModelError);
+    expect(() => registry.transcriptionModel('model')).toThrowError(
+      NoSuchModelError,
+    );
   });
 });
 

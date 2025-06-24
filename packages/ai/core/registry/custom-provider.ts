@@ -48,7 +48,9 @@ export function customProvider<
     modelId: ExtractModelId<EMBEDDING_MODELS>,
   ): EmbeddingModelV2<string>;
   imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV2;
-  transcriptionModel(modelId: ExtractModelId<TRANSCRIPTION_MODELS>): TranscriptionModelV2;
+  transcriptionModel(
+    modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
+  ): TranscriptionModelV2;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2;
 } {
   return {
@@ -90,7 +92,9 @@ export function customProvider<
       throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
     },
 
-    transcriptionModel(modelId: ExtractModelId<TRANSCRIPTION_MODELS>): TranscriptionModelV2 {
+    transcriptionModel(
+      modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
+    ): TranscriptionModelV2 {
       if (transcriptionModels != null && modelId in transcriptionModels) {
         return transcriptionModels[modelId];
       }
