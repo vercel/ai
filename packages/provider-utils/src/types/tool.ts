@@ -1,6 +1,7 @@
 import { JSONValue, LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
+import { ProviderOptions } from './provider-options';
 
 export interface ToolCallOptions {
   /**
@@ -49,6 +50,13 @@ Will be used by the language model to decide whether to use the tool.
 Not used for provider-defined tools.
    */
   description?: string;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: ProviderOptions;
 } & NeverOptional<
   INPUT,
   {
