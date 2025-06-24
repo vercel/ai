@@ -47,16 +47,24 @@ export function convertToModelMessages(
               (part): part is TextUIPart | FileUIPart =>
                 part.type === 'text' || part.type === 'file',
             )
-            .map(part =>
-              part.type === 'file'
-                ? {
+            .map(part => {
+              switch (part.type) {
+                case 'text':
+                  return {
+                    type: 'text' as const,
+                    text: part.text,
+                  };
+                case 'file':
+                  return {
                     type: 'file' as const,
                     mediaType: part.mediaType,
                     filename: part.filename,
                     data: part.url,
-                  }
-                : part,
-            ),
+                  };
+                default:
+                  return part;
+              }
+            }),
         });
 
         break;
@@ -77,7 +85,10 @@ export function convertToModelMessages(
 
             for (const part of block) {
               if (part.type === 'text') {
-                content.push(part);
+                content.push({
+                  type: 'text' as const,
+                  text: part.text,
+                });
               } else if (part.type === 'file') {
                 content.push({
                   type: 'file' as const,

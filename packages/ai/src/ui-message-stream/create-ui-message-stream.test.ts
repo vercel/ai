@@ -403,6 +403,7 @@ describe('createUIMessageStream', () => {
               "metadata": undefined,
               "parts": [
                 {
+                  "state": "done",
                   "text": "1a",
                   "type": "text",
                 },
@@ -415,6 +416,7 @@ describe('createUIMessageStream', () => {
             "metadata": undefined,
             "parts": [
               {
+                "state": "done",
                 "text": "1a",
                 "type": "text",
               },
@@ -444,7 +446,7 @@ describe('createUIMessageStream', () => {
         {
           id: '1',
           role: 'assistant',
-          parts: [{ type: 'text', text: '1a' }],
+          parts: [{ type: 'text', text: '1a', state: 'done' }],
         },
       ],
       onFinish: options => {
@@ -473,10 +475,12 @@ describe('createUIMessageStream', () => {
               "id": "1",
               "parts": [
                 {
+                  "state": "done",
                   "text": "1a",
                   "type": "text",
                 },
                 {
+                  "state": "done",
                   "text": "1b",
                   "type": "text",
                 },
@@ -488,10 +492,12 @@ describe('createUIMessageStream', () => {
             "id": "1",
             "parts": [
               {
+                "state": "done",
                 "text": "1a",
                 "type": "text",
               },
               {
+                "state": "done",
                 "text": "1b",
                 "type": "text",
               },

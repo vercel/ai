@@ -75,7 +75,7 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
-          parts: [{ type: 'text', text: 'Hello, human!' }],
+          parts: [{ type: 'text', text: 'Hello, human!', state: 'done' }],
         },
       ]);
 
@@ -100,6 +100,7 @@ describe('convertToModelMessages', () => {
                   signature: '1234567890',
                 },
               },
+              state: 'done',
             },
             {
               type: 'reasoning',
@@ -107,8 +108,9 @@ describe('convertToModelMessages', () => {
               providerMetadata: {
                 testProvider: { isRedacted: true },
               },
+              state: 'done',
             },
-            { type: 'text', text: 'Hello, human!' },
+            { type: 'text', text: 'Hello, human!', state: 'done' },
           ],
         },
       ]);
@@ -167,7 +169,11 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             { type: 'step-start' },
-            { type: 'text', text: 'Let me calculate that for you.' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
             {
               type: 'tool-calculator',
               state: 'output-available',
@@ -227,7 +233,11 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             { type: 'step-start' },
-            { type: 'text', text: 'Let me calculate that for you.' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
             {
               type: 'tool-calculator',
               state: 'output-error',
@@ -287,7 +297,11 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             { type: 'step-start' },
-            { type: 'text', text: 'Let me calculate that for you.' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
             {
               type: 'tool-calculator',
               state: 'output-available',
@@ -343,7 +357,11 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             { type: 'step-start' },
-            { type: 'text', text: 'Let me calculate that for you.' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
             {
               type: 'tool-calculator',
               state: 'output-error',
@@ -399,7 +417,11 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             { type: 'step-start' },
-            { type: 'text', text: 'Let me calculate that for you.' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
             {
               type: 'tool-screenshot',
               state: 'output-available',
@@ -422,7 +444,7 @@ describe('convertToModelMessages', () => {
         },
         {
           role: 'assistant',
-          parts: [{ type: 'text', text: 'text2' }],
+          parts: [{ type: 'text', text: 'text2', state: 'done' }],
         },
       ]);
 
@@ -435,7 +457,7 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             { type: 'step-start' },
-            { type: 'text', text: 'response' },
+            { type: 'text', text: 'response', state: 'done' },
             {
               type: 'tool-screenshot',
               state: 'output-available',
@@ -479,7 +501,7 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             { type: 'step-start' },
-            { type: 'text', text: 'i am gonna use tool1' },
+            { type: 'text', text: 'i am gonna use tool1', state: 'done' },
             {
               type: 'tool-screenshot',
               state: 'output-available',
@@ -488,7 +510,11 @@ describe('convertToModelMessages', () => {
               output: 'result-1',
             },
             { type: 'step-start' },
-            { type: 'text', text: 'i am gonna use tool2 and tool3' },
+            {
+              type: 'text',
+              text: 'i am gonna use tool2 and tool3',
+              state: 'done',
+            },
             {
               type: 'tool-screenshot',
               state: 'output-available',
@@ -512,7 +538,7 @@ describe('convertToModelMessages', () => {
               output: 'result-4',
             },
             { type: 'step-start' },
-            { type: 'text', text: 'final response' },
+            { type: 'text', text: 'final response', state: 'done' },
           ],
         },
       ]);
@@ -530,7 +556,9 @@ describe('convertToModelMessages', () => {
         },
         {
           role: 'assistant',
-          parts: [{ type: 'text', text: "I'll check that for you." }],
+          parts: [
+            { type: 'text', text: "I'll check that for you.", state: 'done' },
+          ],
         },
         {
           role: 'user',
@@ -608,7 +636,7 @@ describe('convertToModelMessages', () => {
               output: 'result-4',
             },
             { type: 'step-start' },
-            { type: 'text', text: 'response' },
+            { type: 'text', text: 'response', state: 'done' },
           ],
         },
         {

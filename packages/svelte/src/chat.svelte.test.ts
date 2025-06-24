@@ -70,7 +70,7 @@ describe('data protocol stream', () => {
     expect(chat.messages.at(1)).toStrictEqual(
       expect.objectContaining({
         role: 'assistant',
-        parts: [{ type: 'text', text: 'Hello, world.' }],
+        parts: [{ type: 'text', text: 'Hello, world.', state: 'done' }],
       }),
     );
   });
@@ -186,6 +186,7 @@ describe('data protocol stream', () => {
           {
             text: 'Hello, world.',
             type: 'text',
+            state: 'done',
           },
         ],
         role: 'assistant',
@@ -272,6 +273,7 @@ describe('text stream', () => {
               "type": "step-start",
             },
             {
+              "state": "done",
               "text": "Hello, world.",
               "type": "text",
             },
@@ -301,7 +303,10 @@ describe('text stream', () => {
           id: expect.any(String),
           role: 'assistant',
           metadata: undefined,
-          parts: [{ type: 'step-start' }, { text: 'He', type: 'text' }],
+          parts: [
+            { type: 'step-start' },
+            { text: 'He', type: 'text', state: 'streaming' },
+          ],
         }),
       ),
     );
@@ -345,7 +350,7 @@ describe('text stream', () => {
         metadata: undefined,
         parts: [
           { type: 'step-start' },
-          { text: 'Hello, world.', type: 'text' },
+          { text: 'Hello, world.', type: 'text', state: 'done' },
         ],
       },
     });
@@ -826,6 +831,7 @@ describe('maxSteps', () => {
                 "type": "tool-test-tool",
               },
               {
+                "state": "done",
                 "text": "final result",
                 "type": "text",
               },
@@ -949,6 +955,7 @@ describe('file attachments with data url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "state": "done",
               "text": "Response to message with text attachment",
               "type": "text",
             },
@@ -1036,6 +1043,7 @@ describe('file attachments with data url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "state": "done",
               "text": "Response to message with image attachment",
               "type": "text",
             },
@@ -1133,6 +1141,7 @@ describe('file attachments with url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "state": "done",
               "text": "Response to message with image attachment",
               "type": "text",
             },
@@ -1227,6 +1236,7 @@ describe('file attachments with empty text content', () => {
           "metadata": undefined,
           "parts": [
             {
+              "state": "done",
               "text": "Response to message with image attachment",
               "type": "text",
             },
@@ -1310,7 +1320,7 @@ describe('reload', () => {
     expect(chat.messages.at(1)).toStrictEqual(
       expect.objectContaining({
         role: 'assistant',
-        parts: [{ text: 'first response', type: 'text' }],
+        parts: [{ text: 'first response', type: 'text', state: 'done' }],
       }),
     );
 
@@ -1348,7 +1358,7 @@ describe('reload', () => {
     expect(chat.messages.at(1)).toStrictEqual(
       expect.objectContaining({
         role: 'assistant',
-        parts: [{ text: 'second response', type: 'text' }],
+        parts: [{ text: 'second response', type: 'text', state: 'done' }],
       }),
     );
   });
@@ -1446,6 +1456,7 @@ describe('generateId function', () => {
           "metadata": undefined,
           "parts": [
             {
+              "state": "done",
               "text": "Hello, world.",
               "type": "text",
             },

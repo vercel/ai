@@ -19,7 +19,7 @@ describe('shouldResubmitMessages', () => {
           {
             id: '2',
             role: 'assistant',
-            parts: [{ type: 'text', text: 'Hello' }],
+            parts: [{ type: 'text', text: 'Hello', state: 'done' }],
           },
         ],
       }),
@@ -77,6 +77,7 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
           {
             type: 'text',
             text: 'The current weather in New York is windy.',
+            state: 'done',
           },
         ],
       }),
@@ -102,6 +103,7 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
           {
             type: 'text',
             text: 'The current weather in New York is windy.',
+            state: 'done',
           },
         ],
       }),
