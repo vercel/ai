@@ -1,5 +1,5 @@
 import { JSONSchema7 } from 'json-schema';
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import { SharedV2ProviderOptions } from '../../shared';
 
 /**
 A tool has a name, a description, and a set of parameters.
@@ -31,7 +31,7 @@ understand the tool's input requirements and to provide matching suggestions.
   inputSchema: JSONSchema7;
 
   /**
-The provider-specific metadata for the tool.
+The provider-specific options for the tool.
    */
-  providerMetadata?: SharedV2ProviderMetadata;
+  providerOptions?: SharedV2ProviderOptions;
 };
