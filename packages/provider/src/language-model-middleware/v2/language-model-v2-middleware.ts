@@ -13,6 +13,26 @@ export type LanguageModelV2Middleware = {
   middlewareVersion?: 'v2' | undefined; // backwards compatibility
 
   /**
+   * Override the provider name if desired.
+   * @param options.model - The language model instance.
+   */
+  overrideProvider?: (options: { model: LanguageModelV2 }) => string;
+
+  /**
+   * Override the model ID if desired.
+   * @param options.model - The language model instance.
+   */
+  overrideModelId?: (options: { model: LanguageModelV2 }) => string;
+
+  /**
+   * Override the supported URLs if desired.
+   * @param options.model - The language model instance.
+   */
+  overrideSupportedUrls?: (options: {
+    model: LanguageModelV2;
+  }) => PromiseLike<Record<string, RegExp[]>> | Record<string, RegExp[]>;
+
+  /**
    * Transforms the parameters before they are passed to the language model.
    * @param options - Object containing the type of operation and the parameters.
    * @param options.type - The type of operation ('generate' or 'stream').
@@ -22,6 +42,7 @@ export type LanguageModelV2Middleware = {
   transformParams?: (options: {
     type: 'generate' | 'stream';
     params: LanguageModelV2CallOptions;
+    model: LanguageModelV2;
   }) => PromiseLike<LanguageModelV2CallOptions>;
 
   /**
