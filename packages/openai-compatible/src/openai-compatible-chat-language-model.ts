@@ -300,7 +300,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     return {
       text: choice.message.content ?? undefined,
-      reasoning: choice.message.reasoning_content ?? undefined,
+      reasoning:
+        choice.message.reasoning_content ??
+        choice.message.reasoning ??
+        undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
@@ -529,10 +532,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             const delta = choice.delta;
 
             // enqueue reasoning before text deltas:
-            if (delta.reasoning_content != null) {
+            if (delta.reasoning_content != null || delta.reasoning != null) {
               controller.enqueue({
                 type: 'reasoning',
-                textDelta: delta.reasoning_content,
+                textDelta: delta.reasoning_content || delta.reasoning,
               });
             }
 
@@ -730,6 +733,7 @@ const OpenAICompatibleChatResponseSchema = z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
         reasoning_content: z.string().nullish(),
+        reasoning: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -766,6 +770,7 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
               role: z.enum(['assistant']).nullish(),
               content: z.string().nullish(),
               reasoning_content: z.string().nullish(),
+              reasoning: z.string().nullish(),
               tool_calls: z
                 .array(
                   z.object({
