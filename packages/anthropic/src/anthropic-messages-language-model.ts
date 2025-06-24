@@ -198,7 +198,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
           tool_choice,
           toolWarnings,
           betas: toolsBetas,
-        } = prepareTools(mode);
+        } = prepareTools(mode, providerOptions);
 
         return {
           args: { ...baseArgs, tools, tool_choice },
@@ -723,6 +723,7 @@ const anthropicProviderOptionsSchema = z.object({
       budgetTokens: z.number().optional(),
     })
     .optional(),
+  cacheToolDefinitions: z.boolean().optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<
