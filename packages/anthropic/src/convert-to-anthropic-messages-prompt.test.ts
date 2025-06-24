@@ -437,7 +437,7 @@ describe('tool messages', () => {
                     text: 'Image generated successfully',
                   },
                   {
-                    type: 'image',
+                    type: 'media',
                     data: 'AAECAw==',
                     mediaType: 'image/png',
                   },

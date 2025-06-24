@@ -201,18 +201,18 @@ Text content.
             text: string;
           }
         | {
-            type: 'image';
+            type: 'media';
 
             /**
-base-64 encoded image data
+Base-64 encoded media data.
 */
             data: string;
 
             /**
-IANA media type of the image.
+IANA media type.
 @see https://www.iana.org/assignments/media-types/media-types.xhtml
 */
-            mediaType?: string;
+            mediaType: string;
           }
       >;
     };

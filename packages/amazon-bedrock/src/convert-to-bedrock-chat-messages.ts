@@ -130,25 +130,25 @@ export async function convertToBedrockChatMessages(
                       switch (contentPart.type) {
                         case 'text':
                           return { text: contentPart.text };
-                        case 'image':
-                          if (!contentPart.mediaType) {
-                            throw new Error(
-                              'Image mime type is required in tool result part content',
-                            );
+                        case 'media':
+                          if (!contentPart.mediaType.startsWith('image/')) {
+                            throw new UnsupportedFunctionalityError({
+                              functionality: `media type: ${contentPart.mediaType}`,
+                            });
                           }
 
                           const format = contentPart.mediaType.split('/')[1];
+
                           if (!isBedrockImageFormat(format)) {
-                            throw new Error(
-                              `Unsupported image format: ${format}`,
-                            );
+                            throw new UnsupportedFunctionalityError({
+                              functionality: `media type: ${contentPart.mediaType}`,
+                            });
                           }
+
                           return {
                             image: {
                               format,
-                              source: {
-                                bytes: contentPart.data,
-                              },
+                              source: { bytes: contentPart.data },
                             },
                           };
                       }

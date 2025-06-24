@@ -590,7 +590,7 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'image',
+                  type: 'media',
                   data: 'base64data',
                   mediaType: 'image/jpeg',
                 },
@@ -635,7 +635,7 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image',
+                    type: 'media',
                     data: 'base64data',
                     mediaType: 'image/webp', // unsupported format
                   },
@@ -645,10 +645,10 @@ describe('tool messages', () => {
           ],
         },
       ]),
-    ).rejects.toThrow('Unsupported image format: webp');
+    ).rejects.toThrow("'media type: image/webp' functionality not supported.");
   });
 
-  it('should throw error for missing mime type in tool result image content', async () => {
+  it('should throw error for unsupported mime type in tool result image content', async () => {
     await expect(
       convertToBedrockChatMessages([
         {
@@ -662,9 +662,9 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image',
+                    type: 'media',
                     data: 'base64data',
-                    // missing mediaType
+                    mediaType: 'unsupported/mime-type',
                   },
                 ],
               },
@@ -673,7 +673,7 @@ describe('tool messages', () => {
         },
       ]),
     ).rejects.toThrow(
-      'Image mime type is required in tool result part content',
+      "'media type: unsupported/mime-type' functionality not supported.",
     );
   });
 

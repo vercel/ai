@@ -272,16 +272,23 @@ export async function convertToAnthropicMessagesPrompt({
                             text: contentPart.text,
                             cache_control: undefined,
                           };
-                        case 'image':
-                          return {
-                            type: 'image',
-                            source: {
-                              type: 'base64',
-                              media_type: contentPart.mediaType ?? 'image/jpeg',
-                              data: contentPart.data,
-                            },
-                            cache_control: undefined,
-                          };
+                        case 'media': {
+                          if (contentPart.mediaType.startsWith('image/')) {
+                            return {
+                              type: 'image',
+                              source: {
+                                type: 'base64',
+                                media_type: contentPart.mediaType,
+                                data: contentPart.data,
+                              },
+                              cache_control: undefined,
+                            };
+                          }
+
+                          throw new UnsupportedFunctionalityError({
+                            functionality: `media type: ${contentPart.mediaType}`,
+                          });
+                        }
                       }
                     });
                     break;
