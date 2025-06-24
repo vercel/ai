@@ -279,6 +279,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
             'temperature is not supported for the search preview models and has been removed.',
         });
       }
+    } else if (this.modelId === 'codex-mini-latest') {
+      if (baseArgs.temperature != null) {
+        baseArgs.temperature = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported for codex-mini-latest model',
+        });
+      }
     }
     switch (type) {
       case 'regular': {
