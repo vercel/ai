@@ -14,6 +14,7 @@ import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { GatewayAuthenticationError } from './errors';
+import { z } from 'zod';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -65,6 +66,9 @@ How frequently to refresh the metadata cache in milliseconds.
 }
 
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
+
+// Helper schema for validating the auth method header
+const gatewayAuthMethodSchema = z.union([z.literal('api-key'), z.literal('oidc')]);
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
@@ -178,11 +182,7 @@ export function createGatewayProvider(
         .catch(async (error: unknown) => {
           try {
             const headers = await getHeaders();
-            const authMethod =
-              'x-ai-gateway-auth-method' in headers
-                ? (headers['x-ai-gateway-auth-method'] as 'api-key' | 'oidc')
-                : undefined;
-            throw asGatewayError(error, authMethod);
+            throw asGatewayError(error, gatewayAuthMethodSchema.parse(headers['x-ai-gateway-auth-method']));
           } catch (headerError) {
             throw asGatewayError(error);
           }

@@ -31,6 +31,7 @@ const createTestModel = (
     baseURL: 'https://api.test.com',
     headers: () => ({
       Authorization: 'Bearer test-token',
+      'x-ai-gateway-auth-method': 'api-key',
     }),
     fetch: globalThis.fetch,
     o11yHeaders: config.o11yHeaders || {},
@@ -213,7 +214,7 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toContain('No authentication provided');
+        expect(authError.message).toContain('Invalid API key provided');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }
@@ -755,7 +756,7 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toContain('No authentication provided');
+        expect(authError.message).toContain('Invalid API key provided');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }
