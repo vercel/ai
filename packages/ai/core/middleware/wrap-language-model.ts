@@ -37,7 +37,14 @@ export const wrapLanguageModel = ({
 
 const doWrap = ({
   model,
-  middleware: { transformParams, wrapGenerate, wrapStream },
+  middleware: {
+    transformParams,
+    wrapGenerate,
+    wrapStream,
+    overrideProvider,
+    overrideModelId,
+    overrideSupportedUrls,
+  },
   modelId,
   providerId,
 }: {
@@ -53,19 +60,17 @@ const doWrap = ({
     params: LanguageModelV2CallOptions;
     type: 'generate' | 'stream';
   }) {
-    return transformParams ? await transformParams({ params, type }) : params;
+    return transformParams
+      ? await transformParams({ params, type, model })
+      : params;
   }
 
   return {
     specificationVersion: 'v2',
 
-    provider: providerId ?? model.provider,
-    modelId: modelId ?? model.modelId,
-
-    // TODO middleware should be able to modify the supported urls
-    get supportedUrls(): LanguageModelV2['supportedUrls'] {
-      return model.supportedUrls;
-    },
+    provider: providerId ?? overrideProvider?.({ model }) ?? model.provider,
+    modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
+    supportedUrls: overrideSupportedUrls?.({ model }) ?? model.supportedUrls,
 
     async doGenerate(
       params: LanguageModelV2CallOptions,

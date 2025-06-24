@@ -3,33 +3,127 @@ import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 
 describe('wrapLanguageModel', () => {
-  it('should pass through model properties', () => {
-    const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelV2({
-        provider: 'test-provider',
-        modelId: 'test-model',
-      }),
-      middleware: {
-        middlewareVersion: 'v2',
-      },
+  describe('model property', () => {
+    it('should pass through by default', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          modelId: 'test-model',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+      });
+
+      expect(wrappedModel.modelId).toBe('test-model');
     });
 
-    expect(wrappedModel.provider).toBe('test-provider');
-    expect(wrappedModel.modelId).toBe('test-model');
+    it('should use middleware overrideModelId if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          modelId: 'test-model',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+          overrideModelId: ({ model }) => 'override-model',
+        },
+      });
+
+      expect(wrappedModel.modelId).toBe('override-model');
+    });
+
+    it('should use modelId parameter if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          modelId: 'test-model',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+        modelId: 'override-model',
+      });
+
+      expect(wrappedModel.modelId).toBe('override-model');
+    });
   });
 
-  it('should override provider and modelId if provided', () => {
-    const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelV2(),
-      middleware: {
-        middlewareVersion: 'v2',
-      },
-      providerId: 'override-provider',
-      modelId: 'override-model',
+  describe('provider property', () => {
+    it('should pass through by default', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          provider: 'test-provider',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+      });
+
+      expect(wrappedModel.provider).toBe('test-provider');
     });
 
-    expect(wrappedModel.provider).toBe('override-provider');
-    expect(wrappedModel.modelId).toBe('override-model');
+    it('should use middleware overrideProvider if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          provider: 'test-provider',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+          overrideProvider: ({ model }) => 'override-provider',
+        },
+      });
+
+      expect(wrappedModel.provider).toBe('override-provider');
+    });
+
+    it('should use providerId parameter if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          provider: 'test-provider',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+        providerId: 'override-provider',
+      });
+
+      expect(wrappedModel.provider).toBe('override-provider');
+    });
+  });
+
+  describe('supportedUrls property', () => {
+    it('should pass through by default', async () => {
+      const supportedUrls = {
+        'original/*': [/^https:\/\/.*$/],
+      };
+
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({ supportedUrls }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+      });
+
+      expect(await wrappedModel.supportedUrls).toStrictEqual(supportedUrls);
+    });
+
+    it('should use middleware overrideSupportedUrls if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          supportedUrls: {
+            'original/*': [/^https:\/\/.*$/],
+          },
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+          overrideSupportedUrls: ({ model }) => ({
+            'override/*': [/^https:\/\/.*$/],
+          }),
+        },
+      });
+
+      expect(wrappedModel.supportedUrls).toStrictEqual({
+        'override/*': [/^https:\/\/.*$/],
+      });
+    });
   });
 
   it('should call transformParams middleware for doGenerate', async () => {
@@ -58,6 +152,7 @@ describe('wrapLanguageModel', () => {
     expect(transformParams).toHaveBeenCalledWith({
       params,
       type: 'generate',
+      model: expect.any(Object),
     });
 
     expect(mockModel.doGenerateCalls[0]).toStrictEqual({
@@ -123,6 +218,7 @@ describe('wrapLanguageModel', () => {
     expect(transformParams).toHaveBeenCalledWith({
       params,
       type: 'stream',
+      model: expect.any(Object),
     });
     expect(mockModel.doStreamCalls[0]).toStrictEqual({
       ...params,
@@ -158,21 +254,6 @@ describe('wrapLanguageModel', () => {
     });
   });
 
-  it('should pass through supportedUrls', async () => {
-    const supportedUrls = {
-      'image/*': [/^https:\/\/.*$/],
-    };
-
-    const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelV2({ supportedUrls }),
-      middleware: {
-        middlewareVersion: 'v2',
-      },
-    });
-
-    expect(await wrappedModel.supportedUrls).toStrictEqual(supportedUrls);
-  });
-
   it('should support models that use "this" context in supportedUrls', async () => {
     let supportedUrlsCalled = false;
 
@@ -206,7 +287,7 @@ describe('wrapLanguageModel', () => {
     expect(supportedUrlsCalled).toBe(true);
   });
 
-  describe('wrapLanguageModel with multiple middlewares', () => {
+  describe('multiple middlewares', () => {
     it('should call multiple transformParams middlewares in sequence for doGenerate', async () => {
       const mockModel = new MockLanguageModelV2({
         doGenerate: [],
@@ -244,11 +325,13 @@ describe('wrapLanguageModel', () => {
       expect(transformParams1).toHaveBeenCalledWith({
         params,
         type: 'generate',
+        model: expect.any(Object),
       });
 
       expect(transformParams2).toHaveBeenCalledWith({
         params: { ...params, transformationStep1: true },
         type: 'generate',
+        model: expect.any(Object),
       });
 
       expect(mockModel.doGenerateCalls[0]).toStrictEqual(
@@ -296,10 +379,12 @@ describe('wrapLanguageModel', () => {
       expect(transformParams1).toHaveBeenCalledWith({
         params,
         type: 'stream',
+        model: expect.any(Object),
       });
       expect(transformParams2).toHaveBeenCalledWith({
         params: expect.objectContaining({ transformationStep1: true }),
         type: 'stream',
+        model: mockModel,
       });
       expect(mockModel.doStreamCalls[0]).toStrictEqual(
         expect.objectContaining({
