@@ -2,4 +2,4 @@
 '@ai-sdk/google': patch
 ---
 
-fix: google models
+fix: omit system message for gemma models
