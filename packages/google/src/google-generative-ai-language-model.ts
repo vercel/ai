@@ -108,7 +108,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
 
-    const isGemmaModel = this.modelId.toLowerCase().includes('gemma');
+    const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     if (
       isGemmaModel &&
       systemInstruction &&
