@@ -17,4 +17,10 @@ Flag indicating whether or not to normalize the output embeddings. Defaults to t
 Only supported in amazon.titan-embed-text-v2:0.
    */
   normalize?: boolean;
+
+  /**
+The type of embedding to return. Defaults to float.
+Binary embeddings are only supported in amazon.titan-embed-text-v2:0.
+  */
+  embeddingType?: 'float' | 'binary';
 }
