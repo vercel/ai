@@ -814,6 +814,123 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send mcp tool', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.mcp',
+                name: 'mcp',
+                args: {
+                  serverLabel: 'vercel_mcp',
+                  serverUrl: 'https://vercel.mcp.dev/',
+                  allowedTools: ['deploy_site'],
+                  requireApproval: {
+                    always: {
+                      toolNames: ['deploy_site'],
+                    },
+                  },
+                  headers: {
+                    'vercel-api-key': '1234567890',
+                  },
+                },
+              },
+            ],
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o',
+          tools: [
+            {
+              type: 'mcp',
+              server_label: 'vercel_mcp',
+              server_url: 'https://vercel.mcp.dev/',
+              allowed_tools: ['deploy_site'],
+              require_approval: {
+                always: {
+                  tool_names: ['deploy_site'],
+                },
+                never: {},
+              },
+              headers: {
+                'vercel-api-key': '1234567890',
+              },
+            },
+          ],
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send mcp tool as tool_choice', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            toolChoice: {
+              type: 'tool',
+              toolName: 'mcp',
+            },
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.mcp',
+                name: 'mcp',
+                args: {
+                  serverLabel: 'vercel_mcp',
+                  serverUrl: 'https://vercel.mcp.dev/',
+                  allowedTools: ['deploy_site'],
+                  requireApproval: {
+                    always: {
+                      toolNames: ['deploy_site'],
+                    },
+                  },
+                  headers: {
+                    'vercel-api-key': '1234567890',
+                  },
+                },
+              },
+            ],
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o',
+          tool_choice: { type: 'mcp' },
+          tools: [
+            {
+              type: 'mcp',
+              server_label: 'vercel_mcp',
+              server_url: 'https://vercel.mcp.dev/',
+              allowed_tools: ['deploy_site'],
+              require_approval: {
+                always: {
+                  tool_names: ['deploy_site'],
+                },
+                never: {},
+              },
+              headers: {
+                'vercel-api-key': '1234567890',
+              },
+            },
+          ],
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should warn about unsupported settings', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
@@ -1183,6 +1300,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]);
       });
+    });
+
+    describe.todo('mcp', () => {
+      // approval request
+      // tool call
     });
   });
 
@@ -1563,6 +1685,56 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
         stream: true,
       });
+    });
+
+    it('should stream MCP calls', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.mcp_call.in_progress","output_index":0,"item_id":"item-abc","sequence_number":1}\n\n`,
+          `data:{"type":"response.mcp_call.arguments.delta","output_index":0,"item_id":"item-abc","delta":{"arg1":"new_value1"},"sequence_number":2}\n\n`,
+          `data:{"type":"response.mcp_call.arguments.done","output_index":0,"item_id":"item-abc","arguments":{"arg1":"value1"},"sequence_number":3}\n\n`,
+          `data:{"type":"response.mcp_call.completed","sequence_number":4}\n\n`,
+          `data:{"type":"response.mcp_call.failed","sequence_number":5}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          type: 'mcp-tool-call-in-progress',
+          toolCallId: 'item-abc',
+          outputIndex: 0,
+          sequenceNumber: 1,
+        },
+        {
+          type: 'mcp-tool-call-args-delta',
+          toolCallId: 'item-abc',
+          outputIndex: 0,
+          argsDelta: { arg1: 'new_value1' },
+          sequenceNumber: 2,
+        },
+        {
+          type: 'mcp-tool-call-args',
+          toolCallId: 'item-abc',
+          outputIndex: 0,
+          args: { arg1: 'value1' },
+          sequenceNumber: 3,
+        },
+        {
+          type: 'mcp-tool-call-completed',
+          sequenceNumber: 4,
+        },
+        {
+          type: 'mcp-tool-call-failed',
+          sequenceNumber: 5,
+        },
+      ]);
     });
   });
 });
