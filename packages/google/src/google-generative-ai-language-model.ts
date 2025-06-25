@@ -80,7 +80,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     responseFormat,
     seed,
     tools,
-    toolChoice,
+    toolChoice,/*  */
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
@@ -154,7 +154,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           thinkingConfig: googleOptions?.thinkingConfig,
         },
         contents,
-        systemInstruction,
+        systemInstruction: this.modelId.toLowerCase().includes('gemma') 
+          ? undefined 
+          : systemInstruction,
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
         toolConfig: googleToolConfig,

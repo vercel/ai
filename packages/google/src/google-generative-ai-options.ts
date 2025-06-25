@@ -26,6 +26,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-pro-exp-03-25'
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-exp-1206'
+  | 'gemma-3-12b-it'
   | 'gemma-3-27b-it'
   | 'learnlm-1.5-pro-experimental'
   | (string & {});
