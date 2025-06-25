@@ -2304,7 +2304,7 @@ describe('GEMMA Model System Instruction Fix', () => {
     // Verify that systemInstruction was NOT sent for GEMMA model
     const lastCall = server.calls[server.calls.length - 1];
     const requestBody = await lastCall.requestBodyJson;
-    
+
     expect(requestBody).not.toHaveProperty('systemInstruction');
   });
 
@@ -2335,7 +2335,7 @@ describe('GEMMA Model System Instruction Fix', () => {
 
     const lastCall = server.calls[server.calls.length - 1];
     const requestBody = await lastCall.requestBodyJson;
-    
+
     expect(requestBody).not.toHaveProperty('systemInstruction');
   });
 
@@ -2366,10 +2366,10 @@ describe('GEMMA Model System Instruction Fix', () => {
 
     const lastCall = server.calls[server.calls.length - 1];
     const requestBody = await lastCall.requestBodyJson;
-    
+
     expect(requestBody).toHaveProperty('systemInstruction');
     expect(requestBody.systemInstruction).toEqual({
-      parts: [{ text: 'You are a helpful assistant.' }]
+      parts: [{ text: 'You are a helpful assistant.' }],
     });
   });
 });
