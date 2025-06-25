@@ -9,8 +9,6 @@ Temperature setting. This is a number between 0 (almost no randomness) and
 1 (very random).
 
 It is recommended to set either `temperature` or `topP`, but not both.
-
-@default 0
    */
   temperature?: number;
 
