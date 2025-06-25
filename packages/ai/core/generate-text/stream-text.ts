@@ -1227,7 +1227,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'tool-input-start': {
-                      activeToolCallToolNames[chunk.id] = chunk.toolName;
+                      activeToolCallToolNames[chunk.toolCallId] = chunk.toolName;
 
                       const tool = tools?.[chunk.toolName];
                       if (tool?.onInputStart != null) {
