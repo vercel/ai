@@ -55,6 +55,7 @@ try {
   const response = await generateText({
     model: openai('gpt-4o'),
     tools,
+    maxSteps: 5,
     messages: [
       {
         role: 'user',
