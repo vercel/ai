@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- a313780: fix: omit system message for gemma models
+
 ## 2.0.0-beta.1
 
 ### Patch Changes

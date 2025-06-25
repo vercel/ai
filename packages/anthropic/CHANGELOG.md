@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- d601ed9: fix (provider/anthropic): send tool call id in tool-input-start chunk
+
 ## 2.0.0-beta.1
 
 ### Patch Changes
