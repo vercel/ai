@@ -730,7 +730,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         ? { type: 'text-start', id: String(value.index) }
                         : {
                             type: 'tool-input-start',
-                            id: String(value.index),
+                            id: value.content_block.id,
                             toolName: value.content_block.name,
                           },
                     );

@@ -1753,7 +1753,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "id": "1",
+            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolName": "test-tool",
             "type": "tool-input-start",
           },
