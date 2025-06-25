@@ -80,7 +80,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     responseFormat,
     seed,
     tools,
-    toolChoice /*  */,
+    toolChoice,
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
