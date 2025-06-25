@@ -80,7 +80,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     responseFormat,
     seed,
     tools,
-    toolChoice,
+    toolChoice /*  */,
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
@@ -107,6 +107,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
+
+    const isGemmaModel = this.modelId.toLowerCase().includes('gemma');
+    if (
+      isGemmaModel &&
+      systemInstruction &&
+      systemInstruction.parts.length > 0
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          `GEMMA models do not support system instructions. System messages will be ignored. ` +
+          `Consider including instructions in the first user message instead.`,
+      });
+    }
 
     const {
       tools: googleTools,
@@ -154,9 +168,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           thinkingConfig: googleOptions?.thinkingConfig,
         },
         contents,
-        systemInstruction: this.modelId.toLowerCase().includes('gemma')
-          ? undefined
-          : systemInstruction,
+        systemInstruction: isGemmaModel ? undefined : systemInstruction,
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
         toolConfig: googleToolConfig,

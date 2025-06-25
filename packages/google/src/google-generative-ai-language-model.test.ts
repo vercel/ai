@@ -2372,4 +2372,99 @@ describe('GEMMA Model System Instruction Fix', () => {
       parts: [{ text: 'You are a helpful assistant.' }],
     });
   });
+
+  it('should generate warning when GEMMA model is used with system instructions', async () => {
+    server.urls[TEST_URL_GEMMA_3_12B_IT].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello!' }], role: 'model' },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const model = new GoogleGenerativeAILanguageModel('gemma-3-12b-it', {
+      provider: 'google.generative-ai',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const { warnings } = await model.doGenerate({
+      prompt: TEST_PROMPT_WITH_SYSTEM,
+    });
+
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "GEMMA models do not support system instructions. System messages will be ignored. Consider including instructions in the first user message instead.",
+          "type": "other",
+        },
+      ]
+    `);
+  });
+
+  it('should NOT generate warning when GEMMA model is used without system instructions', async () => {
+    server.urls[TEST_URL_GEMMA_3_12B_IT].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello!' }], role: 'model' },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const model = new GoogleGenerativeAILanguageModel('gemma-3-12b-it', {
+      provider: 'google.generative-ai',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV2Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+    ];
+
+    const { warnings } = await model.doGenerate({
+      prompt: TEST_PROMPT_WITHOUT_SYSTEM,
+    });
+
+    expect(warnings).toHaveLength(0);
+  });
+
+  it('should NOT generate warning when Gemini model is used with system instructions', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello!' }], role: 'model' },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      provider: 'google.generative-ai',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const { warnings } = await model.doGenerate({
+      prompt: TEST_PROMPT_WITH_SYSTEM,
+    });
+
+    expect(warnings).toHaveLength(0);
+  });
 });
