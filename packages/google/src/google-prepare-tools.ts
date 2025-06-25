@@ -7,6 +7,7 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import {
   DynamicRetrievalConfig,
   GoogleGenerativeAIModelId,
+  PropertyOrderingConfig,
 } from './google-generative-ai-settings';
 
 export function prepareTools(
@@ -16,6 +17,7 @@ export function prepareTools(
   useSearchGrounding: boolean,
   dynamicRetrievalConfig: DynamicRetrievalConfig | undefined,
   modelId: GoogleGenerativeAIModelId,
+  propertyOrdering?: PropertyOrderingConfig,
 ): {
   tools:
     | undefined
@@ -76,7 +78,10 @@ export function prepareTools(
       functionDeclarations.push({
         name: tool.name,
         description: tool.description ?? '',
-        parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
+        parameters: convertJSONSchemaToOpenAPISchema(
+          tool.parameters,
+          propertyOrdering,
+        ),
       });
     }
   }
