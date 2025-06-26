@@ -2184,6 +2184,19 @@ describe('doStream', () => {
                 parts: [{ text: 'Reasoning delta 2.', thought: true }],
                 role: 'model',
               },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                // currently ignored:
+                parts: [{ thoughtSignature: 'test-signature', thought: true }],
+                role: 'model',
+              },
               finishReason: 'STOP', // Mark finish reason in a chunk that has content
               index: 0,
               safetyRatings: SAFETY_RATINGS,
