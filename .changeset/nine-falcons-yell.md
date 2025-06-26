@@ -2,4 +2,4 @@
 '@ai-sdk/google': patch
 ---
 
-fix: remove non-functional models(google)
+fix: remove non-functional models
