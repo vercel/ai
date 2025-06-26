@@ -15,7 +15,7 @@ export function prepareTools(
   },
   useSearchGrounding: boolean,
   dynamicRetrievalConfig: DynamicRetrievalConfig | undefined,
-  urlContext: boolean,
+  useUrlContext: boolean,
   modelId: GoogleGenerativeAIModelId,
 ): {
   tools:
@@ -66,7 +66,7 @@ export function prepareTools(
     };
   }
 
-  if (urlContext) {
+  if (useUrlContext) {
     return {
       tools: isGemini2 ? { urlContext: {} } : undefined,
       toolConfig: undefined,

@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = await generateText({
     model: google('gemini-2.0-flash-001', {
-      urlContext: true,
+      useUrlContext: true,
     }),
     messages: [
       {

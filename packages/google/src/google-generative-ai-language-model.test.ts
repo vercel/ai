@@ -1182,13 +1182,13 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should use urlContextTool for gemini-2.0-pro', async () => {
+    it('should use useUrlContext for gemini-2.0-pro', async () => {
       prepareJsonResponse({
         url: TEST_URL_GEMINI_2_0_PRO,
       });
 
       const gemini2Pro = provider.languageModel('gemini-2.0-pro', {
-        urlContext: true,
+        useUrlContext: true,
       });
       await gemini2Pro.doGenerate({
         inputFormat: 'prompt',

@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: google('gemini-2.0-flash-001', { urlContext: true }),
+    model: google('gemini-2.0-flash-001', { useUrlContext: true }),
     prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context#limitations.
             Answer this question: How many links we can consume in one request?`,
   });
