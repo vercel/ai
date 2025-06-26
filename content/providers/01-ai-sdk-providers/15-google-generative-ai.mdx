@@ -284,7 +284,7 @@ With [search grounding](https://ai.google.dev/gemini-api/docs/grounding),
 the model has access to the latest information using Google search.
 Search grounding can be used to provide answers around current events:
 
-```ts highlight="7,14-20"
+```ts highlight="9,17-23"
 import { google } from '@ai-sdk/google';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
@@ -360,7 +360,7 @@ Example response:
 
 With [dynamic retrieval](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval), you can configure how the model decides when to turn on Grounding with Google Search. This gives you more control over when and how the model grounds its responses.
 
-```ts highlight="7-10"
+```ts highlight="9-12"
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -392,6 +392,55 @@ The `dynamicRetrievalConfig` describes the options to customize dynamic retrieva
   Dynamic retrieval is only available with Gemini 1.5 Flash models and is not
   supported with 8B variants.
 </Note>
+
+### URL Context
+
+The URL context tool allows the you to provide specific URLs that you want the model to analyze directly in your prompt.
+
+```ts highlight="10"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google('gemini-2.5-flash'),
+  prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
+          Answer this question: How many links we can consume in one request?`,
+  providerOptions: {
+    google: {
+      urlContext: true,
+    },
+  },
+});
+```
+
+<Note>You can add up to 20 URLs per request.</Note>
+
+<Note>
+  The URL context tool is only supported for Gemini 2.0 Flash models and above.
+  Check the [supported models for URL context
+  tool](https://ai.google.dev/gemini-api/docs/url-context#supported-models).
+</Note>
+
+#### Combine URL Context with Search Grounding
+
+You can combine the URL context tool with search grounding to provide the model with the latest information from the web.
+
+```ts highlight="10-11"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: google('gemini-2.5-flash'),
+  prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK.
+    Also, provide the latest news about AI SDK V5.`,
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+      urlContext: true,
+    },
+  },
+});
+```
 
 ### Sources
 
