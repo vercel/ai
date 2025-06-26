@@ -86,6 +86,6 @@ export const getFromApi = async <T>({
       });
     }
   } catch (error) {
-    handleFetchError({ error, url, requestBodyValues: {} });
+    throw handleFetchError({ error, url, requestBodyValues: {} });
   }
 };

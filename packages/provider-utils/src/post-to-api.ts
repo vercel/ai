@@ -155,6 +155,6 @@ export const postToApi = async <T>({
       });
     }
   } catch (error) {
-    handleFetchError({ error, url, requestBodyValues: body.values });
+    throw handleFetchError({ error, url, requestBodyValues: body.values });
   }
 };

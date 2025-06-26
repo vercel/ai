@@ -13,7 +13,7 @@ export function handleFetchError({
   requestBodyValues: unknown;
 }) {
   if (isAbortError(error)) {
-    throw error;
+    return error;
   }
 
   // unwrap original error when fetch failed (for easier debugging):
@@ -25,7 +25,7 @@ export function handleFetchError({
 
     if (cause != null) {
       // Failed to connect to server:
-      throw new APICallError({
+      return new APICallError({
         message: `Cannot connect to API: ${cause.message}`,
         cause,
         url,
@@ -35,5 +35,5 @@ export function handleFetchError({
     }
   }
 
-  throw error;
+  return error;
 }
