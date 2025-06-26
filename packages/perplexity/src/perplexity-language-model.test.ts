@@ -4,7 +4,7 @@ import {
   createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   perplexityImageSchema,
   PerplexityLanguageModel,

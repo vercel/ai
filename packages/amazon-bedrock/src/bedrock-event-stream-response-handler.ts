@@ -8,12 +8,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { toUtf8, fromUtf8 } from '@smithy/util-utf8';
-import { ZodSchema } from 'zod';
+import { ZodType } from 'zod/v4';
 
 // https://docs.aws.amazon.com/lexv2/latest/dg/event-stream-encoding.html
 export const createBedrockEventStreamResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: ZodType<T, any>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -78,7 +78,7 @@ export const createBedrockEventStreamResponseHandler =
                   };
 
                   // Re-validate with the expected schema.
-                  const validatedWrappedData = await safeValidateTypes({
+                  const validatedWrappedData = await safeValidateTypes<T>({
                     value: wrappedData,
                     schema: chunkSchema,
                   });

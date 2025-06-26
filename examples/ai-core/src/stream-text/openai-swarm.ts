@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 main().catch(console.error);
 

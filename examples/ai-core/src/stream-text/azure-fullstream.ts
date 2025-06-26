@@ -1,7 +1,7 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
