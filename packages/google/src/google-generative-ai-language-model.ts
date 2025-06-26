@@ -145,7 +145,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           mode,
           this.settings.useSearchGrounding ?? false,
           this.settings.dynamicRetrievalConfig,
-          this.settings.urlContext ?? false,
+          this.settings.useUrlContext ?? false,
           this.modelId,
         );
 

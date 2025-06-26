@@ -107,7 +107,7 @@ Optional. Specifies the dynamic retrieval configuration.
    * Optional. Specifies the URL context tool configuration.
    * @see https://ai.google.dev/gemini-api/docs/url-context
    */
-  urlContext?: boolean;
+  useUrlContext?: boolean;
 }
 
 export interface InternalGoogleGenerativeAISettings

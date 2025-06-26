@@ -441,7 +441,7 @@ import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: google('gemini-2.0-flash-001', {
-    urlContext: true,
+    useUrlContext: true,
   }),
   prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
           Answer this question: How many links we can consume in one request?`,
@@ -466,7 +466,7 @@ import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
   model: google('gemini-2.0-flash-001', {
-    urlContext: true,
+    useUrlContext: true,
     useSearchGrounding: true,
   }),
   prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK.
