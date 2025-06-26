@@ -28,7 +28,6 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-exp-1206'
   | 'gemma-3-12b-it'
   | 'gemma-3-27b-it'
-  | 'learnlm-1.5-pro-experimental'
   | (string & {});
 
 const dynamicRetrievalConfig = z.object({
