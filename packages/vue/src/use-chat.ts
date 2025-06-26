@@ -48,6 +48,12 @@ export type UseChatHelpers = {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop: () => void;
+
+  /**
+   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
+   */
+  experimental_resume: () => void;
+
   /**
    * Update the `messages` state locally. This is useful when you want to
    * edit the messages on the client, and then trigger the `reload` method
@@ -194,6 +200,7 @@ export function useChat(
   async function triggerRequest(
     messagesSnapshot: Message[],
     { data, headers, body }: ChatRequestOptions = {},
+    requestType: 'generate' | 'resume' = 'generate',
   ) {
     error.value = undefined;
     status.value = 'submitted';
@@ -285,6 +292,7 @@ export function useChat(
         fetch,
         // enabled use of structured clone in processChatResponse:
         lastMessage: recursiveToRaw(chatMessages[chatMessages.length - 1]),
+        requestType,
       });
 
       status.value = 'ready';
@@ -411,6 +419,11 @@ export function useChat(
     input.value = '';
   };
 
+  const experimental_resume = async () => {
+    const messagesSnapshot = messages.value;
+    await triggerRequest(messagesSnapshot, {}, 'resume');
+  };
+
   const addToolResult = ({
     toolCallId,
     result,
@@ -457,6 +470,7 @@ export function useChat(
     data: streamData as Ref<undefined | JSONValue[]>,
     setData,
     addToolResult,
+    experimental_resume,
   };
 }
 

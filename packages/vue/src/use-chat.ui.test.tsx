@@ -11,6 +11,7 @@ import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsCompo
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatComponent from './TestChatComponent.vue';
 import TestChatCustomMetadataComponent from './TestChatCustomMetadataComponent.vue';
+import TestChatExperimentalResumeComponent from './TestChatExperimentalResumeComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
 import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
 import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
@@ -957,5 +958,63 @@ describe('should append message with attachments', () => {
     expect(screen.getByTestId('message-1')).toHaveTextContent(
       'AI: Response to message with image attachment',
     );
+  });
+});
+
+describe('experimental_resume', () => {
+  const controller = new TestResponseController();
+
+  setupTestComponent(TestChatExperimentalResumeComponent, {
+    init: TestComponent => {
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+      
+      return TestComponent;
+    },
+  });
+
+  it('should resume ongoing stream and construct assistant message', async () => {
+
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write('0:"Hello"\n');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 10));
+    controller.write('0:"," \n');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    controller.write('0:" world"\n');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    controller.write('0:"."\n');
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    controller.close();
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+
+      expect(server.calls.length).toBeGreaterThan(0);
+      const mostRecentCall = server.calls[0];
+
+      const { requestMethod, requestUrl } = mostRecentCall;
+      expect(requestMethod).toBe('GET');
+      expect(requestUrl).toBe('http://localhost:3000/api/chat?chatId=123');
+    });
   });
 });
