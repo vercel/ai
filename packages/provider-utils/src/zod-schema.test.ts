@@ -164,7 +164,10 @@ describe('zodSchema', () => {
       const schema = zodSchema(
         z.object({
           user: z.object({
-            id: z.string().transform(val => parseInt(val, 10)),
+            id: z
+              .string()
+              .transform(val => parseInt(val, 10))
+              .pipe(z.number()),
             name: z.string(),
           }),
         }),

@@ -28,14 +28,17 @@ export async function parseJSON(options: {
  * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns {Promise<T>} - The parsed object.
  */
-export async function parseJSON<
-  VALIDATOR extends z4.ZodType | z3.Schema | Validator,
-  VALUE = InferSchema<VALIDATOR>,
->(options: { text: string; schema: VALIDATOR }): Promise<VALUE>;
-export async function parseJSON<
-  SCHEMA extends z4.ZodType | z3.Schema | Validator,
-  VALUE = InferSchema<SCHEMA>,
->({ text, schema }: { text: string; schema?: SCHEMA }): Promise<VALUE> {
+export async function parseJSON<T>(options: {
+  text: string;
+  schema: z4.ZodType<T> | z3.Schema<T> | Validator<T>;
+}): Promise<T>;
+export async function parseJSON<T>({
+  text,
+  schema,
+}: {
+  text: string;
+  schema?: z4.ZodType<T> | z3.Schema<T> | Validator<T>;
+}): Promise<T> {
   try {
     const value = secureJsonParse(text);
 
@@ -43,7 +46,7 @@ export async function parseJSON<
       return value;
     }
 
-    return validateTypes({ value, schema });
+    return validateTypes<T>({ value, schema });
   } catch (error) {
     if (
       JSONParseError.isInstance(error) ||
@@ -86,24 +89,21 @@ export async function safeParseJSON<
   SCHEMA extends z4.ZodType | z3.Schema | Validator,
   VALUE = InferSchema<SCHEMA>,
 >(options: { text: string; schema: SCHEMA }): Promise<ParseResult<VALUE>>;
-export async function safeParseJSON<
-  SCHEMA extends z4.ZodType | z3.Schema | Validator,
-  VALUE = InferSchema<SCHEMA>,
->({
+export async function safeParseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: SCHEMA;
-}): Promise<ParseResult<VALUE>> {
+  schema?: z4.ZodType<T> | z3.Schema<T> | Validator<T>;
+}): Promise<ParseResult<T>> {
   try {
     const value = secureJsonParse(text);
 
     if (schema == null) {
-      return { success: true, value: value as VALUE, rawValue: value };
+      return { success: true, value: value as T, rawValue: value };
     }
 
-    return await safeValidateTypes({ value, schema });
+    return await safeValidateTypes<T>({ value, schema });
   } catch (error) {
     return {
       success: false,
