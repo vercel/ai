@@ -1,6 +1,6 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import { safeValidateTypes } from './validate-types';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export async function parseProviderOptions<T>({
   provider,
@@ -9,13 +9,13 @@ export async function parseProviderOptions<T>({
 }: {
   provider: string;
   providerOptions: Record<string, unknown> | undefined;
-  schema: z.ZodSchema<T>;
+  schema: z.ZodType<T, T>;
 }): Promise<T | undefined> {
   if (providerOptions?.[provider] == null) {
     return undefined;
   }
 
-  const parsedProviderOptions = await safeValidateTypes({
+  const parsedProviderOptions = await safeValidateTypes<T | undefined>({
     value: providerOptions[provider],
     schema,
   });

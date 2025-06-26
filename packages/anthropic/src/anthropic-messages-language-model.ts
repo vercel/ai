@@ -23,7 +23,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
   AnthropicMessagesModelId,
@@ -1051,7 +1051,7 @@ const anthropicMessagesResponseSchema = z.object({
         type: z.literal('server_tool_use'),
         id: z.string(),
         name: z.string(),
-        input: z.record(z.unknown()).nullish(),
+        input: z.record(z.string(), z.unknown()).nullish(),
       }),
       z.object({
         type: z.literal('web_search_tool_result'),
@@ -1129,7 +1129,7 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         type: z.literal('server_tool_use'),
         id: z.string(),
         name: z.string(),
-        input: z.record(z.unknown()).nullish(),
+        input: z.record(z.string(), z.unknown()).nullish(),
       }),
       z.object({
         type: z.literal('web_search_tool_result'),

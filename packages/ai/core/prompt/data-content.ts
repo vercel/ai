@@ -4,7 +4,7 @@ import {
   convertUint8ArrayToBase64,
   DataContent,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { InvalidDataContentError } from './invalid-data-content-error';
 import { splitDataUrl } from './split-data-url';
 
@@ -15,7 +15,7 @@ export const dataContentSchema: z.ZodType<DataContent> = z.union([
   z.string(),
   z.instanceof(Uint8Array),
   z.instanceof(ArrayBuffer),
-  z.custom(
+  z.custom<Buffer>(
     // Buffer might not be available in some environments such as CloudFlare:
     (value: unknown): value is Buffer =>
       globalThis.Buffer?.isBuffer(value) ?? false,

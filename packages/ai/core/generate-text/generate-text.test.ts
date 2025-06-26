@@ -6,7 +6,7 @@ import {
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { Output, stepCountIs } from '.';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
@@ -1434,69 +1434,69 @@ describe('generateText', () => {
       });
 
       expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-      [
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.generateText",
-            "ai.prompt": "{"prompt":"test-input"}",
-            "ai.response.finishReason": "stop",
-            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
-            "ai.settings.maxRetries": 2,
-            "ai.usage.completionTokens": 10,
-            "ai.usage.promptTokens": 3,
-            "operation.name": "ai.generateText",
+        [
+          {
+            "attributes": {
+              "ai.model.id": "mock-model-id",
+              "ai.model.provider": "mock-provider",
+              "ai.operationId": "ai.generateText",
+              "ai.prompt": "{"prompt":"test-input"}",
+              "ai.response.finishReason": "stop",
+              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.settings.maxRetries": 2,
+              "ai.usage.completionTokens": 10,
+              "ai.usage.promptTokens": 3,
+              "operation.name": "ai.generateText",
+            },
+            "events": [],
+            "name": "ai.generateText",
           },
-          "events": [],
-          "name": "ai.generateText",
-        },
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.generateText.doGenerate",
-            "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-            "ai.prompt.toolChoice": "{"type":"auto"}",
-            "ai.prompt.tools": [
-              "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
-            ],
-            "ai.response.finishReason": "stop",
-            "ai.response.id": "test-id",
-            "ai.response.model": "mock-model-id",
-            "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
-            "ai.settings.maxRetries": 2,
-            "ai.usage.completionTokens": 10,
-            "ai.usage.promptTokens": 3,
-            "gen_ai.request.model": "mock-model-id",
-            "gen_ai.response.finish_reasons": [
-              "stop",
-            ],
-            "gen_ai.response.id": "test-id",
-            "gen_ai.response.model": "mock-model-id",
-            "gen_ai.system": "mock-provider",
-            "gen_ai.usage.input_tokens": 3,
-            "gen_ai.usage.output_tokens": 10,
-            "operation.name": "ai.generateText.doGenerate",
+          {
+            "attributes": {
+              "ai.model.id": "mock-model-id",
+              "ai.model.provider": "mock-provider",
+              "ai.operationId": "ai.generateText.doGenerate",
+              "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+              "ai.prompt.toolChoice": "{"type":"auto"}",
+              "ai.prompt.tools": [
+                "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
+              ],
+              "ai.response.finishReason": "stop",
+              "ai.response.id": "test-id",
+              "ai.response.model": "mock-model-id",
+              "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.settings.maxRetries": 2,
+              "ai.usage.completionTokens": 10,
+              "ai.usage.promptTokens": 3,
+              "gen_ai.request.model": "mock-model-id",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "test-id",
+              "gen_ai.response.model": "mock-model-id",
+              "gen_ai.system": "mock-provider",
+              "gen_ai.usage.input_tokens": 3,
+              "gen_ai.usage.output_tokens": 10,
+              "operation.name": "ai.generateText.doGenerate",
+            },
+            "events": [],
+            "name": "ai.generateText.doGenerate",
           },
-          "events": [],
-          "name": "ai.generateText.doGenerate",
-        },
-        {
-          "attributes": {
-            "ai.operationId": "ai.toolCall",
-            "ai.toolCall.id": "call-1",
-            "ai.toolCall.input": "{"value":"value"}",
-            "ai.toolCall.name": "tool1",
-            "ai.toolCall.result": ""result1"",
-            "operation.name": "ai.toolCall",
+          {
+            "attributes": {
+              "ai.operationId": "ai.toolCall",
+              "ai.toolCall.id": "call-1",
+              "ai.toolCall.input": "{"value":"value"}",
+              "ai.toolCall.name": "tool1",
+              "ai.toolCall.result": ""result1"",
+              "operation.name": "ai.toolCall",
+            },
+            "events": [],
+            "name": "ai.toolCall",
           },
-          "events": [],
-          "name": "ai.toolCall",
-        },
-      ]
-    `);
+        ]
+      `);
     });
 
     it('should not record telemetry inputs / outputs when disabled', async () => {

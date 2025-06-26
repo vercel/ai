@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { InvalidToolInputError } from '../../src/error/invalid-tool-input-error';
 import { NoSuchToolError } from '../../src/error/no-such-tool-error';
 import { tool } from '../tool';
