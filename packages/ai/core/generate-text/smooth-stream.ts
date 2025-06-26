@@ -18,6 +18,15 @@ const CHUNKING_REGEXPS = {
 export type ChunkDetector = (buffer: string) => string | undefined | null;
 
 /**
+ * Calculates the delay in milliseconds between each chunk.
+ *
+ * @param buffer - The buffer to calculate the delay for.
+ *
+ * @returns The delay in milliseconds.
+ */
+type DelayCalculator = (buffer: string) => number;
+
+/**
  * Smooths text streaming output.
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
@@ -30,7 +39,7 @@ export function smoothStream<TOOLS extends ToolSet>({
   chunking = 'word',
   _internal: { delay = originalDelay } = {},
 }: {
-  delayInMs?: number | null;
+  delayInMs?: DelayCalculator | number | null;
   chunking?: 'word' | 'line' | RegExp | ChunkDetector;
   /**
    * Internal. For test use only. May change without notice.
@@ -108,7 +117,12 @@ export function smoothStream<TOOLS extends ToolSet>({
           controller.enqueue({ type: 'text-delta', textDelta: match });
           buffer = buffer.slice(match.length);
 
-          await delay(delayInMs);
+          const delayTimeMs =
+            typeof delayInMs === 'number'
+              ? delayInMs
+              : (delayInMs?.(buffer) ?? 10);
+
+          await delay(delayTimeMs);
         }
       },
     });
