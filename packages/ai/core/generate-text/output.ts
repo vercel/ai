@@ -6,7 +6,7 @@ import {
   Schema,
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4/core';
+import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { DeepPartial } from '../../src/util/deep-partial';
 import { parsePartialJson } from '../../src/util/parse-partial-json';
@@ -51,7 +51,7 @@ export const object = <OUTPUT>({
   schema: inputSchema,
 }: {
   schema:
-    | z4.$ZodType<OUTPUT, any>
+    | z4.ZodType<OUTPUT, any>
     | z3.Schema<OUTPUT, z3.ZodTypeDef, any>
     | Schema<OUTPUT>;
 }): Output<OUTPUT, DeepPartial<OUTPUT>> => {
