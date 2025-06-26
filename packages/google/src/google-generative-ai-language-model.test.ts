@@ -1054,6 +1054,25 @@ describe('doGenerate', () => {
         },
       });
     });
+    it('should use urlContextTool for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
+      await gemini2Pro.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useUrlContext: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: { urlContext: {} },
+      });
+    });
   });
 
   it('should extract image file outputs', async () => {

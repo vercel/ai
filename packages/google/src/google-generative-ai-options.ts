@@ -131,6 +131,15 @@ Optional. Specifies the dynamic retrieval configuration.
 @see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval
  */
   dynamicRetrievalConfig: dynamicRetrievalConfig.optional(),
+
+  /**
+Optional. Specifies the URL context tool configuration.
+
+@note URL context is only compatible with latest Gemini 2 models.
+
+@see https://ai.google.dev/gemini-api/docs/url-context
+   */
+  useUrlContext: z.boolean().optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<
