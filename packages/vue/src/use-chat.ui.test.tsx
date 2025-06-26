@@ -970,14 +970,12 @@ describe('experimental_resume', () => {
         type: 'controlled-stream',
         controller,
       };
-      
+
       return TestComponent;
     },
   });
 
   it('should resume ongoing stream and construct assistant message', async () => {
-
-
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
