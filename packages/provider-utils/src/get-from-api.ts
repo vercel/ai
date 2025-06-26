@@ -1,9 +1,10 @@
 import { APICallError } from '@ai-sdk/provider';
+import { extractResponseHeaders } from './extract-response-headers';
 import { FetchFunction } from './fetch-function';
+import { handleFetchError } from './handle-fetch-error';
+import { isAbortError } from './is-abort-error';
 import { removeUndefinedEntries } from './remove-undefined-entries';
 import { ResponseHandler } from './response-handler';
-import { isAbortError } from './is-abort-error';
-import { extractResponseHeaders } from './extract-response-headers';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => globalThis.fetch;
@@ -85,23 +86,6 @@ export const getFromApi = async <T>({
       });
     }
   } catch (error) {
-    if (isAbortError(error)) {
-      throw error;
-    }
-
-    if (error instanceof TypeError && error.message === 'fetch failed') {
-      const cause = (error as any).cause;
-      if (cause != null) {
-        throw new APICallError({
-          message: `Cannot connect to API: ${cause.message}`,
-          cause,
-          url,
-          isRetryable: true,
-          requestBodyValues: {},
-        });
-      }
-    }
-
-    throw error;
+    handleFetchError({ error, url, requestBodyValues: {} });
   }
 };

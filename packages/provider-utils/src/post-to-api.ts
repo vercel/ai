@@ -1,6 +1,7 @@
 import { APICallError } from '@ai-sdk/provider';
 import { extractResponseHeaders } from './extract-response-headers';
 import { FetchFunction } from './fetch-function';
+import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
 import { removeUndefinedEntries } from './remove-undefined-entries';
 import { ResponseHandler } from './response-handler';
@@ -154,26 +155,6 @@ export const postToApi = async <T>({
       });
     }
   } catch (error) {
-    if (isAbortError(error)) {
-      throw error;
-    }
-
-    // unwrap original error when fetch failed (for easier debugging):
-    if (error instanceof TypeError && error.message === 'fetch failed') {
-      const cause = (error as any).cause;
-
-      if (cause != null) {
-        // Failed to connect to server:
-        throw new APICallError({
-          message: `Cannot connect to API: ${cause.message}`,
-          cause,
-          url,
-          requestBodyValues: body.values,
-          isRetryable: true, // retry when network error
-        });
-      }
-    }
-
-    throw error;
+    handleFetchError({ error, url, requestBodyValues: body.values });
   }
 };
