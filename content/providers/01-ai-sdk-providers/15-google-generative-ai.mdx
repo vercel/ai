@@ -390,7 +390,7 @@ const { text } = await generateText({
           Answer this question: How many links we can consume in one request?`,
   providerOptions: {
     google: {
-      urlContext: true,
+      useUrlContext: true,
     },
   },
 });
@@ -419,7 +419,7 @@ const { text, sources } = await generateText({
   providerOptions: {
     google: {
       useSearchGrounding: true,
-      urlContext: true,
+      useUrlContext: true,
     },
   },
 });
