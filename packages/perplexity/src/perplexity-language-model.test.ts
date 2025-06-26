@@ -780,7 +780,7 @@ describe('PerplexityLanguageModel', () => {
           },
           {
             "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}.
-        Error message: [{"code":"invalid_literal","expected":"assistant","path":["choices",0,"delta","role"],"message":"Invalid literal value, expected \\"assistant\\""}]],
+        Error message: [{"code":"invalid_value","values":["assistant"],"path":["choices",0,"delta","role"],"message":"Invalid input: expected \\"assistant\\""}]],
             "type": "error",
           },
           {
@@ -808,7 +808,7 @@ describe('PerplexityLanguageModel', () => {
           },
           {
             "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.
-        Error message: [{"code":"invalid_literal","expected":"assistant","path":["choices",0,"delta","role"],"message":"Invalid literal value, expected \\"assistant\\""},{"code":"invalid_type","expected":"string","received":"undefined","path":["choices",0,"delta","content"],"message":"Required"}]],
+        Error message: [{"code":"invalid_value","values":["assistant"],"path":["choices",0,"delta","role"],"message":"Invalid input: expected \\"assistant\\""},{"expected":"string","code":"invalid_type","path":["choices",0,"delta","content"],"message":"Invalid input: expected string, received undefined"}]],
             "type": "error",
           },
           {
