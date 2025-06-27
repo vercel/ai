@@ -1,5 +1,19 @@
 # @ai-sdk/react
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0d9583c]
+- Updated dependencies [0571b98]
+- Updated dependencies [c6b64a7]
+- Updated dependencies [39a4fab]
+- Updated dependencies [cb3b9c9]
+- Updated dependencies [d1a034f]
+  - ai@5.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
 ## 2.0.0-beta.1
 
 ### Patch Changes
