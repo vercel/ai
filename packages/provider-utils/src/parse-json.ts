@@ -85,10 +85,10 @@ export async function safeParseJSON(options: {
  * @param {Validator<T>} schema - The schema to use for parsing the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export async function safeParseJSON<
-  SCHEMA extends z4.ZodType | z3.Schema | Validator,
-  VALUE = InferSchema<SCHEMA>,
->(options: { text: string; schema: SCHEMA }): Promise<ParseResult<VALUE>>;
+export async function safeParseJSON<T>(options: {
+  text: string;
+  schema: z4.ZodType<T> | z3.Schema<T> | Validator<T>;
+}): Promise<ParseResult<T>>;
 export async function safeParseJSON<T>({
   text,
   schema,
