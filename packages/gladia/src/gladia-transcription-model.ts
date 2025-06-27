@@ -13,7 +13,7 @@ import {
   postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
 import { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
@@ -258,7 +258,7 @@ const gladiaProviderOptionsSchema = z.object({
       /**
        * Dictionary of custom spellings.
        */
-      spellingDictionary: z.record(z.array(z.string())),
+      spellingDictionary: z.record(z.string(), z.array(z.string())),
     })
     .nullish(),
 
@@ -304,7 +304,7 @@ const gladiaProviderOptionsSchema = z.object({
   /**
    * Custom metadata to include with the transcription.
    */
-  customMetadata: z.record(z.any()).nullish(),
+  customMetadata: z.record(z.string(), z.any()).nullish(),
 
   /**
    * Whether to include sentence-level segmentation.

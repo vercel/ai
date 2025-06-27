@@ -1,5 +1,20 @@
 # ai
 
+## 5.0.0-beta.2
+
+### Patch Changes
+
+- 0d9583c: fix (ai): use user-provided media type when available
+- c6b64a7: feat (ai): allow async prepareRequest on HttpChatTransport
+- cb3b9c9: fix (ai): catch errors in ui message stream
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [c91586a]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+  - @ai-sdk/gateway@1.0.0-beta.2
+
 ## 5.0.0-beta.1
 
 ### Major Changes

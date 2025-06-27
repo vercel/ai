@@ -1,7 +1,7 @@
 import { azure } from '@ai-sdk/azure';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({

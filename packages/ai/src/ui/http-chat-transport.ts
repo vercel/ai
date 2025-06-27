@@ -22,12 +22,19 @@ export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
       | 'regenerate-assistant-message';
     messageId: string | undefined;
   },
-) => {
-  body: object;
-  headers?: HeadersInit;
-  credentials?: RequestCredentials;
-  api?: string;
-};
+) =>
+  | {
+      body: object;
+      headers?: HeadersInit;
+      credentials?: RequestCredentials;
+      api?: string;
+    }
+  | PromiseLike<{
+      body: object;
+      headers?: HeadersInit;
+      credentials?: RequestCredentials;
+      api?: string;
+    }>;
 
 export type PrepareReconnectToStreamRequest = (options: {
   id: string;
@@ -36,11 +43,17 @@ export type PrepareReconnectToStreamRequest = (options: {
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   api: string;
-}) => {
-  headers?: HeadersInit;
-  credentials?: RequestCredentials;
-  api?: string;
-};
+}) =>
+  | {
+      headers?: HeadersInit;
+      credentials?: RequestCredentials;
+      api?: string;
+    }
+  | PromiseLike<{
+      headers?: HeadersInit;
+      credentials?: RequestCredentials;
+      api?: string;
+    }>;
 
 export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
   api?: string;
@@ -124,7 +137,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     abortSignal,
     ...options
   }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]) {
-    const preparedRequest = this.prepareSendMessagesRequest?.({
+    const preparedRequest = await this.prepareSendMessagesRequest?.({
       api: this.api,
       id: options.chatId,
       messages: options.messages,
@@ -181,7 +194,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   async reconnectToStream(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
   ): Promise<ReadableStream<UIMessageStreamPart> | null> {
-    const preparedRequest = this.prepareReconnectToStreamRequest?.({
+    const preparedRequest = await this.prepareReconnectToStreamRequest?.({
       api: this.api,
       id: options.chatId,
       body: { ...this.body, ...options.body },

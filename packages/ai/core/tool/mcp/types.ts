@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { JSONObject } from '@ai-sdk/provider';
 import { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 

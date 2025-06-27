@@ -1,5 +1,29 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [a85c85f]
+- Updated dependencies [cb787ac]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+- Updated dependencies [0b678b2]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+  - @ai-sdk/anthropic@2.0.0-beta.3
+  - @ai-sdk/google@2.0.0-beta.3
+
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [a313780]
+- Updated dependencies [d601ed9]
+  - @ai-sdk/google@2.0.0-beta.2
+  - @ai-sdk/anthropic@2.0.0-beta.2
+
 ## 3.0.0-beta.1
 
 ### Patch Changes

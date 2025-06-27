@@ -1,6 +1,6 @@
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 
 const weatherTool = tool({

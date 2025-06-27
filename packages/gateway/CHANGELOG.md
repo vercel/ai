@@ -1,5 +1,16 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- c91586a: chore (providers/gateway): update language model ids
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
 ## 1.0.0-beta.1
 
 ### Patch Changes

@@ -20,6 +20,7 @@ import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
+import { ErrorHandler } from '../../src/util/error-handler';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -98,7 +99,7 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
 };
 
 export type ConsumeStreamOptions = {
-  onError?: (error: unknown) => void;
+  onError?: ErrorHandler;
 };
 
 /**

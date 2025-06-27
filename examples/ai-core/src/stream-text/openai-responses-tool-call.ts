@@ -2,7 +2,7 @@ import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 import { stepCountIs, streamText, tool } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamText({
