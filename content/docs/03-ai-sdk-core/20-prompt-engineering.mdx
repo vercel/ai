@@ -43,7 +43,7 @@ const result = await generateObject({
         date: z
           .string()
           .date()
-          .transform((value) => new Date(value)),
+          .transform(value => new Date(value)),
       }),
     ),
   }),
