@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 export default function Chat() {
   const [input, setInput] = useState('');
   const { messages, sendMessage } = useChat({
-    onError: err => toast.error(err as any),
+    onError: err => toast.error(err.message),
   });
 
   return (

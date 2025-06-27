@@ -8,7 +8,7 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const { messages, sendMessage, status } = useChat({
     onError: err => {
-      toast.error(err as any);
+      toast.error(err.message);
     },
   });
 

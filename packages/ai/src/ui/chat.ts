@@ -1,6 +1,5 @@
 import {
   generateId as generateIdFunc,
-  getErrorMessage,
   IdGenerator,
   StandardSchemaV1,
   ToolCall,
@@ -31,7 +30,6 @@ import {
   type UIMessage,
 } from './ui-messages';
 import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
-import { ErrorHandler } from '../util/error-handler';
 
 export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   UI_MESSAGE,
@@ -119,7 +117,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * Callback function to be called when an error is encountered.
    */
-  onError?: ErrorHandler;
+  onError?: (error: Error) => void;
 
   /**
   Optional callback function that is invoked when a tool call is received.
@@ -157,7 +155,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | undefined;
   private readonly transport: ChatTransport<UI_MESSAGE>;
   private maxSteps: number;
-  private onError: ErrorHandler;
+  private onError?: ChatInit<UI_MESSAGE>['onError'];
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
 
@@ -172,9 +170,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     messageMetadataSchema,
     dataPartSchemas,
     state,
-    onError = error => {
-      console.error(getErrorMessage(error));
-    },
+    onError,
     onToolCall,
     onFinish,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
@@ -500,17 +496,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
-          onError: this.onError,
+          onError: error => {
+            throw error;
+          },
         }),
-        onError: this.onError,
+        onError: error => {
+          throw error;
+        },
       });
 
       this.onFinish?.({ message: activeResponse.state.message });
 
       this.setStatus({ status: 'ready' });
     } catch (err) {
-      console.error(err);
-
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
         this.setStatus({ status: 'ready' });
