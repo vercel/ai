@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const { experimental_output } = await generateText({
-    model: google('gemini-1.5-flash'),
+    model: google('gemini-2.5-flash'),
     experimental_output: Output.object({
       schema: z.object({
         name: z.string(),
