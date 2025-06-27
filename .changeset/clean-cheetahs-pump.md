@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-fix (ai): mediatype for providers
+fix (ai): use user-provided media type when available
