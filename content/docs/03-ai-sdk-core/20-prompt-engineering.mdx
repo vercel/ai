@@ -56,7 +56,8 @@ const result = await generateObject({
 When working with tools that have optional parameters, you may encounter compatibility issues with certain providers that use strict schema validation.
 
 <Note>
-This is particularly relevant for OpenAI models with structured outputs (strict mode).
+  This is particularly relevant for OpenAI models with structured outputs
+  (strict mode).
 </Note>
 
 For maximum compatibility, optional parameters should use `.nullable()` instead of `.optional()`:
@@ -104,6 +105,7 @@ const result = await generateText({
 ```
 
 Lower temperature values reduce randomness in model outputs, which is particularly important when the model needs to:
+
 - Generate structured data with specific formats
 - Make precise tool calls with correct parameters
 - Follow strict schemas consistently
