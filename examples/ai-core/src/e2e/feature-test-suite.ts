@@ -17,7 +17,7 @@ import {
 } from 'ai';
 import fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export type Capability =
   | 'audioInput'

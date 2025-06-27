@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamObject } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const togetherai = createOpenAICompatible({

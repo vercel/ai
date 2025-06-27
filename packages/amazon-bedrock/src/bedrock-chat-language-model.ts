@@ -20,7 +20,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
   BedrockConverseInput,
@@ -709,10 +709,12 @@ const BedrockStreamSchema = z.object({
       contentBlockIndex: z.number(),
     })
     .nullish(),
-  internalServerException: z.record(z.unknown()).nullish(),
+  internalServerException: z.record(z.string(), z.unknown()).nullish(),
   messageStop: z
     .object({
-      additionalModelResponseFields: z.record(z.unknown()).nullish(),
+      additionalModelResponseFields: z
+        .record(z.string(), z.unknown())
+        .nullish(),
       stopReason: BedrockStopReasonSchema,
     })
     .nullish(),
@@ -729,9 +731,9 @@ const BedrockStreamSchema = z.object({
         .nullish(),
     })
     .nullish(),
-  modelStreamErrorException: z.record(z.unknown()).nullish(),
-  throttlingException: z.record(z.unknown()).nullish(),
-  validationException: z.record(z.unknown()).nullish(),
+  modelStreamErrorException: z.record(z.string(), z.unknown()).nullish(),
+  throttlingException: z.record(z.string(), z.unknown()).nullish(),
+  validationException: z.record(z.string(), z.unknown()).nullish(),
 });
 
 export const bedrockReasoningMetadataSchema = z.object({

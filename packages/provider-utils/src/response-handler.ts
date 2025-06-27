@@ -1,5 +1,5 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
-import { ZodSchema } from 'zod';
+import { ZodType } from 'zod/v4';
 import { extractResponseHeaders } from './extract-response-headers';
 import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
@@ -20,7 +20,7 @@ export const createJsonErrorResponseHandler =
     errorToMessage,
     isRetryable,
   }: {
-    errorSchema: ZodSchema<T>;
+    errorSchema: ZodType<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
   }): ResponseHandler<APICallError> =>
@@ -82,7 +82,7 @@ export const createJsonErrorResponseHandler =
 
 export const createEventSourceResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: ZodType<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -102,7 +102,7 @@ export const createEventSourceResponseHandler =
 
 export const createJsonStreamResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: ZodType<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -136,7 +136,7 @@ export const createJsonStreamResponseHandler =
   };
 
 export const createJsonResponseHandler =
-  <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
+  <T>(responseSchema: ZodType<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
 

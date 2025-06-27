@@ -51,13 +51,13 @@ export function isValidator(value: unknown): value is Validator {
 }
 
 export function asValidator<OBJECT>(
-  value: Validator<OBJECT> | StandardSchemaV1<OBJECT>,
+  value: Validator<OBJECT> | StandardSchemaV1<unknown, OBJECT>,
 ): Validator<OBJECT> {
   return isValidator(value) ? value : standardSchemaValidator(value);
 }
 
 export function standardSchemaValidator<OBJECT>(
-  standardSchema: StandardSchemaV1<OBJECT>,
+  standardSchema: StandardSchemaV1<unknown, OBJECT>,
 ): Validator<OBJECT> {
   return validator(async value => {
     const result = await standardSchema['~standard'].validate(value);

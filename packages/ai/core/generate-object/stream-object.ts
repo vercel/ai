@@ -14,7 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
 import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4/core';
+import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
@@ -162,7 +162,7 @@ functionality that can be fully encapsulated in the provider.
 A result object for accessing the partial object stream and additional information.
  */
 export function streamObject<
-  SCHEMA extends z3.Schema | z4.$ZodType | Schema = z4.$ZodType<JSONValue>,
+  SCHEMA extends z3.Schema | z4.ZodType | Schema = z4.ZodType<JSONValue>,
   OUTPUT extends
     | 'object'
     | 'array'

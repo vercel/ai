@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/text-embeddings-api
 export type GoogleVertexEmbeddingModelId =

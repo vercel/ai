@@ -13,7 +13,7 @@ import {
   type Schema,
 } from 'ai';
 import type * as z3 from 'zod/v3';
-import type * as z4 from 'zod/v4/core';
+import type * as z4 from 'zod/v4';
 import {
   getStructuredObjectContext,
   hasStructuredObjectContext,
@@ -22,7 +22,7 @@ import {
 } from './structured-object-context.svelte.js';
 
 export type Experimental_StructuredObjectOptions<
-  SCHEMA extends z3.Schema | z4.$ZodType | Schema,
+  SCHEMA extends z3.Schema | z4.ZodType | Schema,
   RESULT = InferSchema<SCHEMA>,
 > = {
   /**
@@ -88,7 +88,7 @@ export type Experimental_StructuredObjectOptions<
 };
 
 export class StructuredObject<
-  SCHEMA extends z3.Schema | z4.$ZodType | Schema,
+  SCHEMA extends z3.Schema | z4.ZodType | Schema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = unknown,
 > {
