@@ -618,8 +618,6 @@ describe('convertToLanguageModelPrompt', () => {
           ]
         `);
       });
-
-
     });
 
     describe('provider options', async () => {
