@@ -462,7 +462,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'error': {
-              onError?.(part.errorText);
+              onError?.(new Error(part.errorText));
               break;
             }
 

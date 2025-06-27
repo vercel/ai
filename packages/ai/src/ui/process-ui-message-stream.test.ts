@@ -217,7 +217,7 @@ describe('processUIMessageStream', () => {
     it('should call the onError function with the correct arguments', async () => {
       expect(errors).toMatchInlineSnapshot(`
         [
-          "test error",
+          [Error: test error],
         ]
       `);
     });
