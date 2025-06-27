@@ -51,24 +51,28 @@ const result = await generateObject({
 });
 ```
 
-#### OpenAI Optional Parameters
+#### Optional Parameters
 
-When using OpenAI models with structured outputs (strict mode), optional parameters should use `.nullable()` instead of `.optional()` to ensure compatibility.
+When working with tools that have optional parameters, you may encounter compatibility issues with certain providers that use strict schema validation.
 
-OpenAI's strict mode requires all properties to be in the `required` array, but nullable fields can accept `null` values, effectively making them optional:
+<Note>
+This is particularly relevant for OpenAI models with structured outputs (strict mode).
+</Note>
+
+For maximum compatibility, optional parameters should use `.nullable()` instead of `.optional()`:
 
 ```ts highlight="6,7,16,17"
-// This will fail with OpenAI strict mode
+// This may fail with strict schema validation
 const failingTool = tool({
   description: 'Execute a command',
   inputSchema: z.object({
     command: z.string(),
-    workdir: z.string().optional(), // This causes errors
+    workdir: z.string().optional(), // This can cause errors
     timeout: z.string().optional(),
   }),
 });
 
-// This works with OpenAI strict mode
+// This works with strict schema validation
 const workingTool = tool({
   description: 'Execute a command',
   inputSchema: z.object({
@@ -79,7 +83,30 @@ const workingTool = tool({
 });
 ```
 
-The nullable approach generates `"type": ["string", "null"]` in the JSON schema, which satisfies OpenAI's strict mode requirements while still allowing the field to be effectively optional by accepting `null` values.
+#### Temperature Settings
+
+For tool calls and object generation, it's recommended to use `temperature: 0` to ensure deterministic and consistent results:
+
+```ts highlight="3"
+const result = await generateText({
+  model: openai('gpt-4o'),
+  temperature: 0, // Recommended for tool calls
+  tools: {
+    myTool: tool({
+      description: 'Execute a command',
+      inputSchema: z.object({
+        command: z.string(),
+      }),
+    }),
+  },
+  prompt: 'Execute the ls command',
+});
+```
+
+Lower temperature values reduce randomness in model outputs, which is particularly important when the model needs to:
+- Generate structured data with specific formats
+- Make precise tool calls with correct parameters
+- Follow strict schemas consistently
 
 ## Debugging
 
