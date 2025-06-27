@@ -43,13 +43,43 @@ const result = await generateObject({
         date: z
           .string()
           .date()
-          .transform(value => new Date(value)),
+          .transform((value) => new Date(value)),
       }),
     ),
   }),
   prompt: 'List 5 important events from the year 2000.',
 });
 ```
+
+#### OpenAI Optional Parameters
+
+When using OpenAI models with structured outputs (strict mode), optional parameters should use `.nullable()` instead of `.optional()` to ensure compatibility.
+
+OpenAI's strict mode requires all properties to be in the `required` array, but nullable fields can accept `null` values, effectively making them optional:
+
+```ts highlight="6,7,16,17"
+// This will fail with OpenAI strict mode
+const failingTool = tool({
+  description: 'Execute a command',
+  inputSchema: z.object({
+    command: z.string(),
+    workdir: z.string().optional(), // This causes errors
+    timeout: z.string().optional(),
+  }),
+});
+
+// This works with OpenAI strict mode
+const workingTool = tool({
+  description: 'Execute a command',
+  inputSchema: z.object({
+    command: z.string(),
+    workdir: z.string().nullable(), // Use nullable instead
+    timeout: z.string().nullable(),
+  }),
+});
+```
+
+The nullable approach generates `"type": ["string", "null"]` in the JSON schema, which satisfies OpenAI's strict mode requirements while still allowing the field to be effectively optional by accepting `null` values.
 
 ## Debugging
 
