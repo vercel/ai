@@ -9,21 +9,22 @@ import {
   isDataUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../ui-message-stream/ui-message-stream-parts';
+import { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
+import { UIDataTypesToSchemas } from './chat';
 import {
+  getToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
   InferUIMessageTools,
-  ReasoningUIPart,
   isToolUIPart,
+  ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
   UIMessage,
   UIMessagePart,
-  getToolName,
 } from './ui-messages';
-import { UIDataTypesToSchemas } from './chat';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
@@ -67,6 +68,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   messageMetadataSchema,
   dataPartSchemas,
   runUpdateMessageJob,
+  onError,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageStreamPart>;
@@ -83,6 +85,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
+  onError: ErrorHandler;
 }): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
   return stream.pipeThrough(
     new TransformStream<
@@ -459,7 +462,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'error': {
-              throw new Error(part.errorText);
+              onError?.(new Error(part.errorText));
+              break;
             }
 
             default: {

@@ -4,6 +4,7 @@ import {
   StreamingUIMessageState,
 } from '../ui/process-ui-message-stream';
 import { UIMessage } from '../ui/ui-messages';
+import { ErrorHandler } from '../util/error-handler';
 import {
   InferUIMessageStreamPart,
   UIMessageStreamPart,
@@ -13,6 +14,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
   originalMessages = [],
   onFinish,
+  onError,
   stream,
 }: {
   stream: ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
@@ -23,6 +25,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
    * The original messages.
    */
   originalMessages?: UI_MESSAGE[];
+
+  onError: ErrorHandler;
 
   onFinish?: (options: {
     /**
@@ -87,6 +91,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       }),
     ),
     runUpdateMessageJob,
+    onError,
   }).pipeThrough(
     new TransformStream<
       InferUIMessageStreamPart<UI_MESSAGE>,
