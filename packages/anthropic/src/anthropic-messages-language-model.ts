@@ -339,7 +339,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         tool_choice: anthropicToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
-      betas: new Set([...messagesBetas, ...toolsBetas]),
+      betas: new Set([
+        'fine-grained-tool-streaming-2025-05-14',
+        ...messagesBetas,
+        ...toolsBetas,
+      ]),
       jsonResponseTool,
     };
   }
