@@ -67,6 +67,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   messageMetadataSchema,
   dataPartSchemas,
   runUpdateMessageJob,
+  onError,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageStreamPart>;
@@ -83,6 +84,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
+  onError: (error: unknown) => void;
 }): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
   return stream.pipeThrough(
     new TransformStream<
@@ -459,7 +461,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'error': {
-              throw new Error(part.errorText);
+              onError?.(part.errorText);
+              break;
             }
 
             default: {

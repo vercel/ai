@@ -135,5 +135,6 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     messageId: generateId(),
     originalMessages,
     onFinish,
+    onError,
   });
 }

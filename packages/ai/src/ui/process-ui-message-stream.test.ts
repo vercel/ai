@@ -62,6 +62,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -208,6 +211,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -462,6 +468,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -772,6 +781,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -1174,6 +1186,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -1739,6 +1754,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -1979,6 +1997,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -2205,6 +2226,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -2353,6 +2377,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -2508,6 +2535,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -2689,6 +2719,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -2858,6 +2891,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -3426,6 +3462,9 @@ describe('processUIMessageStream', () => {
           stream,
           runUpdateMessageJob,
           onToolCall: vi.fn().mockResolvedValue('test-result'),
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -3549,6 +3588,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -3705,6 +3747,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -3968,6 +4013,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -4051,6 +4099,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -4159,6 +4210,9 @@ describe('processUIMessageStream', () => {
         stream: processUIMessageStream({
           stream,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -4307,6 +4361,9 @@ describe('processUIMessageStream', () => {
             return 'client-result';
           },
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
     });
@@ -4557,6 +4614,9 @@ describe('processUIMessageStream', () => {
             return 'client-result';
           },
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
       });
 

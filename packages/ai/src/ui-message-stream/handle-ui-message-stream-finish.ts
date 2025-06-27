@@ -13,6 +13,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
   originalMessages = [],
   onFinish,
+  onError,
   stream,
 }: {
   stream: ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
@@ -23,6 +24,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
    * The original messages.
    */
   originalMessages?: UI_MESSAGE[];
+
+  onError: (error: unknown) => void;
 
   onFinish?: (options: {
     /**
@@ -87,6 +90,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       }),
     ),
     runUpdateMessageJob,
+    onError,
   }).pipeThrough(
     new TransformStream<
       InferUIMessageStreamPart<UI_MESSAGE>,

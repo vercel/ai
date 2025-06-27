@@ -1803,6 +1803,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       messageId: responseMessageId ?? this.generateId(),
       originalMessages,
       onFinish,
+      onError,
     });
   }
 
