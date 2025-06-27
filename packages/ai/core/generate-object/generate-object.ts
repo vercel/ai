@@ -11,7 +11,7 @@ import {
   Schema,
 } from '@ai-sdk/provider-utils';
 import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4/core';
+import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { prepareHeaders } from '../../src/util/prepare-headers';
 import { prepareRetries } from '../../src/util/prepare-retries';
@@ -121,7 +121,7 @@ functionality that can be fully encapsulated in the provider.
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  SCHEMA extends z3.Schema | z4.$ZodType | Schema = z4.$ZodType<JSONValue>,
+  SCHEMA extends z3.Schema | z4.ZodType | Schema = z4.ZodType<JSONValue>,
   OUTPUT extends
     | 'object'
     | 'array'

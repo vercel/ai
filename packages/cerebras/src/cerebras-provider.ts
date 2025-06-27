@@ -10,7 +10,7 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { CerebrasChatModelId } from './cerebras-chat-options';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 
 // Add error schema and structure

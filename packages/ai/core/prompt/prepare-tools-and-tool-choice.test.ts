@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { ToolSet } from '../generate-text/tool-set';
 import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 import { Tool, tool } from '@ai-sdk/provider-utils';

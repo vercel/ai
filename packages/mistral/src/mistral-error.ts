@@ -1,5 +1,5 @@
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const mistralErrorDataSchema = z.object({
   object: z.literal('error'),

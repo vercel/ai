@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export const maxDuration = 30;
 

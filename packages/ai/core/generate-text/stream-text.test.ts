@@ -16,7 +16,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -7039,7 +7039,7 @@ describe('streamText', () => {
                 "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
                 ],
                 "ai.response.avgOutputTokensPerSecond": 20,
                 "ai.response.finishReason": "tool-calls",
@@ -7099,7 +7099,7 @@ describe('streamText', () => {
                 "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
                 ],
                 "ai.response.avgOutputTokensPerSecond": 25,
                 "ai.response.finishReason": "stop",

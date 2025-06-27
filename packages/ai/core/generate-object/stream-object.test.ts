@@ -5,7 +5,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   NoObjectGeneratedError,
   verifyNoObjectGeneratedError,
