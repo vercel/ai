@@ -517,6 +517,109 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]);
       });
+
+      it('should prioritize user-provided mediaType over downloaded file mediaType', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: new URL('https://example.com/image.jpg'),
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          downloadImplementation: async ({ url }) => {
+            expect(url).toEqual(new URL('https://example.com/image.jpg'));
+            return {
+              data: new Uint8Array([0, 1, 2, 3]),
+              mediaType: 'application/octet-stream',
+            };
+          },
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "data": Uint8Array [
+                    0,
+                    1,
+                    2,
+                    3,
+                  ],
+                  "filename": undefined,
+                  "mediaType": "image/jpeg",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ]
+        `);
+      });
+
+      it('should use downloaded file mediaType as fallback when user provides generic mediaType', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: new URL('https://example.com/document.txt'),
+                    mediaType: 'application/octet-stream',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          downloadImplementation: async ({ url }) => {
+            expect(url).toEqual(new URL('https://example.com/document.txt'));
+            return {
+              data: new Uint8Array([72, 101, 108, 108, 111]),
+              mediaType: 'text/plain',
+            };
+          },
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "data": Uint8Array [
+                    72,
+                    101,
+                    108,
+                    108,
+                    111,
+                  ],
+                  "filename": undefined,
+                  "mediaType": "application/octet-stream",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ]
+        `);
+      });
+
+
     });
 
     describe('provider options', async () => {
