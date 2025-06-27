@@ -1,3 +1,5 @@
+import { ErrorHandler } from './error-handler';
+
 /**
  * Creates a Promise with externally accessible resolve and reject functions.
  *
@@ -10,10 +12,10 @@
 export function createResolvablePromise<T = any>(): {
   promise: Promise<T>;
   resolve: (value: T) => void;
-  reject: (error: unknown) => void;
+  reject: ErrorHandler;
 } {
   let resolve: (value: T) => void;
-  let reject: (error: unknown) => void;
+  let reject: ErrorHandler;
 
   const promise = new Promise<T>((res, rej) => {
     resolve = res;

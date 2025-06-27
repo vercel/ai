@@ -1,5 +1,6 @@
 import {
   generateId as generateIdFunc,
+  getErrorMessage,
   IdGenerator,
   StandardSchemaV1,
   ToolCall,
@@ -30,6 +31,7 @@ import {
   type UIMessage,
 } from './ui-messages';
 import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import { ErrorHandler } from '../util/error-handler';
 
 export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   UI_MESSAGE,
@@ -117,7 +119,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * Callback function to be called when an error is encountered.
    */
-  onError?: (error: Error) => void;
+  onError?: ErrorHandler;
 
   /**
   Optional callback function that is invoked when a tool call is received.
@@ -155,7 +157,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | undefined;
   private readonly transport: ChatTransport<UI_MESSAGE>;
   private maxSteps: number;
-  private onError?: ChatInit<UI_MESSAGE>['onError'];
+  private onError: ErrorHandler;
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
 
@@ -170,7 +172,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     messageMetadataSchema,
     dataPartSchemas,
     state,
-    onError,
+    onError = error => {
+      console.error(getErrorMessage(error));
+    },
     onToolCall,
     onFinish,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
@@ -496,10 +500,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
+          onError: this.onError,
         }),
-        onError: error => {
-          throw error;
-        },
+        onError: this.onError,
       });
 
       this.onFinish?.({ message: activeResponse.state.message });

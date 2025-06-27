@@ -4,6 +4,7 @@ import {
   StreamingUIMessageState,
 } from '../ui/process-ui-message-stream';
 import { UIMessage } from '../ui/ui-messages';
+import { ErrorHandler } from '../util/error-handler';
 import {
   InferUIMessageStreamPart,
   UIMessageStreamPart,
@@ -25,7 +26,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
    */
   originalMessages?: UI_MESSAGE[];
 
-  onError: (error: unknown) => void;
+  onError: ErrorHandler;
 
   onFinish?: (options: {
     /**
