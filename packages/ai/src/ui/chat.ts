@@ -496,6 +496,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
         }),
         onError: error => {
           throw error;
@@ -506,8 +509,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.setStatus({ status: 'ready' });
     } catch (err) {
-      console.error(err);
-
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
         this.setStatus({ status: 'ready' });
