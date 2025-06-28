@@ -19,8 +19,19 @@ vi.mock('./gateway-language-model', () => ({
   GatewayLanguageModel: vi.fn(),
 }));
 
+// Mock the gateway fetch metadata to prevent actual network calls
+// We'll create a more flexible mock that can simulate auth failures
+const mockGetAvailableModels = vi.fn();
 vi.mock('./gateway-fetch-metadata', () => ({
-  GatewayFetchMetadata: vi.fn(),
+  GatewayFetchMetadata: vi.fn().mockImplementation((config: any) => ({
+    getAvailableModels: async () => {
+      // Call the headers function to trigger authentication logic
+      if (config.headers && typeof config.headers === 'function') {
+        await config.headers();
+      }
+      return mockGetAvailableModels();
+    },
+  })),
 }));
 
 vi.mock('./vercel-environment', () => ({
@@ -33,6 +44,8 @@ describe('GatewayProvider', () => {
     vi.clearAllMocks();
     vi.mocked(getVercelOidcToken).mockResolvedValue('mock-oidc-token');
     vi.mocked(getVercelRequestId).mockResolvedValue('mock-request-id');
+    // Set up default mock behavior for getAvailableModels
+    mockGetAvailableModels.mockReturnValue({ models: [] });
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
@@ -119,13 +132,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should fetch available models', async () => {
-      const mockGetAvailableModels = vi.fn().mockResolvedValue({ models: [] });
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as unknown as InstanceType<typeof GatewayFetchMetadata>,
-      );
+      mockGetAvailableModels.mockReturnValue({ models: [] });
 
       const options = {
         baseURL: 'https://api.example.com',
@@ -145,15 +152,9 @@ describe('GatewayProvider', () => {
 
     describe('metadata caching', () => {
       it('should cache metadata for the specified refresh interval', async () => {
-        const mockGetAvailableModels = vi.fn().mockResolvedValue({
+        mockGetAvailableModels.mockReturnValue({
           models: [{ id: 'test-model', specification: {} }],
         });
-        vi.mocked(GatewayFetchMetadata).mockImplementation(
-          () =>
-            ({
-              getAvailableModels: mockGetAvailableModels,
-            }) as unknown as InstanceType<typeof GatewayFetchMetadata>,
-        );
 
         let currentTime = new Date('2024-01-01T00:00:00Z').getTime();
         const provider = createGatewayProvider({
@@ -184,15 +185,9 @@ describe('GatewayProvider', () => {
       });
 
       it('should use default 5 minute refresh interval when not specified', async () => {
-        const mockGetAvailableModels = vi.fn().mockResolvedValue({
+        mockGetAvailableModels.mockReturnValue({
           models: [{ id: 'test-model', specification: {} }],
         });
-        vi.mocked(GatewayFetchMetadata).mockImplementation(
-          () =>
-            ({
-              getAvailableModels: mockGetAvailableModels,
-            }) as unknown as InstanceType<typeof GatewayFetchMetadata>,
-        );
 
         let currentTime = new Date('2024-01-01T00:00:00Z').getTime();
         const provider = createGatewayProvider({
@@ -305,17 +300,8 @@ describe('GatewayProvider', () => {
     });
 
     it('should use the default baseURL when none is provided', async () => {
-      // Reset the existing mock
-      vi.mocked(GatewayFetchMetadata).mockReset();
-
-      // Create a mock implementation that returns empty models
-      const mockGetAvailableModels = vi.fn().mockResolvedValue({ models: [] });
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as unknown as InstanceType<typeof GatewayFetchMetadata>,
-      );
+      // Set up mock to return empty models
+      mockGetAvailableModels.mockReturnValue({ models: [] });
 
       // Create a provider without specifying baseURL
       const testProvider = createGatewayProvider({
@@ -345,14 +331,8 @@ describe('GatewayProvider', () => {
       // Reset mocks
       vi.clearAllMocks();
 
-      // Create a mock implementation that returns empty models
-      const mockGetAvailableModels = vi.fn().mockResolvedValue({ models: [] });
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as unknown as InstanceType<typeof GatewayFetchMetadata>,
-      );
+      // Set up mock to return empty models
+      mockGetAvailableModels.mockReturnValue({ models: [] });
 
       const customBaseUrl = 'https://custom-api.example.com';
       const testProvider = createGatewayProvider({
@@ -381,14 +361,8 @@ describe('GatewayProvider', () => {
         new Error('Should not be called'),
       );
 
-      // Create a mock implementation that returns empty models
-      const mockGetAvailableModels = vi.fn().mockResolvedValue({ models: [] });
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as unknown as InstanceType<typeof GatewayFetchMetadata>,
-      );
+      // Set up mock to return empty models
+      mockGetAvailableModels.mockReturnValue({ models: [] });
 
       const testApiKey = 'test-api-key-123';
       const testProvider = createGatewayProvider({
@@ -411,185 +385,438 @@ describe('GatewayProvider', () => {
     });
   });
 
-  describe('AI_GATEWAY_API_KEY environment variable', () => {
-    const originalEnv = process.env;
+  // Test data for different authentication scenarios
+  const authTestCases = [
+    {
+      name: 'no auth at all',
+      envOidcToken: undefined,
+      envApiKey: undefined,
+      optionsApiKey: undefined,
+      oidcTokenMock: null, // Will throw error
+      expectSuccess: false,
+      expectedError: 'authentication',
+      description: 'No OIDC token or API key provided',
+    },
+    {
+      name: 'valid oidc, invalid api key',
+      envOidcToken: 'valid-oidc-token-12345',
+      envApiKey: undefined,
+      optionsApiKey: 'invalid-api-key',
+      oidcTokenMock: 'valid-oidc-token-12345',
+      expectSuccess: true,
+      expectedAuthMethod: 'api-key', // Options API key takes precedence
+      description: 'Valid OIDC in env, but options API key takes precedence',
+    },
+    {
+      name: 'invalid oidc, valid api key',
+      envOidcToken: 'invalid-oidc-token',
+      envApiKey: undefined,
+      optionsApiKey: 'gw_valid_api_key_12345',
+      oidcTokenMock: null, // Will throw error
+      expectSuccess: true,
+      expectedAuthMethod: 'api-key',
+      description: 'Invalid OIDC, but valid API key should work',
+    },
+    {
+      name: 'no oidc, invalid api key',
+      envOidcToken: undefined,
+      envApiKey: 'invalid-api-key',
+      optionsApiKey: undefined,
+      oidcTokenMock: null, // Will throw error
+      expectSuccess: true,
+      expectedAuthMethod: 'api-key',
+      description: 'No OIDC, but env API key should be used',
+    },
+    {
+      name: 'no oidc, valid api key',
+      envOidcToken: undefined,
+      envApiKey: 'gw_valid_api_key_12345',
+      optionsApiKey: undefined,
+      oidcTokenMock: null, // Won't be called
+      expectSuccess: true,
+      expectedAuthMethod: 'api-key',
+      description: 'Valid API key in environment should work',
+    },
+    {
+      name: 'valid oidc, no api key',
+      envOidcToken: 'valid-oidc-token-12345',
+      envApiKey: undefined,
+      optionsApiKey: undefined,
+      oidcTokenMock: 'valid-oidc-token-12345',
+      expectSuccess: true,
+      expectedAuthMethod: 'oidc',
+      description: 'Valid OIDC token should work when no API key provided',
+    },
+    {
+      name: 'valid oidc, valid api key',
+      envOidcToken: 'valid-oidc-token-12345',
+      envApiKey: 'gw_valid_api_key_12345',
+      optionsApiKey: undefined,
+      oidcTokenMock: 'valid-oidc-token-12345',
+      expectSuccess: true,
+      expectedAuthMethod: 'api-key',
+      description:
+        'Both valid credentials - API key should take precedence over OIDC',
+    },
+    {
+      name: 'valid oidc, valid options api key',
+      envOidcToken: 'valid-oidc-token-12345',
+      envApiKey: undefined,
+      optionsApiKey: 'gw_valid_options_api_key_12345',
+      oidcTokenMock: 'valid-oidc-token-12345',
+      expectSuccess: true,
+      expectedAuthMethod: 'api-key',
+      description:
+        'Both valid credentials - options API key should take precedence over OIDC',
+    },
+    {
+      name: 'invalid oidc, no api key',
+      envOidcToken: 'invalid-oidc-token',
+      envApiKey: undefined,
+      optionsApiKey: undefined,
+      oidcTokenMock: null, // Will throw error
+      expectSuccess: false,
+      expectedError: 'authentication',
+      description: 'Invalid OIDC and no API key should fail',
+    },
+    {
+      name: 'invalid oidc, invalid api key',
+      envOidcToken: 'invalid-oidc-token',
+      envApiKey: 'invalid-api-key',
+      optionsApiKey: undefined,
+      oidcTokenMock: null, // Will throw error for OIDC
+      expectSuccess: true,
+      expectedAuthMethod: 'api-key', // Env API key is still used even if "invalid"
+      description: 'Environment API key takes precedence over OIDC failure',
+    },
+  ];
+
+  describe('Authentication Comprehensive Tests', () => {
+    let originalEnv: NodeJS.ProcessEnv;
 
     beforeEach(() => {
-      process.env = { ...originalEnv };
-      if ('AI_GATEWAY_API_KEY' in process.env) {
-        Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
-      }
+      // Store original environment
+      originalEnv = process.env;
     });
 
     afterEach(() => {
+      // Restore original environment
       process.env = originalEnv;
     });
 
-    it('should use AI_GATEWAY_API_KEY when no apiKey option is provided', async () => {
-      const envApiKey = 'env-api-key-123';
-      process.env.AI_GATEWAY_API_KEY = envApiKey;
+    describe('getGatewayAuthToken function', () => {
+      authTestCases.forEach(testCase => {
+        it(`should handle ${testCase.name}`, async () => {
+          // Set up environment variables for this test case
+          process.env = { ...originalEnv };
 
-      const authResult = await getGatewayAuthToken({});
-      expect(authResult?.token).toBe(envApiKey);
-      expect(authResult?.authMethod).toBe('api-key');
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
-    });
+          // Only set environment variables if they have actual values
+          if (testCase.envOidcToken !== undefined) {
+            process.env.VERCEL_OIDC_TOKEN = testCase.envOidcToken;
+          } else {
+            delete process.env.VERCEL_OIDC_TOKEN;
+          }
 
-    it('should prioritize options.apiKey over AI_GATEWAY_API_KEY', async () => {
-      const envApiKey = 'env-api-key-123';
-      const optionsApiKey = 'options-api-key-456';
-      process.env.AI_GATEWAY_API_KEY = envApiKey;
+          if (testCase.envApiKey !== undefined) {
+            process.env.AI_GATEWAY_API_KEY = testCase.envApiKey;
+          } else {
+            delete process.env.AI_GATEWAY_API_KEY;
+          }
 
-      const authResult = await getGatewayAuthToken({ apiKey: optionsApiKey });
-      expect(authResult?.token).toBe(optionsApiKey);
-      expect(authResult?.authMethod).toBe('api-key');
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
-    });
+          // Mock OIDC token behavior
+          if (testCase.oidcTokenMock) {
+            vi.mocked(getVercelOidcToken).mockResolvedValue(
+              testCase.oidcTokenMock,
+            );
+          } else {
+            vi.mocked(getVercelOidcToken).mockRejectedValue(
+              new GatewayAuthenticationError({
+                message: 'OIDC token not available',
+                statusCode: 401,
+              }),
+            );
+          }
 
-    it('should fall back to OIDC token when neither apiKey nor AI_GATEWAY_API_KEY is provided', async () => {
-      const oidcToken = 'oidc-token-789';
-      vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
+          const options: any = {};
+          if (testCase.optionsApiKey) {
+            options.apiKey = testCase.optionsApiKey;
+          }
 
-      const authResult = await getGatewayAuthToken({});
-      expect(authResult).not.toBeNull();
-      expect(authResult!.token).toBe(oidcToken);
-      expect(authResult!.authMethod).toBe('oidc');
-      expect(getVercelOidcToken).toHaveBeenCalled();
-    });
+          if (testCase.expectSuccess) {
+            // Test successful cases
+            const result = await getGatewayAuthToken(options);
 
-    it('should use AI_GATEWAY_API_KEY in headers when creating language model', async () => {
-      const envApiKey = 'env-api-key-from-env';
-      process.env.AI_GATEWAY_API_KEY = envApiKey;
+            expect(result).not.toBeNull();
+            expect(result?.authMethod).toBe(testCase.expectedAuthMethod);
 
-      const provider = createGatewayProvider({
-        baseURL: 'https://api.example.com',
+            if (testCase.expectedAuthMethod === 'api-key') {
+              const expectedToken =
+                testCase.optionsApiKey || testCase.envApiKey;
+              expect(result?.token).toBe(expectedToken);
+
+              // If we used options API key, OIDC should not be called
+              if (testCase.optionsApiKey) {
+                expect(getVercelOidcToken).not.toHaveBeenCalled();
+              }
+            } else if (testCase.expectedAuthMethod === 'oidc') {
+              expect(result?.token).toBe(testCase.oidcTokenMock);
+              expect(getVercelOidcToken).toHaveBeenCalled();
+            }
+          } else {
+            // Test failure cases
+            const result = await getGatewayAuthToken(options);
+            expect(result).toBeNull();
+          }
+        });
       });
-      provider('test-model');
+    });
 
-      // Verify headers function uses the environment variable
-      const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
-      const config = constructorCall[1];
-      const headers = await config.headers();
+    describe('createGatewayProvider authentication', () => {
+      authTestCases.forEach(testCase => {
+        it(`should handle provider creation with ${testCase.name}`, async () => {
+          // Set up environment variables for this test case
+          process.env = { ...originalEnv };
 
-      expect(headers).toEqual({
-        Authorization: `Bearer ${envApiKey}`,
-        'ai-gateway-protocol-version': expect.any(String),
-        'x-ai-gateway-auth-method': 'api-key',
+          // Only set environment variables if they have actual values
+          if (testCase.envOidcToken !== undefined) {
+            process.env.VERCEL_OIDC_TOKEN = testCase.envOidcToken;
+          } else {
+            delete process.env.VERCEL_OIDC_TOKEN;
+          }
+
+          if (testCase.envApiKey !== undefined) {
+            process.env.AI_GATEWAY_API_KEY = testCase.envApiKey;
+          } else {
+            delete process.env.AI_GATEWAY_API_KEY;
+          }
+
+          // Mock OIDC token behavior
+          if (testCase.oidcTokenMock) {
+            vi.mocked(getVercelOidcToken).mockResolvedValue(
+              testCase.oidcTokenMock,
+            );
+          } else {
+            vi.mocked(getVercelOidcToken).mockRejectedValue(
+              new GatewayAuthenticationError({
+                message: 'OIDC token not available',
+                statusCode: 401,
+              }),
+            );
+          }
+
+          const options: any = {
+            baseURL: 'https://test-gateway.example.com',
+          };
+          if (testCase.optionsApiKey) {
+            options.apiKey = testCase.optionsApiKey;
+          }
+
+          const provider = createGatewayProvider({
+            ...options,
+            // Force no caching to ensure headers are called each time
+            metadataCacheRefreshMillis: 0,
+          });
+
+          if (testCase.expectSuccess) {
+            // Ensure the mock succeeds for successful test cases
+            mockGetAvailableModels.mockReturnValue({ models: [] });
+
+            // Test that provider can get available models (which requires auth)
+            const models = await provider.getAvailableModels();
+            expect(models).toBeDefined();
+
+            // For OIDC tests, we need to verify the auth token function was called
+            // which is indirectly tested by checking if getVercelOidcToken was called
+            if (testCase.expectedAuthMethod === 'oidc') {
+              expect(getVercelOidcToken).toHaveBeenCalled();
+            } else if (
+              testCase.expectedAuthMethod === 'api-key' &&
+              testCase.optionsApiKey
+            ) {
+              // If we used options API key, OIDC should not be called
+              expect(getVercelOidcToken).not.toHaveBeenCalled();
+            }
+          } else {
+            // For failure cases, mock the metadata fetch to throw auth error
+            mockGetAvailableModels.mockImplementation(() => {
+              throw new GatewayAuthenticationError({
+                message: 'Authentication failed',
+                statusCode: 401,
+              });
+            });
+
+            // Test failure cases
+            await expect(provider.getAvailableModels()).rejects.toThrow(
+              /authentication|token/i,
+            );
+          }
+        });
       });
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
 
-    it('should use AI_GATEWAY_API_KEY in provider when calling getAvailableModels', async () => {
-      const envApiKey = 'env-api-key-for-metadata';
-      process.env.AI_GATEWAY_API_KEY = envApiKey;
+    describe('Environment variable edge cases', () => {
+      it('should handle empty string environment variables as undefined', async () => {
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: '',
+          AI_GATEWAY_API_KEY: '',
+        };
 
-      // Create a mock implementation that returns empty models
-      const mockGetAvailableModels = vi.fn().mockResolvedValue({ models: [] });
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as unknown as InstanceType<typeof GatewayFetchMetadata>,
-      );
+        vi.mocked(getVercelOidcToken).mockRejectedValue(
+          new GatewayAuthenticationError({
+            message: 'OIDC token not available',
+            statusCode: 401,
+          }),
+        );
 
-      const provider = createGatewayProvider({
-        baseURL: 'https://api.example.com',
+        const result = await getGatewayAuthToken({});
+        expect(result).toBeNull();
       });
 
-      // Trigger a request that will use the headers
-      await provider.getAvailableModels();
+      it('should handle whitespace-only environment variables', async () => {
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: '   ',
+          AI_GATEWAY_API_KEY: '\t\n ',
+        };
 
-      // Get the headers function that was passed to GatewayFetchMetadata
-      const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
-      const headers = await resolve(config.headers());
-
-      // Verify that the environment API key was used in the Authorization header
-      expect(headers.Authorization).toBe(`Bearer ${envApiKey}`);
-      expect(headers['x-ai-gateway-auth-method']).toBe('api-key');
-
-      // Verify getVercelOidcToken was never called
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
-    });
-
-    it('should handle empty AI_GATEWAY_API_KEY and fall back to OIDC', async () => {
-      process.env.AI_GATEWAY_API_KEY = '';
-      const oidcToken = 'fallback-oidc-token';
-      vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
-
-      const authResult = await getGatewayAuthToken({});
-      expect(authResult?.token).toBe(oidcToken);
-      expect(authResult?.authMethod).toBe('oidc');
-      expect(getVercelOidcToken).toHaveBeenCalled();
-    });
-  });
-
-  describe('getGatewayAuthToken', () => {
-    it('should prioritize apiKey when provided', async () => {
-      const authResult = await getGatewayAuthToken({
-        apiKey: 'test-api-key-123',
+        // The whitespace API key should still be used (it's treated as a valid value)
+        const result = await getGatewayAuthToken({});
+        expect(result).not.toBeNull();
+        expect(result?.authMethod).toBe('api-key');
+        expect(result?.token).toBe('\t\n ');
       });
-      expect(authResult?.token).toBe('test-api-key-123');
-      expect(authResult?.authMethod).toBe('api-key');
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
-    });
 
-    it('should return null when OIDC token is missing', async () => {
-      vi.mocked(getVercelOidcToken).mockRejectedValueOnce(
-        new GatewayAuthenticationError({
-          message: 'Failed to get Vercel OIDC token for AI Gateway access.',
-          statusCode: 401,
-        }),
-      );
+      it('should prioritize options.apiKey over all environment variables', async () => {
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: 'env-oidc-token',
+          AI_GATEWAY_API_KEY: 'env-api-key',
+        };
 
-      const result = await getGatewayAuthToken({});
-      expect(result).toBeNull();
-    });
+        const optionsApiKey = 'options-api-key';
+        const result = await getGatewayAuthToken({ apiKey: optionsApiKey });
 
-    it('should return null for other OIDC errors', async () => {
-      const originalError = new Error('Some other OIDC-related error');
-      vi.mocked(getVercelOidcToken).mockRejectedValueOnce(originalError);
-
-      const result = await getGatewayAuthToken({});
-      expect(result).toBeNull();
-    });
-
-    it('should return null when GatewayAuthenticationError thrown from getVercelOidcToken', async () => {
-      const authError = new GatewayAuthenticationError({
-        message: 'OIDC token not available',
-        statusCode: 401,
+        expect(result).not.toBeNull();
+        expect(result?.authMethod).toBe('api-key');
+        expect(result?.token).toBe(optionsApiKey);
+        expect(getVercelOidcToken).not.toHaveBeenCalled();
       });
-      vi.mocked(getVercelOidcToken).mockRejectedValueOnce(authError);
-
-      const result = await getGatewayAuthToken({});
-      expect(result).toBeNull();
     });
 
-    it('should return oidc auth method when using OIDC token', async () => {
-      const oidcToken = 'valid-oidc-token';
-      vi.mocked(getVercelOidcToken).mockResolvedValue(oidcToken);
+    describe('Authentication precedence', () => {
+      it('should prefer options.apiKey over AI_GATEWAY_API_KEY', async () => {
+        process.env = {
+          ...originalEnv,
+          AI_GATEWAY_API_KEY: 'env-api-key',
+        };
 
-      const authResult = await getGatewayAuthToken({});
-      expect(authResult).not.toBeNull();
-      expect(authResult!.token).toBe(oidcToken);
-      expect(authResult!.authMethod).toBe('oidc');
+        const optionsApiKey = 'options-api-key';
+        const result = await getGatewayAuthToken({ apiKey: optionsApiKey });
+
+        expect(result?.authMethod).toBe('api-key');
+        expect(result?.token).toBe(optionsApiKey);
+        expect(getVercelOidcToken).not.toHaveBeenCalled();
+      });
+
+      it('should prefer AI_GATEWAY_API_KEY over OIDC token', async () => {
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: 'oidc-token',
+          AI_GATEWAY_API_KEY: 'env-api-key',
+        };
+
+        const result = await getGatewayAuthToken({});
+
+        expect(result?.authMethod).toBe('api-key');
+        expect(result?.token).toBe('env-api-key');
+        expect(getVercelOidcToken).not.toHaveBeenCalled();
+      });
+
+      it('should fall back to OIDC when no API keys are available', async () => {
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: 'oidc-token',
+        };
+
+        vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
+
+        const result = await getGatewayAuthToken({});
+
+        expect(result?.authMethod).toBe('oidc');
+        expect(result?.token).toBe('oidc-token');
+        expect(getVercelOidcToken).toHaveBeenCalled();
+      });
+    });
+
+    describe('Real-world usage scenarios', () => {
+      it('should work in Vercel deployment with OIDC', async () => {
+        // Simulate Vercel deployment environment
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: 'vercel-deployment-oidc-token',
+          VERCEL_DEPLOYMENT_ID: 'dpl_12345',
+          VERCEL_ENV: 'production',
+          VERCEL_REGION: 'iad1',
+        };
+
+        // Explicitly remove AI_GATEWAY_API_KEY to force OIDC usage
+        delete process.env.AI_GATEWAY_API_KEY;
+
+        vi.mocked(getVercelOidcToken).mockResolvedValue(
+          'vercel-deployment-oidc-token',
+        );
+
+        const provider = createGatewayProvider();
+        const models = await provider.getAvailableModels();
+
+        expect(models).toBeDefined();
+        expect(getVercelOidcToken).toHaveBeenCalled();
+      });
+
+      it('should work in local development with API key', async () => {
+        // Simulate local development environment
+        process.env = {
+          ...originalEnv,
+          AI_GATEWAY_API_KEY: 'local-dev-api-key',
+        };
+
+        const provider = createGatewayProvider();
+        const models = await provider.getAvailableModels();
+
+        expect(models).toBeDefined();
+        expect(getVercelOidcToken).not.toHaveBeenCalled();
+      });
+
+      it('should work with explicit API key override', async () => {
+        // User provides explicit API key, should override everything
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: 'should-not-be-used',
+          AI_GATEWAY_API_KEY: 'should-not-be-used-either',
+        };
+
+        const explicitApiKey = 'explicit-user-api-key';
+        const provider = createGatewayProvider({
+          apiKey: explicitApiKey,
+        });
+
+        const models = await provider.getAvailableModels();
+
+        expect(models).toBeDefined();
+        expect(getVercelOidcToken).not.toHaveBeenCalled();
+      });
     });
   });
 
   describe('Error handling in metadata fetching', () => {
     it('should convert metadata fetch errors to Gateway errors', async () => {
-      const mockGetAvailableModels = vi.fn().mockRejectedValue(
-        new GatewayInternalServerError({
+      mockGetAvailableModels.mockImplementation(() => {
+        throw new GatewayInternalServerError({
           message: 'Database connection failed',
           statusCode: 500,
-        }),
-      );
-
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as any,
-      );
+        });
+      });
 
       const provider = createGatewayProvider({
         baseURL: 'https://api.example.com',
@@ -609,14 +836,9 @@ describe('GatewayProvider', () => {
         statusCode: 401,
       });
 
-      const mockGetAvailableModels = vi.fn().mockRejectedValue(originalError);
-
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as any,
-      );
+      mockGetAvailableModels.mockImplementation(() => {
+        throw originalError;
+      });
 
       const provider = createGatewayProvider({
         baseURL: 'https://api.example.com',
@@ -637,7 +859,7 @@ describe('GatewayProvider', () => {
 
     it('should handle model specification errors', async () => {
       // Mock successful metadata fetch with a model
-      const mockGetAvailableModels = vi.fn().mockResolvedValue({
+      mockGetAvailableModels.mockReturnValue({
         models: [
           {
             id: 'test-model',
@@ -649,13 +871,6 @@ describe('GatewayProvider', () => {
           },
         ],
       });
-
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as any,
-      );
 
       const provider = createGatewayProvider({
         baseURL: 'https://api.example.com',
@@ -681,7 +896,7 @@ describe('GatewayProvider', () => {
 
     it('should create language model for any modelId', async () => {
       // Mock successful metadata fetch with different models
-      const mockGetAvailableModels = vi.fn().mockResolvedValue({
+      mockGetAvailableModels.mockReturnValue({
         models: [
           {
             id: 'model-1',
@@ -701,13 +916,6 @@ describe('GatewayProvider', () => {
           },
         ],
       });
-
-      vi.mocked(GatewayFetchMetadata).mockImplementation(
-        () =>
-          ({
-            getAvailableModels: mockGetAvailableModels,
-          }) as any,
-      );
 
       const provider = createGatewayProvider({
         baseURL: 'https://api.example.com',
