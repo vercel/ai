@@ -98,10 +98,13 @@ async function testAuthenticationScenario(scenario: (typeof testScenarios)[0]) {
 
   console.log(`Testing: ${scenario.name}`);
 
-  const timeout = createTimeoutPromise<{ detectedAuthMethod: string }>(10000);
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => {
+    abortController.abort(new Error('timeout'));
+  }, 10000);
 
   try {
-    const result = await Promise.race([testStream(), timeout.promise]);
+    const result = await testStream(abortController.signal);
 
     console.log(`  Result: SUCCESS`);
     return { success: true, detectedAuthMethod: result.detectedAuthMethod };
@@ -109,17 +112,17 @@ async function testAuthenticationScenario(scenario: (typeof testScenarios)[0]) {
     console.log(`  Result: FAILURE`);
     return { success: false, error };
   } finally {
-    // Always cleanup the timeout to prevent hanging
-    timeout.cleanup();
+    clearTimeout(timeout);
   }
 }
 
-async function testStream() {
+async function testStream(abortSignal?: AbortSignal) {
   return new Promise<{ detectedAuthMethod: string }>((resolve, reject) => {
     const result = streamText({
       model: gateway('openai/gpt-4'),
       prompt: 'Respond with "OK"',
       onError: reject,
+      abortSignal,
     });
 
     (async () => {
@@ -171,24 +174,6 @@ async function runAllScenarios() {
       );
     });
   }
-}
-
-function createTimeoutPromise<T>(ms: number): {
-  promise: Promise<T>;
-  cleanup: () => void;
-} {
-  let timeoutId: NodeJS.Timeout;
-  const promise = new Promise<T>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('timeout')), ms);
-  });
-
-  const cleanup = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  };
-
-  return { promise, cleanup };
 }
 
 async function main() {
