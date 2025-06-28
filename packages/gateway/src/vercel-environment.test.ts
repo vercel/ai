@@ -68,9 +68,7 @@ describe('getVercelOidcToken', () => {
       name: 'GatewayAuthenticationError',
       type: 'authentication_error',
       statusCode: 401,
-      message: expect.stringContaining(
-        'Failed to get Vercel OIDC token for AI Gateway access',
-      ),
+      message: expect.stringContaining('OIDC token not available'),
     });
   });
 

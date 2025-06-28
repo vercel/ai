@@ -13,6 +13,12 @@ import {
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
+import { GatewayAuthenticationError } from './errors';
+import { z } from 'zod';
+import {
+  GATEWAY_AUTH_METHOD_HEADER,
+  parseAuthMethod,
+} from './errors/parse-auth-method';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -65,15 +71,6 @@ How frequently to refresh the metadata cache in milliseconds.
 
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
-export async function getGatewayAuthToken(options: GatewayProviderSettings) {
-  return (
-    loadOptionalSetting({
-      settingValue: options.apiKey,
-      environmentVariableName: 'AI_GATEWAY_API_KEY',
-    }) ?? (await getVercelOidcToken())
-  );
-}
-
 /**
 Create a remote provider instance.
  */
@@ -91,11 +88,21 @@ export function createGatewayProvider(
     'https://ai-gateway.vercel.sh/v1/ai';
 
   const getHeaders = async () => {
-    return {
-      Authorization: `Bearer ${await getGatewayAuthToken(options)}`,
-      'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-      ...options.headers,
-    };
+    const auth = await getGatewayAuthToken(options);
+    if (auth) {
+      return {
+        Authorization: `Bearer ${auth.token}`,
+        'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
+        [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
+        ...options.headers,
+      };
+    }
+
+    throw GatewayAuthenticationError.createContextualError({
+      apiKeyProvided: false,
+      oidcTokenProvided: false,
+      statusCode: 401,
+    });
   };
 
   const createLanguageModel = (modelId: GatewayModelId) => {
@@ -111,6 +118,7 @@ export function createGatewayProvider(
       settingValue: undefined,
       environmentVariableName: 'VERCEL_REGION',
     });
+
     return new GatewayLanguageModel(modelId, {
       provider: 'gateway',
       baseURL,
@@ -132,6 +140,7 @@ export function createGatewayProvider(
     const now = options._internal?.currentDate?.().getTime() ?? Date.now();
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
       lastFetchTime = now;
+
       pendingMetadata = new GatewayFetchMetadata({
         baseURL,
         headers: getHeaders,
@@ -142,8 +151,8 @@ export function createGatewayProvider(
           metadataCache = metadata;
           return metadata;
         })
-        .catch((error: unknown) => {
-          throw asGatewayError(error);
+        .catch(async (error: unknown) => {
+          throw asGatewayError(error, parseAuthMethod(await getHeaders()));
         });
     }
 
@@ -173,3 +182,32 @@ export function createGatewayProvider(
 }
 
 export const gateway = createGatewayProvider();
+
+export async function getGatewayAuthToken(
+  options: GatewayProviderSettings,
+): Promise<{
+  token: string;
+  authMethod: 'api-key' | 'oidc';
+} | null> {
+  const apiKey = loadOptionalSetting({
+    settingValue: options.apiKey,
+    environmentVariableName: 'AI_GATEWAY_API_KEY',
+  });
+
+  if (apiKey) {
+    return {
+      token: apiKey,
+      authMethod: 'api-key',
+    };
+  }
+
+  try {
+    const oidcToken = await getVercelOidcToken();
+    return {
+      token: oidcToken,
+      authMethod: 'oidc',
+    };
+  } catch (error) {
+    return null;
+  }
+}

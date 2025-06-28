@@ -25,7 +25,7 @@ describe('Valid error responses', () => {
     });
 
     expect(error).toBeInstanceOf(GatewayAuthenticationError);
-    expect(error.message).toBe('Invalid API key');
+    expect(error.message).toContain('No authentication provided');
     expect(error.statusCode).toBe(401);
     expect(error.type).toBe('authentication_error');
   });
@@ -156,7 +156,7 @@ describe('Error response edge cases', () => {
       defaultMessage: 'Custom default message',
     });
 
-    expect(error.message).toBe(''); // Empty string from Gateway is preserved
+    expect(error.message).toContain('No authentication provided'); // Uses contextual message
   });
 
   it('should use defaultMessage when response message is null', () => {
@@ -401,7 +401,7 @@ describe('Complex scenarios', () => {
     });
 
     expect(error).toBeInstanceOf(GatewayAuthenticationError);
-    expect(error.message).toBe('Test error');
+    expect(error.message).toContain('No authentication provided');
   });
 
   it('should preserve error properties correctly', () => {
@@ -426,5 +426,57 @@ describe('Complex scenarios', () => {
     expect(error.cause).toBe(originalCause);
     expect(error.name).toBe('GatewayRateLimitError');
     expect(error.type).toBe('rate_limit_exceeded');
+  });
+});
+
+describe('authentication_error with authMethod context', () => {
+  it('should create contextual error for API key authentication failure', () => {
+    const error = createGatewayErrorFromResponse({
+      response: {
+        error: {
+          type: 'authentication_error',
+          message: 'Invalid API key',
+        },
+      },
+      statusCode: 401,
+      authMethod: 'api-key',
+    });
+
+    expect(error).toBeInstanceOf(GatewayAuthenticationError);
+    expect(error.message).toContain('Invalid API key provided');
+    expect(error.statusCode).toBe(401);
+  });
+
+  it('should create contextual error for OIDC authentication failure', () => {
+    const error = createGatewayErrorFromResponse({
+      response: {
+        error: {
+          type: 'authentication_error',
+          message: 'Invalid OIDC token',
+        },
+      },
+      statusCode: 401,
+      authMethod: 'oidc',
+    });
+
+    expect(error).toBeInstanceOf(GatewayAuthenticationError);
+    expect(error.message).toContain('Invalid OIDC token provided');
+    expect(error.statusCode).toBe(401);
+  });
+
+  it('should create contextual error without authMethod context', () => {
+    const error = createGatewayErrorFromResponse({
+      response: {
+        error: {
+          type: 'authentication_error',
+          message: 'Authentication failed',
+        },
+      },
+      statusCode: 401,
+    });
+
+    expect(error).toBeInstanceOf(GatewayAuthenticationError);
+    expect(error.message).toContain('No authentication provided');
+    expect(error.statusCode).toBe(401);
   });
 });
