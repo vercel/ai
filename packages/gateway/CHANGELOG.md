@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- f3639fa: feat (providers/gateway): improve oidc api key client auth flow
+- d454e4b: fix (providers/gateway): fix timestamp error when streaming objects
+
 ## 1.0.0-beta.2
 
 ### Patch Changes
