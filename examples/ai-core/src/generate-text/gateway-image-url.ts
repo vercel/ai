@@ -1,10 +1,9 @@
-import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: gateway('xai/grok-3-beta'),
+    model: 'xai/grok-2-vision',
     messages: [
       {
         role: 'user',
