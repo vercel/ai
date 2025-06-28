@@ -152,12 +152,7 @@ export function createGatewayProvider(
           return metadata;
         })
         .catch(async (error: unknown) => {
-          try {
-            const headers = await getHeaders();
-            throw asGatewayError(error, parseAuthMethod(headers));
-          } catch (headerError) {
-            throw asGatewayError(error);
-          }
+          throw asGatewayError(error, parseAuthMethod(await getHeaders()));
         });
     }
 

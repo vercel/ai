@@ -20,12 +20,6 @@ import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-// Helper schema for validating the auth method header
-const gatewayAuthMethodSchema = z.union([
-  z.literal('api-key'),
-  z.literal('oidc'),
-]);
-
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
   o11yHeaders: Resolvable<Record<string, string>>;

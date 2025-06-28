@@ -48,134 +48,90 @@ describe('parseAuthMethod', () => {
   });
 
   describe('invalid authentication methods', () => {
-    it('should throw ZodError for invalid auth method string', () => {
+    it('should return undefined for invalid auth method string', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'invalid-method',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should throw ZodError for empty string', () => {
+    it('should return undefined for empty string', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: '',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should throw ZodError for numeric value', () => {
+    it('should return undefined for numeric value', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: '123',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should throw ZodError for boolean-like strings', () => {
+    it('should return undefined for boolean-like strings', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'true',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should throw ZodError for case-sensitive variations', () => {
+    it('should return undefined for case-sensitive variations', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'API-KEY',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should throw ZodError for OIDC case variations', () => {
+    it('should return undefined for OIDC case variations', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'OIDC',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
   });
 
   describe('missing or undefined headers', () => {
-    it('should throw ZodError when header is missing', () => {
+    it('should return undefined when header is missing', () => {
       const headers = {
         authorization: 'Bearer token',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should throw ZodError when header is undefined', () => {
+    it('should return undefined when header is undefined', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: undefined,
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should throw ZodError when headers object is empty', () => {
+    it('should return undefined when headers object is empty', () => {
       const headers = {};
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
   });
 
   describe('edge cases', () => {
-    it('should throw ZodError for whitespace-only strings', () => {
+    it('should return undefined for whitespace-only strings', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: '   ',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should throw ZodError for auth methods with extra whitespace', () => {
+    it('should return undefined for auth methods with extra whitespace', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: ' api-key ',
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
 
     it('should handle null values', () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: null as any,
       };
-
-      expect(() => parseAuthMethod(headers)).toThrow(z.ZodError);
-    });
-  });
-
-  describe('error validation', () => {
-    it('should provide helpful error message for invalid values', () => {
-      const headers = {
-        [GATEWAY_AUTH_METHOD_HEADER]: 'bearer',
-      };
-
-      try {
-        parseAuthMethod(headers);
-        expect.fail('Expected ZodError to be thrown');
-      } catch (error) {
-        expect(error).toBeInstanceOf(z.ZodError);
-        const zodError = error as z.ZodError;
-        expect(zodError.issues).toHaveLength(1);
-        expect(zodError.issues[0].code).toBe('invalid_union');
-      }
-    });
-
-    it('should provide helpful error message for missing header', () => {
-      const headers = {};
-
-      try {
-        parseAuthMethod(headers);
-        expect.fail('Expected ZodError to be thrown');
-      } catch (error) {
-        expect(error).toBeInstanceOf(z.ZodError);
-        const zodError = error as z.ZodError;
-        expect(zodError.issues).toHaveLength(1);
-        expect(zodError.issues[0].code).toBe('invalid_union');
-      }
+      expect(parseAuthMethod(headers)).toBeUndefined();
     });
   });
 });
