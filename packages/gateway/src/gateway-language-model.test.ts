@@ -1059,29 +1059,29 @@ describe('GatewayLanguageModel', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "textDelta": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": " world",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
             },
-            {
-              "textDelta": "Hello",
-              "type": "text-delta",
-            },
-            {
-              "textDelta": " world",
-              "type": "text-delta",
-            },
-            {
-              "finishReason": "stop",
-              "type": "finish",
-              "usage": {
-                "completion_tokens": 5,
-                "prompt_tokens": 10,
-              },
-            },
-          ]
-        `);
+          },
+        ]
+      `);
     });
 
     it('should include raw chunks when includeRawChunks is true', async () => {
@@ -1103,39 +1103,39 @@ describe('GatewayLanguageModel', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "rawValue": {
-                "choices": [
-                  {
-                    "delta": {
-                      "content": "Hello",
-                    },
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "Hello",
                   },
-                ],
-                "id": "test-chunk",
-                "object": "chat.completion.chunk",
-              },
-              "type": "raw",
+                },
+              ],
+              "id": "test-chunk",
+              "object": "chat.completion.chunk",
             },
-            {
-              "textDelta": "Hello",
-              "type": "text-delta",
+            "type": "raw",
+          },
+          {
+            "textDelta": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
             },
-            {
-              "finishReason": "stop",
-              "type": "finish",
-              "usage": {
-                "completion_tokens": 5,
-                "prompt_tokens": 10,
-              },
-            },
-          ]
-        `);
+          },
+        ]
+      `);
     });
   });
 
