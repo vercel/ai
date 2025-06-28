@@ -50,7 +50,7 @@ export class GatewayAuthenticationError extends GatewayError {
     if (apiKeyProvided) {
       contextualMessage = `AI Gateway authentication failed: Invalid API key provided.
 
-The token is expected to be provided via the 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.!!`;
+The token is expected to be provided via the 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.`;
     } else if (oidcTokenProvided) {
       contextualMessage = `AI Gateway authentication failed: Invalid OIDC token provided.
 

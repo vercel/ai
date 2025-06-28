@@ -67,41 +67,6 @@ How frequently to refresh the metadata cache in milliseconds.
 
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
-// Helper schema for validating the auth method header
-const gatewayAuthMethodSchema = z.union([
-  z.literal('api-key'),
-  z.literal('oidc'),
-]);
-
-export async function getGatewayAuthToken(
-  options: GatewayProviderSettings,
-): Promise<{
-  token: string;
-  authMethod: 'api-key' | 'oidc';
-} | null> {
-  const apiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'AI_GATEWAY_API_KEY',
-  });
-
-  if (apiKey) {
-    return {
-      token: apiKey,
-      authMethod: 'api-key',
-    };
-  }
-
-  try {
-    const oidcToken = await getVercelOidcToken();
-    return {
-      token: oidcToken,
-      authMethod: 'oidc',
-    };
-  } catch (error) {
-    return null;
-  }
-}
-
 /**
 Create a remote provider instance.
  */
@@ -182,18 +147,8 @@ export function createGatewayProvider(
           metadataCache = metadata;
           return metadata;
         })
-        .catch(async (error: unknown) => {
-          try {
-            const headers = await getHeaders();
-            throw asGatewayError(
-              error,
-              gatewayAuthMethodSchema.parse(
-                headers['x-ai-gateway-auth-method'],
-              ),
-            );
-          } catch (headerError) {
-            throw asGatewayError(error);
-          }
+        .catch(error => {
+          throw asGatewayError(error);
         });
     }
 
@@ -223,3 +178,37 @@ export function createGatewayProvider(
 }
 
 export const gateway = createGatewayProvider();
+
+const gatewayAuthMethodSchema = z.union([
+  z.literal('api-key'),
+  z.literal('oidc'),
+]);
+
+export async function getGatewayAuthToken(
+  options: GatewayProviderSettings,
+): Promise<{
+  token: string;
+  authMethod: 'api-key' | 'oidc';
+} | null> {
+  const apiKey = loadOptionalSetting({
+    settingValue: options.apiKey,
+    environmentVariableName: 'AI_GATEWAY_API_KEY',
+  });
+
+  if (apiKey) {
+    return {
+      token: apiKey,
+      authMethod: 'api-key',
+    };
+  }
+
+  try {
+    const oidcToken = await getVercelOidcToken();
+    return {
+      token: oidcToken,
+      authMethod: 'oidc',
+    };
+  } catch (error) {
+    return null;
+  }
+}
