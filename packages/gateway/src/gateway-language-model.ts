@@ -117,6 +117,15 @@ export class GatewayLanguageModel implements LanguageModelV2 {
                   return; // Skip raw chunks if not requested
                 }
 
+                // Convert timestamp strings back to Date objects for response-metadata chunks
+                if (
+                  streamPart.type === 'response-metadata' &&
+                  streamPart.timestamp &&
+                  typeof streamPart.timestamp === 'string'
+                ) {
+                  streamPart.timestamp = new Date(streamPart.timestamp);
+                }
+
                 controller.enqueue(streamPart);
               } else {
                 controller.error(
