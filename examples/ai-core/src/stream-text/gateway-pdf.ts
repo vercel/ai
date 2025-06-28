@@ -1,9 +1,9 @@
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';
 
 async function main() {
-  const result = await generateText({
+  const result = streamText({
     model: 'google/gemini-2.0-flash',
     messages: [
       {
@@ -23,7 +23,13 @@ async function main() {
     ],
   });
 
-  console.log(result.text);
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
+
+  console.log();
+  console.log('Token usage:', await result.usage);
+  console.log('Finish reason:', await result.finishReason);
 }
 
 main().catch(console.error);
