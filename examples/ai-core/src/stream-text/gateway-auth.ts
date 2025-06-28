@@ -98,19 +98,19 @@ async function testAuthenticationScenario(scenario: (typeof testScenarios)[0]) {
 
   console.log(`Testing: ${scenario.name}`);
 
+  const timeout = createTimeoutPromise<{ detectedAuthMethod: string }>(10000);
+
   try {
-    const result = await Promise.race([
-      testStream(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 10000),
-      ),
-    ]);
+    const result = await Promise.race([testStream(), timeout.promise]);
 
     console.log(`  Result: SUCCESS`);
     return { success: true, detectedAuthMethod: result.detectedAuthMethod };
   } catch (error) {
     console.log(`  Result: FAILURE`);
     return { success: false, error };
+  } finally {
+    // Always cleanup the timeout to prevent hanging
+    timeout.cleanup();
   }
 }
 
@@ -171,6 +171,24 @@ async function runAllScenarios() {
       );
     });
   }
+}
+
+function createTimeoutPromise<T>(ms: number): {
+  promise: Promise<T>;
+  cleanup: () => void;
+} {
+  let timeoutId: NodeJS.Timeout;
+  const promise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('timeout')), ms);
+  });
+
+  const cleanup = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  };
+
+  return { promise, cleanup };
 }
 
 async function main() {

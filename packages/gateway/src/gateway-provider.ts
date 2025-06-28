@@ -15,6 +15,10 @@ import type { GatewayModelId } from './gateway-language-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { GatewayAuthenticationError } from './errors';
 import { z } from 'zod';
+import {
+  GATEWAY_AUTH_METHOD_HEADER,
+  parseAuthMethod,
+} from './errors/parse-auth-method';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -89,7 +93,7 @@ export function createGatewayProvider(
       return {
         Authorization: `Bearer ${auth.token}`,
         'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-        'x-ai-gateway-auth-method': auth.authMethod,
+        [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
         ...options.headers,
       };
     }
@@ -147,8 +151,13 @@ export function createGatewayProvider(
           metadataCache = metadata;
           return metadata;
         })
-        .catch(error => {
-          throw asGatewayError(error);
+        .catch(async (error: unknown) => {
+          try {
+            const headers = await getHeaders();
+            throw asGatewayError(error, parseAuthMethod(headers));
+          } catch (headerError) {
+            throw asGatewayError(error);
+          }
         });
     }
 
@@ -178,11 +187,6 @@ export function createGatewayProvider(
 }
 
 export const gateway = createGatewayProvider();
-
-const gatewayAuthMethodSchema = z.union([
-  z.literal('api-key'),
-  z.literal('oidc'),
-]);
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
