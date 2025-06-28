@@ -2,17 +2,16 @@
 import type { UIMessage } from 'ai';
 import { Chat } from '@ai-sdk/vue';
 import { createIdGenerator } from 'ai';
-import { computed, readonly, ref } from 'vue';
+import { computed, ref } from 'vue';
 
-const messages: UIMessage[] = [
+const messages = ref<UIMessage[]>([
   { id: 'message-0', role: 'user', parts: [{ type: 'text', text: 'Greetings.' }] },
   { id: 'message-1', role: 'assistant', parts: [{ type: 'text', text: 'Hello.' }] },
-];
+]);
 
 const chat = new Chat({
   generateId: createIdGenerator({ prefix: 'msgc', size: 16 }),
-  // @ts-expect-error - simulate messages passed as props
-  messages: readonly(messages),
+  messages: messages.value,
 });
 
 const messageList = computed(() => chat.messages); // computed property for type inference

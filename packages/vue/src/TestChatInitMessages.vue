@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { UIMessage } from 'ai';
 import { Chat } from './chat.vue';
-import { readonly } from 'vue';
+import { ref } from 'vue';
 
-const messages: UIMessage[] = [
+const messages = ref<UIMessage[]>([
   { id: 'message-0', role: 'user', parts: [{ type: 'text', text: 'Greetings.' }] },
   { id: 'message-1', role: 'assistant', parts: [{ type: 'text', text: 'Hello.' }] },
-];
+]);
 
 const chat = new Chat({
-  // @ts-expect-error - simulate messages passed as props
-  messages: readonly(messages),
+  messages: messages.value,
 });
 </script>
 
