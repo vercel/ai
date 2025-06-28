@@ -7,10 +7,21 @@ import 'dotenv/config';
 // the developer has set a valid OIDC token and API key in the
 // `examples/ai-core/.env` file (or otherwise in the environment somehow).
 
-const VALID_OIDC_TOKEN =
-  process.env.VERCEL_OIDC_TOKEN || 'valid-oidc-token-12345';
-const VALID_API_KEY =
-  process.env.AI_GATEWAY_API_KEY || 'gw_valid_api_key_12345';
+const VALID_OIDC_TOKEN = (() => {
+  const token = process.env.VERCEL_OIDC_TOKEN;
+  if (!token) {
+    throw new Error('VERCEL_OIDC_TOKEN environment variable is required');
+  }
+  return token;
+})();
+
+const VALID_API_KEY = (() => {
+  const key = process.env.AI_GATEWAY_API_KEY;
+  if (!key) {
+    throw new Error('AI_GATEWAY_API_KEY environment variable is required');
+  }
+  return key;
+})();
 const INVALID_OIDC_TOKEN = 'invalid-oidc-token';
 const INVALID_API_KEY = 'invalid-api-key';
 
