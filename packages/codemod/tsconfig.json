@@ -13,7 +13,8 @@
     "scripts",
     "build",
     "node_modules",
-    "tsup.config.ts"
+    "tsup.config.ts",
+    "src/test/__testfixtures__"
   ],
   "references": [
     {
