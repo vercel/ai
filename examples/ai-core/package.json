@@ -33,6 +33,7 @@
     "@ai-sdk/valibot": "0.1.28",
     "@ai-sdk/vercel": "0.0.1",
     "@ai-sdk/xai": "1.2.16",
+    "@ai-sdk/aihubmix": "file:../../packages/aihubmix",
     "@google/generative-ai": "0.21.0",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-node": "0.54.2",
