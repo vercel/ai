@@ -1,6 +1,6 @@
 # AI SDK - Aihubmix Provider
 
-> **🎉 优惠活动：使用所有模型享受10%优惠！**
+> **🎉 Special Offer: Get 10% off on all models!**
 
 **[Aihubmix 官网](https://aihubmix.com/)** | **[模型广场](https://aihubmix.com/models)**
 
