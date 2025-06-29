@@ -21,7 +21,7 @@ const server = createTestServer({
   'https://aihubmix.com/v1/audio/transcriptions': {},
   'https://aihubmix.com/v1/audio/speech': {},
   'https://aihubmix.com/v1/messages': {},
-  'https://aihubmix.com/gemini/v1beta/models/gemini-pro:generateContent': {},
+  'https://aihubmix.com/gemini/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent': {},
   'http://localhost:1234/v1/chat/completions': {},
 });
 
@@ -153,7 +153,7 @@ describe('aihubmix provider', () => {
         content = '',
       }: { content?: string } = {}) {
         server.urls[
-          'https://aihubmix.com/gemini/v1beta/models/gemini-pro:generateContent'
+          'https://aihubmix.com/gemini/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent'
         ].response = {
           type: 'json-value',
           body: {
@@ -374,6 +374,7 @@ describe('aihubmix provider', () => {
               {
                 url,
                 revised_prompt: 'A beautiful sunset',
+                b64_json: 'base64-encoded-image-data',
               },
             ],
           },
@@ -392,12 +393,7 @@ describe('aihubmix provider', () => {
           providerOptions: {},
         });
 
-        expect(images).toStrictEqual([
-          {
-            url: 'https://example.com/image.png',
-            revisedPrompt: 'A beautiful sunset',
-          },
-        ]);
+        expect(images).toStrictEqual(['base64-encoded-image-data']);
       });
     });
   });
@@ -412,7 +408,7 @@ describe('aihubmix provider', () => {
   });
 
   describe('transcription', () => {
-    describe('doTranscribe', () => {
+    describe('doGenerate', () => {
       function prepareTranscriptionResponse({
         text = 'Hello, this is a test transcription.',
       }: { text?: string } = {}) {
@@ -427,14 +423,15 @@ describe('aihubmix provider', () => {
       it('should pass headers', async () => {
         prepareTranscriptionResponse();
 
-        await provider.transcription('whisper-1').doTranscribe({
-          audio: new ArrayBuffer(8),
+        await provider.transcription('whisper-1').doGenerate({
+          audio: new Uint8Array(8),
+          mediaType: 'audio/wav',
           headers: { 'Custom-Request-Header': 'request-header-value' },
         });
 
         expect(server.calls[0].requestHeaders).toStrictEqual({
           authorization: 'Bearer test-api-key',
-          'content-type': 'multipart/form-data',
+          'content-type': 'application/json',
           'app-code': 'WHVL9885',
           'custom-request-header': 'request-header-value',
         });
@@ -443,8 +440,9 @@ describe('aihubmix provider', () => {
       it('should transcribe audio', async () => {
         prepareTranscriptionResponse({ text: 'Transcribed audio content' });
 
-        const { text } = await provider.transcription('whisper-1').doTranscribe({
-          audio: new ArrayBuffer(8),
+        const { text } = await provider.transcription('whisper-1').doGenerate({
+          audio: new Uint8Array(8),
+          mediaType: 'audio/wav',
         });
 
         expect(text).toStrictEqual('Transcribed audio content');
@@ -455,11 +453,11 @@ describe('aihubmix provider', () => {
   describe('speech', () => {
     describe('doGenerate', () => {
       function prepareSpeechResponse({
-        audio = new ArrayBuffer(8),
-      }: { audio?: ArrayBuffer } = {}) {
+        audio = new Uint8Array([98, 97, 115, 101, 54, 52, 45, 101, 110, 99, 111, 100, 101, 100, 45, 97, 117, 100, 105, 111, 45, 100, 97, 116, 97]),
+      }: { audio?: Uint8Array } = {}) {
         server.urls['https://aihubmix.com/v1/audio/speech'].response = {
-          type: 'array-buffer',
-          body: audio,
+          type: 'binary',
+          body: Buffer.from(audio),
         };
       }
 
@@ -481,7 +479,7 @@ describe('aihubmix provider', () => {
       });
 
       it('should generate speech audio', async () => {
-        const testAudio = new ArrayBuffer(16);
+        const testAudio = new Uint8Array([116, 101, 115, 116, 45, 97, 117, 100, 105, 111, 45, 100, 97, 116, 97]);
         prepareSpeechResponse({ audio: testAudio });
 
         const { audio } = await provider.speech('tts-1').doGenerate({

@@ -25,6 +25,7 @@ import {
   ProviderV1,
   ImageModelV1,
   TranscriptionModelV1,
+  SpeechModelV1,
 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { openaiTools } from './aihubmix-tools';
@@ -69,6 +70,12 @@ export interface AihubmixProvider extends ProviderV1 {
   ): EmbeddingModelV1<string>;
 
   transcription(deploymentId: string): TranscriptionModelV1;
+
+  speech(deploymentId: string): SpeechModelV1;
+
+  speechModel(deploymentId: string): SpeechModelV1;
+
+  tools: typeof openaiTools;
 }
 
 export interface AihubmixProviderSettings {
