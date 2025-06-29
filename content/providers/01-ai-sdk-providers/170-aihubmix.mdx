@@ -1,45 +1,29 @@
-# AI SDK - Aihubmix Provider
+---
+title: Aihubmix
+description: One Gateway, Infinite Models；one-stop request: OpenAI, Claude, Gemini, DeepSeek, Qwen, and over 500 AI models.
+---
 
-> **🎉 优惠活动：使用所有模型享受10%优惠！**
+# Aihubmix Provider
 
-**[Aihubmix 官网](https://aihubmix.com/)** | **[模型广场](https://aihubmix.com/models)**
+> **🎉 Special Offer: Get 10% off on all models!**
 
-The **[Aihubmix provider](https://ai-sdk.dev/providers/ai-sdk-providers/aihubmix)** for the [AI SDK](https://ai-sdk.dev/docs)
-One Gateway, Infinite Models；one-stop request: OpenAI, Claude, Gemini, DeepSeek, Qwen, and over 500 AI models.
+The [Aihubmix](https://aihubmix.com/) provider contains unified access to multiple AI providers through the Aihubmix API, including OpenAI, Anthropic Claude, and Google Gemini models. View all available models at [aihubmix.com/models](https://aihubmix.com/models).
 
 ## Setup
 
 The Aihubmix provider is available in the `@ai-sdk/aihubmix` module. You can install it with
 
-```bash
-npm i @ai-sdk/aihubmix
-```
-
-## Provider Instance
-
-You can import the default provider instance `aihubmix` from `@ai-sdk/aihubmix`:
-
-```ts
-import { aihubmix } from '@ai-sdk/aihubmix';
-```
-
-## Configuration
-
-Set your Aihubmix API key as an environment variable:
-
-```bash
-export AIHUBMIX_API_KEY="your-api-key-here"
-```
-
-Or pass it directly to the provider:
-
-```ts
-import { createAihubmix } from '@ai-sdk/aihubmix';
-
-const aihubmix = createAihubmix({
-  apiKey: 'your-api-key-here',
-});
-```
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/aihubmix" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/aihubmix" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/aihubmix" dark />
+  </Tab>
+</Tabs>
 
 ## Supported Models
 
@@ -61,6 +45,7 @@ const aihubmix = createAihubmix({
 
 
 ### Other Models => [模型广场](https://aihubmix.com/models)
+
 
 
 ## Examples
@@ -159,3 +144,9 @@ const { text } = await generateText({
 ## Documentation
 
 Please check out the **[Aihubmix provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/aihubmix)** for more information.
+
+## Support
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/ai-sdk/ai-sdk/issues)
+- **Discord**: [Join our community](https://discord.gg/ai-sdk)
+- **Email**: support@aihubmix.com 
