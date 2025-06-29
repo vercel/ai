@@ -26,8 +26,9 @@ import {
   ImageModelV1,
   TranscriptionModelV1,
   SpeechModelV1,
+  TranscriptionModelV1CallOptions,
 } from '@ai-sdk/provider';
-import { loadApiKey } from '@ai-sdk/provider-utils';
+import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { openaiTools } from './aihubmix-tools';
 
 export interface AihubmixProvider extends ProviderV1 {
@@ -78,13 +79,66 @@ export interface AihubmixProvider extends ProviderV1 {
   tools: typeof openaiTools;
 }
 
+class AihubmixTranscriptionModel extends OpenAITranscriptionModel {
+  async doGenerate(options: TranscriptionModelV1CallOptions) {
+    // 根据MIME类型设置正确的文件扩展名
+    if (options.mediaType) {
+      const mimeTypeMap: Record<string, string> = {
+        'audio/mpeg': 'mp3',
+        'audio/mp3': 'mp3',
+        'audio/wav': 'wav',
+        'audio/flac': 'flac',
+        'audio/m4a': 'm4a',
+        'audio/mp4': 'mp4',
+        'audio/ogg': 'ogg',
+        'audio/webm': 'webm',
+        'audio/oga': 'oga',
+        'audio/mpga': 'mpga',
+      };
+      
+      const extension = mimeTypeMap[options.mediaType];
+      if (extension) {
+        // 修改options，确保文件名有正确的扩展名
+        const modifiedOptions = {
+          ...options,
+          mediaType: options.mediaType,
+        };
+        
+        // 重写getArgs方法来设置正确的文件名
+        const originalGetArgs = (this as any).getArgs;
+        (this as any).getArgs = function(args: any) {
+          const result = originalGetArgs.call(this, args);
+          if (result.formData) {
+            // 找到file字段并修改文件名
+            const fileEntry = result.formData.get('file');
+            if (fileEntry && fileEntry instanceof File) {
+              const newFile = new File([fileEntry], `audio.${extension}`, { 
+                type: options.mediaType 
+              });
+              result.formData.set('file', newFile);
+            }
+          }
+          return result;
+        };
+        
+        return super.doGenerate(modifiedOptions);
+      }
+    }
+    
+    return super.doGenerate(options);
+  }
+}
+
 export interface AihubmixProviderSettings {
   apiKey?: string;
+  fetch?: FetchFunction;
+  compatibility?: 'strict' | 'compatible';
 }
 
 export function createAihubmix(
   options: AihubmixProviderSettings = {},
 ): AihubmixProvider {
+  const compatibility = options.compatibility ?? 'compatible';
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
@@ -93,6 +147,15 @@ export function createAihubmix(
     })}`,
     'APP-Code': 'WHVL9885',
     'Content-Type': 'application/json',
+  });
+
+  const getTranscriptionHeaders = () => ({
+    Authorization: `Bearer ${loadApiKey({
+      apiKey: options.apiKey,
+      environmentVariableName: 'AIHUBMIX_API_KEY',
+      description: 'Aihubmix',
+    })}`,
+    'APP-Code': 'WHVL9885',
   });
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
@@ -146,7 +209,8 @@ export function createAihubmix(
       provider: 'aihubmix.chat',
       url,
       headers: getHeaders,
-      compatibility: 'strict',
+      compatibility,
+      fetch: options.fetch,
     });
   };
 
@@ -157,8 +221,9 @@ export function createAihubmix(
     new OpenAICompletionLanguageModel(modelId, settings, {
       provider: 'aihubmix.completion',
       url,
-      compatibility: 'strict',
+      compatibility,
       headers: getHeaders,
+      fetch: options.fetch,
     });
 
   const createEmbeddingModel = (
@@ -169,6 +234,7 @@ export function createAihubmix(
       provider: 'aihubmix.embeddings',
       headers: getHeaders,
       url,
+      fetch: options.fetch,
     });
   };
 
@@ -187,20 +253,23 @@ export function createAihubmix(
       provider: 'aihubmix.image',
       url,
       headers: getHeaders,
+      fetch: options.fetch,
     });
   };
 
   const createTranscriptionModel = (modelId: string) =>
-    new OpenAITranscriptionModel(modelId, {
+    new AihubmixTranscriptionModel(modelId, {
       provider: 'aihubmix.transcription',
       url,
-      headers: getHeaders,
+      headers: getTranscriptionHeaders,
+      fetch: options.fetch,
     });
   const createSpeechModel = (modelId: string) =>
     new OpenAISpeechModel(modelId, {
       provider: 'aihubmix.speech',
       url,
       headers: getHeaders,
+      fetch: options.fetch,
     });
   const provider = function (
     deploymentId: string,

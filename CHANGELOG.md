@@ -26,6 +26,8 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/togetherai](./packages/togetherai/CHANGELOG.md)
 - [@ai-sdk/vercel](./packages/vercel/CHANGELOG.md)
 - [@ai-sdk/xai](./packages/xai/CHANGELOG.md)
+- [@ai-sdk/aihubmix](./packages/aihubmix/CHANGELOG.md)
+
 
 ### UI integrations
 

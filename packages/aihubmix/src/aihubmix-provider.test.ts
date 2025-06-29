@@ -431,7 +431,6 @@ describe('aihubmix provider', () => {
 
         expect(server.calls[0].requestHeaders).toStrictEqual({
           authorization: 'Bearer test-api-key',
-          'content-type': 'application/json',
           'app-code': 'WHVL9885',
           'custom-request-header': 'request-header-value',
         });
