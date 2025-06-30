@@ -45,11 +45,13 @@ optionally as a promise.
   readonly maxImagesPerCall: number | undefined | GetMaxImagesPerCallFunction;
 
   /**
-Generates an array of images.
+Generates or edits an array of images.
+When the `images` option is provided, the model will edit the provided images.
+When `images` is not provided, the model will generate new images.
    */
   doGenerate(options: ImageModelV2CallOptions): PromiseLike<{
     /**
-Generated images as base64 encoded strings or binary data.
+Generated or edited images as base64 encoded strings or binary data.
 The images should be returned without any unnecessary conversion.
 If the API returns base64 encoded strings, the images should be returned
 as base64 encoded strings. If the API returns binary data, the images should
