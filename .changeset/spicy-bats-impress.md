@@ -2,4 +2,4 @@
 '@ai-sdk/openai': major
 ---
 
-chore (provider/openai): default strict mode to false
+fix (provider/openai): default strict mode to false
