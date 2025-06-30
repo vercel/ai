@@ -545,7 +545,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": true,
+              "strict": false,
             },
             "type": "function",
           },
@@ -732,24 +732,37 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "name": "response",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
 
       expect(warnings).toEqual([]);
     });
@@ -773,24 +786,37 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "name": "response",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
@@ -814,25 +840,38 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'test-name',
-            description: 'test description',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "description": "test description",
+              "name": "test-name",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
@@ -893,28 +932,41 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        tool_choice: 'required',
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              description: 'test description',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-              strict: true,
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
-          },
-        ],
-      });
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "tool_choice": "required",
+          "tools": [
+            {
+              "function": {
+                "description": "test description",
+                "name": "test-tool",
+                "parameters": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
 
       expect(result.content).toMatchInlineSnapshot(`
         [
@@ -966,27 +1018,45 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tool_choice: { type: 'function', function: { name: 'test-tool' } },
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-            strict: true,
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gpt-4o-2024-08-06",
+        "tool_choice": {
+          "function": {
+            "name": "test-tool",
+          },
+          "type": "function",
         },
-      ],
-    });
+        "tools": [
+          {
+            "function": {
+              "name": "test-tool",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "function",
+          },
+        ],
+      }
+    `);
 
     expect(result.content).toMatchInlineSnapshot(`
       [

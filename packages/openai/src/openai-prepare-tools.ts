@@ -11,10 +11,12 @@ export function prepareTools({
   tools,
   toolChoice,
   structuredOutputs,
+  strictJsonSchema,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   structuredOutputs: boolean;
+  strictJsonSchema: boolean;
 }): {
   tools?: OpenAITools;
   toolChoice?: OpenAIToolChoice;
@@ -40,7 +42,7 @@ export function prepareTools({
             name: tool.name,
             description: tool.description,
             parameters: tool.inputSchema,
-            strict: structuredOutputs ? true : undefined,
+            strict: structuredOutputs ? strictJsonSchema : undefined,
           },
         });
         break;
