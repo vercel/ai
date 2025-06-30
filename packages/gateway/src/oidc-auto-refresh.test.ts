@@ -722,7 +722,7 @@ OTHER_VAR=value`;
 
       const envFileContent = `OTHER_VAR=value\nANOTHER_VAR=another`;
 
-      mockExistsSync.mockImplementation((path: string) => {
+      mockExistsSync.mockImplementation(path => {
         if (path.toString().includes('.env.local')) return true;
         return path.toString().includes('package.json');
       });
@@ -743,7 +743,7 @@ OTHER_VAR=value`;
       process.env.NODE_ENV = 'development';
       process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
 
-      mockExistsSync.mockImplementation((path: string) => {
+      mockExistsSync.mockImplementation(path => {
         if (path.toString().includes('.env.local')) return false;
         return path.toString().includes('package.json');
       });
@@ -763,7 +763,7 @@ OTHER_VAR=value`;
       process.env.NODE_ENV = 'development';
       process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
 
-      mockExistsSync.mockImplementation((path: string) => {
+      mockExistsSync.mockImplementation(path => {
         if (path.toString().includes('.env.local')) return true;
         return path.toString().includes('package.json');
       });
