@@ -732,6 +732,13 @@ const responseOutputItemAddedSchema = z.object({
     z.object({
       type: z.literal('reasoning'),
       id: z.string(),
+      encrypted_content: z.string().nullish(),
+      summary: z.array(
+        z.object({
+          type: z.literal('summary_text'),
+          text: z.string(),
+        }),
+      ),
     }),
     z.object({
       type: z.literal('function_call'),
@@ -764,6 +771,13 @@ const responseOutputItemDoneSchema = z.object({
     z.object({
       type: z.literal('reasoning'),
       id: z.string(),
+      encrypted_content: z.string().nullish(),
+      summary: z.array(
+        z.object({
+          type: z.literal('summary_text'),
+          text: z.string(),
+        }),
+      ),
     }),
     z.object({
       type: z.literal('function_call'),
@@ -802,6 +816,14 @@ const responseAnnotationAddedSchema = z.object({
   }),
 });
 
+const responseReasoningSummaryPartAddedSchema = z.object({
+  type: z.literal('response.reasoning_summary_part.added'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  part: z.unknown().nullish(),
+});
+
 const responseReasoningSummaryTextDeltaSchema = z.object({
   type: z.literal('response.reasoning_summary_text.delta'),
   item_id: z.string(),
@@ -826,6 +848,7 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
   responseAnnotationAddedSchema,
+  responseReasoningSummaryPartAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
   responseReasoningSummaryPartDoneSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
@@ -873,6 +896,12 @@ function isResponseAnnotationAddedChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseAnnotationAddedSchema> {
   return chunk.type === 'response.output_text.annotation.added';
+}
+
+function isResponseReasoningSummaryPartAddedChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryPartAddedSchema> {
+  return chunk.type === 'response.reasoning_summary_part.added';
 }
 
 function isResponseReasoningSummaryTextDeltaChunk(
