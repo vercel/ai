@@ -46,8 +46,7 @@ it('supports additionalProperties: true', () => {
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
 
-// z.record(z.string())
-it('supports `additionalProperties` as an object', () => {
+it('supports `additionalProperties` as an object (for z.record(z.string()))', () => {
   const input: JSONSchema7 = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
