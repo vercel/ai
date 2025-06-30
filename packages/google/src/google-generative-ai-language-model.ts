@@ -130,6 +130,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
       useSearchGrounding: googleOptions?.useSearchGrounding ?? false,
+      useUrlContext: googleOptions?.useUrlContext ?? false,
       dynamicRetrievalConfig: googleOptions?.dynamicRetrievalConfig,
       modelId: this.modelId,
     });
