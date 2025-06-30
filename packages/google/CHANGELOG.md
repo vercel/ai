@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 1.2.20
+
+### Patch Changes
+
+- d532ac3: Support tool schemas that allow additional properties (e.g `z.record(z.string())`)
+- 08ee85d: feat(providers/google): Add support for Gemini 2.5 Pro and Gemini 2.5 Flash (now stable)
+
 ## 1.2.19
 
 ### Patch Changes
