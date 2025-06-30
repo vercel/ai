@@ -11,10 +11,12 @@ import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV2Prompt,
+  options?: { isGemmaModel?: boolean },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
   let systemMessagesAllowed = true;
+  const isGemmaModel = options?.isGemmaModel ?? false;
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -144,9 +146,22 @@ export function convertToGoogleGenerativeAIMessages(
     }
   }
 
+  if (
+    isGemmaModel &&
+    systemInstructionParts.length > 0 &&
+    contents.length > 0 &&
+    contents[0].role === 'user'
+  ) {
+    const systemText = systemInstructionParts
+      .map(part => part.text)
+      .join('\n\n');
+
+    contents[0].parts.unshift({ text: systemText + '\n\n' });
+  }
+
   return {
     systemInstruction:
-      systemInstructionParts.length > 0
+      systemInstructionParts.length > 0 && !isGemmaModel
         ? { parts: systemInstructionParts }
         : undefined,
     contents,

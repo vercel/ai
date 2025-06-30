@@ -105,22 +105,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { contents, systemInstruction } =
-      convertToGoogleGenerativeAIMessages(prompt);
-
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    if (
-      isGemmaModel &&
-      systemInstruction &&
-      systemInstruction.parts.length > 0
-    ) {
-      warnings.push({
-        type: 'other',
-        message:
-          `GEMMA models do not support system instructions. System messages will be ignored. ` +
-          `Consider including instructions in the first user message instead.`,
-      });
-    }
+
+    const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
+      prompt,
+      { isGemmaModel },
+    );
 
     const {
       tools: googleTools,
