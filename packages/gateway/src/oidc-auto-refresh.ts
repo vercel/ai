@@ -49,6 +49,72 @@ export class OidcAutoRefresh {
   }
 
   /**
+   * Gets the current OIDC token from environment variables
+   */
+  private static getCurrentOidcToken(): string | null {
+    const token = process.env.VERCEL_OIDC_TOKEN;
+    // Treat empty string same as undefined/null
+    return token && token.trim() !== '' ? token : null;
+  }
+
+  /**
+   * Decodes a JWT token payload without verification
+   */
+  private static decodeJwtPayload(token: string): any {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      // Decode the payload (second part)
+      const payload = parts[1];
+      // Add padding if needed for base64url decoding
+      const paddedPayload =
+        payload + '='.repeat((4 - (payload.length % 4)) % 4);
+      const decoded = Buffer.from(
+        paddedPayload.replace(/-/g, '+').replace(/_/g, '/'),
+        'base64',
+      ).toString('utf8');
+      return JSON.parse(decoded);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Checks if the current OIDC token needs refreshing
+   * Returns true if token is missing, invalid, or expires within the threshold
+   */
+  private static needsTokenRefresh(
+    refreshThresholdMinutes: number = 60,
+  ): boolean {
+    const token = this.getCurrentOidcToken();
+
+    if (!token) {
+      return true; // No token, needs refresh
+    }
+
+    const payload = this.decodeJwtPayload(token);
+    if (
+      !payload ||
+      !payload.exp ||
+      typeof payload.exp !== 'number' ||
+      !Number.isFinite(payload.exp)
+    ) {
+      return true; // Invalid token or no expiry, needs refresh
+    }
+
+    const expiryTime = payload.exp * 1000; // Convert to milliseconds
+    const currentTime = Date.now();
+    const timeUntilExpiry = expiryTime - currentTime;
+    const refreshThreshold = refreshThresholdMinutes * 60 * 1000; // Convert to milliseconds
+
+    // Refresh if token expires within the threshold
+    return timeUntilExpiry <= refreshThreshold;
+  }
+
+  /**
    * Finds the root directory of the repository by looking for common root indicators
    */
   private static findRepoRoot(
@@ -140,6 +206,21 @@ export class OidcAutoRefresh {
 
     // Skip if not in development environment
     if (!this.isDevelopmentEnvironment()) {
+      return;
+    }
+
+    // Skip if token doesn't need refreshing
+    if (!this.needsTokenRefresh()) {
+      const token = this.getCurrentOidcToken();
+      if (token) {
+        const payload = this.decodeJwtPayload(token);
+        if (payload?.exp) {
+          const expiryTime = new Date(payload.exp * 1000);
+          this.info(
+            `OIDC token is still valid until ${expiryTime.toISOString()}, skipping refresh`,
+          );
+        }
+      }
       return;
     }
 

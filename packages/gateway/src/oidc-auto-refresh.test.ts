@@ -10,6 +10,19 @@ vi.mock('fs');
 const mockExecSync = vi.mocked(execSync);
 const mockExistsSync = vi.mocked(existsSync);
 
+// Helper function to create a JWT token that needs refreshing (expires in 30 minutes)
+function createTokenNeedingRefresh(): string {
+  const expiryTime = Math.floor(Date.now() / 1000) + 30 * 60; // 30 minutes from now
+  const header = Buffer.from(
+    JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+  ).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ exp: expiryTime })).toString(
+    'base64url',
+  );
+  const signature = 'fake-signature';
+  return `${header}.${payload}.${signature}`;
+}
+
 describe('OidcAutoRefresh', () => {
   const originalEnv = process.env;
   const originalCwd = process.cwd;
@@ -47,6 +60,7 @@ describe('OidcAutoRefresh', () => {
     it('should return true when AI_GATEWAY_OIDC_REFRESH is "true"', async () => {
       process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
       process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh(); // Add token that needs refresh
       mockExistsSync.mockReturnValue(true);
       mockExecSync.mockImplementation(() => Buffer.from(''));
 
@@ -61,6 +75,7 @@ describe('OidcAutoRefresh', () => {
     it('should return true when AI_GATEWAY_OIDC_REFRESH is "1"', async () => {
       process.env.AI_GATEWAY_OIDC_REFRESH = '1';
       process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh(); // Add token that needs refresh
       mockExistsSync.mockReturnValue(true);
       mockExecSync.mockImplementation(() => Buffer.from(''));
 
@@ -70,6 +85,204 @@ describe('OidcAutoRefresh', () => {
         'vercel env pull',
         expect.any(Object),
       );
+    });
+  });
+
+  describe('JWT token expiry checking', () => {
+    it('should need refresh when no token is present', () => {
+      delete process.env.VERCEL_OIDC_TOKEN;
+
+      // Access private method for testing
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token is invalid JWT', () => {
+      process.env.VERCEL_OIDC_TOKEN = 'invalid-jwt-token';
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token is empty string', () => {
+      process.env.VERCEL_OIDC_TOKEN = '';
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token is whitespace only', () => {
+      process.env.VERCEL_OIDC_TOKEN = '   \t\n  ';
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token has malformed exp field', () => {
+      // Create a JWT with non-numeric exp claim
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(
+        JSON.stringify({ exp: 'not-a-number' }),
+      ).toString('base64url');
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token has null exp field', () => {
+      // Create a JWT with null exp claim
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({ exp: null })).toString(
+        'base64url',
+      );
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token has zero exp field', () => {
+      // Create a JWT with exp: 0 (epoch time, definitely expired)
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({ exp: 0 })).toString(
+        'base64url',
+      );
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token has malformed base64 payload', () => {
+      // Create a JWT with invalid base64 in payload section
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const invalidPayload = 'invalid-base64-!@#$%';
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${invalidPayload}.${signature}`;
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token has no expiry', () => {
+      // Create a JWT with no exp claim
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({ sub: 'test' })).toString(
+        'base64url',
+      );
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should need refresh when token expires within threshold', () => {
+      // Create a JWT that expires in 30 minutes (less than 60 minute default threshold)
+      const expiryTime = Math.floor(Date.now() / 1000) + 30 * 60; // 30 minutes from now
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({ exp: expiryTime })).toString(
+        'base64url',
+      );
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should not need refresh when token is valid and not close to expiry', () => {
+      // Create a JWT that expires in 2 hours (more than 60 minute default threshold)
+      const expiryTime = Math.floor(Date.now() / 1000) + 2 * 60 * 60; // 2 hours from now
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({ exp: expiryTime })).toString(
+        'base64url',
+      );
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(false);
+    });
+
+    it('should respect custom threshold', () => {
+      // Create a JWT that expires in 90 minutes
+      const expiryTime = Math.floor(Date.now() / 1000) + 90 * 60; // 90 minutes from now
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({ exp: expiryTime })).toString(
+        'base64url',
+      );
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      // With 60 minute threshold, should not need refresh
+      const needsRefresh60 = (OidcAutoRefresh as any).needsTokenRefresh(60);
+      expect(needsRefresh60).toBe(false);
+
+      // With 120 minute threshold, should need refresh
+      const needsRefresh120 = (OidcAutoRefresh as any).needsTokenRefresh(120);
+      expect(needsRefresh120).toBe(true);
+    });
+
+    it('should need refresh when token is already expired', () => {
+      // Create a JWT that expired 1 hour ago
+      const expiryTime = Math.floor(Date.now() / 1000) - 60 * 60; // 1 hour ago
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({ exp: expiryTime })).toString(
+        'base64url',
+      );
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      const needsRefresh = (OidcAutoRefresh as any).needsTokenRefresh();
+      expect(needsRefresh).toBe(true);
+    });
+
+    it('should skip auto-refresh when token is still valid', async () => {
+      process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
+      process.env.NODE_ENV = 'development';
+
+      // Create a valid token that expires in 2 hours
+      const expiryTime = Math.floor(Date.now() / 1000) + 2 * 60 * 60;
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({ exp: expiryTime })).toString(
+        'base64url',
+      );
+      const signature = 'fake-signature';
+      process.env.VERCEL_OIDC_TOKEN = `${header}.${payload}.${signature}`;
+
+      const infoSpy = vi.spyOn(console, 'info');
+
+      await attemptOidcAutoRefresh();
+
+      expect(infoSpy).toHaveBeenCalledWith(
+        expect.stringContaining('OIDC token is still valid until'),
+      );
+      expect(mockExecSync).not.toHaveBeenCalled();
     });
   });
 
