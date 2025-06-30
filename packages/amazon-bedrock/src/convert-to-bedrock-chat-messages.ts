@@ -101,9 +101,10 @@ export async function convertToBedrockChatMessages(
                       });
                     } else {
                       if (!part.mediaType) {
-                        throw new Error(
-                          'File mime type is required in user message part content',
-                        );
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'file without mime type',
+                          message: 'File mime type is required in user message part content',
+                        });
                       }
 
                       bedrockContent.push({
@@ -295,19 +296,25 @@ export async function convertToBedrockChatMessages(
 }
 
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {
-  return ['jpeg', 'png', 'gif', 'webp'].includes(format);
+  return Object.values(BEDROCK_IMAGE_MIME_TYPES).includes(
+    format as BedrockImageFormat,
+  );
 }
 
 function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
   if (!mimeType) {
-    throw new Error('Image mime type is required in user message part content');
+    throw new UnsupportedFunctionalityError({
+      functionality: 'image without mime type',
+      message: 'Image mime type is required in user message part content',
+    });
   }
 
   const format = BEDROCK_IMAGE_MIME_TYPES[mimeType as BedrockImageMimeType];
   if (!format) {
-    throw new Error(
-      `Unsupported image mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_IMAGE_MIME_TYPES).join(', ')}`,
-    );
+    throw new UnsupportedFunctionalityError({
+      functionality: `image mime type: ${mimeType}`,
+      message: `Unsupported image mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_IMAGE_MIME_TYPES).join(', ')}`,
+    });
   }
 
   return format;
@@ -317,9 +324,10 @@ function getBedrockDocumentFormat(mimeType: string): BedrockDocumentFormat {
   const format =
     BEDROCK_DOCUMENT_MIME_TYPES[mimeType as BedrockDocumentMimeType];
   if (!format) {
-    throw new Error(
-      `Unsupported file mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_DOCUMENT_MIME_TYPES).join(', ')}`,
-    );
+    throw new UnsupportedFunctionalityError({
+      functionality: `file mime type: ${mimeType}`,
+      message: `Unsupported file mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_DOCUMENT_MIME_TYPES).join(', ')}`,
+    });
   }
   return format;
 }

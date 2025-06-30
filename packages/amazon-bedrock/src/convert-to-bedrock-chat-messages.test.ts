@@ -646,7 +646,7 @@ describe('tool messages', () => {
         },
       ]),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: Unsupported image mime type: image/avif, expected one of: image/jpeg, image/png, image/gif, image/webp]`,
+      `[AI_UnsupportedFunctionalityError: Unsupported image mime type: image/avif, expected one of: image/jpeg, image/png, image/gif, image/webp]`,
     );
   });
 
@@ -724,7 +724,7 @@ describe('additional file format tests', () => {
         },
       ]),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: Unsupported file mime type: application/rtf, expected one of: application/pdf, text/csv, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/html, text/plain, text/markdown]`,
+      `[AI_UnsupportedFunctionalityError: Unsupported file mime type: application/rtf, expected one of: application/pdf, text/csv, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/html, text/plain, text/markdown]`,
     );
   });
 
