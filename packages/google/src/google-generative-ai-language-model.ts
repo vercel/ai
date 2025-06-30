@@ -111,8 +111,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       prompt,
       { isGemmaModel },
     );
-    // note: for gemma models, system instructions are now automatically
-    // prepended to the first user message in convertToGoogleGenerativeAIMessages
 
     const {
       tools: googleTools,

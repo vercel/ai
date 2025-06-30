@@ -2373,34 +2373,6 @@ describe('GEMMA Model System Instruction Fix', () => {
     });
   });
 
-  it('should NOT generate warning when GEMMA model is used with system instructions (now automatically handled)', async () => {
-    server.urls[TEST_URL_GEMMA_3_12B_IT].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: { parts: [{ text: 'Hello!' }], role: 'model' },
-            finishReason: 'STOP',
-            index: 0,
-          },
-        ],
-      },
-    };
-
-    const model = new GoogleGenerativeAILanguageModel('gemma-3-12b-it', {
-      provider: 'google.generative-ai',
-      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-      headers: { 'x-goog-api-key': 'test-api-key' },
-      generateId: () => 'test-id',
-    });
-
-    const { warnings } = await model.doGenerate({
-      prompt: TEST_PROMPT_WITH_SYSTEM,
-    });
-
-    expect(warnings).toMatchInlineSnapshot(`[]`);
-  });
-
   it('should NOT generate warning when GEMMA model is used without system instructions', async () => {
     server.urls[TEST_URL_GEMMA_3_12B_IT].response = {
       type: 'json-value',

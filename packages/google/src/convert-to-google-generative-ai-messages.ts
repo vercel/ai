@@ -37,17 +37,6 @@ export function convertToGoogleGenerativeAIMessages(
 
         const parts: GoogleGenerativeAIContentPart[] = [];
 
-        if (
-          isGemmaModel &&
-          systemInstructionParts.length > 0 &&
-          contents.length === 0
-        ) {
-          const systemText = systemInstructionParts
-            .map(part => part.text)
-            .join('\n\n');
-          parts.push({ text: systemText + '\n\n' });
-        }
-
         for (const part of content) {
           switch (part.type) {
             case 'text': {
@@ -155,6 +144,19 @@ export function convertToGoogleGenerativeAIMessages(
         break;
       }
     }
+  }
+
+  if (
+    isGemmaModel &&
+    systemInstructionParts.length > 0 &&
+    contents.length > 0 &&
+    contents[0].role === 'user'
+  ) {
+    const systemText = systemInstructionParts
+      .map(part => part.text)
+      .join('\n\n');
+
+    contents[0].parts.unshift({ text: systemText + '\n\n' });
   }
 
   return {
