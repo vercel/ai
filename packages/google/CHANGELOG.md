@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 42fcd32: feat(google): automatically handle system instructions for Gemma models
+
 ## 2.0.0-beta.4
 
 ### Patch Changes
