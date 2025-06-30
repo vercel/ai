@@ -1,5 +1,62 @@
 # @ai-sdk/google
 
+## 1.2.19
+
+### Patch Changes
+
+- f262012: fix (provider/google): prevent error when thinking signature is used
+
+## 1.2.18
+
+### Patch Changes
+
+- 4b2e1b0: Add reasoning token output support for gemini models via Vertex AI Provider
+
+## 1.2.17
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+
+## 1.2.16
+
+### Patch Changes
+
+- 0ca6f2f: feat(providers/google): add gemini-2.5-pro-preview-05-06
+
+## 1.2.15
+
+### Patch Changes
+
+- 2afd354: fix(providers/google): accept nullish in safetyRatings
+
+## 1.2.14
+
+### Patch Changes
+
+- c695a7e: feat (provider/google): add new gemini models
+
+## 1.2.13
+
+### Patch Changes
+
+- 6183b08: feat(providers/google): Add taskType support for Text Embedding Models
+
+## 1.2.12
+
+### Patch Changes
+
+- c56331d: feat (providers/google): add thinking config to provider options
+
+## 1.2.11
+
+### Patch Changes
+
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 1.2.10
 
 ### Patch Changes

@@ -14,6 +14,13 @@ const DEFAULT_TOOLS: MCPTool[] = [
       },
     },
   },
+  {
+    name: 'mock-tool-no-args',
+    description: 'A mock tool for testing',
+    inputSchema: {
+      type: 'object',
+    },
+  },
 ];
 
 export class MockMCPTransport implements MCPTransport {
@@ -75,6 +82,17 @@ export class MockMCPTransport implements MCPTransport {
 
       if (message.method === 'tools/list') {
         await delay(10);
+        if (this.tools.length === 0) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32000,
+              message: 'Method not supported',
+            },
+          });
+          return;
+        }
         this.onmessage?.({
           jsonrpc: '2.0',
           id: message.id,

@@ -1,5 +1,92 @@
 # ai
 
+## 4.3.16
+
+### Patch Changes
+
+- ed0ebeb: Avoid JSON.strinfigy on UInt8Arrays for telemetry
+
+## 4.3.15
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+  - @ai-sdk/react@1.2.12
+  - @ai-sdk/ui-utils@1.2.11
+
+## 4.3.14
+
+### Patch Changes
+
+- a295521: feat(message-validator): include more details in error messages
+
+## 4.3.13
+
+### Patch Changes
+
+- Updated dependencies [6c59ae7]
+  - @ai-sdk/ui-utils@1.2.10
+  - @ai-sdk/react@1.2.11
+
+## 4.3.12
+
+### Patch Changes
+
+- 1ed3755: fix (ai): don't publish mcp-stdio TypeScript files
+- 46cb332: chore (ai/mcp): add `assertCapability` method to experimental MCP client
+
+## 4.3.11
+
+### Patch Changes
+
+- Updated dependencies [77b2097]
+- Updated dependencies [62181ef]
+  - @ai-sdk/react@1.2.10
+  - @ai-sdk/ui-utils@1.2.9
+
+## 4.3.10
+
+### Patch Changes
+
+- 0432959: feat (ai): add experimental prepareStep callback to generateText
+
+## 4.3.9
+
+### Patch Changes
+
+- b69a253: fix(utils/detect-mimetype): add support for detecting id3 tags
+
+## 4.3.8
+
+### Patch Changes
+
+- 6e8a73b: feat(providers/fal): add transcribe
+
+## 4.3.7
+
+### Patch Changes
+
+- f4f3945: fix (ai/core): refactor `toResponseMessages` to filter out empty string/content
+
+## 4.3.6
+
+### Patch Changes
+
+- beef951: feat: add speech with experimental_generateSpeech
+- bd41167: fix(ai/core): properly handle custom separator in provider registry
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+  - @ai-sdk/ui-utils@1.2.8
+  - @ai-sdk/react@1.2.9
+
+## 4.3.5
+
+### Patch Changes
+
+- 452bf12: fix (ai/mcp): better support for zero-argument MCP tools
+
 ## 4.3.4
 
 ### Patch Changes

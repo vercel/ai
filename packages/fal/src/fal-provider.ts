@@ -1,8 +1,15 @@
-import { ImageModelV1, NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
+import {
+  ImageModelV1,
+  NoSuchModelError,
+  ProviderV1,
+  TranscriptionModelV1,
+} from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
 import { FalImageModelId, FalImageSettings } from './fal-image-settings';
+import { FalTranscriptionModelId } from './fal-transcription-settings';
+import { FalTranscriptionModel } from './fal-transcription-model';
 
 export interface FalProviderSettings {
   /**
@@ -42,6 +49,11 @@ Creates a model for image generation.
     modelId: FalImageModelId,
     settings?: FalImageSettings,
   ): ImageModelV1;
+
+  /**
+Creates a model for transcription.
+   */
+  transcription(modelId: FalTranscriptionModelId): TranscriptionModelV1;
 }
 
 const defaultBaseURL = 'https://fal.run';
@@ -110,9 +122,17 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
+  const createTranscriptionModel = (modelId: FalTranscriptionModelId) =>
+    new FalTranscriptionModel(modelId, {
+      provider: `fal.transcription`,
+      url: ({ path }) => path,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   return {
-    image: createImageModel,
     imageModel: createImageModel,
+    image: createImageModel,
     languageModel: () => {
       throw new NoSuchModelError({
         modelId: 'languageModel',
@@ -125,6 +145,7 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
         modelType: 'textEmbeddingModel',
       });
     },
+    transcription: createTranscriptionModel,
   };
 }
 

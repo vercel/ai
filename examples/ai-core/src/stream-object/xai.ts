@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
-    model: xai('grok-2-1212'),
+    model: xai('grok-3-beta'),
     schema: z.object({
       characters: z.array(
         z.object({

@@ -1,5 +1,82 @@
 # @ai-sdk/google-vertex
 
+## 2.2.24
+
+### Patch Changes
+
+- Updated dependencies [f262012]
+  - @ai-sdk/google@1.2.19
+
+## 2.2.23
+
+### Patch Changes
+
+- Updated dependencies [f64f4f0]
+  - @ai-sdk/anthropic@1.2.12
+
+## 2.2.22
+
+### Patch Changes
+
+- fe24216: Add reasoning token output support for gemini models via Vertex AI Provider
+- Updated dependencies [4b2e1b0]
+  - @ai-sdk/google@1.2.18
+
+## 2.2.21
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+  - @ai-sdk/anthropic@1.2.11
+  - @ai-sdk/google@1.2.17
+
+## 2.2.20
+
+### Patch Changes
+
+- Updated dependencies [0ca6f2f]
+  - @ai-sdk/google@1.2.16
+
+## 2.2.19
+
+### Patch Changes
+
+- Updated dependencies [2afd354]
+  - @ai-sdk/google@1.2.15
+
+## 2.2.18
+
+### Patch Changes
+
+- a85ae99: feat (provider/google-vertex): add imagen-3.0-generate-002
+- Updated dependencies [c695a7e]
+  - @ai-sdk/google@1.2.14
+
+## 2.2.17
+
+### Patch Changes
+
+- Updated dependencies [6183b08]
+  - @ai-sdk/google@1.2.13
+
+## 2.2.16
+
+### Patch Changes
+
+- Updated dependencies [c56331d]
+  - @ai-sdk/google@1.2.12
+
+## 2.2.15
+
+### Patch Changes
+
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/anthropic@1.2.10
+  - @ai-sdk/google@1.2.11
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 2.2.14
 
 ### Patch Changes

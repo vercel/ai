@@ -1,5 +1,26 @@
 # @ai-sdk/anthropic
 
+## 1.2.12
+
+### Patch Changes
+
+- f64f4f0: feat (providers/anthropic): add claude v4 models
+
+## 1.2.11
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+
+## 1.2.10
+
+### Patch Changes
+
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 1.2.9
 
 ### Patch Changes

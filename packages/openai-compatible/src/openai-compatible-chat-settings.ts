@@ -12,6 +12,7 @@ Simulates streaming by using a normal generate call and returning it as a stream
 Enable this if the model that you are using does not support streaming.
 
 Defaults to `false`.
+@deprecated Use `simulateStreamingMiddleware` instead.
    */
   simulateStreaming?: boolean;
 }

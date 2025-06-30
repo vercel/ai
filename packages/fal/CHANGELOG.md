@@ -1,5 +1,38 @@
 # @ai-sdk/fal
 
+## 0.1.12
+
+### Patch Changes
+
+- 2e6e5d3: feat (@ai-sdk/fal): support new Flux Kontext models
+
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+
+## 0.1.10
+
+### Patch Changes
+
+- 487a1c0: fix (providers/fal): improve model compatibility
+
+## 0.1.9
+
+### Patch Changes
+
+- 6e8a73b: feat(providers/fal): add transcribe
+
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 0.1.7
 
 ### Patch Changes

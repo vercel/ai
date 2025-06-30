@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: xai('grok-2-1212'),
+    model: xai('grok-3-beta'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

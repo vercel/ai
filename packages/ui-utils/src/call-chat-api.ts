@@ -20,6 +20,7 @@ export async function callChatApi({
   generateId,
   fetch = getOriginalFetch(),
   lastMessage,
+  requestType = 'generate',
 }: {
   api: string;
   body: Record<string, any>;
@@ -39,17 +40,31 @@ export async function callChatApi({
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   lastMessage: UIMessage | undefined;
+  requestType?: 'generate' | 'resume';
 }) {
-  const response = await fetch(api, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-    signal: abortController?.()?.signal,
-    credentials,
-  }).catch(err => {
+  const request =
+    requestType === 'resume'
+      ? fetch(`${api}?chatId=${body.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        })
+      : fetch(api, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        });
+
+  const response = await request.catch(err => {
     restoreMessagesOnFailure();
     throw err;
   });

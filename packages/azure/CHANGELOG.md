@@ -1,5 +1,101 @@
 # @ai-sdk/azure
 
+## 1.3.23
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+  - @ai-sdk/openai@1.3.22
+
+## 1.3.22
+
+### Patch Changes
+
+- Updated dependencies [5caac29]
+  - @ai-sdk/openai@1.3.21
+
+## 1.3.21
+
+### Patch Changes
+
+- Updated dependencies [dd5450e]
+  - @ai-sdk/openai@1.3.20
+
+## 1.3.20
+
+### Patch Changes
+
+- Updated dependencies [3cabda9]
+  - @ai-sdk/openai@1.3.19
+
+## 1.3.19
+
+### Patch Changes
+
+- Updated dependencies [74cd391]
+  - @ai-sdk/openai@1.3.18
+
+## 1.3.18
+
+### Patch Changes
+
+- Updated dependencies [ca7bce3]
+  - @ai-sdk/openai@1.3.17
+
+## 1.3.17
+
+### Patch Changes
+
+- Updated dependencies [bd6e457]
+  - @ai-sdk/openai@1.3.16
+
+## 1.3.16
+
+### Patch Changes
+
+- Updated dependencies [98d954e]
+  - @ai-sdk/openai@1.3.15
+
+## 1.3.15
+
+### Patch Changes
+
+- Updated dependencies [980141c]
+  - @ai-sdk/openai@1.3.14
+
+## 1.3.14
+
+### Patch Changes
+
+- Updated dependencies [75b9849]
+  - @ai-sdk/openai@1.3.13
+
+## 1.3.13
+
+### Patch Changes
+
+- Updated dependencies [575339f]
+  - @ai-sdk/openai@1.3.12
+
+## 1.3.12
+
+### Patch Changes
+
+- 3c26c55: feat(providers/azure): add transcribe
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/openai@1.3.11
+  - @ai-sdk/provider-utils@2.2.7
+
+## 1.3.11
+
+### Patch Changes
+
+- Updated dependencies [dbe53e7]
+- Updated dependencies [84ffaba]
+  - @ai-sdk/openai@1.3.10
+
 ## 1.3.10
 
 ### Patch Changes

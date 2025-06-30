@@ -375,7 +375,12 @@ export function useChat(
 
   const append: UseChatHelpers['append'] = async (
     message,
-    { data, headers, body, experimental_attachments } = {},
+    {
+      data,
+      headers,
+      body,
+      experimental_attachments = message.experimental_attachments,
+    } = {},
   ) => {
     const attachmentsForRequest = await prepareAttachmentsForRequest(
       experimental_attachments,

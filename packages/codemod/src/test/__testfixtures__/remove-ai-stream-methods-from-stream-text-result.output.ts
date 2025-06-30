@@ -8,12 +8,12 @@ async function handler(req, res) {
   });
 
   const /* WARNING: toAIStream has been removed from streamText.
-   See migration guide at https://sdk.vercel.ai/docs/migrations */
+   See migration guide at https://ai-sdk.dev/docs/migration-guides */
   aiStream = stream.toAIStream();
   /* WARNING: pipeAIStreamToResponse has been removed from streamText.
-   See migration guide at https://sdk.vercel.ai/docs/migrations */
+   See migration guide at https://ai-sdk.dev/docs/migration-guides */
   stream.pipeAIStreamToResponse(res);
   /* WARNING: toAIStreamResponse has been removed from streamText.
-   See migration guide at https://sdk.vercel.ai/docs/migrations */
+   See migration guide at https://ai-sdk.dev/docs/migration-guides */
   return stream.toAIStreamResponse();
 }

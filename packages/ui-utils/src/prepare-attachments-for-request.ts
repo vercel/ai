@@ -7,7 +7,13 @@ export async function prepareAttachmentsForRequest(
     return [];
   }
 
-  if (attachmentsFromOptions instanceof FileList) {
+  // https://github.com/vercel/ai/pull/6045
+  // React-native doesn't have a FileList
+  // global variable, so we need to check for it
+  if (
+    globalThis.FileList &&
+    attachmentsFromOptions instanceof globalThis.FileList
+  ) {
     return Promise.all(
       Array.from(attachmentsFromOptions).map(async attachment => {
         const { name, type } = attachment;

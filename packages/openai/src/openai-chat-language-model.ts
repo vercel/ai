@@ -266,8 +266,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         }
         baseArgs.max_tokens = undefined;
       }
+    } else if (
+      this.modelId.startsWith('gpt-4o-search-preview') ||
+      this.modelId.startsWith('gpt-4o-mini-search-preview')
+    ) {
+      if (baseArgs.temperature != null) {
+        baseArgs.temperature = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details:
+            'temperature is not supported for the search preview models and has been removed.',
+        });
+      }
     }
-
     switch (type) {
       case 'regular': {
         const { tools, tool_choice, functions, function_call, toolWarnings } =
@@ -877,7 +889,7 @@ const openaiChatChunkSchema = z.union([
                 z.object({
                   index: z.number(),
                   id: z.string().nullish(),
-                  type: z.literal('function').optional(),
+                  type: z.literal('function').nullish(),
                   function: z.object({
                     name: z.string().nullish(),
                     arguments: z.string().nullish(),
@@ -905,7 +917,7 @@ const openaiChatChunkSchema = z.union([
               .nullable(),
           })
           .nullish(),
-        finish_reason: z.string().nullable().optional(),
+        finish_reason: z.string().nullish(),
         index: z.number(),
       }),
     ),
@@ -915,12 +927,7 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return (
-    modelId === 'o1' ||
-    modelId.startsWith('o1-') ||
-    modelId === 'o3' ||
-    modelId.startsWith('o3-')
-  );
+  return modelId.startsWith('o');
 }
 
 function isAudioModel(modelId: string) {
@@ -951,10 +958,22 @@ const reasoningModels = {
   'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
   },
+  o3: {
+    systemMessageMode: 'developer',
+  },
+  'o3-2025-04-16': {
+    systemMessageMode: 'developer',
+  },
   'o3-mini': {
     systemMessageMode: 'developer',
   },
   'o3-mini-2025-01-31': {
+    systemMessageMode: 'developer',
+  },
+  'o4-mini': {
+    systemMessageMode: 'developer',
+  },
+  'o4-mini-2025-04-16': {
     systemMessageMode: 'developer',
   },
 } as const;

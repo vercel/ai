@@ -276,4 +276,25 @@ describe('MCPClient', () => {
       createMCPClient({ transport: invalidTransport }),
     ).rejects.toThrow();
   });
+
+  it('should support zero-argument tools', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+    const tools = await client.tools();
+    const tool = tools['mock-tool-no-args'];
+    expect(tool).toHaveProperty('parameters');
+    expect(tool.parameters).toMatchObject({
+      jsonSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    });
+
+    const result = await tool.execute({}, { messages: [], toolCallId: '1' });
+    expect(result).toEqual({
+      content: [{ type: 'text', text: 'Mock tool call result' }],
+    });
+  });
 });

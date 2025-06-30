@@ -9,7 +9,7 @@ async function main() {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: xai('grok-2-1212'),
+    model: xai('grok-3-beta'),
     maxTokens: 512,
     tools: {
       weather: weatherTool,

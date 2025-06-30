@@ -126,7 +126,7 @@ class DefaultProviderRegistry<
       });
     }
 
-    return [id.slice(0, index), id.slice(index + 1)];
+    return [id.slice(0, index), id.slice(index + this.separator.length)];
   }
 
   languageModel<KEY extends keyof PROVIDERS>(

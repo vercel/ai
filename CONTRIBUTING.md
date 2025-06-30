@@ -41,7 +41,7 @@ To set up the repository on your local machine, follow these steps:
 1. **Fork the Repository**: Make a copy of the repository to your GitHub account.
 2. **Clone the Repository**: Clone the repository to your local machine, e.g. using `git clone`.
 3. **Install Node**: If you haven't already, install Node v20.
-4. **Install pnpm**: If you haven't already, install pnpm v9. You can do this by running `npm install -g pnpm@9` if you're using npm. Alternatively, if you're using Homebrew (Mac), you can run `brew install pnpm`. For more see [the pnpm site](https://pnpm.io/installation).
+4. **Install pnpm**: If you haven't already, install pnpm v10. You can do this by running `npm install -g pnpm@10` if you're using npm. Alternatively, if you're using Homebrew (Mac), you can run `brew install pnpm`. For more see [the pnpm site](https://pnpm.io/installation).
 5. **Install Dependencies**: Navigate to the project directory and run `pnpm install` to install all necessary dependencies.
 6. **Build the Project**: Run `pnpm build` in the root to build all packages.
 
@@ -70,10 +70,21 @@ Some packages like `ai` also have more details tests and watch mode, see their `
 We greatly appreciate your pull requests. Here are the steps to submit them:
 
 1. **Create a New Branch**: Initiate your changes in a fresh branch. It's recommended to name the branch in a manner that signifies the changes you're implementing.
-2. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them.
-3. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
-4. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves.
-5. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
+2. **Add a patch changeset**: If you're updating any packages and want to ensure they're released, add a **patch** changeset to your branch by running `pnpm changeset` in the workspace root.
+
+   - **Please do not use minor or major changesets**, we'll let you know when you need to use a different changeset type than patch.
+   - You don't need to select any of the `examples/*` packages, as they are not released.
+
+3. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
+4. **Fix prettier issues**: Run `pnpm prettier-fix` to fix any formatting issues in your code.
+5. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
+6. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
+
+   - `fix(package-name): description` or
+   - `feat(package-name): description` or
+   - `chore(package-name): description` etc.
+
+7. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
 
 ### Fixing Prettier Issues
 
