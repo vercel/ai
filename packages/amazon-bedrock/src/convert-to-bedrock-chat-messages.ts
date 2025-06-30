@@ -8,10 +8,14 @@ import {
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
   BEDROCK_CACHE_POINT,
+  BEDROCK_DOCUMENT_MIME_TYPES,
+  BEDROCK_IMAGE_MIME_TYPES,
   BedrockAssistantMessage,
   BedrockCachePoint,
   BedrockDocumentFormat,
+  BedrockDocumentMimeType,
   BedrockImageFormat,
+  BedrockImageMimeType,
   BedrockMessages,
   BedrockSystemMessages,
   BedrockUserMessage,
@@ -89,23 +93,22 @@ export async function convertToBedrockChatMessages(
                     }
 
                     if (part.mediaType.startsWith('image/')) {
-                      const bedrockImageFormat =
-                        part.mediaType === 'image/*'
-                          ? undefined
-                          : part.mediaType?.split('/')?.[1];
-
                       bedrockContent.push({
                         image: {
-                          format: bedrockImageFormat as BedrockImageFormat,
+                          format: getBedrockImageFormat(part.mediaType),
                           source: { bytes: convertToBase64(part.data) },
                         },
                       });
                     } else {
+                      if (!part.mediaType) {
+                        throw new Error(
+                          'File mime type is required in user message part content',
+                        );
+                      }
+
                       bedrockContent.push({
                         document: {
-                          format: part.mediaType?.split(
-                            '/',
-                          )?.[1] as BedrockDocumentFormat,
+                          format: getBedrockDocumentFormat(part.mediaType),
                           name: generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                         },
@@ -137,13 +140,9 @@ export async function convertToBedrockChatMessages(
                             });
                           }
 
-                          const format = contentPart.mediaType.split('/')[1];
-
-                          if (!isBedrockImageFormat(format)) {
-                            throw new UnsupportedFunctionalityError({
-                              functionality: `media type: ${contentPart.mediaType}`,
-                            });
-                          }
+                          const format = getBedrockImageFormat(
+                            contentPart.mediaType,
+                          );
 
                           return {
                             image: {
@@ -296,7 +295,33 @@ export async function convertToBedrockChatMessages(
 }
 
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {
-  return ['jpeg', 'png', 'gif'].includes(format);
+  return ['jpeg', 'png', 'gif', 'webp'].includes(format);
+}
+
+function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
+  if (!mimeType) {
+    throw new Error('Image mime type is required in user message part content');
+  }
+
+  const format = BEDROCK_IMAGE_MIME_TYPES[mimeType as BedrockImageMimeType];
+  if (!format) {
+    throw new Error(
+      `Unsupported image mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_IMAGE_MIME_TYPES).join(', ')}`,
+    );
+  }
+
+  return format;
+}
+
+function getBedrockDocumentFormat(mimeType: string): BedrockDocumentFormat {
+  const format =
+    BEDROCK_DOCUMENT_MIME_TYPES[mimeType as BedrockDocumentMimeType];
+  if (!format) {
+    throw new Error(
+      `Unsupported file mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_DOCUMENT_MIME_TYPES).join(', ')}`,
+    );
+  }
+  return format;
 }
 
 function trimIfLast(

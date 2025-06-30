@@ -637,7 +637,7 @@ describe('tool messages', () => {
                   {
                     type: 'media',
                     data: 'base64data',
-                    mediaType: 'image/webp', // unsupported format
+                    mediaType: 'image/avif', // unsupported format
                   },
                 ],
               },
@@ -645,7 +645,9 @@ describe('tool messages', () => {
           ],
         },
       ]),
-    ).rejects.toThrow("'media type: image/webp' functionality not supported.");
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: Unsupported image mime type: image/avif, expected one of: image/jpeg, image/png, image/gif, image/webp]`,
+    );
   });
 
   it('should throw error for unsupported mime type in tool result image content', async () => {
@@ -672,8 +674,8 @@ describe('tool messages', () => {
           ],
         },
       ]),
-    ).rejects.toThrow(
-      "'media type: unsupported/mime-type' functionality not supported.",
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_UnsupportedFunctionalityError: 'media type: unsupported/mime-type' functionality not supported.]`,
     );
   });
 
@@ -703,5 +705,102 @@ describe('tool messages', () => {
         },
       ],
     });
+  });
+});
+
+describe('additional file format tests', () => {
+  it('should throw an error for unsupported file mime type in user message content', async () => {
+    await expect(
+      convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64data',
+              mediaType: 'application/rtf',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: Unsupported file mime type: application/rtf, expected one of: application/pdf, text/csv, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/html, text/plain, text/markdown]`,
+    );
+  });
+
+  it('should handle xlsx files correctly', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'base64data',
+            mediaType:
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
+              {
+                "document": {
+                  "format": "xlsx",
+                  "name": "document-1",
+                  "source": {
+                    "bytes": "base64data",
+                  },
+                },
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [],
+      }
+    `);
+  });
+
+  it('should handle docx files correctly', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'base64data',
+            mediaType:
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
+              {
+                "document": {
+                  "format": "docx",
+                  "name": "document-1",
+                  "source": {
+                    "bytes": "base64data",
+                  },
+                },
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [],
+      }
+    `);
   });
 });
