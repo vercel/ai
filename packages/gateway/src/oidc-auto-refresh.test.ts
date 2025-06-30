@@ -1,15 +1,25 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { execSync } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
 import { OidcAutoRefresh, attemptOidcAutoRefresh } from './oidc-auto-refresh';
 
-// Mock dependencies
-vi.mock('child_process');
-vi.mock('fs');
+// Mock the dynamic imports
+const mockExecSync = vi.fn();
+const mockExistsSync = vi.fn();
+const mockReadFileSync = vi.fn();
 
-const mockExecSync = vi.mocked(execSync);
-const mockExistsSync = vi.mocked(existsSync);
-const mockReadFileSync = vi.mocked(readFileSync);
+// Mock the dynamic imports
+vi.doMock('child_process', () => ({
+  execSync: mockExecSync,
+}));
+
+vi.doMock('fs', () => ({
+  existsSync: mockExistsSync,
+  readFileSync: mockReadFileSync,
+}));
+
+vi.doMock('path', () => ({
+  join: (...paths: string[]) => paths.join('/'),
+  dirname: (path: string) => path.split('/').slice(0, -1).join('/') || '/',
+}));
 
 // Helper function to create a JWT token that needs refreshing (expires in 30 minutes)
 function createTokenNeedingRefresh(): string {
@@ -780,6 +790,123 @@ OTHER_VAR=value`;
       expect(warnSpy).toHaveBeenCalledWith(
         '[AI Gateway OIDC Auto-Refresh] WARNING: VERCEL_OIDC_TOKEN not found in .env.local after refresh',
       );
+    });
+  });
+
+  describe('Edge Runtime / Non-Node.js Environment', () => {
+    let originalProcess: any;
+
+    beforeEach(() => {
+      originalProcess = global.process;
+    });
+
+    afterEach(() => {
+      global.process = originalProcess;
+    });
+
+    it('should skip auto-refresh in non-Node.js environment', async () => {
+      // Mock a browser-like environment
+      global.process = {
+        env: {
+          AI_GATEWAY_OIDC_REFRESH: 'true',
+          NODE_ENV: 'development',
+        },
+        // No versions property to simulate non-Node.js environment
+      } as any;
+
+      const infoSpy = vi.spyOn(console, 'info');
+      const warnSpy = vi.spyOn(console, 'warn');
+
+      await attemptOidcAutoRefresh();
+
+      // Should not call any file system or child_process operations
+      expect(mockExecSync).not.toHaveBeenCalled();
+      expect(mockExistsSync).not.toHaveBeenCalled();
+      expect(mockReadFileSync).not.toHaveBeenCalled();
+
+      // Should not log any warnings or errors
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(infoSpy).not.toHaveBeenCalled();
+    });
+
+    it('should skip auto-refresh when process.versions is undefined', async () => {
+      global.process = {
+        env: {
+          AI_GATEWAY_OIDC_REFRESH: 'true',
+          NODE_ENV: 'development',
+        },
+        versions: undefined,
+      } as any;
+
+      await attemptOidcAutoRefresh();
+
+      expect(mockExecSync).not.toHaveBeenCalled();
+      expect(mockExistsSync).not.toHaveBeenCalled();
+      expect(mockReadFileSync).not.toHaveBeenCalled();
+    });
+
+    it('should skip auto-refresh when process.versions.node is undefined', async () => {
+      global.process = {
+        env: {
+          AI_GATEWAY_OIDC_REFRESH: 'true',
+          NODE_ENV: 'development',
+        },
+        versions: {
+          // No node property to simulate non-Node.js environment
+        },
+      } as any;
+
+      await attemptOidcAutoRefresh();
+
+      expect(mockExecSync).not.toHaveBeenCalled();
+      expect(mockExistsSync).not.toHaveBeenCalled();
+      expect(mockReadFileSync).not.toHaveBeenCalled();
+    });
+
+    it('should work normally in Node.js environment', async () => {
+      global.process = {
+        env: {
+          AI_GATEWAY_OIDC_REFRESH: 'true',
+          NODE_ENV: 'development',
+          VERCEL_OIDC_TOKEN: createTokenNeedingRefresh(),
+        },
+        versions: {
+          node: '18.0.0',
+        },
+        cwd: () => '/test/project',
+      } as any;
+
+      mockExistsSync.mockReturnValue(true);
+      mockExecSync.mockImplementation(() => Buffer.from(''));
+
+      await attemptOidcAutoRefresh();
+
+      expect(mockExecSync).toHaveBeenCalled();
+    });
+  });
+
+  describe('Dynamic import error handling', () => {
+    it('should handle dynamic import failures gracefully', async () => {
+      process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
+      process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
+
+      // Mock import to fail
+      const originalImport = (global as any).import;
+      (global as any).import = vi
+        .fn()
+        .mockRejectedValue(new Error('Import failed'));
+
+      const warnSpy = vi.spyOn(console, 'warn');
+
+      await attemptOidcAutoRefresh();
+
+      // Should handle the error gracefully
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[AI Gateway OIDC Auto-Refresh] WARNING: Could not find repository root. Skipping auto-refresh.',
+      );
+
+      (global as any).import = originalImport;
     });
   });
 });

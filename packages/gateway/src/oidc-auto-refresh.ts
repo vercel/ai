@@ -1,7 +1,3 @@
-import { execSync } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
-import { join, dirname } from 'path';
-
 /**
  * Auto-refreshes OIDC tokens by pulling environment variables from Vercel
  * when AI_GATEWAY_OIDC_REFRESH is enabled.
@@ -9,6 +5,17 @@ import { join, dirname } from 'path';
 export class OidcAutoRefresh {
   private static hasRefreshed = false;
   private static isRefreshing = false;
+
+  /**
+   * Checks if we're running in a Node.js environment where file system and child_process are available
+   */
+  private static isNodeEnvironment(): boolean {
+    return (
+      typeof process !== 'undefined' &&
+      process.versions &&
+      process.versions.node !== undefined
+    );
+  }
 
   /**
    * Checks if auto-refresh is enabled via environment variable
@@ -117,46 +124,68 @@ export class OidcAutoRefresh {
   /**
    * Finds the root directory of the repository by looking for common root indicators
    */
-  private static findRepoRoot(
-    startPath: string = process.cwd(),
-  ): string | null {
-    let currentPath = startPath;
-
-    while (currentPath !== dirname(currentPath)) {
-      // Check for common repository root indicators
-      const indicators = [
-        '.git',
-        'package.json',
-        'pnpm-lock.yaml',
-        'yarn.lock',
-      ];
-
-      for (const indicator of indicators) {
-        if (existsSync(join(currentPath, indicator))) {
-          return currentPath;
-        }
-      }
-
-      currentPath = dirname(currentPath);
+  private static async findRepoRoot(
+    startPath?: string,
+  ): Promise<string | null> {
+    if (!this.isNodeEnvironment()) {
+      return null;
     }
 
-    return null;
+    try {
+      // Dynamic imports to avoid Edge Runtime issues
+      const { existsSync } = await import('fs');
+      const { join, dirname } = await import('path');
+
+      let currentPath = startPath || process.cwd();
+
+      while (currentPath !== dirname(currentPath)) {
+        // Check for common repository root indicators
+        const indicators = [
+          '.git',
+          'package.json',
+          'pnpm-lock.yaml',
+          'yarn.lock',
+        ];
+
+        for (const indicator of indicators) {
+          if (existsSync(join(currentPath, indicator))) {
+            return currentPath;
+          }
+        }
+
+        currentPath = dirname(currentPath);
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**
    * Checks if the vercel binary is available in PATH
    */
-  private static isVercelAvailable(): boolean {
+  private static async isVercelAvailable(): Promise<boolean> {
+    if (!this.isNodeEnvironment()) {
+      return false;
+    }
+
     try {
-      execSync('which vercel', { stdio: 'ignore' });
-      return true;
-    } catch {
+      const { execSync } = await import('child_process');
+
       try {
-        execSync('where vercel', { stdio: 'ignore' });
+        execSync('which vercel', { stdio: 'ignore' });
         return true;
       } catch {
-        return false;
+        try {
+          execSync('where vercel', { stdio: 'ignore' });
+          return true;
+        } catch {
+          return false;
+        }
       }
+    } catch {
+      return false;
     }
   }
 
@@ -177,8 +206,16 @@ export class OidcAutoRefresh {
   /**
    * Reads and parses a .env file to extract environment variables
    */
-  private static parseEnvFile(filePath: string): Record<string, string> {
+  private static async parseEnvFile(
+    filePath: string,
+  ): Promise<Record<string, string>> {
+    if (!this.isNodeEnvironment()) {
+      return {};
+    }
+
     try {
+      const { readFileSync } = await import('fs');
+
       const content = readFileSync(filePath, 'utf8');
       const env: Record<string, string> = {};
 
@@ -212,27 +249,42 @@ export class OidcAutoRefresh {
   /**
    * Updates process.env with the refreshed OIDC token from .env.local
    */
-  private static updateProcessEnvFromLocal(workingDir: string): void {
-    const envLocalPath = join(workingDir, '.env.local');
-
-    if (!existsSync(envLocalPath)) {
-      this.info('No .env.local file found to update process.env');
+  private static async updateProcessEnvFromLocal(
+    workingDir: string,
+  ): Promise<void> {
+    if (!this.isNodeEnvironment()) {
       return;
     }
 
-    const envVars = this.parseEnvFile(envLocalPath);
+    try {
+      const { existsSync } = await import('fs');
+      const { join } = await import('path');
 
-    if (envVars.VERCEL_OIDC_TOKEN) {
-      const oldToken = process.env.VERCEL_OIDC_TOKEN;
-      const newToken = envVars.VERCEL_OIDC_TOKEN;
+      const envLocalPath = join(workingDir, '.env.local');
 
-      process.env.VERCEL_OIDC_TOKEN = newToken;
-
-      if (oldToken !== newToken) {
-        this.info('Updated process.env.VERCEL_OIDC_TOKEN with refreshed value');
+      if (!existsSync(envLocalPath)) {
+        this.info('No .env.local file found to update process.env');
+        return;
       }
-    } else {
-      this.warn('VERCEL_OIDC_TOKEN not found in .env.local after refresh');
+
+      const envVars = await this.parseEnvFile(envLocalPath);
+
+      if (envVars.VERCEL_OIDC_TOKEN) {
+        const oldToken = process.env.VERCEL_OIDC_TOKEN;
+        const newToken = envVars.VERCEL_OIDC_TOKEN;
+
+        process.env.VERCEL_OIDC_TOKEN = newToken;
+
+        if (oldToken !== newToken) {
+          this.info(
+            'Updated process.env.VERCEL_OIDC_TOKEN with refreshed value',
+          );
+        }
+      } else {
+        this.warn('VERCEL_OIDC_TOKEN not found in .env.local after refresh');
+      }
+    } catch {
+      this.warn('Failed to update process.env from .env.local');
     }
   }
 
@@ -243,7 +295,14 @@ export class OidcAutoRefresh {
     workingDir: string,
     command: string,
   ): Promise<void> {
+    if (!this.isNodeEnvironment()) {
+      this.warn('Cannot execute refresh command in non-Node.js environment');
+      return;
+    }
+
     try {
+      const { execSync } = await import('child_process');
+
       this.info(`Executing: ${command}`);
       execSync(command, {
         cwd: workingDir,
@@ -253,7 +312,7 @@ export class OidcAutoRefresh {
       this.info('Environment variables refreshed successfully');
 
       // Immediately update process.env with the new token so the current request can use it
-      this.updateProcessEnvFromLocal(workingDir);
+      await this.updateProcessEnvFromLocal(workingDir);
     } catch (error) {
       this.warn(`Failed to refresh environment variables: ${error}`);
       throw error;
@@ -264,6 +323,11 @@ export class OidcAutoRefresh {
    * Attempts to auto-refresh OIDC tokens if enabled and conditions are met
    */
   public static async attemptAutoRefresh(): Promise<void> {
+    // Skip if not in Node.js environment
+    if (!this.isNodeEnvironment()) {
+      return;
+    }
+
     // Skip if not enabled
     if (!this.isEnabled()) {
       return;
@@ -306,7 +370,7 @@ export class OidcAutoRefresh {
         this.info(`Using custom directory: ${workingDir}`);
       } else {
         // Find repository root
-        const repoRoot = this.findRepoRoot();
+        const repoRoot = await this.findRepoRoot();
         if (!repoRoot) {
           this.warn('Could not find repository root. Skipping auto-refresh.');
           return;
@@ -317,7 +381,7 @@ export class OidcAutoRefresh {
       const command = this.getRefreshCommand();
 
       // Check if using default vercel command and warn if vercel is not available
-      if (command === 'vercel env pull' && !this.isVercelAvailable()) {
+      if (command === 'vercel env pull' && !(await this.isVercelAvailable())) {
         this.warn(
           'Vercel CLI is not available in PATH. Please install it with "npm install -g vercel" ' +
             'or set AI_GATEWAY_OIDC_REFRESH_COMMAND to use a different command.',
