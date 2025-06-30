@@ -525,8 +525,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'reasoning') {
                 controller.enqueue({
-                  type: 'reasoning-start',
+                  type: 'reasoning-start' as const,
                   id: value.item.id,
+                  providerMetadata: {
+                    openai: {
+                      reasoning: {
+                        encryptedContent: value.item.encrypted_content ?? null,
+                      },
+                    },
+                  },
                 });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
@@ -606,8 +613,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'reasoning') {
                 controller.enqueue({
-                  type: 'reasoning-end',
+                  type: 'reasoning-end' as const,
                   id: value.item.id,
+                  providerMetadata: {
+                    openai: {
+                      reasoning: {
+                        encryptedContent: value.item.encrypted_content ?? null,
+                      },
+                    },
+                  },
                 });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
@@ -636,9 +650,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
               controller.enqueue({
-                type: 'reasoning-delta',
-                delta: value.delta,
+                type: 'reasoning-delta' as const,
                 id: value.item_id,
+                delta: value.delta,
+                providerMetadata: {
+                  openai: {
+                    reasoning: {
+                      summaryIndex: value.summary_index,
+                    },
+                  },
+                },
               });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
