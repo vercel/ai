@@ -11,7 +11,7 @@ You can smooth stream chinese text by using the `smoothStream` function with `st
 import { smoothStream, streamText } from 'ai';
 
 const result = streamText({
-  model: yourModel,
+  model: "openai/gpt-4.1",
   prompt: 'Your prompt here',
   experimental_transform: smoothStream({
     chunking: /[\u4E00-\u9FFF]|\S+\s+/,
