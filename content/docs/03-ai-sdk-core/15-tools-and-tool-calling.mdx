@@ -24,7 +24,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const result = await generateText({
-  model: "openai/gpt-4.1",
+  model: 'openai/gpt-4.1',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -83,7 +83,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const { text, steps } = await generateText({
-  model: "openai/gpt-4.1",
+  model: 'openai/gpt-4.1',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -224,7 +224,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const result = await generateText({
-  model: "openai/gpt-4.1",
+  model: 'openai/gpt-4.1',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -318,7 +318,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const result = await generateText({
-  model: "openai/gpt-4.1",
+  model: 'openai/gpt-4.1',
   abortSignal: myAbortSignal, // signal that will be forwarded to tools
   tools: {
     weather: tool({
