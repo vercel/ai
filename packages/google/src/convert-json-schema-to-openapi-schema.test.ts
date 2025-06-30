@@ -599,3 +599,81 @@ it('should convert nullable string enum', () => {
     },
   });
 });
+
+it('should handle schemas with $defs and $ref', () => {
+  const schemaWithDefsAndRef: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      user: {
+        $ref: '#/$defs/user',
+      },
+    },
+    required: ['user'],
+    $defs: {
+      user: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(schemaWithDefsAndRef)).toEqual({
+    type: 'object',
+    properties: {
+      user: {
+        ref: '#/defs/user',
+      },
+    },
+    required: ['user'],
+    defs: {
+      user: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+      },
+    },
+  });
+});
+
+it('should handle schemas with definitions and $ref', () => {
+  const schemaWithDefinitionsAndRef: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      user: {
+        $ref: '#/definitions/user',
+      },
+    },
+    required: ['user'],
+    definitions: {
+      user: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(schemaWithDefinitionsAndRef)).toEqual(
+    {
+      type: 'object',
+      properties: {
+        user: {
+          ref: '#/defs/user',
+        },
+      },
+      required: ['user'],
+      defs: {
+        user: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+        },
+      },
+    },
+  );
+});
