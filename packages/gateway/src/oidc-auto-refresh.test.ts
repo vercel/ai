@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { OidcAutoRefresh, attemptOidcAutoRefresh } from './oidc-auto-refresh';
 
 // Mock dependencies
@@ -9,6 +9,7 @@ vi.mock('fs');
 
 const mockExecSync = vi.mocked(execSync);
 const mockExistsSync = vi.mocked(existsSync);
+const mockReadFileSync = vi.mocked(readFileSync);
 
 // Helper function to create a JWT token that needs refreshing (expires in 30 minutes)
 function createTokenNeedingRefresh(): string {
@@ -40,6 +41,9 @@ describe('OidcAutoRefresh', () => {
     // Mock console methods to avoid test output pollution
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    // Reset file system mocks
+    mockReadFileSync.mockReset();
   });
 
   afterEach(() => {
@@ -524,10 +528,17 @@ describe('OidcAutoRefresh', () => {
       process.env.AI_GATEWAY_OIDC_REFRESH_DIR = '/custom/dir';
       mockExecSync.mockImplementation(() => Buffer.from(''));
 
+      // Mock .env.local file existence check (this will be called for env update)
+      mockExistsSync.mockImplementation(path => {
+        return path.toString().includes('.env.local');
+      });
+      mockReadFileSync.mockReturnValue('VERCEL_OIDC_TOKEN=test-token');
+
       await attemptOidcAutoRefresh();
 
-      // existsSync should not be called for repo root detection
-      expect(mockExistsSync).not.toHaveBeenCalled();
+      // Should be called once for .env.local check, but not for repo root detection
+      expect(mockExistsSync).toHaveBeenCalledTimes(1);
+      expect(mockExistsSync).toHaveBeenCalledWith('/custom/dir/.env.local');
       expect(mockExecSync).toHaveBeenCalledWith(
         'vercel env pull',
         expect.objectContaining({
@@ -630,6 +641,144 @@ describe('OidcAutoRefresh', () => {
 
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('Failed to refresh environment variables'),
+      );
+    });
+  });
+
+  describe('process.env updating after refresh', () => {
+    it('should update process.env.VERCEL_OIDC_TOKEN after successful refresh', async () => {
+      process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
+      process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
+
+      const newToken = 'new-refreshed-oidc-token';
+      const envFileContent = `VERCEL_OIDC_TOKEN=${newToken}\nOTHER_VAR=value`;
+
+      mockExistsSync.mockImplementation(path => {
+        if (path.toString().includes('.env.local')) return true;
+        return path.toString().includes('package.json');
+      });
+      mockReadFileSync.mockReturnValue(envFileContent);
+      mockExecSync.mockImplementation(() => Buffer.from(''));
+
+      const infoSpy = vi.spyOn(console, 'info');
+
+      await attemptOidcAutoRefresh();
+
+      expect(process.env.VERCEL_OIDC_TOKEN).toBe(newToken);
+      expect(infoSpy).toHaveBeenCalledWith(
+        '[AI Gateway OIDC Auto-Refresh] Updated process.env.VERCEL_OIDC_TOKEN with refreshed value',
+      );
+    });
+
+    it('should handle quoted values in .env.local', async () => {
+      process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
+      process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
+
+      const newToken = 'quoted-token-value';
+      const envFileContent = `VERCEL_OIDC_TOKEN="${newToken}"\nOTHER_VAR='single-quoted'`;
+
+      mockExistsSync.mockImplementation(path => {
+        if (path.toString().includes('.env.local')) return true;
+        return path.toString().includes('package.json');
+      });
+      mockReadFileSync.mockReturnValue(envFileContent);
+      mockExecSync.mockImplementation(() => Buffer.from(''));
+
+      await attemptOidcAutoRefresh();
+
+      expect(process.env.VERCEL_OIDC_TOKEN).toBe(newToken);
+    });
+
+    it('should handle comments and empty lines in .env.local', async () => {
+      process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
+      process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
+
+      const newToken = 'token-with-comments';
+      const envFileContent = `# This is a comment
+VERCEL_OIDC_TOKEN=${newToken}
+
+# Another comment
+OTHER_VAR=value`;
+
+      mockExistsSync.mockImplementation(path => {
+        if (path.toString().includes('.env.local')) return true;
+        return path.toString().includes('package.json');
+      });
+      mockReadFileSync.mockReturnValue(envFileContent);
+      mockExecSync.mockImplementation(() => Buffer.from(''));
+
+      await attemptOidcAutoRefresh();
+
+      expect(process.env.VERCEL_OIDC_TOKEN).toBe(newToken);
+    });
+
+    it('should warn when VERCEL_OIDC_TOKEN not found in .env.local', async () => {
+      process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
+      process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
+
+      const envFileContent = `OTHER_VAR=value\nANOTHER_VAR=another`;
+
+      mockExistsSync.mockImplementation((path: string) => {
+        if (path.toString().includes('.env.local')) return true;
+        return path.toString().includes('package.json');
+      });
+      mockReadFileSync.mockReturnValue(envFileContent);
+      mockExecSync.mockImplementation(() => Buffer.from(''));
+
+      const warnSpy = vi.spyOn(console, 'warn');
+
+      await attemptOidcAutoRefresh();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[AI Gateway OIDC Auto-Refresh] WARNING: VERCEL_OIDC_TOKEN not found in .env.local after refresh',
+      );
+    });
+
+    it('should handle missing .env.local file gracefully', async () => {
+      process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
+      process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
+
+      mockExistsSync.mockImplementation((path: string) => {
+        if (path.toString().includes('.env.local')) return false;
+        return path.toString().includes('package.json');
+      });
+      mockExecSync.mockImplementation(() => Buffer.from(''));
+
+      const infoSpy = vi.spyOn(console, 'info');
+
+      await attemptOidcAutoRefresh();
+
+      expect(infoSpy).toHaveBeenCalledWith(
+        '[AI Gateway OIDC Auto-Refresh] No .env.local file found to update process.env',
+      );
+    });
+
+    it('should handle malformed .env.local file gracefully', async () => {
+      process.env.AI_GATEWAY_OIDC_REFRESH = 'true';
+      process.env.NODE_ENV = 'development';
+      process.env.VERCEL_OIDC_TOKEN = createTokenNeedingRefresh();
+
+      mockExistsSync.mockImplementation((path: string) => {
+        if (path.toString().includes('.env.local')) return true;
+        return path.toString().includes('package.json');
+      });
+      mockReadFileSync.mockImplementation(() => {
+        throw new Error('File read error');
+      });
+      mockExecSync.mockImplementation(() => Buffer.from(''));
+
+      const warnSpy = vi.spyOn(console, 'warn');
+
+      // Should not throw, should handle gracefully
+      await expect(attemptOidcAutoRefresh()).resolves.toBeUndefined();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[AI Gateway OIDC Auto-Refresh] WARNING: VERCEL_OIDC_TOKEN not found in .env.local after refresh',
       );
     });
   });

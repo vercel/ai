@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 
 /**
@@ -175,6 +175,68 @@ export class OidcAutoRefresh {
   }
 
   /**
+   * Reads and parses a .env file to extract environment variables
+   */
+  private static parseEnvFile(filePath: string): Record<string, string> {
+    try {
+      const content = readFileSync(filePath, 'utf8');
+      const env: Record<string, string> = {};
+
+      content.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const equalIndex = trimmed.indexOf('=');
+          if (equalIndex > 0) {
+            const key = trimmed.slice(0, equalIndex).trim();
+            let value = trimmed.slice(equalIndex + 1).trim();
+
+            // Remove quotes if present
+            if (
+              (value.startsWith('"') && value.endsWith('"')) ||
+              (value.startsWith("'") && value.endsWith("'"))
+            ) {
+              value = value.slice(1, -1);
+            }
+
+            env[key] = value;
+          }
+        }
+      });
+
+      return env;
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Updates process.env with the refreshed OIDC token from .env.local
+   */
+  private static updateProcessEnvFromLocal(workingDir: string): void {
+    const envLocalPath = join(workingDir, '.env.local');
+
+    if (!existsSync(envLocalPath)) {
+      this.info('No .env.local file found to update process.env');
+      return;
+    }
+
+    const envVars = this.parseEnvFile(envLocalPath);
+
+    if (envVars.VERCEL_OIDC_TOKEN) {
+      const oldToken = process.env.VERCEL_OIDC_TOKEN;
+      const newToken = envVars.VERCEL_OIDC_TOKEN;
+
+      process.env.VERCEL_OIDC_TOKEN = newToken;
+
+      if (oldToken !== newToken) {
+        this.info('Updated process.env.VERCEL_OIDC_TOKEN with refreshed value');
+      }
+    } else {
+      this.warn('VERCEL_OIDC_TOKEN not found in .env.local after refresh');
+    }
+  }
+
+  /**
    * Executes the environment refresh command
    */
   private static async executeRefresh(
@@ -189,6 +251,9 @@ export class OidcAutoRefresh {
         timeout: 30000, // 30 second timeout
       });
       this.info('Environment variables refreshed successfully');
+
+      // Immediately update process.env with the new token so the current request can use it
+      this.updateProcessEnvFromLocal(workingDir);
     } catch (error) {
       this.warn(`Failed to refresh environment variables: ${error}`);
       throw error;
