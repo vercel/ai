@@ -101,7 +101,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
-    const isStrict = openaiOptions?.strictSchemas ?? true;
+    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
     const baseArgs = {
       model: this.modelId,
@@ -116,7 +116,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             responseFormat.schema != null
               ? {
                   type: 'json_schema',
-                  strict: isStrict,
+                  strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
                   schema: responseFormat.schema,
@@ -195,7 +195,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     } = prepareResponsesTools({
       tools,
       toolChoice,
-      strict: isStrict,
+      strictJsonSchema,
     });
 
     return {
@@ -912,7 +912,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   store: z.boolean().nullish(),
   user: z.string().nullish(),
   reasoningEffort: z.string().nullish(),
-  strictSchemas: z.boolean().nullish(),
+  strictJsonSchema: z.boolean().nullish(),
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
   serviceTier: z.enum(['auto', 'flex']).nullish(),

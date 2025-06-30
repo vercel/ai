@@ -342,27 +342,43 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          text: {
-            format: {
-              type: 'json_schema',
-              strict: true,
-              name: 'response',
-              description: 'A response',
-              schema: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "description": "A response",
+                "name": "response",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "json_schema",
               },
             },
-          },
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -573,30 +589,43 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          text: {
-            format: {
-              type: 'json_schema',
-              strict: true,
-              name: 'response',
-              description: 'A response',
-              schema: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "description": "A response",
+                "name": "response",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "json_schema",
               },
             },
-          },
-          input: [
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'Hello' }],
-            },
-          ],
-        });
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
