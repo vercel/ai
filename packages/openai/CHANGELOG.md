@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.3
+
+### Major Changes
+
+- efc3a62: fix (provider/openai): default strict mode to false
+
 ## 2.0.0-beta.2
 
 ### Patch Changes
