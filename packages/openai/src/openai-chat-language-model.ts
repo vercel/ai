@@ -117,6 +117,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     warnings.push(...messageWarnings);
 
+    const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -147,13 +149,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? // TODO convert into provider option
-            structuredOutputs && responseFormat.schema != null
+          ? structuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
                   schema: responseFormat.schema,
-                  strict: true,
+                  strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
                 },
@@ -276,6 +277,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
       structuredOutputs,
+      strictJsonSchema,
     });
 
     return {

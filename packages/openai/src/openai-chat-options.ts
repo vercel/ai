@@ -118,6 +118,13 @@ export const openaiProviderOptions = z.object({
    * @default 'auto'
    */
   serviceTier: z.enum(['auto', 'flex']).optional(),
+
+  /**
+   * Whether to use strict JSON schema validation.
+   *
+   * @default true
+   */
+  strictJsonSchema: z.boolean().optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;
