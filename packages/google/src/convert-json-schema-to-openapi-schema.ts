@@ -17,6 +17,7 @@ export function convertJSONSchemaToOpenAPISchema(
 
   const {
     type,
+    title,
     description,
     required,
     properties,
@@ -36,6 +37,7 @@ export function convertJSONSchemaToOpenAPISchema(
 
   const result: Record<string, unknown> = {};
 
+  if (title) result.title = title;
   if (description) result.description = description;
   if (required) result.required = required;
   if (format) result.format = format;

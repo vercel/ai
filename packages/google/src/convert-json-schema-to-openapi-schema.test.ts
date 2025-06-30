@@ -677,3 +677,40 @@ it('should handle schemas with definitions and $ref', () => {
     },
   );
 });
+
+it('should handle schema with title and description fields', () => {
+  const input: JSONSchema7 = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+        title: 'Name',
+        description: 'The name of the user',
+      },
+      age: {
+        type: 'number',
+        title: 'Age',
+        description: 'The age of the user',
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+        title: 'Name',
+        description: 'The name of the user',
+      },
+      age: {
+        type: 'number',
+        title: 'Age',
+        description: 'The age of the user',
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
