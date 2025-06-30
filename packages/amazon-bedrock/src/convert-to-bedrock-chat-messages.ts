@@ -103,7 +103,8 @@ export async function convertToBedrockChatMessages(
                       if (!part.mediaType) {
                         throw new UnsupportedFunctionalityError({
                           functionality: 'file without mime type',
-                          message: 'File mime type is required in user message part content',
+                          message:
+                            'File mime type is required in user message part content',
                         });
                       }
 
