@@ -174,7 +174,7 @@ export async function convertToOpenAIResponsesMessages({
                   throw new InvalidPromptError({
                     prompt: part,
                     message:
-                      'Reasoning parts with same id must have matching encrypted content',
+                      'Reasoning parts with same ID must have matching encrypted content',
                   });
                 }
                 if (part.text.length > 0) {

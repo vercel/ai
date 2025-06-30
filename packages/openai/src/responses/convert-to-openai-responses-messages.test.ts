@@ -3,7 +3,7 @@ import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-
 describe('convertToOpenAIResponsesMessages', () => {
   describe('system messages', () => {
     it('should convert system messages to system role', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'system',
       });
@@ -12,7 +12,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert system messages to developer role', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'developer',
       });
@@ -23,7 +23,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should remove system messages', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'remove',
       });
@@ -34,7 +34,7 @@ describe('convertToOpenAIResponsesMessages', () => {
 
   describe('user messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'user',
@@ -50,7 +50,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with image parts using URL', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'user',
@@ -82,7 +82,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with image parts using binary data', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'user',
@@ -112,7 +112,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should use default mime type for binary images', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'user',
@@ -142,7 +142,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should add image detail when specified through extension', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'user',
@@ -180,7 +180,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     it('should convert messages with PDF file parts', async () => {
       const base64Data = 'AQIDBAU='; // Base64 encoding of pdfData
 
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'user',
@@ -214,7 +214,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     it('should use default filename for PDF file parts when not provided', async () => {
       const base64Data = 'AQIDBAU=';
 
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'user',
@@ -247,7 +247,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     it('should throw error for unsupported file types', async () => {
       const base64Data = 'AQIDBAU=';
 
-      expect(() => {
+      await expect(
         convertToOpenAIResponsesMessages({
           prompt: [
             {
@@ -262,12 +262,12 @@ describe('convertToOpenAIResponsesMessages', () => {
             },
           ],
           systemMessageMode: 'system',
-        });
-      }).toThrow('file part media type text/plain');
+        }),
+      ).rejects.toThrow('file part media type text/plain');
     });
 
     it('should throw error for file URLs', async () => {
-      expect(() => {
+      await expect(
         convertToOpenAIResponsesMessages({
           prompt: [
             {
@@ -282,14 +282,14 @@ describe('convertToOpenAIResponsesMessages', () => {
             },
           ],
           systemMessageMode: 'system',
-        });
-      }).toThrow('PDF file parts with URLs');
+        }),
+      ).rejects.toThrow('PDF file parts with URLs');
     });
   });
 
   describe('assistant messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
         ],
@@ -305,7 +305,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert messages with tool call parts', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'assistant',
@@ -343,7 +343,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert multiple tool call parts in a single message', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'assistant',
@@ -381,11 +381,489 @@ describe('convertToOpenAIResponsesMessages', () => {
         },
       ]);
     });
+
+    describe('reasoning messages', () => {
+      it('should convert reasoning part to OpenAI reasoning message format', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'This is my reasoning summary',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'This is my reasoning summary',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should include encrypted content when provided in reasoning part', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'This is my reasoning summary',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                        encryptedContent: 'encrypted_content_abc',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: 'encrypted_content_abc',
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'This is my reasoning summary',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should create reasoning message with empty summary when text is empty', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: '',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [],
+          },
+        ]);
+      });
+
+      it('should merge multiple reasoning parts with same ID into single reasoning message', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'First reasoning part',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'reasoning',
+                  text: 'Second reasoning part',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'First reasoning part',
+              },
+              {
+                type: 'summary_text',
+                text: 'Second reasoning part',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should merge reasoning parts with same ID across different assistant messages', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'First part',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Second part',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'First part',
+              },
+              {
+                type: 'summary_text',
+                text: 'Second part',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should only add non-empty text to reasoning summary when merging', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'First reasoning part',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'reasoning',
+                  text: '', // Empty text should not add summary
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'First reasoning part',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should create separate reasoning messages for different reasoning IDs', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'First reasoning',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'reasoning',
+                  text: 'Second reasoning',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_456',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'First reasoning',
+              },
+            ],
+          },
+          {
+            type: 'reasoning',
+            id: 'reasoning_456',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'Second reasoning',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should separate reasoning and text content into different messages', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'This is my reasoning',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+                { type: 'text', text: 'Here is my response' },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'This is my reasoning',
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'Here is my response' }],
+          },
+        ]);
+      });
+
+      it('should throw error when reasoning part lacks required provider options', async () => {
+        await expect(
+          convertToOpenAIResponsesMessages({
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Test reasoning',
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+          }),
+        ).rejects.toThrow(
+          'Reasoning parts require providerOptions: { openai: { reasoning: { id: "..." } } }',
+        );
+      });
+
+      it('should throw error when reasoning parts with same ID have mismatched encrypted content', async () => {
+        await expect(
+          convertToOpenAIResponsesMessages({
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning part',
+                    providerOptions: {
+                      openai: {
+                        reasoning: {
+                          id: 'reasoning_123',
+                          encryptedContent: 'encrypted_content_abc',
+                        },
+                      },
+                    },
+                  },
+                  {
+                    type: 'reasoning',
+                    text: 'Second reasoning part',
+                    providerOptions: {
+                      openai: {
+                        reasoning: {
+                          id: 'reasoning_123',
+                          encryptedContent: 'encrypted_content_xyz',
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+          }),
+        ).rejects.toThrow(
+          'Reasoning parts with same ID must have matching encrypted content',
+        );
+      });
+
+      it('should throw error when mixing encrypted and non-encrypted reasoning parts with same ID', async () => {
+        await expect(
+          convertToOpenAIResponsesMessages({
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning part',
+                    providerOptions: {
+                      openai: {
+                        reasoning: {
+                          id: 'reasoning_123',
+                          encryptedContent: 'encrypted_content_abc',
+                        },
+                      },
+                    },
+                  },
+                  {
+                    type: 'reasoning',
+                    text: 'Second reasoning part',
+                    providerOptions: {
+                      openai: {
+                        reasoning: {
+                          id: 'reasoning_123',
+                          // No encryptedContent - should cause mismatch
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+          }),
+        ).rejects.toThrow(
+          'Reasoning parts with same ID must have matching encrypted content',
+        );
+      });
+    });
   });
 
   describe('tool messages', () => {
     it('should convert tool result parts', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'tool',
@@ -415,7 +893,7 @@ describe('convertToOpenAIResponsesMessages', () => {
     });
 
     it('should convert multiple tool result parts in a single message', async () => {
-      const result = convertToOpenAIResponsesMessages({
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'tool',
@@ -457,8 +935,8 @@ describe('convertToOpenAIResponsesMessages', () => {
   });
 
   describe('provider-executed tool calls', () => {
-    it('should exclude provider-executed tool calls and results from prompt', () => {
-      const result = convertToOpenAIResponsesMessages({
+    it('should exclude provider-executed tool calls and results from prompt', async () => {
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'assistant',
@@ -531,8 +1009,8 @@ describe('convertToOpenAIResponsesMessages', () => {
       `);
     });
 
-    it('should include client-side tool calls in prompt', () => {
-      const result = convertToOpenAIResponsesMessages({
+    it('should include client-side tool calls in prompt', async () => {
+      const result = await convertToOpenAIResponsesMessages({
         prompt: [
           {
             role: 'assistant',
