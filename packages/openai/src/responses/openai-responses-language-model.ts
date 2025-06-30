@@ -270,6 +270,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 type: z.literal('reasoning'),
+                id: z.string(),
+                encrypted_content: z.string().nullish(),
                 summary: z.array(
                   z.object({
                     type: z.literal('summary_text'),
@@ -293,9 +295,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     for (const part of response.output) {
       switch (part.type) {
         case 'reasoning': {
-          content.push({
-            type: 'reasoning',
-            text: part.summary.map(summary => summary.text).join(),
+          const summaryTexts = [
+            ...part.summary.map(summary => summary.text),
+            ...(part.summary.length === 0 ? [''] : []),
+          ];
+          summaryTexts.forEach(summaryText => {
+            const newReasoning = {
+              type: 'reasoning' as const,
+              text: summaryText,
+              providerMetadata: {
+                openai: {
+                  reasoning: {
+                    id: part.id,
+                    encryptedContent: part.encrypted_content ?? null,
+                  },
+                },
+              },
+            };
+            content.push(newReasoning);
           });
           break;
         }

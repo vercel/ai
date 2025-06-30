@@ -460,6 +460,45 @@ describe('convertToOpenAIResponsesMessages', () => {
         ]);
       });
 
+      it('should include null encrypted content when explicitly set to null in reasoning part', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'This is my reasoning summary',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                        encryptedContent: null,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: null,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'This is my reasoning summary',
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should create reasoning message with empty summary when text is empty', async () => {
         const result = await convertToOpenAIResponsesMessages({
           prompt: [
