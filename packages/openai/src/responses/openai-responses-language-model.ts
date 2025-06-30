@@ -88,7 +88,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     const { messages, warnings: messageWarnings } =
-      convertToOpenAIResponsesMessages({
+      await convertToOpenAIResponsesMessages({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
       });
@@ -133,6 +133,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
+      include: openaiOptions?.include,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -916,6 +917,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
   serviceTier: z.enum(['auto', 'flex']).nullish(),
+  include: z.array(z.enum(['reasoning.encrypted_content'])).nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

@@ -1,20 +1,27 @@
 import {
+  InvalidPromptError,
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAIResponsesPrompt } from './openai-responses-api-types';
+import {
+  isOpenAIResponsesReasoning,
+  OpenAIResponsesReasoning,
+  OpenAIResponsesPrompt,
+} from './openai-responses-api-types';
+import { parseProviderOptions } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
-export function convertToOpenAIResponsesMessages({
+export async function convertToOpenAIResponsesMessages({
   prompt,
   systemMessageMode,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
-}): {
+}): Promise<{
   messages: OpenAIResponsesPrompt;
   warnings: Array<LanguageModelV2CallWarning>;
-} {
+}> {
   const messages: OpenAIResponsesPrompt = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
 
@@ -129,6 +136,56 @@ export function convertToOpenAIResponsesMessages({
               });
               break;
             }
+
+            case 'reasoning': {
+              const providerOptions = await parseProviderOptions({
+                provider: 'openai',
+                providerOptions: part.providerOptions,
+                schema: openaiResponsesReasoningProviderOptionsSchema,
+              });
+              if (providerOptions === undefined) {
+                throw new InvalidPromptError({
+                  prompt: part,
+                  message:
+                    'Reasoning parts require providerOptions: { openai: { reasoning: { id: "..." } } }',
+                });
+              }
+              const existingReasoning = messages
+                .filter(isOpenAIResponsesReasoning)
+                .find(
+                  reasoning => reasoning.id === providerOptions.reasoning.id,
+                );
+              if (existingReasoning === undefined) {
+                const newReasoning = {
+                  type: 'reasoning' as const,
+                  id: providerOptions.reasoning.id,
+                  encrypted_content: providerOptions.reasoning.encryptedContent,
+                  summary:
+                    part.text.length > 0
+                      ? [{ type: 'summary_text' as const, text: part.text }]
+                      : [],
+                } satisfies OpenAIResponsesReasoning;
+                messages.push(newReasoning);
+              } else {
+                if (
+                  existingReasoning.encrypted_content !==
+                  providerOptions.reasoning.encryptedContent
+                ) {
+                  throw new InvalidPromptError({
+                    prompt: part,
+                    message:
+                      'Reasoning parts with same id must have matching encrypted content',
+                  });
+                }
+                if (part.text.length > 0) {
+                  existingReasoning.summary.push({
+                    type: 'summary_text' as const,
+                    text: part.text,
+                  });
+                }
+              }
+              break;
+            }
           }
         }
 
@@ -171,3 +228,14 @@ export function convertToOpenAIResponsesMessages({
 
   return { messages, warnings };
 }
+
+const openaiResponsesReasoningProviderOptionsSchema = z.object({
+  reasoning: z.object({
+    id: z.string(),
+    encryptedContent: z.string().nullish(),
+  }),
+});
+
+export type OpenAIResponsesReasoningProviderOptions = z.infer<
+  typeof openaiResponsesReasoningProviderOptionsSchema
+>;
