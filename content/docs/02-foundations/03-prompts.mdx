@@ -118,7 +118,9 @@ const { text } = await generateText({
 For granular control over applying provider options at the message level, you can pass `providerOptions` to the message object:
 
 ```ts
-const messages = [
+import { ModelMessage } from 'ai';
+
+const messages: ModelMessage[] = [
   {
     role: 'system',
     content: 'Cached system message',
@@ -135,7 +137,9 @@ const messages = [
 Certain provider-specific options require configuration at the message part level:
 
 ```ts
-const messages = [
+import { ModelMessage } from 'ai';
+
+const messages: ModelMessage[] = [
   {
     role: 'user',
     content: [
@@ -300,7 +304,7 @@ You need to specify the MIME type of the file you are sending.
 
 ##### Example: PDF file from Buffer
 
-```ts highlight="12-14"
+```ts highlight="12-15"
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -367,7 +371,7 @@ const result = await generateText({
 
 #### Example: Assistant message with text content in array
 
-```ts highlight="5"
+```ts highlight="7"
 const result = await generateText({
   model: yourModel,
   messages: [
@@ -382,7 +386,7 @@ const result = await generateText({
 
 #### Example: Assistant message with tool call content
 
-```ts highlight="5-10"
+```ts highlight="7-14"
 const result = await generateText({
   model: yourModel,
   messages: [
@@ -394,7 +398,7 @@ const result = await generateText({
           type: 'tool-call',
           toolCallId: '12345',
           toolName: 'get-nutrition-data',
-          args: { cheese: 'Roquefort' },
+          input: { cheese: 'Roquefort' },
         },
       ],
     },
@@ -409,7 +413,7 @@ const result = await generateText({
   this, and only for file types that they can generate.
 </Note>
 
-```ts
+```ts highlight="9-11"
 const result = await generateText({
   model: yourModel,
   messages: [
@@ -437,7 +441,7 @@ const result = await generateText({
   Learn more about Tools in [the next section](/docs/foundations/tools).
 </Note>
 
-For models that support [tool](/docs/foundations/tools) calls, assistant messages can contain tool call parts, and tool messages can contain tool result parts.
+For models that support [tool](/docs/foundations/tools) calls, assistant messages can contain tool call parts, and tool messages can contain tool output parts.
 A single assistant message can call multiple tools, and a single tool message can contain multiple tool results.
 
 ```ts highlight="14-42"
@@ -461,7 +465,7 @@ const result = await generateText({
           type: 'tool-call',
           toolCallId: '12345',
           toolName: 'get-nutrition-data',
-          args: { cheese: 'Roquefort' },
+          input: { cheese: 'Roquefort' },
         },
         // there could be more tool calls here (parallel calling)
       ],
@@ -473,11 +477,14 @@ const result = await generateText({
           type: 'tool-result',
           toolCallId: '12345', // needs to match the tool call id
           toolName: 'get-nutrition-data',
-          result: {
-            name: 'Cheese, roquefort',
-            calories: 369,
-            fat: 31,
-            protein: 22,
+          output: {
+            type: 'json',
+            value: {
+              name: 'Cheese, roquefort',
+              calories: 369,
+              fat: 31,
+              protein: 22,
+            },
           },
         },
         // there could be more tool results here (parallel calling)
@@ -509,26 +516,39 @@ const result = await generateText({
           toolCallId: '12345', // needs to match the tool call id
           toolName: 'get-nutrition-data',
           // for models that do not support multi-part tool results,
-          // you can include a regular result part:
-          result: {
-            name: 'Cheese, roquefort',
-            calories: 369,
-            fat: 31,
-            protein: 22,
+          // you can include a regular output part:
+          output: {
+            type: 'json',
+            value: {
+              name: 'Cheese, roquefort',
+              calories: 369,
+              fat: 31,
+              protein: 22,
+            },
           },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: '12345', // needs to match the tool call id
+          toolName: 'get-nutrition-data',
           // for models that support multi-part tool results,
           // you can include a multi-part content part:
-          content: [
-            {
-              type: 'text',
-              text: 'Here is an image of the nutrition data for the cheese:',
-            },
-            {
-              type: 'image',
-              data: fs.readFileSync('./data/roquefort-nutrition-data.png'),
-              mediaType: 'image/png',
-            },
-          ],
+          output: {
+            type: 'content',
+            value: [
+              {
+                type: 'text',
+                text: 'Here is an image of the nutrition data for the cheese:',
+              },
+              {
+                type: 'media',
+                data: fs
+                  .readFileSync('./data/roquefort-nutrition-data.png')
+                  .toString('base64'),
+                mediaType: 'image/png',
+              },
+            ],
+          },
         },
       ],
     },
