@@ -36,12 +36,14 @@ async function main() {
     {
       name: 'XLSX (Excel)',
       file: 'aisdk.xlsx',
-      mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      mediaType:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     },
     {
       name: 'DOCX (Word)',
       file: 'sdk.docx',
-      mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      mediaType:
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     },
   ];
 
@@ -49,10 +51,10 @@ async function main() {
 
   for (const testCase of testCases) {
     console.log(`Testing ${testCase.name} support:`);
-    
+
     try {
       let fileData: string;
-      
+
       if (testCase.file) {
         const filePath = join(__dirname, '../../data', testCase.file);
         const fileBuffer = readFileSync(filePath);
@@ -67,7 +69,10 @@ async function main() {
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Briefly describe what this document contains:' },
+              {
+                type: 'text',
+                text: 'Briefly describe what this document contains:',
+              },
               {
                 type: 'file',
                 data: fileData,
@@ -80,7 +85,6 @@ async function main() {
 
       console.log(`✓ ${testCase.name} processed successfully`);
       console.log(`  Response: ${result.text}`);
-      
     } catch (error) {
       if (error instanceof Error) {
         console.log(`✗ ${testCase.name} failed: ${error.message}`);
@@ -88,11 +92,11 @@ async function main() {
         console.log(`✗ ${testCase.name} failed with unknown error`);
       }
     }
-    
+
     console.log('');
   }
 
   console.log('All supported document types tested!');
 }
 
-main().catch(console.error); 
+main().catch(console.error);
