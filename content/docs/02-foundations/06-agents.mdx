@@ -525,7 +525,7 @@ i.e. all text deltas, tool calls, and tool results for the step are available.
 import { generateText, stepCountIs } from 'ai';
 
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   stopWhen: stepCountIs(10),
   onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
     // your own logic, e.g. for saving the chat history or recording usage

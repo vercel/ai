@@ -11,7 +11,7 @@ All AI SDK functions support the following common settings in addition to the mo
 
 ```ts highlight="3-5"
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   maxOutputTokens: 512,
   temperature: 0.3,
   maxRetries: 5,
