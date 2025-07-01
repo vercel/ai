@@ -268,12 +268,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         parts: [
           ...fileParts,
           ...('text' in message && message.text != null
-            ? [
-                {
-                  type: 'text' as const,
-                  text: message.text,
-                },
-              ]
+            ? [{ type: 'text' as const, text: message.text }]
             : []),
         ],
       } as UI_MESSAGE;
