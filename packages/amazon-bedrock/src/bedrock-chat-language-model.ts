@@ -115,12 +115,12 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     // Parse thinking options from provider metadata
     const reasoningConfigOptions =
       BedrockReasoningConfigOptionsSchema.safeParse(
-        providerMetadata?.bedrock?.reasoning_config,
+        providerMetadata?.bedrock?.reasoningConfig,
       );
 
     if (!reasoningConfigOptions.success) {
       throw new InvalidArgumentError({
-        argument: 'providerOptions.bedrock.reasoning_config',
+        argument: 'providerOptions.bedrock.reasoningConfig',
         message: 'invalid reasoning configuration options',
         cause: reasoningConfigOptions.error,
       });
@@ -149,7 +149,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       // Add reasoning config to additionalModelRequestFields
       this.settings.additionalModelRequestFields = {
         ...this.settings.additionalModelRequestFields,
-        reasoning_config: {
+        reasoningConfig: {
           type: reasoningConfigOptions.data?.type,
           budget_tokens: thinkingBudget,
         },
