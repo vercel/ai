@@ -23,48 +23,28 @@ it('should remove additionalProperties and $schema', () => {
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
 
-it('supports additionalProperties: true', () => {
+it('should remove empty additionalProperties object from nested object schemas', function () {
   const input: JSONSchema7 = {
-    $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-      name: { type: 'string' },
-      age: { type: 'number' },
+      keys: {
+        type: 'object',
+        additionalProperties: { type: 'string' },
+        description: 'Description for the key',
+      },
     },
-    additionalProperties: true,
+    additionalProperties: false,
+    $schema: 'http://json-schema.org/draft-07/schema#',
   };
 
   const expected = {
     type: 'object',
     properties: {
-      name: { type: 'string' },
-      age: { type: 'number' },
+      keys: {
+        type: 'object',
+        description: 'Description for the key',
+      },
     },
-    additionalProperties: true,
-  };
-
-  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
-});
-
-// z.record(z.string())
-it('supports `additionalProperties` as an object', () => {
-  const input: JSONSchema7 = {
-    $schema: 'http://json-schema.org/draft-07/schema#',
-    type: 'object',
-    properties: {
-      name: { type: 'string' },
-      age: { type: 'number' },
-    },
-    additionalProperties: { type: 'string' },
-  };
-
-  const expected = {
-    type: 'object',
-    properties: {
-      name: { type: 'string' },
-      age: { type: 'number' },
-    },
-    additionalProperties: { type: 'string' },
   };
 
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
