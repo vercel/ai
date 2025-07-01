@@ -57,13 +57,13 @@ The prompt that should be used to generate or edit the image.
   prompt: string;
 
   /**
-Optional image(s) to edit. When provided, the model will edit these images instead of generating new ones.
+Image(s) to edit. When provided, the model will edit these images as inputs.
 Array of ImageInput objects with image data and optional media type.
    */
   images?: Array<ImageInput>;
 
   /**
-Optional mask image whose fully transparent areas indicate where the image should be edited.
+Mask image whose fully transparent areas indicate where the image should be edited.
 Must be a valid PNG file with the same dimensions as the image.
 Can be a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer.
    */

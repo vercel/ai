@@ -39,16 +39,12 @@ export class OpenAIImageModel implements ImageModelV2 {
 
   private createDataContentBlob(data: DataContent, mediaType: string = 'image/png'): Blob {
     if (typeof data === 'string') {
-      // For base64 strings, decode to binary data
       return new Blob([convertBase64ToUint8Array(data)], { type: mediaType });
     } else if (data instanceof Uint8Array) {
-      // For Uint8Array, create a Blob directly
       return new Blob([data], { type: mediaType });
     } else if (data instanceof ArrayBuffer) {
-      // For ArrayBuffer, convert to Uint8Array first
       return new Blob([new Uint8Array(data)], { type: mediaType });
     } else {
-      // For Buffer (Node.js), which is a subclass of Uint8Array
       return new Blob([Uint8Array.from(data as Buffer)], { type: mediaType });
     }
   }
@@ -66,7 +62,6 @@ export class OpenAIImageModel implements ImageModelV2 {
     const isEdit = images != undefined && images.length > 0;
     const warnings: ImageModelV2CallWarning[] = [];
 
-    // Handle common warnings
     if (aspectRatio != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -80,7 +75,6 @@ export class OpenAIImageModel implements ImageModelV2 {
       warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
 
-    // For edit operations, validate model support
     if (isEdit && !['dall-e-2', 'gpt-image-1'].includes(this.modelId)) {
       throw new Error(
         `Model ${this.modelId} does not support image editing. Only dall-e-2 and gpt-image-1 are supported.`,
@@ -88,24 +82,20 @@ export class OpenAIImageModel implements ImageModelV2 {
     }
 
     if (isEdit) {
-      // Validate image count for dall-e-2
       if (this.modelId === 'dall-e-2' && images.length > 1) {
         throw new Error('dall-e-2 only supports editing a single image.');
       }
 
-      // Create form data with base fields
       const formData = new FormData();
       formData.append('model', this.modelId);
       formData.append('prompt', prompt);
       if (n != null) formData.append('n', String(n));
       if (size != null) formData.append('size', size);
 
-      // Handle image input
       for (let i = 0; i < images.length; i++) {
         const imgInput = images[i];
         const imageData = imgInput.image;
         
-        // Handle URL case
         if (imageData instanceof URL) {
           throw new Error('URL images are not supported for OpenAI image editing. Please provide the image data directly.');
         }
@@ -113,12 +103,10 @@ export class OpenAIImageModel implements ImageModelV2 {
         formData.append(`image[${i}]`, this.createDataContentBlob(imageData as DataContent, imgInput.mediaType));
       }
 
-      // Handle mask if provided
       if (mask != null) {
         formData.append('mask', this.createDataContentBlob(mask));
       }
 
-      // Add provider-specific options
       const openaiOptions = providerOptions.openai ?? {};
       for (const [key, value] of Object.entries(openaiOptions)) {
         if (value != null && typeof value !== 'object') {
@@ -128,7 +116,6 @@ export class OpenAIImageModel implements ImageModelV2 {
         }
       }
 
-      // For dall-e-2, we need to set response_format to b64_json
       if (this.modelId === 'dall-e-2') {
         formData.append('response_format', 'b64_json');
       }
@@ -139,7 +126,6 @@ export class OpenAIImageModel implements ImageModelV2 {
         warnings,
       };
     } else {
-      // Prepare JSON body for generation
       const body = {
         model: this.modelId,
         prompt,
@@ -198,7 +184,6 @@ export class OpenAIImageModel implements ImageModelV2 {
         },
       };
     } else {
-      // Handle JSON request for generation
       const { value: response, responseHeaders } = await postJsonToApi({
         url: this.config.url({
           path: '/images/generations',
