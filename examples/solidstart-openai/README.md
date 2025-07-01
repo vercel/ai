@@ -41,7 +41,7 @@ By default, `npm run build` will generate a Node app that you can run with `npm 
 
 To learn more about OpenAI, Nuxt, and the AI SDK take a look at the following resources:
 
-- [AI SDK docs](https://ai-sdk.dev/docs) - learn mode about the AI SDK
+- [AI SDK docs](https://ai-sdk.dev/docs) - learn more about the AI SDK
 - [Vercel AI Playground](https://ai-sdk.dev/playground) - compare and tune 20+ AI models side-by-side
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [SolidStart Documentation](https://start.solidjs.com) - learn about SolidStart.
