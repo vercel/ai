@@ -25,6 +25,10 @@ async function main() {
     'Provider metadata (cost_saved):',
     result.providerMetadata?.adaptive?.cost_saved,
   );
+  console.log(
+    'Provider metadata (providers):',
+    result.providerMetadata?.adaptive?.providers,
+  );
 }
 
 main();

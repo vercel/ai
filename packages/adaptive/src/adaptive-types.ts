@@ -109,6 +109,7 @@ export interface AdaptiveChatCompletionResponse {
     finish_reason: string | null;
   }>;
   usage?: AdaptiveChatCompletionUsage;
+  providers?: string[];
 }
 
 /**

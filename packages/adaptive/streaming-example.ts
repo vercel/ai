@@ -46,12 +46,12 @@ async function main() {
         'Provider metadata (cost_saved):',
         part.providerMetadata?.adaptive?.cost_saved,
       );
+      console.log(
+        'Provider metadata (providers):',
+        part.providerMetadata?.adaptive?.providers,
+      );
       console.log('Finish reason:', part.finishReason);
       console.log('Usage:', part.usage);
-    }
-
-    if (part.type === 'response-metadata') {
-      console.log('Response metadata:', part);
     }
   }
 }
