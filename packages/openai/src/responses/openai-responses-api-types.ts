@@ -87,9 +87,3 @@ export type OpenAIResponsesReasoning = {
     text: string;
   }>;
 };
-
-export function isOpenAIResponsesReasoning(
-  message: OpenAIResponsesMessage,
-): message is OpenAIResponsesReasoning {
-  return 'type' in message && message.type === 'reasoning';
-}

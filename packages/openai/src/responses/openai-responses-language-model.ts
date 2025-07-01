@@ -530,6 +530,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     openai: {
                       reasoning: {
+                        outputIndex: value.output_index,
                         encryptedContent: value.item.encrypted_content ?? null,
                       },
                     },
@@ -618,6 +619,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     openai: {
                       reasoning: {
+                        outputIndex: value.output_index,
                         encryptedContent: value.item.encrypted_content ?? null,
                       },
                     },
@@ -656,6 +658,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 providerMetadata: {
                   openai: {
                     reasoning: {
+                      outputIndex: value.output_index,
                       summaryIndex: value.summary_index,
                     },
                   },

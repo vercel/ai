@@ -4,13 +4,12 @@ import {
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  isOpenAIResponsesReasoning,
-  OpenAIResponsesReasoning,
-  OpenAIResponsesPrompt,
-} from './openai-responses-api-types';
 import { parseProviderOptions } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  OpenAIResponsesPrompt,
+  OpenAIResponsesReasoning,
+} from './openai-responses-api-types';
 
 export async function convertToOpenAIResponsesMessages({
   prompt,
