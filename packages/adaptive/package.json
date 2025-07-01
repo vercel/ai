@@ -26,10 +26,14 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
+      "import": "./src/adaptive-provider.js",
+      "require": "./src/adaptive-provider.js"
+    },
+    "./adaptive-chat-language-model": "./src/adaptive-chat-language-model.ts",
+    "./adaptive-provider": "./src/adaptive-provider.ts",
+    "./adaptive-types": "./src/adaptive-types.ts",
+    "./convert-to-adaptive-chat-messages": "./src/convert-to-adaptive-chat-messages.ts",
+    "./map-adaptive-finish-reason": "./src/map-adaptive-finish-reason.ts"
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",

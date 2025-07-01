@@ -1,14 +1,15 @@
 import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 
-export function mapMistralFinishReason(
-  finishReason: string | null | undefined,
+export function mapAdaptiveFinishReason(
+  reason?: string,
 ): LanguageModelV2FinishReason {
-  switch (finishReason) {
+  switch (reason) {
     case 'stop':
       return 'stop';
     case 'length':
-    case 'model_length':
       return 'length';
+    case 'content_filter':
+      return 'content-filter';
     case 'tool_calls':
       return 'tool-calls';
     default:

@@ -1,5 +1,6 @@
-export { createMistral, mistral } from './mistral-provider';
+export { createAdaptive, adaptive } from './adaptive-provider';
 export type {
-  MistralProvider,
-  MistralProviderSettings,
-} from './mistral-provider';
+  AdaptiveProvider,
+  AdaptiveProviderSettings,
+} from './adaptive-provider';
+export type * from './adaptive-types';
