@@ -251,7 +251,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         }
       | {
           files: FileList | FileUIPart[];
-          metadata?: never;
+          metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
           messageId?: string;
         },
