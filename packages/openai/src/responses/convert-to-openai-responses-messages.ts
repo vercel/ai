@@ -106,6 +106,8 @@ export async function convertToOpenAIResponsesMessages({
       }
 
       case 'assistant': {
+        const currentReasoningMessages: OpenAIResponsesReasoning[] = [];
+
         for (const part of content) {
           switch (part.type) {
             case 'text': {
@@ -150,11 +152,9 @@ export async function convertToOpenAIResponsesMessages({
                     'Reasoning parts require providerOptions: { openai: { reasoning: { id: "..." } } }',
                 });
               }
-              const existingReasoning = messages
-                .filter(isOpenAIResponsesReasoning)
-                .find(
-                  reasoning => reasoning.id === providerOptions.reasoning.id,
-                );
+              const existingReasoning = currentReasoningMessages.find(
+                reasoning => reasoning.id === providerOptions.reasoning.id,
+              );
               if (existingReasoning === undefined) {
                 const newReasoning = {
                   type: 'reasoning' as const,
@@ -165,6 +165,7 @@ export async function convertToOpenAIResponsesMessages({
                       ? [{ type: 'summary_text' as const, text: part.text }]
                       : [],
                 } satisfies OpenAIResponsesReasoning;
+                currentReasoningMessages.push(newReasoning);
                 messages.push(newReasoning);
               } else {
                 if (
@@ -174,7 +175,7 @@ export async function convertToOpenAIResponsesMessages({
                   throw new InvalidPromptError({
                     prompt: part,
                     message:
-                      'Reasoning parts with same ID must have matching encrypted content',
+                      'Reasoning parts with same ID (within the same assistant message) must have matching encrypted content',
                   });
                 }
                 if (part.text.length > 0) {

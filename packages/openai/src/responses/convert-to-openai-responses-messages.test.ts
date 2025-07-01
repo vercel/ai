@@ -421,6 +421,39 @@ describe('convertToOpenAIResponsesMessages', () => {
         ]);
       });
 
+      it('should create reasoning message with empty summary when text is empty', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: '',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [],
+          },
+        ]);
+      });
+
       it('should include encrypted content when provided in reasoning part', async () => {
         const result = await convertToOpenAIResponsesMessages({
           prompt: [
@@ -499,39 +532,6 @@ describe('convertToOpenAIResponsesMessages', () => {
         ]);
       });
 
-      it('should create reasoning message with empty summary when text is empty', async () => {
-        const result = await convertToOpenAIResponsesMessages({
-          prompt: [
-            {
-              role: 'assistant',
-              content: [
-                {
-                  type: 'reasoning',
-                  text: '',
-                  providerOptions: {
-                    openai: {
-                      reasoning: {
-                        id: 'reasoning_123',
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-          ],
-          systemMessageMode: 'system',
-        });
-
-        expect(result.messages).toEqual([
-          {
-            type: 'reasoning',
-            id: 'reasoning_123',
-            encrypted_content: undefined,
-            summary: [],
-          },
-        ]);
-      });
-
       it('should merge multiple reasoning parts with same ID into single reasoning message', async () => {
         const result = await convertToOpenAIResponsesMessages({
           prompt: [
@@ -585,64 +585,6 @@ describe('convertToOpenAIResponsesMessages', () => {
         ]);
       });
 
-      it('should merge reasoning parts with same ID across different assistant messages', async () => {
-        const result = await convertToOpenAIResponsesMessages({
-          prompt: [
-            {
-              role: 'assistant',
-              content: [
-                {
-                  type: 'reasoning',
-                  text: 'First part',
-                  providerOptions: {
-                    openai: {
-                      reasoning: {
-                        id: 'reasoning_123',
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-            {
-              role: 'assistant',
-              content: [
-                {
-                  type: 'reasoning',
-                  text: 'Second part',
-                  providerOptions: {
-                    openai: {
-                      reasoning: {
-                        id: 'reasoning_123',
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-          ],
-          systemMessageMode: 'system',
-        });
-
-        expect(result.messages).toEqual([
-          {
-            type: 'reasoning',
-            id: 'reasoning_123',
-            encrypted_content: undefined,
-            summary: [
-              {
-                type: 'summary_text',
-                text: 'First part',
-              },
-              {
-                type: 'summary_text',
-                text: 'Second part',
-              },
-            ],
-          },
-        ]);
-      });
-
       it('should only add non-empty text to reasoning summary when merging', async () => {
         const result = await convertToOpenAIResponsesMessages({
           prompt: [
@@ -688,6 +630,127 @@ describe('convertToOpenAIResponsesMessages', () => {
                 text: 'First reasoning part',
               },
             ],
+          },
+        ]);
+      });
+
+      it('should create separate reasoning messages for same ID across different assistant messages', async () => {
+        const result = await convertToOpenAIResponsesMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'First user question' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'First reasoning part (first message)',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'reasoning',
+                  text: 'Second reasoning part (first message)',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+                { type: 'text', text: 'First response' },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Second user question' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'First reasoning part (second message)',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'reasoning',
+                  text: 'Second reasoning part (second message)',
+                  providerOptions: {
+                    openai: {
+                      reasoning: {
+                        id: 'reasoning_123',
+                      },
+                    },
+                  },
+                },
+                { type: 'text', text: 'Second response' },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+
+        expect(result.messages).toEqual([
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: 'First user question' }],
+          },
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'First reasoning part (first message)',
+              },
+              {
+                type: 'summary_text',
+                text: 'Second reasoning part (first message)',
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'First response' }],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: 'Second user question' }],
+          },
+          {
+            type: 'reasoning',
+            id: 'reasoning_123',
+            encrypted_content: undefined,
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'First reasoning part (second message)',
+              },
+              {
+                type: 'summary_text',
+                text: 'Second reasoning part (second message)',
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'Second response' }],
           },
         ]);
       });
@@ -752,49 +815,6 @@ describe('convertToOpenAIResponsesMessages', () => {
         ]);
       });
 
-      it('should separate reasoning and text content into different messages', async () => {
-        const result = await convertToOpenAIResponsesMessages({
-          prompt: [
-            {
-              role: 'assistant',
-              content: [
-                {
-                  type: 'reasoning',
-                  text: 'This is my reasoning',
-                  providerOptions: {
-                    openai: {
-                      reasoning: {
-                        id: 'reasoning_123',
-                      },
-                    },
-                  },
-                },
-                { type: 'text', text: 'Here is my response' },
-              ],
-            },
-          ],
-          systemMessageMode: 'system',
-        });
-
-        expect(result.messages).toEqual([
-          {
-            type: 'reasoning',
-            id: 'reasoning_123',
-            encrypted_content: undefined,
-            summary: [
-              {
-                type: 'summary_text',
-                text: 'This is my reasoning',
-              },
-            ],
-          },
-          {
-            role: 'assistant',
-            content: [{ type: 'output_text', text: 'Here is my response' }],
-          },
-        ]);
-      });
-
       it('should throw error when reasoning part lacks required provider options', async () => {
         await expect(
           convertToOpenAIResponsesMessages({
@@ -816,7 +836,7 @@ describe('convertToOpenAIResponsesMessages', () => {
         );
       });
 
-      it('should throw error when reasoning parts with same ID have mismatched encrypted content', async () => {
+      it('should throw error when reasoning parts with same ID (within the same assistant message) have mismatched encrypted content', async () => {
         await expect(
           convertToOpenAIResponsesMessages({
             prompt: [
@@ -853,7 +873,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             systemMessageMode: 'system',
           }),
         ).rejects.toThrow(
-          'Reasoning parts with same ID must have matching encrypted content',
+          'Reasoning parts with same ID (within the same assistant message) must have matching encrypted content',
         );
       });
 
@@ -894,7 +914,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             systemMessageMode: 'system',
           }),
         ).rejects.toThrow(
-          'Reasoning parts with same ID must have matching encrypted content',
+          'Reasoning parts with same ID (within the same assistant message) must have matching encrypted content',
         );
       });
     });
