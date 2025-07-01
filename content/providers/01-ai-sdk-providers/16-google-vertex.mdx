@@ -769,6 +769,7 @@ You can use the following optional settings to customize the Google Vertex Anthr
 - **googleAuthOptions** _object_
 
   Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/). See also the [GoogleAuthOptions](https://github.com/googleapis/google-auth-library-nodejs/blob/08978822e1b7b5961f0e355df51d738e012be392/src/auth/googleauth.ts#L87C18-L87C35) interface.
+  
   - **authClient** _object_
     An `AuthClient` to use.
 
@@ -872,7 +873,7 @@ You can use the following optional settings to customize the provider instance:
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 
   Headers to include in the requests. Can be provided in multiple formats:
-  
+
   - A record of header key-value pairs: `Record<string, string | undefined>`
   - A function that returns headers: `() => Record<string, string | undefined>`
   - An async function that returns headers: `async () => Record<string, string | undefined>`
