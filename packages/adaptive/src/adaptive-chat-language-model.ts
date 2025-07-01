@@ -63,6 +63,7 @@ const adaptiveChatResponseSchema = z.object({
     })
     .optional(),
   systemFingerprint: z.string().optional(),
+  providers: z.array(z.string()).optional(),
 });
 
 const adaptiveChatChunkSchema = z.object({
@@ -89,6 +90,7 @@ const adaptiveChatChunkSchema = z.object({
       cost_saved: z.number().optional(),
     })
     .optional(),
+  providers: z.array(z.string()).optional(),
 });
 
 export class AdaptiveChatLanguageModel implements LanguageModelV2 {
@@ -142,7 +144,6 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
     if (seed != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
-    console.log('providerOptions', providerOptions);
     // Parse provider options with zod schema (flat, not nested)
     const result = adaptiveProviderOptions.safeParse(providerOptions ?? {});
     const adaptiveOptions = result.success ? result.data : {};
@@ -152,7 +153,6 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
       convertToAdaptiveChatMessages({ prompt });
     warnings.push(...messageWarnings);
 
-    console.log('adaptiveOptions', adaptiveOptions);
     // Standardized settings
     const standardizedArgs = {
       model: this.modelId,
@@ -238,7 +238,14 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
           }
         : { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
       providerMetadata:
-        cost_saved !== undefined ? { adaptive: { cost_saved } } : undefined,
+        cost_saved !== undefined || value.providers
+          ? { 
+              adaptive: { 
+                ...(cost_saved !== undefined && { cost_saved }),
+                ...(value.providers && { providers: value.providers }),
+              } 
+            }
+          : undefined,
       request: { body },
       response: {
         id: value.id,
@@ -283,6 +290,7 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
       isFirstChunk: true,
       isActiveText: false,
       cost_saved: undefined as number | undefined,
+      providers: undefined as string[] | undefined,
     };
 
     return {
@@ -325,8 +333,10 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
               if (value.usage.cost_saved !== undefined) {
                 state.cost_saved = value.usage.cost_saved;
               }
-              console.log('Stream chunk usage:', value.usage);
-              console.log('Updated cost_saved:', state.cost_saved);
+            }
+
+            if (value.providers) {
+              state.providers = value.providers;
             }
 
             const choice = value.choices[0];
@@ -365,7 +375,6 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
             }
           },
           flush(controller) {
-            console.log('Final cost_saved in flush:', state.cost_saved);
             controller.enqueue({
               type: 'finish',
               finishReason: state.finishReason ?? 'stop',
@@ -375,8 +384,13 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
                 totalTokens: 0,
               },
               providerMetadata:
-                state.cost_saved !== undefined
-                  ? { adaptive: { cost_saved: state.cost_saved } }
+                state.cost_saved !== undefined || state.providers
+                  ? { 
+                      adaptive: { 
+                        ...(state.cost_saved !== undefined && { cost_saved: state.cost_saved }),
+                        ...(state.providers && { providers: state.providers }),
+                      } 
+                    }
                   : undefined,
             });
           },
