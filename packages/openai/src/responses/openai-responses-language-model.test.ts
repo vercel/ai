@@ -523,12 +523,14 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send reasoningEffort provider option', async () => {
+      it('should send reasoning provider options', async () => {
         const { warnings } = await createModel('o3').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
               reasoningEffort: 'low',
+              reasoningSummary: 'auto',
+              include: ['reasoning.encrypted_content'],
             },
           },
         });
@@ -540,7 +542,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
           reasoning: {
             effort: 'low',
+            summary: 'auto',
           },
+          include: ['reasoning.encrypted_content'],
         });
 
         expect(warnings).toStrictEqual([]);
@@ -870,36 +874,42 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(result.content).toEqual([
-          {
-            type: 'reasoning',
-            text: '**Exploring burrito origins**\n\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito.',
-            providerMetadata: {
-              openai: {
-                reasoning: {
-                  id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
-                  encryptedContent: null,
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": null,
+                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
                 },
               },
+              "text": "**Exploring burrito origins**
+
+          The user is curious about the debate regarding Taqueria La Cumbre and El Farolito.",
+              "type": "reasoning",
             },
-          },
-          {
-            type: 'reasoning',
-            text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
-            providerMetadata: {
-              openai: {
-                reasoning: {
-                  id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
-                  encryptedContent: null,
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": null,
+                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
                 },
               },
+              "text": "**Investigating burrito origins**
+
+          There's a fascinating debate about who created the Mission burrito.",
+              "type": "reasoning",
             },
-          },
-          {
-            type: 'text',
-            text: 'answer text',
-          },
-        ]);
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
+        `);
       });
 
       it('should include encrypted content when present', async () => {
@@ -919,36 +929,42 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(result.content).toEqual([
-          {
-            type: 'reasoning',
-            text: '**Exploring burrito origins**\n\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito.',
-            providerMetadata: {
-              openai: {
-                reasoning: {
-                  id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
-                  encryptedContent: 'encrypted_reasoning_data_abc123',
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": "encrypted_reasoning_data_abc123",
+                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
                 },
               },
+              "text": "**Exploring burrito origins**
+
+          The user is curious about the debate regarding Taqueria La Cumbre and El Farolito.",
+              "type": "reasoning",
             },
-          },
-          {
-            type: 'reasoning',
-            text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
-            providerMetadata: {
-              openai: {
-                reasoning: {
-                  id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
-                  encryptedContent: 'encrypted_reasoning_data_abc123',
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": "encrypted_reasoning_data_abc123",
+                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
                 },
               },
+              "text": "**Investigating burrito origins**
+
+          There's a fascinating debate about who created the Mission burrito.",
+              "type": "reasoning",
             },
-          },
-          {
-            type: 'text',
-            text: 'answer text',
-          },
-        ]);
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
+        `);
       });
 
       it('should handle encrypted content when reasoning summary is empty', async () => {
@@ -968,24 +984,26 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(result.content).toEqual([
-          {
-            type: 'reasoning',
-            text: '',
-            providerMetadata: {
-              openai: {
-                reasoning: {
-                  id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
-                  encryptedContent: 'encrypted_reasoning_data_abc123',
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": "encrypted_reasoning_data_abc123",
+                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
                 },
               },
+              "text": "",
+              "type": "reasoning",
             },
-          },
-          {
-            type: 'text',
-            text: 'answer text',
-          },
-        ]);
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
+        `);
       });
 
       it('should handle reasoning with empty summary', async () => {
@@ -1004,24 +1022,26 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(result.content).toEqual([
-          {
-            type: 'reasoning',
-            text: '',
-            providerMetadata: {
-              openai: {
-                reasoning: {
-                  id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
-                  encryptedContent: null,
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": null,
+                    "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
                 },
               },
+              "text": "",
+              "type": "reasoning",
             },
-          },
-          {
-            type: 'text',
-            text: 'answer text',
-          },
-        ]);
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
+        `);
       });
     });
 
@@ -1769,30 +1789,68 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should stream reasoning summary', async () => {
+    const prepareReasoningStreamResponse = (
+      options: {
+        includeEncryptedContent?: boolean;
+        includeReasoningSummary?: boolean;
+      } = {},
+    ) => {
+      const { includeEncryptedContent = false, includeReasoningSummary = true } =
+        options;
+
+      const reasoningItemAddedChunk = includeEncryptedContent
+        ? `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","status":"in_progress","encrypted_content":"encrypted_reasoning_data_abc123","summary":[]}}\n\n`
+        : `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","status":"in_progress","summary":[]}}\n\n`;
+
+      const reasoningItemDoneChunk = includeEncryptedContent
+        ? `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","encrypted_content":"encrypted_reasoning_data_abc123","summary":${
+            includeReasoningSummary
+              ? '[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."},{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere\'s a fascinating debate about who created the Mission burrito."}]'
+              : '[]'
+          }}}\n\n`
+        : `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","summary":${
+            includeReasoningSummary
+              ? '[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."},{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere\'s a fascinating debate about who created the Mission burrito."}]'
+              : '[]'
+          }}}\n\n`;
+
+      const responseCompletedChunk = includeEncryptedContent
+        ? `data:{"type":"response.completed","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","encrypted_content":"encrypted_reasoning_data_abc123","summary":${
+            includeReasoningSummary
+              ? '[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."},{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere\'s a fascinating debate about who created the Mission burrito."}]'
+              : '[]'
+          }},{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":350},"total_tokens":1021},"user":null,"metadata":{}}}\n\n`
+        : `data:{"type":"response.completed","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","summary":${
+            includeReasoningSummary
+              ? '[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."},{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere\'s a fascinating debate about who created the Mission burrito."}]'
+              : '[]'
+          }},{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":350},"total_tokens":1021},"user":null,"metadata":{}}}\n\n`;
+
+      const summaryTextDeltas = includeReasoningSummary
+        ? [
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"delta":"**Exploring burrito origins**\\n\\nThe user is"}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"delta":" curious about the debate regarding Taqueria La Cumbre and El Farolito."}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":1,"delta":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}\n\n`,
+          ]
+        : [];
+
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
-        // warning: tests chunks below may not be accurate
         chunks: [
           `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","status":"in_progress","summary":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"rs_68082c0556348191af675cee0453109b","output_index":1,"content_index":0,"part":{"type":"summary_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"delta":"**Exploring burrito origins**\\n\\nThe user is"}\n\n`,
-          `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"delta":" curious about the debate regarding Taqueria La Cumbre and El Farolito."}\n\n`,
-          `data:{"type":"response.reasoning_summary_text.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}\n\n`,
-          `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":1,"delta":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}\n\n`,
-          `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":1,"part":{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":1,"content_index":0,"part":{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","summary":[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}]}}\n\n`,
+          reasoningItemAddedChunk,
+          ...summaryTextDeltas,
+          reasoningItemDoneChunk,
           `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
           `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"delta":"Taqueria La Cumbre"}\n\n`,
-          `data:{"type":"response.output_text.done","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"text":"Taqueria La Cumbre"}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}}\n\n`,
           `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","summary":[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."},{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}]},{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":350},"total_tokens":1021},"user":null,"metadata":{}}}\n\n`,
+          responseCompletedChunk,
         ],
       };
+    };
+
+    it('should stream reasoning summary and usage tokens', async () => {
+      prepareReasoningStreamResponse();
 
       const { stream } = await createModel('o3-mini').doStream({
         prompt: TEST_PROMPT,
@@ -1819,6 +1877,13 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "encryptedContent": null,
+                },
+              },
+            },
             "type": "reasoning-start",
           },
           {
@@ -1826,11 +1891,25 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         The user is",
             "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "summaryIndex": 0,
+                },
+              },
+            },
             "type": "reasoning-delta",
           },
           {
             "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
             "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "summaryIndex": 0,
+                },
+              },
+            },
             "type": "reasoning-delta",
           },
           {
@@ -1838,10 +1917,24 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         There's a fascinating debate about who created the Mission burrito.",
             "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "summaryIndex": 1,
+                },
+              },
+            },
             "type": "reasoning-delta",
           },
           {
             "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "encryptedContent": null,
+                },
+              },
+            },
             "type": "reasoning-end",
           },
           {
@@ -1884,6 +1977,300 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
         stream: true,
       });
+    });
+
+    it('should include encrypted content when streaming', async () => {
+      prepareReasoningStreamResponse({
+        includeEncryptedContent: true,
+        includeReasoningSummary: true,
+      });
+
+      const { stream } = await createModel('o3-mini').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            reasoningSummary: 'auto',
+            include: ['reasoning.encrypted_content'],
+          },
+        },
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "o3-mini-2025-01-31",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "encryptedContent": "encrypted_reasoning_data_abc123",
+                },
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "**Exploring burrito origins**
+
+        The user is",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "summaryIndex": 0,
+                },
+              },
+            },
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "summaryIndex": 0,
+                },
+              },
+            },
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": "**Investigating burrito origins**
+
+        There's a fascinating debate about who created the Mission burrito.",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "summaryIndex": 1,
+                },
+              },
+            },
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "encryptedContent": "encrypted_reasoning_data_abc123",
+                },
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
+          },
+          {
+            "delta": "Taqueria La Cumbre",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 234,
+              "inputTokens": 543,
+              "outputTokens": 478,
+              "reasoningTokens": 350,
+              "totalTokens": 1021,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle encrypted content when summary is empty', async () => {
+      prepareReasoningStreamResponse({
+        includeEncryptedContent: true,
+        includeReasoningSummary: false,
+      });
+
+      const { stream } = await createModel('o3-mini').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            reasoningSummary: null,
+            include: ['reasoning.encrypted_content'],
+          },
+        },
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "o3-mini-2025-01-31",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "encryptedContent": "encrypted_reasoning_data_abc123",
+                },
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "encryptedContent": "encrypted_reasoning_data_abc123",
+                },
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
+          },
+          {
+            "delta": "Taqueria La Cumbre",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 234,
+              "inputTokens": 543,
+              "outputTokens": 478,
+              "reasoningTokens": 350,
+              "totalTokens": 1021,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle streaming with empty summary', async () => {
+      prepareReasoningStreamResponse({
+        includeEncryptedContent: false,
+        includeReasoningSummary: false,
+      });
+
+      const { stream } = await createModel('o3-mini').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            reasoningSummary: null,
+          },
+        },
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "o3-mini-2025-01-31",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "encryptedContent": null,
+                },
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "providerMetadata": {
+              "openai": {
+                "reasoning": {
+                  "encryptedContent": null,
+                },
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
+          },
+          {
+            "delta": "Taqueria La Cumbre",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 234,
+              "inputTokens": 543,
+              "outputTokens": 478,
+              "reasoningTokens": 350,
+              "totalTokens": 1021,
+            },
+          },
+        ]
+      `);
     });
   });
 
