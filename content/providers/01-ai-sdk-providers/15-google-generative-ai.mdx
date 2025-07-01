@@ -112,9 +112,11 @@ The following optional settings are available for Google Generative AI models:
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
   Optional. Safety settings for the model.
+
   - **category** _string_
 
     The category of the safety setting. Can be one of the following:
+    
     - `HARM_CATEGORY_HATE_SPEECH`
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
     - `HARM_CATEGORY_HARASSMENT`
@@ -123,6 +125,7 @@ The following optional settings are available for Google Generative AI models:
   - **threshold** _string_
 
     The threshold of the safety setting. Can be one of the following:
+
     - `HARM_BLOCK_THRESHOLD_UNSPECIFIED`
     - `BLOCK_LOW_AND_ABOVE`
     - `BLOCK_MEDIUM_AND_ABOVE`
@@ -175,6 +178,7 @@ The following provider options are available:
 - **thinkingConfig** _\{ thinkingBudget: number; \}_
 
   Optional. Configuration for the model's thinking process. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/thinking).
+
   - **thinkingBudget** _number_
 
     Optional. Gives the model guidance on the number of thinking tokens it can use when
@@ -350,10 +354,12 @@ const safetyRatings = metadata?.safetyRatings;
 The grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
 
 - **`webSearchQueries`** (`string[] | null`)
+
   - Array of search queries used to retrieve information
   - Example: `["What's the weather in Chicago this weekend?"]`
 
 - **`searchEntryPoint`** (`{ renderedContent: string } | null`)
+
   - Contains the main search result content used as an entry point
   - The `renderedContent` field contains the formatted content
 
@@ -414,6 +420,7 @@ const { text, providerMetadata } = await generateText({
 The `dynamicRetrievalConfig` describes the options to customize dynamic retrieval:
 
 - `mode`: The mode of the predictor to be used in dynamic retrieval. The following modes are supported:
+
   - `MODE_DYNAMIC`: Run retrieval only when system decides it is necessary
   - `MODE_UNSPECIFIED`: Always trigger retrieval
 
@@ -598,6 +605,7 @@ The following optional settings are available for Google Generative AI embedding
 - **taskType**: _string_
 
   Optional. Specifies the task type for generating embeddings. Supported task types include:
+  
   - `SEMANTIC_SIMILARITY`: Optimized for text similarity.
   - `CLASSIFICATION`: Optimized for text classification.
   - `CLUSTERING`: Optimized for clustering texts based on similarity.
