@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.21
+
+### Patch Changes
+
+- ce1625d: removes (unsupported) `additionalProperties` from the Schema sent in the request payloads to Google APIs
+
 ## 1.2.20
 
 ### Patch Changes
