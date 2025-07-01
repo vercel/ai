@@ -264,8 +264,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ? message.files
         : await convertFileListToFileUIParts(message.files);
 
-      console.log('MESSAGE METADATA', message.metadata);
-
       uiMessage = {
         parts: [
           ...fileParts,
