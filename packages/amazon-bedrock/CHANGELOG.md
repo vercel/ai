@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.2.11
+
+### Patch Changes
+
+- 59c5176: fix (provider/amazon-bedrock): correct Amazon Bedrock reasoning provider option syntax
+
 ## 2.2.10
 
 ### Patch Changes
