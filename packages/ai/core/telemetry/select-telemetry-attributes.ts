@@ -20,7 +20,7 @@ export function selectTelemetryAttributes({
   }
 
   return Object.entries(attributes).reduce((attributes, [key, value]) => {
-    if (value === undefined) {
+    if (value == null) {
       return attributes;
     }
 
