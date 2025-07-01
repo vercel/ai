@@ -93,6 +93,26 @@ async function main() {
     fs.writeFileSync(`multi-edit-${index}.png`, Buffer.from(image.uint8Array));
   });
 
+  // Example 5: Using mask for inpainting (edit specific parts of the image)
+  console.log('Editing with mask for inpainting...');
+  const maskBuffer = fs.readFileSync(path.join(__dirname, '../../data/comic-cat-mask.png'));
+  
+  const inpaintResult = await generateImage({
+    model: openai.imageModel('gpt-image-1'),
+    images: [{
+      image: imageBuffer,
+      mediaType: 'image/png'
+    }],
+    mask: maskBuffer,
+    prompt: 'Use a techno style on the masked area',
+    size: '1024x1024',
+  });
+
+  fs.writeFileSync(
+    'inpainted-image.png',
+    Buffer.from(inpaintResult.image.uint8Array),
+  );
+
   console.log('All operations completed!');
 }
 
