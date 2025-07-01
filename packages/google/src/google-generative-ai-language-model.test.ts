@@ -649,6 +649,80 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass systemInstruction in object-tool mode', async () => {
+    prepareJsonResponse({});
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'object-tool',
+        tool: {
+          name: 'test-tool',
+          type: 'function',
+          parameters: {
+            type: 'object',
+            properties: {
+              result: { type: 'string' },
+            },
+            required: ['result'],
+            additionalProperties: false,
+          },
+        },
+      },
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {},
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "You are a helpful assistant.",
+            },
+          ],
+        },
+        "toolConfig": {
+          "functionCallingConfig": {
+            "mode": "ANY",
+          },
+        },
+        "tools": {
+          "functionDeclarations": [
+            {
+              "description": "",
+              "name": "test-tool",
+              "parameters": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "result",
+                ],
+                "type": "object",
+              },
+            },
+          ],
+        },
+      }
+    `);
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse({});
 

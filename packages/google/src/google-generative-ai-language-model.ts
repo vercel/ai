@@ -190,6 +190,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           args: {
             generationConfig,
             contents,
+            systemInstruction,
             tools: {
               functionDeclarations: [
                 {
