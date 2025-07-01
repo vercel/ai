@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.0-beta.4
+
+### Patch Changes
+
+- 09f41ac: fix (ui): add message metadata in Chat.sendMessage
+
 ## 5.0.0-beta.3
 
 ### Patch Changes
