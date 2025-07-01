@@ -251,7 +251,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         }
       | {
           files: FileList | FileUIPart[];
-          metadata?: InferUIMessageMetadata<UI_MESSAGE>;
+          metadata?: never;
           parts?: never;
           messageId?: string;
         },
@@ -264,11 +264,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ? message.files
         : await convertFileListToFileUIParts(message.files);
 
+      console.log('MESSAGE METADATA', message.metadata);
+
       uiMessage = {
         parts: [
           ...fileParts,
           ...('text' in message && message.text != null
-            ? [{ type: 'text' as const, text: message.text }]
+            ? [
+                {
+                  type: 'text' as const,
+                  text: message.text,
+                },
+              ]
             : []),
         ],
       } as UI_MESSAGE;
@@ -299,12 +306,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ...uiMessage,
         id: message.messageId,
         role: uiMessage.role ?? 'user',
+        metadata: message.metadata,
       } as UI_MESSAGE);
     } else {
       this.state.pushMessage({
         ...uiMessage,
         id: uiMessage.id ?? this.generateId(),
         role: uiMessage.role ?? 'user',
+        metadata: message.metadata,
       } as UI_MESSAGE);
     }
 
