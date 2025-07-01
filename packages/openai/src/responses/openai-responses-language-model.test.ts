@@ -910,6 +910,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'o3-mini',
+          reasoning: {
+            effort: 'low',
+            summary: 'auto',
+          },
+        });
       });
 
       it('should include encrypted content when present', async () => {
@@ -965,6 +973,15 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'o3-mini',
+          reasoning: {
+            effort: 'low',
+            summary: 'auto',
+          },
+          include: ['reasoning.encrypted_content'],
+        });
       });
 
       it('should handle encrypted content when reasoning summary is empty', async () => {
@@ -1004,6 +1021,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'o3-mini',
+          reasoning: {
+            effort: 'low',
+          },
+          include: ['reasoning.encrypted_content'],
+        });
       });
 
       it('should handle reasoning with empty summary', async () => {
@@ -1042,6 +1067,13 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'o3-mini',
+          reasoning: {
+            effort: 'low',
+          },
+        });
       });
     });
 
@@ -2102,6 +2134,16 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'o3-mini',
+        reasoning: {
+          effort: 'low',
+          summary: 'auto',
+        },
+        include: ['reasoning.encrypted_content'],
+        stream: true,
+      });
     });
 
     it('should handle encrypted content when summary is empty', async () => {
@@ -2187,6 +2229,15 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'o3-mini',
+        reasoning: {
+          effort: 'low',
+        },
+        include: ['reasoning.encrypted_content'],
+        stream: true,
+      });
     });
 
     it('should handle streaming with empty summary', async () => {
@@ -2271,6 +2322,14 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'o3-mini',
+        reasoning: {
+          effort: 'low',
+        },
+        stream: true,
+      });
     });
   });
 
