@@ -1,10 +1,13 @@
 import {
-  InvalidPromptError,
+  InvalidArgumentError,
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  parseProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   OpenAIResponsesPrompt,
@@ -23,6 +26,13 @@ export async function convertToOpenAIResponsesMessages({
 }> {
   const messages: OpenAIResponsesPrompt = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
+
+  const generateReasoningId = createIdGenerator({
+    prefix: 'rs',
+    separator: '_',
+    size: 48,
+    alphabet: '0123456789abcdef',
+  });
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -107,7 +117,7 @@ export async function convertToOpenAIResponsesMessages({
       case 'assistant': {
         // Track reasoning messages within this assistant message by ID.
         // This allows multiple consecutive reasoning parts with the same ID to be merged into a single reasoning message with combined summaries.
-        let currentReasoningMessages: Record<string, OpenAIResponsesReasoning> =
+        let reasoningMessagesInScope: Record<string, OpenAIResponsesReasoning> =
           {};
 
         for (const part of content) {
@@ -116,7 +126,7 @@ export async function convertToOpenAIResponsesMessages({
             // This ensures that reasoning parts separated by non-reasoning content are treated as separate reasoning sequences.
             // This supports alternating patterns like:
             // reasoning → reasoning → tool-call → tool-result → reasoning → reasoning → reasoning → tool-call → tool-result → ... → text.
-            currentReasoningMessages = {};
+            reasoningMessagesInScope = {};
           }
 
           switch (part.type) {
@@ -150,49 +160,62 @@ export async function convertToOpenAIResponsesMessages({
             }
 
             case 'reasoning': {
-              const providerOptions = await parseProviderOptions({
-                provider: 'openai',
-                providerOptions: part.providerOptions,
-                schema: openaiResponsesReasoningProviderOptionsSchema,
-              });
-              if (providerOptions === undefined) {
-                throw new InvalidPromptError({
-                  prompt: part,
-                  message:
-                    'Reasoning parts require providerOptions: { openai: { reasoning: { id: "..." } } }',
+              let providerOptions:
+                | OpenAIResponsesReasoningProviderOptions
+                | undefined;
+              try {
+                providerOptions = await parseProviderOptions({
+                  provider: 'openai',
+                  providerOptions: part.providerOptions,
+                  schema: openaiResponsesReasoningProviderOptionsSchema,
                 });
+              } catch (error) {
+                warnings.push({
+                  type: 'other',
+                  message: `Failed to parse provider options: ${error instanceof InvalidArgumentError ? error.cause : 'Unknown error'}. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                });
+                break;
               }
-              const reasoningId = providerOptions.reasoning.id;
+
+              const reasoningId =
+                providerOptions?.reasoning?.id ?? generateReasoningId();
               const existingReasoningMessage =
-                currentReasoningMessages[reasoningId];
+                reasoningMessagesInScope[reasoningId];
               if (existingReasoningMessage === undefined) {
                 const newReasoningMessage = {
                   type: 'reasoning' as const,
-                  id: providerOptions.reasoning.id,
-                  encrypted_content: providerOptions.reasoning.encryptedContent,
+                  id: reasoningId,
+                  encrypted_content:
+                    providerOptions?.reasoning?.encryptedContent,
                   summary:
                     part.text.length > 0
                       ? [{ type: 'summary_text' as const, text: part.text }]
                       : [],
                 } satisfies OpenAIResponsesReasoning;
-                currentReasoningMessages[reasoningId] = newReasoningMessage;
+                reasoningMessagesInScope[reasoningId] = newReasoningMessage;
                 messages.push(newReasoningMessage);
               } else {
                 if (
                   existingReasoningMessage.encrypted_content !==
-                  providerOptions.reasoning.encryptedContent
+                  providerOptions?.reasoning?.encryptedContent
                 ) {
-                  throw new InvalidPromptError({
-                    prompt: part,
-                    message:
-                      'Consecutive reasoning parts with same ID must have matching encrypted content', // Because they will be merged into a single reasoning message.
+                  warnings.push({
+                    type: 'other',
+                    message: `Consecutive reasoning parts with same ID must have matching encrypted content. Skipping reasoning part: ${JSON.stringify(part)}.`,
                   });
+                  break;
                 }
                 if (part.text.length > 0) {
                   existingReasoningMessage.summary.push({
                     type: 'summary_text' as const,
                     text: part.text,
                   });
+                } else {
+                  warnings.push({
+                    type: 'other',
+                    message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                  });
+                  break;
                 }
               }
               break;
@@ -241,10 +264,12 @@ export async function convertToOpenAIResponsesMessages({
 }
 
 const openaiResponsesReasoningProviderOptionsSchema = z.object({
-  reasoning: z.object({
-    id: z.string(),
-    encryptedContent: z.string().nullish(),
-  }),
+  reasoning: z
+    .object({
+      id: z.string().nullish(),
+      encryptedContent: z.string().nullish(),
+    })
+    .nullish(),
 });
 
 export type OpenAIResponsesReasoningProviderOptions = z.infer<
