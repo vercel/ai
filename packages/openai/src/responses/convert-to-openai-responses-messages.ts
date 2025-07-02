@@ -105,9 +105,20 @@ export async function convertToOpenAIResponsesMessages({
       }
 
       case 'assistant': {
-        const currentReasoningMessages: OpenAIResponsesReasoning[] = [];
+        // Track reasoning messages within this assistant message by ID.
+        // This allows multiple consecutive reasoning parts with the same ID to be merged into a single reasoning message with combined summaries.
+        let currentReasoningMessages: Record<string, OpenAIResponsesReasoning> =
+          {};
 
         for (const part of content) {
+          if (part.type !== 'reasoning') {
+            // Reset reasoning state when encountering non-reasoning content.
+            // This ensures that reasoning parts separated by non-reasoning content are treated as separate reasoning sequences.
+            // This supports alternating patterns like:
+            // reasoning → reasoning → tool-call → tool-result → reasoning → reasoning → reasoning → tool-call → tool-result → ... → text.
+            currentReasoningMessages = {};
+          }
+
           switch (part.type) {
             case 'text': {
               messages.push({
@@ -151,11 +162,11 @@ export async function convertToOpenAIResponsesMessages({
                     'Reasoning parts require providerOptions: { openai: { reasoning: { id: "..." } } }',
                 });
               }
-              const existingReasoning = currentReasoningMessages.find(
-                reasoning => reasoning.id === providerOptions.reasoning.id,
-              );
-              if (existingReasoning === undefined) {
-                const newReasoning = {
+              const reasoningId = providerOptions.reasoning.id;
+              const existingReasoningMessage =
+                currentReasoningMessages[reasoningId];
+              if (existingReasoningMessage === undefined) {
+                const newReasoningMessage = {
                   type: 'reasoning' as const,
                   id: providerOptions.reasoning.id,
                   encrypted_content: providerOptions.reasoning.encryptedContent,
@@ -164,21 +175,21 @@ export async function convertToOpenAIResponsesMessages({
                       ? [{ type: 'summary_text' as const, text: part.text }]
                       : [],
                 } satisfies OpenAIResponsesReasoning;
-                currentReasoningMessages.push(newReasoning);
-                messages.push(newReasoning);
+                currentReasoningMessages[reasoningId] = newReasoningMessage;
+                messages.push(newReasoningMessage);
               } else {
                 if (
-                  existingReasoning.encrypted_content !==
+                  existingReasoningMessage.encrypted_content !==
                   providerOptions.reasoning.encryptedContent
                 ) {
                   throw new InvalidPromptError({
                     prompt: part,
                     message:
-                      'Reasoning parts with same ID (within the same assistant message) must have matching encrypted content',
+                      'Consecutive reasoning parts with same ID must have matching encrypted content', // Because they will be merged into a single reasoning message.
                   });
                 }
                 if (part.text.length > 0) {
-                  existingReasoning.summary.push({
+                  existingReasoningMessage.summary.push({
                     type: 'summary_text' as const,
                     text: part.text,
                   });
