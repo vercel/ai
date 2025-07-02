@@ -424,15 +424,6 @@ const { image } = await generateImage({
 });
 ```
 
-You can also use the deprecated `.image()` method, which works identically:
-
-```ts
-const { image } = await generateImage({
-  model: xai.image('grok-2-image'), // deprecated, use .imageModel() instead
-  prompt: 'A futuristic cityscape at sunset',
-});
-```
-
 <Note>
   The xAI image model does not currently support the `aspectRatio` or `size`
   parameters. Image size defaults to 1024x768.
