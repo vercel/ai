@@ -530,7 +530,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     openai: {
                       reasoning: {
-                        outputIndex: value.output_index,
                         encryptedContent: value.item.encrypted_content ?? null,
                       },
                     },
@@ -619,7 +618,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     openai: {
                       reasoning: {
-                        outputIndex: value.output_index,
                         encryptedContent: value.item.encrypted_content ?? null,
                       },
                     },
@@ -655,14 +653,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: 'reasoning-delta' as const,
                 id: value.item_id,
                 delta: value.delta,
-                providerMetadata: {
-                  openai: {
-                    reasoning: {
-                      outputIndex: value.output_index,
-                      summaryIndex: value.summary_index,
-                    },
-                  },
-                },
               });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({

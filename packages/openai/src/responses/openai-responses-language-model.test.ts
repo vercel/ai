@@ -2118,7 +2118,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "reasoning": {
                   "encryptedContent": null,
-                  "outputIndex": 0,
                 },
               },
             },
@@ -2129,27 +2128,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         The user is",
             "id": "rs_68082c0556348191af675cee0453109b",
-            "providerMetadata": {
-              "openai": {
-                "reasoning": {
-                  "outputIndex": 0,
-                  "summaryIndex": 0,
-                },
-              },
-            },
             "type": "reasoning-delta",
           },
           {
             "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
             "id": "rs_68082c0556348191af675cee0453109b",
-            "providerMetadata": {
-              "openai": {
-                "reasoning": {
-                  "outputIndex": 0,
-                  "summaryIndex": 0,
-                },
-              },
-            },
             "type": "reasoning-delta",
           },
           {
@@ -2157,14 +2140,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         There's a fascinating debate about who created the Mission burrito.",
             "id": "rs_68082c0556348191af675cee0453109b",
-            "providerMetadata": {
-              "openai": {
-                "reasoning": {
-                  "outputIndex": 0,
-                  "summaryIndex": 1,
-                },
-              },
-            },
             "type": "reasoning-delta",
           },
           {
@@ -2173,7 +2148,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "reasoning": {
                   "encryptedContent": null,
-                  "outputIndex": 0,
                 },
               },
             },
@@ -2268,7 +2242,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "reasoning": {
                   "encryptedContent": "encrypted_reasoning_data_abc123",
-                  "outputIndex": 0,
                 },
               },
             },
@@ -2279,27 +2252,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         The user is",
             "id": "rs_68082c0556348191af675cee0453109b",
-            "providerMetadata": {
-              "openai": {
-                "reasoning": {
-                  "outputIndex": 0,
-                  "summaryIndex": 0,
-                },
-              },
-            },
             "type": "reasoning-delta",
           },
           {
             "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
             "id": "rs_68082c0556348191af675cee0453109b",
-            "providerMetadata": {
-              "openai": {
-                "reasoning": {
-                  "outputIndex": 0,
-                  "summaryIndex": 0,
-                },
-              },
-            },
             "type": "reasoning-delta",
           },
           {
@@ -2307,14 +2264,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         There's a fascinating debate about who created the Mission burrito.",
             "id": "rs_68082c0556348191af675cee0453109b",
-            "providerMetadata": {
-              "openai": {
-                "reasoning": {
-                  "outputIndex": 0,
-                  "summaryIndex": 1,
-                },
-              },
-            },
             "type": "reasoning-delta",
           },
           {
@@ -2323,7 +2272,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "reasoning": {
                   "encryptedContent": "encrypted_reasoning_data_abc123",
-                  "outputIndex": 0,
                 },
               },
             },
@@ -2416,7 +2364,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "reasoning": {
                   "encryptedContent": "encrypted_reasoning_data_abc123",
-                  "outputIndex": 0,
                 },
               },
             },
@@ -2428,7 +2375,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "reasoning": {
                   "encryptedContent": "encrypted_reasoning_data_abc123",
-                  "outputIndex": 0,
                 },
               },
             },
@@ -2519,7 +2465,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "reasoning": {
                   "encryptedContent": null,
-                  "outputIndex": 0,
                 },
               },
             },
@@ -2531,7 +2476,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "reasoning": {
                   "encryptedContent": null,
-                  "outputIndex": 0,
                 },
               },
             },
