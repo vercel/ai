@@ -8,6 +8,10 @@ export {
   type CreateUIMessage,
   type InferUIDataParts,
   type UIDataPartSchemas,
+  type ChatErrorCallback,
+  type ChatToolCallCallback,
+  type ChatDataCallback,
+  type ChatFinishCallback,
 } from './chat';
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
