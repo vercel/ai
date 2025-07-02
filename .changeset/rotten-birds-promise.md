@@ -1,5 +1,5 @@
 ---
-'ai': minor
+'ai': patch
 ---
 
 update mcp protocol version
