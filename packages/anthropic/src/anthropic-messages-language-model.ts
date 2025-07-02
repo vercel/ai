@@ -139,7 +139,6 @@ type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
-  dangerouslyEnableFineGrainedToolStreaming?: boolean;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
@@ -341,7 +340,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       },
       warnings: [...warnings, ...toolWarnings],
       betas: new Set([
-        ...(this.config.dangerouslyEnableFineGrainedToolStreaming
+        ...(anthropicOptions?.enableBetaFineGrainedToolStreaming
           ? ['fine-grained-tool-streaming-2025-05-14']
           : []),
         ...messagesBetas,
