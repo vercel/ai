@@ -75,4 +75,8 @@ export type OpenAIResponsesTool =
         city: string;
         region: string;
       };
+    }
+  | {
+      type: 'code_interpreter';
+      container: { type: 'auto' };
     };
