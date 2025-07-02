@@ -908,7 +908,7 @@ const model = openai.embedding('text-embedding-3-large');
 await model.doEmbed({
   providerOptions: {
     openai: {
-      dimensions: 512 // optional, number of dimensions for the embedding
+      dimensions: 512, // optional, number of dimensions for the embedding
       user: 'test-user' // optional unique user identifier
     }
   }
