@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // https://platform.openai.com/docs/models
 export type OpenAIChatModelId =
@@ -55,7 +55,7 @@ export const openaiProviderOptions = z.object({
    * Accepts a JSON object that maps tokens (specified by their token ID in
    * the GPT tokenizer) to an associated bias value from -100 to 100.
    */
-  logitBias: z.record(z.coerce.number(), z.number()).optional(),
+  logitBias: z.record(z.coerce.number<string>(), z.number()).optional(),
 
   /**
    * Return the log probabilities of the tokens.
@@ -97,12 +97,12 @@ export const openaiProviderOptions = z.object({
   /**
    * Metadata to associate with the request.
    */
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string().max(64), z.string().max(512)).optional(),
 
   /**
    * Parameters for prediction mode.
    */
-  prediction: z.record(z.any()).optional(),
+  prediction: z.record(z.string(), z.any()).optional(),
 
   /**
    * Whether to use structured outputs.
@@ -118,6 +118,13 @@ export const openaiProviderOptions = z.object({
    * @default 'auto'
    */
   serviceTier: z.enum(['auto', 'flex']).optional(),
+
+  /**
+   * Whether to use strict JSON schema validation.
+   *
+   * @default true
+   */
+  strictJsonSchema: z.boolean().optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;

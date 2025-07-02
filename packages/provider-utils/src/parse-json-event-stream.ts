@@ -2,7 +2,7 @@ import {
   EventSourceMessage,
   EventSourceParserStream,
 } from 'eventsource-parser/stream';
-import { ZodSchema } from 'zod';
+import { ZodType } from 'zod/v4';
 import { ParseResult, safeParseJSON } from './parse-json';
 
 /**
@@ -13,7 +13,7 @@ export function parseJsonEventStream<T>({
   schema,
 }: {
   stream: ReadableStream<Uint8Array>;
-  schema: ZodSchema<T>;
+  schema: ZodType<T>;
 }): ReadableStream<ParseResult<T>> {
   return stream
     .pipeThrough(new TextDecoderStream())

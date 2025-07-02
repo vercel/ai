@@ -86,8 +86,38 @@ export const BEDROCK_STOP_REASONS = [
 
 export type BedrockStopReason = (typeof BEDROCK_STOP_REASONS)[number];
 
-export type BedrockImageFormat = 'jpeg' | 'png' | 'gif';
-export type BedrockDocumentFormat = 'pdf' | 'txt' | 'md';
+/**
+ * @see https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ImageBlock.html
+ */
+export const BEDROCK_IMAGE_MIME_TYPES = {
+  'image/jpeg': 'jpeg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+} as const;
+type BedrockImageFormats = typeof BEDROCK_IMAGE_MIME_TYPES;
+export type BedrockImageFormat = BedrockImageFormats[keyof BedrockImageFormats];
+export type BedrockImageMimeType = keyof BedrockImageFormats;
+
+/**
+ * @see https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_DocumentBlock.html
+ */
+export const BEDROCK_DOCUMENT_MIME_TYPES = {
+  'application/pdf': 'pdf',
+  'text/csv': 'csv',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+    'docx',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'text/html': 'html',
+  'text/plain': 'txt',
+  'text/markdown': 'md',
+} as const;
+type BedrockDocumentFormats = typeof BEDROCK_DOCUMENT_MIME_TYPES;
+export type BedrockDocumentFormat =
+  BedrockDocumentFormats[keyof BedrockDocumentFormats];
+export type BedrockDocumentMimeType = keyof BedrockDocumentFormats;
 
 export interface BedrockDocumentBlock {
   document: {

@@ -1,12 +1,11 @@
-import { gateway } from '@ai-sdk/gateway';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = await generateText({
-    model: gateway('xai/grok-3-beta'),
+    model: 'xai/grok-3',
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

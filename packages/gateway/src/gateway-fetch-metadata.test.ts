@@ -95,7 +95,7 @@ describe('GatewayFetchMetadata', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toBe('Unauthorized');
+        expect(authError.message).toContain('No authentication provided');
         expect(authError.type).toBe('authentication_error');
         expect(authError.statusCode).toBe(401);
       }
@@ -121,7 +121,7 @@ describe('GatewayFetchMetadata', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toBe('Forbidden access');
+        expect(authError.message).toContain('No authentication provided');
         expect(authError.type).toBe('authentication_error');
         expect(authError.statusCode).toBe(403);
       }

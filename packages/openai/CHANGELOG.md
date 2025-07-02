@@ -1,5 +1,21 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.3
+
+### Major Changes
+
+- efc3a62: fix (provider/openai): default strict mode to false
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
 ## 2.0.0-beta.1
 
 ### Major Changes

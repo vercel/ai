@@ -31,6 +31,10 @@ You need to update the following packages to the following versions in your `pac
 - `@ai-sdk/provider-utils` package: `3.0.0-beta`
 - `@ai-sdk/*` packages: `2.0.0-beta` (other `@ai-sdk` packages)
 
+Additionally, you need to update the following peer dependencies:
+
+- `zod` package: `3.25.0` or later
+
 ## AI SDK Core Changes
 
 ### generateText and streamText Changes
@@ -1011,18 +1015,18 @@ The Svelte integration has also been updated with new constructor patterns and r
 #### Constructor API Changes
 
 ```js filename="@ai-sdk/svelte v1"
-import { chat } from '@ai-sdk/svelte';
+import { Chat } from '@ai-sdk/svelte';
 
-const chatInstance = chat({
+const chatInstance = Chat({
   api: '/api/chat',
 });
 ```
 
 ```js filename="@ai-sdk/svelte v2"
-import { chat } from '@ai-sdk/svelte';
+import { Chat } from '@ai-sdk/svelte';
 import { DefaultChatTransport } from 'ai';
 
-const chatInstance = chat(() => ({
+const chatInstance = Chat(() => ({
   transport: new DefaultChatTransport({ api: '/api/chat' }),
 }));
 ```

@@ -257,6 +257,7 @@ describe('text stream', () => {
       [
         {
           "id": "id-1",
+          "metadata": undefined,
           "parts": [
             {
               "text": "hi",
@@ -807,6 +808,7 @@ describe('maxSteps', () => {
         [
           {
             "id": "id-0",
+            "metadata": undefined,
             "parts": [
               {
                 "text": "hi",
@@ -936,6 +938,7 @@ describe('file attachments with data url', () => {
       [
         {
           "id": "id-1",
+          "metadata": undefined,
           "parts": [
             {
               "filename": "test.txt",
@@ -1024,6 +1027,7 @@ describe('file attachments with data url', () => {
       [
         {
           "id": "id-1",
+          "metadata": undefined,
           "parts": [
             {
               "filename": "test.png",
@@ -1122,6 +1126,7 @@ describe('file attachments with url', () => {
       [
         {
           "id": "id-1",
+          "metadata": undefined,
           "parts": [
             {
               "filename": "test.png",
@@ -1221,6 +1226,7 @@ describe('file attachments with empty text content', () => {
       [
         {
           "id": "id-1",
+          "metadata": undefined,
           "parts": [
             {
               "filename": "test.png",
@@ -1443,6 +1449,7 @@ describe('generateId function', () => {
       [
         {
           "id": "testid-1",
+          "metadata": undefined,
           "parts": [
             {
               "text": "hi",

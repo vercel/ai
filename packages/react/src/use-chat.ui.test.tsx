@@ -611,6 +611,7 @@ describe('prepareChatRequest', () => {
         "messages": [
           {
             "id": "id-1",
+            "metadata": undefined,
             "parts": [
               {
                 "text": "hi",

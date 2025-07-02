@@ -1,6 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4/core';
+import * as z4 from 'zod/v4';
 import zodToJsonSchema from 'zod-to-json-schema';
 import { jsonSchema, Schema } from './schema';
 
@@ -36,7 +36,7 @@ export function zod3Schema<OBJECT>(
 }
 
 export function zod4Schema<OBJECT>(
-  zodSchema: z4.$ZodType<OBJECT, any>,
+  zodSchema: z4.ZodType<OBJECT, any>,
   options?: {
     /**
      * Enables support for references in the schema.
@@ -67,14 +67,14 @@ export function zod4Schema<OBJECT>(
 }
 
 export function isZod4Schema(
-  zodSchema: z4.$ZodType<any, any> | z3.Schema<any, z3.ZodTypeDef, any>,
-): zodSchema is z4.$ZodType<any, any> {
+  zodSchema: z4.ZodType<any, any> | z3.Schema<any, z3.ZodTypeDef, any>,
+): zodSchema is z4.ZodType<any, any> {
   // https://zod.dev/library-authors?id=how-to-support-zod-3-and-zod-4-simultaneously
   return '_zod' in zodSchema;
 }
 
 export function zodSchema<OBJECT>(
-  zodSchema: z4.$ZodType<OBJECT, any> | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  zodSchema: z4.ZodType<OBJECT, any> | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
   options?: {
     /**
      * Enables support for references in the schema.

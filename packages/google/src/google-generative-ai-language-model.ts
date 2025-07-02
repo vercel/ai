@@ -19,7 +19,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
@@ -105,22 +105,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { contents, systemInstruction } =
-      convertToGoogleGenerativeAIMessages(prompt);
-
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    if (
-      isGemmaModel &&
-      systemInstruction &&
-      systemInstruction.parts.length > 0
-    ) {
-      warnings.push({
-        type: 'other',
-        message:
-          `GEMMA models do not support system instructions. System messages will be ignored. ` +
-          `Consider including instructions in the first user message instead.`,
-      });
-    }
+
+    const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
+      prompt,
+      { isGemmaModel },
+    );
 
     const {
       tools: googleTools,

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { GatewayError } from './gateway-error';
 import { GatewayAuthenticationError } from './gateway-authentication-error';
 import { GatewayInvalidRequestError } from './gateway-invalid-request-error';
@@ -15,11 +15,13 @@ export function createGatewayErrorFromResponse({
   statusCode,
   defaultMessage = 'Gateway request failed',
   cause,
+  authMethod,
 }: {
   response: unknown;
   statusCode: number;
   defaultMessage?: string;
   cause?: unknown;
+  authMethod?: 'api-key' | 'oidc';
 }): GatewayError {
   const parseResult = gatewayErrorResponseSchema.safeParse(response);
   if (!parseResult.success) {
@@ -38,7 +40,12 @@ export function createGatewayErrorFromResponse({
 
   switch (errorType) {
     case 'authentication_error':
-      return new GatewayAuthenticationError({ message, statusCode, cause });
+      return GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: authMethod === 'api-key',
+        oidcTokenProvided: authMethod === 'oidc',
+        statusCode,
+        cause,
+      });
     case 'invalid_request_error':
       return new GatewayInvalidRequestError({ message, statusCode, cause });
     case 'rate_limit_exceeded':

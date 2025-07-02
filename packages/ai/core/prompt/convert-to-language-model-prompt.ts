@@ -294,7 +294,7 @@ function convertPartToLanguageModelPart(
     const downloadedFile = downloadedAssets[data.toString()];
     if (downloadedFile) {
       data = downloadedFile.data;
-      mediaType = downloadedFile.mediaType ?? mediaType;
+      mediaType ??= downloadedFile.mediaType;
     }
   }
 

@@ -1,5 +1,5 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // Args validation schema
 export const fileSearchArgsSchema = z.object({

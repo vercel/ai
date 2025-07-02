@@ -124,6 +124,7 @@ function isEmptyObjectSchema(jsonSchema: JSONSchema7Definition): boolean {
     typeof jsonSchema === 'object' &&
     jsonSchema.type === 'object' &&
     (jsonSchema.properties == null ||
-      Object.keys(jsonSchema.properties).length === 0)
+      Object.keys(jsonSchema.properties).length === 0) &&
+    !jsonSchema.additionalProperties
   );
 }

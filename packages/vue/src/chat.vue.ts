@@ -43,11 +43,11 @@ class VueChatState<UI_MESSAGE extends UIMessage>
   }
 
   pushMessage = (message: UI_MESSAGE) => {
-    this.messagesRef.value.push(message);
+    this.messagesRef.value = [...this.messagesRef.value, message];
   };
 
   popMessage = () => {
-    this.messagesRef.value.pop();
+    this.messagesRef.value = this.messagesRef.value.slice(0, -1);
   };
 
   replaceMessage = (index: number, message: UI_MESSAGE) => {

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { ValueOf } from '../util/value-of';
 import {
   InferUIMessageData,
@@ -59,23 +59,23 @@ export const uiMessageStreamPartSchema = z.union([
   z.strictObject({
     type: z.literal('reasoning'),
     text: z.string(),
-    providerMetadata: z.record(z.any()).optional(),
+    providerMetadata: z.record(z.string(), z.any()).optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-start'),
     id: z.string(),
-    providerMetadata: z.record(z.any()).optional(),
+    providerMetadata: z.record(z.string(), z.any()).optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-delta'),
     id: z.string(),
     delta: z.string(),
-    providerMetadata: z.record(z.any()).optional(),
+    providerMetadata: z.record(z.string(), z.any()).optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-end'),
     id: z.string(),
-    providerMetadata: z.record(z.any()).optional(),
+    providerMetadata: z.record(z.string(), z.any()).optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-part-finish'),
@@ -104,6 +104,7 @@ export const uiMessageStreamPartSchema = z.union([
     type: z.string().startsWith('data-'),
     id: z.string().optional(),
     data: z.unknown(),
+    transient: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('start-step'),
@@ -131,6 +132,7 @@ export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
     type: `data-${NAME}`;
     id?: string;
     data: DATA_TYPES[NAME];
+    transient?: boolean;
   };
 }>;
 

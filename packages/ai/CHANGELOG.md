@@ -1,5 +1,49 @@
 # ai
 
+## 5.0.0-beta.6
+
+### Patch Changes
+
+- 143c55b: feat (ai): export Chat callback types
+- f04ffe4: feat (ui): add onData callback to Chat
+- 97c35c0: feat (ui): transient data parts
+- fccf75c: update mcp protocol version
+
+## 5.0.0-beta.5
+
+### Patch Changes
+
+- 4f3e637: fix (ui): avoid caching globalThis.fetch in case it is patched by other libraries
+
+## 5.0.0-beta.4
+
+### Patch Changes
+
+- 09f41ac: fix (ui): add message metadata in Chat.sendMessage
+
+## 5.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [f3639fa]
+- Updated dependencies [d454e4b]
+  - @ai-sdk/gateway@1.0.0-beta.3
+
+## 5.0.0-beta.2
+
+### Patch Changes
+
+- 0d9583c: fix (ai): use user-provided media type when available
+- c6b64a7: feat (ai): allow async prepareRequest on HttpChatTransport
+- cb3b9c9: fix (ai): catch errors in ui message stream
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [c91586a]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+  - @ai-sdk/gateway@1.0.0-beta.2
+
 ## 5.0.0-beta.1
 
 ### Major Changes

@@ -17,7 +17,7 @@ import {
   generateId,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { CohereChatModelId } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';

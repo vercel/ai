@@ -14,10 +14,11 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
+import { parseAuthMethod } from './errors/parse-auth-method';
 
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
@@ -41,6 +42,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { abortSignal, ...body } = options;
+    const resolvedHeaders = await resolve(this.config.headers());
     try {
       const {
         responseHeaders,
@@ -49,7 +51,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
       } = await postJsonToApi({
         url: this.getUrl(),
         headers: combineHeaders(
-          await resolve(this.config.headers()),
+          resolvedHeaders,
           options.headers,
           this.getModelConfigHeaders(this.modelId, false),
           await resolve(this.config.o11yHeaders),
@@ -71,7 +73,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         warnings: [],
       };
     } catch (error) {
-      throw asGatewayError(error);
+      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
     }
   }
 
@@ -79,12 +81,12 @@ export class GatewayLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { abortSignal, ...body } = options;
-
+    const resolvedHeaders = await resolve(this.config.headers());
     try {
       const { value: response, responseHeaders } = await postJsonToApi({
         url: this.getUrl(),
         headers: combineHeaders(
-          await resolve(this.config.headers()),
+          resolvedHeaders,
           options.headers,
           this.getModelConfigHeaders(this.modelId, true),
           await resolve(this.config.o11yHeaders),
@@ -115,6 +117,14 @@ export class GatewayLanguageModel implements LanguageModelV2 {
                   return; // Skip raw chunks if not requested
                 }
 
+                if (
+                  streamPart.type === 'response-metadata' &&
+                  streamPart.timestamp &&
+                  typeof streamPart.timestamp === 'string'
+                ) {
+                  streamPart.timestamp = new Date(streamPart.timestamp);
+                }
+
                 controller.enqueue(streamPart);
               } else {
                 controller.error(
@@ -128,7 +138,7 @@ export class GatewayLanguageModel implements LanguageModelV2 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw asGatewayError(error);
+      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
     }
   }
 

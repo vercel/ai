@@ -3,9 +3,6 @@ import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-part
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
 
-// use function to allow for mocking in tests:
-const getOriginalFetch = () => fetch;
-
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
     id: string;
@@ -22,12 +19,19 @@ export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
       | 'regenerate-assistant-message';
     messageId: string | undefined;
   },
-) => {
-  body: object;
-  headers?: HeadersInit;
-  credentials?: RequestCredentials;
-  api?: string;
-};
+) =>
+  | {
+      body: object;
+      headers?: HeadersInit;
+      credentials?: RequestCredentials;
+      api?: string;
+    }
+  | PromiseLike<{
+      body: object;
+      headers?: HeadersInit;
+      credentials?: RequestCredentials;
+      api?: string;
+    }>;
 
 export type PrepareReconnectToStreamRequest = (options: {
   id: string;
@@ -36,11 +40,17 @@ export type PrepareReconnectToStreamRequest = (options: {
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   api: string;
-}) => {
-  headers?: HeadersInit;
-  credentials?: RequestCredentials;
-  api?: string;
-};
+}) =>
+  | {
+      headers?: HeadersInit;
+      credentials?: RequestCredentials;
+      api?: string;
+    }
+  | PromiseLike<{
+      headers?: HeadersInit;
+      credentials?: RequestCredentials;
+      api?: string;
+    }>;
 
 export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
   api?: string;
@@ -98,7 +108,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   protected credentials?: RequestCredentials;
   protected headers?: Record<string, string> | Headers;
   protected body?: object;
-  protected fetch: FetchFunction;
+  protected fetch?: FetchFunction;
   protected prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
   protected prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 
@@ -107,7 +117,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     credentials,
     headers,
     body,
-    fetch = getOriginalFetch(),
+    fetch,
     prepareSendMessagesRequest,
     prepareReconnectToStreamRequest,
   }: HttpChatTransportInitOptions<UI_MESSAGE>) {
@@ -124,7 +134,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     abortSignal,
     ...options
   }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]) {
-    const preparedRequest = this.prepareSendMessagesRequest?.({
+    const preparedRequest = await this.prepareSendMessagesRequest?.({
       api: this.api,
       id: options.chatId,
       messages: options.messages,
@@ -154,7 +164,10 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
           };
     const credentials = preparedRequest?.credentials ?? this.credentials;
 
-    const response = await this.fetch.call(undefined, api, {
+    // avoid caching globalThis.fetch in case it is patched by other libraries
+    const fetch = this.fetch ?? globalThis.fetch;
+
+    const response = await fetch(api, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -181,7 +194,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   async reconnectToStream(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
   ): Promise<ReadableStream<UIMessageStreamPart> | null> {
-    const preparedRequest = this.prepareReconnectToStreamRequest?.({
+    const preparedRequest = await this.prepareReconnectToStreamRequest?.({
       api: this.api,
       id: options.chatId,
       body: { ...this.body, ...options.body },
@@ -197,7 +210,10 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
         : { ...this.headers, ...options.headers };
     const credentials = preparedRequest?.credentials ?? this.credentials;
 
-    const response = await this.fetch.call(undefined, api, {
+    // avoid caching globalThis.fetch in case it is patched by other libraries
+    const fetch = this.fetch ?? globalThis.fetch;
+
+    const response = await fetch(api, {
       method: 'GET',
       headers,
       credentials,

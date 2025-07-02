@@ -1,5 +1,49 @@
 # @ai-sdk/svelte
 
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [143c55b]
+- Updated dependencies [f04ffe4]
+- Updated dependencies [97c35c0]
+- Updated dependencies [fccf75c]
+  - ai@5.0.0-beta.6
+
+## 3.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [4f3e637]
+  - ai@5.0.0-beta.5
+
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [09f41ac]
+  - ai@5.0.0-beta.4
+
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- ai@5.0.0-beta.3
+
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0d9583c]
+- Updated dependencies [0571b98]
+- Updated dependencies [c6b64a7]
+- Updated dependencies [39a4fab]
+- Updated dependencies [cb3b9c9]
+- Updated dependencies [d1a034f]
+  - ai@5.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
 ## 3.0.0-beta.1
 
 ### Patch Changes

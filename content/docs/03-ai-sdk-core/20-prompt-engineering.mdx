@@ -51,6 +51,65 @@ const result = await generateObject({
 });
 ```
 
+#### Optional Parameters
+
+When working with tools that have optional parameters, you may encounter compatibility issues with certain providers that use strict schema validation.
+
+<Note>
+  This is particularly relevant for OpenAI models with structured outputs
+  (strict mode).
+</Note>
+
+For maximum compatibility, optional parameters should use `.nullable()` instead of `.optional()`:
+
+```ts highlight="6,7,16,17"
+// This may fail with strict schema validation
+const failingTool = tool({
+  description: 'Execute a command',
+  inputSchema: z.object({
+    command: z.string(),
+    workdir: z.string().optional(), // This can cause errors
+    timeout: z.string().optional(),
+  }),
+});
+
+// This works with strict schema validation
+const workingTool = tool({
+  description: 'Execute a command',
+  inputSchema: z.object({
+    command: z.string(),
+    workdir: z.string().nullable(), // Use nullable instead
+    timeout: z.string().nullable(),
+  }),
+});
+```
+
+#### Temperature Settings
+
+For tool calls and object generation, it's recommended to use `temperature: 0` to ensure deterministic and consistent results:
+
+```ts highlight="3"
+const result = await generateText({
+  model: openai('gpt-4o'),
+  temperature: 0, // Recommended for tool calls
+  tools: {
+    myTool: tool({
+      description: 'Execute a command',
+      inputSchema: z.object({
+        command: z.string(),
+      }),
+    }),
+  },
+  prompt: 'Execute the ls command',
+});
+```
+
+Lower temperature values reduce randomness in model outputs, which is particularly important when the model needs to:
+
+- Generate structured data with specific formats
+- Make precise tool calls with correct parameters
+- Follow strict schemas consistently
+
 ## Debugging
 
 ### Inspecting Warnings

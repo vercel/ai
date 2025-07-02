@@ -31,6 +31,7 @@ const createTestModel = (
     baseURL: 'https://api.test.com',
     headers: () => ({
       Authorization: 'Bearer test-token',
+      'x-ai-gateway-auth-method': 'api-key',
     }),
     fetch: globalThis.fetch,
     o11yHeaders: config.o11yHeaders || {},
@@ -213,7 +214,7 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toBe('Invalid API key provided');
+        expect(authError.message).toContain('Invalid API key provided');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }
@@ -755,7 +756,7 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toBe('Authentication failed for streaming');
+        expect(authError.message).toContain('Invalid API key provided');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }
@@ -1135,6 +1136,180 @@ describe('GatewayLanguageModel', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('timestamp conversion', () => {
+    it('should convert timestamp strings to Date objects in response-metadata chunks', async () => {
+      const timestampString = '2023-12-07T10:30:00.000Z';
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"response-metadata","id":"test-id","modelId":"test-model","timestamp":"${timestampString}"}\n\n`,
+          `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks).toHaveLength(4);
+      expect(chunks[0]).toEqual({
+        type: 'stream-start',
+        warnings: [],
+      });
+
+      // Check that the response-metadata chunk has timestamp converted to Date
+      const responseMetadataChunk = chunks[1] as any;
+      expect(responseMetadataChunk).toMatchObject({
+        type: 'response-metadata',
+        id: 'test-id',
+        modelId: 'test-model',
+      });
+      expect(responseMetadataChunk.timestamp).toBeInstanceOf(Date);
+      expect(responseMetadataChunk.timestamp.toISOString()).toBe(
+        timestampString,
+      );
+    });
+
+    it('should not modify timestamp if it is already a Date object', async () => {
+      const timestampDate = new Date('2023-12-07T10:30:00.000Z');
+
+      // Use standard stream-chunks format with Date serialized as string, then manually parse
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"response-metadata","id":"test-id","modelId":"test-model","timestamp":"${timestampDate.toISOString()}"}\n\n`,
+          `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks).toHaveLength(4);
+
+      // Check that the response-metadata chunk timestamp is converted to Date
+      const responseMetadataChunk = chunks[1] as any;
+      expect(responseMetadataChunk).toMatchObject({
+        type: 'response-metadata',
+        id: 'test-id',
+        modelId: 'test-model',
+      });
+      expect(responseMetadataChunk.timestamp).toBeInstanceOf(Date);
+    });
+
+    it('should not modify response-metadata chunks without timestamp', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"response-metadata","id":"test-id","modelId":"test-model"}\n\n`,
+          `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks).toHaveLength(4);
+
+      // Check that the response-metadata chunk without timestamp is unchanged
+      const responseMetadataChunk = chunks[1] as any;
+      expect(responseMetadataChunk).toEqual({
+        type: 'response-metadata',
+        id: 'test-id',
+        modelId: 'test-model',
+      });
+      expect(responseMetadataChunk.timestamp).toBeUndefined();
+    });
+
+    it('should handle null timestamp values gracefully', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"response-metadata","id":"test-id","modelId":"test-model","timestamp":null}\n\n`,
+          `data: {"type":"text-delta","textDelta":"Hello"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks).toHaveLength(4);
+
+      // Check that null timestamp is left as null
+      const responseMetadataChunk = chunks[1] as any;
+      expect(responseMetadataChunk).toEqual({
+        type: 'response-metadata',
+        id: 'test-id',
+        modelId: 'test-model',
+        timestamp: null,
+      });
+    });
+
+    it('should only convert timestamps for response-metadata chunks, not other chunk types', async () => {
+      const timestampString = '2023-12-07T10:30:00.000Z';
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"text-delta","textDelta":"Hello","timestamp":"${timestampString}"}\n\n`,
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10,"completion_tokens":5},"timestamp":"${timestampString}"}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks).toHaveLength(3);
+
+      // Check that timestamps in non-response-metadata chunks are left as strings
+      // Note: These chunks don't typically have timestamp properties in the real types,
+      // but this test verifies our conversion logic only affects response-metadata chunks
+      const textDeltaChunk = chunks[1] as any;
+      expect(textDeltaChunk).toEqual({
+        type: 'text-delta',
+        textDelta: 'Hello',
+        timestamp: timestampString, // Should remain a string
+      });
+
+      const finishChunk = chunks[2] as any;
+      expect(finishChunk).toEqual({
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+        timestamp: timestampString, // Should remain a string
+      });
     });
   });
 });

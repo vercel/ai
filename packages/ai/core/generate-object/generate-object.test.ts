@@ -2,7 +2,7 @@ import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
@@ -188,7 +188,10 @@ describe('output = "object"', () => {
       const result = await generateObject({
         model,
         schema: z.object({
-          content: z.string().transform(value => value.length),
+          content: z
+            .string()
+            .transform(value => value.length)
+            .pipe(z.number()),
         }),
         prompt: 'prompt',
       });
@@ -221,7 +224,7 @@ describe('output = "object"', () => {
             "additionalProperties": false,
             "properties": {
               "content": {
-                "type": "string",
+                "type": "number",
               },
             },
             "required": [

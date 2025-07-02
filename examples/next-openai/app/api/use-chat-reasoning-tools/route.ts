@@ -10,7 +10,7 @@ import {
   UIMessage,
   wrapLanguageModel,
 } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const anthropic = createAnthropic({
   // example fetch wrapper that logs the input to the API call:

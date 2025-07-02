@@ -1,10 +1,10 @@
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({
-    model: 'xai/grok-3-beta',
+    model: 'xai/grok-3',
     schema: z.object({
       characters: z.array(
         z.object({

@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- 0571b98: chore (provider-utils): update eventsource-parser to 3.0.3
+- 39a4fab: fix (provider-utils): detect failed fetch in browser environments
+- d1a034f: feature: using Zod 4 for internal stuff
+
 ## 3.0.0-beta.1
 
 ### Major Changes

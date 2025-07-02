@@ -1,5 +1,35 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- 878bf45: removes (unsupported) `additionalProperties` from the Schema sent in the request payloads to Google APIs
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 42fcd32: feat(google): automatically handle system instructions for Gemma models
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- c68931f: Support tool schemas that allow additional properties (e.g `z.record(z.string())`)
+- 8e6b69d: feat(providers/google): Add support for Gemini 2.5 Pro and Gemini 2.5 Flash (now stable)
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- cb787ac: fix: remove non-functional models
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
 ## 2.0.0-beta.2
 
 ### Patch Changes

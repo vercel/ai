@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- a85c85f: fix (provider/anthropic): streaming json output
+- d1a034f: feature: using Zod 4 for internal stuff
+- 0b678b2: feat (provider/anthropic): enable streaming tool calls
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
 ## 2.0.0-beta.2
 
 ### Patch Changes

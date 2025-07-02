@@ -5,7 +5,7 @@ import {
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 describe('getFromApi', () => {
   const mockSuccessResponse = {

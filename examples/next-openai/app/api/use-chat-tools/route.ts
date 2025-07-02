@@ -8,7 +8,7 @@ import {
   UIDataTypes,
   UIMessage,
 } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;

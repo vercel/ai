@@ -1,4 +1,5 @@
 import { UIMessage } from '../ui';
+import { ErrorHandler } from '../util/error-handler';
 import { InferUIMessageStreamPart } from './ui-message-stream-parts';
 
 export interface UIMessageStreamWriter<
@@ -19,5 +20,5 @@ export interface UIMessageStreamWriter<
    * This is intended for forwarding when merging streams
    * to prevent duplicated error masking.
    */
-  onError: ((error: unknown) => string) | undefined;
+  onError: ErrorHandler | undefined;
 }

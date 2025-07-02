@@ -10,6 +10,7 @@ import { setupTestComponent } from './setup-test-component';
 import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatComponent from './TestChatComponent.vue';
+import TestChatInitMessages from './TestChatInitMessages.vue';
 import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
 import TestChatReloadComponent from './TestChatReloadComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
@@ -1016,5 +1017,33 @@ describe('should append message with attachments', () => {
         },
       ]);
     });
+  });
+});
+
+describe('init messages', () => {
+  setupTestComponent(TestChatInitMessages);
+
+  it('should show streamed response', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-2');
+    expect(screen.getByTestId('message-2')).toHaveTextContent('User: Hi.');
+
+    await screen.findByTestId('message-3');
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
   });
 });

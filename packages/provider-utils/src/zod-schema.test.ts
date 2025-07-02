@@ -1,5 +1,4 @@
-import { z } from 'zod';
-import { z as z4 } from 'zod/v4';
+import { z } from 'zod/v4';
 import { zodSchema } from './zod-schema';
 import { safeParseJSON } from './parse-json';
 
@@ -149,9 +148,9 @@ describe('zodSchema', () => {
     describe('z4 schema', () => {
       it('generates correct JSON SChema for z4 and .literal and .enum', () => {
         const schema = zodSchema(
-          z4.object({
-            text: z4.literal('hello'),
-            number: z4.enum(['one', 'two', 'three']),
+          z.object({
+            text: z.literal('hello'),
+            number: z.enum(['one', 'two', 'three']),
           }),
         );
 
@@ -165,7 +164,10 @@ describe('zodSchema', () => {
       const schema = zodSchema(
         z.object({
           user: z.object({
-            id: z.string().transform(val => parseInt(val, 10)),
+            id: z
+              .string()
+              .transform(val => parseInt(val, 10))
+              .pipe(z.number()),
             name: z.string(),
           }),
         }),

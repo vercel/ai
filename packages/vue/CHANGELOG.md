@@ -1,5 +1,62 @@
 # @ai-sdk/vue
 
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [143c55b]
+- Updated dependencies [f04ffe4]
+- Updated dependencies [97c35c0]
+- Updated dependencies [fccf75c]
+  - ai@5.0.0-beta.6
+
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [4f3e637]
+  - ai@5.0.0-beta.5
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [09f41ac]
+  - ai@5.0.0-beta.4
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- ef1f95f: fix (vue): update chat class reactivity
+
+  ## Problem
+
+  In the new Vue `Chat` class, `messages` that were being passed as props or computed values were breaking the class' ability to update its internal state.
+
+  ## Context
+
+  In Vue's reactivity system `ref.value.<push|pop>(item)` is problematic because it mutates the array directly and Vue won’t detect this change in some cases. Creating a new array allows Vue to correctly track and trigger updates to any reactive dependencies. (Vue tracks assignments (`=`), not mutations (`push`, `pop`, `splice`, etc.) on `.value`.)
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- ai@5.0.0-beta.3
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [0d9583c]
+- Updated dependencies [0571b98]
+- Updated dependencies [c6b64a7]
+- Updated dependencies [39a4fab]
+- Updated dependencies [cb3b9c9]
+- Updated dependencies [d1a034f]
+  - ai@5.0.0-beta.2
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
 ## 2.0.0-beta.1
 
 ### Patch Changes

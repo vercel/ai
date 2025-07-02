@@ -1,11 +1,10 @@
-import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';
 
 async function main() {
   const result = await generateText({
-    model: gateway('xai/grok-3-beta'),
+    model: 'google/gemini-2.0-flash',
     messages: [
       {
         role: 'user',

@@ -1,5 +1,5 @@
 import { GatewayError } from './gateway-error';
-import type { ZodError } from 'zod';
+import type { ZodError } from 'zod/v4';
 
 const name = 'GatewayResponseError';
 const marker = `vercel.ai.gateway.error.${name}`;

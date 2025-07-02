@@ -1,7 +1,7 @@
 import { generateObject, NoObjectGeneratedError } from 'ai';
 import { MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   try {
