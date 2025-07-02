@@ -79,6 +79,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onToolCall?: (options: {
     toolCall: ToolCall<string, unknown>;
   }) => void | Promise<unknown> | unknown;
+  onData?: (options: { data: InferUIMessageData<UI_MESSAGE> }) => void;
   runUpdateMessageJob: (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
