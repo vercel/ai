@@ -830,28 +830,10 @@ const responseAnnotationAddedSchema = z.object({
   }),
 });
 
-const responseReasoningSummaryPartAddedSchema = z.object({
-  type: z.literal('response.reasoning_summary_part.added'),
-  item_id: z.string(),
-  output_index: z.number(),
-  summary_index: z.number(),
-  part: z.unknown().nullish(),
-});
-
 const responseReasoningSummaryTextDeltaSchema = z.object({
   type: z.literal('response.reasoning_summary_text.delta'),
   item_id: z.string(),
-  output_index: z.number(),
-  summary_index: z.number(),
   delta: z.string(),
-});
-
-const responseReasoningSummaryPartDoneSchema = z.object({
-  type: z.literal('response.reasoning_summary_part.done'),
-  item_id: z.string(),
-  output_index: z.number(),
-  summary_index: z.number(),
-  part: z.unknown().nullish(),
 });
 
 const openaiResponsesChunkSchema = z.union([
@@ -862,9 +844,7 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
   responseAnnotationAddedSchema,
-  responseReasoningSummaryPartAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
-  responseReasoningSummaryPartDoneSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -912,22 +892,10 @@ function isResponseAnnotationAddedChunk(
   return chunk.type === 'response.output_text.annotation.added';
 }
 
-function isResponseReasoningSummaryPartAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryPartAddedSchema> {
-  return chunk.type === 'response.reasoning_summary_part.added';
-}
-
 function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
-}
-
-function isResponseReasoningSummaryPartDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryPartDoneSchema> {
-  return chunk.type === 'response.reasoning_summary_part.done';
 }
 
 type ResponsesModelConfig = {
