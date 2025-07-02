@@ -21,6 +21,7 @@ import {
 } from './should-resubmit-messages';
 import {
   isToolUIPart,
+  type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
   type InferUIMessageMetadata,
@@ -144,7 +145,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    *
    * @param data The data part that was received.
    */
-  onData?: (options: { data: InferUIMessageData<UI_MESSAGE> }) => void;
+  onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {

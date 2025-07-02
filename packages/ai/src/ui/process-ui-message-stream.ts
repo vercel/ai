@@ -14,6 +14,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { UIDataTypesToSchemas } from './chat';
 import {
+  DataUIPart,
   getToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
@@ -69,6 +70,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   dataPartSchemas,
   runUpdateMessageJob,
   onError,
+  onData,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageStreamPart>;
@@ -79,7 +81,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onToolCall?: (options: {
     toolCall: ToolCall<string, unknown>;
   }) => void | Promise<unknown> | unknown;
-  onData?: (options: { data: InferUIMessageData<UI_MESSAGE> }) => void;
+  onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
@@ -488,6 +490,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   // TODO improve type safety
                   state.message.parts.push(part as any);
                 }
+
+                onData?.(part as any); // TODO improve type safety
+
                 write();
               }
             }

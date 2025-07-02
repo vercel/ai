@@ -6,7 +6,7 @@ import {
   processUIMessageStream,
   StreamingUIMessageState,
 } from './process-ui-message-stream';
-import { UIMessage } from './ui-messages';
+import { InferUIMessageData, UIMessage } from './ui-messages';
 
 function createUIMessageStream(parts: UIMessageStreamPart[]) {
   return convertArrayToReadableStream(parts);
@@ -4042,7 +4042,11 @@ describe('processUIMessageStream', () => {
   });
 
   describe('data ui parts (single part)', () => {
+    let dataCalls: InferUIMessageData<UIMessage>[] = [];
+
     beforeEach(async () => {
+      dataCalls = [];
+
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
@@ -4065,6 +4069,9 @@ describe('processUIMessageStream', () => {
           runUpdateMessageJob,
           onError: error => {
             throw error;
+          },
+          onData: data => {
+            dataCalls.push(data);
           },
         }),
       });
@@ -4117,6 +4124,17 @@ describe('processUIMessageStream', () => {
           ],
           "role": "assistant",
         }
+      `);
+    });
+
+    it('should call the onData callback with the correct arguments', async () => {
+      expect(dataCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "data": "example-data-can-be-anything",
+            "type": "data-test",
+          },
+        ]
       `);
     });
   });
