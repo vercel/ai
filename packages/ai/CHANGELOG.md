@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.0-beta.6
+
+### Patch Changes
+
+- 143c55b: feat (ai): export Chat callback types
+- f04ffe4: feat (ui): add onData callback to Chat
+- 97c35c0: feat (ui): transient data parts
+- fccf75c: update mcp protocol version
+
 ## 5.0.0-beta.5
 
 ### Patch Changes
