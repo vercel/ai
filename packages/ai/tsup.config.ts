@@ -33,4 +33,14 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
+  // CLI binary
+  {
+    entry: ['src/bin/ai.ts'],
+    outDir: 'dist/bin',
+    format: ['cjs'],
+    sourcemap: true,
+    banner: {
+      js: '#!/usr/bin/env node',
+    },
+  },
 ]);
