@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- 3593385: fix(bedrock): resolve mime-types of document and images
+
 ## 3.0.0-beta.2
 
 ### Patch Changes

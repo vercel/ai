@@ -299,12 +299,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ...uiMessage,
         id: message.messageId,
         role: uiMessage.role ?? 'user',
+        metadata: message.metadata,
       } as UI_MESSAGE);
     } else {
       this.state.pushMessage({
         ...uiMessage,
         id: uiMessage.id ?? this.generateId(),
         role: uiMessage.role ?? 'user',
+        metadata: message.metadata,
       } as UI_MESSAGE);
     }
 
