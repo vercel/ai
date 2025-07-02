@@ -21,6 +21,7 @@ import {
 } from './should-resubmit-messages';
 import {
   isToolUIPart,
+  type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
   type InferUIMessageMetadata,
@@ -138,6 +139,13 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    * @param message The message that was streamed.
    */
   onFinish?: (options: { message: UI_MESSAGE }) => void;
+
+  /**
+   * Optional callback function that is called when a data part is received.
+   *
+   * @param data The data part that was received.
+   */
+  onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
@@ -158,6 +166,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onError?: ChatInit<UI_MESSAGE>['onError'];
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
+  private onData?: ChatInit<UI_MESSAGE>['onData'];
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -173,6 +182,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onError,
     onToolCall,
     onFinish,
+    onData,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
@@ -186,6 +196,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onError = onError;
     this.onToolCall = onToolCall;
     this.onFinish = onFinish;
+    this.onData = onData;
   }
 
   /**
@@ -495,6 +506,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           onToolCall: this.onToolCall,
+          onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
