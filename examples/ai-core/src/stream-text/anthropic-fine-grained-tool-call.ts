@@ -17,7 +17,7 @@ async function main() {
     providerOptions: {
       anthropic: {
         enableBetaFineGrainedToolStreaming,
-      }
+      },
     },
     tools: {
       weather: tool({
