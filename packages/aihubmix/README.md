@@ -1,8 +1,10 @@
 # AI SDK - Aihubmix Provider
 
-> **🎉 Special Offer: Get 10% off on all models!**
+> **🎉 10% discount!**
 
-**[Aihubmix 官网](https://aihubmix.com/)** | **[模型广场](https://aihubmix.com/models)**
+Added app-code; this way, requesting all models through ai-sdk offers a 10% discount.
+
+**[Aihubmix Official Website](https://aihubmix.com/)** | **[Model Square](https://aihubmix.com/models)**
 
 The **[Aihubmix provider](https://ai-sdk.dev/providers/ai-sdk-providers/aihubmix)** for the [AI SDK](https://ai-sdk.dev/docs)
 One Gateway, Infinite Models；one-stop request: OpenAI, Claude, Gemini, DeepSeek, Qwen, and over 500 AI models.
@@ -60,7 +62,7 @@ const aihubmix = createAihubmix({
 - Imagen models
 
 
-### Other Models => [模型广场](https://aihubmix.com/models)
+### Other Models => [Model Square](https://aihubmix.com/models)
 
 
 ## Examples
