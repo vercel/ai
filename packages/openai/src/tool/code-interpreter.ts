@@ -5,8 +5,8 @@ import { z } from 'zod/v4';
  */
 const CodeInterpreterParameters = z.object({
   container: z.object({
-    type: z.literal('auto')
-  })
+    type: z.literal('auto'),
+  }),
 });
 
 /**
@@ -26,7 +26,7 @@ function codeInterpreterTool({}: {} = {}): {
     id: 'openai.code_interpreter',
     args: {},
     parameters: {
-      container: { type: 'auto' as const }
+      container: { type: 'auto' as const },
     },
   };
 }

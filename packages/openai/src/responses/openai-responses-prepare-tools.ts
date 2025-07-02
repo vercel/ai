@@ -62,12 +62,12 @@ export function prepareResponsesTools({
               },
             });
             break;
-            case 'openai.code_interpreter':
-              openaiTools.push({
-                type: 'code_interpreter',
-                container: { type: 'auto' },
-              });
-              break;
+          case 'openai.code_interpreter':
+            openaiTools.push({
+              type: 'code_interpreter',
+              container: (tool as any).container ?? { type: 'auto' },
+            });
+            break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
@@ -97,8 +97,8 @@ export function prepareResponsesTools({
           toolChoice.toolName === 'web_search_preview'
             ? { type: 'web_search_preview' }
             : toolChoice.toolName === 'code_interpreter'
-            ? { type: 'code_interpreter' }
-            : { type: 'function', name: toolChoice.toolName },
+              ? { type: 'code_interpreter' }
+              : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };
     default: {

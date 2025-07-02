@@ -78,5 +78,5 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'code_interpreter';
-      container: { type: 'auto' };
+      container: { type: 'auto'; file_ids: string[] };
     };

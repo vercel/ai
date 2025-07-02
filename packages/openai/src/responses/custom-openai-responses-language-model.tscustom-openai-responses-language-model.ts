@@ -23,7 +23,7 @@ import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-rea
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
+export class CustomOpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIResponsesModelId;
@@ -217,6 +217,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args: body, warnings } = await this.getArgs(options);
 
+    const modifiedBody = JSON.parse(JSON.stringify(body));
+
+    if (modifiedBody.tool_resources && modifiedBody.tools) {
+      for (const tool of modifiedBody.tools) {
+        if (
+          tool.type === 'code_interpreter' &&
+          modifiedBody.tool_resources.code_interpreter
+        ) {
+          tool.container = {
+            type: 'auto',
+            file_ids: modifiedBody.tool_resources.code_interpreter.file_ids,
+          };
+        }
+      }
+      delete modifiedBody.tool_resources;
+    }
+
     const {
       responseHeaders,
       value: response,
@@ -227,7 +244,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body,
+      body: modifiedBody,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         z.object({
@@ -391,7 +408,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         cachedInputTokens:
           response.usage.input_tokens_details?.cached_tokens ?? undefined,
       },
-      request: { body },
+      request: { body: modifiedBody },
       response: {
         id: response.id,
         timestamp: new Date(response.created_at * 1000),
@@ -413,6 +430,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args: body, warnings } = await this.getArgs(options);
 
+    const modifiedBody = JSON.parse(JSON.stringify(body));
+
+    if (modifiedBody.tool_resources && modifiedBody.tools) {
+      for (const tool of modifiedBody.tools) {
+        if (
+          tool.type === 'code_interpreter' &&
+          modifiedBody.tool_resources.code_interpreter
+        ) {
+          tool.container = {
+            type: 'auto',
+            file_ids: modifiedBody.tool_resources.code_interpreter.file_ids,
+          };
+        }
+      }
+      delete modifiedBody.tool_resources;
+    }
+
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/responses',
@@ -420,7 +454,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: {
-        ...body,
+        ...modifiedBody,
         stream: true,
       },
       failedResponseHandler: openaiFailedResponseHandler,
@@ -667,7 +701,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      request: { body },
+      request: { body: modifiedBody },
       response: { headers: responseHeaders },
     };
   }

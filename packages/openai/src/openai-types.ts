@@ -50,6 +50,7 @@ export interface OpenAICodeInterpreterTool {
   type: 'code_interpreter';
   container: {
     type: 'auto';
+    file_ids: string[];
   };
 }
 
