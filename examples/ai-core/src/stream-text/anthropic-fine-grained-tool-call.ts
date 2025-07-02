@@ -5,7 +5,11 @@ import { z } from 'zod';
 import { anthropic } from '@ai-sdk/anthropic';
 import { ToolCallPart, ToolResultPart } from 'ai';
 
-// With this schema, enabling fine-grained tool streaming breaks the tool call.
+// As of Jul 2, 2025 anthropic.com has a beta feature called fine-grained tool
+// streaming that skips JSON parsing to reduce latency, but risks returning
+// invalid tool input. This test demonstrates the issue with the below flag to
+// allow easily toggling the feature. By default we enable the feature to show
+// the current behavior.
 const enableBetaFineGrainedToolStreaming = true;
 
 async function main() {
@@ -17,7 +21,7 @@ async function main() {
     providerOptions: {
       anthropic: {
         enableBetaFineGrainedToolStreaming,
-      }
+      },
     },
     tools: {
       weather: tool({
