@@ -477,6 +477,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   InferUIMessageData<UI_MESSAGE>
                 >;
 
+                // transient parts are not added to the message state
+                if (dataPart.transient) {
+                  onData?.(dataPart);
+                  break;
+                }
+
                 // TODO improve type safety
                 const existingPart: any =
                   dataPart.id != null
