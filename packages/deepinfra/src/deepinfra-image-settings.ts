@@ -8,10 +8,3 @@ export type DeepInfraImageModelId =
   | 'stabilityai/sd3.5-medium'
   | 'stabilityai/sdxl-turbo'
   | (string & {});
-
-export interface DeepInfraImageSettings {
-  /**
-   * Override the maximum number of images per call (default 1)
-   */
-  maxImagesPerCall?: number;
-}

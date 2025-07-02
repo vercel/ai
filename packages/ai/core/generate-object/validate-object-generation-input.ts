@@ -1,21 +1,23 @@
-import { z } from 'zod';
-import { InvalidArgumentError } from '../../errors/invalid-argument-error';
-import { Schema } from '@ai-sdk/ui-utils';
+import { Schema } from '@ai-sdk/provider-utils';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4/core';
+import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 
 export function validateObjectGenerationInput({
   output,
-  mode,
   schema,
   schemaName,
   schemaDescription,
   enumValues,
 }: {
   output?: 'object' | 'array' | 'enum' | 'no-schema';
-  schema?: z.Schema<any, z.ZodTypeDef, any> | Schema<any>;
+  schema?:
+    | z4.$ZodType<any, any>
+    | z3.Schema<any, z3.ZodTypeDef, any>
+    | Schema<any>;
   schemaName?: string;
   schemaDescription?: string;
   enumValues?: Array<unknown>;
-  mode?: 'auto' | 'json' | 'tool';
 }) {
   if (
     output != null &&
@@ -32,14 +34,6 @@ export function validateObjectGenerationInput({
   }
 
   if (output === 'no-schema') {
-    if (mode === 'auto' || mode === 'tool') {
-      throw new InvalidArgumentError({
-        parameter: 'mode',
-        value: mode,
-        message: 'Mode must be "json" for no-schema output.',
-      });
-    }
-
     if (schema != null) {
       throw new InvalidArgumentError({
         parameter: 'schema',

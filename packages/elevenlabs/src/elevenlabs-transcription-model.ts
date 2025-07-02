@@ -1,7 +1,7 @@
 import {
-  TranscriptionModelV1,
-  TranscriptionModelV1CallOptions,
-  TranscriptionModelV1CallWarning,
+  TranscriptionModelV2,
+  TranscriptionModelV2CallOptions,
+  TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -10,10 +10,10 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
+import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
@@ -39,8 +39,8 @@ interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
   };
 }
 
-export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
-  readonly specificationVersion = 'v1';
+export class ElevenLabsTranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
@@ -51,15 +51,15 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
     private readonly config: ElevenLabsTranscriptionModelConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV1CallWarning[] = [];
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
 
     // Parse provider options
-    const elevenlabsOptions = parseProviderOptions({
+    const elevenlabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
       providerOptions,
       schema: elevenLabsProviderOptionsSchema,
@@ -109,10 +109,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = this.getArgs(options);
+    const { formData, warnings } = await this.getArgs(options);
 
     const {
       value: response,

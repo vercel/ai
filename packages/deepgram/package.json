@@ -1,6 +1,11 @@
 {
+<<<<<<<< HEAD:packages/solid/package.json
+  "name": "@ai-sdk/solid",
+  "version": "1.2.13",
+========
   "name": "@ai-sdk/deepgram",
-  "version": "0.0.1",
+  "version": "1.0.0-beta.2",
+>>>>>>>> 713257cced3a373509abdb9dbad110ceb97f51bd:packages/deepgram/package.json
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,8 +16,8 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
+    "build": "tsup --tsconfig tsconfig.build.json",
+    "build:watch": "tsup --tsconfig tsconfig.build.json --watch",
     "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -31,18 +36,25 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.1.2",
-    "@ai-sdk/provider-utils": "2.2.6"
+<<<<<<<< HEAD:packages/solid/package.json
+    "@ai-sdk/provider-utils": "2.2.8",
+    "@ai-sdk/ui-utils": "1.2.11",
+    "@solid-primitives/trigger": "^1.1.0",
+    "zod": "^3.23.8"
+========
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*"
+>>>>>>>> 713257cced3a373509abdb9dbad110ceb97f51bd:packages/deepgram/package.json
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.6.3",
-    "zod": "3.23.8"
+    "zod": "3.25.49"
   },
   "peerDependencies": {
-    "zod": "^3.0.0"
+    "zod": "^3.25.49"
   },
   "engines": {
     "node": ">=18"

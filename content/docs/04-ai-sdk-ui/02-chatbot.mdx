@@ -32,7 +32,9 @@ export default function Page() {
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.content}
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
 
@@ -47,21 +49,21 @@ export default function Page() {
 
 ```ts filename='app/api/chat/route.ts'
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     system: 'You are a helpful assistant.',
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -112,7 +114,9 @@ export default function Page() {
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.content}
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
 
@@ -163,7 +167,10 @@ export default function Chat() {
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.content}
+          {m.role}:{' '}
+          {m.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
 
@@ -207,7 +214,11 @@ return <>
   {messages.map(message => (
     <div key={message.id}>
       {message.role === 'user' ? 'User: ' : 'AI: '}
-      {message.content}
+      {message.parts.map((part, index) => (
+        part.type === 'text' ? (
+          <span key={index}>{part.text}</span>
+        ) : null
+      ))}
       <button onClick={() => handleDelete(message.id)}>Delete</button>
     </div>
   ))}
@@ -231,7 +242,7 @@ return <>
     // Send a new message to the AI provider
     append({
       role: 'user',
-      content: input,
+      parts: [{ type: 'text', text: input }],
     })
   }}/>
   ...
@@ -289,7 +300,7 @@ const { messages, ... } = useChat({
 These callbacks can be used to trigger additional actions, such as logging, analytics, or custom UI updates.
 
 ```tsx
-import { Message } from '@ai-sdk/react';
+import { UIMessage } from 'ai';
 
 const {
   /* ... */
@@ -347,7 +358,10 @@ export default function Chat() {
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          {m.role}: {m.content}
+          {m.role}:{' '}
+          {m.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
 
@@ -369,10 +383,11 @@ export default function Chat() {
 
 You can retrieve these custom fields on your server side by destructuring the request body:
 
-```ts filename="app/api/chat/route.ts" highlight="3"
+```ts filename="app/api/chat/route.ts" highlight="3,4"
 export async function POST(req: Request) {
   // Extract addition information ("customKey") from the body of the request:
-  const { messages, customKey } = await req.json();
+  const { messages, customKey }: { messages: UIMessage[]; customKey: string } =
+    await req.json();
   //...
 }
 ```
@@ -389,17 +404,17 @@ You can forward error messages or send your own error message by providing a `ge
 
 ```ts filename="app/api/chat/route.ts" highlight="13-27"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     getErrorMessage: error => {
       if (error == null) {
         return 'unknown error';
@@ -425,17 +440,17 @@ By default, the usage information is sent back to the client. You can disable it
 
 ```ts filename="app/api/chat/route.ts" highlight="13"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     sendUsage: false,
   });
 }
@@ -509,17 +524,17 @@ You can forward them to the client with the `sendReasoning` option:
 
 ```ts filename="app/api/chat/route.ts" highlight="13"
 import { deepseek } from '@ai-sdk/deepseek';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: deepseek('deepseek-reasoner'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     sendReasoning: true,
   });
 }
@@ -565,17 +580,17 @@ You can forward them to the client with the `sendSources` option:
 
 ```ts filename="app/api/chat/route.ts" highlight="13"
 import { perplexity } from '@ai-sdk/perplexity';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: perplexity('sonar-pro'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     sendSources: true,
   });
 }
@@ -624,9 +639,9 @@ messages.map(message => (
     {message.parts.map((part, index) => {
       if (part.type === 'text') {
         return <div key={index}>{part.text}</div>;
-      } else if (part.type === 'file' && part.mimeType.startsWith('image/')) {
+      } else if (part.type === 'file' && part.mediaType.startsWith('image/')) {
         return (
-          <img key={index} src={`data:${part.mimeType};base64,${part.data}`} />
+          <img key={index} src={`data:${part.mediaType};base64,${part.data}`} />
         );
       }
     })}
@@ -672,7 +687,11 @@ export default function Page() {
             <div>{`${message.role}: `}</div>
 
             <div>
-              {message.content}
+              {message.parts.map((part, index) =>
+                part.type === 'text' ? (
+                  <span key={index}>{part.text}</span>
+                ) : null,
+              )}
 
               <div>
                 {message.experimental_attachments
@@ -738,7 +757,7 @@ You can also send URLs as attachments along with a message. This can be useful f
 
 import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
-import { Attachment } from '@ai-sdk/ui-utils';
+import { Attachment } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } =
@@ -765,7 +784,11 @@ export default function Page() {
             <div>{`${message.role}: `}</div>
 
             <div>
-              {message.content}
+              {message.parts.map((part, index) =>
+                part.type === 'text' ? (
+                  <span key={index}>{part.text}</span>
+                ) : null,
+              )}
 
               <div>
                 {message.experimental_attachments

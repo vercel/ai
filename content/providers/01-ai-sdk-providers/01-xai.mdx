@@ -69,7 +69,7 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-beta`.
+first argument is the model id, e.g. `grok-3`.
 
 ```ts
 const model = xai('grok-3');
@@ -92,29 +92,13 @@ const { text } = await generateText({
 xAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-### Chat Models
+### Provider Options
 
-xAI chat models also support some model specific settings that are not part of
-the [standard call settings](/docs/ai-sdk-core/settings). You can pass them as
-an options argument:
-
-```ts
-const model = xai('grok-3', {
-  user: 'test-user', // optional unique user identifier
-});
-```
-
-The following optional settings are available for xAI chat models:
-
-- **user** _string_
-
-  A unique identifier representing your end-user, which can help xAI to
-  monitor and detect abuse.
-
-xAI chat models also support some model specific provider options. You can pass them in `providerOptions` argument:
+xAI chat models support additional provider options that are not part of
+the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = xai('grok-3');
+const model = xai('grok-3-mini');
 
 await generateText({
   model,
@@ -128,24 +112,296 @@ await generateText({
 
 The following optional provider options are available for xAI chat models:
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'low' | 'high'_
 
-  Reasoning effort for reasoning models. Defaults to `medium`. If you use
-  `providerOptions` to set the `reasoningEffort` option, this
-  model setting will be ignored.
+  Reasoning effort for reasoning models. Only supported by `grok-3-mini` and `grok-3-mini-fast` models.
+
+## Live Search
+
+xAI models support Live Search functionality, allowing them to query real-time data from various sources and include it in responses with citations.
+
+### Basic Search
+
+To enable search, specify `searchParameters` with a search mode:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: xai('grok-3-latest'),
+  prompt: 'What are the latest developments in AI?',
+  providerOptions: {
+    xai: {
+      searchParameters: {
+        mode: 'auto', // 'auto', 'on', or 'off'
+        returnCitations: true,
+        maxSearchResults: 5,
+      },
+    },
+  },
+});
+
+console.log(text);
+console.log('Sources:', sources);
+```
+
+### Search Parameters
+
+The following search parameters are available:
+
+- **mode** _'auto' | 'on' | 'off'_
+
+  Search mode preference:
+
+  - `'auto'` (default): Model decides whether to search
+  - `'on'`: Always enables search
+  - `'off'`: Disables search completely
+
+- **returnCitations** _boolean_
+
+  Whether to return citations in the response. Defaults to `true`.
+
+- **fromDate** _string_
+
+  Start date for search data in ISO8601 format (`YYYY-MM-DD`).
+
+- **toDate** _string_
+
+  End date for search data in ISO8601 format (`YYYY-MM-DD`).
+
+- **maxSearchResults** _number_
+
+  Maximum number of search results to consider. Defaults to 20, max 50.
+
+- **sources** _Array&lt;SearchSource&gt;_
+
+  Data sources to search from. Defaults to `["web", "x"]` if not specified.
+
+### Search Sources
+
+You can specify different types of data sources for search:
+
+#### Web Search
+
+```ts
+const result = await generateText({
+  model: xai('grok-3-latest'),
+  prompt: 'Best ski resorts in Switzerland',
+  providerOptions: {
+    xai: {
+      searchParameters: {
+        mode: 'on',
+        sources: [
+          {
+            type: 'web',
+            country: 'CH', // ISO alpha-2 country code
+            allowedWebsites: ['ski.com', 'snow-forecast.com'],
+            safeSearch: true,
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+#### Web source parameters
+
+- **country** _string_: ISO alpha-2 country code
+- **allowedWebsites** _string[]_: Max 5 allowed websites
+- **excludedWebsites** _string[]_: Max 5 excluded websites
+- **safeSearch** _boolean_: Enable safe search (default: true)
+
+#### X (Twitter) Search
+
+```ts
+const result = await generateText({
+  model: xai('grok-3-latest'),
+  prompt: 'Latest updates on Grok AI',
+  providerOptions: {
+    xai: {
+      searchParameters: {
+        mode: 'on',
+        sources: [
+          {
+            type: 'x',
+            xHandles: ['grok', 'xai'],
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+#### X source parameters
+
+- **xHandles** _string[]_: Array of X handles to search (without @ symbol)
+
+#### News Search
+
+```ts
+const result = await generateText({
+  model: xai('grok-3-latest'),
+  prompt: 'Recent tech industry news',
+  providerOptions: {
+    xai: {
+      searchParameters: {
+        mode: 'on',
+        sources: [
+          {
+            type: 'news',
+            country: 'US',
+            excludedWebsites: ['tabloid.com'],
+            safeSearch: true,
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+#### News source parameters
+
+- **country** _string_: ISO alpha-2 country code
+- **excludedWebsites** _string[]_: Max 5 excluded websites
+- **safeSearch** _boolean_: Enable safe search (default: true)
+
+#### RSS Feed Search
+
+```ts
+const result = await generateText({
+  model: xai('grok-3-latest'),
+  prompt: 'Latest status updates',
+  providerOptions: {
+    xai: {
+      searchParameters: {
+        mode: 'on',
+        sources: [
+          {
+            type: 'rss',
+            links: ['https://status.x.ai/feed.xml'],
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+#### RSS source parameters
+
+- **links** _string[]_: Array of RSS feed URLs (max 1 currently supported)
+
+### Multiple Sources
+
+You can combine multiple data sources in a single search:
+
+```ts
+const result = await generateText({
+  model: xai('grok-3-latest'),
+  prompt: 'Comprehensive overview of recent AI breakthroughs',
+  providerOptions: {
+    xai: {
+      searchParameters: {
+        mode: 'on',
+        returnCitations: true,
+        maxSearchResults: 15,
+        sources: [
+          {
+            type: 'web',
+            allowedWebsites: ['arxiv.org', 'openai.com'],
+          },
+          {
+            type: 'news',
+            country: 'US',
+          },
+          {
+            type: 'x',
+            xHandles: ['openai', 'deepmind'],
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+### Sources and Citations
+
+When search is enabled with `returnCitations: true`, the response includes sources that were used to generate the answer:
+
+```ts
+const { text, sources } = await generateText({
+  model: xai('grok-3-latest'),
+  prompt: 'What are the latest developments in AI?',
+  providerOptions: {
+    xai: {
+      searchParameters: {
+        mode: 'auto',
+        returnCitations: true,
+      },
+    },
+  },
+});
+
+// Access the sources used
+for (const source of sources) {
+  if (source.sourceType === 'url') {
+    console.log('Source:', source.url);
+  }
+}
+```
+
+### Streaming with Search
+
+Live Search works with streaming responses. Citations are included when the stream completes:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: xai('grok-3-latest'),
+  prompt: 'What has happened in tech recently?',
+  providerOptions: {
+    xai: {
+      searchParameters: {
+        mode: 'auto',
+        returnCitations: true,
+      },
+    },
+  },
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log('Sources:', await result.sources);
+```
 
 ## Model Capabilities
 
-| Model                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `grok-3`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-fast`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-fast`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-2-1212`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-2-vision-1212` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-beta`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-vision-beta`   | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                     | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
+| ------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-3`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-latest`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-fast`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-fast-latest`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-mini`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-latest`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-fast`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-fast-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-2`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-latest`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-1212`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision-latest`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision-1212`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-beta`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-vision-beta`        | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [xAI
@@ -163,7 +419,7 @@ import { xai } from '@ai-sdk/xai';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: xai.image('grok-2-image'),
+  model: xai.imageModel('grok-2-image'),
   prompt: 'A futuristic cityscape at sunset',
 });
 ```
@@ -182,10 +438,9 @@ import { xai } from '@ai-sdk/xai';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: xai.image('grok-2-image', {
-    maxImagesPerCall: 5, // Default is 10
-  }),
+  model: xai.imageModel('grok-2-image'),
   prompt: 'A futuristic cityscape at sunset',
+  maxImagesPerCall: 5, // Default is 10
   n: 2, // Generate 2 images
 });
 ```

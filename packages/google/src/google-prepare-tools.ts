@@ -1,22 +1,27 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import {
   DynamicRetrievalConfig,
   GoogleGenerativeAIModelId,
-} from './google-generative-ai-settings';
+} from './google-generative-ai-options';
 
-export function prepareTools(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-  useSearchGrounding: boolean,
-  dynamicRetrievalConfig: DynamicRetrievalConfig | undefined,
-  modelId: GoogleGenerativeAIModelId,
-): {
+export function prepareTools({
+  tools,
+  toolChoice,
+  useSearchGrounding,
+  dynamicRetrievalConfig,
+  modelId,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  useSearchGrounding: boolean;
+  dynamicRetrievalConfig: DynamicRetrievalConfig | undefined;
+  modelId: GoogleGenerativeAIModelId;
+}): {
   tools:
     | undefined
     | {
@@ -40,10 +45,12 @@ export function prepareTools(
           allowedFunctionNames?: string[];
         };
       };
-  toolWarnings: LanguageModelV1CallWarning[];
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
-  const tools = mode.tools?.length ? mode.tools : undefined;
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  // when the tools array is empty, change it to undefined to prevent errors:
+  tools = tools?.length ? tools : undefined;
+
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   const isGemini2 = modelId.includes('gemini-2');
   const supportsDynamicRetrieval =
@@ -76,12 +83,10 @@ export function prepareTools(
       functionDeclarations.push({
         name: tool.name,
         description: tool.description ?? '',
-        parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
+        parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
       });
     }
   }
-
-  const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
     return {
@@ -126,7 +131,7 @@ export function prepareTools(
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }

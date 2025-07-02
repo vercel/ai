@@ -1,4 +1,5 @@
-import { prepareRetries } from '../prompt/prepare-retries';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -23,6 +24,7 @@ Embed a value using an embedding model. The type of the value is defined by the 
 export async function embed<VALUE>({
   model,
   value,
+  providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -57,6 +59,13 @@ Only applicable for HTTP-based providers.
   headers?: Record<string, string>;
 
   /**
+  Additional provider-specific options. They are passed through
+  to the provider from the AI SDK and enable provider-specific
+  functionality that can be fully encapsulated in the provider.
+  */
+  providerOptions?: ProviderOptions;
+
+  /**
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
@@ -84,7 +93,7 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const { embedding, usage, rawResponse } = await retry(() =>
+      const { embedding, usage, response } = await retry(() =>
         // nested spans to align with the embedMany telemetry data:
         recordSpan({
           name: 'ai.embed.doEmbed',
@@ -106,6 +115,7 @@ Only applicable for HTTP-based providers.
               values: [value],
               abortSignal,
               headers,
+              providerOptions,
             });
 
             const embedding = modelResponse.embeddings[0];
@@ -129,7 +139,7 @@ Only applicable for HTTP-based providers.
             return {
               embedding,
               usage,
-              rawResponse: modelResponse.rawResponse,
+              response: modelResponse.response,
             };
           },
         }),
@@ -145,7 +155,12 @@ Only applicable for HTTP-based providers.
         }),
       );
 
-      return new DefaultEmbedResult({ value, embedding, usage, rawResponse });
+      return new DefaultEmbedResult({
+        value,
+        embedding,
+        usage,
+        response,
+      });
     },
   });
 }
@@ -154,17 +169,17 @@ class DefaultEmbedResult<VALUE> implements EmbedResult<VALUE> {
   readonly value: EmbedResult<VALUE>['value'];
   readonly embedding: EmbedResult<VALUE>['embedding'];
   readonly usage: EmbedResult<VALUE>['usage'];
-  readonly rawResponse: EmbedResult<VALUE>['rawResponse'];
+  readonly response: EmbedResult<VALUE>['response'];
 
   constructor(options: {
     value: EmbedResult<VALUE>['value'];
     embedding: EmbedResult<VALUE>['embedding'];
     usage: EmbedResult<VALUE>['usage'];
-    rawResponse?: EmbedResult<VALUE>['rawResponse'];
+    response?: EmbedResult<VALUE>['response'];
   }) {
     this.value = options.value;
     this.embedding = options.embedding;
     this.usage = options.usage;
-    this.rawResponse = options.rawResponse;
+    this.response = options.response;
   }
 }

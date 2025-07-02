@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject, LanguageModelUsage } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({
@@ -17,14 +17,12 @@ async function main() {
   });
 
   // your custom function to record usage:
-  function recordUsage({
-    promptTokens,
-    completionTokens,
-    totalTokens,
-  }: LanguageModelUsage) {
-    console.log('Prompt tokens:', promptTokens);
-    console.log('Completion tokens:', completionTokens);
-    console.log('Total tokens:', totalTokens);
+  function recordUsage(usage: LanguageModelUsage) {
+    console.log('Input tokens:', usage.inputTokens);
+    console.log('Cached input tokens:', usage.cachedInputTokens);
+    console.log('Reasoning tokens:', usage.reasoningTokens);
+    console.log('Output tokens:', usage.outputTokens);
+    console.log('Total tokens:', usage.totalTokens);
   }
 
   // use as promise:

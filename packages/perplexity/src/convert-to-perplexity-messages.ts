@@ -1,11 +1,11 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { PerplexityPrompt } from './perplexity-language-model-prompt';
 
 export function convertToPerplexityMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): PerplexityPrompt {
   const messages: PerplexityPrompt = [];
 
@@ -21,36 +21,14 @@ export function convertToPerplexityMessages(
         messages.push({
           role,
           content: content
-            .filter(
-              part =>
-                part.type !== 'reasoning' && part.type !== 'redacted-reasoning',
-            )
             .map(part => {
               switch (part.type) {
                 case 'text': {
                   return part.text;
                 }
-                case 'image': {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'Image content parts in user messages',
-                  });
-                }
-                case 'file': {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'File content parts in user messages',
-                  });
-                }
-                case 'tool-call': {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'Tool calls in assistant messages',
-                  });
-                }
-                default: {
-                  const _exhaustiveCheck: never = part;
-                  throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
-                }
               }
             })
+            .filter(Boolean)
             .join(''),
         });
         break;

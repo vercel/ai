@@ -15,6 +15,9 @@ async function main() {
         ],
       },
     ],
+    onError: error => {
+      console.error(error);
+    },
   });
 
   for await (const textPart of result.textStream) {

@@ -1,8 +1,10 @@
 import { Chat } from './chat';
-import { generateId } from 'ai';
+import { createIdGenerator } from 'ai';
+
+const generateId = createIdGenerator({ size: 32 });
 
 export default function Page() {
-  const chatId = generateId(32);
+  const id = generateId();
 
-  return <Chat chatId={chatId} autoResume={false} initialMessages={[]} />;
+  return <Chat id={id} autoResume={false} initialMessages={[]} />;
 }

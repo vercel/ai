@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { formatDataStreamPart, streamText } from 'ai';
+import { streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   // Check if we have a cached response
   const cached = cache.get(key);
   if (cached != null) {
-    return new Response(formatDataStreamPart('text', cached), {
+    return new Response(`data: ${cached}\n\n`, {
       status: 200,
       headers: { 'Content-Type': 'text/plain' },
     });
@@ -33,5 +33,5 @@ export async function POST(req: Request) {
   });
 
   // Respond with the stream
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

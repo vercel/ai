@@ -1,27 +1,32 @@
 import { simulateReadableStream, smoothStream, streamText } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 
 async function main() {
   const result = streamText({
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV2({
       doStream: async () => ({
         stream: simulateReadableStream({
           chunks: [
-            { type: 'text-delta', textDelta: '你好你好你好你好你好' },
-            { type: 'text-delta', textDelta: '你好你好你好你好你好' },
-            { type: 'text-delta', textDelta: '你好你好你好你好你好' },
-            { type: 'text-delta', textDelta: '你好你好你好你好你好' },
-            { type: 'text-delta', textDelta: '你好你好你好你好你好' },
+            { type: 'text-start', id: '0' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-end', id: '0' },
             {
               type: 'finish',
               finishReason: 'stop',
               logprobs: undefined,
-              usage: { completionTokens: 10, promptTokens: 3 },
+              usage: {
+                inputTokens: 3,
+                outputTokens: 10,
+                totalTokens: 13,
+              },
             },
           ],
           chunkDelayInMs: 400,
         }),
-        rawCall: { rawPrompt: null, rawSettings: {} },
       }),
     }),
 

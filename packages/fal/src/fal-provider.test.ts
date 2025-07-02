@@ -21,25 +21,6 @@ describe('createFal', () => {
       expect(model).toBeInstanceOf(FalImageModel);
       expect(FalImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
-        expect.objectContaining({
-          provider: 'fal.image',
-          baseURL: 'https://fal.run',
-        }),
-      );
-    });
-
-    it('should construct an image model with custom settings', () => {
-      const provider = createFal();
-      const modelId = 'fal-ai/flux/dev';
-      const settings = { maxImagesPerCall: 3 };
-
-      const model = provider.image(modelId, settings);
-
-      expect(model).toBeInstanceOf(FalImageModel);
-      expect(FalImageModel).toHaveBeenCalledWith(
-        modelId,
-        settings,
         expect.objectContaining({
           provider: 'fal.image',
           baseURL: 'https://fal.run',
@@ -64,7 +45,6 @@ describe('createFal', () => {
 
       expect(FalImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
         expect.objectContaining({
           baseURL: customBaseURL,
           headers: expect.any(Function),

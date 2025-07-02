@@ -2,15 +2,12 @@ export type CallSettings = {
   /**
 Maximum number of tokens to generate.
    */
-  maxTokens?: number;
+  maxOutputTokens?: number;
 
   /**
-Temperature setting. This is a number between 0 (almost no randomness) and
-1 (very random).
+Temperature setting. The range depends on the provider and model.
 
 It is recommended to set either `temperature` or `topP`, but not both.
-
-@default 0
    */
   temperature?: number;
 

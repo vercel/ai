@@ -1,7 +1,7 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { streamText, ToolCallPart, ToolResultPart } from 'ai';
+import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
@@ -10,11 +10,11 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: {
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       },
     },
     prompt: 'What is the weather in San Francisco?',
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   let enteredReasoning = false;
@@ -29,16 +29,16 @@ async function main() {
           enteredReasoning = true;
           console.log('\nREASONING:\n');
         }
-        process.stdout.write(part.textDelta);
+        process.stdout.write(part.text);
         break;
       }
 
-      case 'text-delta': {
+      case 'text': {
         if (!enteredText) {
           enteredText = true;
           console.log('\nTEXT:\n');
         }
-        process.stdout.write(part.textDelta);
+        process.stdout.write(part.text);
         break;
       }
 
@@ -46,16 +46,20 @@ async function main() {
         toolCalls.push(part);
 
         process.stdout.write(
-          `\nTool call: '${part.toolName}' ${JSON.stringify(part.args)}`,
+          `\nTool call: '${part.toolName}' ${JSON.stringify(part.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
-        toolResponses.push(part);
+        const transformedPart: ToolResultPart = {
+          ...part,
+          output: { type: 'json', value: part.output },
+        };
+        toolResponses.push(transformedPart);
 
         process.stdout.write(
-          `\nTool response: '${part.toolName}' ${JSON.stringify(part.result)}`,
+          `\nTool response: '${part.toolName}' ${JSON.stringify(part.output)}`,
         );
         break;
       }

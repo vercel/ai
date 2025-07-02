@@ -1,5 +1,5 @@
 {
-  "name": "next-langchain",
+  "name": "@example/next-langchain",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,10 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "1.2.12",
+    "@ai-sdk/react": "workspace:*",
+    "@ai-sdk/langchain": "workspace:*",
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
-    "ai": "4.3.16",
+    "ai": "workspace:*",
     "langchain": "0.1.36",
     "next": "latest",
     "react": "^18",
@@ -27,6 +28,7 @@
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "typescript": "5.6.3"
+    "typescript": "5.8.3",
+    "@vercel/ai-tsconfig": "workspace:*"
   }
 }

@@ -11,10 +11,3 @@ export type TogetherAIImageModelId =
   | 'black-forest-labs/FLUX.1-pro'
   | 'black-forest-labs/FLUX.1-schnell-Free'
   | (string & {});
-
-export interface TogetherAIImageSettings {
-  /**
-Override the maximum number of images per call (default 1)
-   */
-  maxImagesPerCall?: number;
-}

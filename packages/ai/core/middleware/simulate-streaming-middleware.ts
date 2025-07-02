@@ -1,74 +1,62 @@
-import type { LanguageModelV1StreamPart } from '@ai-sdk/provider';
-import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
+import type {
+  LanguageModelV2Middleware,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
 
 /**
  * Simulates streaming chunks with the response from a generate call.
  */
-export function simulateStreamingMiddleware(): LanguageModelV1Middleware {
+export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
   return {
-    middlewareVersion: 'v1',
+    middlewareVersion: 'v2',
     wrapStream: async ({ doGenerate }) => {
       const result = await doGenerate();
 
-      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
+      let id = 0;
+
+      const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
         start(controller) {
+          controller.enqueue({
+            type: 'stream-start',
+            warnings: result.warnings,
+          });
+
           controller.enqueue({ type: 'response-metadata', ...result.response });
 
-          if (result.reasoning) {
-            if (typeof result.reasoning === 'string') {
-              controller.enqueue({
-                type: 'reasoning',
-                textDelta: result.reasoning,
-              });
-            } else {
-              for (const reasoning of result.reasoning) {
-                switch (reasoning.type) {
-                  case 'text': {
-                    controller.enqueue({
-                      type: 'reasoning',
-                      textDelta: reasoning.text,
-                    });
-                    if (reasoning.signature != null) {
-                      controller.enqueue({
-                        type: 'reasoning-signature',
-                        signature: reasoning.signature,
-                      });
-                    }
-                    break;
-                  }
-                  case 'redacted': {
-                    controller.enqueue({
-                      type: 'redacted-reasoning',
-                      data: reasoning.data,
-                    });
-                    break;
-                  }
+          for (const part of result.content) {
+            switch (part.type) {
+              case 'text': {
+                if (part.text.length > 0) {
+                  controller.enqueue({ type: 'text-start', id: String(id) });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: String(id),
+                    delta: part.text,
+                  });
+                  controller.enqueue({ type: 'text-end', id: String(id) });
+                  id++;
                 }
+                break;
               }
-            }
-          }
-
-          if (result.text) {
-            controller.enqueue({
-              type: 'text-delta',
-              textDelta: result.text,
-            });
-          }
-
-          if (result.toolCalls) {
-            for (const toolCall of result.toolCalls) {
-              controller.enqueue({
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                argsTextDelta: toolCall.args,
-              });
-
-              controller.enqueue({
-                type: 'tool-call',
-                ...toolCall,
-              });
+              case 'reasoning': {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: String(id),
+                  providerMetadata: part.providerMetadata,
+                });
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  id: String(id),
+                  delta: part.text,
+                });
+                controller.enqueue({ type: 'reasoning-end', id: String(id) });
+                id++;
+                break;
+              }
+              default: {
+                controller.enqueue(part);
+                break;
+              }
             }
           }
 
@@ -76,7 +64,6 @@ export function simulateStreamingMiddleware(): LanguageModelV1Middleware {
             type: 'finish',
             finishReason: result.finishReason,
             usage: result.usage,
-            logprobs: result.logprobs,
             providerMetadata: result.providerMetadata,
           });
 
@@ -86,9 +73,8 @@ export function simulateStreamingMiddleware(): LanguageModelV1Middleware {
 
       return {
         stream: simulatedStream,
-        rawCall: result.rawCall,
-        rawResponse: result.rawResponse,
-        warnings: result.warnings,
+        request: result.request,
+        response: result.response,
       };
     },
   };

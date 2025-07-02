@@ -1,13 +1,16 @@
 import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = await generateObject({
-    model: google('gemini-1.5-pro-latest', {
-      structuredOutputs: false,
-    }),
+    model: google('gemini-1.5-pro-latest'),
+    providerOptions: {
+      google: {
+        structuredOutputs: false,
+      },
+    },
     schema: z.object({
       name: z.string(),
       age: z.number(),

@@ -169,12 +169,19 @@ The first argument is the model id, e.g. `meta.llama3-70b-instruct-v1:0`.
 const model = bedrock('meta.llama3-70b-instruct-v1:0');
 ```
 
-Amazon Bedrock models also support some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument:
+Amazon Bedrock models also support some model specific provider options that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
+You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0', {
-  additionalModelRequestFields: { top_k: 350 },
+const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0');
+
+await generateText({
+  model,
+  providerOptions: {
+    anthropic: {
+      additionalModelRequestFields: { top_k: 350 },
+    },
+  },
 });
 ```
 
@@ -218,7 +225,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
         },
       ],
     },
@@ -357,7 +364,7 @@ console.log(
 
 Amazon Bedrock has reasoning support for the `claude-3-7-sonnet-20250219` model.
 
-You can enable it using the `reasoning_config` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
+You can enable it using the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
@@ -439,13 +446,19 @@ Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several addi
 You can pass them as an options argument:
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v2:0', {
-  dimensions: 512 // optional, number of dimensions for the embedding
-  normalize: true // optional  normalize the output embeddings
-})
+const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
+
+await model.doEmbed({
+  providerOptions: {
+    bedrock: {
+      dimensions: 512 // optional, number of dimensions for the embedding
+      normalize: true // optional  normalize the output embeddings
+    },
+  },
+});
 ```
 
-The following optional settings are available for Bedrock Titan embedding models:
+The following optional provider options are available for Bedrock Titan embedding models:
 
 - **dimensions**: _number_
 
@@ -471,7 +484,8 @@ For more on the Amazon Nova Canvas image model, see the [Nova Canvas
 Overview](https://docs.aws.amazon.com/ai/responsible-ai/nova-canvas/overview.html).
 
 <Note>
-  The `amazon.nova-canvas-v1:0` model is available in the `us-east-1` region.
+  The `amazon.nova-canvas-v1:0` model is available in the `us-east-1`,
+  `eu-west-1`, and `ap-northeast-1` regions.
 </Note>
 
 ```ts
@@ -513,10 +527,14 @@ Documentation](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-r
 
 ### Image Model Settings
 
-When creating an image model, you can customize the generation behavior with optional settings:
+You can customize the generation behavior with optional options:
 
 ```ts
-const model = bedrock.imageModel('amazon.nova-canvas-v1:0', {
+await generateImage({
+  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
   maxImagesPerCall: 1, // Maximum number of images to generate per API call
 });
 ```

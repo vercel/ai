@@ -64,10 +64,3 @@ export type FalImageSize =
       width: number;
       height: number;
     };
-
-export interface FalImageSettings {
-  /**
-Override the maximum number of images per call (default 1).
-   */
-  maxImagesPerCall?: number;
-}

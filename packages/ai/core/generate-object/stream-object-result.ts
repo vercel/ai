@@ -1,14 +1,13 @@
 import { ServerResponse } from 'http';
+import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
-  LogProbs,
   ProviderMetadata,
 } from '../types';
 import { LanguageModelUsage } from '../types/usage';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.
@@ -30,11 +29,6 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: Promise<ProviderMetadata | undefined>;
-
-  /**
-@deprecated Use `providerMetadata` instead.
-   */
-  readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
 Additional request information from the last step.
@@ -113,7 +107,6 @@ export type ObjectStreamPart<PARTIAL> =
   | {
       type: 'finish';
       finishReason: FinishReason;
-      logprobs?: LogProbs;
       usage: LanguageModelUsage;
       response: LanguageModelResponseMetadata;
       providerMetadata?: ProviderMetadata;

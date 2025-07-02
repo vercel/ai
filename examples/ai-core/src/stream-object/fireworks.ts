@@ -1,12 +1,12 @@
 import { fireworks } from '@ai-sdk/fireworks';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({
     model: fireworks('accounts/fireworks/models/firefunction-v1'),
-    maxTokens: 2000,
+    maxOutputTokens: 2000,
     schema: z.object({
       characters: z.array(
         z.object({

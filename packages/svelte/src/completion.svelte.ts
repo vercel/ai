@@ -1,10 +1,9 @@
 import {
-  generateId,
-  type UseCompletionOptions,
-  type JSONValue,
-  type RequestOptions,
   callCompletionApi,
-} from '@ai-sdk/ui-utils';
+  generateId,
+  type CompletionRequestOptions,
+  type UseCompletionOptions,
+} from 'ai';
 import {
   KeyedCompletionStore,
   getCompletionContext,
@@ -30,18 +29,6 @@ export class Completion {
     this.#store.completions.set(this.#id, value);
   }
 
-  /**
-   * Additional data added on the server via StreamData.
-   *
-   * This is writable, so you can use it to transform or clear the chat data.
-   */
-  get data() {
-    return this.#store.data;
-  }
-  set data(value: JSONValue[]) {
-    this.#store.data = value;
-  }
-
   /** The error object of the API request */
   get error() {
     return this.#store.error;
@@ -58,12 +45,9 @@ export class Completion {
   }
 
   constructor(options: CompletionOptions = {}) {
-    if (hasCompletionContext()) {
-      this.#keyedStore = getCompletionContext();
-    } else {
-      this.#keyedStore = new KeyedCompletionStore();
-    }
-
+    this.#keyedStore = hasCompletionContext()
+      ? getCompletionContext()
+      : new KeyedCompletionStore();
     this.#options = options;
     this.completion = options.initialCompletion ?? '';
     this.input = options.initialInput ?? '';
@@ -86,7 +70,7 @@ export class Completion {
   /**
    * Send a new prompt to the API endpoint and update the completion state.
    */
-  complete = async (prompt: string, options?: RequestOptions) =>
+  complete = async (prompt: string, options?: CompletionRequestOptions) =>
     this.#triggerRequest(prompt, options);
 
   /** Form submission handler to automatically reset input and call the completion API */
@@ -97,7 +81,10 @@ export class Completion {
     }
   };
 
-  #triggerRequest = async (prompt: string, options?: RequestOptions) => {
+  #triggerRequest = async (
+    prompt: string,
+    options?: CompletionRequestOptions,
+  ) => {
     return callCompletionApi({
       api: this.#api,
       prompt,
@@ -113,9 +100,6 @@ export class Completion {
       setCompletion: completion => {
         this.completion = completion;
       },
-      onData: data => {
-        this.data.push(...data);
-      },
       setLoading: loading => {
         this.#store.loading = loading;
       },
@@ -125,7 +109,6 @@ export class Completion {
       setAbortController: abortController => {
         this.#abortController = abortController ?? undefined;
       },
-      onResponse: this.#options.onResponse,
       onFinish: this.#options.onFinish,
       onError: this.#options.onError,
     });

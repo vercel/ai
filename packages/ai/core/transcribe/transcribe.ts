@@ -1,16 +1,16 @@
-import { JSONValue, TranscriptionModelV1 } from '@ai-sdk/provider';
-import { NoTranscriptGeneratedError } from '../../errors/no-transcript-generated-error';
-import { download } from '../../util/download';
+import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
+import {
+  audioMediaTypeSignatures,
+  detectMediaType,
+} from '../../src/util/detect-media-type';
+import { download } from '../../src/util/download';
+import { prepareRetries } from '../../src/util/prepare-retries';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { prepareRetries } from '../prompt/prepare-retries';
-import { ProviderOptions } from '../types/provider-metadata';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import {
-  audioMimeTypeSignatures,
-  detectMimeType,
-} from '../util/detect-mimetype';
 import { TranscriptionResult } from './transcribe-result';
 
 /**
@@ -37,7 +37,7 @@ export async function transcribe({
   /**
 The transcription model to use.
      */
-  model: TranscriptionModelV1;
+  model: TranscriptionModelV2;
 
   /**
 The audio data to transcribe.
@@ -91,9 +91,9 @@ Only applicable for HTTP-based providers.
       headers,
       providerOptions,
       mediaType:
-        detectMimeType({
+        detectMediaType({
           data: audioData,
-          signatures: audioMimeTypeSignatures,
+          signatures: audioMediaTypeSignatures,
         }) ?? 'audio/wav',
     }),
   );

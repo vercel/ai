@@ -18,28 +18,30 @@ File as a Uint8Array.
   readonly uint8Array: Uint8Array;
 
   /**
-MIME type of the file
+The IANA media type of the file.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
-  readonly mimeType: string;
+  readonly mediaType: string;
 }
 
 export class DefaultGeneratedFile implements GeneratedFile {
   private base64Data: string | undefined;
   private uint8ArrayData: Uint8Array | undefined;
 
-  readonly mimeType: string;
+  readonly mediaType: string;
 
   constructor({
     data,
-    mimeType,
+    mediaType,
   }: {
     data: string | Uint8Array;
-    mimeType: string;
+    mediaType: string;
   }) {
     const isUint8Array = data instanceof Uint8Array;
     this.base64Data = isUint8Array ? undefined : data;
     this.uint8ArrayData = isUint8Array ? data : undefined;
-    this.mimeType = mimeType;
+    this.mediaType = mediaType;
   }
 
   // lazy conversion with caching to avoid unnecessary conversion overhead:
@@ -62,7 +64,7 @@ export class DefaultGeneratedFile implements GeneratedFile {
 export class DefaultGeneratedFileWithType extends DefaultGeneratedFile {
   readonly type = 'file';
 
-  constructor(options: { data: string | Uint8Array; mimeType: string }) {
+  constructor(options: { data: string | Uint8Array; mediaType: string }) {
     super(options);
   }
 }

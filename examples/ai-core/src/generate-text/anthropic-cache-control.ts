@@ -35,8 +35,13 @@ async function main() {
   });
 
   console.log(result.text);
-  console.log(result.providerMetadata?.anthropic);
-  // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+  console.log();
+
+  console.log('Cache read tokens:', result.usage.cachedInputTokens);
+  console.log(
+    'Cache write tokens:',
+    result.providerMetadata?.anthropic?.cacheCreationInputTokens,
+  );
 }
 
 main().catch(console.error);

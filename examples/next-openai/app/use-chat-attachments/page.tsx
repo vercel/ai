@@ -1,14 +1,12 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    api: '/api/chat',
-  });
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat();
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,35 +19,39 @@ export default function Page() {
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
             <div className="flex flex-col gap-2">
-              {message.content}
-
-              <div className="flex flex-row gap-2">
-                {message.experimental_attachments?.map((attachment, index) =>
-                  attachment.contentType?.includes('image/') ? (
-                    <img
-                      key={`${message.id}-${index}`}
-                      className="w-24 rounded-md"
-                      src={attachment.url}
-                      alt={attachment.name}
-                    />
-                  ) : attachment.contentType?.includes('text/') ? (
-                    <div className="w-32 h-24 p-2 overflow-hidden text-xs border rounded-md ellipsis text-zinc-500">
-                      {getTextFromDataUrl(attachment.url)}
+              {message.parts.map((part, index) => {
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                }
+                if (
+                  part.type === 'file' &&
+                  part.mediaType?.startsWith('image/')
+                ) {
+                  return (
+                    <div key={index}>
+                      <img
+                        className="rounded-md w-60"
+                        src={part.url}
+                        alt={part.filename}
+                      />
+                      <span className="text-sm text-zinc-500">
+                        {part.filename}
+                      </span>
                     </div>
-                  ) : null,
-                )}
-              </div>
+                  );
+                }
+              })}
             </div>
           </div>
         ))}
       </div>
 
       <form
-        onSubmit={event => {
-          handleSubmit(event, {
-            experimental_attachments: files,
-          });
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input, files });
           setFiles(undefined);
+          setInput('');
 
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -102,7 +104,7 @@ export default function Page() {
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-2 bg-zinc-100"
           disabled={status !== 'ready'}
         />

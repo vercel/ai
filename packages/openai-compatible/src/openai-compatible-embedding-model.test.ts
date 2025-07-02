@@ -1,4 +1,4 @@
-import { EmbeddingModelV1Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from './openai-compatible-provider';
 
@@ -27,7 +27,7 @@ describe('doEmbed', () => {
     usage = { prompt_tokens: 8, total_tokens: 8 },
     headers,
   }: {
-    embeddings?: EmbeddingModelV1Embedding[];
+    embeddings?: EmbeddingModelV2Embedding[];
     usage?: { prompt_tokens: number; total_tokens: number };
     headers?: Record<string, string>;
   } = {}) {
@@ -60,9 +60,9 @@ describe('doEmbed', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doEmbed({ values: testValues });
+    const { response } = await model.doEmbed({ values: testValues });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '236',
       'content-type': 'application/json',
@@ -87,7 +87,7 @@ describe('doEmbed', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'text-embedding-3-large',
       input: testValues,
       encoding_format: 'float',
@@ -97,11 +97,16 @@ describe('doEmbed', () => {
   it('should pass the dimensions setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .textEmbeddingModel('text-embedding-3-large', { dimensions: 64 })
-      .doEmbed({ values: testValues });
+    await provider.textEmbeddingModel('text-embedding-3-large').doEmbed({
+      values: testValues,
+      providerOptions: {
+        'openai-compatible': {
+          dimensions: 64,
+        },
+      },
+    });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'text-embedding-3-large',
       input: testValues,
       encoding_format: 'float',

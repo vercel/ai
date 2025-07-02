@@ -1,12 +1,13 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
+  isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { createOpenAICompatible } from './openai-compatible-provider';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -26,43 +27,31 @@ const server = createTestServer({
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'anthropic.beta',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'anthropic.beta',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('anthropic');
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'openai',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'openai',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('openai');
   });
 
   it('should return empty for empty provider', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: '',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: '',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('');
   });
@@ -147,29 +136,43 @@ describe('doGenerate', () => {
 
   it('should pass user setting to requests', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
-    const modelWithUser = provider('grok-beta', {
-      user: 'test-user-id',
-    });
+    const modelWithUser = provider('grok-beta');
     await modelWithUser.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      providerOptions: {
+        xai: {
+          user: 'test-user-id',
+        },
+      },
     });
-    expect(await server.calls[0].requestBody).toMatchObject({
-      user: 'test-user-id',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+      }
+    `);
   });
 
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
+    `);
   });
 
   it('should extract reasoning content', async () => {
@@ -178,34 +181,42 @@ describe('doGenerate', () => {
       reasoning_content: 'This is the reasoning behind the response',
     });
 
-    const { text, reasoning } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
-    expect(reasoning).toStrictEqual(
-      'This is the reasoning behind the response',
-    );
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+        {
+          "text": "This is the reasoning behind the response",
+          "type": "reasoning",
+        },
+      ]
+    `);
   });
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: 5,
-    });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "reasoningTokens": undefined,
+        "totalTokens": 25,
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
@@ -216,45 +227,71 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(response).toStrictEqual({
-      id: 'test-id',
-      timestamp: new Date(123 * 1000),
-      modelId: 'test-model',
-    });
+    expect(response).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "choices": [
+            {
+              "finish_reason": "stop",
+              "index": 0,
+              "message": {
+                "content": "",
+                "reasoning_content": "",
+                "role": "assistant",
+              },
+            },
+          ],
+          "created": 123,
+          "id": "test-id",
+          "model": "test-model",
+          "object": "chat.completion",
+          "system_fingerprint": "fp_3bc1b5746c",
+          "usage": {
+            "completion_tokens": 30,
+            "prompt_tokens": 4,
+            "total_tokens": 34,
+          },
+        },
+        "headers": {
+          "content-length": "298",
+          "content-type": "application/json",
+        },
+        "id": "test-id",
+        "modelId": "test-model",
+        "timestamp": 1970-01-01T00:02:03.000Z,
+      }
+    `);
   });
 
   it('should support partial usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { prompt_tokens: 20, total_tokens: 20 },
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: NaN,
-    });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": undefined,
+        "reasoningTokens": undefined,
+        "totalTokens": 20,
+      }
+    `);
   });
 
   it('should extract finish reason', async () => {
     prepareJsonResponse({
-      content: '',
       finish_reason: 'stop',
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -263,13 +300,10 @@ describe('doGenerate', () => {
 
   it('should support unknown finish reason', async () => {
     prepareJsonResponse({
-      content: '',
       finish_reason: 'eos',
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -281,13 +315,11 @@ describe('doGenerate', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '335',
       'content-type': 'application/json',
@@ -301,12 +333,10 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -315,15 +345,16 @@ describe('doGenerate', () => {
   it('should pass settings', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta', {
-      user: 'test-user-id',
-    }).doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    await provider('grok-beta').doGenerate({
       prompt: TEST_PROMPT,
+      providerOptions: {
+        'openai-compatible': {
+          user: 'test-user-id',
+        },
+      },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       user: 'test-user-id',
@@ -334,9 +365,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider('grok-beta').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
         },
@@ -344,7 +373,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       someCustomOption: 'test-value',
@@ -355,9 +384,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider('grok-beta').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
         },
@@ -365,7 +392,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -375,31 +402,27 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
         },
+      ],
+      toolChoice: {
+        type: 'tool',
+        toolName: 'test-tool',
       },
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       tools: [
@@ -437,8 +460,6 @@ describe('doGenerate', () => {
     });
 
     await provider('grok-beta').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -468,63 +489,55 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
         },
+      ],
+      toolChoice: {
+        type: 'tool',
+        toolName: 'test-tool',
       },
       prompt: TEST_PROMPT,
     });
 
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-      },
-    ]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"value":"Spark"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 
   describe('response format', () => {
     it('should not send a response_format when response format is text', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: false,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: false,
+      });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: { type: 'text' },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
       });
@@ -536,13 +549,11 @@ describe('doGenerate', () => {
       const model = provider('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: { type: 'json' },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: { type: 'json_object' },
@@ -552,20 +563,14 @@ describe('doGenerate', () => {
     it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: false,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: false,
+      });
 
       const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -579,7 +584,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: { type: 'json_object' },
@@ -598,20 +603,14 @@ describe('doGenerate', () => {
     it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
 
       const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -625,7 +624,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -649,50 +648,39 @@ describe('doGenerate', () => {
     it('should respect the reasoningEffort provider option', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        providerMetadata: {
+        providerOptions: {
           'openai-compatible': {
             reasoningEffort: 'low',
           },
         },
       });
 
-      const body = await server.calls[0].requestBody;
+      const body = await server.calls[0].requestBodyJson;
 
       expect(body.reasoning_effort).toBe('low');
     });
 
-    it('should use json_schema & strict in object-json mode when structuredOutputs are enabled', async () => {
+    it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
+        responseFormat: {
+          type: 'json',
           schema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -704,7 +692,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -723,24 +711,19 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should set name & description in object-json mode when structuredOutputs are enabled', async () => {
+    it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
+        responseFormat: {
+          type: 'json',
           name: 'test-name',
           description: 'test description',
           schema: {
@@ -754,7 +737,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -774,31 +757,26 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should allow for undefined schema in object-json mode when structuredOutputs are enabled', async () => {
+    it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
+        responseFormat: {
+          type: 'json',
           name: 'test-name',
           description: 'test description',
         },
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -806,91 +784,12 @@ describe('doGenerate', () => {
         },
       });
     });
-
-    it('should set strict in object-tool mode when structuredOutputs are enabled', async () => {
-      prepareJsonResponse({
-        tool_calls: [
-          {
-            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              arguments: '{"value":"Spark"}',
-            },
-          },
-        ],
-      });
-
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
-
-      const result = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'object-tool',
-          tool: {
-            type: 'function',
-            name: 'test-tool',
-            description: 'test description',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        tool_choice: { type: 'function', function: { name: 'test-tool' } },
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              description: 'test description',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          },
-        ],
-      });
-
-      expect(result.toolCalls).toStrictEqual([
-        {
-          args: '{"value":"Spark"}',
-          toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-        },
-      ]);
-    });
   });
 
   it('should send request body', async () => {
     prepareJsonResponse({ content: '' });
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -902,10 +801,10 @@ describe('doGenerate', () => {
   describe('usage details', () => {
     it('should extract detailed token usage when available', async () => {
       prepareJsonResponse({
-        content: '',
         usage: {
           prompt_tokens: 20,
           completion_tokens: 30,
+          total_tokens: 50,
           prompt_tokens_details: {
             cached_tokens: 5,
           },
@@ -918,22 +817,30 @@ describe('doGenerate', () => {
       });
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
-      expect(result.providerMetadata!['test-provider']).toStrictEqual({
-        cachedPromptTokens: 5,
-        reasoningTokens: 10,
-        acceptedPredictionTokens: 15,
-        rejectedPredictionTokens: 5,
-      });
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": 5,
+          "inputTokens": 20,
+          "outputTokens": 30,
+          "reasoningTokens": 10,
+          "totalTokens": 50,
+        }
+      `);
+      expect(result.providerMetadata).toMatchInlineSnapshot(`
+        {
+          "test-provider": {
+            "acceptedPredictionTokens": 15,
+            "rejectedPredictionTokens": 5,
+          },
+        }
+      `);
     });
 
     it('should handle missing token details', async () => {
       prepareJsonResponse({
-        content: '',
         usage: {
           prompt_tokens: 20,
           completion_tokens: 30,
@@ -942,8 +849,6 @@ describe('doGenerate', () => {
       });
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -952,10 +857,10 @@ describe('doGenerate', () => {
 
     it('should handle partial token details', async () => {
       prepareJsonResponse({
-        content: '',
         usage: {
           prompt_tokens: 20,
           completion_tokens: 30,
+          total_tokens: 50,
           prompt_tokens_details: {
             cached_tokens: 5,
           },
@@ -967,15 +872,18 @@ describe('doGenerate', () => {
       });
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
-      expect(result.providerMetadata!['test-provider']).toStrictEqual({
-        cachedPromptTokens: 5,
-        reasoningTokens: 10,
-      });
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": 5,
+          "inputTokens": 20,
+          "outputTokens": 30,
+          "reasoningTokens": 10,
+          "totalTokens": 50,
+        }
+      `);
     });
   });
 });
@@ -1019,29 +927,22 @@ describe('doStream', () => {
       finish_reason: 'stop',
     });
 
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4o-2024-08-06',
-      {},
-      {
-        provider: 'test-provider',
-        url: () => 'https://my.api.com/v1/chat/completions',
-        headers: () => ({}),
-        includeUsage: true,
-      },
-    );
-
-    const { warnings } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+      provider: 'test-provider',
+      url: () => 'https://my.api.com/v1/chat/completions',
+      headers: () => ({}),
+      includeUsage: true,
     });
 
-    const body = await server.calls[0].requestBody;
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
 
     expect(body.stream).toBe(true);
     expect(body.stream_options).toStrictEqual({ include_usage: true });
-
-    expect(warnings).toEqual([]);
   });
 
   it('should stream text deltas', async () => {
@@ -1051,32 +952,67 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2023-12-15T16:17:00.000Z'),
-      },
-      { type: 'text-delta', textDelta: '' },
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 18, completionTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ", ",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream reasoning content before text deltas', async () => {
@@ -1099,43 +1035,74 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'reasoning',
-        textDelta: 'Let me think',
-      },
-      {
-        type: 'reasoning',
-        textDelta: ' about this',
-      },
-      {
-        type: 'text-delta',
-        textDelta: "Here's",
-      },
-      {
-        type: 'text-delta',
-        textDelta: ' my response',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 18, completionTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Let me think",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " about this",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here's",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " my response",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool deltas', async () => {
@@ -1176,98 +1143,101 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'value',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'Spark',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'le',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' Day',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 18, completionTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "value",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "":"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "Spark",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "le",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": " Day",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""}",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
@@ -1308,105 +1278,106 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'va',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'lue',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'Spark',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'le',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' Day',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 18, completionTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "va",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "lue",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "":"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "Spark",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "le",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": " Day",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""}",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
+          },
+        },
+      ]
+    `);
   });
 
   it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
@@ -1453,88 +1424,104 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'searchGoogle',
-            parameters: {
-              type: 'object',
-              properties: { query: { type: 'string' } },
-              required: ['query'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'searchGoogle',
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chat-2267f7e2910a4254bac0650ba74cfc1c',
-        modelId: 'meta/llama-3.1-8b-instruct:fp8',
-        timestamp: new Date('2024-12-02T17:57:21.000Z'),
-      },
-      {
-        type: 'text-delta',
-        textDelta: '',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: '{"query": "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: 'latest',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' news',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' on',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' ai"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        args: '{"query": "latest news on ai"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 226, completionTokens: 20 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chat-2267f7e2910a4254bac0650ba74cfc1c",
+          "modelId": "meta/llama-3.1-8b-instruct:fp8",
+          "timestamp": 2024-12-02T17:57:21.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolName": "searchGoogle",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"query": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "latest",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": " news",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": " on",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": " ai"}",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"query": "latest news on ai"}",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolName": "searchGoogle",
+          "type": "tool-call",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 226,
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 246,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool call that is sent in one chunk', async () => {
@@ -1554,56 +1541,71 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { promptTokens: 18, completionTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle error stream parts', async () => {
@@ -1616,72 +1618,92 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'error',
-        error:
-          'Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.',
-      },
-      {
-        type: 'finish',
-        finishReason: 'error',
-        usage: {
-          promptTokens: NaN,
-          completionTokens: NaN,
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-        providerMetadata: {
-          'test-provider': {},
+        {
+          "error": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.",
+          "type": "error",
         },
-      },
-    ]);
+        {
+          "finishReason": "error",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
-  it('should handle unparsable stream parts', async () => {
-    server.urls['https://my.api.com/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-    };
+  it.skipIf(isNodeVersion(20))(
+    'should handle unparsable stream parts',
+    async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+      };
 
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
 
-    const elements = await convertReadableStreamToArray(stream);
-
-    expect(elements.length).toBe(2);
-    expect(elements[0].type).toBe('error');
-    expect(elements[1]).toStrictEqual({
-      finishReason: 'error',
-      type: 'finish',
-      usage: {
-        completionTokens: NaN,
-        promptTokens: NaN,
-      },
-      providerMetadata: {
-        'test-provider': {},
-      },
-    });
-  });
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
+        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+            "type": "error",
+          },
+          {
+            "finishReason": "error",
+            "providerMetadata": {
+              "test-provider": {},
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
+            },
+          },
+        ]
+      `);
+    },
+  );
 
   it('should expose the raw response headers', async () => {
     prepareStreamResponse({
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
@@ -1696,12 +1718,11 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
@@ -1721,9 +1742,8 @@ describe('doStream', () => {
     });
 
     await provider('grok-beta').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -1741,17 +1761,16 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await provider('grok-beta').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
@@ -1763,17 +1782,16 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await provider('grok-beta').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
@@ -1784,14 +1802,37 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}],"stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "frequency_penalty": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+          "presence_penalty": undefined,
+          "reasoning_effort": undefined,
+          "response_format": undefined,
+          "seed": undefined,
+          "stop": undefined,
+          "stream": true,
+          "stream_options": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   describe('usage details in streaming', () => {
@@ -1812,20 +1853,32 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
       const finishPart = parts.find(part => part.type === 'finish');
 
-      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({
-        cachedPromptTokens: 5,
-        reasoningTokens: 10,
-        acceptedPredictionTokens: 15,
-        rejectedPredictionTokens: 5,
-      });
+      expect(finishPart).toMatchInlineSnapshot(`
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {
+              "acceptedPredictionTokens": 15,
+              "rejectedPredictionTokens": 5,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": 5,
+            "inputTokens": 20,
+            "outputTokens": 30,
+            "reasoningTokens": 10,
+            "totalTokens": undefined,
+          },
+        }
+      `);
     });
 
     it('should handle missing token details in stream', async () => {
@@ -1840,9 +1893,8 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -1858,6 +1910,7 @@ describe('doStream', () => {
           `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
           `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
             `"usage":{"prompt_tokens":20,"completion_tokens":30,` +
+            `"total_tokens":50,` +
             `"prompt_tokens_details":{"cached_tokens":5},` +
             `"completion_tokens_details":{"reasoning_tokens":10}}}\n\n`,
           'data: [DONE]\n\n',
@@ -1865,229 +1918,36 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
       const finishPart = parts.find(part => part.type === 'finish');
 
-      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({
-        cachedPromptTokens: 5,
-        reasoningTokens: 10,
-      });
-    });
-  });
-});
-
-describe('doStream simulated streaming', () => {
-  function prepareJsonResponse({
-    content = '',
-    reasoning_content = '',
-    tool_calls,
-    usage = {
-      prompt_tokens: 4,
-      total_tokens: 34,
-      completion_tokens: 30,
-    },
-    finish_reason = 'stop',
-    id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-    created = 1711115037,
-    model = 'gpt-3.5-turbo-0125',
-  }: {
-    content?: string;
-    reasoning_content?: string;
-    tool_calls?: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-    }>;
-    usage?: {
-      prompt_tokens?: number;
-      total_tokens?: number;
-      completion_tokens?: number;
-    };
-    finish_reason?: string;
-    created?: number;
-    id?: string;
-    model?: string;
-  } = {}) {
-    server.urls['https://my.api.com/v1/chat/completions'].response = {
-      type: 'json-value',
-      body: {
-        id,
-        object: 'chat.completion',
-        created,
-        model,
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content,
-              tool_calls,
-              reasoning_content,
-            },
-            finish_reason,
-          },
-        ],
-        usage,
-        system_fingerprint: 'fp_3bc1b5746c',
-      },
-    };
-  }
-
-  it('should stream text delta', async () => {
-    prepareJsonResponse({ content: 'Hello, World!', model: 'o1-preview' });
-
-    const model = provider.chatModel('o1', {
-      simulateStreaming: true,
-    });
-
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-        modelId: 'o1-preview',
-        timestamp: expect.any(Date),
-      },
-      { type: 'text-delta', textDelta: 'Hello, World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 30 },
-        logprobs: undefined,
-        providerMetadata: {
-          'test-provider': {},
-        },
-      },
-    ]);
-  });
-
-  it('should stream reasoning content before text delta in simulated streaming', async () => {
-    prepareJsonResponse({
-      content: 'Hello, World!',
-      reasoning_content: 'This is the reasoning',
-      model: 'o1-preview',
-    });
-
-    const model = provider.chatModel('o1', {
-      simulateStreaming: true,
-    });
-
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-        modelId: 'o1-preview',
-        timestamp: expect.any(Date),
-      },
-      {
-        type: 'reasoning',
-        textDelta: 'This is the reasoning',
-      },
-      {
-        type: 'text-delta',
-        textDelta: 'Hello, World!',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 30 },
-        logprobs: undefined,
-        providerMetadata: {
-          'test-provider': {},
-        },
-      },
-    ]);
-  });
-
-  it('should stream tool calls', async () => {
-    prepareJsonResponse({
-      model: 'o1-preview',
-      tool_calls: [
+      expect(finishPart).toMatchInlineSnapshot(`
         {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Sparkle Day"}',
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
           },
-        },
-      ],
-    });
-
-    const model = provider.chatModel('o1', {
-      simulateStreaming: true,
-    });
-
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": 5,
+            "inputTokens": 20,
+            "outputTokens": 30,
+            "reasoningTokens": 10,
+            "totalTokens": 50,
           },
-        ],
-      },
-      prompt: TEST_PROMPT,
+        }
+      `);
     });
-
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-        modelId: 'o1-preview',
-        timestamp: expect.any(Date),
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 30 },
-        logprobs: undefined,
-        providerMetadata: {
-          'test-provider': {},
-        },
-      },
-    ]);
   });
 });
 
 describe('metadata extraction', () => {
   const testMetadataExtractor = {
-    extractMetadata: ({ parsedBody }: { parsedBody: unknown }) => {
+    extractMetadata: async ({ parsedBody }: { parsedBody: unknown }) => {
       if (
         typeof parsedBody !== 'object' ||
         !parsedBody ||
@@ -2142,7 +2002,6 @@ describe('metadata extraction', () => {
             index: 0,
             message: {
               role: 'assistant',
-              content: 'Hello',
             },
             finish_reason: 'stop',
           },
@@ -2151,20 +2010,14 @@ describe('metadata extraction', () => {
       },
     };
 
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'test-provider',
-        url: () => 'https://my.api.com/v1/chat/completions',
-        headers: () => ({}),
-        metadataExtractor: testMetadataExtractor,
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'test-provider',
+      url: () => 'https://my.api.com/v1/chat/completions',
+      headers: () => ({}),
+      metadataExtractor: testMetadataExtractor,
+    });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2174,7 +2027,7 @@ describe('metadata extraction', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-4',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -2190,21 +2043,16 @@ describe('metadata extraction', () => {
       ],
     };
 
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'test-provider',
-        url: () => 'https://my.api.com/v1/chat/completions',
-        headers: () => ({}),
-        metadataExtractor: testMetadataExtractor,
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'test-provider',
+      url: () => 'https://my.api.com/v1/chat/completions',
+      headers: () => ({}),
+      metadataExtractor: testMetadataExtractor,
+    });
 
     const result = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const parts = await convertReadableStreamToArray(result.stream);
@@ -2216,10 +2064,94 @@ describe('metadata extraction', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-4',
       messages: [{ role: 'user', content: 'Hello' }],
       stream: true,
     });
+  });
+});
+
+describe('raw chunks', () => {
+  it('should include raw chunks when includeRawChunks is true', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+        `data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                },
+              },
+            ],
+            "id": "chat-id",
+          },
+          "type": "raw",
+        },
+        {
+          "id": "chat-id",
+          "modelId": undefined,
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+              },
+            ],
+          },
+          "type": "raw",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 });

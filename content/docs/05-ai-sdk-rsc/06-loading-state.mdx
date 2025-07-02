@@ -30,7 +30,7 @@ Let's create a simple Next.js page that will call the `generateResponse` functio
 
 import { useState } from 'react';
 import { generateResponse } from './actions';
-import { readStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from '@ai-sdk/rsc';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -84,7 +84,7 @@ Now let's implement the `generateResponse` function. Use the `streamText` functi
 
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { createStreamableValue } from 'ai/rsc';
+import { createStreamableValue } from '@ai-sdk/rsc';
 
 export async function generateResponse(prompt: string) {
   const stream = createStreamableValue();
@@ -117,7 +117,7 @@ If you are looking to track loading state on a more granular level, you can crea
 
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { createStreamableValue } from 'ai/rsc';
+import { createStreamableValue } from '@ai-sdk/rsc';
 
 export async function generateResponse(prompt: string) {
   const stream = createStreamableValue();
@@ -148,7 +148,7 @@ export async function generateResponse(prompt: string) {
 
 import { useState } from 'react';
 import { generateResponse } from './actions';
-import { readStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from '@ai-sdk/rsc';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -210,7 +210,7 @@ If you are using the [ `streamUI` ](/docs/reference/ai-sdk-rsc/stream-ui) functi
 'use server';
 
 import { openai } from '@ai-sdk/openai';
-import { streamUI } from 'ai/rsc';
+import { streamUI } from '@ai-sdk/rsc';
 
 export async function generateResponse(prompt: string) {
   const result = await streamUI({
@@ -238,7 +238,7 @@ export async function generateResponse(prompt: string) {
 
 import { useState } from 'react';
 import { generateResponse } from './actions';
-import { readStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from '@ai-sdk/rsc';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const maxDuration = 30;

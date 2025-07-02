@@ -3,7 +3,6 @@ import {
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
-  LogProbs,
   ProviderMetadata,
 } from '../types';
 import { LanguageModelUsage } from '../types/usage';
@@ -48,24 +47,11 @@ Response body (available only for providers that use HTTP requests).
   };
 
   /**
- Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled.
-
-@deprecated Will become a provider extension in the future.
-     */
-  readonly logprobs: LogProbs | undefined;
-
-  /**
 Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ProviderMetadata | undefined;
-
-  /**
-@deprecated Use `providerMetadata` instead.
-   */
-  readonly experimental_providerMetadata: ProviderMetadata | undefined;
 
   /**
   Converts the object to a JSON response.

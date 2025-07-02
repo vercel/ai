@@ -1,25 +1,39 @@
 import { openai } from '@ai-sdk/openai';
-import { createDataStreamResponse, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  UIMessage,
+} from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
-  return createDataStreamResponse({
-    execute: dataStream => {
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      writer.write({ type: 'start' });
+
       // write a custom url source to the stream:
-      dataStream.writeSource({
-        sourceType: 'url',
-        id: 'source-1',
+      writer.write({
+        type: 'source-url',
+        sourceId: 'source-1',
         url: 'https://example.com',
         title: 'Example Source',
       });
 
       const result = streamText({
         model: openai('gpt-4o'),
-        messages,
+        messages: convertToModelMessages(messages),
       });
 
-      result.mergeIntoDataStream(dataStream);
+      writer.merge(result.toUIMessageStream({ sendStart: false }));
+    },
+    originalMessages: messages,
+    onFinish: options => {
+      console.log('onFinish', JSON.stringify(options, null, 2));
     },
   });
+
+  return createUIMessageStreamResponse({ stream });
 }

@@ -14,7 +14,7 @@ import { generateText } from 'ai';
 
 try {
   const { text } = await generateText({
-    model: yourModel,
+    model: 'openai/gpt-4.1',
     prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   });
 } catch (error) {
@@ -35,7 +35,7 @@ import { generateText } from 'ai';
 
 try {
   const { textStream } = streamText({
-    model: yourModel,
+    model: 'openai/gpt-4.1',
     prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   });
 
@@ -59,7 +59,7 @@ import { generateText } from 'ai';
 
 try {
   const { fullStream } = streamText({
-    model: yourModel,
+    model: 'openai/gpt-4.1',
     prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   });
 

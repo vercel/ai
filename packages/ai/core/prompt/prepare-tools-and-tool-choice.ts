@@ -1,12 +1,12 @@
 import {
-  LanguageModelV1FunctionTool,
-  LanguageModelV1ProviderDefinedTool,
-  LanguageModelV1ToolChoice,
+  LanguageModelV2FunctionTool,
+  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
-import { asSchema } from '@ai-sdk/ui-utils';
+import { asSchema } from '@ai-sdk/provider-utils';
+import { isNonEmptyObject } from '../../src/util/is-non-empty-object';
 import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
-import { isNonEmptyObject } from '../util/is-non-empty-object';
 
 export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   tools,
@@ -18,9 +18,9 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   activeTools: Array<keyof TOOLS> | undefined;
 }): {
   tools:
-    | Array<LanguageModelV1FunctionTool | LanguageModelV1ProviderDefinedTool>
+    | Array<LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool>
     | undefined;
-  toolChoice: LanguageModelV1ToolChoice | undefined;
+  toolChoice: LanguageModelV2ToolChoice | undefined;
 } {
   if (!isNonEmptyObject(tools)) {
     return {
@@ -47,7 +47,7 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
             type: 'function' as const,
             name,
             description: tool.description,
-            parameters: asSchema(tool.parameters).jsonSchema,
+            inputSchema: asSchema(tool.inputSchema).jsonSchema,
           };
         case 'provider-defined':
           return {

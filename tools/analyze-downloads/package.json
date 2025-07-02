@@ -1,6 +1,7 @@
 {
-  "private": true,
   "name": "analyze-downloads",
+  "version": "0.0.0",
+  "private": "true",
   "scripts": {
     "analyze-versions": "tsx src/analyze-versions.ts",
     "analyze-providers": "tsx src/analyze-providers.ts",
@@ -13,6 +14,6 @@
   },
   "devDependencies": {
     "tsx": "4.19.2",
-    "typescript": "5.6.3"
+    "typescript": "5.8.3"
   }
 }

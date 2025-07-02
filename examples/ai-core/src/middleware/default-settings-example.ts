@@ -9,7 +9,7 @@ async function main() {
       middleware: defaultSettingsMiddleware({
         settings: {
           temperature: 0.5,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               store: false,
             },

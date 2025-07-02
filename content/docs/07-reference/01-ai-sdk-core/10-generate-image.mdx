@@ -40,7 +40,7 @@ console.log(images);
   content={[
     {
       name: 'model',
-      type: 'ImageModelV1',
+      type: 'ImageModelV2',
       description: 'The image model to use.',
     },
     {
@@ -76,7 +76,7 @@ console.log(images);
     },
     {
       name: 'providerOptions',
-      type: 'Record<string, Record<string, JSONValue>>',
+      type: 'ProviderOptions',
       isOptional: true,
       description: 'Additional provider-specific options.',
     },
@@ -124,9 +124,9 @@ console.log(images);
               description: 'Image as a Uint8Array.',
             },
             {
-              name: 'mimeType',
+              name: 'mediaType',
               type: 'string',
-              description: 'MIME type of the image.',
+              description: 'The IANA media type of the image.',
             },
           ],
         },
@@ -151,9 +151,9 @@ console.log(images);
               description: 'Image as a Uint8Array.',
             },
             {
-              name: 'mimeType',
+              name: 'mediaType',
               type: 'string',
-              description: 'MIME type of the image.',
+              description: 'The IANA media type of the image.',
             },
           ],
         },
@@ -164,6 +164,13 @@ console.log(images);
       type: 'ImageGenerationWarning[]',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ImageModelProviderMetadata',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. An `images` key is always present in the metadata and is an array with the same length as the top level `images` key. Details depend on the provider.',
     },
     {
       name: 'responses',

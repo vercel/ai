@@ -2,11 +2,15 @@
 
 import { Card } from '@/app/components';
 import { useChat } from '@ai-sdk/react';
+import { TextStreamChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    api: '/api/chat?protocol=text',
-    streamProtocol: 'text',
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat({
+    transport: new TextStreamChatTransport({
+      api: '/api/chat?protocol=text',
+    }),
   });
 
   return (
@@ -15,7 +19,11 @@ export default function Page() {
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
-            <div className="flex flex-col gap-2">{message.content}</div>
+            <div className="flex flex-col gap-2">
+              {message.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
           </div>
         ))}
       </div>
@@ -23,13 +31,17 @@ export default function Page() {
       {messages.length === 0 && <Card type="chat-text" />}
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
         className="fixed bottom-0 flex flex-col w-full border-t"
       >
         <input
           value={input}
           placeholder="Why is the sky blue?"
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-4 bg-transparent outline-none"
           disabled={status !== 'ready'}
         />

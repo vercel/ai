@@ -1,4 +1,4 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   createTestServer,
   convertReadableStreamToArray,
@@ -11,7 +11,7 @@ import {
   BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -69,16 +69,12 @@ beforeEach(() => {
   };
 });
 
-const model = new BedrockChatLanguageModel(
-  modelId,
-  {},
-  {
-    baseUrl: () => baseUrl,
-    headers: {},
-    fetch: fakeFetchWithAuth,
-    generateId: () => 'test-id',
-  },
-);
+const model = new BedrockChatLanguageModel(modelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
@@ -96,15 +92,17 @@ describe('doStream', () => {
           chunks = text
             .split('\n')
             .filter(Boolean)
-            .map(chunk => ({
-              success: true,
-              value: JSON.parse(chunk),
-            }));
+            .map(chunk => {
+              const parsedChunk = JSON.parse(chunk);
+              return {
+                success: true,
+                value: parsedChunk,
+                rawValue: parsedChunk,
+              };
+            });
         }
-        const headers: Record<string, string> = {};
-        response.headers.forEach((value, key) => {
-          headers[key] = value;
-        });
+        const headers = Object.fromEntries<string>([...response.headers]);
+
         return {
           responseHeaders: headers,
           value: new ReadableStream({
@@ -169,21 +167,55 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 34 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": ", ",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "2",
+          "type": "text-start",
+        },
+        {
+          "delta": "World!",
+          "id": "2",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 4,
+            "outputTokens": 34,
+            "totalTokens": 38,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool deltas', async () => {
@@ -223,55 +255,66 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: { type: 'tool', toolName: 'test-tool' },
-      },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'test-tool' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "tool-use-id",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"value":",
+          "id": "tool-use-id",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
+          "toolCallId": "tool-use-id",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream parallel tool calls', async () => {
@@ -334,87 +377,102 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool-1',
-            parameters: {
-              type: 'object',
-              properties: { value1: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool-1',
+          inputSchema: {
+            type: 'object',
+            properties: { value1: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-          {
-            type: 'function',
-            name: 'test-tool-2',
-            parameters: {
-              type: 'object',
-              properties: { value2: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+        },
+        {
+          type: 'function',
+          name: 'test-tool-2',
+          inputSchema: {
+            type: 'object',
+            properties: { value2: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: { type: 'tool', toolName: 'test-tool' },
-      },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'test-tool' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        argsTextDelta: '{"value1":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        argsTextDelta: '{"value2":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        args: '{"value1":"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        args: '{"value2":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "tool-use-id-1",
+          "toolName": "test-tool-1",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"value1":",
+          "id": "tool-use-id-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id-2",
+          "toolName": "test-tool-2",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"value2":",
+          "id": "tool-use-id-2",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id-2",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id-1",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value1":"Sparkle Day"}",
+          "toolCallId": "tool-use-id-1",
+          "toolName": "test-tool-1",
+          "type": "tool-call",
+        },
+        {
+          "id": "tool-use-id-2",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value2":"Sparkle Day"}",
+          "toolCallId": "tool-use-id-2",
+          "toolName": "test-tool-2",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle error stream parts', async () => {
@@ -434,31 +492,36 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message: 'Internal Server Error',
-          name: 'InternalServerException',
-          $fault: 'server',
-          $metadata: {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: {
-          completionTokens: NaN,
-          promptTokens: NaN,
+        {
+          "error": {
+            "$fault": "server",
+            "$metadata": {},
+            "message": "Internal Server Error",
+            "name": "InternalServerException",
+          },
+          "type": "error",
         },
-      },
-    ]);
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle modelStreamErrorException error', async () => {
@@ -478,28 +541,36 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message: 'Model Stream Error',
-          name: 'ModelStreamErrorException',
-          $fault: 'server',
-          $metadata: {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
+        {
+          "error": {
+            "$fault": "server",
+            "$metadata": {},
+            "message": "Model Stream Error",
+            "name": "ModelStreamErrorException",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle throttlingException error', async () => {
@@ -519,28 +590,36 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message: 'Throttling Error',
-          name: 'ThrottlingException',
-          $fault: 'server',
-          $metadata: {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
+        {
+          "error": {
+            "$fault": "server",
+            "$metadata": {},
+            "message": "Throttling Error",
+            "name": "ThrottlingException",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle validationException error', async () => {
@@ -560,28 +639,36 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message: 'Validation Error',
-          name: 'ValidationException',
-          $fault: 'server',
-          $metadata: {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
+        {
+          "error": {
+            "$fault": "server",
+            "$metadata": {},
+            "message": "Validation Error",
+            "name": "ValidationException",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle failed chunk parsing', async () => {
@@ -591,22 +678,33 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: { message: 'Chunk Parsing Failed' },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "error": {
+            "message": "Chunk Parsing Failed",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should pass the messages and the model', async () => {
@@ -617,12 +715,11 @@ describe('doStream', () => {
     };
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
     });
@@ -636,10 +733,9 @@ describe('doStream', () => {
     };
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      includeRawChunks: false,
+      providerOptions: {
         bedrock: {
           guardrailConfig: {
             guardrailIdentifier: '-1',
@@ -651,7 +747,7 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
       guardrailConfig: {
@@ -690,24 +786,67 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 34 },
-        providerMetadata: {
-          bedrock: {
-            trace: mockTrace,
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "trace": {
+                "guardrail": {
+                  "inputAssessment": {
+                    "1abcd2ef34gh": {
+                      "contentPolicy": {
+                        "filters": [
+                          {
+                            "action": "BLOCKED",
+                            "confidence": "LOW",
+                            "type": "INSULTS",
+                          },
+                        ],
+                      },
+                      "wordPolicy": {
+                        "managedWordLists": [
+                          {
+                            "action": "BLOCKED",
+                            "match": "<rude word>",
+                            "type": "PROFANITY",
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 4,
+            "outputTokens": 34,
+            "totalTokens": 38,
           },
         },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -733,13 +872,12 @@ describe('doStream', () => {
       ],
     };
 
-    const response = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const result = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(response.rawResponse?.headers).toEqual({
+    expect(result.response?.headers).toEqual({
       'cache-control': 'no-cache',
       connection: 'keep-alive',
       'content-type': 'text/event-stream',
@@ -776,30 +914,25 @@ describe('doStream', () => {
       'shared-header': 'options-shared',
     };
 
-    const model = new BedrockChatLanguageModel(
-      modelId,
-      {},
-      {
-        baseUrl: () => baseUrl,
-        headers: {
-          'model-header': 'model-value',
-          'shared-header': 'model-shared',
-        },
-        fetch: injectFetchHeaders({
-          'options-header': 'options-value',
-          'model-header': 'model-value',
-          'shared-header': 'options-shared',
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-        generateId: () => 'test-id',
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {
+        'model-header': 'model-value',
+        'shared-header': 'model-shared',
       },
-    );
+      fetch: injectFetchHeaders({
+        'options-header': 'options-value',
+        'model-header': 'model-value',
+        'shared-header': 'options-shared',
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+      generateId: () => 'test-id',
+    });
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: optionsHeaders,
     });
 
@@ -813,27 +946,22 @@ describe('doStream', () => {
 
   it('should work with partial headers', async () => {
     setupMockEventStreamHandler();
-    const model = new BedrockChatLanguageModel(
-      modelId,
-      {},
-      {
-        baseUrl: () => baseUrl,
-        headers: {
-          'model-header': 'model-value',
-        },
-        fetch: injectFetchHeaders({
-          'model-header': 'model-value',
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-        generateId: () => 'test-id',
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {
+        'model-header': 'model-value',
       },
-    );
+      fetch: injectFetchHeaders({
+        'model-header': 'model-value',
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+      generateId: () => 'test-id',
+    });
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const requestHeaders = server.calls[0].requestHeaders;
@@ -860,10 +988,9 @@ describe('doStream', () => {
     };
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      includeRawChunks: false,
+      providerOptions: {
         bedrock: {
           foo: 'bar',
         },
@@ -871,7 +998,7 @@ describe('doStream', () => {
     });
 
     // Verify the outgoing request body includes "foo" at the top level.
-    const body = await server.calls[0].requestBody;
+    const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
 
@@ -906,27 +1033,44 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 34 },
-        providerMetadata: {
-          bedrock: {
-            usage: {
-              cacheReadInputTokens: 2,
-              cacheWriteInputTokens: 3,
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "usage": {
+                "cacheWriteInputTokens": 3,
+              },
             },
           },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": 2,
+            "inputTokens": 4,
+            "outputTokens": 34,
+            "totalTokens": 38,
+          },
         },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should handle system messages with cache points', async () => {
@@ -949,20 +1093,18 @@ describe('doStream', () => {
     };
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: [
         {
           role: 'system',
           content: 'System Prompt',
-          providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+          providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
         },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
+      includeRawChunks: false,
     });
 
-    const requestBody = await server.calls[0].requestBody;
-    expect(requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });
@@ -1012,25 +1154,60 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'reasoning', textDelta: 'I am thinking' },
-      { type: 'reasoning', textDelta: ' about this problem...' },
-      { type: 'reasoning-signature', signature: 'abc123signature' },
-      {
-        type: 'text-delta',
-        textDelta: 'Based on my reasoning, the answer is 42.',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "I am thinking",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " about this problem...",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "",
+          "id": "0",
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "abc123signature",
+            },
+          },
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Based on my reasoning, the answer is 42.",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream redacted reasoning', async () => {
@@ -1061,20 +1238,117 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'redacted-reasoning', data: 'redacted-reasoning-data' },
-      { type: 'text-delta', textDelta: 'Here is my answer.' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: NaN, completionTokens: NaN },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "delta": "",
+          "id": "0",
+          "providerMetadata": {
+            "bedrock": {
+              "redactedData": "redacted-reasoning-data",
+            },
+          },
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is my answer.",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should include raw chunks when includeRawChunks is true', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "contentBlockDelta": {
+              "contentBlockIndex": 0,
+              "delta": {
+                "text": "Hello",
+              },
+            },
+          },
+          "type": "raw",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "rawValue": {
+            "messageStop": {
+              "stopReason": "stop_sequence",
+            },
+          },
+          "type": "raw",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 });
 
@@ -1138,13 +1412,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
-    const { text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const result = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
+    `);
   });
 
   it('should extract usage', async () => {
@@ -1153,23 +1432,23 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 4,
-      completionTokens: 34,
-    });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 4,
+        "outputTokens": 34,
+        "totalTokens": 38,
+      }
+    `);
   });
 
   it('should extract finish reason', async () => {
     prepareJsonResponse({ stopReason: 'stop_sequence' });
 
     const { finishReason } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1180,8 +1459,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ stopReason: 'eos' });
 
     const { finishReason } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1192,12 +1469,10 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
     });
@@ -1207,67 +1482,17 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      maxTokens: 100,
+      maxOutputTokens: 100,
       temperature: 0.5,
       topP: 0.5,
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       inferenceConfig: {
-        maxTokens: 100,
+        maxOutputTokens: 100,
         temperature: 0.5,
         topP: 0.5,
-      },
-    });
-  });
-
-  it('should pass tool specification in object-tool mode', async () => {
-    prepareJsonResponse({});
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-tool',
-        tool: {
-          name: 'test-tool',
-          type: 'function',
-          parameters: {
-            type: 'object',
-            properties: {
-              property1: { type: 'string' },
-              property2: { type: 'number' },
-            },
-            required: ['property1', 'property2'],
-            additionalProperties: false,
-          },
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.calls[0].requestBody).toMatchObject({
-      toolConfig: {
-        tools: [
-          {
-            toolSpec: {
-              name: 'test-tool',
-              inputSchema: {
-                json: {
-                  type: 'object',
-                  properties: {
-                    property1: { type: 'string' },
-                    property2: { type: 'number' },
-                  },
-                  required: ['property1', 'property2'],
-                  additionalProperties: false,
-                },
-              },
-            },
-          },
-        ],
       },
     });
   });
@@ -1276,10 +1501,8 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           guardrailConfig: {
             guardrailIdentifier: '-1',
@@ -1290,7 +1513,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       guardrailConfig: {
         guardrailIdentifier: '-1',
         guardrailVersion: '1',
@@ -1302,13 +1525,11 @@ describe('doGenerate', () => {
   it('should include trace information in providerMetadata', async () => {
     prepareJsonResponse({ trace: mockTrace });
 
-    const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const result = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(response.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
+    expect(result.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -1334,13 +1555,11 @@ describe('doGenerate', () => {
       },
     };
 
-    const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const result = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(response.rawResponse?.headers).toEqual({
+    expect(result.response?.headers).toEqual({
       'x-amzn-requestid': 'test-request-id',
       'x-amzn-trace-id': 'test-trace-id',
       'content-type': 'application/json',
@@ -1352,31 +1571,27 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool-1',
-            description: 'A test tool',
-            parameters: {
-              type: 'object',
-              properties: {
-                param1: { type: 'string' },
-                param2: { type: 'number' },
-              },
-              required: ['param1'],
-              additionalProperties: false,
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool-1',
+          description: 'A test tool',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              param1: { type: 'string' },
+              param2: { type: 'number' },
             },
+            required: ['param1'],
+            additionalProperties: false,
           },
-        ],
-        toolChoice: { type: 'auto' },
-      },
+        },
+      ],
+      toolChoice: { type: 'auto' },
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       toolConfig: {
         tools: [
           {
@@ -1409,29 +1624,23 @@ describe('doGenerate', () => {
       'shared-header': 'options-shared',
     };
 
-    const model = new BedrockChatLanguageModel(
-      modelId,
-      {},
-      {
-        baseUrl: () => baseUrl,
-        headers: {
-          'model-header': 'model-value',
-          'shared-header': 'model-shared',
-        },
-        fetch: injectFetchHeaders({
-          'options-header': 'options-value',
-          'model-header': 'model-value',
-          'shared-header': 'options-shared',
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-        generateId: () => 'test-id',
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {
+        'model-header': 'model-value',
+        'shared-header': 'model-shared',
       },
-    );
+      fetch: injectFetchHeaders({
+        'options-header': 'options-value',
+        'model-header': 'model-value',
+        'shared-header': 'options-shared',
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+      generateId: () => 'test-id',
+    });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: optionsHeaders,
     });
@@ -1447,26 +1656,20 @@ describe('doGenerate', () => {
   it('should work with partial headers', async () => {
     prepareJsonResponse({});
 
-    const model = new BedrockChatLanguageModel(
-      modelId,
-      {},
-      {
-        baseUrl: () => baseUrl,
-        headers: {
-          'model-header': 'model-value',
-        },
-        fetch: injectFetchHeaders({
-          'model-header': 'model-value',
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-        generateId: () => 'test-id',
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {
+        'model-header': 'model-value',
       },
-    );
+      fetch: injectFetchHeaders({
+        'model-header': 'model-value',
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+      generateId: () => 'test-id',
+    });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1482,10 +1685,8 @@ describe('doGenerate', () => {
     });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           foo: 'bar',
         },
@@ -1493,7 +1694,7 @@ describe('doGenerate', () => {
     });
 
     // Verify that the outgoing request body includes "foo" at its top level.
-    const body = await server.calls[0].requestBody;
+    const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
 
@@ -1510,43 +1711,43 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(response.providerMetadata).toEqual({
-      bedrock: {
-        usage: {
-          cacheReadInputTokens: 2,
-          cacheWriteInputTokens: 3,
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "usage": {
+            "cacheWriteInputTokens": 3,
+          },
         },
-      },
-    });
-    expect(response.usage).toEqual({
-      promptTokens: 4,
-      completionTokens: 34,
-    });
+      }
+    `);
+    expect(response.usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": 2,
+        "inputTokens": 4,
+        "outputTokens": 34,
+        "totalTokens": 38,
+      }
+    `);
   });
 
   it('should handle system messages with cache points', async () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: [
         {
           role: 'system',
           content: 'System Prompt',
-          providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+          providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
         },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
     });
 
-    const requestBody = await server.calls[0].requestBody;
-    expect(requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });
@@ -1562,7 +1763,7 @@ describe('doGenerate', () => {
           reasoningContent: {
             reasoningText: {
               text: reasoningText,
-              signature: signature,
+              signature,
             },
           },
         },
@@ -1570,20 +1771,27 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const result = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('The answer is 42.');
-    expect(reasoning).toStrictEqual([
-      {
-        type: 'text',
-        text: reasoningText,
-        signature: signature,
-      },
-    ]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "abc123signature",
+            },
+          },
+          "text": "I need to think about this problem carefully...",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
   });
 
   it('should extract reasoning text without signature', async () => {
@@ -1602,19 +1810,22 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const result = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('The answer is 42.');
-    expect(reasoning).toStrictEqual([
-      {
-        type: 'text',
-        text: reasoningText,
-      },
-    ]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "I need to think about this problem carefully...",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
   });
 
   it('should extract redacted reasoning', async () => {
@@ -1631,19 +1842,27 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const result = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('The answer is 42.');
-    expect(reasoning).toStrictEqual([
-      {
-        type: 'redacted',
-        data: 'redacted-reasoning-data',
-      },
-    ]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "redactedData": "redacted-reasoning-data",
+            },
+          },
+          "text": "",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
   });
 
   it('should handle multiple reasoning blocks', async () => {
@@ -1668,23 +1887,35 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const result = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('The answer is 42.');
-    expect(reasoning).toStrictEqual([
-      {
-        type: 'text',
-        text: 'First reasoning block',
-        signature: 'sig1',
-      },
-      {
-        type: 'redacted',
-        data: 'redacted-data',
-      },
-    ]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "sig1",
+            },
+          },
+          "text": "First reasoning block",
+          "type": "reasoning",
+        },
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "redactedData": "redacted-data",
+            },
+          },
+          "text": "",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
   });
 });

@@ -79,18 +79,33 @@ Mistral chat models also support additional model settings that are not part of 
 You can pass them as an options argument:
 
 ```ts
-const model = mistral('mistral-large-latest', {
-  safePrompt: true, // optional safety prompt injection
+const model = mistral('mistral-large-latest');
+
+await generateText({
+  model,
+  providerOptions: {
+    mistral: {
+      safePrompt: true, // optional safety prompt injection
+    },
+  },
 });
 ```
 
-The following optional settings are available for Mistral models:
+The following optional provider options are available for Mistral models:
 
 - **safePrompt** _boolean_
 
   Whether to inject a safety prompt before all conversations.
 
   Defaults to `false`.
+
+- **documentImageLimit** _number_
+
+  Maximum number of images to process in a document.
+
+- **documentPageLimit** _number_
+
+  Maximum number of pages to process in a document.
 
 ### Document OCR
 
@@ -113,7 +128,7 @@ const result = await generateText({
           data: new URL(
             'https://github.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf?raw=true',
           ),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
         },
       ],
     },
@@ -127,6 +142,42 @@ const result = await generateText({
   },
 });
 ```
+
+### Reasoning Models
+
+Mistral offers reasoning models that provide step-by-step thinking capabilities:
+
+- **magistral-small-2506**: Smaller reasoning model for efficient step-by-step thinking
+- **magistral-medium-2506**: More powerful reasoning model balancing performance and cost
+
+These models return content that includes `<think>...</think>` tags containing the reasoning process. To properly extract and separate the reasoning from the final answer, use the [extract reasoning middleware](/docs/reference/ai-sdk-core/extract-reasoning-middleware):
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import {
+  extractReasoningMiddleware,
+  generateText,
+  wrapLanguageModel,
+} from 'ai';
+
+const result = await generateText({
+  model: wrapLanguageModel({
+    model: mistral('magistral-small-2506'),
+    middleware: extractReasoningMiddleware({
+      tagName: 'think',
+    }),
+  }),
+  prompt: 'What is 15 * 24?',
+});
+
+console.log('REASONING:', result.reasoningText);
+// Output: "Let me calculate this step by step..."
+
+console.log('ANSWER:', result.text);
+// Output: "360"
+```
+
+The middleware automatically parses the `<think>` tags and provides separate `reasoningText` and `text` properties in the result.
 
 ### Example
 
@@ -147,14 +198,16 @@ Mistral language models can also be used in the `streamText`, `generateObject`, 
 
 ### Model Capabilities
 
-| Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `pixtral-large-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-large-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-small-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `ministral-3b-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `ministral-8b-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `pixtral-12b-2409`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `pixtral-large-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistral-large-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistral-small-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `magistral-small-2506`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `magistral-medium-2506` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `ministral-3b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `ministral-8b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `pixtral-12b-2409`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Mistral

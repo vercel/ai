@@ -21,29 +21,30 @@ export class DefaultGeneratedAudioFile
 
   constructor({
     data,
-    mimeType,
+    mediaType,
   }: {
     data: string | Uint8Array;
-    mimeType: string;
+    mediaType: string;
   }) {
-    super({ data, mimeType });
+    super({ data, mediaType });
     let format = 'mp3';
 
-    // If format is not provided, try to determine it from the mimeType
-    if (mimeType) {
-      const mimeTypeParts = mimeType.split('/');
+    // If format is not provided, try to determine it from the media type
+    if (mediaType) {
+      const mediaTypeParts = mediaType.split('/');
 
-      if (mimeTypeParts.length === 2) {
+      if (mediaTypeParts.length === 2) {
         // Handle special cases for audio formats
-        if (mimeType !== 'audio/mpeg') {
-          format = mimeTypeParts[1];
+        if (mediaType !== 'audio/mpeg') {
+          format = mediaTypeParts[1];
         }
       }
     }
 
     if (!format) {
+      // TODO this should be an AI SDK error
       throw new Error(
-        'Audio format must be provided or determinable from mimeType',
+        'Audio format must be provided or determinable from media type',
       );
     }
 
@@ -56,7 +57,7 @@ export class DefaultGeneratedAudioFileWithType extends DefaultGeneratedAudioFile
 
   constructor(options: {
     data: string | Uint8Array;
-    mimeType: string;
+    mediaType: string;
     format: string;
   }) {
     super(options);

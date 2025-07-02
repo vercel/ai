@@ -1,11 +1,16 @@
 'use client';
 
+import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { ReasoningToolsMessage } from '../api/use-chat-reasoning-tools/route';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChat({
-      api: '/api/use-chat-reasoning-tools',
+  const { messages, sendMessage, addToolResult, status } =
+    useChat<ReasoningToolsMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/use-chat-reasoning-tools',
+      }),
       maxSteps: 5,
 
       // run client-side tools that are automatically executed:
@@ -48,117 +53,97 @@ export default function Chat() {
                   key={index}
                   className="max-w-full mb-4 overflow-x-auto italic text-gray-500 break-words whitespace-pre-wrap"
                 >
-                  {part.details.map(detail =>
-                    detail.type === 'text' ? detail.text : '<redacted>',
-                  )}
+                  {part.text}
                 </pre>
               );
             }
 
-            if (part.type === 'tool-invocation') {
-              const callId = part.toolInvocation.toolCallId;
+            if (part.type === 'tool-askForConfirmation') {
+              switch (part.state) {
+                case 'input-available':
+                  return (
+                    <div key={part.toolCallId} className="text-gray-500">
+                      {part.input.message}
+                      <div className="flex gap-2">
+                        <button
+                          className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+                          onClick={() =>
+                            addToolResult({
+                              toolCallId: part.toolCallId,
+                              output: 'Yes, confirmed.',
+                            })
+                          }
+                        >
+                          Yes
+                        </button>
+                        <button
+                          className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
+                          onClick={() =>
+                            addToolResult({
+                              toolCallId: part.toolCallId,
+                              output: 'No, denied',
+                            })
+                          }
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  );
+                case 'output-available':
+                  return (
+                    <div key={part.toolCallId} className="text-gray-500">
+                      Location access allowed: {part.output}
+                    </div>
+                  );
+              }
+            }
 
-              switch (part.toolInvocation.toolName) {
-                case 'askForConfirmation': {
-                  switch (part.toolInvocation.state) {
-                    case 'call':
-                      return (
-                        <div key={callId} className="text-gray-500">
-                          {part.toolInvocation.args.message}
-                          <div className="flex gap-2">
-                            <button
-                              className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
-                              onClick={() =>
-                                addToolResult({
-                                  toolCallId: callId,
-                                  result: 'Yes, confirmed.',
-                                })
-                              }
-                            >
-                              Yes
-                            </button>
-                            <button
-                              className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
-                              onClick={() =>
-                                addToolResult({
-                                  toolCallId: callId,
-                                  result: 'No, denied',
-                                })
-                              }
-                            >
-                              No
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    case 'result':
-                      return (
-                        <div key={callId} className="text-gray-500">
-                          Location access allowed: {part.toolInvocation.result}
-                        </div>
-                      );
-                  }
-                  break;
-                }
+            if (part.type === 'tool-getLocation') {
+              switch (part.state) {
+                case 'input-available':
+                  return (
+                    <div key={part.toolCallId} className="text-gray-500">
+                      Getting location...
+                    </div>
+                  );
+                case 'output-available':
+                  return (
+                    <div key={part.toolCallId} className="text-gray-500">
+                      Location: {part.output}
+                    </div>
+                  );
+              }
+            }
 
-                case 'getLocation': {
-                  switch (part.toolInvocation.state) {
-                    case 'call':
-                      return (
-                        <div key={callId} className="text-gray-500">
-                          Getting location...
-                        </div>
-                      );
-                    case 'result':
-                      return (
-                        <div key={callId} className="text-gray-500">
-                          Location: {part.toolInvocation.result}
-                        </div>
-                      );
-                  }
-                  break;
-                }
-
-                case 'getWeatherInformation': {
-                  switch (part.toolInvocation.state) {
-                    // example of pre-rendering streaming tool calls:
-                    case 'partial-call':
-                      return (
-                        <pre key={callId}>
-                          {JSON.stringify(part.toolInvocation, null, 2)}
-                        </pre>
-                      );
-                    case 'call':
-                      return (
-                        <div key={callId} className="text-gray-500">
-                          Getting weather information for{' '}
-                          {part.toolInvocation.args.city}...
-                        </div>
-                      );
-                    case 'result':
-                      return (
-                        <div key={callId} className="text-gray-500">
-                          Weather in {part.toolInvocation.args.city}:{' '}
-                          {part.toolInvocation.result}
-                        </div>
-                      );
-                  }
-                  break;
-                }
+            if (part.type === 'tool-getWeatherInformation') {
+              switch (part.state) {
+                // example of pre-rendering streaming tool calls:
+                case 'input-streaming':
+                  return (
+                    <pre key={part.toolCallId}>
+                      {JSON.stringify(part, null, 2)}
+                    </pre>
+                  );
+                case 'input-available':
+                  return (
+                    <div key={part.toolCallId} className="text-gray-500">
+                      Getting weather information for {part.input.city}...
+                    </div>
+                  );
+                case 'output-available':
+                  return (
+                    <div key={part.toolCallId} className="text-gray-500">
+                      Weather in {part.input.city}: {part.output}
+                    </div>
+                  );
               }
             }
           })}
         </div>
       ))}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

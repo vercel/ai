@@ -1,7 +1,6 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { DeepInfraImageModel } from './deepinfra-image-model';
-import { DeepInfraImageSettings } from './deepinfra-image-settings';
 import { FetchFunction } from '@ai-sdk/provider-utils';
 
 const prompt = 'A cute baby sea otter';
@@ -10,14 +9,12 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  settings,
 }: {
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
-  settings?: DeepInfraImageSettings;
 } = {}) {
-  return new DeepInfraImageModel('stability-ai/sdxl', settings ?? {}, {
+  return new DeepInfraImageModel('stability-ai/sdxl', {
     provider: 'deepinfra',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -54,7 +51,7 @@ describe('DeepInfraImageModel', () => {
         providerOptions: { deepinfra: { additional_param: 'value' } },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
         seed: 42,
@@ -143,7 +140,7 @@ describe('DeepInfraImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         width: '1024',
         height: '768',
@@ -231,23 +228,7 @@ describe('DeepInfraImageModel', () => {
 
       expect(model.provider).toBe('deepinfra');
       expect(model.modelId).toBe('stability-ai/sdxl');
-      expect(model.specificationVersion).toBe('v1');
-      expect(model.maxImagesPerCall).toBe(1);
-    });
-
-    it('should use maxImagesPerCall from settings', () => {
-      const model = createBasicModel({
-        settings: {
-          maxImagesPerCall: 4,
-        },
-      });
-
-      expect(model.maxImagesPerCall).toBe(4);
-    });
-
-    it('should default maxImagesPerCall to 1 when not specified', () => {
-      const model = createBasicModel();
-
+      expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

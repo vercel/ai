@@ -1,23 +1,28 @@
 import { streamText } from 'ai';
-import { convertArrayToReadableStream, MockLanguageModelV1 } from 'ai/test';
+import { convertArrayToReadableStream, MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV2({
       doStream: async () => ({
         stream: convertArrayToReadableStream([
-          { type: 'text-delta', textDelta: 'Hello' },
-          { type: 'text-delta', textDelta: ', ' },
-          { type: 'text-delta', textDelta: `world!` },
+          { type: 'text-start', id: '0' },
+          { type: 'text-delta', id: '0', delta: 'Hello' },
+          { type: 'text-delta', id: '0', delta: ', ' },
+          { type: 'text-delta', id: '0', delta: `world!` },
+          { type: 'text-end', id: '0' },
           {
             type: 'finish',
             finishReason: 'stop',
             logprobs: undefined,
-            usage: { completionTokens: 10, promptTokens: 3 },
+            usage: {
+              inputTokens: 3,
+              outputTokens: 10,
+              totalTokens: 13,
+            },
           },
         ]),
-        rawCall: { rawPrompt: null, rawSettings: {} },
       }),
     }),
     prompt: 'Hello, test!',

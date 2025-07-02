@@ -1,8 +1,10 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Content,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,7 +15,7 @@ import {
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
@@ -21,10 +23,8 @@ import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-rea
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
-  readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
-  readonly supportsStructuredOutputs = true;
+export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIResponsesModelId;
 
@@ -35,13 +35,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     this.config = config;
   }
 
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'image/*': [/^https?:\/\/.*$/],
+  };
+
   get provider(): string {
     return this.config.provider;
   }
 
-  private getArgs({
-    mode,
-    maxTokens,
+  private async getArgs({
+    maxOutputTokens,
     temperature,
     stopSequences,
     topP,
@@ -50,25 +53,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     seed,
     prompt,
-    providerMetadata,
+    providerOptions,
+    tools,
+    toolChoice,
     responseFormat,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
-    const warnings: LanguageModelV1CallWarning[] = [];
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+    const warnings: LanguageModelV2CallWarning[] = [];
     const modelConfig = getResponsesModelConfig(this.modelId);
-    const type = mode.type;
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
+      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
 
     if (presencePenalty != null) {
@@ -86,10 +84,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     }
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
     }
 
     const { messages, warnings: messageWarnings } =
@@ -100,20 +95,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
     warnings.push(...messageWarnings);
 
-    const openaiOptions = parseProviderOptions({
+    const openaiOptions = await parseProviderOptions({
       provider: 'openai',
-      providerOptions: providerMetadata,
+      providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
 
-    const isStrict = openaiOptions?.strictSchemas ?? true;
+    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
     const baseArgs = {
       model: this.modelId,
       input: messages,
       temperature,
       top_p: topP,
-      max_output_tokens: maxTokens,
+      max_output_tokens: maxOutputTokens,
 
       ...(responseFormat?.type === 'json' && {
         text: {
@@ -121,7 +116,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             responseFormat.schema != null
               ? {
                   type: 'json_schema',
-                  strict: isStrict,
+                  strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
                   schema: responseFormat.schema,
@@ -137,6 +132,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       store: openaiOptions?.store,
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
+      service_tier: openaiOptions?.serviceTier,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -178,74 +174,44 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       }
     }
 
-    switch (type) {
-      case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareResponsesTools({
-          mode,
-          strict: isStrict, // TODO support provider options on tools
-        });
-
-        return {
-          args: {
-            ...baseArgs,
-            tools,
-            tool_choice,
-          },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            text: {
-              format:
-                mode.schema != null
-                  ? {
-                      type: 'json_schema',
-                      strict: isStrict,
-                      name: mode.name ?? 'response',
-                      description: mode.description,
-                      schema: mode.schema,
-                    }
-                  : { type: 'json_object' },
-            },
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            ...baseArgs,
-            tool_choice: { type: 'function', name: mode.tool.name },
-            tools: [
-              {
-                type: 'function',
-                name: mode.tool.name,
-                description: mode.tool.description,
-                parameters: mode.tool.parameters,
-                strict: isStrict,
-              },
-            ],
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
+    // Validate flex processing support
+    if (
+      openaiOptions?.serviceTier === 'flex' &&
+      !supportsFlexProcessing(this.modelId)
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'serviceTier',
+        details: 'flex processing is only available for o3 and o4-mini models',
+      });
+      // Remove from args if not supported
+      delete (baseArgs as any).service_tier;
     }
+
+    const {
+      tools: openaiTools,
+      toolChoice: openaiToolChoice,
+      toolWarnings,
+    } = prepareResponsesTools({
+      tools,
+      toolChoice,
+      strictJsonSchema,
+    });
+
+    return {
+      args: {
+        ...baseArgs,
+        tools: openaiTools,
+        tool_choice: openaiToolChoice,
+      },
+      warnings: [...warnings, ...toolWarnings],
+    };
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    const { args: body, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -293,9 +259,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               }),
               z.object({
                 type: z.literal('web_search_call'),
+                id: z.string(),
+                status: z.string().optional(),
               }),
               z.object({
                 type: z.literal('computer_call'),
+                id: z.string(),
+                status: z.string().optional(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -316,71 +286,118 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const outputTextElements = response.output
-      .filter(output => output.type === 'message')
-      .flatMap(output => output.content)
-      .filter(content => content.type === 'output_text');
+    const content: Array<LanguageModelV2Content> = [];
 
-    const toolCalls = response.output
-      .filter(output => output.type === 'function_call')
-      .map(output => ({
-        toolCallType: 'function' as const,
-        toolCallId: output.call_id,
-        toolName: output.name,
-        args: output.arguments,
-      }));
+    // map response content to content array
+    for (const part of response.output) {
+      switch (part.type) {
+        case 'reasoning': {
+          content.push({
+            type: 'reasoning',
+            text: part.summary.map(summary => summary.text).join(),
+          });
+          break;
+        }
 
-    const reasoningSummary =
-      response.output.find(item => item.type === 'reasoning')?.summary ?? null;
+        case 'message': {
+          for (const contentPart of part.content) {
+            content.push({
+              type: 'text',
+              text: contentPart.text,
+            });
+
+            for (const annotation of contentPart.annotations) {
+              content.push({
+                type: 'source',
+                sourceType: 'url',
+                id: this.config.generateId?.() ?? generateId(),
+                url: annotation.url,
+                title: annotation.title,
+              });
+            }
+          }
+          break;
+        }
+
+        case 'function_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: part.name,
+            input: part.arguments,
+          });
+          break;
+        }
+
+        case 'web_search_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'web_search_preview',
+            input: '',
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'web_search_preview',
+            result: { status: part.status || 'completed' },
+            providerExecuted: true,
+          });
+          break;
+        }
+
+        case 'computer_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'computer_use',
+            input: '',
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'computer_use',
+            result: {
+              type: 'computer_use_tool_result',
+              status: part.status || 'completed',
+            },
+            providerExecuted: true,
+          });
+          break;
+        }
+      }
+    }
 
     return {
-      text: outputTextElements.map(content => content.text).join('\n'),
-      sources: outputTextElements.flatMap(content =>
-        content.annotations.map(annotation => ({
-          sourceType: 'url',
-          id: this.config.generateId?.() ?? generateId(),
-          url: annotation.url,
-          title: annotation.title,
-        })),
-      ),
+      content,
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
-        hasToolCalls: toolCalls.length > 0,
+        hasToolCalls: content.some(part => part.type === 'tool-call'),
       }),
-      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      reasoning: reasoningSummary
-        ? reasoningSummary.map(summary => ({
-            type: 'text' as const,
-            text: summary.text,
-          }))
-        : undefined,
       usage: {
-        promptTokens: response.usage.input_tokens,
-        completionTokens: response.usage.output_tokens,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+        reasoningTokens:
+          response.usage.output_tokens_details?.reasoning_tokens ?? undefined,
+        cachedInputTokens:
+          response.usage.input_tokens_details?.cached_tokens ?? undefined,
       },
-      rawCall: {
-        rawPrompt: undefined,
-        rawSettings: {},
-      },
-      rawResponse: {
-        headers: responseHeaders,
-        body: rawResponse,
-      },
-      request: {
-        body: JSON.stringify(body),
-      },
+      request: { body },
       response: {
         id: response.id,
         timestamp: new Date(response.created_at * 1000),
         modelId: response.model,
+        headers: responseHeaders,
+        body: rawResponse,
       },
       providerMetadata: {
         openai: {
           responseId: response.id,
-          cachedPromptTokens:
-            response.usage.input_tokens_details?.cached_tokens ?? null,
-          reasoningTokens:
-            response.usage.output_tokens_details?.reasoning_tokens ?? null,
         },
       },
       warnings,
@@ -388,9 +405,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    const { args: body, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -412,11 +429,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
     const self = this;
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
-    let promptTokens = NaN;
-    let completionTokens = NaN;
-    let cachedPromptTokens: number | null = null;
-    let reasoningTokens: number | null = null;
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
+    };
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
@@ -428,9 +446,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -448,11 +474,122 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 };
 
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
+                  type: 'tool-input-start',
+                  id: value.item.call_id,
+                  toolName: value.item.name,
+                });
+              } else if (value.item.type === 'web_search_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'web_search_preview',
+                  toolCallId: value.item.id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'web_search_preview',
+                });
+              } else if (value.item.type === 'computer_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'computer_use',
+                  toolCallId: value.item.id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: 'computer_use',
+                });
+              } else if (value.item.type === 'message') {
+                controller.enqueue({
+                  type: 'text-start',
+                  id: value.item.id,
+                });
+              } else if (value.item.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: value.item.id,
+                });
+              }
+            } else if (isResponseOutputItemDoneChunk(value)) {
+              if (value.item.type === 'function_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.call_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
-                  argsTextDelta: value.item.arguments,
+                  input: value.item.arguments,
+                });
+              } else if (value.item.type === 'web_search_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search_preview',
+                  input: '',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search_preview',
+                  result: {
+                    type: 'web_search_tool_result',
+                    status: value.item.status || 'completed',
+                  },
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'computer_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasToolCalls = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'computer_use',
+                  input: '',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'computer_use',
+                  result: {
+                    type: 'computer_use_tool_result',
+                    status: value.item.status || 'completed',
+                  },
+                  providerExecuted: true,
+                });
+              } else if (value.item.type === 'message') {
+                controller.enqueue({
+                  type: 'text-end',
+                  id: value.item.id,
+                });
+              } else if (value.item.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: value.item.id,
                 });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
@@ -460,11 +597,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
               if (toolCall != null) {
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  argsTextDelta: value.delta,
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: value.delta,
                 });
               }
             } else if (isResponseCreatedChunk(value)) {
@@ -478,48 +613,38 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             } else if (isTextDeltaChunk(value)) {
               controller.enqueue({
                 type: 'text-delta',
-                textDelta: value.delta,
+                id: value.item_id,
+                delta: value.delta,
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
               controller.enqueue({
-                type: 'reasoning',
-                textDelta: value.delta,
-              });
-            } else if (
-              isResponseOutputItemDoneChunk(value) &&
-              value.item.type === 'function_call'
-            ) {
-              ongoingToolCalls[value.output_index] = undefined;
-              hasToolCalls = true;
-              controller.enqueue({
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: value.item.call_id,
-                toolName: value.item.name,
-                args: value.item.arguments,
+                type: 'reasoning-delta',
+                delta: value.delta,
+                id: value.item_id,
               });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
                 hasToolCalls,
               });
-              promptTokens = value.response.usage.input_tokens;
-              completionTokens = value.response.usage.output_tokens;
-              cachedPromptTokens =
-                value.response.usage.input_tokens_details?.cached_tokens ??
-                cachedPromptTokens;
-              reasoningTokens =
+              usage.inputTokens = value.response.usage.input_tokens;
+              usage.outputTokens = value.response.usage.output_tokens;
+              usage.totalTokens =
+                value.response.usage.input_tokens +
+                value.response.usage.output_tokens;
+              usage.reasoningTokens =
                 value.response.usage.output_tokens_details?.reasoning_tokens ??
-                reasoningTokens;
+                undefined;
+              usage.cachedInputTokens =
+                value.response.usage.input_tokens_details?.cached_tokens ??
+                undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
               controller.enqueue({
                 type: 'source',
-                source: {
-                  sourceType: 'url',
-                  id: self.config.generateId?.() ?? generateId(),
-                  url: value.annotation.url,
-                  title: value.annotation.title,
-                },
+                sourceType: 'url',
+                id: self.config.generateId?.() ?? generateId(),
+                url: value.annotation.url,
+                title: value.annotation.title,
               });
             }
           },
@@ -528,27 +653,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: { promptTokens, completionTokens },
-              ...((cachedPromptTokens != null || reasoningTokens != null) && {
-                providerMetadata: {
-                  openai: {
-                    responseId,
-                    cachedPromptTokens,
-                    reasoningTokens,
-                  },
+              usage,
+              providerMetadata: {
+                openai: {
+                  responseId,
                 },
-              }),
+              },
             });
           },
         }),
       ),
-      rawCall: {
-        rawPrompt: undefined,
-        rawSettings: {},
-      },
-      rawResponse: { headers: responseHeaders },
-      request: { body: JSON.stringify(body) },
-      warnings,
+      request: { body },
+      response: { headers: responseHeaders },
     };
   }
 }
@@ -566,6 +682,7 @@ const usageSchema = z.object({
 
 const textDeltaChunkSchema = z.object({
   type: z.literal('response.output_text.delta'),
+  item_id: z.string(),
   delta: z.string(),
 });
 
@@ -586,12 +703,17 @@ const responseCreatedChunkSchema = z.object({
   }),
 });
 
-const responseOutputItemDoneSchema = z.object({
-  type: z.literal('response.output_item.done'),
+const responseOutputItemAddedSchema = z.object({
+  type: z.literal('response.output_item.added'),
   output_index: z.number(),
   item: z.discriminatedUnion('type', [
     z.object({
       type: z.literal('message'),
+      id: z.string(),
+    }),
+    z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
     }),
     z.object({
       type: z.literal('function_call'),
@@ -599,6 +721,48 @@ const responseOutputItemDoneSchema = z.object({
       call_id: z.string(),
       name: z.string(),
       arguments: z.string(),
+    }),
+    z.object({
+      type: z.literal('web_search_call'),
+      id: z.string(),
+      status: z.string(),
+    }),
+    z.object({
+      type: z.literal('computer_call'),
+      id: z.string(),
+      status: z.string(),
+    }),
+  ]),
+});
+
+const responseOutputItemDoneSchema = z.object({
+  type: z.literal('response.output_item.done'),
+  output_index: z.number(),
+  item: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('message'),
+      id: z.string(),
+    }),
+    z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+    }),
+    z.object({
+      type: z.literal('function_call'),
+      id: z.string(),
+      call_id: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+      status: z.literal('completed'),
+    }),
+    z.object({
+      type: z.literal('web_search_call'),
+      id: z.string(),
+      status: z.literal('completed'),
+    }),
+    z.object({
+      type: z.literal('computer_call'),
+      id: z.string(),
       status: z.literal('completed'),
     }),
   ]),
@@ -609,23 +773,6 @@ const responseFunctionCallArgumentsDeltaSchema = z.object({
   item_id: z.string(),
   output_index: z.number(),
   delta: z.string(),
-});
-
-const responseOutputItemAddedSchema = z.object({
-  type: z.literal('response.output_item.added'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-    }),
-  ]),
 });
 
 const responseAnnotationAddedSchema = z.object({
@@ -645,15 +792,24 @@ const responseReasoningSummaryTextDeltaSchema = z.object({
   delta: z.string(),
 });
 
+const responseReasoningSummaryPartDoneSchema = z.object({
+  type: z.literal('response.reasoning_summary_part.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  part: z.unknown().nullish(),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
   responseCreatedChunkSchema,
+  responseOutputItemAddedSchema,
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
-  responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
+  responseReasoningSummaryPartDoneSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -707,6 +863,12 @@ function isResponseReasoningSummaryTextDeltaChunk(
   return chunk.type === 'response.reasoning_summary_text.delta';
 }
 
+function isResponseReasoningSummaryPartDoneChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryPartDoneSchema> {
+  return chunk.type === 'response.reasoning_summary_part.done';
+}
+
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -739,6 +901,10 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
+function supportsFlexProcessing(modelId: string): boolean {
+  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+}
+
 const openaiResponsesProviderOptionsSchema = z.object({
   metadata: z.any().nullish(),
   parallelToolCalls: z.boolean().nullish(),
@@ -746,9 +912,10 @@ const openaiResponsesProviderOptionsSchema = z.object({
   store: z.boolean().nullish(),
   user: z.string().nullish(),
   reasoningEffort: z.string().nullish(),
-  strictSchemas: z.boolean().nullish(),
+  strictJsonSchema: z.boolean().nullish(),
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
+  serviceTier: z.enum(['auto', 'flex']).nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

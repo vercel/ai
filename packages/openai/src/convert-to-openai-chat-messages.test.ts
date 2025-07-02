@@ -54,9 +54,9 @@ describe('user messages', () => {
           content: [
             { type: 'text', text: 'Hello' },
             {
-              type: 'image',
-              image: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'image/png',
+              type: 'file',
+              mediaType: 'image/png',
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
             },
           ],
         },
@@ -84,10 +84,10 @@ describe('user messages', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'image/png',
-              providerMetadata: {
+              type: 'file',
+              mediaType: 'image/png',
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+              providerOptions: {
                 openai: {
                   imageDetail: 'low',
                 },
@@ -122,14 +122,16 @@ describe('user messages', () => {
             {
               role: 'user',
               content: [
-                { type: 'file', data: 'AAECAw==', mimeType: 'image/png' },
+                {
+                  type: 'file',
+                  data: 'AAECAw==',
+                  mediaType: 'application/something',
+                },
               ],
             },
           ],
         }),
-      ).toThrow(
-        "'File content part type image/png in user messages' functionality not supported.",
-      );
+      ).toThrow('file part media type application/something');
     });
 
     it('should throw for URL data', () => {
@@ -142,15 +144,13 @@ describe('user messages', () => {
                 {
                   type: 'file',
                   data: new URL('https://example.com/foo.wav'),
-                  mimeType: 'audio/wav',
+                  mediaType: 'audio/wav',
                 },
               ],
             },
           ],
         }),
-      ).toThrow(
-        "'File content parts with URL data' functionality not supported.",
-      );
+      ).toThrow('audio file parts with URLs');
     });
 
     it('should add audio content for audio/wav file parts', () => {
@@ -162,7 +162,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/wav',
+                mediaType: 'audio/wav',
               },
             ],
           },
@@ -191,7 +191,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/mpeg',
+                mediaType: 'audio/mpeg',
               },
             ],
           },
@@ -220,7 +220,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/mp3', // not official but sometimes used
+                mediaType: 'audio/mp3', // not official but sometimes used
               },
             ],
           },
@@ -250,8 +250,44 @@ describe('user messages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: base64Data,
+                filename: 'document.pdf',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'document.pdf',
+                file_data: 'data:application/pdf;base64,AQIDBAU=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert messages with binary PDF file parts', async () => {
+      const data = Uint8Array.from([1, 2, 3, 4, 5]);
+
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data,
                 filename: 'document.pdf',
               },
             ],
@@ -286,7 +322,7 @@ describe('user messages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: base64Data,
               },
             ],
@@ -322,7 +358,7 @@ describe('user messages', () => {
               content: [
                 {
                   type: 'file',
-                  mimeType: 'text/plain',
+                  mediaType: 'text/plain',
                   data: base64Data,
                 },
               ],
@@ -330,9 +366,7 @@ describe('user messages', () => {
           ],
           systemMessageMode: 'system',
         });
-      }).toThrow(
-        "'File content part type text/plain in user messages' functionality not supported.",
-      );
+      }).toThrow('file part media type text/plain');
     });
 
     it('should throw error for file URLs', async () => {
@@ -344,7 +378,7 @@ describe('user messages', () => {
               content: [
                 {
                   type: 'file',
-                  mimeType: 'application/pdf',
+                  mediaType: 'application/pdf',
                   data: new URL('https://example.com/document.pdf'),
                 },
               ],
@@ -352,9 +386,7 @@ describe('user messages', () => {
           ],
           systemMessageMode: 'system',
         });
-      }).toThrow(
-        "'File content parts with URL data' functionality not supported.",
-      );
+      }).toThrow('PDF file parts with URLs');
     });
   });
 });
@@ -368,7 +400,7 @@ describe('tool calls', () => {
           content: [
             {
               type: 'tool-call',
-              args: { foo: 'bar123' },
+              input: { foo: 'bar123' },
               toolCallId: 'quux',
               toolName: 'thwomp',
             },
@@ -381,7 +413,7 @@ describe('tool calls', () => {
               type: 'tool-result',
               toolCallId: 'quux',
               toolName: 'thwomp',
-              result: { oof: '321rab' },
+              output: { type: 'json', value: { oof: '321rab' } },
             },
           ],
         },
@@ -411,49 +443,42 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should convert tool calls to function calls with useLegacyFunctionCalling', () => {
+  it('should handle different tool output types', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool-call',
-              args: { foo: 'bar123' },
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-            },
-          ],
-        },
         {
           role: 'tool',
           content: [
             {
               type: 'tool-result',
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-              result: { oof: '321rab' },
+              toolCallId: 'text-tool',
+              toolName: 'text-tool',
+              output: { type: 'text', value: 'Hello world' },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'error-tool',
+              toolName: 'error-tool',
+              output: { type: 'error-text', value: 'Something went wrong' },
             },
           ],
         },
       ],
-      useLegacyFunctionCalling: true,
     });
 
-    expect(result.messages).toEqual([
-      {
-        role: 'assistant',
-        content: '',
-        function_call: {
-          name: 'thwomp',
-          arguments: JSON.stringify({ foo: 'bar123' }),
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Hello world",
+          "role": "tool",
+          "tool_call_id": "text-tool",
         },
-      },
-      {
-        role: 'function',
-        content: JSON.stringify({ oof: '321rab' }),
-        name: 'thwomp',
-      },
-    ]);
+        {
+          "content": "Something went wrong",
+          "role": "tool",
+          "tool_call_id": "error-tool",
+        },
+      ]
+    `);
   });
 });

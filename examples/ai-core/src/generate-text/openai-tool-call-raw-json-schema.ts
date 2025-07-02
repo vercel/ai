@@ -5,11 +5,11 @@ import 'dotenv/config';
 async function main() {
   const result = await generateText({
     model: openai('gpt-3.5-turbo'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: jsonSchema<{ location: string }>({
+        inputSchema: jsonSchema<{ location: string }>({
           type: 'object',
           properties: {
             location: { type: 'string' },
@@ -23,7 +23,7 @@ async function main() {
         }),
       }),
       cityAttractions: tool({
-        parameters: jsonSchema<{ city: string }>({
+        inputSchema: jsonSchema<{ city: string }>({
           type: 'object',
           properties: {
             city: { type: 'string' },
@@ -40,12 +40,12 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'cityAttractions': {
-        toolCall.args.city; // string
+        toolCall.input.city; // string
         break;
       }
 
       case 'weather': {
-        toolCall.args.location; // string
+        toolCall.input.location; // string
         break;
       }
     }
@@ -56,15 +56,15 @@ async function main() {
     switch (toolResult.toolName) {
       // NOT AVAILABLE (NO EXECUTE METHOD)
       // case 'cityAttractions': {
-      //   toolResult.args.city; // string
+      //   toolResult.input.city; // string
       //   toolResult.result;
       //   break;
       // }
 
       case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
+        toolResult.input.location; // string
+        toolResult.output.location; // string
+        toolResult.output.temperature; // number
         break;
       }
     }

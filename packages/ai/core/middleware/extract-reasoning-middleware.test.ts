@@ -1,23 +1,35 @@
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
-  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
+
+const testUsage = {
+  inputTokens: 5,
+  outputTokens: 10,
+  totalTokens: 18,
+  reasoningTokens: 3,
+  cachedInputTokens: undefined,
+};
 
 describe('extractReasoningMiddleware', () => {
   describe('wrapGenerate', () => {
     it('should extract reasoning from <think> tags', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response',
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
+            usage: testUsage,
+            warnings: [],
           };
         },
       });
@@ -30,18 +42,23 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoning).toStrictEqual('analyzing the request');
+      expect(result.reasoningText).toStrictEqual('analyzing the request');
       expect(result.text).toStrictEqual('Here is the response');
     });
 
     it('should extract reasoning from <think> tags when there is no text', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request\n</think>',
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request\n</think>',
+              },
+            ],
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
+            usage: testUsage,
+            warnings: [],
           };
         },
       });
@@ -54,18 +71,23 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoning).toStrictEqual('analyzing the request\n');
+      expect(result.reasoningText).toStrictEqual('analyzing the request\n');
       expect(result.text).toStrictEqual('');
     });
 
     it('should extract reasoning from multiple <think> tags', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+              },
+            ],
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
+            usage: testUsage,
+            warnings: [],
           };
         },
       });
@@ -78,20 +100,25 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoning).toStrictEqual(
+      expect(result.reasoningText).toStrictEqual(
         'analyzing the request\nthinking about the response',
       );
       expect(result.text).toStrictEqual('Here is the response\nmore');
     });
 
-    it('should preprend <think> tag IFF startWithReasoning is true', async () => {
-      const mockModel = new MockLanguageModelV1({
+    it('should prepend <think> tag IFF startWithReasoning is true', async () => {
+      const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: 'analyzing the request</think>Here is the response',
+            content: [
+              {
+                type: 'text',
+                text: 'analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
+            usage: testUsage,
+            warnings: [],
           };
         },
       });
@@ -117,23 +144,28 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(resultTrue.reasoning).toStrictEqual('analyzing the request');
+      expect(resultTrue.reasoningText).toStrictEqual('analyzing the request');
       expect(resultTrue.text).toStrictEqual('Here is the response');
-      expect(resultFalse.reasoning).toBeUndefined();
+      expect(resultFalse.reasoningText).toBeUndefined();
       expect(resultFalse.text).toStrictEqual(
         'analyzing the request</think>Here is the response',
       );
     });
 
     it('should preserve reasoning property even when rest contains other properties', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response',
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
+            usage: testUsage,
             reasoning: undefined,
+            warnings: [],
           };
         },
       });
@@ -146,14 +178,14 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoning).toStrictEqual('analyzing the request');
+      expect(result.reasoningText).toStrictEqual('analyzing the request');
       expect(result.text).toStrictEqual('Here is the response');
     });
   });
 
   describe('wrapStream', () => {
     it('should extract reasoning from split <think> tags', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -163,20 +195,20 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '<thi' },
-              { type: 'text-delta', textDelta: 'nk>ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request' },
-              { type: 'text-delta', textDelta: '</thi' },
-              { type: 'text-delta', textDelta: 'nk>Here' },
-              { type: 'text-delta', textDelta: ' is the response' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '<think>' },
+              { type: 'text-delta', id: '1', delta: 'ana' },
+              { type: 'text-delta', id: '1', delta: 'lyzing the request' },
+              { type: 'text-delta', id: '1', delta: '</think>' },
+              { type: 'text-delta', id: '1', delta: 'Here' },
+              { type: 'text-delta', id: '1', delta: ' is the response' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: testUsage,
               },
             ]),
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -187,79 +219,94 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        {
-          messageId: 'msg-0',
-          request: {},
-          type: 'step-start',
-          warnings: [],
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'ana',
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'lyzing the request',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'Here',
-        },
-        {
-          type: 'text-delta',
-          textDelta: ' is the response',
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          isContinued: false,
-          logprobs: undefined,
-          messageId: 'msg-0',
-          request: {},
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'step-finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-          warnings: undefined,
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-      ]);
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
+              "text": "ana",
+              "type": "reasoning",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
+              "text": "lyzing the request",
+              "type": "reasoning",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Here",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": " is the response",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should extract reasoning from single chunk with multiple <think> tags', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -269,19 +316,20 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
+              { type: 'text-start', id: '1' },
               {
                 type: 'text-delta',
-                textDelta:
+                id: '1',
+                delta:
                   '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
               },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: testUsage,
               },
             ]),
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -292,79 +340,104 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        {
-          messageId: 'msg-0',
-          request: {},
-          type: 'step-start',
-          warnings: [],
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'analyzing the request',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'Here is the response',
-        },
-        {
-          type: 'reasoning',
-          textDelta: '\nthinking about the response',
-        },
-        {
-          type: 'text-delta',
-          textDelta: '\nmore',
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          isContinued: false,
-          logprobs: undefined,
-          messageId: 'msg-0',
-          request: {},
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'step-finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-          warnings: undefined,
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-      ]);
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
+              "text": "analyzing the request",
+              "type": "reasoning",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Here is the response",
+              "type": "text",
+            },
+            {
+              "id": "reasoning-1",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-1",
+              "providerMetadata": undefined,
+              "text": "
+          thinking about the response",
+              "type": "reasoning",
+            },
+            {
+              "id": "reasoning-1",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "
+          more",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should extract reasoning from <think> when there is no text', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -374,18 +447,18 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '<think>' },
-              { type: 'text-delta', textDelta: 'ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request\n' },
-              { type: 'text-delta', textDelta: '</think>' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '<think>' },
+              { type: 'text-delta', id: '1', delta: 'ana' },
+              { type: 'text-delta', id: '1', delta: 'lyzing the request\n' },
+              { type: 'text-delta', id: '1', delta: '</think>' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: testUsage,
               },
             ]),
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -396,71 +469,83 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        {
-          messageId: 'msg-0',
-          request: {},
-          type: 'step-start',
-          warnings: [],
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'ana',
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'lyzing the request\n',
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          isContinued: false,
-          logprobs: undefined,
-          messageId: 'msg-0',
-          request: {},
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'step-finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-          warnings: undefined,
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-      ]);
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
+              "text": "ana",
+              "type": "reasoning",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
+              "text": "lyzing the request
+          ",
+              "type": "reasoning",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
-    it('should preprend <think> tag IFF startWithReasoning is true', async () => {
-      const mockModel = new MockLanguageModelV1({
+    it('should prepend <think> tag IFF startWithReasoning is true', async () => {
+      const mockModel = new MockLanguageModelV2({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -470,18 +555,18 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request\n' },
-              { type: 'text-delta', textDelta: '</think>' },
-              { type: 'text-delta', textDelta: 'this is the response' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'ana' },
+              { type: 'text-delta', id: '1', delta: 'lyzing the request\n' },
+              { type: 'text-delta', id: '1', delta: '</think>' },
+              { type: 'text-delta', id: '1', delta: 'this is the response' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: testUsage,
               },
             ]),
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -495,7 +580,6 @@ describe('extractReasoningMiddleware', () => {
           }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       const resultFalse = streamText({
@@ -504,138 +588,177 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      expect(
-        await convertAsyncIterableToArray(resultTrue.fullStream),
-      ).toStrictEqual([
-        {
-          messageId: 'msg-0',
-          request: {},
-          type: 'step-start',
-          warnings: [],
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'ana',
-        },
-        {
-          type: 'reasoning',
-          textDelta: 'lyzing the request\n',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'this is the response',
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          isContinued: false,
-          logprobs: undefined,
-          messageId: 'msg-0',
-          request: {},
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'step-finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-          warnings: undefined,
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-      ]);
+      expect(await convertAsyncIterableToArray(resultTrue.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
+              "text": "ana",
+              "type": "reasoning",
+            },
+            {
+              "id": "reasoning-0",
+              "providerMetadata": undefined,
+              "text": "lyzing the request
+          ",
+              "type": "reasoning",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "this is the response",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
 
-      expect(
-        await convertAsyncIterableToArray(resultFalse.fullStream),
-      ).toStrictEqual([
-        {
-          messageId: 'msg-0',
-          request: {},
-          type: 'step-start',
-          warnings: [],
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'ana',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'lyzing the request\n',
-        },
-        {
-          type: 'text-delta',
-          textDelta: '</think>',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'this is the response',
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          isContinued: false,
-          logprobs: undefined,
-          messageId: 'msg-0',
-          request: {},
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'step-finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-          warnings: undefined,
-        },
-        {
-          experimental_providerMetadata: undefined,
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            headers: undefined,
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          type: 'finish',
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-      ]);
+      expect(await convertAsyncIterableToArray(resultFalse.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "ana",
+              "type": "text",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "lyzing the request
+          ",
+              "type": "text",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "</think>",
+              "type": "text",
+            },
+            {
+              "id": "reasoning-0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "this is the response",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
     });
   });
 });

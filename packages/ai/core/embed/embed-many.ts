@@ -1,4 +1,6 @@
-import { prepareRetries } from '../prompt/prepare-retries';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { prepareRetries } from '../../src/util/prepare-retries';
+import { splitArray } from '../../src/util/split-array';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -6,7 +8,6 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel } from '../types';
-import { splitArray } from '../util/split-array';
 import { EmbedManyResult } from './embed-many-result';
 
 /**
@@ -28,9 +29,11 @@ has a limit on how many embeddings can be generated in a single call.
 export async function embedMany<VALUE>({
   model,
   values,
+  maxParallelCalls = Infinity,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  providerOptions,
   experimental_telemetry: telemetry,
 }: {
   /**
@@ -65,6 +68,20 @@ Only applicable for HTTP-based providers.
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
+
+  /**
+  Additional provider-specific options. They are passed through
+  to the provider from the AI SDK and enable provider-specific
+  functionality that can be fully encapsulated in the provider.
+  */
+  providerOptions?: ProviderOptions;
+
+  /**
+   * Maximum number of concurrent requests.
+   *
+   * @default Infinity
+   */
+  maxParallelCalls?: number;
 }): Promise<EmbedManyResult<VALUE>> {
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
@@ -92,12 +109,15 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const maxEmbeddingsPerCall = model.maxEmbeddingsPerCall;
+      const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
+        model.maxEmbeddingsPerCall,
+        model.supportsParallelCalls,
+      ]);
 
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
-      if (maxEmbeddingsPerCall == null) {
-        const { embeddings, usage } = await retry(() => {
+      if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
+        const { embeddings, usage, response } = await retry(() => {
           // nested spans to align with the embedMany telemetry data:
           return recordSpan({
             name: 'ai.embedMany.doEmbed',
@@ -121,6 +141,7 @@ Only applicable for HTTP-based providers.
                 values,
                 abortSignal,
                 headers,
+                providerOptions,
               });
 
               const embeddings = modelResponse.embeddings;
@@ -139,7 +160,11 @@ Only applicable for HTTP-based providers.
                 }),
               );
 
-              return { embeddings, usage };
+              return {
+                embeddings,
+                usage,
+                response: modelResponse.response,
+              };
             },
           });
         });
@@ -157,7 +182,12 @@ Only applicable for HTTP-based providers.
           }),
         );
 
-        return new DefaultEmbedManyResult({ values, embeddings, usage });
+        return new DefaultEmbedManyResult({
+          values,
+          embeddings,
+          usage,
+          responses: [response],
+        });
       }
 
       // split the values into chunks that are small enough for the model:
@@ -165,58 +195,84 @@ Only applicable for HTTP-based providers.
 
       // serially embed the chunks:
       const embeddings: Array<Embedding> = [];
+      const responses: Array<
+        | {
+            headers?: Record<string, string>;
+            body?: unknown;
+          }
+        | undefined
+      > = [];
       let tokens = 0;
 
-      for (const chunk of valueChunks) {
-        const { embeddings: responseEmbeddings, usage } = await retry(() => {
-          // nested spans to align with the embedMany telemetry data:
-          return recordSpan({
-            name: 'ai.embedMany.doEmbed',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.embedMany.doEmbed',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                // specific settings that only make sense on the outer level:
-                'ai.values': {
-                  input: () => chunk.map(value => JSON.stringify(value)),
-                },
-              },
-            }),
-            tracer,
-            fn: async doEmbedSpan => {
-              const modelResponse = await model.doEmbed({
-                values: chunk,
-                abortSignal,
-                headers,
-              });
+      const parallelChunks = splitArray(
+        valueChunks,
+        supportsParallelCalls ? maxParallelCalls : 1,
+      );
 
-              const embeddings = modelResponse.embeddings;
-              const usage = modelResponse.usage ?? { tokens: NaN };
-
-              doEmbedSpan.setAttributes(
-                selectTelemetryAttributes({
+      for (const parallelChunk of parallelChunks) {
+        const results = await Promise.all(
+          parallelChunk.map(chunk => {
+            return retry(() => {
+              // nested spans to align with the embedMany telemetry data:
+              return recordSpan({
+                name: 'ai.embedMany.doEmbed',
+                attributes: selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.embeddings': {
-                      output: () =>
-                        embeddings.map(embedding => JSON.stringify(embedding)),
+                    ...assembleOperationName({
+                      operationId: 'ai.embedMany.doEmbed',
+                      telemetry,
+                    }),
+                    ...baseTelemetryAttributes,
+                    // specific settings that only make sense on the outer level:
+                    'ai.values': {
+                      input: () => chunk.map(value => JSON.stringify(value)),
                     },
-                    'ai.usage.tokens': usage.tokens,
                   },
                 }),
-              );
+                tracer,
+                fn: async doEmbedSpan => {
+                  const modelResponse = await model.doEmbed({
+                    values: chunk,
+                    abortSignal,
+                    headers,
+                    providerOptions,
+                  });
 
-              return { embeddings, usage };
-            },
-          });
-        });
+                  const embeddings = modelResponse.embeddings;
+                  const usage = modelResponse.usage ?? { tokens: NaN };
 
-        embeddings.push(...responseEmbeddings);
-        tokens += usage.tokens;
+                  doEmbedSpan.setAttributes(
+                    selectTelemetryAttributes({
+                      telemetry,
+                      attributes: {
+                        'ai.embeddings': {
+                          output: () =>
+                            embeddings.map(embedding =>
+                              JSON.stringify(embedding),
+                            ),
+                        },
+                        'ai.usage.tokens': usage.tokens,
+                      },
+                    }),
+                  );
+
+                  return {
+                    embeddings,
+                    usage,
+                    response: modelResponse.response,
+                  };
+                },
+              });
+            });
+          }),
+        );
+
+        for (const result of results) {
+          embeddings.push(...result.embeddings);
+          responses.push(result.response);
+          tokens += result.usage.tokens;
+        }
       }
 
       span.setAttributes(
@@ -236,6 +292,7 @@ Only applicable for HTTP-based providers.
         values,
         embeddings,
         usage: { tokens },
+        responses,
       });
     },
   });
@@ -245,14 +302,17 @@ class DefaultEmbedManyResult<VALUE> implements EmbedManyResult<VALUE> {
   readonly values: EmbedManyResult<VALUE>['values'];
   readonly embeddings: EmbedManyResult<VALUE>['embeddings'];
   readonly usage: EmbedManyResult<VALUE>['usage'];
+  readonly responses: EmbedManyResult<VALUE>['responses'];
 
   constructor(options: {
     values: EmbedManyResult<VALUE>['values'];
     embeddings: EmbedManyResult<VALUE>['embeddings'];
     usage: EmbedManyResult<VALUE>['usage'];
+    responses?: EmbedManyResult<VALUE>['responses'];
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
     this.usage = options.usage;
+    this.responses = options.responses;
   }
 }

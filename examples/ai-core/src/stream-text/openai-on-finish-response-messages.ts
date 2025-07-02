@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { stepCountIs, streamText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamText({
@@ -9,13 +9,13 @@ async function main() {
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({ location: z.string() }),
+        inputSchema: z.object({ location: z.string() }),
         execute: async () => ({
           temperature: 72 + Math.floor(Math.random() * 21) - 10,
         }),
       }),
     },
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     onFinish({ response }) {
       console.log(JSON.stringify(response.messages, null, 2));
     },

@@ -1,18 +1,15 @@
-import {
-  CallWarning,
-  FinishReason,
-  LogProbs,
-  ProviderMetadata,
-} from '../types';
+import { ReasoningPart } from '@ai-sdk/provider-utils';
+import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
-import { ReasoningDetail } from './reasoning-detail';
-import { ResponseMessage, StepResult } from './step-result';
+import { ResponseMessage } from './response-message';
+import { StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-result';
+import { ToolResultArray } from './tool-output';
 import { ToolSet } from './tool-set';
 
 /**
@@ -21,70 +18,67 @@ It contains the generated text, the tool calls that were made during the generat
  */
 export interface GenerateTextResult<TOOLS extends ToolSet, OUTPUT> {
   /**
-The generated text.
+The content that was generated in the last step.
+   */
+  readonly content: Array<ContentPart<TOOLS>>;
+
+  /**
+The text that was generated in the last step.
      */
   readonly text: string;
 
   /**
-The reasoning text that the model has generated. Can be undefined if the model
-has only generated text.
+The full reasoning that the model has generated in the last step.
    */
-  // TODO v5: rename to `reasoningText`
-  readonly reasoning: string | undefined;
+  readonly reasoning: Array<ReasoningPart>;
 
   /**
-The files that were generated. Empty array if no files were generated.
+The reasoning text that the model has generated in the last step. Can be undefined if the model
+has only generated text.
+   */
+  readonly reasoningText: string | undefined;
+
+  /**
+The files that were generated in the last step.
+Empty array if no files were generated.
      */
   readonly files: Array<GeneratedFile>;
 
   /**
-The full reasoning that the model has generated.
+Sources that have been used as references in the last step.
    */
-  // TODO v5: rename to `reasoning`
-  readonly reasoningDetails: Array<ReasoningDetail>;
+  readonly sources: Array<Source>;
 
   /**
-Sources that have been used as input to generate the response.
-For multi-step generation, the sources are accumulated from all steps.
-   */
-  readonly sources: Source[];
-
-  /**
-The generated structured output. It uses the `experimental_output` specification.
-   */
-  readonly experimental_output: OUTPUT;
-
-  /**
-  The tool calls that were made during the generation.
+The tool calls that were made in the last step.
    */
   readonly toolCalls: ToolCallArray<TOOLS>;
 
   /**
-  The results of the tool calls.
+The results of the tool calls from the last step.
    */
   readonly toolResults: ToolResultArray<TOOLS>;
 
   /**
-  The reason why the generation finished.
+The reason why the generation finished.
    */
   readonly finishReason: FinishReason;
 
   /**
-  The token usage of the generated text.
+The token usage of the last step.
    */
   readonly usage: LanguageModelUsage;
 
   /**
-  Warnings from the model provider (e.g. unsupported settings)
+The total token usage of all steps.
+When there are multiple steps, the usage is the sum of all step usages.
    */
-  readonly warnings: CallWarning[] | undefined;
+  readonly totalUsage: LanguageModelUsage;
 
   /**
-Details for all steps.
-You can use this to get information about intermediate steps,
-such as the tool calls or the response headers.
+Warnings from the model provider (e.g. unsupported settings)
    */
-  readonly steps: Array<StepResult<TOOLS>>;
+  readonly warnings: CallWarning[] | undefined;
 
   /**
 Additional request information.
@@ -112,14 +106,6 @@ Response body (available only for providers that use HTTP requests).
   };
 
   /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if it was not enabled.
-
-@deprecated Will become a provider extension in the future.
-     */
-  readonly logprobs: LogProbs | undefined;
-
-  /**
 Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
@@ -127,7 +113,14 @@ results that can be fully encapsulated in the provider.
   readonly providerMetadata: ProviderMetadata | undefined;
 
   /**
-@deprecated Use `providerMetadata` instead.
+Details for all steps.
+You can use this to get information about intermediate steps,
+such as the tool calls or the response headers.
    */
-  readonly experimental_providerMetadata: ProviderMetadata | undefined;
+  readonly steps: Array<StepResult<TOOLS>>;
+
+  /**
+The generated structured output. It uses the `experimental_output` specification.
+   */
+  readonly experimental_output: OUTPUT;
 }

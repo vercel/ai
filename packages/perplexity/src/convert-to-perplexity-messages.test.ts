@@ -29,38 +29,6 @@ describe('convertToPerplexityMessages', () => {
         ]),
       ).toMatchSnapshot();
     });
-
-    it('should throw an error for user messages with image parts', () => {
-      expect(() => {
-        convertToPerplexityMessages([
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Hello ' },
-              {
-                type: 'image',
-                image: new Uint8Array([0, 1, 2, 3]),
-                mimeType: 'image/png',
-              },
-            ],
-          },
-        ]);
-      }).toThrow(UnsupportedFunctionalityError);
-    });
-
-    it('should throw an error for user messages with file parts', () => {
-      expect(() => {
-        convertToPerplexityMessages([
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Document: ' },
-              { type: 'file', data: 'dummy-data', mimeType: 'text/plain' },
-            ],
-          },
-        ]);
-      }).toThrow(UnsupportedFunctionalityError);
-    });
   });
 
   describe('assistant messages', () => {
@@ -73,24 +41,6 @@ describe('convertToPerplexityMessages', () => {
           },
         ]),
       ).toMatchSnapshot();
-    });
-
-    it('should throw an error for assistant messages with tool-call parts', () => {
-      expect(() => {
-        convertToPerplexityMessages([
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                args: { key: 'value' },
-                toolCallId: 'call-1',
-                toolName: 'example-tool',
-              },
-            ],
-          },
-        ]);
-      }).toThrow(UnsupportedFunctionalityError);
     });
   });
 
@@ -105,7 +55,7 @@ describe('convertToPerplexityMessages', () => {
                 type: 'tool-result',
                 toolCallId: 'dummy-tool-call-id',
                 toolName: 'dummy-tool-name',
-                result: 'This should fail',
+                output: { type: 'text', value: 'This should fail' },
               },
             ],
           },

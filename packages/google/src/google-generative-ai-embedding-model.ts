@@ -1,20 +1,21 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   FetchFunction,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIEmbeddingModelId,
-  GoogleGenerativeAIEmbeddingSettings,
-} from './google-generative-ai-embedding-settings';
+  googleGenerativeAIEmbeddingProviderOptions,
+} from './google-generative-ai-embedding-options';
 
 type GoogleGenerativeAIEmbeddingConfig = {
   provider: string;
@@ -24,33 +25,23 @@ type GoogleGenerativeAIEmbeddingConfig = {
 };
 
 export class GoogleGenerativeAIEmbeddingModel
-  implements EmbeddingModelV1<string>
+  implements EmbeddingModelV2<string>
 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
+  readonly maxEmbeddingsPerCall = 2048;
+  readonly supportsParallelCalls = true;
 
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
-  private readonly settings: GoogleGenerativeAIEmbeddingSettings;
 
   get provider(): string {
     return this.config.provider;
   }
-
-  get maxEmbeddingsPerCall(): number {
-    return 2048;
-  }
-
-  get supportsParallelCalls(): boolean {
-    return true;
-  }
-
   constructor(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings: GoogleGenerativeAIEmbeddingSettings,
     config: GoogleGenerativeAIEmbeddingConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -58,9 +49,17 @@ export class GoogleGenerativeAIEmbeddingModel
     values,
     headers,
     abortSignal,
-  }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
+    providerOptions,
+  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
+    // Parse provider options
+    const googleOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleGenerativeAIEmbeddingProviderOptions,
+    });
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -75,15 +74,19 @@ export class GoogleGenerativeAIEmbeddingModel
       headers,
     );
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:batchEmbedContents`,
       headers: mergedHeaders,
       body: {
         requests: values.map(value => ({
           model: `models/${this.modelId}`,
           content: { role: 'user', parts: [{ text: value }] },
-          outputDimensionality: this.settings.outputDimensionality,
-          taskType: this.settings.taskType,
+          outputDimensionality: googleOptions?.outputDimensionality,
+          taskType: googleOptions?.taskType,
         })),
       },
       failedResponseHandler: googleFailedResponseHandler,
@@ -97,7 +100,7 @@ export class GoogleGenerativeAIEmbeddingModel
     return {
       embeddings: response.embeddings.map(item => item.values),
       usage: undefined,
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }

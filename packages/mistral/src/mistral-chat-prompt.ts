@@ -38,3 +38,9 @@ export interface MistralToolMessage {
   content: string;
   tool_call_id: string;
 }
+
+export type MistralToolChoice =
+  | { type: 'function'; function: { name: string } }
+  | 'auto'
+  | 'none'
+  | 'any';

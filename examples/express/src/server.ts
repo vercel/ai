@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { pipeDataStreamToResponse, streamText } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 
@@ -11,22 +11,16 @@ app.post('/', async (req: Request, res: Response) => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  result.pipeDataStreamToResponse(res);
+  result.pipeUIMessageStreamToResponse(res);
 });
 
 app.post('/stream-data', async (req: Request, res: Response) => {
-  // immediately start streaming the response
-  pipeDataStreamToResponse(res, {
-    execute: async dataStreamWriter => {
-      dataStreamWriter.writeData('initialized call');
+  const result = streamText({
+    model: openai('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+  });
 
-      const result = streamText({
-        model: openai('gpt-4o'),
-        prompt: 'Invent a new holiday and describe its traditions.',
-      });
-
-      result.mergeIntoDataStream(dataStreamWriter);
-    },
+  result.pipeUIMessageStreamToResponse(res, {
     onError: error => {
       // Error messages are masked by default for security reasons.
       // If you want to expose the error message to the client, you can do so here:

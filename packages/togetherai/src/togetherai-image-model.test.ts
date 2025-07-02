@@ -2,7 +2,6 @@ import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { TogetherAIImageModel } from './togetherai-image-model';
-import { TogetherAIImageSettings } from './togetherai-image-settings';
 
 const prompt = 'A cute baby sea otter';
 
@@ -10,26 +9,20 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  settings,
 }: {
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
-  settings?: TogetherAIImageSettings;
 } = {}) {
-  return new TogetherAIImageModel(
-    'stabilityai/stable-diffusion-xl',
-    settings ?? {},
-    {
-      provider: 'togetherai',
-      baseURL: 'https://api.example.com',
-      headers: headers ?? (() => ({ 'api-key': 'test-key' })),
-      fetch,
-      _internal: {
-        currentDate,
-      },
+  return new TogetherAIImageModel('stabilityai/stable-diffusion-xl', {
+    provider: 'togetherai',
+    baseURL: 'https://api.example.com',
+    headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+    fetch,
+    _internal: {
+      currentDate,
     },
-  );
+  });
 }
 
 const server = createTestServer({
@@ -59,7 +52,7 @@ describe('doGenerate', () => {
       aspectRatio: undefined,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'stabilityai/stable-diffusion-xl',
       prompt,
       seed: 42,
@@ -245,23 +238,7 @@ describe('constructor', () => {
 
     expect(model.provider).toBe('togetherai');
     expect(model.modelId).toBe('stabilityai/stable-diffusion-xl');
-    expect(model.specificationVersion).toBe('v1');
-    expect(model.maxImagesPerCall).toBe(1);
-  });
-
-  it('should use maxImagesPerCall from settings', () => {
-    const model = createBasicModel({
-      settings: {
-        maxImagesPerCall: 4,
-      },
-    });
-
-    expect(model.maxImagesPerCall).toBe(4);
-  });
-
-  it('should default maxImagesPerCall to 1 when not specified', () => {
-    const model = createBasicModel();
-
+    expect(model.specificationVersion).toBe('v2');
     expect(model.maxImagesPerCall).toBe(1);
   });
 });

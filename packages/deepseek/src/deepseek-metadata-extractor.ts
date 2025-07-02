@@ -1,6 +1,6 @@
 import { MetadataExtractor } from '@ai-sdk/openai-compatible';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const buildDeepseekMetadata = (
   usage: z.infer<typeof deepSeekUsageSchema> | undefined,
@@ -16,8 +16,8 @@ const buildDeepseekMetadata = (
 };
 
 export const deepSeekMetadataExtractor: MetadataExtractor = {
-  extractMetadata: ({ parsedBody }: { parsedBody: unknown }) => {
-    const parsed = safeValidateTypes({
+  extractMetadata: async ({ parsedBody }: { parsedBody: unknown }) => {
+    const parsed = await safeValidateTypes({
       value: parsedBody,
       schema: deepSeekResponseSchema,
     });
@@ -31,8 +31,8 @@ export const deepSeekMetadataExtractor: MetadataExtractor = {
     let usage: z.infer<typeof deepSeekUsageSchema> | undefined;
 
     return {
-      processChunk: (chunk: unknown) => {
-        const parsed = safeValidateTypes({
+      processChunk: async (chunk: unknown) => {
+        const parsed = await safeValidateTypes({
           value: chunk,
           schema: deepSeekStreamChunkSchema,
         });

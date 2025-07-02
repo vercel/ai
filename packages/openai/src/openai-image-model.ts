@@ -1,15 +1,14 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import {
   OpenAIImageModelId,
-  OpenAIImageSettings,
   modelMaxImagesPerCall,
   hasDefaultResponseFormat,
 } from './openai-image-settings';
@@ -20,13 +19,11 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAIImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class OpenAIImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
 
   get maxImagesPerCall(): number {
-    return (
-      this.settings.maxImagesPerCall ?? modelMaxImagesPerCall[this.modelId] ?? 1
-    );
+    return modelMaxImagesPerCall[this.modelId] ?? 1;
   }
 
   get provider(): string {
@@ -35,7 +32,6 @@ export class OpenAIImageModel implements ImageModelV1 {
 
   constructor(
     readonly modelId: OpenAIImageModelId,
-    private readonly settings: OpenAIImageSettings,
     private readonly config: OpenAIImageModelConfig,
   ) {}
 
@@ -48,10 +44,10 @@ export class OpenAIImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -99,6 +95,17 @@ export class OpenAIImageModel implements ImageModelV1 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
+      providerMetadata: {
+        openai: {
+          images: response.data.map(item =>
+            item.revised_prompt
+              ? {
+                  revisedPrompt: item.revised_prompt,
+                }
+              : null,
+          ),
+        },
+      },
     };
   }
 }
@@ -106,5 +113,7 @@ export class OpenAIImageModel implements ImageModelV1 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
+  data: z.array(
+    z.object({ b64_json: z.string(), revised_prompt: z.string().optional() }),
+  ),
 });

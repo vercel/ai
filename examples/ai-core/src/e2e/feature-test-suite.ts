@@ -1,23 +1,23 @@
-import { z } from 'zod';
+import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import type {
+  EmbeddingModelV2,
+  ImageModelV2,
+  LanguageModelV2,
+} from '@ai-sdk/provider';
 import {
-  experimental_generateImage as generateImage,
-  generateText,
-  generateObject,
-  streamText,
-  streamObject,
+  APICallError,
   embed,
   embedMany,
-  APICallError,
-  ToolExecutionError,
+  experimental_generateImage as generateImage,
+  generateObject,
+  generateText,
+  stepCountIs,
+  streamObject,
+  streamText,
 } from 'ai';
 import fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
-import type {
-  EmbeddingModelV1,
-  ImageModelV1,
-  LanguageModelV1,
-} from '@ai-sdk/provider';
-import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { z } from 'zod/v4';
 
 export type Capability =
   | 'audioInput'
@@ -50,35 +50,35 @@ export const defaultChatModelCapabilities: ModelCapabilities = [
 ];
 
 export const createLanguageModelWithCapabilities = (
-  model: LanguageModelV1,
+  model: LanguageModelV2,
   capabilities: ModelCapabilities = defaultChatModelCapabilities,
-): ModelWithCapabilities<LanguageModelV1> => ({
+): ModelWithCapabilities<LanguageModelV2> => ({
   model,
   capabilities,
 });
 
 export const createEmbeddingModelWithCapabilities = (
-  model: EmbeddingModelV1<string>,
+  model: EmbeddingModelV2<string>,
   capabilities: ModelCapabilities = ['embedding'],
-): ModelWithCapabilities<EmbeddingModelV1<string>> => ({
+): ModelWithCapabilities<EmbeddingModelV2<string>> => ({
   model,
   capabilities,
 });
 
 export const createImageModelWithCapabilities = (
-  model: ImageModelV1,
+  model: ImageModelV2,
   capabilities: ModelCapabilities = ['imageGeneration'],
-): ModelWithCapabilities<ImageModelV1> => ({
+): ModelWithCapabilities<ImageModelV2> => ({
   model,
   capabilities,
 });
 
 export interface ModelVariants {
-  invalidModel?: LanguageModelV1;
-  languageModels?: ModelWithCapabilities<LanguageModelV1>[];
-  embeddingModels?: ModelWithCapabilities<EmbeddingModelV1<string>>[];
-  invalidImageModel?: ImageModelV1;
-  imageModels?: ModelWithCapabilities<ImageModelV1>[];
+  invalidModel?: LanguageModelV2;
+  languageModels?: ModelWithCapabilities<LanguageModelV2>[];
+  embeddingModels?: ModelWithCapabilities<EmbeddingModelV2<string>>[];
+  invalidImageModel?: ImageModelV2;
+  imageModels?: ModelWithCapabilities<ImageModelV2>[];
 }
 
 export interface TestSuiteOptions {
@@ -614,7 +614,7 @@ export function createFeatureTestSuite({
                     'What is 2+2? Use the calculator tool to compute this.',
                   tools: {
                     calculator: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         expression: z
                           .string()
                           .describe('The mathematical expression to evaluate'),
@@ -627,9 +627,9 @@ export function createFeatureTestSuite({
 
                 expect(result.toolCalls?.[0]).toMatchObject({
                   toolName: 'calculator',
-                  args: { expression: '2+2' },
+                  input: { expression: '2+2' },
                 });
-                expect(result.toolResults?.[0].result).toBe('4');
+                expect(result.toolResults?.[0].output).toBe('4');
                 if (!customAssertions.skipUsage) {
                   expect(result.usage?.totalTokens).toBeGreaterThan(0);
                 }
@@ -643,7 +643,7 @@ export function createFeatureTestSuite({
                     'What is 2+2? Use the calculator tool to compute this.',
                   tools: {
                     calculator: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         expression: z.string(),
                       }),
                       execute: async ({ expression }) => {
@@ -678,7 +678,7 @@ export function createFeatureTestSuite({
                     'Check the temperature in San Francisco and play music that matches the weather. Be sure to report the chosen song name.',
                   tools: {
                     getTemperature: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         city: z
                           .string()
                           .describe('The city to check temperature for'),
@@ -689,7 +689,7 @@ export function createFeatureTestSuite({
                       },
                     },
                     playWeatherMusic: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         temperature: z
                           .number()
                           .describe('Temperature in Celsius'),
@@ -708,7 +708,7 @@ export function createFeatureTestSuite({
                       },
                     },
                   },
-                  maxSteps: 10,
+                  stopWhen: stepCountIs(10),
                 });
 
                 expect(weatherCalls).toBe(1);
@@ -864,7 +864,7 @@ export function createFeatureTestSuite({
                         data: fs
                           .readFileSync('./data/ai.pdf')
                           .toString('base64'),
-                        mimeType: 'application/pdf',
+                        mediaType: 'application/pdf',
                       },
                     ],
                   },
@@ -898,7 +898,7 @@ export function createFeatureTestSuite({
                           data: Buffer.from(
                             fs.readFileSync('./data/galileo.mp3'),
                           ),
-                          mimeType: 'audio/mpeg',
+                          mediaType: 'audio/mpeg',
                         },
                       ],
                     },

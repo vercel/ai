@@ -1,8 +1,8 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { jsonSchema } from '@ai-sdk/ui-utils';
-import { z, ZodType } from 'zod';
-import { MCPClientError } from '../../../errors';
-import { inferParameters, tool, Tool, ToolExecutionOptions } from '../tool';
+import { jsonSchema, Tool, ToolCallOptions } from '@ai-sdk/provider-utils';
+import { z, ZodType } from 'zod/v4';
+import { MCPClientError } from '../../../src/error/mcp-client-error';
+import { tool } from '@ai-sdk/provider-utils';
 import {
   JSONRPCError,
   JSONRPCNotification,
@@ -278,7 +278,7 @@ class MCPClient {
   }: {
     name: string;
     args: Record<string, unknown>;
-    options?: ToolExecutionOptions;
+    options?: ToolCallOptions;
   }): Promise<CallToolResult> {
     try {
       return this.request({
@@ -320,22 +320,20 @@ class MCPClient {
           continue;
         }
 
-        const parameters =
-          schemas === 'automatic'
-            ? jsonSchema({
-                ...inputSchema,
-                properties: inputSchema.properties ?? {},
-                additionalProperties: false,
-              } as JSONSchema7)
-            : schemas[name].parameters;
-
         const self = this;
         const toolWithExecute = tool({
           description,
-          parameters,
+          inputSchema:
+            schemas === 'automatic'
+              ? jsonSchema({
+                  ...inputSchema,
+                  properties: inputSchema.properties ?? {},
+                  additionalProperties: false,
+                } as JSONSchema7)
+              : schemas[name].inputSchema,
           execute: async (
-            args: inferParameters<typeof parameters>,
-            options: ToolExecutionOptions,
+            args: any,
+            options: ToolCallOptions,
           ): Promise<CallToolResult> => {
             options?.abortSignal?.throwIfAborted();
 

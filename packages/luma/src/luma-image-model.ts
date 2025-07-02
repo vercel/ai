@@ -1,6 +1,6 @@
 import {
-  ImageModelV1,
-  ImageModelV1CallWarning,
+  ImageModelV2,
+  ImageModelV2CallWarning,
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {
@@ -15,7 +15,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { LumaImageSettings } from './luma-image-settings';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
@@ -30,30 +30,20 @@ interface LumaImageModelConfig {
   };
 }
 
-export class LumaImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
-
-  private readonly pollIntervalMillis: number;
-  private readonly maxPollAttempts: number;
+export class LumaImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
+  readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
+  readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: string,
-    private readonly settings: LumaImageSettings,
     private readonly config: LumaImageModelConfig,
-  ) {
-    this.pollIntervalMillis =
-      settings.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
-    this.maxPollAttempts =
-      settings.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS;
-  }
+  ) {}
 
   async doGenerate({
     prompt,
@@ -64,10 +54,10 @@ export class LumaImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     if (seed != null) {
       warnings.push({
@@ -86,6 +76,10 @@ export class LumaImageModel implements ImageModelV1 {
       });
     }
 
+    // remove non-request options from providerOptions
+    const { pollIntervalMillis, maxPollAttempts, ...providerRequestOptions } =
+      providerOptions.luma ?? {};
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const fullHeaders = combineHeaders(this.config.headers(), headers);
     const { value: generationResponse, responseHeaders } = await postJsonToApi({
@@ -95,7 +89,7 @@ export class LumaImageModel implements ImageModelV1 {
         prompt,
         ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
         model: this.modelId,
-        ...(providerOptions.luma ?? {}),
+        ...providerRequestOptions,
       },
       abortSignal,
       fetch: this.config.fetch,
@@ -109,6 +103,7 @@ export class LumaImageModel implements ImageModelV1 {
       generationResponse.id,
       fullHeaders,
       abortSignal,
+      providerOptions.luma,
     );
 
     const downloadedImage = await this.downloadImage(imageUrl, abortSignal);
@@ -128,10 +123,15 @@ export class LumaImageModel implements ImageModelV1 {
     generationId: string,
     headers: Record<string, string | undefined>,
     abortSignal: AbortSignal | undefined,
+    imageSettings?: LumaImageSettings,
   ): Promise<string> {
-    let attemptCount = 0;
     const url = this.getLumaGenerationsUrl(generationId);
-    for (let i = 0; i < this.maxPollAttempts; i++) {
+    const maxPollAttempts =
+      imageSettings?.maxPollAttempts ?? this.maxPollAttempts;
+    const pollIntervalMillis =
+      imageSettings?.pollIntervalMillis ?? this.pollIntervalMillis;
+
+    for (let i = 0; i < maxPollAttempts; i++) {
       const { value: statusResponse } = await getFromApi({
         url,
         headers,
@@ -158,7 +158,7 @@ export class LumaImageModel implements ImageModelV1 {
             message: `Image generation failed.`,
           });
       }
-      await delay(this.pollIntervalMillis);
+      await delay(pollIntervalMillis);
     }
 
     throw new Error(

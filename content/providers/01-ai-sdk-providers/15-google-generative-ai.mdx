@@ -84,14 +84,25 @@ Google Generative AI also supports some model specific settings that are not par
 You can pass them as an options argument:
 
 ```ts
-const model = google('gemini-1.5-pro-latest', {
-  safetySettings: [
-    { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
-  ],
+const model = google('gemini-1.5-pro-latest');
+
+await generateText({
+  model,
+  providerOptions: {
+    google: {
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_UNSPECIFIED',
+          threshold: 'BLOCK_LOW_AND_ABOVE',
+        },
+      ],
+      responseModalities: ['TEXT', 'IMAGE'],
+    },
+  },
 });
 ```
 
-The following optional settings are available for Google Generative AI models:
+The following optional provider options are available for Google Generative AI models:
 
 - **cachedContent** _string_
 
@@ -132,46 +143,6 @@ The following optional settings are available for Google Generative AI models:
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
 
-Further configuration can be done using Google Generative AI provider options. You can validate the provider options using the `GoogleGenerativeAIProviderOptions` type.
-
-```ts
-import { google } from '@ai-sdk/google';
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: google('gemini-1.5-pro-latest'),
-  providerOptions: {
-    google: {
-      responseModalities: ['TEXT', 'IMAGE'],
-    } satisfies GoogleGenerativeAIProviderOptions,
-  },
-  // ...
-});
-```
-
-Another example showing the use of provider options to specify the thinking budget for a Google Generative AI thinking model:
-
-```ts
-import { google } from '@ai-sdk/google';
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: google('gemini-2.5-flash-preview-04-17'),
-  providerOptions: {
-    google: {
-      thinkingConfig: {
-        thinkingBudget: 2048,
-      },
-    } satisfies GoogleGenerativeAIProviderOptions,
-  },
-  // ...
-});
-```
-
-The following provider options are available:
-
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
 
@@ -201,6 +172,23 @@ const { text } = await generateText({
 Google Generative AI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Gemma Models
+
+Gemma models don't natively support the `systemInstruction` parameter, but the provider automatically handles system instructions by prepending them to the first user message. This allows you to use system instructions with Gemma models seamlessly:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google('gemma-3-12b-it'),
+  system: 'You are a helpful assistant that responds concisely.',
+  prompt: 'What is machine learning?',
+});
+```
+
+The system instruction is automatically formatted and included in the conversation, so Gemma models can follow the guidance without any additional configuration.
+
 ### File Inputs
 
 The Google Generative AI provider supports file inputs, e.g. PDF files.
@@ -222,7 +210,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
         },
       ],
     },
@@ -240,46 +228,7 @@ See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use
 
 ### Cached Content
 
-Google Generative AI supports both explicit and implicit caching to help reduce costs on repetitive content.
-
-#### Implicit Caching
-
-Gemini 2.5 models automatically provide cache cost savings without needing to create an explicit cache. When you send requests that share common prefixes with previous requests, you'll receive a 75% token discount on cached content.
-
-To maximize cache hits with implicit caching:
-
-- Keep content at the beginning of requests consistent
-- Add variable content (like user questions) at the end of prompts
-- Ensure requests meet minimum token requirements:
-  - Gemini 2.5 Flash: 1024 tokens minimum
-  - Gemini 2.5 Pro: 2048 tokens minimum
-
-```ts
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
-
-// Structure prompts with consistent content at the beginning
-const baseContext =
-  'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
-
-const { text: veggieLasagna } = await generateText({
-  model: google('gemini-2.5-pro'),
-  prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
-});
-
-// Second request with same prefix - eligible for cache hit
-const { text: meatLasagna, response } = await generateText({
-  model: google('gemini-2.5-pro'),
-  prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
-});
-
-// Check cached token count in usage metadata
-console.log('Cached tokens:', response.body.usageMetadata);
-```
-
-#### Explicit Caching
-
-For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 2.0 models:
+You can use Google Generative AI language models to cache content:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -290,35 +239,42 @@ const cacheManager = new GoogleAICacheManager(
   process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 );
 
-// Supported models for explicit caching
+// As of August 23rd, 2024, these are the only models that support caching
 type GoogleModelCacheableId =
-  | 'models/gemini-2.5-pro'
-  | 'models/gemini-2.5-flash'
-  | 'models/gemini-2.0-flash'
   | 'models/gemini-1.5-flash-001'
   | 'models/gemini-1.5-pro-001';
 
-const model: GoogleModelCacheableId = 'models/gemini-2.5-pro';
+const model: GoogleModelCacheableId = 'models/gemini-1.5-pro-001';
 
 const { name: cachedContent } = await cacheManager.create({
   model,
   contents: [
     {
       role: 'user',
-      parts: [{ text: '1000 Lasagna Recipes...' }],
+      parts: [{ text: '1000 Lasanga Recipes...' }],
     },
   ],
   ttlSeconds: 60 * 5,
 });
 
-const { text: veggieLasagnaRecipe } = await generateText({
-  model: google(model, { cachedContent }),
+const { text: veggieLasangaRecipe } = await generateText({
+  model: google(model),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    google: {
+      cachedContent,
+    },
+  },
 });
 
-const { text: meatLasagnaRecipe } = await generateText({
-  model: google(model, { cachedContent }),
+const { text: meatLasangaRecipe } = await generateText({
+  model: google(model),
   prompt: 'Write a meat lasagna recipe for 12 people.',
+  providerOptions: {
+    google: {
+      cachedContent,
+    },
+  },
 });
 ```
 
@@ -334,9 +290,12 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
-  model: google('gemini-1.5-pro', {
-    useSearchGrounding: true,
-  }),
+  model: google('gemini-1.5-pro'),
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+    },
+  },
   prompt:
     'List the top 5 San Francisco news from the past week.' +
     'You must include the date of each article.',
@@ -406,13 +365,16 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
-  model: google('gemini-1.5-flash', {
-    useSearchGrounding: true,
-    dynamicRetrievalConfig: {
-      mode: 'MODE_DYNAMIC',
-      dynamicThreshold: 0.8,
+  model: google('gemini-1.5-flash'),
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+      dynamicRetrievalConfig: {
+        mode: 'MODE_DYNAMIC',
+        dynamicThreshold: 0.8,
+      },
     },
-  }),
+  },
   prompt: 'Who won the latest F1 grand prix?',
 });
 ```
@@ -441,7 +403,12 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { sources } = await generateText({
-  model: google('gemini-2.0-flash-exp', { useSearchGrounding: true }),
+  model: google('gemini-2.0-flash-exp'),
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+    },
+  },
   prompt: 'List the top 5 San Francisco news from the past week.',
 });
 ```
@@ -464,7 +431,7 @@ const result = await generateText({
 });
 
 for (const file of result.files) {
-  if (file.mimeType.startsWith('image/')) {
+  if (file.mediaType.startsWith('image/')) {
     // show the image
   }
 }
@@ -528,9 +495,12 @@ You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
 const result = await generateObject({
-  model: google('gemini-1.5-pro-latest', {
-    structuredOutputs: false,
-  }),
+  model: google('gemini-1.5-pro-latest'),
+  providerOptions: {
+    google: {
+      structuredOutputs: false,
+    },
+  },
   schema: z.object({
     name: z.string(),
     age: z.number(),
@@ -556,18 +526,17 @@ The following Zod features are known to not work with Google Generative AI:
 
 ### Model Capabilities
 
-| Model                            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-2.5-pro-preview-05-06`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-flash-preview-04-17` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-pro-exp-03-25`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-pro`                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-pro-latest`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash-latest`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash-8b`            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash-8b-latest`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                        | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-2.5-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.0-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro-latest`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash-latest`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash-8b`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-flash-8b-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Google Generative AI
@@ -588,13 +557,19 @@ const model = google.textEmbeddingModel('text-embedding-004');
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
 
 ```ts
-const model = google.textEmbeddingModel('text-embedding-004', {
-  outputDimensionality: 512, // optional, number of dimensions for the embedding
-  taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
+const model = google.textEmbeddingModel('text-embedding-004');
+
+await model.doEmbed({
+  providerOptions: {
+    google: {
+      outputDimensionality: 512, // optional, number of dimensions for the embedding
+      taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
+    },
+  },
 });
 ```
 
-The following optional settings are available for Google Generative AI embedding models:
+The following optional provider options are available for Google Generative AI embedding models:
 
 - **outputDimensionality**: _number_
 

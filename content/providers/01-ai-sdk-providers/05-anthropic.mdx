@@ -95,7 +95,7 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
   instead of streaming it incrementally.
 </Note>
 
-The following optional settings are available for Anthropic models:
+The following optional provider options are available for Anthropic models:
 
 - `sendReasoning` _boolean_
 
@@ -103,6 +103,10 @@ The following optional settings are available for Anthropic models:
 
   If you are experiencing issues with the model handling requests involving
   reasoning content, you can set this to `false` to omit them from the request.
+
+- `thinking` _object_
+
+  Optional. See [Reasoning section](#reasoning) for more details.
 
 ### Reasoning
 
@@ -179,7 +183,7 @@ const result = await generateText({
 
 console.log(result.text);
 console.log(result.providerMetadata?.anthropic);
-// e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+// e.g. { cacheCreationInputTokens: 2118 }
 ```
 
 You can also use cache control on system messages by providing multiple system messages at the head of your messages array:
@@ -218,7 +222,7 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
 
 <Note type="warning">
   Because the `UIMessage` type (used by AI SDK UI hooks like `useChat`) does not
-  support the `providerOptions` property, you can use `convertToCoreMessages`
+  support the `providerOptions` property, you can use `convertToModelMessages`
   first before passing the messages to functions like `generateText` or
   `streamText`. For more details on `providerOptions` usage, see
   [here](/docs/foundations/prompts#provider-options).
@@ -334,7 +338,7 @@ const computerTool = anthropic.tools.computer_20241022({
   experimental_toToolResultContent(result) {
     return typeof result === 'string'
       ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mimeType: 'image/png' }];
+      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
   },
 });
 ```
@@ -346,6 +350,125 @@ Parameters:
 - `text` (string, optional): Required for `type` and `key` actions.
 
 These tools can be used in conjunction with the `sonnet-3-5-sonnet-20240620` model to enable more complex interactions and tasks.
+
+### Web Search
+
+Anthropic provides a built-in web search tool that gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff.
+
+<Note>
+  Web search must be enabled in your organization's [Console
+  settings](https://console.anthropic.com/settings/privacy).
+</Note>
+
+You can enable web search using the `webSearch` provider option:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'What are the latest developments in AI?',
+  providerOptions: {
+    anthropic: {
+      webSearch: {
+        maxUses: 5,
+      },
+    },
+  },
+});
+```
+
+#### Configuration Options
+
+The web search tool supports several configuration options:
+
+- **maxUses** _number_
+
+  Maximum number of web searches Claude can perform during the conversation.
+
+- **allowedDomains** _string[]_
+
+  Optional list of domains that Claude is allowed to search. If provided, searches will be restricted to these domains.
+
+- **blockedDomains** _string[]_
+
+  Optional list of domains that Claude should avoid when searching.
+
+- **userLocation** _object_
+
+  Optional user location information to provide geographically relevant search results.
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Find local news about technology',
+  providerOptions: {
+    anthropic: {
+      webSearch: {
+        maxUses: 3,
+        allowedDomains: ['techcrunch.com', 'wired.com'],
+        blockedDomains: ['example-spam-site.com'],
+        userLocation: {
+          type: 'approximate',
+          country: 'US',
+          region: 'California',
+          city: 'San Francisco',
+          timezone: 'America/Los_Angeles',
+        },
+      },
+    },
+  },
+});
+```
+
+#### Error Handling
+
+Web search errors are handled differently depending on whether you're using streaming or non-streaming:
+
+**Non-streaming (`generateText`, `generateObject`):**
+Web search errors throw exceptions that you can catch:
+
+```ts
+try {
+  const result = await generateText({
+    model: anthropic('claude-opus-4-20250514'),
+    prompt: 'Search for something',
+    providerOptions: {
+      anthropic: {
+        webSearch: { maxUses: 1 },
+      },
+    },
+  });
+} catch (error) {
+  if (error.message.includes('Web search failed')) {
+    console.log('Search error:', error.message);
+    // Handle search error appropriately
+  }
+}
+```
+
+**Streaming (`streamText`, `streamObject`):**
+Web search errors are delivered as error parts in the stream:
+
+```ts
+const result = await streamText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Search for something',
+  providerOptions: {
+    anthropic: {
+      webSearch: { maxUses: 1 },
+    },
+  },
+});
+
+for await (const part of result.textStream) {
+  if (part.type === 'error') {
+    console.log('Search error:', part.error);
+    // Handle search error appropriately
+  }
+}
+```
 
 ### PDF support
 
@@ -394,7 +517,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
         },
       ],
     },
@@ -405,21 +528,21 @@ const result = await generateText({
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
-and the `mimeType` should be set to `'application/pdf'`.
+and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                        | Image Input         | Object Generation   | Tool Usage          | Computer Use        |
-| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-4-opus-20250514`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-4-sonnet-20250514`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-7-sonnet-20250219` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-sonnet-20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-sonnet-20240620` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-5-haiku-20241022`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-opus-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-sonnet-20240229`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-haiku-20240307`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| Model                        | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
+| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-4-opus-20250514`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-4-sonnet-20250514`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-7-sonnet-20250219` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-5-sonnet-20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-5-sonnet-20240620` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> |
+| `claude-3-5-haiku-20241022`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> |
+| `claude-3-opus-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `claude-3-sonnet-20240229`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `claude-3-haiku-20240307`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

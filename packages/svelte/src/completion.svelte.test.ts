@@ -2,9 +2,14 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { Completion } from './completion.svelte.js';
 import { render } from '@testing-library/svelte';
+import type { UIMessageStreamPart } from 'ai';
+import { Completion } from './completion.svelte.js';
 import CompletionSynchronization from './tests/completion-synchronization.svelte';
+
+function formatStreamPart(part: UIMessageStreamPart) {
+  return `data: ${JSON.stringify(part)}\n\n`;
+}
 
 const server = createTestServer({
   '/api/completion': {},
@@ -14,7 +19,14 @@ describe('Completion', () => {
   it('should render a data stream', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      chunks: [
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
+      ],
     };
 
     const completion = new Completion();
@@ -36,7 +48,14 @@ describe('Completion', () => {
   it('should call `onFinish` callback', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      chunks: [
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
+      ],
     };
 
     const onFinish = vi.fn();
@@ -83,7 +102,14 @@ describe('Completion', () => {
       },
       {
         type: 'stream-chunks',
-        chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+        chunks: [
+          formatStreamPart({ type: 'text-start', id: '0' }),
+          formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+          formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+          formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+          formatStreamPart({ type: 'text-end', id: '0' }),
+        ],
       },
     ];
 
@@ -101,7 +127,14 @@ describe('synchronization', () => {
   it('correctly synchronizes content between hook instances', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      chunks: [
+        formatStreamPart({ type: 'text-start', id: '0' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
+        formatStreamPart({ type: 'text-end', id: '0' }),
+      ],
     };
 
     const {
@@ -132,7 +165,11 @@ describe('synchronization', () => {
       expect(completion2.loading).toBe(true);
     });
 
-    controller.write('0:"Hello"\n');
+    controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+    controller.write(
+      formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+    controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
     await vi.waitFor(() => {
       expect(completion1.completion).toBe('Hello');
       expect(completion2.completion).toBe('Hello');

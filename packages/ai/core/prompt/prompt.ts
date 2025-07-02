@@ -1,5 +1,4 @@
-import { Message } from '@ai-sdk/ui-utils';
-import { CoreMessage } from './message';
+import { ModelMessage } from '@ai-sdk/provider-utils';
 
 /**
 Prompt part of the AI function options.
@@ -12,12 +11,16 @@ System message to include in the prompt. Can be used with `prompt` or `messages`
   system?: string;
 
   /**
-A simple text prompt. You can either use `prompt` or `messages` but not both.
- */
-  prompt?: string;
+A prompt. It can be either a text prompt or a list of messages.
+
+You can either use `prompt` or `messages` but not both.
+*/
+  prompt?: string | Array<ModelMessage>;
 
   /**
-A list of messages. You can either use `prompt` or `messages` but not both.
+A list of messages.
+
+You can either use `prompt` or `messages` but not both.
    */
-  messages?: Array<CoreMessage> | Array<Omit<Message, 'id'>>;
+  messages?: Array<ModelMessage>;
 };

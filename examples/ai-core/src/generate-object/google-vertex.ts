@@ -1,14 +1,14 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = await generateObject({
     model: vertex('gemini-1.5-pro'),
     schema: z.object({
       recipe: z.object({
-        name: z.string(),
+        name: z.literal('Lasagna'),
         ingredients: z.array(
           z.object({
             name: z.string(),

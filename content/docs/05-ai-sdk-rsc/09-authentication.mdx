@@ -19,7 +19,7 @@ Server Actions are exposed as public, unprotected endpoints. As a result, you sh
 'use server';
 
 import { cookies } from 'next/headers';
-import { createStremableUI } from 'ai/rsc';
+import { createStremableUI } from '@ai-sdk/rsc';
 import { validateToken } from '../utils/auth';
 
 export const getWeather = async () => {

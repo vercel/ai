@@ -1,4 +1,4 @@
-import type { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -9,12 +9,9 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
-import {
-  ReplicateImageModelId,
-  ReplicateImageSettings,
-} from './replicate-image-settings';
+import { ReplicateImageModelId } from './replicate-image-settings';
 
 interface ReplicateImageModelConfig {
   provider: string;
@@ -26,20 +23,16 @@ interface ReplicateImageModelConfig {
   };
 }
 
-export class ReplicateImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class ReplicateImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: ReplicateImageModelId,
-    private readonly settings: ReplicateImageSettings,
     private readonly config: ReplicateImageModelConfig,
   ) {}
 
@@ -52,14 +45,15 @@ export class ReplicateImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     const [modelId, version] = this.modelId.split(':');
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
     const {
       value: { output },
       responseHeaders,

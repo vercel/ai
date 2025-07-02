@@ -1,4 +1,5 @@
-import { LanguageModelV1, ProviderV1, ImageModelV1 } from '@ai-sdk/provider';
+import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { ImageModelV2, LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -6,53 +7,30 @@ import {
   Resolvable,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  GoogleVertexModelId,
-  GoogleVertexSettings,
-} from './google-vertex-settings';
-import {
-  GoogleVertexEmbeddingModelId,
-  GoogleVertexEmbeddingSettings,
-} from './google-vertex-embedding-settings';
-import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { GoogleVertexImageModel } from './google-vertex-image-model';
-import {
-  GoogleVertexImageModelId,
-  GoogleVertexImageSettings,
-} from './google-vertex-image-settings';
 import { GoogleVertexConfig } from './google-vertex-config';
-import { isSupportedFileUrl } from './google-vertex-supported-file-url';
+import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
+import { GoogleVertexImageModel } from './google-vertex-image-model';
+import { GoogleVertexImageModelId } from './google-vertex-image-settings';
+import { GoogleVertexModelId } from './google-vertex-options';
 
-export interface GoogleVertexProvider extends ProviderV1 {
+export interface GoogleVertexProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
    */
-  (
-    modelId: GoogleVertexModelId,
-    settings?: GoogleVertexSettings,
-  ): LanguageModelV1;
+  (modelId: GoogleVertexModelId): LanguageModelV2;
 
-  languageModel: (
-    modelId: GoogleVertexModelId,
-    settings?: GoogleVertexSettings,
-  ) => LanguageModelV1;
+  languageModel: (modelId: GoogleVertexModelId) => LanguageModelV2;
 
   /**
    * Creates a model for image generation.
    */
-  image(
-    modelId: GoogleVertexImageModelId,
-    settings?: GoogleVertexImageSettings,
-  ): ImageModelV1;
+  image(modelId: GoogleVertexImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: GoogleVertexImageModelId,
-    settings?: GoogleVertexImageSettings,
-  ): ImageModelV1;
+  imageModel(modelId: GoogleVertexImageModelId): ImageModelV2;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -130,43 +108,35 @@ export function createVertex(
     };
   };
 
-  const createChatModel = (
-    modelId: GoogleVertexModelId,
-    settings: GoogleVertexSettings = {},
-  ) => {
-    return new GoogleGenerativeAILanguageModel(modelId, settings, {
+  const createChatModel = (modelId: GoogleVertexModelId) => {
+    return new GoogleGenerativeAILanguageModel(modelId, {
       ...createConfig('chat'),
       generateId: options.generateId ?? generateId,
-      isSupportedUrl: isSupportedFileUrl,
+      supportedUrls: () => ({
+        '*': [
+          // HTTP URLs:
+          /^https?:\/\/.*$/,
+          // Google Cloud Storage URLs:
+          /^gs:\/\/.*$/,
+        ],
+      }),
     });
   };
 
-  const createEmbeddingModel = (
-    modelId: GoogleVertexEmbeddingModelId,
-    settings: GoogleVertexEmbeddingSettings = {},
-  ) =>
-    new GoogleVertexEmbeddingModel(
-      modelId,
-      settings,
-      createConfig('embedding'),
-    );
+  const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
+    new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
-  const createImageModel = (
-    modelId: GoogleVertexImageModelId,
-    settings: GoogleVertexImageSettings = {},
-  ) => new GoogleVertexImageModel(modelId, settings, createConfig('image'));
+  const createImageModel = (modelId: GoogleVertexImageModelId) =>
+    new GoogleVertexImageModel(modelId, createConfig('image'));
 
-  const provider = function (
-    modelId: GoogleVertexModelId,
-    settings?: GoogleVertexSettings,
-  ) {
+  const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
         'The Google Vertex AI model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;

@@ -1,19 +1,13 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import {
-  streamText,
-  tool,
-  CoreMessage,
-  ToolCallPart,
-  ToolResultPart,
-} from 'ai';
+import { streamText, tool, ModelMessage } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 const weatherTool = tool({
   description: 'Get the weather in a location',
-  parameters: z.object({
+  inputSchema: z.object({
     location: z.string().describe('The location to get the weather for'),
   }),
   // location below is inferred to be a string:
@@ -130,11 +124,9 @@ const weatherData: Record<string, number> = {
 };
 
 async function main() {
-  let toolResponseAvailable = false;
-
   const result = streamText({
     model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
     },
@@ -151,32 +143,26 @@ async function main() {
   });
 
   let fullResponse = '';
-  const toolCalls: ToolCallPart[] = [];
-  const toolResponses: ToolResultPart[] = [];
 
   for await (const delta of result.fullStream) {
     switch (delta.type) {
-      case 'text-delta': {
-        fullResponse += delta.textDelta;
-        process.stdout.write(delta.textDelta);
+      case 'text': {
+        fullResponse += delta.text;
+        process.stdout.write(delta.text);
         break;
       }
 
       case 'tool-call': {
-        toolCalls.push(delta);
-
         process.stdout.write(
-          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
+          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
-        toolResponses.push(delta);
-
         process.stdout.write(
           `\nTool response: '${delta.toolName}' ${JSON.stringify(
-            delta.result,
+            delta.output,
           )}`,
         );
         break;
@@ -185,16 +171,8 @@ async function main() {
   }
   process.stdout.write('\n\n');
 
-  messages.push({
-    role: 'assistant',
-    content: [{ type: 'text', text: fullResponse }, ...toolCalls],
-  });
+  messages.push(...(await result.response).messages);
 
-  if (toolResponses.length > 0) {
-    messages.push({ role: 'tool', content: toolResponses });
-  }
-
-  toolResponseAvailable = toolCalls.length > 0;
   console.log('Messages:', messages[0].content);
   console.log(JSON.stringify(result.providerMetadata, null, 2));
 }

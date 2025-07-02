@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -6,11 +6,8 @@ import {
   FetchFunction,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import {
-  TogetherAIImageModelId,
-  TogetherAIImageSettings,
-} from './togetherai-image-settings';
-import { z } from 'zod';
+import { TogetherAIImageModelId } from './togetherai-image-settings';
+import { z } from 'zod/v4';
 
 interface TogetherAIImageModelConfig {
   provider: string;
@@ -22,20 +19,16 @@ interface TogetherAIImageModelConfig {
   };
 }
 
-export class TogetherAIImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class TogetherAIImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: TogetherAIImageModelId,
-    readonly settings: TogetherAIImageSettings,
     private config: TogetherAIImageModelConfig,
   ) {}
 
@@ -47,10 +40,10 @@ export class TogetherAIImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     if (size != null) {
       warnings.push({

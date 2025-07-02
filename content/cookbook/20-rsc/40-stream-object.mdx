@@ -51,7 +51,7 @@ Let's create a simple React component that will call the `getNotifications` func
 
 import { useState } from 'react';
 import { generate } from './actions';
-import { readStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from '@ai-sdk/rsc';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -92,7 +92,7 @@ Now let's implement the `getNotifications` function. We'll use the `generateObje
 
 import { streamObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { createStreamableValue } from 'ai/rsc';
+import { createStreamableValue } from '@ai-sdk/rsc';
 import { z } from 'zod';
 
 export async function generate(input: string) {
@@ -102,7 +102,7 @@ export async function generate(input: string) {
 
   (async () => {
     const { partialObjectStream } = streamObject({
-      model: openai('gpt-4-turbo'),
+      model: openai('gpt-4.1'),
       system: 'You generate three notifications for a messages app.',
       prompt: input,
       schema: z.object({

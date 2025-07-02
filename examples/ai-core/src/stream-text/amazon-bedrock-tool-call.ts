@@ -1,16 +1,16 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { streamText, CoreMessage, ToolCallPart, ToolResultPart } from 'ai';
+import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;
 
   const result = streamText({
     model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
     },
@@ -25,9 +25,9 @@ async function main() {
 
   for await (const delta of result.fullStream) {
     switch (delta.type) {
-      case 'text-delta': {
-        fullResponse += delta.textDelta;
-        process.stdout.write(delta.textDelta);
+      case 'text': {
+        fullResponse += delta.text;
+        process.stdout.write(delta.text);
         break;
       }
 
@@ -35,17 +35,22 @@ async function main() {
         toolCalls.push(delta);
 
         process.stdout.write(
-          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
+          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
-        toolResponses.push(delta);
+        // Transform to new format
+        const transformedDelta: ToolResultPart = {
+          ...delta,
+          output: { type: 'json', value: delta.output },
+        };
+        toolResponses.push(transformedDelta);
 
         process.stdout.write(
           `\nTool response: '${delta.toolName}' ${JSON.stringify(
-            delta.result,
+            delta.output,
           )}`,
         );
         break;

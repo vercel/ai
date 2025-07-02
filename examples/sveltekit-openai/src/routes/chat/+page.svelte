@@ -19,12 +19,20 @@
     },
   });
 
+  let input = $state('');
+
   const disabled = $derived(chat.status !== 'ready');
 
   function mapRoleToClass(role: string) {
     return role === 'assistant'
       ? 'bg-primary text-secondary rounded-md'
       : 'bg-secondary text-primary rounded-md justify-self-end';
+  }
+
+  function handleSubmit(e: Event) {
+    e.preventDefault();
+    chat.sendMessage({ text: input });
+    input = '';
   }
 </script>
 
@@ -50,7 +58,7 @@
               {#if toolName === 'askForConfirmation'}
                 {#if state === 'call'}
                   <div class="flex flex-col gap-2">
-                    {part.toolInvocation.args.message}
+                    {part.toolInvocation.input.message}
                     <div class="flex gap-2">
                       <Button
                         variant="default"
@@ -93,7 +101,7 @@
                   </div>
                 {:else if state === 'result'}
                   <div class="text-gray-500">
-                    Weather in {part.toolInvocation.args.city}: {part
+                    Weather in {part.toolInvocation.input.city}: {part
                       .toolInvocation.result}
                   </div>
                 {/if}
@@ -103,15 +111,21 @@
         </div>
       {/each}
     </div>
-    <form class="relative" onsubmit={chat.handleSubmit}>
+    <form class="relative" onsubmit={handleSubmit}>
+      <p>{chat.status}</p>
+      <div>
+        <a href="/chat/1">chat 1</a>
+        <a href="/chat/2">chat 2</a>
+        <a href="/chat/3">chat 3</a>
+      </div>
       <Textarea
-        bind:value={chat.input}
+        bind:value={input}
         placeholder="Send a message..."
         class="h-full"
         onkeydown={event => {
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            chat.handleSubmit();
+            handleSubmit(event);
           }
         }}
       />

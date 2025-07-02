@@ -1,38 +1,333 @@
 # @ai-sdk/provider-utils
 
-## 2.2.8
+## 3.0.0-beta.2
 
 ### Patch Changes
 
-- d87b9d1: fix(provider-utils): fix SSE parser bug (CRLF)
+- 0571b98: chore (provider-utils): update eventsource-parser to 3.0.3
+- 39a4fab: fix (provider-utils): detect failed fetch in browser environments
+- d1a034f: feature: using Zod 4 for internal stuff
 
-## 2.2.7
+## 3.0.0-beta.1
 
-### Patch Changes
+### Major Changes
 
-- Updated dependencies [beef951]
-  - @ai-sdk/provider@1.1.3
-
-## 2.2.6
-
-### Patch Changes
-
-- Updated dependencies [013faa8]
-  - @ai-sdk/provider@1.1.2
-
-## 2.2.5
+- e025824: refactoring (ai): restructure provider-defined tools
+- 71f938d: feat (ai): add output schema for tools
 
 ### Patch Changes
 
-- c21fa6d: feat: add transcription with experimental_transcribe
-- Updated dependencies [c21fa6d]
-  - @ai-sdk/provider@1.1.1
+- 45c1ea2: refactoring: introduce FlexibleSchema
+- bfdca8d: feat (ai): add InferToolInput and InferToolOutput helpers
+- 28a5ed5: refactoring: move tools helper into provider-utils
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+  - @ai-sdk/provider@2.0.0-beta.1
 
-## 2.2.4
+## 3.0.0-alpha.15
 
 ### Patch Changes
 
-- 2c19b9a: feat(provider-utils): add TestServerCall#requestCredentials
+- 8ba77a7: chore (provider-utils): use eventsource-parser library
+- Updated dependencies [48d257a]
+  - @ai-sdk/provider@2.0.0-alpha.15
+
+## 3.0.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+
+## 3.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+
+## 3.0.0-alpha.12
+
+### Patch Changes
+
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+
+## 3.0.0-alpha.11
+
+### Patch Changes
+
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+
+## 3.0.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+
+## 3.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+
+## 3.0.0-alpha.8
+
+### Patch Changes
+
+- 4fef487: feat: support for zod v4 for schema validation
+
+  All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
+  - `generateObject()`
+  - `streamObject()`
+  - `generateText()`
+  - `experimental_useObject()` from `@ai-sdk/react`
+  - `streamUI()` from `@ai-sdk/rsc`
+
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider@2.0.0-alpha.8
+
+## 3.0.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [5c56081]
+  - @ai-sdk/provider@2.0.0-alpha.7
+
+## 3.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+  - @ai-sdk/provider@2.0.0-alpha.6
+
+## 3.0.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+
+## 3.0.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [6b98118]
+  - @ai-sdk/provider@2.0.0-alpha.3
+
+## 3.0.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+
+## 3.0.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [3f2f00c]
+  - @ai-sdk/provider@2.0.0-alpha.1
+
+## 3.0.0-canary.19
+
+### Patch Changes
+
+- faf8446: chore (provider-utils): switch to standard-schema
+
+## 3.0.0-canary.18
+
+### Major Changes
+
+- 40acf9b: feat (ui): introduce ChatStore and ChatTransport
+
+## 3.0.0-canary.17
+
+### Major Changes
+
+- ea7a7c9: feat (ui): UI message metadata
+
+## 3.0.0-canary.16
+
+### Patch Changes
+
+- 87b828f: fix(provider-utils): fix SSE parser bug (CRLF)
+
+## 3.0.0-canary.15
+
+### Major Changes
+
+- 41fa418: chore (provider-utils): return IdGenerator interface
+
+### Patch Changes
+
+- a571d6e: chore(provider-utils): move ToolResultContent to provider-utils
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [7979f7f]
+  - @ai-sdk/provider@2.0.0-canary.14
+
+## 3.0.0-canary.14
+
+### Major Changes
+
+- 957b739: chore (provider-utils): rename TestServerCall.requestBody to requestBodyJson
+
+### Patch Changes
+
+- Updated dependencies [9bd5ab5]
+  - @ai-sdk/provider@2.0.0-canary.13
+
+## 3.0.0-canary.13
+
+### Patch Changes
+
+- 0ff02bb: chore(provider-utils): move over jsonSchema
+- Updated dependencies [7b3ae3f]
+  - @ai-sdk/provider@2.0.0-canary.12
+
+## 3.0.0-canary.12
+
+### Patch Changes
+
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/provider@2.0.0-canary.11
+
+## 3.0.0-canary.11
+
+### Patch Changes
+
+- 66962ed: fix(packages): export node10 compatible types
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider@2.0.0-canary.10
+
+## 3.0.0-canary.10
+
+### Patch Changes
+
+- Updated dependencies [e86be6f]
+  - @ai-sdk/provider@2.0.0-canary.9
+
+## 3.0.0-canary.9
+
+### Patch Changes
+
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+
+## 3.0.0-canary.8
+
+### Major Changes
+
+- 5d142ab: remove deprecated `CoreToolCall` and `CoreToolResult` types
+
+### Patch Changes
+
+- Updated dependencies [b6b43c7]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [3795467]
+  - @ai-sdk/provider@2.0.0-canary.7
+
+## 3.0.0-canary.7
+
+### Patch Changes
+
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [14c9410]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [0054544]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [d0f9495]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [393138b]
+- Updated dependencies [7182d14]
+  - @ai-sdk/provider@2.0.0-canary.6
+
+## 3.0.0-canary.6
+
+### Patch Changes
+
+- Updated dependencies [411e483]
+- Updated dependencies [79457bd]
+- Updated dependencies [ad80501]
+- Updated dependencies [1766ede]
+- Updated dependencies [f10304b]
+  - @ai-sdk/provider@2.0.0-canary.5
+
+## 3.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [6f6bb89]
+  - @ai-sdk/provider@2.0.0-canary.4
+
+## 3.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [d1a1aa1]
+  - @ai-sdk/provider@2.0.0-canary.3
+
+## 3.0.0-canary.3
+
+### Patch Changes
+
+- a166433: feat: add transcription with experimental_transcribe
+- 9f95b35: refactor (provider-utils): copy relevant code from `secure-json-parse` into codebase
+- Updated dependencies [a166433]
+- Updated dependencies [abf9a79]
+- Updated dependencies [0a87932]
+- Updated dependencies [6dc848c]
+  - @ai-sdk/provider@2.0.0-canary.2
+
+## 3.0.0-canary.2
+
+### Patch Changes
+
+- Updated dependencies [c57e248]
+- Updated dependencies [33f4a6a]
+  - @ai-sdk/provider@2.0.0-canary.1
+
+## 3.0.0-canary.1
+
+### Patch Changes
+
+- 060370c: feat(provider-utils): add TestServerCall#requestCredentials
+- 0c0c0b3: refactor (provider-utils): move `customAlphabet()` method from `nanoid` into codebase
+- 63d791d: chore (utils): remove unused test helpers
+
+## 3.0.0-canary.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- Updated dependencies [d5f588f]
+  - @ai-sdk/provider@2.0.0-canary.0
 
 ## 2.2.3
 

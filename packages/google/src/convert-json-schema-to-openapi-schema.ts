@@ -4,10 +4,10 @@ import { JSONSchema7Definition } from '@ai-sdk/provider';
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
  */
 export function convertJSONSchemaToOpenAPISchema(
-  jsonSchema: JSONSchema7Definition,
+  jsonSchema: JSONSchema7Definition | undefined,
 ): unknown {
   // parameters need to be undefined if they are empty objects:
-  if (isEmptyObjectSchema(jsonSchema)) {
+  if (jsonSchema == null || isEmptyObjectSchema(jsonSchema)) {
     return undefined;
   }
 
@@ -124,6 +124,7 @@ function isEmptyObjectSchema(jsonSchema: JSONSchema7Definition): boolean {
     typeof jsonSchema === 'object' &&
     jsonSchema.type === 'object' &&
     (jsonSchema.properties == null ||
-      Object.keys(jsonSchema.properties).length === 0)
+      Object.keys(jsonSchema.properties).length === 0) &&
+    !jsonSchema.additionalProperties
   );
 }

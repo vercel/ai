@@ -1,8 +1,12 @@
-import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
+import {
+  TranscriptionModelV2,
+  ProviderV2,
+  NoSuchModelError,
+} from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 
-export interface GladiaProvider extends Pick<ProviderV1, 'transcriptionModel'> {
+export interface GladiaProvider extends ProviderV2 {
   (): {
     transcription: GladiaTranscriptionModel;
   };
@@ -10,7 +14,7 @@ export interface GladiaProvider extends Pick<ProviderV1, 'transcriptionModel'> {
   /**
 Creates a model for transcription.
    */
-  transcription(): TranscriptionModelV1;
+  transcription(): TranscriptionModelV2;
 }
 
 export interface GladiaProviderSettings {
@@ -62,6 +66,31 @@ export function createGladia(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+
+  // Required ProviderV2 methods that are not supported
+  provider.languageModel = () => {
+    throw new NoSuchModelError({
+      modelId: 'unknown',
+      modelType: 'languageModel',
+      message: 'Gladia does not provide language models',
+    });
+  };
+
+  provider.textEmbeddingModel = () => {
+    throw new NoSuchModelError({
+      modelId: 'unknown',
+      modelType: 'textEmbeddingModel',
+      message: 'Gladia does not provide text embedding models',
+    });
+  };
+
+  provider.imageModel = () => {
+    throw new NoSuchModelError({
+      modelId: 'unknown',
+      modelType: 'imageModel',
+      message: 'Gladia does not provide image models',
+    });
+  };
 
   return provider as GladiaProvider;
 }

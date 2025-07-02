@@ -40,9 +40,8 @@ describe('AmazonBedrockProvider', () => {
 
       const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe('anthropic.claude-v2');
-      expect(constructorCall[1]).toEqual({});
-      expect(constructorCall[2].headers).toEqual({});
-      expect(constructorCall[2].baseUrl()).toBe(
+      expect(constructorCall[1].headers).toEqual({});
+      expect(constructorCall[1].baseUrl()).toBe(
         'https://bedrock-runtime.us-east-1.amazonaws.com',
       );
     });
@@ -59,8 +58,8 @@ describe('AmazonBedrockProvider', () => {
       provider('anthropic.claude-v2');
 
       const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
-      expect(constructorCall[2].headers).toEqual(customHeaders);
-      expect(constructorCall[2].baseUrl()).toBe('https://custom.url');
+      expect(constructorCall[1].headers).toEqual(customHeaders);
+      expect(constructorCall[1].baseUrl()).toBe('https://custom.url');
     });
 
     it('should accept a credentialProvider in options', () => {
@@ -78,9 +77,8 @@ describe('AmazonBedrockProvider', () => {
 
       const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe('anthropic.claude-v2');
-      expect(constructorCall[1]).toEqual({});
-      expect(constructorCall[2].headers).toEqual({});
-      expect(constructorCall[2].baseUrl()).toBe(
+      expect(constructorCall[1].headers).toEqual({});
+      expect(constructorCall[1].baseUrl()).toBe(
         'https://bedrock-runtime.us-east-1.amazonaws.com',
       );
     });
@@ -113,7 +111,7 @@ describe('AmazonBedrockProvider', () => {
       provider.embedding('amazon.titan-embed-text-v1');
 
       const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
-      expect(constructorCall[2].headers).toEqual(customHeaders);
+      expect(constructorCall[1].headers).toEqual(customHeaders);
     });
 
     it('should throw error when called with new keyword', () => {
@@ -127,44 +125,14 @@ describe('AmazonBedrockProvider', () => {
   });
 
   describe('provider methods', () => {
-    it('should create a chat model via function call', () => {
-      const provider = createAmazonBedrock();
-      const modelId = 'anthropic.claude-v2';
-      const settings = { additionalModelRequestFields: { foo: 'bar' } };
-
-      const model = provider(modelId, settings);
-
-      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
-      expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual(settings);
-      expect(model).toBeInstanceOf(BedrockChatLanguageModel);
-    });
-
-    it('should create a chat model via languageModel method', () => {
-      const provider = createAmazonBedrock();
-      const modelId = 'anthropic.claude-v2';
-      const settings = { additionalModelRequestFields: { foo: 'bar' } };
-
-      const model = provider.languageModel(modelId, settings);
-
-      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
-      expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual(settings);
-      expect(model).toBeInstanceOf(BedrockChatLanguageModel);
-    });
-
     it('should create an embedding model', () => {
       const provider = createAmazonBedrock();
       const modelId = 'amazon.titan-embed-text-v1';
 
-      const model = provider.embedding(modelId, {
-        dimensions: 1024,
-        normalize: true,
-      });
+      const model = provider.embedding(modelId);
 
       const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual({ dimensions: 1024, normalize: true });
       expect(model).toBeInstanceOf(BedrockEmbeddingModel);
     });
 
@@ -172,13 +140,10 @@ describe('AmazonBedrockProvider', () => {
       const provider = createAmazonBedrock();
       const modelId = 'amazon.titan-image-generator';
 
-      const model = provider.image(modelId, {
-        maxImagesPerCall: 5,
-      });
+      const model = provider.image(modelId);
 
       const constructorCall = BedrockImageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual({ maxImagesPerCall: 5 });
       expect(model).toBeInstanceOf(BedrockImageModel);
     });
 
@@ -186,13 +151,10 @@ describe('AmazonBedrockProvider', () => {
       const provider = createAmazonBedrock();
       const modelId = 'amazon.titan-image-generator';
 
-      const model = provider.imageModel(modelId, {
-        maxImagesPerCall: 5,
-      });
+      const model = provider.imageModel(modelId);
 
       const constructorCall = BedrockImageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual({ maxImagesPerCall: 5 });
       expect(model).toBeInstanceOf(BedrockImageModel);
     });
   });

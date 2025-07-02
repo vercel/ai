@@ -3,7 +3,7 @@ import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import path from 'path';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const fileManager = new GoogleAIFileManager(
@@ -34,7 +34,7 @@ async function main() {
           {
             type: 'file',
             data: geminiFile.file.uri,
-            mimeType: geminiFile.file.mimeType,
+            mediaType: geminiFile.file.mimeType,
           },
         ],
       },

@@ -10,5 +10,5 @@ export default async function Page({
 
   const messages = await loadChat(id);
 
-  return <Chat chatId={id} autoResume={true} initialMessages={messages} />;
+  return <Chat id={id} autoResume={true} initialMessages={messages} />;
 }

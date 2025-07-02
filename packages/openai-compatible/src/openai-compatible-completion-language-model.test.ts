@@ -1,12 +1,13 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
+  isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { createOpenAICompatible } from './openai-compatible-provider';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -26,29 +27,21 @@ const server = createTestServer({
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'anthropic.beta',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'anthropic.beta',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('anthropic');
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'openai',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'openai',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('openai');
   });
@@ -56,7 +49,7 @@ describe('config', () => {
   it('should return empty for empty provider', () => {
     const model = new OpenAICompatibleChatLanguageModel(
       'gpt-4',
-      {},
+
       {
         provider: '',
         url: () => '',
@@ -117,45 +110,70 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
+    `);
   });
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: 5,
-    });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+      }
+    `);
   });
-
   it('should send request body', async () => {
     prepareJsonResponse({});
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello"}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "echo": undefined,
+          "frequency_penalty": undefined,
+          "logit_bias": undefined,
+          "max_tokens": undefined,
+          "model": "gpt-3.5-turbo-instruct",
+          "presence_penalty": undefined,
+          "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+          "seed": undefined,
+          "stop": [
+            "
+      user:",
+          ],
+          "suffix": undefined,
+          "temperature": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
@@ -166,29 +184,48 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(response).toStrictEqual({
-      id: 'test-id',
-      timestamp: new Date(123 * 1000),
-      modelId: 'test-model',
-    });
+    expect(response).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "choices": [
+            {
+              "finish_reason": "stop",
+              "index": 0,
+              "text": "",
+            },
+          ],
+          "created": 123,
+          "id": "test-id",
+          "model": "test-model",
+          "object": "text_completion",
+          "usage": {
+            "completion_tokens": 30,
+            "prompt_tokens": 4,
+            "total_tokens": 34,
+          },
+        },
+        "headers": {
+          "content-length": "204",
+          "content-type": "application/json",
+        },
+        "id": "test-id",
+        "modelId": "test-model",
+        "timestamp": 1970-01-01T00:02:03.000Z,
+      }
+    `);
   });
 
   it('should extract finish reason', async () => {
     prepareJsonResponse({
-      content: '',
       finish_reason: 'stop',
     });
 
     const { finishReason } = await provider
       .completionModel('gpt-3.5-turbo-instruct')
       .doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -197,15 +234,12 @@ describe('doGenerate', () => {
 
   it('should support unknown finish reason', async () => {
     prepareJsonResponse({
-      content: '',
       finish_reason: 'eos',
     });
 
     const { finishReason } = await provider
       .completionModel('gpt-3.5-turbo-instruct')
       .doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -217,13 +251,11 @@ describe('doGenerate', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '250',
       'content-type': 'application/json',
@@ -237,15 +269,23 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "stop": [
+          "
+      user:",
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -261,8 +301,6 @@ describe('doGenerate', () => {
     });
 
     await provider.completionModel('gpt-3.5-turbo-instruct').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -281,215 +319,270 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await provider.completionModel('gpt-3.5-turbo-instruct').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
         },
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-      someCustomOption: 'test-value',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "someCustomOption": "test-value",
+        "stop": [
+          "
+      user:",
+        ],
+      }
+    `);
   });
 
   it('should not include provider-specific options for different provider', async () => {
     prepareJsonResponse({ content: '' });
 
     await provider.completionModel('gpt-3.5-turbo-instruct').doGenerate({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
         },
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "stop": [
+          "
+      user:",
+        ],
+      }
+    `);
   });
 });
 
 describe('doStream', () => {
-  function prepareStreamResponse({
-    content = [],
-    finish_reason = 'stop',
-    usage = {
-      prompt_tokens: 10,
-      total_tokens: 372,
-      completion_tokens: 362,
-    },
-    headers,
-  }: {
-    content?: string[];
-    usage?: {
-      prompt_tokens: number;
-      total_tokens: number;
-      completion_tokens: number;
-    };
-    finish_reason?: string;
-    headers?: Record<string, string>;
-  }) {
+  function prepareEmptyStreamResponse(headers?: Record<string, string>) {
     server.urls['https://my.api.com/v1/completions'].response = {
       type: 'stream-chunks',
       headers,
       chunks: [
-        ...content.map(text => {
-          return (
-            `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,` +
-            `"choices":[{"text":"${text}","index":0,"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`
-          );
-        }),
-        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
-          `"choices":[{"text":"","index":0,"finish_reason":"${finish_reason}"}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
-        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
-          `"model":"gpt-3.5-turbo-instruct","usage":${JSON.stringify(
-            usage,
-          )},"choices":[]}\n\n`,
+        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,"model":"gpt-3.5-turbo-instruct","choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,"model":"gpt-3.5-turbo-instruct","usage":{"prompt_tokens":10,"completion_tokens":0,"total_tokens":10},"choices":[]}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
   }
 
   it('should stream text deltas', async () => {
-    prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
-      finish_reason: 'stop',
-      usage: {
-        prompt_tokens: 10,
-        total_tokens: 372,
-        completion_tokens: 362,
-      },
-    });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,"model":"gpt-3.5-turbo-instruct","choices":[{"text":"Hello","index":0,"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,"model":"gpt-3.5-turbo-instruct","choices":[{"text":",","index":0,"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,"model":"gpt-3.5-turbo-instruct","choices":[{"text":" World!","index":0,"logprobs":null,"finish_reason":null}]}\n\n`,
+        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,"model":"gpt-3.5-turbo-instruct","choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,"model":"gpt-3.5-turbo-instruct","usage":{"prompt_tokens":10,"completion_tokens":362,"total_tokens":372},"choices":[]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
-
-    // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        id: 'cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT',
-        modelId: 'gpt-3.5-turbo-instruct',
-        timestamp: new Date('2024-03-25T10:44:00.000Z'),
-        type: 'response-metadata',
-      },
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      { type: 'text-delta', textDelta: '' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 10, completionTokens: 362 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT",
+          "modelId": "gpt-3.5-turbo-instruct",
+          "timestamp": 2024-03-25T10:44:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ",",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " World!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 362,
+            "totalTokens": 372,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle error stream parts', async () => {
     server.urls['https://my.api.com/v1/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
-          `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+        `data: {"error":{"message":"The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message:
-            'The server had an error processing your request. Sorry about that! ' +
-            'You can retry your request, or contact us through our help center at ' +
-            'help.openai.com if you keep seeing this error.',
-          type: 'server_error',
-          code: null,
-          param: null,
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: {
-          completionTokens: NaN,
-          promptTokens: NaN,
+        {
+          "error": {
+            "code": null,
+            "message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.",
+            "param": null,
+            "type": "server_error",
+          },
+          "type": "error",
         },
-      },
-    ]);
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
-  it('should handle unparsable stream parts', async () => {
-    server.urls['https://my.api.com/v1/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-    };
+  it.skipIf(isNodeVersion(20))(
+    'should handle unparsable stream parts',
+    async () => {
+      server.urls['https://my.api.com/v1/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+      };
 
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      prompt: TEST_PROMPT,
-    });
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
 
-    const elements = await convertReadableStreamToArray(stream);
-
-    expect(elements.length).toBe(2);
-    expect(elements[0].type).toBe('error');
-    expect(elements[1]).toStrictEqual({
-      finishReason: 'error',
-      type: 'finish',
-      usage: {
-        completionTokens: NaN,
-        promptTokens: NaN,
-      },
-    });
-  });
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
+        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+            "type": "error",
+          },
+          {
+            "finishReason": "error",
+            "type": "finish",
+            "usage": {
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "totalTokens": undefined,
+            },
+          },
+        ]
+      `);
+    },
+  );
 
   it('should send request body', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(request).toStrictEqual({
-      // body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello","stream":true,"stream_options":{"include_usage":true}}',
-      body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello","stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "echo": undefined,
+          "frequency_penalty": undefined,
+          "logit_bias": undefined,
+          "max_tokens": undefined,
+          "model": "gpt-3.5-turbo-instruct",
+          "presence_penalty": undefined,
+          "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+          "seed": undefined,
+          "stop": [
+            "
+      user:",
+          ],
+          "stream": true,
+          "stream_options": undefined,
+          "suffix": undefined,
+          "temperature": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
-    prepareStreamResponse({
-      headers: { 'test-header': 'test-value' },
-    });
+    prepareEmptyStreamResponse({ 'test-header': 'test-value' });
 
-    const { rawResponse } = await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
+    const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
@@ -501,24 +594,32 @@ describe('doStream', () => {
   });
 
   it('should pass the model and the prompt', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      stream: true,
-      // stream_options: { include_usage: true },
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "stop": [
+          "
+      user:",
+        ],
+        "stream": true,
+      }
+    `);
   });
 
   it('should pass headers', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     const provider = createOpenAICompatible({
       baseURL: 'https://my.api.com/v1/',
@@ -530,9 +631,8 @@ describe('doStream', () => {
     });
 
     await provider.completionModel('gpt-3.5-turbo-instruct').doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -547,45 +647,63 @@ describe('doStream', () => {
   });
 
   it('should include provider-specific options', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      stream: true,
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-      someCustomOption: 'test-value',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "someCustomOption": "test-value",
+        "stop": [
+          "
+      user:",
+        ],
+        "stream": true,
+      }
+    `);
   });
 
   it('should not include provider-specific options for different provider', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareEmptyStreamResponse();
 
     await model.doStream({
-      inputFormat: 'prompt',
-      mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      stream: true,
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "stop": [
+          "
+      user:",
+        ],
+        "stream": true,
+      }
+    `);
   });
 });

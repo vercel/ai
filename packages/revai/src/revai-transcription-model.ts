@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV1,
-  TranscriptionModelV1CallWarning,
+  TranscriptionModelV2,
+  TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -12,10 +12,10 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { RevaiConfig } from './revai-config';
 import { revaiFailedResponseHandler } from './revai-error';
-import { RevaiTranscriptionModelId } from './revai-transcription-settings';
+import { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { RevaiTranscriptionAPITypes } from './revai-api-types';
 
 // https://docs.rev.ai/api/asynchronous/reference/#operation/SubmitTranscriptionJob
@@ -219,8 +219,8 @@ interface RevaiTranscriptionModelConfig extends RevaiConfig {
   };
 }
 
-export class RevaiTranscriptionModel implements TranscriptionModelV1 {
-  readonly specificationVersion = 'v1';
+export class RevaiTranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
@@ -231,15 +231,15 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     private readonly config: RevaiTranscriptionModelConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV1CallWarning[] = [];
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
 
     // Parse provider options
-    const revaiOptions = parseProviderOptions({
+    const revaiOptions = await parseProviderOptions({
       provider: 'revai',
       providerOptions,
       schema: revaiProviderOptionsSchema,
@@ -308,10 +308,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = this.getArgs(options);
+    const { formData, warnings } = await this.getArgs(options);
 
     const { value: submissionResponse } = await postFormDataToApi({
       url: this.config.url({

@@ -13,7 +13,7 @@ import { defaultSettingsMiddleware } from 'ai';
 const middleware = defaultSettingsMiddleware({
   settings: {
     temperature: 0.7,
-    maxTokens: 1000,
+    maxOutputTokens: 1000,
     // other settings...
   },
 });
@@ -32,7 +32,7 @@ const middleware = defaultSettingsMiddleware({
 
 The middleware accepts a configuration object with the following properties:
 
-- `settings`: An object containing default parameter values to apply to language model calls. These can include any valid `LanguageModelV1CallOptions` properties and optional provider metadata.
+- `settings`: An object containing default parameter values to apply to language model calls. These can include any valid `LanguageModelV2CallOptions` properties and optional provider metadata.
 
 ### Returns
 
@@ -56,7 +56,7 @@ const modelWithDefaults = wrapLanguageModel({
   middleware: defaultSettingsMiddleware({
     settings: {
       temperature: 0.5,
-      maxTokens: 800,
+      maxOutputTokens: 800,
       providerMetadata: {
         openai: {
           tags: ['production'],

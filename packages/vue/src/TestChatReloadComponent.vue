@@ -1,30 +1,33 @@
 <script setup lang="ts">
-import { useChat } from './use-chat';
+import { generateId } from 'ai';
+import { mockId } from 'ai/test';
+import { Chat } from './chat.vue';
 
-const { messages, append, reload } = useChat();
+const chat = new Chat({
+  id: generateId(),
+  generateId: mockId(),
+});
 </script>
 
 <template>
   <div>
     <div
-      v-for="(m, idx) in messages"
+      v-for="(m, idx) in chat.messages"
       key="m.id"
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
+      {{
+        m.parts.map(part => (part.type === 'text' ? part.text : '')).join('')
+      }}
     </div>
 
-    <button
-      data-testid="do-append"
-      @click="append({ role: 'user', content: 'hi' })"
-    />
+    <button data-testid="do-append" @click="chat.sendMessage({ text: 'hi' })" />
 
     <button
-      data-testid="do-reload"
+      data-testid="do-regenerate"
       @click="
-        reload({
-          data: { 'test-data-key': 'test-data-value' },
+        chat.regenerate({
           body: { 'request-body-key': 'request-body-value' },
           headers: { 'header-key': 'header-value' },
         })

@@ -1,4 +1,3 @@
-import { KeyedChatStore, setChatContext } from './chat-context.svelte.js';
 import {
   KeyedCompletionStore,
   setCompletionContext,
@@ -9,9 +8,6 @@ import {
 } from './structured-object-context.svelte.js';
 
 export function createAIContext() {
-  const chatStore = new KeyedChatStore();
-  setChatContext(chatStore);
-
   const completionStore = new KeyedCompletionStore();
   setCompletionContext(completionStore);
 

@@ -1,19 +1,16 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  CerebrasChatModelId,
-  CerebrasChatSettings,
-} from './cerebras-chat-settings';
-import { z } from 'zod';
+import { CerebrasChatModelId } from './cerebras-chat-options';
+import { z } from 'zod/v4';
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 
 // Add error schema and structure
@@ -51,30 +48,21 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface CerebrasProvider extends ProviderV1 {
+export interface CerebrasProvider extends ProviderV2 {
   /**
 Creates a Cerebras model for text generation.
 */
-  (
-    modelId: CerebrasChatModelId,
-    settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  (modelId: CerebrasChatModelId): LanguageModelV2;
 
   /**
 Creates a Cerebras model for text generation.
 */
-  languageModel(
-    modelId: CerebrasChatModelId,
-    settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  languageModel(modelId: CerebrasChatModelId): LanguageModelV2;
 
   /**
 Creates a Cerebras chat model for text generation.
 */
-  chat(
-    modelId: CerebrasChatModelId,
-    settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  chat(modelId: CerebrasChatModelId): LanguageModelV2;
 }
 
 export function createCerebras(
@@ -92,29 +80,27 @@ export function createCerebras(
     ...options.headers,
   });
 
-  const createLanguageModel = (
-    modelId: CerebrasChatModelId,
-    settings: CerebrasChatSettings = {},
-  ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
+  const createLanguageModel = (modelId: CerebrasChatModelId) => {
+    return new OpenAICompatibleChatLanguageModel(modelId, {
       provider: `cerebras.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: 'tool',
       errorStructure: cerebrasErrorStructure,
     });
   };
 
-  const provider = (
-    modelId: CerebrasChatModelId,
-    settings?: CerebrasChatSettings,
-  ) => createLanguageModel(modelId, settings);
+  const provider = (modelId: CerebrasChatModelId) =>
+    createLanguageModel(modelId);
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   return provider;

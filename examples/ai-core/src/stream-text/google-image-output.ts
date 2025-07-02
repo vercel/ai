@@ -14,14 +14,14 @@ async function main() {
 
   for await (const part of result.fullStream) {
     switch (part.type) {
-      case 'text-delta': {
-        process.stdout.write(part.textDelta);
+      case 'text': {
+        process.stdout.write(part.text);
         break;
       }
 
       case 'file': {
-        if (part.mimeType.startsWith('image/')) {
-          await presentImages([part]);
+        if (part.file.mediaType.startsWith('image/')) {
+          await presentImages([part.file]);
         }
 
         break;

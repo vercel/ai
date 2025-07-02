@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { CoreMessage, streamText } from 'ai';
+import { ModelMessage, streamText } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { presentImages } from '../lib/present-image';
@@ -9,7 +9,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -26,15 +26,15 @@ async function main() {
     process.stdout.write('\nAssistant: ');
     for await (const delta of result.fullStream) {
       switch (delta.type) {
-        case 'text-delta': {
-          process.stdout.write(delta.textDelta);
+        case 'text': {
+          process.stdout.write(delta.text);
           break;
         }
 
         case 'file': {
-          if (delta.mimeType.startsWith('image/')) {
-            console.log();
-            await presentImages([delta]);
+          if (delta.file.mediaType.startsWith('image/')) {
+            console.log(delta.file);
+            await presentImages([delta.file]);
           }
         }
       }

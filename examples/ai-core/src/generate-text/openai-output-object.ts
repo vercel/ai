@@ -1,15 +1,15 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, Output, tool } from 'ai';
+import { generateText, stepCountIs, Output, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const { experimental_output } = await generateText({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         // location below is inferred to be a string:
@@ -25,7 +25,7 @@ async function main() {
         temperature: z.number(),
       }),
     }),
-    maxSteps: 2,
+    stopWhen: stepCountIs(2),
     prompt: 'What is the weather in San Francisco?',
   });
 

@@ -1,36 +1,36 @@
-import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { CallSettings } from './call-settings';
 
 /**
- * Validates call settings and sets default values.
+ * Validates call settings and returns a new object with limited values.
  */
 export function prepareCallSettings({
-  maxTokens,
+  maxOutputTokens,
   temperature,
   topP,
   topK,
   presencePenalty,
   frequencyPenalty,
-  stopSequences,
   seed,
+  stopSequences,
 }: Omit<CallSettings, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
   CallSettings,
   'abortSignal' | 'headers' | 'maxRetries'
 > {
-  if (maxTokens != null) {
-    if (!Number.isInteger(maxTokens)) {
+  if (maxOutputTokens != null) {
+    if (!Number.isInteger(maxOutputTokens)) {
       throw new InvalidArgumentError({
-        parameter: 'maxTokens',
-        value: maxTokens,
-        message: 'maxTokens must be an integer',
+        parameter: 'maxOutputTokens',
+        value: maxOutputTokens,
+        message: 'maxOutputTokens must be an integer',
       });
     }
 
-    if (maxTokens < 1) {
+    if (maxOutputTokens < 1) {
       throw new InvalidArgumentError({
-        parameter: 'maxTokens',
-        value: maxTokens,
-        message: 'maxTokens must be >= 1',
+        parameter: 'maxOutputTokens',
+        value: maxOutputTokens,
+        message: 'maxOutputTokens must be >= 1',
       });
     }
   }
@@ -96,17 +96,13 @@ export function prepareCallSettings({
   }
 
   return {
-    maxTokens,
-    // TODO v5 remove default 0 for temperature
-    temperature: temperature ?? 0,
+    maxOutputTokens,
+    temperature,
     topP,
     topK,
     presencePenalty,
     frequencyPenalty,
-    stopSequences:
-      stopSequences != null && stopSequences.length > 0
-        ? stopSequences
-        : undefined,
+    stopSequences,
     seed,
   };
 }

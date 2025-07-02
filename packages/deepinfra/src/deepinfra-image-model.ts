@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   FetchFunction,
   combineHeaders,
@@ -6,11 +6,8 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import {
-  DeepInfraImageModelId,
-  DeepInfraImageSettings,
-} from './deepinfra-image-settings';
-import { z } from 'zod';
+import { DeepInfraImageModelId } from './deepinfra-image-settings';
+import { z } from 'zod/v4';
 
 interface DeepInfraImageModelConfig {
   provider: string;
@@ -22,20 +19,16 @@ interface DeepInfraImageModelConfig {
   };
 }
 
-export class DeepInfraImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class DeepInfraImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: DeepInfraImageModelId,
-    readonly settings: DeepInfraImageSettings,
     private config: DeepInfraImageModelConfig,
   ) {}
 
@@ -48,10 +41,10 @@ export class DeepInfraImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     // Some deepinfra models support size while others support aspect ratio.
     // Allow passing either and leave it up to the server to validate.

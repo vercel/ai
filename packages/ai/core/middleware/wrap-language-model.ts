@@ -1,18 +1,21 @@
-import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
-import { LanguageModelV1Middleware } from './language-model-v1-middleware';
-import { asArray } from '../../util/as-array';
+import {
+  LanguageModelV2,
+  LanguageModelV2CallOptions,
+  LanguageModelV2Middleware,
+} from '@ai-sdk/provider';
+import { asArray } from '../../src/util/as-array';
 
 /**
- * Wraps a LanguageModelV1 instance with middleware functionality.
+ * Wraps a LanguageModelV2 instance with middleware functionality.
  * This function allows you to apply middleware to transform parameters,
  * wrap generate operations, and wrap stream operations of a language model.
  *
  * @param options - Configuration options for wrapping the language model.
- * @param options.model - The original LanguageModelV1 instance to be wrapped.
+ * @param options.model - The original LanguageModelV2 instance to be wrapped.
  * @param options.middleware - The middleware to be applied to the language model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
  * @param options.modelId - Optional custom model ID to override the original model's ID.
  * @param options.providerId - Optional custom provider ID to override the original model's provider.
- * @returns A new LanguageModelV1 instance with middleware applied.
+ * @returns A new LanguageModelV2 instance with middleware applied.
  */
 export const wrapLanguageModel = ({
   model,
@@ -20,11 +23,11 @@ export const wrapLanguageModel = ({
   modelId,
   providerId,
 }: {
-  model: LanguageModelV1;
-  middleware: LanguageModelV1Middleware | LanguageModelV1Middleware[];
+  model: LanguageModelV2;
+  middleware: LanguageModelV2Middleware | LanguageModelV2Middleware[];
   modelId?: string;
   providerId?: string;
-}): LanguageModelV1 => {
+}): LanguageModelV2 => {
   return asArray(middlewareArg)
     .reverse()
     .reduce((wrappedModel, middleware) => {
@@ -34,39 +37,44 @@ export const wrapLanguageModel = ({
 
 const doWrap = ({
   model,
-  middleware: { transformParams, wrapGenerate, wrapStream },
+  middleware: {
+    transformParams,
+    wrapGenerate,
+    wrapStream,
+    overrideProvider,
+    overrideModelId,
+    overrideSupportedUrls,
+  },
   modelId,
   providerId,
 }: {
-  model: LanguageModelV1;
-  middleware: LanguageModelV1Middleware;
+  model: LanguageModelV2;
+  middleware: LanguageModelV2Middleware;
   modelId?: string;
   providerId?: string;
-}): LanguageModelV1 => {
+}): LanguageModelV2 => {
   async function doTransform({
     params,
     type,
   }: {
-    params: LanguageModelV1CallOptions;
+    params: LanguageModelV2CallOptions;
     type: 'generate' | 'stream';
   }) {
-    return transformParams ? await transformParams({ params, type }) : params;
+    return transformParams
+      ? await transformParams({ params, type, model })
+      : params;
   }
 
   return {
-    specificationVersion: 'v1',
+    specificationVersion: 'v2',
 
-    provider: providerId ?? model.provider,
-    modelId: modelId ?? model.modelId,
-
-    defaultObjectGenerationMode: model.defaultObjectGenerationMode,
-    supportsImageUrls: model.supportsImageUrls,
-    supportsUrl: model.supportsUrl?.bind(model),
-    supportsStructuredOutputs: model.supportsStructuredOutputs,
+    provider: providerId ?? overrideProvider?.({ model }) ?? model.provider,
+    modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
+    supportedUrls: overrideSupportedUrls?.({ model }) ?? model.supportedUrls,
 
     async doGenerate(
-      params: LanguageModelV1CallOptions,
-    ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+      params: LanguageModelV2CallOptions,
+    ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
       const transformedParams = await doTransform({ params, type: 'generate' });
       const doGenerate = async () => model.doGenerate(transformedParams);
       const doStream = async () => model.doStream(transformedParams);
@@ -81,8 +89,8 @@ const doWrap = ({
     },
 
     async doStream(
-      params: LanguageModelV1CallOptions,
-    ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+      params: LanguageModelV2CallOptions,
+    ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
       const transformedParams = await doTransform({ params, type: 'stream' });
       const doGenerate = async () => model.doGenerate(transformedParams);
       const doStream = async () => model.doStream(transformedParams);
@@ -92,9 +100,3 @@ const doWrap = ({
     },
   };
 };
-
-/**
- * @deprecated Use `wrapLanguageModel` instead.
- */
-// TODO remove in v5
-export const experimental_wrapLanguageModel = wrapLanguageModel;

@@ -3,8 +3,6 @@ import 'dotenv/config';
 
 async function main() {
   const result = await openai('gpt-4-turbo').doStream({
-    mode: { type: 'regular' },
-    inputFormat: 'prompt',
     responseFormat: {
       type: 'json',
       schema: {
@@ -27,6 +25,7 @@ async function main() {
         ],
       },
     ],
+    includeRawChunks: false,
   });
 
   const reader = result.stream.getReader();
@@ -37,7 +36,7 @@ async function main() {
     }
 
     if (value.type === 'text-delta') {
-      process.stdout.write(value.textDelta);
+      process.stdout.write(value.delta);
     }
   }
 }

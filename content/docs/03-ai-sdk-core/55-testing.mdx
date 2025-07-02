@@ -11,8 +11,8 @@ and calling them is slow and expensive.
 To enable you to unit test your code that uses the AI SDK, the AI SDK Core
 includes mock providers and test helpers. You can import the following helpers from `ai/test`:
 
-- `MockEmbeddingModelV1`: A mock embedding model using the [embedding model v1 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/embedding-model/v1/embedding-model-v1.ts).
-- `MockLanguageModelV1`: A mock language model using the [language model v1 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v1/language-model-v1.ts).
+- `MockEmbeddingModelV2`: A mock embedding model using the [embedding model v2 specification](https://github.com/vercel/ai/blob/v5/packages/provider/src/embedding-model/v2/embedding-model-v2.ts).
+- `MockLanguageModelV2`: A mock language model using the [language model v2 specification](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v2/language-model-v2.ts).
 - `mockId`: Provides an incrementing integer ID.
 - `mockValues`: Iterates over an array of values with each call. Returns the last value when the array is exhausted.
 - [`simulateReadableStream`](/docs/reference/ai-sdk-core/simulate-readable-stream): Simulates a readable stream with delays.
@@ -29,14 +29,13 @@ You can use the test helpers with the AI Core functions in your unit tests:
 
 ```ts
 import { generateText } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 
 const result = await generateText({
-  model: new MockLanguageModelV1({
+  model: new MockLanguageModelV2({
     doGenerate: async () => ({
-      rawCall: { rawPrompt: null, rawSettings: {} },
       finishReason: 'stop',
-      usage: { promptTokens: 10, completionTokens: 20 },
+      usage: { inputTokens: 10, outputTokens: 20 },
       text: `Hello, world!`,
     }),
   }),
@@ -48,25 +47,24 @@ const result = await generateText({
 
 ```ts
 import { streamText, simulateReadableStream } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 
 const result = streamText({
-  model: new MockLanguageModelV1({
+  model: new MockLanguageModelV2({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [
-          { type: 'text-delta', textDelta: 'Hello' },
-          { type: 'text-delta', textDelta: ', ' },
-          { type: 'text-delta', textDelta: `world!` },
+          { type: 'text', text: 'Hello' },
+          { type: 'text', text: ', ' },
+          { type: 'text', text: `world!` },
           {
             type: 'finish',
             finishReason: 'stop',
             logprobs: undefined,
-            usage: { completionTokens: 10, promptTokens: 3 },
+            usage: { inputTokens: 3, outputTokens: 10 },
           },
         ],
       }),
-      rawCall: { rawPrompt: null, rawSettings: {} },
     }),
   }),
   prompt: 'Hello, test!',
@@ -77,16 +75,14 @@ const result = streamText({
 
 ```ts
 import { generateObject } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 import { z } from 'zod';
 
 const result = await generateObject({
-  model: new MockLanguageModelV1({
-    defaultObjectGenerationMode: 'json',
+  model: new MockLanguageModelV2({
     doGenerate: async () => ({
-      rawCall: { rawPrompt: null, rawSettings: {} },
       finishReason: 'stop',
-      usage: { promptTokens: 10, completionTokens: 20 },
+      usage: { inputTokens: 10, outputTokens: 20 },
       text: `{"content":"Hello, world!"}`,
     }),
   }),
@@ -99,30 +95,28 @@ const result = await generateObject({
 
 ```ts
 import { streamObject, simulateReadableStream } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 import { z } from 'zod';
 
 const result = streamObject({
-  model: new MockLanguageModelV1({
-    defaultObjectGenerationMode: 'json',
+  model: new MockLanguageModelV2({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [
-          { type: 'text-delta', textDelta: '{ ' },
-          { type: 'text-delta', textDelta: '"content": ' },
-          { type: 'text-delta', textDelta: `"Hello, ` },
-          { type: 'text-delta', textDelta: `world` },
-          { type: 'text-delta', textDelta: `!"` },
-          { type: 'text-delta', textDelta: ' }' },
+          { type: 'text', text: '{ ' },
+          { type: 'text', text: '"content": ' },
+          { type: 'text', text: `"Hello, ` },
+          { type: 'text', text: `world` },
+          { type: 'text', text: `!"` },
+          { type: 'text', text: ' }' },
           {
             type: 'finish',
             finishReason: 'stop',
             logprobs: undefined,
-            usage: { completionTokens: 10, promptTokens: 3 },
+            usage: { inputTokens: 3, outputTokens: 10 },
           },
         ],
       }),
-      rawCall: { rawPrompt: null, rawSettings: {} },
     }),
   }),
   schema: z.object({ content: z.string() }),
@@ -156,7 +150,7 @@ export async function POST(req: Request) {
     {
       status: 200,
       headers: {
-        'X-Vercel-AI-Data-Stream': 'v1',
+        'X-Vercel-AI-Data-Stream': 'v2',
         'Content-Type': 'text/plain; charset=utf-8',
       },
     },

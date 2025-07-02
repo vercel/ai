@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import {
-  MockEmbeddingModelV1,
+  MockEmbeddingModelV2,
   mockEmbed,
-} from '../test/mock-embedding-model-v1';
+} from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { embed } from './embed';
 
@@ -12,7 +12,7 @@ const testValue = 'sunny day at the beach';
 describe('result.embedding', () => {
   it('should generate embedding', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -22,10 +22,35 @@ describe('result.embedding', () => {
   });
 });
 
+describe('result.response', () => {
+  it('should include response in the result', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
+          body: { foo: 'bar' },
+          headers: { foo: 'bar' },
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.response?.body).toMatchInlineSnapshot(`
+      {
+        "foo": "bar",
+      }
+    `);
+    expect(result.response?.headers).toMatchInlineSnapshot(`
+      {
+        "foo": "bar",
+      }
+    `);
+  });
+});
+
 describe('result.value', () => {
   it('should include value in the result', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -38,7 +63,7 @@ describe('result.value', () => {
 describe('result.usage', () => {
   it('should include usage in the result', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -51,7 +76,7 @@ describe('result.usage', () => {
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         doEmbed: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
             'custom-request-header': 'request-header-value',
@@ -68,6 +93,28 @@ describe('options.headers', () => {
   });
 });
 
+describe('options.providerOptions', () => {
+  it('should pass provider options to model', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2({
+        doEmbed: async ({ providerOptions }) => {
+          expect(providerOptions).toStrictEqual({
+            aProvider: { someKey: 'someValue' },
+          });
+
+          return { embeddings: [[1, 2, 3]] };
+        },
+      }),
+      value: 'test-input',
+      providerOptions: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    expect(result.embedding).toStrictEqual([1, 2, 3]);
+  });
+});
+
 describe('telemetry', () => {
   let tracer: MockTracer;
 
@@ -77,7 +124,7 @@ describe('telemetry', () => {
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -89,7 +136,7 @@ describe('telemetry', () => {
 
   it('should record telemetry data when enabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -109,7 +156,7 @@ describe('telemetry', () => {
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,

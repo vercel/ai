@@ -22,13 +22,13 @@ async function main() {
         enteredReasoning = true;
         console.log('\nREASONING:\n');
       }
-      process.stdout.write(part.textDelta);
-    } else if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    } else if (part.type === 'text') {
       if (!enteredText) {
         enteredText = true;
         console.log('\nTEXT:\n');
       }
-      process.stdout.write(part.textDelta);
+      process.stdout.write(part.text);
     }
   }
 }

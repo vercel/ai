@@ -1,8 +1,8 @@
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
-import { CoreMessage, streamText, tool } from 'ai';
+import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const anthropic = createAnthropic({
   // example fetch wrapper that logs the input to the API call:
@@ -21,7 +21,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -35,7 +35,7 @@ async function main() {
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
-          parameters: z.object({
+          inputSchema: z.object({
             location: z
               .string()
               .describe('The location to get the weather for'),
@@ -46,7 +46,7 @@ async function main() {
           }),
         }),
       },
-      maxSteps: 5,
+      stopWhen: stepCountIs(5),
       maxRetries: 0,
       providerOptions: {
         anthropic: {
@@ -61,11 +61,9 @@ async function main() {
     process.stdout.write('\nAssistant: ');
     for await (const part of result.fullStream) {
       if (part.type === 'reasoning') {
-        process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
-      } else if (part.type === 'redacted-reasoning') {
-        process.stdout.write('\x1b[31m' + '<redacted>' + '\x1b[0m');
-      } else if (part.type === 'text-delta') {
-        process.stdout.write(part.textDelta);
+        process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
+      } else if (part.type === 'text') {
+        process.stdout.write(part.text);
       }
     }
     process.stdout.write('\n\n');

@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { MCPClientError } from '../../../errors';
+import { MCPClientError } from '../../../src/error/mcp-client-error';
 import { SseMCPTransport } from './mcp-sse-transport';
 
 describe('SseMCPTransport', () => {
@@ -18,6 +18,7 @@ describe('SseMCPTransport', () => {
         },
       },
     },
+    'http://localhost:3333/sse': {},
   });
 
   let transport: SseMCPTransport;
@@ -156,7 +157,7 @@ describe('SseMCPTransport', () => {
     expect(server.calls).toHaveLength(2);
     expect(server.calls[1].requestMethod).toBe('POST');
     expect(server.calls[1].requestUrl).toBe('http://localhost:3000/messages');
-    expect(await server.calls[1].requestBody).toEqual(message);
+    expect(await server.calls[1].requestBodyJson).toEqual(message);
 
     await transport.close();
   });
@@ -203,6 +204,12 @@ describe('SseMCPTransport', () => {
   });
 
   it('should handle invalid endpoint URLs', async () => {
+    server.urls['http://localhost:3333/sse'].response = {
+      type: 'error',
+      status: 500,
+      body: 'Internal Server Error',
+    };
+
     transport = new SseMCPTransport({
       url: 'http://localhost:3333/sse',
     });
@@ -216,7 +223,9 @@ describe('SseMCPTransport', () => {
     await expect(connectPromise).rejects.toThrow();
 
     const error = await errorPromise;
-    expect((error as Error).message).toContain('fetch failed');
+    expect((error as Error).message).toContain(
+      'MCP SSE Transport Error: 500 Internal Server Error',
+    );
   });
 
   it('should send custom headers with all requests', async () => {

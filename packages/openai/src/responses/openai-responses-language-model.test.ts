@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1FunctionTool,
-  LanguageModelV1Prompt,
+  LanguageModelV2FunctionTool,
+  LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -9,15 +9,15 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV1FunctionTool> = [
+const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: { location: { type: 'string' } },
       required: ['location'],
@@ -27,7 +27,7 @@ const TEST_TOOLS: Array<LanguageModelV1FunctionTool> = [
   {
     type: 'function',
     name: 'cityAttractions',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: { city: { type: 'string' } },
       required: ['city'],
@@ -66,19 +66,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         model: 'o3-mini-2025-01-31',
         output: [
           {
-            id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-            type: 'message',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'answer text',
-                annotations: [],
-              },
-            ],
-          },
-          {
             id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
             type: 'reasoning',
             summary: [
@@ -89,6 +76,19 @@ describe('OpenAIResponsesLanguageModel', () => {
               {
                 type: 'summary_text',
                 text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
+              },
+            ],
+          },
+          {
+            id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'answer text',
+                annotations: [],
               },
             ],
           },
@@ -195,54 +195,48 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should generate text', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
-        expect(result.text).toStrictEqual('answer text');
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
+        `);
       });
 
       it('should extract usage', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
-        expect(result.usage).toStrictEqual({
-          promptTokens: 345,
-          completionTokens: 538,
-        });
-
-        expect(result.providerMetadata).toStrictEqual({
-          openai: {
-            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
-            cachedPromptTokens: 234,
-            reasoningTokens: 123,
-          },
-        });
+        expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 234,
+            "inputTokens": 345,
+            "outputTokens": 538,
+            "reasoningTokens": 123,
+            "totalTokens": 883,
+          }
+        `);
       });
 
       it('should extract response id metadata ', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
         expect(result.providerMetadata).toStrictEqual({
           openai: {
             responseId: 'resp_67c97c0203188190a025beb4a75242bc',
-            cachedPromptTokens: 234,
-            reasoningTokens: 123,
           },
         });
       });
 
       it('should send model id, settings, and input', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -251,7 +245,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           topP: 0.3,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           temperature: 0.5,
           top_p: 0.3,
@@ -266,8 +260,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should remove unsupported settings for o1', async () => {
         const { warnings } = await createModel('o1-mini').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -276,7 +268,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           topP: 0.3,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'o1-mini',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -303,8 +295,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should remove unsupported settings for o3', async () => {
         const { warnings } = await createModel('o3').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -313,7 +303,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           topP: 0.3,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'o3',
           input: [
             { role: 'developer', content: 'You are a helpful assistant.' },
@@ -337,8 +327,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send response format json schema', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           responseFormat: {
             type: 'json',
@@ -354,42 +342,56 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o',
-          text: {
-            format: {
-              type: 'json_schema',
-              strict: true,
-              name: 'response',
-              description: 'A response',
-              schema: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "description": "A response",
+                "name": "response",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "json_schema",
               },
             },
-          },
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
 
       it('should send response format json object', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           responseFormat: {
             type: 'json',
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           text: {
             format: {
@@ -406,17 +408,15 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send parallelToolCalls provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               parallelToolCalls: false,
             },
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -429,17 +429,15 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send store provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               store: false,
             },
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -452,17 +450,15 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send user provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               store: false,
             },
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -475,17 +471,15 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send previous response id provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               previousResponseId: 'resp_123',
             },
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -498,17 +492,15 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               user: 'user_123',
             },
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -521,17 +513,15 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send reasoningEffort provider option', async () => {
         const { warnings } = await createModel('o3').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               reasoningEffort: 'low',
             },
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'o3',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -546,17 +536,15 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send instructions provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               instructions: 'You are a friendly assistant.',
             },
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -567,61 +555,13 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send object-tool format', async () => {
+      it('should send responseFormat json format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: {
-            type: 'object-tool',
-            tool: {
-              type: 'function',
-              name: 'response',
-              description: 'A response',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          },
+          responseFormat: { type: 'json' },
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o',
-          tool_choice: { type: 'function', name: 'response' },
-          tools: [
-            {
-              type: 'function',
-              strict: true,
-              name: 'response',
-              description: 'A response',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          ],
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send object-json json_object format', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'object-json' },
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           text: { format: { type: 'json_object' } },
           input: [
@@ -632,11 +572,10 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send object-json json_schema format', async () => {
+      it('should send responseFormat json_schema format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: {
-            type: 'object-json',
+          responseFormat: {
+            type: 'json',
             name: 'response',
             description: 'A response',
             schema: {
@@ -650,39 +589,51 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o',
-          text: {
-            format: {
-              type: 'json_schema',
-              strict: true,
-              name: 'response',
-              description: 'A response',
-              schema: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "description": "A response",
+                "name": "response",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "json_schema",
               },
             },
-          },
-          input: [
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'Hello' }],
-            },
-          ],
-        });
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send object-json json_schema format with strictSchemas false', async () => {
+      it('should send responseFormat json_schema format with strictSchemas false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: {
-            type: 'object-json',
+          responseFormat: {
+            type: 'json',
             name: 'response',
             description: 'A response',
             schema: {
@@ -694,14 +645,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               strictSchemas: false,
             },
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           text: {
             format: {
@@ -731,28 +682,24 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send web_search tool', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: {
-            type: 'regular',
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'openai.web_search_preview',
-                name: 'web_search_preview',
-                args: {
-                  searchContextSize: 'high',
-                  userLocation: {
-                    type: 'approximate',
-                    city: 'San Francisco',
-                  },
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {
+                searchContextSize: 'high',
+                userLocation: {
+                  type: 'approximate',
+                  city: 'San Francisco',
                 },
               },
-            ],
-          },
+            },
+          ],
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           tools: [
             {
@@ -771,32 +718,28 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should send web_search tool as tool_choice', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: {
-            type: 'regular',
-            toolChoice: {
-              type: 'tool',
-              toolName: 'web_search_preview',
-            },
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'openai.web_search_preview',
-                name: 'web_search_preview',
-                args: {
-                  searchContextSize: 'high',
-                  userLocation: {
-                    type: 'approximate',
-                    city: 'San Francisco',
-                  },
+          toolChoice: {
+            type: 'tool',
+            toolName: 'web_search_preview',
+          },
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {
+                searchContextSize: 'high',
+                userLocation: {
+                  type: 'approximate',
+                  city: 'San Francisco',
                 },
               },
-            ],
-          },
+            },
+          ],
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           tool_choice: { type: 'web_search_preview' },
           tools: [
@@ -816,8 +759,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should warn about unsupported settings', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           stopSequences: ['\n\n'],
           topK: 0.1,
@@ -840,9 +781,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         const result = await createModel('o3-mini').doGenerate({
           prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
-          providerMetadata: {
+          providerOptions: {
             openai: {
               reasoningEffort: 'low',
               reasoningSummary: 'auto',
@@ -850,26 +789,34 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(result.reasoning).toStrictEqual([
-          {
-            type: 'text',
-            text: '**Exploring burrito origins**\n\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito.',
-          },
-          {
-            type: 'text',
-            text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
-          },
-        ]);
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "**Exploring burrito origins**
 
-        expect(result.providerMetadata).toStrictEqual({
-          openai: {
-            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
-            cachedPromptTokens: 0,
-            reasoningTokens: 320,
-          },
-        });
+          The user is curious about the debate regarding Taqueria La Cumbre and El Farolito.,**Investigating burrito origins**
 
-        expect(await server.calls[0].requestBody).toMatchObject({
+          There's a fascinating debate about who created the Mission burrito.",
+              "type": "reasoning",
+            },
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
+        `);
+
+        expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 0,
+            "inputTokens": 34,
+            "outputTokens": 538,
+            "reasoningTokens": 320,
+            "totalTokens": 572,
+          }
+        `);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
           model: 'o3-mini',
           reasoning: {
             effort: 'low',
@@ -980,31 +927,31 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should generate tool calls', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular', tools: TEST_TOOLS },
+          tools: TEST_TOOLS,
         });
 
-        expect(result.toolCalls).toStrictEqual([
-          {
-            toolCallType: 'function',
-            toolCallId: 'call_0NdsJqOS8N3J9l2p0p4WpYU9',
-            toolName: 'weather',
-            args: JSON.stringify({ location: 'San Francisco' }),
-          },
-          {
-            toolCallType: 'function',
-            toolCallId: 'call_gexo0HtjUfmAIW4gjNOgyrcr',
-            toolName: 'cityAttractions',
-            args: JSON.stringify({ city: 'San Francisco' }),
-          },
-        ]);
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"location":"San Francisco"}",
+              "toolCallId": "call_0NdsJqOS8N3J9l2p0p4WpYU9",
+              "toolName": "weather",
+              "type": "tool-call",
+            },
+            {
+              "input": "{"city":"San Francisco"}",
+              "toolCallId": "call_gexo0HtjUfmAIW4gjNOgyrcr",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+          ]
+        `);
       });
 
       it('should have tool-calls finish reason', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular', tools: TEST_TOOLS },
+          tools: TEST_TOOLS,
         });
 
         expect(result.finishReason).toStrictEqual('tool-calls');
@@ -1133,55 +1080,96 @@ describe('OpenAIResponsesLanguageModel', () => {
         };
       });
 
-      it('should generate text', async () => {
+      it('should generate text and sources', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
-        expect(result.text).toStrictEqual(outputText);
-      });
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-call",
+            },
+            {
+              "providerExecuted": true,
+              "result": {
+                "status": "completed",
+              },
+              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "toolName": "web_search_preview",
+              "type": "tool-result",
+            },
+            {
+              "text": "Last week in San Francisco, several notable events and developments took place:
 
-      it('should return sources', async () => {
-        const result = await createModel('gpt-4o').doGenerate({
-          prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
-        });
+          **Bruce Lee Statue in Chinatown**
 
-        expect(result.sources).toStrictEqual([
-          {
-            sourceType: 'url',
-            id: 'id-0',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com',
-            title: 'Bruce Lee statue to be installed in SF Chinatown',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-1',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com',
-            title: 'The Bay Area is set to make an office leasing comeback',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-2',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com',
-            title: 'Where to see spring blooms in the Bay Area',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-3',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com',
-            title: 'Oceanfront Great Highway park set to open in April',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-4',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com',
-            title: "San Francisco's spring seasons are getting warmer",
-          },
-        ]);
+          The Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))
+
+          **Office Leasing Revival**
+
+          The Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))
+
+          **Spring Blooms in the Bay Area**
+
+          With the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))
+
+          **Oceanfront Great Highway Park**
+
+          San Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))
+
+          **Warmer Spring Seasons**
+
+          An analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))
+
+
+          # Key San Francisco Developments Last Week:
+          - [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)
+          - [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)
+          - [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)",
+              "type": "text",
+            },
+            {
+              "id": "id-0",
+              "sourceType": "url",
+              "title": "Bruce Lee statue to be installed in SF Chinatown",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com",
+            },
+            {
+              "id": "id-1",
+              "sourceType": "url",
+              "title": "The Bay Area is set to make an office leasing comeback",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com",
+            },
+            {
+              "id": "id-2",
+              "sourceType": "url",
+              "title": "Where to see spring blooms in the Bay Area",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com",
+            },
+            {
+              "id": "id-3",
+              "sourceType": "url",
+              "title": "Oceanfront Great Highway park set to open in April",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com",
+            },
+            {
+              "id": "id-4",
+              "sourceType": "url",
+              "title": "San Francisco's spring seasons are getting warmer",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
+            },
+          ]
+        `);
       });
     });
   });
@@ -1205,36 +1193,58 @@ describe('OpenAIResponsesLanguageModel', () => {
       };
 
       const { stream } = await createModel('gpt-4o').doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-          modelId: 'gpt-4o-2024-07-18',
-          timestamp: new Date('2025-03-06T13:50:19.000Z'),
-          type: 'response-metadata',
-        },
-        { type: 'text-delta', textDelta: 'Hello,' },
-        { type: 'text-delta', textDelta: ' World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: {
-            completionTokens: 478,
-            promptTokens: 543,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
           },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-              cachedPromptTokens: 234,
-              reasoningTokens: 123,
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello,",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "delta": " World!",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 234,
+              "inputTokens": 543,
+              "outputTokens": 478,
+              "reasoningTokens": 123,
+              "totalTokens": 1021,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should send finish reason for incomplete response', async () => {
@@ -1254,35 +1264,53 @@ describe('OpenAIResponsesLanguageModel', () => {
       };
 
       const { stream } = await createModel('gpt-4o').doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-          modelId: 'gpt-4o-2024-07-18',
-          timestamp: new Date('2025-03-06T13:50:19.000Z'),
-          type: 'response-metadata',
-        },
-        { type: 'text-delta', textDelta: 'Hello,' },
-        {
-          type: 'finish',
-          finishReason: 'length',
-          usage: {
-            completionTokens: 0,
-            promptTokens: 0,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
           },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-              cachedPromptTokens: 0,
-              reasoningTokens: 0,
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello,",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "length",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should send streaming tool calls', async () => {
@@ -1308,104 +1336,101 @@ describe('OpenAIResponsesLanguageModel', () => {
       };
 
       const { stream } = await createModel('gpt-4o').doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular', tools: TEST_TOOLS },
+        tools: TEST_TOOLS,
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67cb13a755c08190acbe3839a49632fc',
-          modelId: 'gpt-4o-2024-07-18',
-          timestamp: new Date('2025-03-07T15:41:27.000Z'),
-          type: 'response-metadata',
-        },
-        {
-          argsTextDelta: '',
-          toolCallId: 'call_6KxSghkb4MVnunFH2TxPErLP',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '{}',
-          toolCallId: 'call_6KxSghkb4MVnunFH2TxPErLP',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call-delta',
-        },
-        {
-          args: '{}',
-          toolCallId: 'call_pgjcAI4ZegMkP6bsAV7sfrJA',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call',
-        },
-        {
-          argsTextDelta: '',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '{',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"location',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '":',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"Rome',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"}',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          args: '{"location":"Rome"}',
-          toolCallId: 'call_X2PAkDJInno9VVnNkDrfhboW',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call',
-        },
-        {
-          finishReason: 'tool-calls',
-          type: 'finish',
-          usage: {
-            completionTokens: 0,
-            promptTokens: 0,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
           },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67cb13a755c08190acbe3839a49632fc',
-              cachedPromptTokens: 0,
-              reasoningTokens: 0,
+          {
+            "id": "resp_67cb13a755c08190acbe3839a49632fc",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-07T15:41:27.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "toolName": "currentLocation",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{}",
+            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{}",
+            "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+            "toolName": "currentLocation",
+            "type": "tool-call",
+          },
+          {
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolName": "weather",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""location",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "":",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""Rome",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""}",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_X2PAkDJInno9VVnNkDrfhboW",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"location":"Rome"}",
+            "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should stream sources', async () => {
@@ -1436,62 +1461,113 @@ describe('OpenAIResponsesLanguageModel', () => {
       };
 
       const { stream } = await createModel('gpt-4o-mini').doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67cf3390786881908b27489d7e8cfb6b',
-          modelId: 'gpt-4o-mini-2024-07-18',
-          timestamp: new Date('2025-03-10T18:46:40.000Z'),
-          type: 'response-metadata',
-        },
-        { type: 'text-delta', textDelta: 'Last week' },
-        { type: 'text-delta', textDelta: ' in San Francisco' },
-        {
-          type: 'source',
-          source: {
-            id: 'id-0',
-            sourceType: 'url',
-            title:
-              'San Francisco Events in March 2025: Festivals, Theater & Easter',
-            url: 'https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com',
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
           },
-        },
-        { type: 'text-delta', textDelta: ' a themed party' },
-        {
-          type: 'text-delta',
-          textDelta:
-            '([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))',
-        },
-        {
-          type: 'source',
-          source: {
-            id: 'id-1',
-            sourceType: 'url',
-            title: 'SF weekend events: Giants FanFest, crab crawl and more',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com',
+          {
+            "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+            "modelId": "gpt-4o-mini-2024-07-18",
+            "timestamp": 2025-03-10T18:46:40.000Z,
+            "type": "response-metadata",
           },
-        },
-        { type: 'text-delta', textDelta: '.' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: {
-            completionTokens: 834,
-            promptTokens: 327,
+          {
+            "id": "ws_67cf3390e9608190869b5d45698a7067",
+            "toolName": "web_search_preview",
+            "type": "tool-input-start",
           },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67cf3390786881908b27489d7e8cfb6b',
-              cachedPromptTokens: 0,
-              reasoningTokens: 0,
+          {
+            "id": "ws_67cf3390e9608190869b5d45698a7067",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "",
+            "providerExecuted": true,
+            "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
+            "toolName": "web_search_preview",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+              "type": "web_search_tool_result",
+            },
+            "toolCallId": "ws_67cf3390e9608190869b5d45698a7067",
+            "toolName": "web_search_preview",
+            "type": "tool-result",
+          },
+          {
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-start",
+          },
+          {
+            "delta": "Last week",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
+          },
+          {
+            "delta": " in San Francisco",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "San Francisco Events in March 2025: Festivals, Theater & Easter",
+            "type": "source",
+            "url": "https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com",
+          },
+          {
+            "delta": " a themed party",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
+          },
+          {
+            "delta": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
+          },
+          {
+            "id": "id-1",
+            "sourceType": "url",
+            "title": "SF weekend events: Giants FanFest, crab crawl and more",
+            "type": "source",
+            "url": "https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com",
+          },
+          {
+            "delta": ".",
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67cf33924ea88190b8c12bf68c1f6416",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 327,
+              "outputTokens": 834,
+              "reasoningTokens": 0,
+              "totalTokens": 1161,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should stream reasoning summary', async () => {
@@ -1499,63 +1575,111 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
+        // warning: tests chunks below may not be accurate
         chunks: [
           `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","status":"in_progress","summary":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"rs_68082c0556348191af675cee0453109b","output_index":1,"content_index":0,"part":{"type":"summary_text","text":"","annotations":[]}}\n\n`,
           `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"delta":"**Exploring burrito origins**\\n\\nThe user is"}\n\n`,
           `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"delta":" curious about the debate regarding Taqueria La Cumbre and El Farolito."}\n\n`,
           `data:{"type":"response.reasoning_summary_text.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":0,"text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}\n\n`,
           `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":1,"delta":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}\n\n`,
           `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":0,"summary_index":1,"part":{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"rs_68082c0556348191af675cee0453109b","output_index":1,"content_index":0,"part":{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","summary":[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."}]}}\n\n`,
           `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
           `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
           `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"delta":"Taqueria La Cumbre"}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"text":"Taqueria La Cumbre"}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}]}}\n\n`,
           `data:{"type":"response.completed","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[{"id":"rs_68082c0556348191af675cee0453109b","type":"reasoning","summary":[{"type":"summary_text","text":"**Exploring burrito origins**\\n\\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito."},{"type":"summary_text","text":"**Investigating burrito origins**\\n\\nThere's a fascinating debate about who created the Mission burrito."}]},{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Taqueria La Cumbre","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":350},"total_tokens":1021},"user":null,"metadata":{}}}\n\n`,
         ],
       };
 
       const { stream } = await createModel('o3-mini').doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        providerMetadata: {
+        providerOptions: {
           openai: {
             reasoningEffort: 'low',
             reasoningSummary: 'auto',
           },
         },
+        includeRawChunks: false,
       });
 
-      const streamResults = await convertReadableStreamToArray(stream);
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "o3-mini-2025-01-31",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "**Exploring burrito origins**
 
-      expect(streamResults).toContainEqual({
-        type: 'reasoning',
-        textDelta: '**Exploring burrito origins**\n\nThe user is',
-      });
+        The user is",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": "**Investigating burrito origins**
 
-      expect(streamResults).toContainEqual({
-        type: 'reasoning',
-        textDelta:
-          ' curious about the debate regarding Taqueria La Cumbre and El Farolito.',
-      });
+        There's a fascinating debate about who created the Mission burrito.",
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "rs_68082c0556348191af675cee0453109b",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-start",
+          },
+          {
+            "delta": "Taqueria La Cumbre",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 234,
+              "inputTokens": 543,
+              "outputTokens": 478,
+              "reasoningTokens": 350,
+              "totalTokens": 1021,
+            },
+          },
+        ]
+      `);
 
-      expect(streamResults).toContainEqual({
-        type: 'reasoning',
-        textDelta:
-          "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
-      });
-
-      const finishEvent = streamResults.find(event => event.type === 'finish');
-      expect(finishEvent).toBeDefined();
-
-      expect(finishEvent?.providerMetadata).toMatchObject({
-        openai: {
-          responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-          cachedPromptTokens: 234,
-          reasoningTokens: 350,
-        },
-      });
-
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         model: 'o3-mini',
         reasoning: {
           effort: 'low',
@@ -1563,6 +1687,220 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
         stream: true,
       });
+    });
+  });
+
+  describe('server-side tools', () => {
+    const TEST_PROMPT = [
+      {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'text' as const,
+            text: 'Search for recent news about San Francisco tech events, then check the status of our server-side tool implementation.',
+          },
+        ],
+      },
+    ];
+
+    function prepareJsonResponse(body: any) {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body,
+      };
+    }
+
+    it('should enable server-side web search when using openai.tools.webSearchPreview', async () => {
+      prepareJsonResponse({
+        id: 'resp_67cf2b2f6bd081909be2c8054ddef0eb',
+        object: 'response',
+        created_at: 1741630255,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o-mini',
+        output: [
+          {
+            type: 'web_search_call',
+            id: 'ws_67cf2b3051e88190b006770db6fdb13d',
+            status: 'completed',
+          },
+          {
+            type: 'message',
+            id: 'msg_67cf2b35467481908f24412e4fd40d66',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
+                annotations: [
+                  {
+                    type: 'url_citation',
+                    start_index: 0,
+                    end_index: 50,
+                    url: 'https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai',
+                    title:
+                      'Discover Tech Events & Activities in San Francisco, CA | Eventbrite',
+                  },
+                  {
+                    type: 'url_citation',
+                    start_index: 51,
+                    end_index: 100,
+                    url: 'https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai',
+                    title: 'AI+ SF Summit: AI agents are the next big thing',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        usage: { input_tokens: 1359, output_tokens: 624 },
+      });
+
+      const result = await createModel('gpt-4o-mini').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search_preview',
+            name: 'web_search_preview',
+            args: {
+              searchContextSize: 'high',
+              userLocation: {
+                type: 'approximate',
+                city: 'San Francisco',
+                region: 'California',
+                country: 'US',
+              },
+            },
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "",
+            "providerExecuted": true,
+            "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "web_search_preview",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+            },
+            "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "web_search_preview",
+            "type": "tool-result",
+          },
+          {
+            "text": "As of June 23, 2025, here are some recent developments in San Francisco's tech scene:",
+            "type": "text",
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "Discover Tech Events & Activities in San Francisco, CA | Eventbrite",
+            "type": "source",
+            "url": "https://www.eventbrite.sg/d/ca--san-francisco/tech-events/?utm_source=openai",
+          },
+          {
+            "id": "id-1",
+            "sourceType": "url",
+            "title": "AI+ SF Summit: AI agents are the next big thing",
+            "type": "source",
+            "url": "https://www.axios.com/2024/12/10/ai-sf-summit-2024-roundup?utm_source=openai",
+          },
+        ]
+      `);
+    });
+
+    it('should handle computer use tool calls', async () => {
+      prepareJsonResponse({
+        id: 'resp_computer_test',
+        object: 'response',
+        created_at: 1741630255,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o-mini',
+        output: [
+          {
+            type: 'computer_call',
+            id: 'computer_67cf2b3051e88190b006770db6fdb13d',
+            status: 'completed',
+          },
+          {
+            type: 'message',
+            id: 'msg_computer_test',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: "I've completed the computer task.",
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 50 },
+      });
+
+      const result = await createModel('gpt-4o-mini').doGenerate({
+        prompt: [
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Use the computer to complete a task.',
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.computer_use',
+            name: 'computer_use',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "",
+            "providerExecuted": true,
+            "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "computer_use",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+              "type": "computer_use_tool_result",
+            },
+            "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "computer_use",
+            "type": "tool-result",
+          },
+          {
+            "text": "I've completed the computer task.",
+            "type": "text",
+          },
+        ]
+      `);
     });
   });
 });

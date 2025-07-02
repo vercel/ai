@@ -1,16 +1,16 @@
 import {
   appendMessageToChat,
   appendStreamId,
-  loadStreams,
   saveChat,
 } from '@/util/chat-store';
 import { openai } from '@ai-sdk/openai';
 import {
-  appendResponseMessages,
-  createDataStream,
+  convertToModelMessages,
+  createUIMessageStream,
   generateId,
-  Message,
+  JsonToSseTransformStream,
   streamText,
+  UIMessage,
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     waitUntil: after,
   });
 
-  const { id, messages }: { id: string; messages: Message[] } =
+  const { chatId, messages }: { chatId: string; messages: UIMessage[] } =
     await req.json();
 
   const streamId = generateId();
@@ -36,64 +36,30 @@ export async function POST(req: Request) {
     throw new Error('No recent user message found');
   }
 
-  await appendMessageToChat({ chatId: id, message: recentUserMessage });
+  await appendMessageToChat({ chatId, message: recentUserMessage });
 
-  await appendStreamId({ chatId: id, streamId });
+  await appendStreamId({ chatId, streamId });
 
-  const stream = createDataStream({
-    execute: dataStream => {
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
       const result = streamText({
         model: openai('gpt-4o'),
-        messages,
-        onFinish: async ({ response }) => {
-          await saveChat({
-            id,
-            messages: appendResponseMessages({
-              messages,
-              responseMessages: response.messages,
-            }),
-          });
-        },
+        messages: convertToModelMessages(messages),
       });
 
-      result.mergeIntoDataStream(dataStream);
+      writer.merge(
+        result.toUIMessageStream({
+          onFinish: ({ messages }) => {
+            saveChat({ chatId, messages });
+          },
+        }),
+      );
     },
   });
 
   return new Response(
-    await streamContext.resumableStream(streamId, () => stream),
-  );
-}
-
-export async function GET(request: Request) {
-  const streamContext = createResumableStreamContext({
-    waitUntil: after,
-  });
-
-  const { searchParams } = new URL(request.url);
-  const chatId = searchParams.get('chatId');
-
-  if (!chatId) {
-    return new Response('id is required', { status: 400 });
-  }
-
-  const streamIds = await loadStreams(chatId);
-
-  if (!streamIds.length) {
-    return new Response('No streams found', { status: 404 });
-  }
-
-  const recentStreamId = streamIds.at(-1);
-
-  if (!recentStreamId) {
-    return new Response('No recent stream found', { status: 404 });
-  }
-
-  const emptyDataStream = createDataStream({
-    execute: () => {},
-  });
-
-  return new Response(
-    await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+    await streamContext.resumableStream(streamId, () =>
+      stream.pipeThrough(new JsonToSseTransformStream()),
+    ),
   );
 }

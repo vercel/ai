@@ -1,14 +1,17 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { CohereToolChoice } from './cohere-chat-prompt';
 
-export function prepareTools(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-): {
+export function prepareTools({
+  tools,
+  toolChoice,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+}): {
   tools:
     | Array<{
         type: 'function';
@@ -19,11 +22,13 @@ export function prepareTools(
         };
       }>
     | undefined;
-  toolChoice: 'NONE' | 'REQUIRED' | undefined;
-  toolWarnings: LanguageModelV1CallWarning[];
+  toolChoice: CohereToolChoice;
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
-  const tools = mode.tools?.length ? mode.tools : undefined;
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  // when the tools array is empty, change it to undefined to prevent errors:
+  tools = tools?.length ? tools : undefined;
+
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -47,13 +52,11 @@ export function prepareTools(
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters,
+          parameters: tool.inputSchema,
         },
       });
     }
   }
-
-  const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
     return { tools: cohereTools, toolChoice: undefined, toolWarnings };
@@ -83,7 +86,7 @@ export function prepareTools(
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }

@@ -1,44 +1,134 @@
-import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 
 describe('wrapLanguageModel', () => {
-  it('should pass through model properties', () => {
-    const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelV1({
-        provider: 'test-provider',
-        modelId: 'test-model',
-        defaultObjectGenerationMode: 'json',
-        supportsStructuredOutputs: true,
-      }),
-      middleware: {
-        middlewareVersion: 'v1',
-      },
+  describe('model property', () => {
+    it('should pass through by default', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          modelId: 'test-model',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+      });
+
+      expect(wrappedModel.modelId).toBe('test-model');
     });
 
-    expect(wrappedModel.provider).toBe('test-provider');
-    expect(wrappedModel.modelId).toBe('test-model');
-    expect(wrappedModel.defaultObjectGenerationMode).toBe('json');
-    expect(wrappedModel.supportsStructuredOutputs).toBe(true);
+    it('should use middleware overrideModelId if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          modelId: 'test-model',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+          overrideModelId: ({ model }) => 'override-model',
+        },
+      });
+
+      expect(wrappedModel.modelId).toBe('override-model');
+    });
+
+    it('should use modelId parameter if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          modelId: 'test-model',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+        modelId: 'override-model',
+      });
+
+      expect(wrappedModel.modelId).toBe('override-model');
+    });
   });
 
-  it('should override provider and modelId if provided', () => {
-    const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelV1(),
-      middleware: {
-        middlewareVersion: 'v1',
-      },
-      providerId: 'override-provider',
-      modelId: 'override-model',
+  describe('provider property', () => {
+    it('should pass through by default', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          provider: 'test-provider',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+      });
+
+      expect(wrappedModel.provider).toBe('test-provider');
     });
 
-    expect(wrappedModel.provider).toBe('override-provider');
-    expect(wrappedModel.modelId).toBe('override-model');
+    it('should use middleware overrideProvider if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          provider: 'test-provider',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+          overrideProvider: ({ model }) => 'override-provider',
+        },
+      });
+
+      expect(wrappedModel.provider).toBe('override-provider');
+    });
+
+    it('should use providerId parameter if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          provider: 'test-provider',
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+        providerId: 'override-provider',
+      });
+
+      expect(wrappedModel.provider).toBe('override-provider');
+    });
+  });
+
+  describe('supportedUrls property', () => {
+    it('should pass through by default', async () => {
+      const supportedUrls = {
+        'original/*': [/^https:\/\/.*$/],
+      };
+
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({ supportedUrls }),
+        middleware: {
+          middlewareVersion: 'v2',
+        },
+      });
+
+      expect(await wrappedModel.supportedUrls).toStrictEqual(supportedUrls);
+    });
+
+    it('should use middleware overrideSupportedUrls if provided', () => {
+      const wrappedModel = wrapLanguageModel({
+        model: new MockLanguageModelV2({
+          supportedUrls: {
+            'original/*': [/^https:\/\/.*$/],
+          },
+        }),
+        middleware: {
+          middlewareVersion: 'v2',
+          overrideSupportedUrls: ({ model }) => ({
+            'override/*': [/^https:\/\/.*$/],
+          }),
+        },
+      });
+
+      expect(wrappedModel.supportedUrls).toStrictEqual({
+        'override/*': [/^https:\/\/.*$/],
+      });
+    });
   });
 
   it('should call transformParams middleware for doGenerate', async () => {
-    const mockModel = new MockLanguageModelV1({
-      doGenerate: vi.fn().mockResolvedValue('mock result'),
+    const mockModel = new MockLanguageModelV2({
+      doGenerate: [],
     });
     const transformParams = vi.fn().mockImplementation(({ params }) => ({
       ...params,
@@ -48,15 +138,13 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
         transformParams,
       },
     });
 
-    const params: LanguageModelV1CallOptions = {
-      inputFormat: 'messages',
+    const params: LanguageModelV2CallOptions = {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      mode: { type: 'regular' },
     };
 
     await wrappedModel.doGenerate(params);
@@ -64,16 +152,17 @@ describe('wrapLanguageModel', () => {
     expect(transformParams).toHaveBeenCalledWith({
       params,
       type: 'generate',
+      model: expect.any(Object),
     });
 
-    expect(mockModel.doGenerate).toHaveBeenCalledWith({
+    expect(mockModel.doGenerateCalls[0]).toStrictEqual({
       ...params,
       transformed: true,
     });
   });
 
   it('should call wrapGenerate middleware', async () => {
-    const mockModel = new MockLanguageModelV1({
+    const mockModel = new MockLanguageModelV2({
       doGenerate: vi.fn().mockResolvedValue('mock result'),
     });
     const wrapGenerate = vi
@@ -83,15 +172,13 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
         wrapGenerate,
       },
     });
 
-    const params: LanguageModelV1CallOptions = {
-      inputFormat: 'messages',
+    const params: LanguageModelV2CallOptions = {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      mode: { type: 'regular' },
     };
 
     await wrappedModel.doGenerate(params);
@@ -105,9 +192,10 @@ describe('wrapLanguageModel', () => {
   });
 
   it('should call transformParams middleware for doStream', async () => {
-    const mockModel = new MockLanguageModelV1({
-      doStream: vi.fn().mockResolvedValue('mock stream'),
+    const mockModel = new MockLanguageModelV2({
+      doStream: [],
     });
+
     const transformParams = vi.fn().mockImplementation(({ params }) => ({
       ...params,
       transformed: true,
@@ -116,15 +204,13 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
         transformParams,
       },
     });
 
-    const params: LanguageModelV1CallOptions = {
-      inputFormat: 'messages',
+    const params: LanguageModelV2CallOptions = {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      mode: { type: 'regular' },
     };
 
     await wrappedModel.doStream(params);
@@ -132,15 +218,16 @@ describe('wrapLanguageModel', () => {
     expect(transformParams).toHaveBeenCalledWith({
       params,
       type: 'stream',
+      model: expect.any(Object),
     });
-    expect(mockModel.doStream).toHaveBeenCalledWith({
+    expect(mockModel.doStreamCalls[0]).toStrictEqual({
       ...params,
       transformed: true,
     });
   });
 
   it('should call wrapStream middleware', async () => {
-    const mockModel = new MockLanguageModelV1({
+    const mockModel = new MockLanguageModelV2({
       doStream: vi.fn().mockResolvedValue('mock stream'),
     });
     const wrapStream = vi.fn().mockImplementation(({ doStream }) => doStream());
@@ -148,15 +235,13 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
         wrapStream,
       },
     });
 
-    const params: LanguageModelV1CallOptions = {
-      inputFormat: 'messages',
+    const params: LanguageModelV2CallOptions = {
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      mode: { type: 'regular' },
     };
 
     await wrappedModel.doStream(params);
@@ -169,78 +254,43 @@ describe('wrapLanguageModel', () => {
     });
   });
 
-  it('should pass through empty supportsUrl', async () => {
-    const mockModel = new MockLanguageModelV1({
-      doGenerate: vi.fn().mockResolvedValue('mock result'),
-    });
+  it('should support models that use "this" context in supportedUrls', async () => {
+    let supportedUrlsCalled = false;
 
-    const wrappedModel = wrapLanguageModel({
-      model: mockModel,
-      middleware: {
-        middlewareVersion: 'v1',
-      },
-    });
-
-    expect(wrappedModel.supportsUrl).toBeUndefined();
-  });
-
-  it('should pass through supportsUrl when it is defined on the model', async () => {
-    const mockModel = new MockLanguageModelV1({
-      doGenerate: vi.fn().mockResolvedValue('mock result'),
-      supportsUrl: vi.fn().mockReturnValue(true),
-    });
-
-    const wrappedModel = wrapLanguageModel({
-      model: mockModel,
-      middleware: {
-        middlewareVersion: 'v1',
-      },
-    });
-
-    expect(
-      wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
-    ).toBe(true);
-  });
-
-  it('should support models that use "this" context in supportsUrl', async () => {
-    let supportsUrlCalled = false;
-
-    class MockLanguageModelWithImageSupport implements LanguageModelV1 {
-      readonly specificationVersion = 'v1';
+    class MockLanguageModelWithImageSupport implements LanguageModelV2 {
+      readonly specificationVersion = 'v2';
       readonly provider = 'test-provider';
       readonly modelId = 'test-model';
-      readonly defaultObjectGenerationMode = 'json';
-      readonly supportsImageUrls = false;
 
-      readonly doGenerate: LanguageModelV1['doGenerate'] = vi.fn();
-      readonly doStream: LanguageModelV1['doStream'] = vi.fn();
+      readonly doGenerate: LanguageModelV2['doGenerate'] = vi.fn();
+      readonly doStream: LanguageModelV2['doStream'] = vi.fn();
 
-      private readonly value = true;
+      readonly value = {
+        'image/*': [/^https:\/\/.*$/],
+      };
 
-      supportsUrl(url: URL) {
-        supportsUrlCalled = true;
+      get supportedUrls() {
+        supportedUrlsCalled = true;
         // Reference 'this' to verify context
         return this.value;
       }
     }
 
+    const model = new MockLanguageModelWithImageSupport();
+
     const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelWithImageSupport(),
-      middleware: {
-        middlewareVersion: 'v1',
-      },
+      model,
+      middleware: { middlewareVersion: 'v2' },
     });
 
-    expect(
-      wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
-    ).toBe(true);
-    expect(supportsUrlCalled).toBe(true);
+    expect(await wrappedModel.supportedUrls).toStrictEqual(model.value);
+    expect(supportedUrlsCalled).toBe(true);
   });
 
-  describe('wrapLanguageModel with multiple middlewares', () => {
+  describe('multiple middlewares', () => {
     it('should call multiple transformParams middlewares in sequence for doGenerate', async () => {
-      const mockModel = new MockLanguageModelV1({
-        doGenerate: vi.fn().mockResolvedValue('final result'),
+      const mockModel = new MockLanguageModelV2({
+        doGenerate: [],
       });
 
       const transformParams1 = vi.fn().mockImplementation(({ params }) => ({
@@ -256,20 +306,18 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             transformParams: transformParams1,
           },
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             transformParams: transformParams2,
           },
         ],
       });
 
-      const params: LanguageModelV1CallOptions = {
-        inputFormat: 'messages',
+      const params: LanguageModelV2CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        mode: { type: 'regular' },
       };
 
       await wrappedModel.doGenerate(params);
@@ -277,14 +325,16 @@ describe('wrapLanguageModel', () => {
       expect(transformParams1).toHaveBeenCalledWith({
         params,
         type: 'generate',
+        model: expect.any(Object),
       });
 
       expect(transformParams2).toHaveBeenCalledWith({
         params: { ...params, transformationStep1: true },
         type: 'generate',
+        model: expect.any(Object),
       });
 
-      expect(mockModel.doGenerate).toHaveBeenCalledWith(
+      expect(mockModel.doGenerateCalls[0]).toStrictEqual(
         expect.objectContaining({
           transformationStep1: true,
           transformationStep2: true,
@@ -293,8 +343,8 @@ describe('wrapLanguageModel', () => {
     });
 
     it('should call multiple transformParams middlewares in sequence for doStream', async () => {
-      const mockModel = new MockLanguageModelV1({
-        doStream: vi.fn().mockResolvedValue('final stream'),
+      const mockModel = new MockLanguageModelV2({
+        doStream: [],
       });
 
       const transformParams1 = vi.fn().mockImplementation(({ params }) => ({
@@ -310,20 +360,18 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             transformParams: transformParams1,
           },
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             transformParams: transformParams2,
           },
         ],
       });
 
-      const params: LanguageModelV1CallOptions = {
-        inputFormat: 'messages',
+      const params: LanguageModelV2CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        mode: { type: 'regular' },
       };
 
       await wrappedModel.doStream(params);
@@ -331,12 +379,14 @@ describe('wrapLanguageModel', () => {
       expect(transformParams1).toHaveBeenCalledWith({
         params,
         type: 'stream',
+        model: expect.any(Object),
       });
       expect(transformParams2).toHaveBeenCalledWith({
         params: expect.objectContaining({ transformationStep1: true }),
         type: 'stream',
+        model: mockModel,
       });
-      expect(mockModel.doStream).toHaveBeenCalledWith(
+      expect(mockModel.doStreamCalls[0]).toStrictEqual(
         expect.objectContaining({
           transformationStep1: true,
           transformationStep2: true,
@@ -345,7 +395,7 @@ describe('wrapLanguageModel', () => {
     });
 
     it('should chain multiple wrapGenerate middlewares in the correct order', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         doGenerate: vi.fn().mockResolvedValue('final generate result'),
       });
 
@@ -366,20 +416,18 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             wrapGenerate: wrapGenerate1,
           },
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             wrapGenerate: wrapGenerate2,
           },
         ],
       });
 
-      const params: LanguageModelV1CallOptions = {
-        inputFormat: 'messages',
+      const params: LanguageModelV2CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        mode: { type: 'regular' },
       };
 
       const result = await wrappedModel.doGenerate(params);
@@ -393,7 +441,7 @@ describe('wrapLanguageModel', () => {
     });
 
     it('should chain multiple wrapStream middlewares in the correct order', async () => {
-      const mockModel = new MockLanguageModelV1({
+      const mockModel = new MockLanguageModelV2({
         doStream: vi.fn().mockResolvedValue('final stream result'),
       });
 
@@ -414,20 +462,18 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             wrapStream: wrapStream1,
           },
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             wrapStream: wrapStream2,
           },
         ],
       });
 
-      const params: LanguageModelV1CallOptions = {
-        inputFormat: 'messages',
+      const params: LanguageModelV2CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        mode: { type: 'regular' },
       };
 
       const result = await wrappedModel.doStream(params);

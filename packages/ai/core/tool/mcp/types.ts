@@ -1,43 +1,34 @@
-import { z } from 'zod';
-import {
-  inferParameters,
-  Tool,
-  ToolExecutionOptions,
-  ToolParameters,
-} from '../tool';
+import { z } from 'zod/v4';
+import { JSONObject } from '@ai-sdk/provider';
+import { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
-export const LATEST_PROTOCOL_VERSION = '2024-11-05';
+export const LATEST_PROTOCOL_VERSION = '2025-26-03';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
   LATEST_PROTOCOL_VERSION,
-  '2024-10-07',
+  '2024-11-05',
 ];
 
 export type ToolSchemas =
-  | Record<string, { parameters: ToolParameters }>
+  | Record<string, { inputSchema: FlexibleSchema<JSONObject | unknown> }>
   | 'automatic'
   | undefined;
 
+type MappedTool<T extends Tool | JSONObject, OUTPUT extends any> =
+  T extends Tool<infer INPUT>
+    ? Tool<INPUT, OUTPUT>
+    : T extends JSONObject
+      ? Tool<T, OUTPUT>
+      : never;
+
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
-  TOOL_SCHEMAS extends Record<string, { parameters: ToolParameters }>
+  TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<unknown> }>
     ? {
-        [K in keyof TOOL_SCHEMAS]: Tool<
-          TOOL_SCHEMAS[K]['parameters'],
-          CallToolResult
-        > & {
-          execute: (
-            args: inferParameters<TOOL_SCHEMAS[K]['parameters']>,
-            options: ToolExecutionOptions,
-          ) => PromiseLike<CallToolResult>;
-        };
+        [K in keyof TOOL_SCHEMAS]: MappedTool<TOOL_SCHEMAS[K], CallToolResult> &
+          Required<
+            Pick<MappedTool<TOOL_SCHEMAS[K], CallToolResult>, 'execute'>
+          >;
       }
-    : {
-        [k: string]: Tool<z.ZodUnknown, CallToolResult> & {
-          execute: (
-            args: unknown,
-            options: ToolExecutionOptions,
-          ) => PromiseLike<CallToolResult>;
-        };
-      };
+    : McpToolSet<Record<string, { inputSchema: FlexibleSchema<unknown> }>>;
 
 const ClientOrServerImplementationSchema = z
   .object({

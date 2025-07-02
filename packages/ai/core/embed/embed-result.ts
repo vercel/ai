@@ -22,12 +22,17 @@ export interface EmbedResult<VALUE> {
   readonly usage: EmbeddingModelUsage;
 
   /**
-  Optional raw response data.
+  Optional response data.
      */
-  readonly rawResponse?: {
+  readonly response?: {
     /**
   Response headers.
        */
     headers?: Record<string, string>;
+
+    /**
+    The response body.
+    */
+    body?: unknown;
   };
 }

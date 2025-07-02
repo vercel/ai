@@ -1,52 +1,59 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { UIMessage, useChat } from './use-chat';
-import { JSONValue } from '@ai-sdk/ui-utils';
+import { DefaultChatTransport } from 'ai';
+import { computed, ref } from 'vue';
+import { Chat } from './chat.vue';
 
-const bodyOptions = ref<{
-  id: string;
-  messages: UIMessage[];
-  requestData?: JSONValue;
-  requestBody?: object;
-}>();
+const options = ref<any>();
 
-const { messages, append, status } = useChat({
-  experimental_prepareRequestBody(options) {
-    bodyOptions.value = options;
-    return 'test-request-body';
-  },
+const chat = new Chat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+    prepareSendMessagesRequest(optionsArg) {
+      options.value = JSON.parse(JSON.stringify(optionsArg));
+      return {
+        body: { 'body-key': 'body-value' },
+        headers: { 'header-key': 'header-value' },
+      };
+    },
+  }),
 });
 
-const isLoading = computed(() => status.value !== 'ready');
+const isLoading = computed(() => chat.status !== 'ready');
 </script>
 
 <template>
   <div>
     <div data-testid="loading">{{ isLoading?.toString() }}</div>
     <div
-      v-for="(m, idx) in messages"
-      key="m.id"
+      v-for="(m, idx) in chat.messages"
+      :key="m.id"
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
+      {{
+        m.parts.map(part => (part.type === 'text' ? part.text : '')).join('')
+      }}
     </div>
 
     <button
       data-testid="do-append"
       @click="
-        append(
-          { role: 'user', content: 'hi' },
+        chat.sendMessage(
           {
-            data: { 'test-data-key': 'test-data-value' },
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+          {
             body: { 'request-body-key': 'request-body-value' },
+            headers: { 'request-header-key': 'request-header-value' },
+            metadata: { 'request-metadata-key': 'request-metadata-value' },
           },
         )
       "
     />
 
-    <div v-if="bodyOptions" data-testid="on-body-options">
-      {{ bodyOptions }}
+    <div v-if="options" data-testid="on-options">
+      {{ options }}
     </div>
   </div>
 </template>

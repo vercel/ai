@@ -1,20 +1,25 @@
 import { generateObject, JSONParseError } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = await generateObject({
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV2({
       doGenerate: async () => ({
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        usage: { promptTokens: 10, completionTokens: 20 },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+        warnings: [],
         finishReason: 'tool-calls',
-        text: `{ "content": "provider metadata test"`,
+        content: [
+          { type: 'text', text: `{ "content": "provider metadata test"` },
+        ],
       }),
     }),
     schema: z.object({ content: z.string() }),
-    mode: 'json',
     prompt: 'What are the tourist attractions in San Francisco?',
     experimental_repairText: async ({ text, error }) => {
       if (error instanceof JSONParseError) {

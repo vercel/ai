@@ -8,7 +8,7 @@ tags: ['next', 'chat']
 
 <Note type="warning">
   `experimental_prepareRequestBody` is an experimental feature and only
-  available in React, Solid and Vue.
+  available in React, Svelte and Vue.
 </Note>
 
 By default, `useChat` sends all messages as well as information from the request to the server.
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 
   // Call the language model
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4.1'),
     messages: [...history, { role: 'user', content: text }]
     onFinish({ text }) {
       // e.g. save the message and the response to storage
@@ -88,6 +88,6 @@ export async function POST(req: Request) {
   })
 
   // Respond with the stream
-  return result.toDataStreamResponse()
+  return result.toUIMessageStreamResponse()
 }
 ```

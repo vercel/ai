@@ -1,418 +1,198 @@
+import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert, { fail } from 'node:assert';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   NoObjectGeneratedError,
   verifyNoObjectGeneratedError,
-} from '../../errors/no-object-generated-error';
-import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+} from '../../src/error/no-object-generated-error';
+import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+import {
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
+
+const testUsage = {
+  inputTokens: 3,
+  outputTokens: 10,
+  totalTokens: 13,
+  reasoningTokens: undefined,
+  cachedInputTokens: undefined,
+};
+
+function createTestModel({
+  warnings = [],
+  stream = convertArrayToReadableStream([
+    {
+      type: 'stream-start',
+      warnings,
+    },
+    {
+      type: 'response-metadata',
+      id: 'id-0',
+      modelId: 'mock-model-id',
+      timestamp: new Date(0),
+    },
+    { type: 'text-start', id: '1' },
+    { type: 'text-delta', id: '1', delta: '{ ' },
+    { type: 'text-delta', id: '1', delta: '"content": ' },
+    { type: 'text-delta', id: '1', delta: `"Hello, ` },
+    { type: 'text-delta', id: '1', delta: `world` },
+    { type: 'text-delta', id: '1', delta: `!"` },
+    { type: 'text-delta', id: '1', delta: ' }' },
+    { type: 'text-end', id: '1' },
+    {
+      type: 'finish',
+      finishReason: 'stop',
+      usage: testUsage,
+    },
+  ]),
+  request = undefined,
+  response = undefined,
+}: {
+  stream?: ReadableStream<LanguageModelV2StreamPart>;
+  request?: { body: string };
+  response?: { headers: Record<string, string> };
+  warnings?: LanguageModelV2CallWarning[];
+} = {}) {
+  return new MockLanguageModelV2({
+    doStream: async () => ({ stream, request, response, warnings }),
+  });
+}
 
 describe('streamObject', () => {
   describe('output = "object"', () => {
     describe('result.objectStream', () => {
-      it('should send object deltas with json mode', async () => {
+      it('should send object deltas', async () => {
+        const mockModel = createTestModel();
+
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ prompt, mode }) => {
-              expect(mode).toStrictEqual({
-                type: 'object-json',
-                name: undefined,
-                description: undefined,
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'system',
-                  content:
-                    'JSON schema:\n' +
-                    '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                    'You MUST answer with a JSON object that matches the JSON schema above.',
-                },
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
-            },
-          }),
+          model: mockModel,
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
+        expect(await convertAsyncIterableToArray(result.partialObjectStream))
+          .toMatchInlineSnapshot(`
           [
             {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
+            {
+              "content": "Hello, ",
+            },
+            {
+              "content": "Hello, world",
+            },
+            {
+              "content": "Hello, world!",
+            },
+          ]
+        `);
+
+        expect(mockModel.doStreamCalls[0].responseFormat)
+          .toMatchInlineSnapshot(`
+          {
+            "description": undefined,
+            "name": undefined,
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "type": "json",
+          }
+        `);
       });
 
-      it('should send object deltas with json mode when structured outputs are enabled', async () => {
+      it('should use name and description', async () => {
+        const model = createTestModel();
+
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            supportsStructuredOutputs: true,
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
-                name: undefined,
-                description: undefined,
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
-                },
-              ]);
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
-            },
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-        });
-
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
-          [
-            {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
-      });
-
-      it('should use name and description with json mode when structured outputs are enabled', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            supportsStructuredOutputs: true,
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
-                name: 'test-name',
-                description: 'test description',
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
-            },
-          }),
+          model,
           schema: z.object({ content: z.string() }),
           schemaName: 'test-name',
           schemaDescription: 'test description',
-          mode: 'json',
           prompt: 'prompt',
         });
 
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
+        expect(await convertAsyncIterableToArray(result.partialObjectStream))
+          .toMatchInlineSnapshot(`
           [
             {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
-      });
-
-      it('should send object deltas with tool mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-tool',
-                tool: {
-                  type: 'function',
-                  name: 'json',
-                  description: 'Respond with a JSON object.',
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { content: { type: 'string' } },
-                    required: ['content'],
-                    type: 'object',
-                  },
-                },
-              });
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: '{ ',
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: '"content": ',
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `"Hello, `,
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `world`,
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `!"`,
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: ' }',
-                  },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
+            {
+              "content": "Hello, ",
             },
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'tool',
-          prompt: 'prompt',
-        });
-
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
-          [
-            {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
-      });
-
-      it('should  use name and description with tool mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-tool',
-                tool: {
-                  type: 'function',
-                  name: 'test-name',
-                  description: 'test description',
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { content: { type: 'string' } },
-                    required: ['content'],
-                    type: 'object',
-                  },
-                },
-              });
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: '{ ',
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: '"content": ',
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `"Hello, `,
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `world`,
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `!"`,
-                  },
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: ' }',
-                  },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
+            {
+              "content": "Hello, world",
             },
-          }),
-          schema: z.object({ content: z.string() }),
-          schemaName: 'test-name',
-          schemaDescription: 'test description',
-          mode: 'tool',
-          prompt: 'prompt',
-        });
-
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
+            {
+              "content": "Hello, world!",
+            },
+          ]
+        `);
+        expect(model.doStreamCalls[0].prompt).toMatchInlineSnapshot(`
           [
-            {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
+            {
+              "content": [
+                {
+                  "text": "prompt",
+                  "type": "text",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ]
+        `);
+        expect(model.doStreamCalls[0].responseFormat).toMatchInlineSnapshot(`
+          {
+            "description": "test description",
+            "name": "test-name",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "type": "json",
+          }
+        `);
       });
 
       it('should suppress error in partialObjectStream', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => {
               throw new Error('test error');
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
+          onError: () => {},
         });
 
         expect(
@@ -424,13 +204,12 @@ describe('streamObject', () => {
         const result: Array<{ error: unknown }> = [];
 
         const resultObject = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => {
               throw new Error('test error');
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           onError(event) {
             result.push(event);
@@ -447,33 +226,8 @@ describe('streamObject', () => {
     describe('result.fullStream', () => {
       it('should send full stream data', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 2 },
-                  logprobs: [{ token: '-', logprob: 1, topLogprobs: [] }],
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: { logprobs: 0 } },
-            }),
-          }),
+          model: createTestModel(),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -486,26 +240,8 @@ describe('streamObject', () => {
     describe('result.textStream', () => {
       it('should send text stream', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 2 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
-          }),
+          model: createTestModel(),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -519,26 +255,8 @@ describe('streamObject', () => {
     describe('result.toTextStreamResponse', () => {
       it('should create a Response with a text stream', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 2 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
-          }),
+          model: createTestModel(),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -564,26 +282,8 @@ describe('streamObject', () => {
         const mockResponse = createMockServerResponse();
 
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 2 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
-          }),
+          model: createTestModel(),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -592,78 +292,80 @@ describe('streamObject', () => {
         await mockResponse.waitForEnd();
 
         expect(mockResponse.statusCode).toBe(200);
-        expect(mockResponse.headers).toEqual({
-          'Content-Type': 'text/plain; charset=utf-8',
-        });
-        expect(mockResponse.getDecodedChunks()).toEqual([
-          '{ ',
-          '"content": "Hello, ',
-          'world',
-          '!"',
-          ' }',
-        ]);
+        expect(mockResponse.headers).toMatchInlineSnapshot(`
+          {
+            "content-type": "text/plain; charset=utf-8",
+          }
+        `);
+        expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+          [
+            "{ ",
+            ""content": "Hello, ",
+            "world",
+            "!"",
+            " }",
+          ]
+        `);
       });
     });
 
     describe('result.usage', () => {
       it('should resolve with token usage', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              { type: 'finish', finishReason: 'stop', usage: testUsage },
+            ]),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        assert.deepStrictEqual(await result.usage, {
-          completionTokens: 10,
-          promptTokens: 3,
-          totalTokens: 13,
-        });
+        expect(await result.usage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
     });
 
     describe('result.providerMetadata', () => {
       it('should resolve with provider metadata', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
                 },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                  providerMetadata: {
-                    testProvider: { testKey: 'testValue' },
-                  },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
+              },
+            ]),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -677,79 +379,32 @@ describe('streamObject', () => {
     });
 
     describe('result.response', () => {
-      it('should resolve with response information in json mode', async () => {
+      it('should resolve with response information', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'text-delta',
-                  textDelta: '{"content": "Hello, world!"}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              rawResponse: { headers: { call: '2' } },
-            }),
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{"content": "Hello, world!"}',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+            response: { headers: { call: '2' } },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-        });
-
-        // consume stream (runs in parallel)
-        convertAsyncIterableToArray(result.partialObjectStream);
-
-        expect(await result.response).toStrictEqual({
-          id: 'id-0',
-          modelId: 'mock-model-id',
-          timestamp: new Date(0),
-          headers: { call: '2' },
-        });
-      });
-
-      it('should resolve with response information in tool mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  argsTextDelta: '{"content": "Hello, world!"}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              rawResponse: { headers: { call: '2' } },
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'tool',
           prompt: 'prompt',
         });
 
@@ -766,9 +421,9 @@ describe('streamObject', () => {
     });
 
     describe('result.request', () => {
-      it('should contain request information with json mode', async () => {
+      it('should contain request information', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -777,65 +432,23 @@ describe('streamObject', () => {
                   modelId: 'mock-model-id',
                   timestamp: new Date(0),
                 },
+                { type: 'text-start', id: '1' },
                 {
                   type: 'text-delta',
-                  textDelta: '{"content": "Hello, world!"}',
+                  id: '1',
+                  delta: '{"content": "Hello, world!"}',
                 },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
               request: { body: 'test body' },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-        });
-
-        // consume stream (runs in parallel)
-        await convertAsyncIterableToArray(result.partialObjectStream);
-
-        expect(await result.request).toStrictEqual({
-          body: 'test body',
-        });
-      });
-
-      it('should contain request information with tool mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  argsTextDelta: '{"content": "Hello, world!"}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  logprobs: undefined,
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              request: { body: 'test body' },
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'tool',
           prompt: 'prompt',
         });
 
@@ -851,26 +464,26 @@ describe('streamObject', () => {
     describe('result.object', () => {
       it('should resolve with typed object', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"content": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -884,26 +497,26 @@ describe('streamObject', () => {
 
       it('should reject object promise when the streamed object does not match the schema', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"invalid": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"invalid": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -915,26 +528,26 @@ describe('streamObject', () => {
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"invalid": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"invalid": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -952,7 +565,7 @@ describe('streamObject', () => {
         >[0];
 
         const { partialObjectStream } = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -961,24 +574,25 @@ describe('streamObject', () => {
                   modelId: 'mock-model-id',
                   timestamp: new Date(0),
                 },
+                { type: 'text-start', id: '1' },
                 {
                   type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
                 },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                   providerMetadata: {
                     testProvider: { testKey: 'testValue' },
                   },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           onFinish: async event => {
             result = event as unknown as typeof result;
@@ -997,7 +611,7 @@ describe('streamObject', () => {
         >[0];
 
         const { partialObjectStream, object } = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -1006,23 +620,23 @@ describe('streamObject', () => {
                   modelId: 'mock-model-id',
                   timestamp: new Date(0),
                 },
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"invalid": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"invalid": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           onFinish: async event => {
             result = event as unknown as typeof result;
@@ -1040,9 +654,9 @@ describe('streamObject', () => {
     });
 
     describe('options.headers', () => {
-      it('should pass headers to model in json mode', async () => {
+      it('should pass headers to model', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async ({ headers }) => {
               expect(headers).toStrictEqual({
                 'custom-request-header': 'request-header-value',
@@ -1050,60 +664,23 @@ describe('streamObject', () => {
 
               return {
                 stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
                   {
                     type: 'text-delta',
-                    textDelta: `{ "content": "headers test" }`,
+                    id: '1',
+                    delta: `{ "content": "headers test" }`,
                   },
+                  { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
+                    usage: testUsage,
                   },
                 ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
               };
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-          headers: { 'custom-request-header': 'request-header-value' },
-        });
-
-        expect(
-          await convertAsyncIterableToArray(result.partialObjectStream),
-        ).toStrictEqual([{ content: 'headers test' }]);
-      });
-
-      it('should pass headers to model in tool mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ headers }) => {
-              expect(headers).toStrictEqual({
-                'custom-request-header': 'request-header-value',
-              });
-
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `{ "content": "headers test" }`,
-                  },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
-            },
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'tool',
           prompt: 'prompt',
           headers: { 'custom-request-header': 'request-header-value' },
         });
@@ -1115,72 +692,33 @@ describe('streamObject', () => {
     });
 
     describe('options.providerOptions', () => {
-      it('should pass provider options to model in json mode', async () => {
+      it('should pass provider options to model', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ providerMetadata }) => {
-              expect(providerMetadata).toStrictEqual({
+          model: new MockLanguageModelV2({
+            doStream: async ({ providerOptions }) => {
+              expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
               });
 
               return {
                 stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
                   {
                     type: 'text-delta',
-                    textDelta: `{ "content": "provider metadata test" }`,
+                    id: '1',
+                    delta: `{ "content": "provider metadata test" }`,
                   },
+                  { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
+                    usage: testUsage,
                   },
                 ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
               };
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-          providerOptions: {
-            aProvider: { someKey: 'someValue' },
-          },
-        });
-
-        expect(
-          await convertAsyncIterableToArray(result.partialObjectStream),
-        ).toStrictEqual([{ content: 'provider metadata test' }]);
-      });
-
-      it('should pass provider options to model in tool mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ providerMetadata }) => {
-              expect(providerMetadata).toStrictEqual({
-                aProvider: { someKey: 'someValue' },
-              });
-
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `{ "content": "provider metadata test" }`,
-                  },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
-            },
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'tool',
           prompt: 'prompt',
           providerOptions: {
             aProvider: { someKey: 'someValue' },
@@ -1194,90 +732,68 @@ describe('streamObject', () => {
     });
 
     describe('custom schema', () => {
-      it('should send object deltas with json mode', async () => {
+      it('should send object deltas', async () => {
+        const mockModel = createTestModel();
+
         const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
-                name: undefined,
-                description: undefined,
-                schema: jsonSchema({
-                  type: 'object',
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  additionalProperties: false,
-                }).jsonSchema,
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'system',
-                  content:
-                    'JSON schema:\n' +
-                    '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}\n' +
-                    'You MUST answer with a JSON object that matches the JSON schema above.',
-                },
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
-            },
-          }),
+          model: mockModel,
           schema: jsonSchema({
             type: 'object',
             properties: { content: { type: 'string' } },
             required: ['content'],
             additionalProperties: false,
           }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
+        expect(await convertAsyncIterableToArray(result.partialObjectStream))
+          .toMatchInlineSnapshot(`
           [
             {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
+            {
+              "content": "Hello, ",
+            },
+            {
+              "content": "Hello, world",
+            },
+            {
+              "content": "Hello, world!",
+            },
+          ]
+        `);
+
+        expect(mockModel.doStreamCalls[0].responseFormat)
+          .toMatchInlineSnapshot(`
+          {
+            "description": undefined,
+            "name": undefined,
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "type": "json",
+          }
+        `);
       });
     });
 
     describe('error handling', () => {
-      it('should throw NoObjectGeneratedError when schema validation fails in tool mode', async () => {
+      it('should throw NoObjectGeneratedError when schema validation fails', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                {
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  argsTextDelta: '{ "content": 123 }',
-                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ "content": 123 }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'response-metadata',
                   id: 'id-1',
@@ -1287,14 +803,12 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'tool',
           prompt: 'prompt',
         });
 
@@ -1310,18 +824,20 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            usage: testUsage,
             finishReason: 'stop',
           });
         }
       });
 
-      it('should throw NoObjectGeneratedError when schema validation fails in json mode', async () => {
+      it('should throw NoObjectGeneratedError when parsing fails', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ "content": 123 }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ broken json' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'response-metadata',
                   id: 'id-1',
@@ -1331,14 +847,12 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -1354,24 +868,17 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            usage: testUsage,
             finishReason: 'stop',
           });
         }
       });
 
-      it('should throw NoObjectGeneratedError when parsing fails in tool mode', async () => {
+      it('should throw NoObjectGeneratedError when no text is generated', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                {
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  argsTextDelta: '{ broken json',
-                },
                 {
                   type: 'response-metadata',
                   id: 'id-1',
@@ -1381,14 +888,12 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
+                  usage: testUsage,
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'tool',
           prompt: 'prompt',
         });
 
@@ -1404,137 +909,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-            finishReason: 'stop',
-          });
-        }
-      });
-
-      it('should throw NoObjectGeneratedError when parsing fails in json mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ broken json' },
-                {
-                  type: 'response-metadata',
-                  id: 'id-1',
-                  timestamp: new Date(123),
-                  modelId: 'model-1',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-        });
-
-        try {
-          await convertAsyncIterableToArray(result.partialObjectStream);
-          await result.object;
-          fail('must throw error');
-        } catch (error) {
-          verifyNoObjectGeneratedError(error, {
-            message: 'No object generated: response did not match schema.',
-            response: {
-              id: 'id-1',
-              timestamp: new Date(123),
-              modelId: 'model-1',
-            },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-            finishReason: 'stop',
-          });
-        }
-      });
-
-      it('should throw NoObjectGeneratedError when no tool call is made in tool mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-1',
-                  timestamp: new Date(123),
-                  modelId: 'model-1',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'tool',
-          prompt: 'prompt',
-        });
-
-        try {
-          await convertAsyncIterableToArray(result.partialObjectStream);
-          await result.object;
-          fail('must throw error');
-        } catch (error) {
-          verifyNoObjectGeneratedError(error, {
-            message: 'No object generated: response did not match schema.',
-            response: {
-              id: 'id-1',
-              timestamp: new Date(123),
-              modelId: 'model-1',
-            },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-            finishReason: 'stop',
-          });
-        }
-      });
-
-      it('should throw NoObjectGeneratedError when no text is generated in json mode', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-1',
-                  timestamp: new Date(123),
-                  modelId: 'model-1',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-        });
-
-        try {
-          await convertAsyncIterableToArray(result.partialObjectStream);
-          await result.object;
-          fail('must throw error');
-        } catch (error) {
-          verifyNoObjectGeneratedError(error, {
-            message: 'No object generated: response did not match schema.',
-            response: {
-              id: 'id-1',
-              timestamp: new Date(123),
-              modelId: 'model-1',
-            },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            usage: testUsage,
             finishReason: 'stop',
           });
         }
@@ -1556,82 +931,39 @@ describe('streamObject', () => {
 
       beforeEach(async () => {
         result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
-                name: undefined,
-                description: undefined,
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: {
-                    elements: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: { content: { type: 'string' } },
-                        required: ['content'],
-                        additionalProperties: false,
-                      },
-                    },
-                  },
-                  required: ['elements'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'system',
-                  content:
-                    'JSON schema:\n' +
-                    `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
-                    `\n` +
-                    'You MUST answer with a JSON object that matches the JSON schema above.',
-                },
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{"elements":[' },
-                  // first element:
-                  { type: 'text-delta', textDelta: '{' },
-                  { type: 'text-delta', textDelta: '"content":' },
-                  { type: 'text-delta', textDelta: `"element 1"` },
-                  { type: 'text-delta', textDelta: '},' },
-                  // second element:
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"element 2"` },
-                  { type: 'text-delta', textDelta: '},' },
-                  // third element:
-                  { type: 'text-delta', textDelta: '{' },
-                  { type: 'text-delta', textDelta: '"content":' },
-                  { type: 'text-delta', textDelta: `"element 3"` },
-                  { type: 'text-delta', textDelta: '}' },
-                  // end of array
-                  { type: 'text-delta', textDelta: ']' },
-                  { type: 'text-delta', textDelta: '}' },
-                  // finish
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
-            },
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{"elements":[' },
+              // first element:
+              { type: 'text-delta', id: '1', delta: '{' },
+              { type: 'text-delta', id: '1', delta: '"content":' },
+              { type: 'text-delta', id: '1', delta: `"element 1"` },
+              { type: 'text-delta', id: '1', delta: '},' },
+              // second element:
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"content": ' },
+              { type: 'text-delta', id: '1', delta: `"element 2"` },
+              { type: 'text-delta', id: '1', delta: '},' },
+              // third element:
+              { type: 'text-delta', id: '1', delta: '{' },
+              { type: 'text-delta', id: '1', delta: '"content":' },
+              { type: 'text-delta', id: '1', delta: `"element 3"` },
+              { type: 'text-delta', id: '1', delta: '}' },
+              // end of array
+              { type: 'text-delta', id: '1', delta: ']' },
+              { type: 'text-delta', id: '1', delta: '}' },
+              { type: 'text-end', id: '1' },
+              // finish
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
           }),
           schema: z.object({ content: z.string() }),
           output: 'array',
-          mode: 'json',
           prompt: 'prompt',
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
@@ -1711,68 +1043,31 @@ describe('streamObject', () => {
 
       beforeEach(async () => {
         result = streamObject({
-          model: new MockLanguageModelV1({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
-                name: undefined,
-                description: undefined,
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: {
-                    elements: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: { content: { type: 'string' } },
-                        required: ['content'],
-                        additionalProperties: false,
-                      },
-                    },
-                  },
-                  required: ['elements'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'system',
-                  content:
-                    'JSON schema:\n' +
-                    `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
-                    `\n` +
-                    'You MUST answer with a JSON object that matches the JSON schema above.',
-                },
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'text-delta',
-                    textDelta:
-                      '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
-                  },
-                  // finish
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { completionTokens: 10, promptTokens: 3 },
-                  },
-                ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              };
-            },
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'text-start',
+                id: '1',
+              },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta:
+                  '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
+              },
+              {
+                type: 'text-end',
+                id: '1',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
           }),
           schema: z.object({ content: z.string() }),
           output: 'array',
-          mode: 'json',
           prompt: 'prompt',
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
@@ -1820,61 +1115,215 @@ describe('streamObject', () => {
     });
   });
 
-  describe('output = "no-schema"', () => {
-    it('should send object deltas with json mode', async () => {
+  describe('output = "enum"', () => {
+    it('should stream an enum value', async () => {
+      const mockModel = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"result": ' },
+          { type: 'text-delta', id: '1', delta: `"su` },
+          { type: 'text-delta', id: '1', delta: `nny` },
+          { type: 'text-delta', id: '1', delta: `"` },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          { type: 'text-end', id: '1' },
+          { type: 'finish', finishReason: 'stop', usage: testUsage },
+        ]),
+      });
+
       const result = streamObject({
-        model: new MockLanguageModelV1({
-          doStream: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
-              name: undefined,
-              description: undefined,
-              schema: undefined,
-            });
+        model: mockModel,
+        output: 'enum',
+        enum: ['sunny', 'rainy', 'snowy'],
+        prompt: 'prompt',
+      });
 
-            expect(prompt).toStrictEqual([
-              {
-                role: 'system',
-                content: 'You MUST answer with JSON.',
-              },
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
-              },
-            ]);
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+          [
+            "sunny",
+          ]
+        `);
 
-            return {
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
+      expect(mockModel.doStreamCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "description": undefined,
+          "name": undefined,
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "sunny",
+                  "rainy",
+                  "snowy",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
           },
-        }),
+          "type": "json",
+        }
+      `);
+    });
+
+    it('should not stream incorrect values', async () => {
+      const mockModel = new MockLanguageModelV2({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"foo` },
+            { type: 'text-delta', id: '1', delta: `bar` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        },
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        output: 'enum',
+        enum: ['sunny', 'rainy', 'snowy'],
+        prompt: 'prompt',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.partialObjectStream),
+      ).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should handle ambiguous values', async () => {
+      const mockModel = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"result": ' },
+          { type: 'text-delta', id: '1', delta: `"foo` },
+          { type: 'text-delta', id: '1', delta: `bar` },
+          { type: 'text-delta', id: '1', delta: `"` },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        output: 'enum',
+        enum: ['foobar', 'foobar2'],
+        prompt: 'prompt',
+      });
+
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+        [
+          "foo",
+          "foobar",
+        ]
+      `);
+    });
+
+    it('should handle non-ambiguous values', async () => {
+      const mockModel = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"result": ' },
+          { type: 'text-delta', id: '1', delta: `"foo` },
+          { type: 'text-delta', id: '1', delta: `bar` },
+          { type: 'text-delta', id: '1', delta: `"` },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        output: 'enum',
+        enum: ['foobar', 'barfoo'],
+        prompt: 'prompt',
+      });
+
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+        [
+          "foobar",
+        ]
+      `);
+    });
+  });
+
+  describe('output = "no-schema"', () => {
+    it('should send object deltas', async () => {
+      const mockModel = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"content": ' },
+          { type: 'text-delta', id: '1', delta: `"Hello, ` },
+          { type: 'text-delta', id: '1', delta: `world` },
+          { type: 'text-delta', id: '1', delta: `!"` },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamObject({
+        model: mockModel,
         output: 'no-schema',
         prompt: 'prompt',
       });
 
-      assert.deepStrictEqual(
-        await convertAsyncIterableToArray(result.partialObjectStream),
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
         [
           {},
-          { content: 'Hello, ' },
-          { content: 'Hello, world' },
-          { content: 'Hello, world!' },
-        ],
-      );
+          {
+            "content": "Hello, ",
+          },
+          {
+            "content": "Hello, world",
+          },
+          {
+            "content": "Hello, world!",
+          },
+        ]
+      `);
+
+      expect(mockModel.doStreamCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "description": undefined,
+          "name": undefined,
+          "schema": undefined,
+          "type": "json",
+        }
+      `);
     });
   });
 
@@ -1887,7 +1336,7 @@ describe('streamObject', () => {
 
     it('should not record any telemetry data when not explicitly enabled', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1896,23 +1345,23 @@ describe('streamObject', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"content": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: testUsage,
               },
             ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         _internal: { now: () => 0 },
       });
@@ -1923,36 +1372,34 @@ describe('streamObject', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
-    it('should record telemetry data when enabled with mode "json"', async () => {
+    it('should record telemetry data when enabled', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"content": ' },
+            { type: 'text-delta', id: '1', delta: `"Hello, ` },
+            { type: 'text-delta', id: '1', delta: `world` },
+            { type: 'text-delta', id: '1', delta: `!"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
         }),
         schema: z.object({ content: z.string() }),
         schemaName: 'test-name',
         schemaDescription: 'test description',
-        mode: 'json',
         prompt: 'prompt',
         topK: 0.1,
         topP: 0.2,
@@ -1981,9 +1428,9 @@ describe('streamObject', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
-    it('should record telemetry data when enabled with mode "tool"', async () => {
+    it('should not record telemetry inputs / outputs when disabled', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1992,197 +1439,23 @@ describe('streamObject', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: '{ ',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: '"content": ',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `"Hello, `,
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `world`,
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `!"`,
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: ' }',
-              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"content": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: testUsage,
               },
             ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
         }),
         schema: z.object({ content: z.string() }),
-        schemaName: 'test-name',
-        schemaDescription: 'test description',
-        mode: 'tool',
-        prompt: 'prompt',
-        topK: 0.1,
-        topP: 0.2,
-        frequencyPenalty: 0.3,
-        presencePenalty: 0.4,
-        temperature: 0.5,
-        headers: {
-          header1: 'value1',
-          header2: 'value2',
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'test-function-id',
-          metadata: {
-            test1: 'value1',
-            test2: false,
-          },
-          tracer,
-        },
-        _internal: { now: () => 0 },
-      });
-
-      // consume stream
-      await convertAsyncIterableToArray(result.partialObjectStream);
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should not record telemetry inputs / outputs when disabled with mode "json"', async () => {
-      const result = streamObject({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        mode: 'json',
-        prompt: 'prompt',
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: false,
-          recordOutputs: false,
-          tracer,
-        },
-        _internal: { now: () => 0 },
-      });
-
-      // consume stream
-      await convertAsyncIterableToArray(result.partialObjectStream);
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should not record telemetry inputs / outputs when disabled with mode "tool"', async () => {
-      const result = streamObject({
-        model: new MockLanguageModelV1({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: '{ ',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: '"content": ',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `"Hello, `,
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `world`,
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `!"`,
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: ' }',
-              },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: { completionTokens: 10, promptTokens: 3 },
-              },
-            ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        mode: 'tool',
         prompt: 'prompt',
         experimental_telemetry: {
           isEnabled: true,
@@ -2201,136 +1474,32 @@ describe('streamObject', () => {
   });
 
   describe('options.messages', () => {
-    it('should detect and convert ui messages', async () => {
-      const result = streamObject({
-        model: new MockLanguageModelV1({
-          doStream: async ({ prompt }) => {
-            expect(prompt).toStrictEqual([
-              {
-                role: 'system',
-                content:
-                  'JSON schema:\n' +
-                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                  'You MUST answer with a JSON object that matches the JSON schema above.',
-              },
-              {
-                content: [
-                  {
-                    text: 'prompt',
-                    type: 'text',
-                  },
-                ],
-                providerMetadata: undefined,
-                role: 'user',
-              },
-              {
-                content: [
-                  {
-                    args: {
-                      value: 'test-value',
-                    },
-                    providerMetadata: undefined,
-                    toolCallId: 'call-1',
-                    toolName: 'test-tool',
-                    type: 'tool-call',
-                  },
-                ],
-                providerMetadata: undefined,
-                role: 'assistant',
-              },
-              {
-                content: [
-                  {
-                    content: undefined,
-                    isError: undefined,
-                    providerMetadata: undefined,
-                    result: 'test result',
-                    toolCallId: 'call-1',
-                    toolName: 'test-tool',
-                    type: 'tool-result',
-                  },
-                ],
-                providerMetadata: undefined,
-                role: 'tool',
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
-              ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-            };
-          },
-        }),
-        schema: z.object({ content: z.string() }),
-        mode: 'json',
-        messages: [
-          {
-            role: 'user',
-            content: 'prompt',
-          },
-          {
-            role: 'assistant',
-            content: '',
-            toolInvocations: [
-              {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'test-tool',
-                args: { value: 'test-value' },
-                result: 'test result',
-              },
-            ],
-          },
-        ],
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.partialObjectStream),
-      ).toStrictEqual([
-        {},
-        { content: 'Hello, ' },
-        { content: 'Hello, world' },
-        { content: 'Hello, world!' },
-      ]);
-    });
-
-    it('should support models that use "this" context in supportsUrl', async () => {
-      let supportsUrlCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
-        readonly supportsImageUrls = false;
-
+    it('should support models that use "this" context in supportedUrls', async () => {
+      let supportedUrlsCalled = false;
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
         constructor() {
           super({
-            supportsUrl(url: URL) {
-              supportsUrlCalled = true;
+            supportedUrls: () => {
+              supportedUrlsCalled = true;
               // Reference 'this' to verify context
-              return this.modelId === 'mock-model-id';
+              return this.modelId === 'mock-model-id'
+                ? ({ 'image/*': [/^https:\/\/.*$/] } as Record<
+                    string,
+                    RegExp[]
+                  >)
+                : {};
             },
             doStream: async () => ({
               stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
                 {
                   type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
                 },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { completionTokens: 10, promptTokens: 3 },
-                },
+                { type: 'text-end', id: '1' },
+                { type: 'finish', finishReason: 'stop', usage: testUsage },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           });
         }
@@ -2341,7 +1510,6 @@ describe('streamObject', () => {
       const result = streamObject({
         model,
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         messages: [
           {
             role: 'user',
@@ -2352,7 +1520,7 @@ describe('streamObject', () => {
 
       const chunks = await convertAsyncIterableToArray(result.textStream);
       expect(chunks.join('')).toBe('{ "content": "Hello, world!" }');
-      expect(supportsUrlCalled).toBe(true);
+      expect(supportedUrlsCalled).toBe(true);
     });
   });
 });

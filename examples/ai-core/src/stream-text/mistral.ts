@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: mistral('ministral-8b-latest'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     temperature: 0.3,
     maxRetries: 5,
     prompt: 'Invent a new holiday and describe its traditions.',

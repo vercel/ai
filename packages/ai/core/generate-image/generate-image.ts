@@ -1,17 +1,18 @@
-import { AISDKError, ImageModelV1, JSONValue } from '@ai-sdk/provider';
-import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
+import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
+import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
+import {
+  detectMediaType,
+  imageMediaTypeSignatures,
+} from '../../src/util/detect-media-type';
+import { prepareRetries } from '../../src/util/prepare-retries';
 import {
   DefaultGeneratedFile,
   GeneratedFile,
 } from '../generate-text/generated-file';
-import { prepareRetries } from '../prompt/prepare-retries';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
-import {
-  detectMimeType,
-  imageMimeTypeSignatures,
-} from '../util/detect-mimetype';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 
 /**
 Generates images using an image model.
@@ -34,6 +35,7 @@ export async function generateImage({
   model,
   prompt,
   n = 1,
+  maxImagesPerCall,
   size,
   aspectRatio,
   seed,
@@ -45,7 +47,7 @@ export async function generateImage({
   /**
 The image model to use.
      */
-  model: ImageModelV1;
+  model: ImageModelV2;
 
   /**
 The prompt that should be used to generate the image.
@@ -56,6 +58,11 @@ The prompt that should be used to generate the image.
 Number of images to generate.
    */
   n?: number;
+
+  /**
+Number of images to generate.
+   */
+  maxImagesPerCall?: number;
 
   /**
 Size of the images to generate. Must have the format `{width}x{height}`. If not provided, the default size will be used.
@@ -86,7 +93,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
      */
-  providerOptions?: Record<string, Record<string, JSONValue>>;
+  providerOptions?: ProviderOptions;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -110,18 +117,20 @@ Only applicable for HTTP-based providers.
 
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
-  const maxImagesPerCall = model.maxImagesPerCall ?? 1;
+  const maxImagesPerCallWithDefault =
+    maxImagesPerCall ?? (await invokeModelMaxImagesPerCall(model)) ?? 1;
 
   // parallelize calls to the model:
-  const callCount = Math.ceil(n / maxImagesPerCall);
+  const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
   const callImageCounts = Array.from({ length: callCount }, (_, i) => {
     if (i < callCount - 1) {
-      return maxImagesPerCall;
+      return maxImagesPerCallWithDefault;
     }
 
-    const remainder = n % maxImagesPerCall;
-    return remainder === 0 ? maxImagesPerCall : remainder;
+    const remainder = n % maxImagesPerCallWithDefault;
+    return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
+
   const results = await Promise.all(
     callImageCounts.map(async callImageCount =>
       retry(() =>
@@ -143,21 +152,34 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
+  const providerMetadata: ImageModelV2ProviderMetadata = {};
   for (const result of results) {
     images.push(
       ...result.images.map(
         image =>
           new DefaultGeneratedFile({
             data: image,
-            mimeType:
-              detectMimeType({
+            mediaType:
+              detectMediaType({
                 data: image,
-                signatures: imageMimeTypeSignatures,
+                signatures: imageMediaTypeSignatures,
               }) ?? 'image/png',
           }),
       ),
     );
     warnings.push(...result.warnings);
+
+    if (result.providerMetadata) {
+      for (const [providerName, metadata] of Object.entries<{
+        images: unknown;
+      }>(result.providerMetadata)) {
+        providerMetadata[providerName] ??= { images: [] };
+        providerMetadata[providerName].images.push(
+          ...result.providerMetadata[providerName].images,
+        );
+      }
+    }
+
     responses.push(result.response);
   }
 
@@ -165,25 +187,45 @@ Only applicable for HTTP-based providers.
     throw new NoImageGeneratedError({ responses });
   }
 
-  return new DefaultGenerateImageResult({ images, warnings, responses });
+  return new DefaultGenerateImageResult({
+    images,
+    warnings,
+    responses,
+    providerMetadata,
+  });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
   readonly warnings: Array<ImageGenerationWarning>;
   readonly responses: Array<ImageModelResponseMetadata>;
+  readonly providerMetadata: ImageModelV2ProviderMetadata;
 
   constructor(options: {
     images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
+    providerMetadata: ImageModelV2ProviderMetadata;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
     this.responses = options.responses;
+    this.providerMetadata = options.providerMetadata;
   }
 
   get image() {
     return this.images[0];
   }
+}
+
+async function invokeModelMaxImagesPerCall(model: ImageModelV2) {
+  const isFunction = model.maxImagesPerCall instanceof Function;
+
+  if (!isFunction) {
+    return model.maxImagesPerCall;
+  }
+
+  return model.maxImagesPerCall({
+    modelId: model.modelId,
+  });
 }

@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
     schema: z.object({
       characters: z.array(
         z.object({

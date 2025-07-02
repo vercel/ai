@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 
 async function main() {
   let editorContent = `
@@ -9,9 +9,7 @@ This is a test file.
   `;
 
   const result = await generateText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022', {
-      cacheControl: true,
-    }),
+    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     tools: {
       str_replace_editor: vertexAnthropic.tools.textEditor_20241022({
         async execute({ command, path, old_str, new_str }) {
@@ -47,7 +45,7 @@ This is a test file.
         },
       },
     ],
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   console.log('TEXT', result.text);

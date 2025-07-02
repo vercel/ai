@@ -1,11 +1,11 @@
 ---
-title: LlamaIndexAdapter
-description: API Reference for LlamaIndexAdapter.
+title: '@ai-sdk/llamaindex Adapter'
+description: API Reference for the LlamaIndex Adapter.
 ---
 
-# `LlamaIndexAdapter`
+# `@ai-sdk/llamaindex`
 
-The `LlamaIndexAdapter` module provides helper functions to transform LlamaIndex output streams into data streams and data stream responses.
+The `@ai-sdk/llamaindex` package provides helper functions to transform LlamaIndex output streams into data streams and data stream responses.
 See the [LlamaIndex Adapter documentation](/providers/adapters/llamaindex) for more information.
 
 It supports:
@@ -15,7 +15,10 @@ It supports:
 
 ## Import
 
-<Snippet text={`import { LlamaIndexAdapter } from "ai"`} prompt={false} />
+<Snippet
+  text={`import { toDataResponse } from "@ai-sdk/llamaindex"`}
+  prompt={false}
+/>
 
 ## API Signature
 
@@ -49,7 +52,7 @@ It supports:
 
 ```tsx filename="app/api/completion/route.ts" highlight="15"
 import { OpenAI, SimpleChatEngine } from 'llamaindex';
-import { LlamaIndexAdapter } from 'ai';
+import { toDataStreamResponse } from '@ai-sdk/llamaindex';
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
@@ -62,6 +65,6 @@ export async function POST(req: Request) {
     stream: true,
   });
 
-  return LlamaIndexAdapter.toDataStreamResponse(stream);
+  return toDataStreamResponse(stream);
 }
 ```

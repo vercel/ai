@@ -68,7 +68,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       input: {
         prompt,
         num_outputs: 1,
@@ -180,7 +180,6 @@ describe('doGenerate', () => {
   it('should return response metadata', async () => {
     const modelWithTimestamp = new ReplicateImageModel(
       'black-forest-labs/flux-schnell',
-      {},
       {
         provider: 'replicate',
         baseURL: 'https://api.replicate.com',
@@ -210,7 +209,6 @@ describe('doGenerate', () => {
   it('should include response headers in metadata', async () => {
     const modelWithTimestamp = new ReplicateImageModel(
       'black-forest-labs/flux-schnell',
-      {},
       {
         provider: 'replicate',
         baseURL: 'https://api.replicate.com',
@@ -288,7 +286,7 @@ describe('doGenerate', () => {
     expect(server.calls[0].requestUrl).toStrictEqual(
       'https://api.replicate.com/v1/predictions',
     );
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       input: {
         prompt,
         num_outputs: 1,

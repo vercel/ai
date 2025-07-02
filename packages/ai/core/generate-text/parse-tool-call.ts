@@ -1,13 +1,15 @@
-import { LanguageModelV1FunctionToolCall } from '@ai-sdk/provider';
-import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
-import { Schema, asSchema } from '@ai-sdk/ui-utils';
-import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
-import { NoSuchToolError } from '../../errors/no-such-tool-error';
-import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
-import { CoreMessage } from '../prompt';
-import { inferParameters } from '../tool/tool';
+import { LanguageModelV2ToolCall } from '@ai-sdk/provider';
+import {
+  asSchema,
+  safeParseJSON,
+  safeValidateTypes,
+} from '@ai-sdk/provider-utils';
+import { InvalidToolInputError } from '../../src/error/invalid-tool-input-error';
+import { NoSuchToolError } from '../../src/error/no-such-tool-error';
+import { ToolCallRepairError } from '../../src/error/tool-call-repair-error';
+import { ModelMessage } from '../prompt';
 import { ToolCallUnion } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair';
+import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
 
 export async function parseToolCall<TOOLS extends ToolSet>({
@@ -17,11 +19,11 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   system,
   messages,
 }: {
-  toolCall: LanguageModelV1FunctionToolCall;
+  toolCall: LanguageModelV2ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   system: string | undefined;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
 }): Promise<ToolCallUnion<TOOLS>> {
   if (tools == null) {
     throw new NoSuchToolError({ toolName: toolCall.toolName });
@@ -34,20 +36,22 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       repairToolCall == null ||
       !(
         NoSuchToolError.isInstance(error) ||
-        InvalidToolArgumentsError.isInstance(error)
+        InvalidToolInputError.isInstance(error)
       )
     ) {
       throw error;
     }
 
-    let repairedToolCall: LanguageModelV1FunctionToolCall | null = null;
+    let repairedToolCall: LanguageModelV2ToolCall | null = null;
 
     try {
       repairedToolCall = await repairToolCall({
         toolCall,
         tools,
-        parameterSchema: ({ toolName }) =>
-          asSchema(tools[toolName].parameters).jsonSchema,
+        inputSchema: ({ toolName }) => {
+          const { inputSchema } = tools[toolName];
+          return asSchema(inputSchema).jsonSchema;
+        },
         system,
         messages,
         error,
@@ -72,7 +76,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
 }: {
-  toolCall: LanguageModelV1FunctionToolCall;
+  toolCall: LanguageModelV2ToolCall;
   tools: TOOLS;
 }): Promise<ToolCallUnion<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
@@ -86,21 +90,19 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  const schema = asSchema(tool.parameters) as Schema<
-    inferParameters<TOOLS[keyof TOOLS]['parameters']>
-  >;
+  const schema = asSchema(tool.inputSchema);
 
   // when the tool call has no arguments, we try passing an empty object to the schema
   // (many LLMs generate empty strings for tool calls with no arguments)
   const parseResult =
-    toolCall.args.trim() === ''
-      ? safeValidateTypes({ value: {}, schema })
-      : safeParseJSON({ text: toolCall.args, schema });
+    toolCall.input.trim() === ''
+      ? await safeValidateTypes({ value: {}, schema })
+      : await safeParseJSON({ text: toolCall.input, schema });
 
   if (parseResult.success === false) {
-    throw new InvalidToolArgumentsError({
+    throw new InvalidToolInputError({
       toolName,
-      toolArgs: toolCall.args,
+      toolInput: toolCall.input,
       cause: parseResult.error,
     });
   }
@@ -109,6 +111,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     type: 'tool-call',
     toolCallId: toolCall.toolCallId,
     toolName,
-    args: parseResult.value,
+    input: parseResult.value,
+    providerExecuted: toolCall.providerExecuted,
   };
 }

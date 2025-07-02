@@ -1,17 +1,13 @@
 import {
-  EmbeddingModelV1,
-  ImageModelV1,
-  LanguageModelV1,
-  ProviderV1,
+  EmbeddingModelV2,
+  ImageModelV2,
+  LanguageModelV2,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
-import { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
-import { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
 import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
-import { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding-settings';
-import { OpenAICompatibleImageSettings } from './openai-compatible-image-settings';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
 
 export interface OpenAICompatibleProvider<
@@ -19,36 +15,18 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
-> extends Omit<ProviderV1, 'imageModel'> {
-  (
-    modelId: CHAT_MODEL_IDS,
-    settings?: OpenAICompatibleChatSettings,
-  ): LanguageModelV1;
+> extends Omit<ProviderV2, 'imageModel'> {
+  (modelId: CHAT_MODEL_IDS): LanguageModelV2;
 
-  languageModel(
-    modelId: CHAT_MODEL_IDS,
-    settings?: OpenAICompatibleChatSettings,
-  ): LanguageModelV1;
+  languageModel(modelId: CHAT_MODEL_IDS): LanguageModelV2;
 
-  chatModel(
-    modelId: CHAT_MODEL_IDS,
-    settings?: OpenAICompatibleChatSettings,
-  ): LanguageModelV1;
+  chatModel(modelId: CHAT_MODEL_IDS): LanguageModelV2;
 
-  completionModel(
-    modelId: COMPLETION_MODEL_IDS,
-    settings?: OpenAICompatibleCompletionSettings,
-  ): LanguageModelV1;
+  completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV2;
 
-  textEmbeddingModel(
-    modelId: EMBEDDING_MODEL_IDS,
-    settings?: OpenAICompatibleEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV2<string>;
 
-  imageModel(
-    modelId: IMAGE_MODEL_IDS,
-    settings?: OpenAICompatibleImageSettings,
-  ): ImageModelV1;
+  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV2;
 }
 
 export interface OpenAICompatibleProviderSettings {
@@ -131,54 +109,30 @@ export function createOpenAICompatible<
     fetch: options.fetch,
   });
 
-  const createLanguageModel = (
-    modelId: CHAT_MODEL_IDS,
-    settings: OpenAICompatibleChatSettings = {},
-  ) => createChatModel(modelId, settings);
+  const createLanguageModel = (modelId: CHAT_MODEL_IDS) =>
+    createChatModel(modelId);
 
-  const createChatModel = (
-    modelId: CHAT_MODEL_IDS,
-    settings: OpenAICompatibleChatSettings = {},
-  ) =>
-    new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'tool',
-    });
+  const createChatModel = (modelId: CHAT_MODEL_IDS) =>
+    new OpenAICompatibleChatLanguageModel(
+      modelId,
+      getCommonModelConfig('chat'),
+    );
 
-  const createCompletionModel = (
-    modelId: COMPLETION_MODEL_IDS,
-    settings: OpenAICompatibleCompletionSettings = {},
-  ) =>
+  const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
     new OpenAICompatibleCompletionLanguageModel(
       modelId,
-      settings,
       getCommonModelConfig('completion'),
     );
 
-  const createEmbeddingModel = (
-    modelId: EMBEDDING_MODEL_IDS,
-    settings: OpenAICompatibleEmbeddingSettings = {},
-  ) =>
-    new OpenAICompatibleEmbeddingModel(
-      modelId,
-      settings,
-      getCommonModelConfig('embedding'),
-    );
+  const createEmbeddingModel = (modelId: EMBEDDING_MODEL_IDS) =>
+    new OpenAICompatibleEmbeddingModel(modelId, {
+      ...getCommonModelConfig('embedding'),
+    });
 
-  const createImageModel = (
-    modelId: IMAGE_MODEL_IDS,
-    settings: OpenAICompatibleImageSettings = {},
-  ) =>
-    new OpenAICompatibleImageModel(
-      modelId,
-      settings,
-      getCommonModelConfig('image'),
-    );
+  const createImageModel = (modelId: IMAGE_MODEL_IDS) =>
+    new OpenAICompatibleImageModel(modelId, getCommonModelConfig('image'));
 
-  const provider = (
-    modelId: CHAT_MODEL_IDS,
-    settings?: OpenAICompatibleChatSettings,
-  ) => createLanguageModel(modelId, settings);
+  const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;

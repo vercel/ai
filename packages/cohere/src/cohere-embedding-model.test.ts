@@ -1,4 +1,4 @@
-import { EmbeddingModelV1Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
 
@@ -21,7 +21,7 @@ describe('doEmbed', () => {
     meta = { billed_units: { input_tokens: 8 } },
     headers,
   }: {
-    embeddings?: EmbeddingModelV1Embedding[];
+    embeddings?: EmbeddingModelV2Embedding[];
     meta?: { billed_units: { input_tokens: number } };
     headers?: Record<string, string>;
   } = {}) {
@@ -45,14 +45,14 @@ describe('doEmbed', () => {
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
-  it('should expose the raw response headers', async () => {
+  it('should expose the raw response', async () => {
     prepareJsonResponse({
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doEmbed({ values: testValues });
+    const { response } = await model.doEmbed({ values: testValues });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '185',
       'content-type': 'application/json',
@@ -60,6 +60,7 @@ describe('doEmbed', () => {
       // custom header
       'test-header': 'test-value',
     });
+    expect(response).toMatchSnapshot();
   });
 
   it('should extract usage', async () => {
@@ -77,7 +78,7 @@ describe('doEmbed', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'embed-english-v3.0',
       embedding_types: ['float'],
       texts: testValues,
@@ -88,13 +89,16 @@ describe('doEmbed', () => {
   it('should pass the input_type setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .textEmbeddingModel('embed-english-v3.0', {
-        inputType: 'search_document',
-      })
-      .doEmbed({ values: testValues });
+    await provider.textEmbeddingModel('embed-english-v3.0').doEmbed({
+      values: testValues,
+      providerOptions: {
+        cohere: {
+          inputType: 'search_document',
+        },
+      },
+    });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'embed-english-v3.0',
       embedding_types: ['float'],
       texts: testValues,

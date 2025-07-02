@@ -9,14 +9,13 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  settings,
 }: {
   headers?: Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
   settings?: any;
 } = {}) {
-  return new FalImageModel('stable-diffusion-xl', settings ?? {}, {
+  return new FalImageModel('stable-diffusion-xl', {
     provider: 'fal',
     baseURL: 'https://api.example.com',
     headers: headers ?? { 'api-key': 'test-key' },
@@ -65,7 +64,7 @@ describe('FalImageModel', () => {
         providerOptions: { fal: { additional_param: 'value' } },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         seed: 123,
         image_size: { width: 1024, height: 1024 },
@@ -86,7 +85,7 @@ describe('FalImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         image_size: 'landscape_16_9',
         num_images: 1,
@@ -174,6 +173,130 @@ describe('FalImageModel', () => {
         });
       });
     });
+
+    describe('providerMetaData', () => {
+      // https://fal.ai/models/fal-ai/lora/api#schema-output
+      it('for lora', async () => {
+        const responseMetaData = {
+          prompt: '<prompt>',
+          seed: 123,
+          has_nsfw_concepts: [true],
+          debug_latents: {
+            url: '<debug_latents url>',
+            content_type: '<debug_latents content_type>',
+            file_name: '<debug_latents file_name>',
+            file_data: '<debug_latents file_data>',
+            file_size: 123,
+          },
+          debug_per_pass_latents: {
+            url: '<debug_per_pass_latents url>',
+            content_type: '<debug_per_pass_latents content_type>',
+            file_name: '<debug_per_pass_latents file_name>',
+            file_data: '<debug_per_pass_latents file_data>',
+            file_size: 456,
+          },
+        };
+        server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+          type: 'json-value',
+          body: {
+            images: [
+              {
+                url: 'https://api.example.com/image.png',
+                width: 1024,
+                height: 1024,
+                content_type: 'image/png',
+                file_data: '<image file_data>',
+                file_size: 123,
+                file_name: '<image file_name>',
+              },
+            ],
+            ...responseMetaData,
+          },
+        };
+        const model = createBasicModel();
+        const result = await model.doGenerate({
+          prompt,
+          n: 1,
+          providerOptions: {},
+          size: undefined,
+          seed: undefined,
+          aspectRatio: undefined,
+        });
+        expect(result.providerMetadata).toStrictEqual({
+          fal: {
+            images: [
+              {
+                width: 1024,
+                height: 1024,
+                contentType: 'image/png',
+                fileName: '<image file_name>',
+                fileData: '<image file_data>',
+                fileSize: 123,
+                nsfw: true,
+              },
+            ],
+            seed: 123,
+            debug_latents: {
+              url: '<debug_latents url>',
+              content_type: '<debug_latents content_type>',
+              file_name: '<debug_latents file_name>',
+              file_data: '<debug_latents file_data>',
+              file_size: 123,
+            },
+            debug_per_pass_latents: {
+              url: '<debug_per_pass_latents url>',
+              content_type: '<debug_per_pass_latents content_type>',
+              file_name: '<debug_per_pass_latents file_name>',
+              file_data: '<debug_per_pass_latents file_data>',
+              file_size: 456,
+            },
+          },
+        });
+      });
+
+      it('for lcm', async () => {
+        const responseMetaData = {
+          seed: 123,
+          num_inference_steps: 456,
+          nsfw_content_detected: [false],
+        };
+        server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+          type: 'json-value',
+          body: {
+            images: [
+              {
+                url: 'https://api.example.com/image.png',
+                width: 1024,
+                height: 1024,
+              },
+            ],
+            ...responseMetaData,
+          },
+        };
+        const model = createBasicModel();
+        const result = await model.doGenerate({
+          prompt,
+          n: 1,
+          providerOptions: {},
+          size: undefined,
+          seed: undefined,
+          aspectRatio: undefined,
+        });
+        expect(result.providerMetadata).toStrictEqual({
+          fal: {
+            images: [
+              {
+                width: 1024,
+                height: 1024,
+                nsfw: false,
+              },
+            ],
+            seed: 123,
+            num_inference_steps: 456,
+          },
+        });
+      });
+    });
   });
 
   describe('constructor', () => {
@@ -182,23 +305,7 @@ describe('FalImageModel', () => {
 
       expect(model.provider).toBe('fal');
       expect(model.modelId).toBe('stable-diffusion-xl');
-      expect(model.specificationVersion).toBe('v1');
-      expect(model.maxImagesPerCall).toBe(1);
-    });
-
-    it('should use maxImagesPerCall from settings', () => {
-      const model = createBasicModel({
-        settings: {
-          maxImagesPerCall: 4,
-        },
-      });
-
-      expect(model.maxImagesPerCall).toBe(4);
-    });
-
-    it('should default maxImagesPerCall to 1 when not specified', () => {
-      const model = createBasicModel();
-
+      expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

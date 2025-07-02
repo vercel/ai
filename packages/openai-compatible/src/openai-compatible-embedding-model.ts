@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -7,13 +7,14 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   OpenAICompatibleEmbeddingModelId,
-  OpenAICompatibleEmbeddingSettings,
-} from './openai-compatible-embedding-settings';
+  openaiCompatibleEmbeddingProviderOptions,
+} from './openai-compatible-embedding-options';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -38,13 +39,12 @@ Override the parallelism of embedding calls.
 };
 
 export class OpenAICompatibleEmbeddingModel
-  implements EmbeddingModelV1<string>
+  implements EmbeddingModelV2<string>
 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 
   private readonly config: OpenAICompatibleEmbeddingConfig;
-  private readonly settings: OpenAICompatibleEmbeddingSettings;
 
   get provider(): string {
     return this.config.provider;
@@ -60,21 +60,37 @@ export class OpenAICompatibleEmbeddingModel
 
   constructor(
     modelId: OpenAICompatibleEmbeddingModelId,
-    settings: OpenAICompatibleEmbeddingSettings,
     config: OpenAICompatibleEmbeddingConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
+  }
+
+  private get providerOptionsName(): string {
+    return this.config.provider.split('.')[0].trim();
   }
 
   async doEmbed({
     values,
     headers,
     abortSignal,
-  }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
+    providerOptions,
+  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
+    const compatibleOptions = Object.assign(
+      (await parseProviderOptions({
+        provider: 'openai-compatible',
+        providerOptions,
+        schema: openaiCompatibleEmbeddingProviderOptions,
+      })) ?? {},
+      (await parseProviderOptions({
+        provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompatibleEmbeddingProviderOptions,
+      })) ?? {},
+    );
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -84,7 +100,11 @@ export class OpenAICompatibleEmbeddingModel
       });
     }
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/embeddings',
         modelId: this.modelId,
@@ -94,8 +114,8 @@ export class OpenAICompatibleEmbeddingModel
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: this.settings.dimensions,
-        user: this.settings.user,
+        dimensions: compatibleOptions.dimensions,
+        user: compatibleOptions.user,
       },
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
@@ -112,7 +132,7 @@ export class OpenAICompatibleEmbeddingModel
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }

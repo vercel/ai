@@ -5,6 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "env": [
+        "AI_GATEWAY_API_KEY",
         "ANTHROPIC_API_KEY",
         "ASSISTANT_ID",
         "AWS_REGION",
@@ -12,10 +13,10 @@
         "AWS_SECRET_ACCESS_KEY",
         "BASETEN_API_KEY",
         "CEREBRAS_API_KEY",
-        "CLARIFAI_PAT",
         "COHERE_API_KEY",
         "DEEPINFRA_API_KEY",
         "DEEPSEEK_API_KEY",
+        "DEPLOYMENT_ID",
         "ELEVENLABS_API_KEY",
         "FAL_KEY",
         "FAL_API_KEY",
@@ -43,6 +44,9 @@
         "SENTRY_PROJECT",
         "TOGETHER_AI_API_KEY",
         "VERCEL_API_KEY",
+        "VERCEL_ENV",
+        "VERCEL_OIDC_TOKEN",
+        "VERCEL_REGION",
         "VERCEL_URL",
         "XAI_API_KEY"
       ],
@@ -62,6 +66,9 @@
       "dependsOn": ["^build", "build"]
     },
     "test": {
+      "dependsOn": ["^build", "build"]
+    },
+    "test:update": {
       "dependsOn": ["^build", "build"]
     },
     "publint": {
