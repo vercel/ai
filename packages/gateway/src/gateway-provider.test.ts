@@ -159,6 +159,7 @@ describe('GatewayProvider', () => {
         let currentTime = new Date('2024-01-01T00:00:00Z').getTime();
         const provider = createGatewayProvider({
           baseURL: 'https://api.example.com',
+          apiKey: 'test-api-key', // Add API key to avoid OIDC auth flow
           metadataCacheRefreshMillis: 10000, // 10 seconds
           _internal: {
             currentDate: () => new Date(currentTime),
@@ -192,6 +193,7 @@ describe('GatewayProvider', () => {
         let currentTime = new Date('2024-01-01T00:00:00Z').getTime();
         const provider = createGatewayProvider({
           baseURL: 'https://api.example.com',
+          apiKey: 'test-api-key', // Add API key to avoid OIDC auth flow
           _internal: {
             currentDate: () => new Date(currentTime),
           },

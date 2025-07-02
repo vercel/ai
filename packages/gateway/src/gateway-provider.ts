@@ -10,6 +10,7 @@ import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
 } from './gateway-fetch-metadata';
+import { attemptOidcAutoRefresh } from './oidc-auto-refresh';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
@@ -202,6 +203,8 @@ export async function getGatewayAuthToken(
   }
 
   try {
+    await attemptOidcAutoRefresh();
+
     const oidcToken = await getVercelOidcToken();
     return {
       token: oidcToken,
