@@ -69,7 +69,7 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-beta`.
+first argument is the model id, e.g. `grok-3`.
 
 ```ts
 const model = xai('grok-3');
@@ -92,35 +92,13 @@ const { text } = await generateText({
 xAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-### Chat Models
+### Provider Options
 
-xAI chat models also support some model specific provider options that are not part of
-the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in `providerOptions` argument:
-
-```ts
-const model = xai('grok-3');
-
-await generateText({
-  model,
-  providerOptions: {
-    xai: {
-      user: 'test-user', // optional unique user identifier
-    },
-  },
-});
-```
-
-The following optional provider options are available for xAI chat models:
-
-- **user** _string_
-
-  A unique identifier representing your end-user, which can help xAI to
-  monitor and detect abuse.
-
-xAI chat models also support some model specific provider options. You can pass them in `providerOptions` argument:
+xAI chat models support additional provider options that are not part of
+the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = xai('grok-3');
+const model = xai('grok-3-mini');
 
 await generateText({
   model,
@@ -134,11 +112,9 @@ await generateText({
 
 The following optional provider options are available for xAI chat models:
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'low' | 'high'_
 
-  Reasoning effort for reasoning models. Defaults to `medium`. If you use
-  `providerOptions` to set the `reasoningEffort` option, this
-  model setting will be ignored.
+  Reasoning effort for reasoning models. Only supported by `grok-3-mini` and `grok-3-mini-fast` models.
 
 ## Live Search
 
@@ -177,7 +153,6 @@ The following search parameters are available:
 - **mode** _'auto' | 'on' | 'off'_
 
   Search mode preference:
-
   - `'auto'` (default): Model decides whether to search
   - `'on'`: Always enables search
   - `'off'`: Disables search completely
@@ -198,13 +173,13 @@ The following search parameters are available:
 
   Maximum number of search results to consider. Defaults to 20, max 50.
 
-- **sources** _array_
+- **sources** _Array&lt;SearchSource&gt;_
 
-  Array of data sources to search from. Defaults to web and X if not specified.
+  Data sources to search from. Defaults to `["web", "x"]` if not specified.
 
-### Data Sources
+### Search Sources
 
-You can specify which data sources to search from using the `sources` array:
+You can specify different types of data sources for search:
 
 #### Web Search
 
@@ -233,8 +208,8 @@ const result = await generateText({
 #### Web source parameters
 
 - **country** _string_: ISO alpha-2 country code
-- **allowedWebsites** _string[]_: Max 5 allowed websites (cannot be used with `excludedWebsites`)
-- **excludedWebsites** _string[]_: Max 5 excluded websites (cannot be used with `allowedWebsites`)
+- **allowedWebsites** _string[]_: Max 5 allowed websites
+- **excludedWebsites** _string[]_: Max 5 excluded websites
 - **safeSearch** _boolean_: Enable safe search (default: true)
 
 #### X (Twitter) Search
@@ -261,7 +236,7 @@ const result = await generateText({
 
 #### X source parameters
 
-- **xHandles** _string[]_: Array of X/Twitter handles to search
+- **xHandles** _string[]_: Array of X handles to search (without @ symbol)
 
 #### News Search
 
@@ -408,16 +383,24 @@ console.log('Sources:', await result.sources);
 
 ## Model Capabilities
 
-| Model                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `grok-3`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-fast`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-fast`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-2-1212`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-2-vision-1212` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-beta`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-vision-beta`   | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                     | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
+| ------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-3`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-latest`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-fast`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-fast-latest`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-mini`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-latest`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-fast`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-fast-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-2`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-latest`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-1212`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision-latest`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision-1212`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-beta`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-vision-beta`        | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [xAI
@@ -435,7 +418,16 @@ import { xai } from '@ai-sdk/xai';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: xai.image('grok-2-image'),
+  model: xai.imageModel('grok-2-image'),
+  prompt: 'A futuristic cityscape at sunset',
+});
+```
+
+You can also use the deprecated `.image()` method, which works identically:
+
+```ts
+const { image } = await generateImage({
+  model: xai.image('grok-2-image'), // deprecated, use .imageModel() instead
   prompt: 'A futuristic cityscape at sunset',
 });
 ```
@@ -454,7 +446,7 @@ import { xai } from '@ai-sdk/xai';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: xai.image('grok-2-image'),
+  model: xai.imageModel('grok-2-image'),
   prompt: 'A futuristic cityscape at sunset',
   maxImagesPerCall: 5, // Default is 10
   n: 2, // Generate 2 images
