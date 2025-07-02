@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   InferUIMessageStreamPart,
+  DataUIMessageStreamPart,
   isDataUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../ui-message-stream/ui-message-stream-parts';
@@ -471,27 +472,32 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             default: {
               if (isDataUIMessageStreamPart(part)) {
+                // TODO validate against dataPartSchemas
+                const dataPart = part as DataUIMessageStreamPart<
+                  InferUIMessageData<UI_MESSAGE>
+                >;
+
                 // TODO improve type safety
                 const existingPart: any =
-                  part.id != null
+                  dataPart.id != null
                     ? state.message.parts.find(
                         (partArg: any) =>
-                          part.type === partArg.type && part.id === partArg.id,
+                          dataPart.type === partArg.type &&
+                          dataPart.id === partArg.id,
                       )
                     : undefined;
 
                 if (existingPart != null) {
-                  // TODO improve type safety
+                  // TODO validate merged data against dataPartSchemas
                   existingPart.data =
-                    isObject(existingPart.data) && isObject(part.data)
-                      ? mergeObjects(existingPart.data, part.data)
-                      : part.data;
+                    isObject(existingPart.data) && isObject(dataPart.data)
+                      ? mergeObjects(existingPart.data, dataPart.data)
+                      : dataPart.data;
                 } else {
-                  // TODO improve type safety
-                  state.message.parts.push(part as any);
+                  state.message.parts.push(dataPart);
                 }
 
-                onData?.(part as any); // TODO improve type safety
+                onData?.(dataPart);
 
                 write();
               }
