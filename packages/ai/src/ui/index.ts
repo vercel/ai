@@ -2,16 +2,16 @@ export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
   type ChatInit,
+  type ChatOnDataCallback,
+  type ChatOnErrorCallback,
+  type ChatOnFinishCallback,
+  type ChatOnToolCallCallback,
   type ChatRequestOptions,
   type ChatState,
   type ChatStatus,
   type CreateUIMessage,
   type InferUIDataParts,
   type UIDataPartSchemas,
-  type ChatErrorCallback,
-  type ChatToolCallCallback,
-  type ChatDataCallback,
-  type ChatFinishCallback,
 } from './chat';
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
