@@ -4139,6 +4139,86 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('data ui parts (transient part)', () => {
+    let dataCalls: InferUIMessageData<UIMessage>[] = [];
+
+    beforeEach(async () => {
+      dataCalls = [];
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'data-test',
+          data: 'example-data-can-be-anything',
+          transient: true,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+          onData: data => {
+            dataCalls.push(data);
+          },
+        }),
+      });
+    });
+
+    it('should not call the update function with the transient part', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should not have the transient part in the final message state', async () => {
+      expect(state!.message).toMatchInlineSnapshot(`
+        {
+          "id": "msg-123",
+          "metadata": undefined,
+          "parts": [
+            {
+              "type": "step-start",
+            },
+          ],
+          "role": "assistant",
+        }
+      `);
+    });
+
+    it('should call the onData callback with the transient part', async () => {
+      expect(dataCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "data": "example-data-can-be-anything",
+            "transient": true,
+            "type": "data-test",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('data ui parts (single part with id and replacement update)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
