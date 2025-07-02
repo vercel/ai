@@ -60,7 +60,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **apiVersion** _string_
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
-  Defaults to `2024-10-01-preview`.
+  Defaults to `2025-04-01-preview`.
 
 - **baseURL** _string_
 
@@ -283,8 +283,8 @@ The following provider options are available:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
-- **strictSchemas** _boolean_
-  Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
+- **strictJsonSchema** _boolean_
+  Whether to use strict JSON schema validation. Defaults to `false`.
 
 The Azure OpenAI responses provider also returns provider-specific metadata:
 
@@ -431,11 +431,11 @@ const model = azure.embedding('your-embedding-deployment');
 await model.doEmbed({
   providerOptions: {
     azure: {
-      dimensions: 512 // optional, number of dimensions for the embedding
-      user: 'test-user' // optional unique user identifier
-    }
-  }
-})
+      dimensions: 512, // optional, number of dimensions for the embedding
+      user: 'test-user', // optional unique user identifier
+    },
+  },
+});
 ```
 
 The following optional provider options are available for Azure OpenAI embedding models:
