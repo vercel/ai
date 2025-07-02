@@ -2,6 +2,10 @@ export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
   type ChatInit,
+  type ChatOnDataCallback,
+  type ChatOnErrorCallback,
+  type ChatOnFinishCallback,
+  type ChatOnToolCallCallback,
   type ChatRequestOptions,
   type ChatState,
   type ChatStatus,

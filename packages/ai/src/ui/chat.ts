@@ -91,6 +91,22 @@ export interface ChatState<UI_MESSAGE extends UIMessage> {
   snapshot: <T>(thing: T) => T;
 }
 
+export type ChatOnErrorCallback = (error: Error) => void;
+
+export type ChatOnToolCallCallback = ({
+  toolCall,
+}: {
+  toolCall: ToolCall<string, unknown>;
+}) => void | Promise<unknown> | unknown;
+
+export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
+  dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
+) => void;
+
+export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
+  message: UI_MESSAGE;
+}) => void;
+
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
@@ -118,7 +134,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * Callback function to be called when an error is encountered.
    */
-  onError?: (error: Error) => void;
+  onError?: ChatOnErrorCallback;
 
   /**
   Optional callback function that is invoked when a tool call is received.
@@ -127,25 +143,21 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   You can optionally return a result for the tool call,
   either synchronously or asynchronously.
      */
-  onToolCall?: ({
-    toolCall,
-  }: {
-    toolCall: ToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
+  onToolCall?: ChatOnToolCallCallback;
 
   /**
    * Optional callback function that is called when the assistant message is finished streaming.
    *
    * @param message The message that was streamed.
    */
-  onFinish?: (options: { message: UI_MESSAGE }) => void;
+  onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
 
   /**
    * Optional callback function that is called when a data part is received.
    *
    * @param data The data part that was received.
    */
-  onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
+  onData?: ChatOnDataCallback<UI_MESSAGE>;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
