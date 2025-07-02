@@ -59,13 +59,6 @@ Custom headers to include in the requests.
   headers?: Record<string, string>;
 
   /**
-Enable fine-grained tool streaming for reduced latency. This may cause the model to
-return invalid JSON and throw a parsing error with some tool input schemas.
-@see https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming
-     */
-  dangerouslyEnableFineGrainedToolStreaming?: boolean;
-
-  /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
     */
@@ -97,8 +90,6 @@ export function createAnthropic(
     new AnthropicMessagesLanguageModel(modelId, {
       provider: 'anthropic.messages',
       baseURL,
-      dangerouslyEnableFineGrainedToolStreaming:
-        options.dangerouslyEnableFineGrainedToolStreaming,
       headers: getHeaders,
       fetch: options.fetch,
       generateId: options.generateId ?? generateId,
