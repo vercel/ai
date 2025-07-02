@@ -432,9 +432,12 @@ Azure OpenAI embedding models support several additional settings.
 You can pass them as an options argument:
 
 ```ts
-const model = azure.embedding('your-embedding-deployment');
+import { azure } from '@ai-sdk/azure';
+import { embed } from 'ai';
 
-await model.doEmbed({
+const { embedding } = await embed({
+  model: azure.embedding('your-embedding-deployment'),
+  value: 'sunny day at the beach',
   providerOptions: {
     azure: {
       dimensions: 512, // optional, number of dimensions for the embedding
