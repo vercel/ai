@@ -422,6 +422,50 @@ const result = await generateText({
 });
 ```
 
+#### Error Handling
+
+Web search errors are handled differently depending on whether you're using streaming or non-streaming:
+
+**Non-streaming (`generateText`, `generateObject`):**
+Web search errors throw exceptions that you can catch:
+
+```ts
+try {
+  const result = await generateText({
+    model: anthropic('claude-4-opus-20250514'),
+    prompt: 'Search for something',
+    tools: {
+      web_search: webSearchTool,
+    },
+  });
+} catch (error) {
+  if (error.message.includes('Web search failed')) {
+    console.log('Search error:', error.message);
+    // Handle search error appropriately
+  }
+}
+```
+
+**Streaming (`streamText`, `streamObject`):**
+Web search errors are delivered as error parts in the stream:
+
+```ts
+const result = await streamText({
+  model: anthropic('claude-4-opus-20250514'),
+  prompt: 'Search for something',
+  tools: {
+    web_search: webSearchTool,
+  },
+});
+
+for await (const part of result.textStream) {
+  if (part.type === 'error') {
+    console.log('Search error:', part.error);
+    // Handle search error appropriately
+  }
+}
+```
+
 ### PDF support
 
 Anthropic Sonnet `claude-3-5-sonnet-20241022` supports reading PDF files.
