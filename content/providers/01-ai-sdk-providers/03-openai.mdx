@@ -902,9 +902,12 @@ OpenAI embedding models support several additional provider options.
 You can pass them as an options argument:
 
 ```ts
-const model = openai.embedding('text-embedding-3-large');
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
 
-await model.doEmbed({
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-large'),
+  value: 'sunny day at the beach',
   providerOptions: {
     openai: {
       dimensions: 512, // optional, number of dimensions for the embedding
