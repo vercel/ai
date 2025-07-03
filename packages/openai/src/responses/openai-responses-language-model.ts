@@ -696,6 +696,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 url: value.annotation.url,
                 title: value.annotation.title,
               });
+            } else if (isErrorChunk(value)) {
+              controller.enqueue({ type: 'error', error: value });
             }
           },
 
@@ -734,6 +736,14 @@ const textDeltaChunkSchema = z.object({
   type: z.literal('response.output_text.delta'),
   item_id: z.string(),
   delta: z.string(),
+});
+
+const errorChunkSchema = z.object({
+  type: z.literal('error'),
+  code: z.string(),
+  message: z.string(),
+  param: z.string().nullish(),
+  sequence_number: z.number(),
 });
 
 const responseFinishedChunkSchema = z.object({
@@ -863,7 +873,8 @@ const openaiResponsesChunkSchema = z.union([
   responseFunctionCallArgumentsDeltaSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
-  z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
+  errorChunkSchema,
+  z.object({ type: z.string() }).loose(), // fallback for unknown chunks
 ]);
 
 function isTextDeltaChunk(
@@ -914,6 +925,12 @@ function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
+function isErrorChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof errorChunkSchema> {
+  return chunk.type === 'error';
 }
 
 type ResponsesModelConfig = {
