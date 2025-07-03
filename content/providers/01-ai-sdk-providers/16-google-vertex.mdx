@@ -339,7 +339,7 @@ import { generateText, streamText } from 'ai';
 
 // For generateText:
 const { text, reasoning, reasoningDetails } = await generateText({
-  model: vertex('gemini-2.5-flash-preview-04-17'), // Or other supported model via Vertex
+  model: vertex('gemini-2.0-flash-exp'), // Or other supported model via Vertex
   providerOptions: {
     google: {
       // Options are nested under 'google' for Vertex provider
@@ -358,7 +358,7 @@ console.log('Final Text:', text);
 
 // For streamText:
 const result = streamText({
-  model: vertex('gemini-2.5-flash-preview-04-17'), // Or other supported model via Vertex
+  model: vertex('gemini-2.0-flash-exp'), // Or other supported model via Vertex
   providerOptions: {
     google: {
       // Options are nested under 'google' for Vertex provider
@@ -701,7 +701,7 @@ Further configuration can be done using Google Vertex provider options. You can 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { generateImage } from 'ai';
+import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: vertex.image('imagen-3.0-generate-002'),
@@ -741,7 +741,7 @@ Additional information about the images can be retrieved using Google Vertex met
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { generateImage } from 'ai';
+import { experimental_generateImage as generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
   model: vertex.image('imagen-3.0-generate-002'),
