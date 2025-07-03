@@ -33,7 +33,8 @@ describe('GoogleGenerativeAIImageModel', () => {
     }: {
       headers?: Record<string, string>;
     } = {}) {
-      const url = 'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict';
+      const url =
+        'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict';
       server.urls[url].response = {
         type: 'json-value',
         headers,

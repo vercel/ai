@@ -3,7 +3,7 @@ import {
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
-  ImageModelV2, 
+  ImageModelV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,16 +17,13 @@ import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embed
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 
-
 import {
   GoogleGenerativeAIImageSettings,
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 
-
 import { isSupportedFileUrl } from './google-supported-file-url';
-
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
@@ -140,21 +137,18 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
-    const createImageModel = (
-      modelId: GoogleGenerativeAIImageModelId,
-      settings: GoogleGenerativeAIImageSettings = {},
-    ) =>
-      new GoogleGenerativeAIImageModel(modelId, settings, {
-        provider: 'google.generative-ai',
-        baseURL,
-        headers: getHeaders,
-        fetch: options.fetch,
-      });
-  
-  
+  const createImageModel = (
+    modelId: GoogleGenerativeAIImageModelId,
+    settings: GoogleGenerativeAIImageSettings = {},
+  ) =>
+    new GoogleGenerativeAIImageModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   const provider = function (modelId: GoogleGenerativeAIModelId) {
-
     if (new.target) {
       throw new Error(
         'The Google Generative AI model function cannot be called with the new keyword.',

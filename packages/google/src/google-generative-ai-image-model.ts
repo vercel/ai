@@ -138,7 +138,9 @@ export class GoogleGenerativeAIImageModel implements ImageModelV2 {
 
 // minimal version of the schema
 const googleImageResponseSchema = z.object({
-  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).default([]),
+  predictions: z
+    .array(z.object({ bytesBase64Encoded: z.string() }))
+    .default([]),
 });
 
 // Note: For the initial GA launch of Imagen 3, safety filters are not configurable.
