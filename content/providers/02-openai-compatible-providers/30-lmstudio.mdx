@@ -84,7 +84,9 @@ You can create models that call the [LM Studio embeddings API](https://lmstudio.
 using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = lmstudio.textEmbeddingModel('text-embedding-nomic-embed-text-v1.5');
+const model = lmstudio.textEmbeddingModel(
+  'text-embedding-nomic-embed-text-v1.5',
+);
 ```
 
 ### Example - Embedding a Single Value
