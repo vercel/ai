@@ -79,8 +79,8 @@ The following models have been tested with image inputs:
 ## Embedding Models
 
 You can create models that call the [Ollama embeddings API](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-embeddings)
-using the `.textEmbeddingModel()` factory method.
+using the `.embedding()` factory method.
 
 ```ts
-const model = ollama.textEmbeddingModel('nomic-embed-text');
+const model = ollama.embedding('nomic-embed-text');
 ```
