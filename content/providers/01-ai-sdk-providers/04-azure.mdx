@@ -422,10 +422,10 @@ The following optional provider options are available for Azure OpenAI completio
 ## Embedding Models
 
 You can create models that call the Azure OpenAI embeddings API
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = azure.embedding('your-embedding-deployment');
+const model = azure.textEmbeddingModel('your-embedding-deployment');
 ```
 
 Azure OpenAI embedding models support several additional settings.
@@ -436,7 +436,7 @@ import { azure } from '@ai-sdk/azure';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: azure.embedding('your-embedding-deployment'),
+  model: azure.textEmbeddingModel('your-embedding-deployment'),
   value: 'sunny day at the beach',
   providerOptions: {
     azure: {
