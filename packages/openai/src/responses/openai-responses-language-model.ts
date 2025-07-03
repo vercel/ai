@@ -546,6 +546,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     openai: {
                       reasoning: {
+                        id: value.item.id,
                         encryptedContent: value.item.encrypted_content ?? null,
                       },
                     },
@@ -634,6 +635,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     openai: {
                       reasoning: {
+                        id: value.item.id,
                         encryptedContent: value.item.encrypted_content ?? null,
                       },
                     },
