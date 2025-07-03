@@ -115,6 +115,9 @@ Fal offers many models optimized for different use cases. Here are a few popular
 | `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                         |
 | `fal-ai/stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding                                                                                |
 | `fal-ai/hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                        |
+| `fal-ai/flux/dev`                   | FLUX.1 [dev] model for high-quality image generation                                                                                                         |
+| `fal-ai/flux/schnell`               | FLUX.1 [schnell] model optimized for speed                                                                                                                   |
+| `fal-ai/stable-diffusion-3.5-medium` | Medium-sized Stable Diffusion 3.5 model with good balance of quality and speed                                                                               |
 
 Fal models support the following aspect ratios:
 
@@ -153,6 +156,18 @@ await generateImage({
   },
 });
 ```
+
+### Provider Options
+
+Fal image models support flexible provider options through the `providerOptions.fal` object. You can pass any parameters supported by the specific Fal model's API. Common options include:
+
+- **image_url** - Reference image URL for image-to-image generation
+- **strength** - Controls how much the output differs from the input image
+- **guidance_scale** - Controls adherence to the prompt
+- **num_inference_steps** - Number of denoising steps
+- **safety_checker** - Enable/disable safety filtering
+
+Refer to the [Fal AI model documentation](https://fal.ai/models) for model-specific parameters.
 
 ### Advanced Features
 
@@ -204,7 +219,7 @@ The following provider options are available:
 
 - **chunkLevel** _string_
   Level of the chunks to return. Either 'segment' or 'word'.
-  Default value: "word"
+  Default value: "segment"
   Optional.
 
 - **version** _string_
