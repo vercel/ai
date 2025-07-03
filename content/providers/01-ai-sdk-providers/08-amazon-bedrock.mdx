@@ -436,10 +436,10 @@ on how to integrate reasoning into your chatbot.
 ## Embedding Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v1');
+const model = bedrock.textEmbeddingModel('amazon.titan-embed-text-v1');
 ```
 
 Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several additional settings.
@@ -449,7 +449,7 @@ You can pass them as an options argument:
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
-const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
+const model = bedrock.textEmbeddingModel('amazon.titan-embed-text-v2:0');
 
 const { embedding } = await embed({
   model,
