@@ -541,7 +541,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'reasoning') {
                 controller.enqueue({
-                  type: 'reasoning-start' as const,
+                  type: 'reasoning-start',
                   id: value.item.id,
                   providerMetadata: {
                     openai: {
@@ -629,7 +629,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'reasoning') {
                 controller.enqueue({
-                  type: 'reasoning-end' as const,
+                  type: 'reasoning-end',
                   id: value.item.id,
                   providerMetadata: {
                     openai: {
@@ -666,7 +666,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
               controller.enqueue({
-                type: 'reasoning-delta' as const,
+                type: 'reasoning-delta',
                 id: value.item_id,
                 delta: value.delta,
               });

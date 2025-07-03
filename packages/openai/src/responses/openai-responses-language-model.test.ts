@@ -785,7 +785,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           { type: 'unsupported-setting', setting: 'stopSequences' },
         ]);
       });
+    });
 
+    describe('reasoning', () => {
       it('should extract reasoning summary and usage tokens', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
