@@ -3,7 +3,7 @@ import {
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
-  ImageModelV2
+  ImageModelV2, 
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,19 +17,13 @@ import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embed
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 
-import {
-  GoogleGenerativeAIModelId,
-  GoogleGenerativeAISettings,
-} from './google-generative-ai-settings';
+
 import {
   GoogleGenerativeAIImageSettings,
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
-import {
-  GoogleGenerativeAIEmbeddingModelId,
-  GoogleGenerativeAIEmbeddingSettings,
-} from './google-generative-ai-embedding-settings';
+
 
 import { isSupportedFileUrl } from './google-supported-file-url';
 
@@ -146,7 +140,6 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
-<<<<<<< HEAD
     const createImageModel = (
       modelId: GoogleGenerativeAIImageModelId,
       settings: GoogleGenerativeAIImageSettings = {},
@@ -159,26 +152,14 @@ export function createGoogleGenerativeAI(
       });
   
   
-      if (new.target) {
-        throw new Error(
-          'The Google Generative AI model function cannot be called with the new keyword.',
-        );
-      }
-=======
-  const createImageModel = (
-    modelId: GoogleGenerativeAIImageModelId,
-    settings: GoogleGenerativeAIImageSettings = {},
-  ) =>
-    new GoogleGenerativeAIImageModel(modelId, settings, {
-      provider: 'google.generative-ai',
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
->>>>>>> 9bb8d6824 (fix(providers/google) Removed unused generateID from Imagemodel)
 
   const provider = function (modelId: GoogleGenerativeAIModelId) {
 
+    if (new.target) {
+      throw new Error(
+        'The Google Generative AI model function cannot be called with the new keyword.',
+      );
+    }
 
     return createChatModel(modelId);
   };
@@ -190,7 +171,9 @@ export function createGoogleGenerativeAI(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
+  return provider as GoogleGenerativeAIProvider;
 }
 
 /**

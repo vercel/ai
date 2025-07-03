@@ -14,7 +14,17 @@ const model = new GoogleGenerativeAIImageModel(
 );
 
 const server = createTestServer({
-  'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict': {},
+  'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict': {
+    response: {
+      type: 'json-value',
+      body: {
+        predictions: [
+          { bytesBase64Encoded: 'base64-image-1' },
+          { bytesBase64Encoded: 'base64-image-2' },
+        ],
+      },
+    },
+  },
 });
 describe('GoogleGenerativeAIImageModel', () => {
   describe('doGenerate', () => {
@@ -23,9 +33,8 @@ describe('GoogleGenerativeAIImageModel', () => {
     }: {
       headers?: Record<string, string>;
     } = {}) {
-      server.urls[
-        'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict'
-      ].response = {
+      const url = 'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict';
+      server.urls[url].response = {
         type: 'json-value',
         headers,
         body: {
@@ -126,7 +135,7 @@ describe('GoogleGenerativeAIImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -147,7 +156,7 @@ describe('GoogleGenerativeAIImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -172,7 +181,7 @@ describe('GoogleGenerativeAIImageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -297,7 +306,7 @@ describe('GoogleGenerativeAIImageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt }],
         parameters: {
           sampleCount: 2,

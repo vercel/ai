@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -6,8 +6,9 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
+import { getModelPath } from './get-model-path';
 import {
   GoogleGenerativeAIImageModelId,
   GoogleGenerativeAIImageSettings,
@@ -25,8 +26,8 @@ interface GoogleGenerativeAIImageModelConfig {
   };
 }
 
-export class GoogleGenerativeAIImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class GoogleGenerativeAIImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
 
   get maxImagesPerCall(): number {
     // https://ai.google.dev/gemini-api/docs/imagen#imagen-model
@@ -43,19 +44,20 @@ export class GoogleGenerativeAIImageModel implements ImageModelV1 {
     private readonly config: GoogleGenerativeAIImageModelConfig,
   ) {}
 
-  async doGenerate({
-    prompt,
-    n,
-    size,
-    aspectRatio,
-    seed,
-    providerOptions,
-    headers,
-    abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
-  > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+  async doGenerate(
+    options: Parameters<ImageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV2['doGenerate']>>> {
+    const {
+      prompt,
+      n = 1,
+      size = '1024x1024',
+      aspectRatio = '1:1',
+      seed,
+      providerOptions,
+      headers,
+      abortSignal,
+    } = options;
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     if (size != null) {
       warnings.push({
@@ -75,7 +77,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV1 {
       });
     }
 
-    const googleOptions = parseProviderOptions({
+    const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions,
       schema: googleImageProviderOptionsSchema,
@@ -83,16 +85,26 @@ export class GoogleGenerativeAIImageModel implements ImageModelV1 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-    const body = {
-      instances: [{ prompt }],
-      parameters: {
-        sampleCount: n,
-        ...(aspectRatio != null ? { aspectRatio } : {}),
-        ...(googleOptions ?? {}),
-      },
+    const parameters: Record<string, unknown> = {
+      sampleCount: n,
     };
 
-    const { value: response, responseHeaders } = await postJsonToApi({
+    if (aspectRatio != null) {
+      parameters.aspectRatio = aspectRatio;
+    }
+
+    if (googleOptions) {
+      Object.assign(parameters, googleOptions);
+    }
+
+    const body = {
+      instances: [{ prompt }],
+      parameters,
+    };
+
+    const { responseHeaders, value: response } = await postJsonToApi<{
+      predictions: Array<{ bytesBase64Encoded: string }>;
+    }>({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
       headers: combineHeaders(await resolve(this.config.headers), headers),
       body,
@@ -104,11 +116,17 @@ export class GoogleGenerativeAIImageModel implements ImageModelV1 {
       fetch: this.config.fetch,
     });
     return {
-      images:
-        response.predictions?.map(
-          (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
-        ) ?? [],
-      warnings,
+      images: response.predictions.map(
+        (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
+      ),
+      warnings: warnings ?? [],
+      providerMetadata: {
+        google: {
+          images: response.predictions.map(prediction => ({
+            // Add any prediction-specific metadata here
+          })),
+        },
+      },
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -120,7 +138,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV1 {
 
 // minimal version of the schema
 const googleImageResponseSchema = z.object({
-  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).nullish(),
+  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).default([]),
 });
 
 // Note: For the initial GA launch of Imagen 3, safety filters are not configurable.
