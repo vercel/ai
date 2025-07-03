@@ -1637,6 +1637,66 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
     });
+
+    describe('errors', () => {
+      it('should throw an API call error when the response contains an error part', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: {
+              code: 'ERR_SOMETHING',
+              message: 'Something went wrong',
+            },
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-2024-07-18',
+            output: [],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
+            },
+            store: true,
+            temperature: 1,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 345,
+              input_tokens_details: {
+                cached_tokens: 234,
+              },
+              output_tokens: 538,
+              output_tokens_details: {
+                reasoning_tokens: 123,
+              },
+              total_tokens: 572,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        expect(
+          createModel('gpt-4o').doGenerate({
+            prompt: TEST_PROMPT,
+          }),
+        ).rejects.toThrow('Something went wrong');
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -2050,9 +2110,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           includeRawChunks: false,
         });
 
-        expect(
-          await convertReadableStreamToArray(stream),
-        ).toMatchInlineSnapshot(`
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "stream-start",

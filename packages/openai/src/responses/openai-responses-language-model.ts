@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -229,16 +230,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args: body, warnings } = await this.getArgs(options);
+    const url = this.config.url({
+      path: '/responses',
+      modelId: this.modelId,
+    });
 
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: '/responses',
-        modelId: this.modelId,
-      }),
+      url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -246,6 +248,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         z.object({
           id: z.string(),
           created_at: z.number(),
+          error: z
+            .object({
+              code: z.string(),
+              message: z.string(),
+            })
+            .nullish(),
           model: z.string(),
           output: z.array(
             z.discriminatedUnion('type', [
@@ -304,6 +312,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+
+    if (response.error) {
+      throw new APICallError({
+        message: response.error.message,
+        url,
+        requestBodyValues: body,
+        statusCode: 400,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
 
     const content: Array<LanguageModelV2Content> = [];
 
