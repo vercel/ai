@@ -88,11 +88,31 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: groq('qwen-qwq-32b'),
   providerOptions: {
-    groq: { reasoningFormat: 'parsed' },
+    groq: {
+      reasoningFormat: 'parsed',
+      parallelToolCalls: true, // Enable parallel function calling (default: true)
+      user: 'user-123', // Unique identifier for end-user (optional)
+    },
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 ```
+
+The following optional provider options are available for Groq language models:
+
+- **reasoningFormat** _'parsed' | 'raw' | 'hidden'_
+
+  Controls how reasoning is exposed in the generated text. Only supported by reasoning models like `qwen-qwq-32b` and `deepseek-r1-distill-*` models.
+
+  For a complete list of reasoning models and their capabilities, see [Groq's reasoning models documentation](https://console.groq.com/docs/reasoning).
+
+- **parallelToolCalls** _boolean_
+
+  Whether to enable parallel function calling during tool use. Defaults to `true`.
+
+- **user** _string_
+
+  A unique identifier representing your end-user, which can help with monitoring and abuse detection.
 
 <Note>Only Groq reasoning models support the `reasoningFormat` option.</Note>
 
@@ -107,6 +127,57 @@ import { generateText } from 'ai';
 const { text } = await generateText({
   model: groq('gemma2-9b-it'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+### Image Input
+
+Groq's multi-modal models like `meta-llama/llama-4-scout-17b-16e-instruct` support image inputs. You can include images in your messages using either URLs or base64-encoded data:
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What do you see in this image?' },
+        {
+          type: 'image',
+          image: 'https://example.com/image.jpg',
+        },
+      ],
+    },
+  ],
+});
+```
+
+You can also use base64-encoded images:
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
+import { readFileSync } from 'fs';
+
+const imageData = readFileSync('path/to/image.jpg', 'base64');
+
+const { text } = await generateText({
+  model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image in detail.' },
+        {
+          type: 'image',
+          image: `data:image/jpeg;base64,${imageData}`,
+        },
+      ],
+    },
+  ],
 });
 ```
 
@@ -186,5 +257,5 @@ The following provider options are available:
 | Model                        | Transcription       | Duration            | Segments            | Language            |
 | ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `whisper-large-v3`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `whisper-large-v3-turbo`     | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `distil-whisper-large-v3-en` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `whisper-large-v3-turbo`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `distil-whisper-large-v3-en` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
