@@ -3,10 +3,14 @@ import { generateText, UserModelMessage } from 'ai';
 import 'dotenv/config';
 
 async function main() {
+  const query1 = {
+    role: 'user',
+    content:
+      'Analyze the following encrypted data: U2VjcmV0UGFzc3dvcmQxMjM=. What type of encryption is this and what secret does it contain?',
+  } satisfies UserModelMessage;
   const result1 = await generateText({
     model: openai.responses('o3-mini'),
-    prompt:
-      'Analyze the following encrypted data: U2VjcmV0UGFzc3dvcmQxMjM=. What type of encryption is this and what secret does it contain?',
+    prompt: [query1],
     providerOptions: {
       openai: {
         store: false, // No data retention - makes interaction stateless
@@ -28,16 +32,14 @@ async function main() {
   console.log('Request:', JSON.stringify(result1.request, null, 2));
   console.log('Response:', JSON.stringify(result1.response, null, 2));
 
+  const query2 = {
+    role: 'user',
+    content:
+      'Based on your previous analysis, what security recommendations would you make?',
+  } satisfies UserModelMessage;
   const result2 = await generateText({
     model: openai.responses('o3-mini'),
-    prompt: [
-      ...result1.response.messages, // Need to pass all previous messages to the follow-up request
-      {
-        role: 'user',
-        content:
-          'Based on your previous analysis, what security recommendations would you make?',
-      } satisfies UserModelMessage,
-    ],
+    prompt: [query1, ...result1.response.messages, query2],
     providerOptions: {
       openai: {
         store: false, // No data retention - makes interaction stateless
