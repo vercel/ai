@@ -272,7 +272,7 @@ Let’s add a function to generate embeddings. Copy the following code into your
 import { embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const embeddingModel = openai.embedding('text-embedding-ada-002');
+const embeddingModel = openai.textEmbeddingModel('text-embedding-ada-002');
 
 const generateChunks = (input: string): string[] => {
   return input
@@ -643,7 +643,7 @@ import { db } from '../db';
 import { cosineDistance, desc, gt, sql } from 'drizzle-orm';
 import { embeddings } from '../db/schema/embeddings';
 
-const embeddingModel = openai.embedding('text-embedding-ada-002');
+const embeddingModel = openai.textEmbeddingModel('text-embedding-ada-002');
 
 const generateChunks = (input: string): string[] => {
   return input
