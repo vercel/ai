@@ -457,125 +457,14 @@ describe('convertToOpenAIResponsesMessages', () => {
             },
           ]);
 
-          expect(result.warnings).toHaveLength(0);
-        });
-      });
-
-      describe('ID generation', () => {
-        it('should auto-generate ID when not provided', async () => {
-          const result = await convertToOpenAIResponsesMessages({
-            prompt: [
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
               {
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'reasoning',
-                    text: 'Test reasoning without provider options',
-                  },
-                ],
+                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"reasoning":{"id":"reasoning_001"}}}}.",
+                "type": "other",
               },
-            ],
-            systemMessageMode: 'system',
-          });
-
-          expect(result.messages).toHaveLength(1);
-          const reasoningMessage = result
-            .messages[0] as OpenAIResponsesReasoning;
-          expect(reasoningMessage).toMatchObject({
-            type: 'reasoning',
-            id: expect.stringMatching(/^rs_[0-9a-f]{48}$/),
-            encrypted_content: undefined,
-            summary: [
-              {
-                type: 'summary_text',
-                text: 'Test reasoning without provider options',
-              },
-            ],
-          });
-
-          expect(result.warnings).toHaveLength(0);
-        });
-
-        it('should auto-generate ID when null', async () => {
-          const result = await convertToOpenAIResponsesMessages({
-            prompt: [
-              {
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'reasoning',
-                    text: 'Test reasoning with null ID',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: null,
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-            systemMessageMode: 'system',
-          });
-
-          expect(result.messages).toHaveLength(1);
-          const reasoningMessage = result
-            .messages[0] as OpenAIResponsesReasoning;
-          expect(reasoningMessage).toMatchObject({
-            type: 'reasoning',
-            id: expect.stringMatching(/^rs_[0-9a-f]{48}$/),
-            encrypted_content: undefined,
-            summary: [
-              {
-                type: 'summary_text',
-                text: 'Test reasoning with null ID',
-              },
-            ],
-          });
-
-          expect(result.warnings).toHaveLength(0);
-        });
-
-        it('should auto-generate ID when undefined', async () => {
-          const result = await convertToOpenAIResponsesMessages({
-            prompt: [
-              {
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'reasoning',
-                    text: 'Test reasoning with undefined ID',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          // id is intentionally omitted (undefined)
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-            systemMessageMode: 'system',
-          });
-
-          expect(result.messages).toHaveLength(1);
-          const reasoningMessage = result
-            .messages[0] as OpenAIResponsesReasoning;
-          expect(reasoningMessage).toMatchObject({
-            type: 'reasoning',
-            id: expect.stringMatching(/^rs_[0-9a-f]{48}$/),
-            encrypted_content: undefined,
-            summary: [
-              {
-                type: 'summary_text',
-                text: 'Test reasoning with undefined ID',
-              },
-            ],
-          });
-
-          expect(result.warnings).toHaveLength(0);
+            ]
+          `);
         });
       });
 
@@ -773,88 +662,6 @@ describe('convertToOpenAIResponsesMessages', () => {
                 {
                   type: 'summary_text',
                   text: 'Second reasoning block',
-                },
-              ],
-            },
-          ]);
-
-          expect(result.warnings).toHaveLength(0);
-        });
-
-        it('should reset sequence when interrupted by non-reasoning content', async () => {
-          const result = await convertToOpenAIResponsesMessages({
-            prompt: [
-              {
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'reasoning',
-                    text: 'First reasoning step',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
-                      },
-                    },
-                  },
-                  {
-                    type: 'reasoning',
-                    text: 'Second reasoning step (same block)',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
-                      },
-                    },
-                  },
-                  { type: 'text', text: 'Intermediate output' },
-                  {
-                    type: 'reasoning',
-                    text: 'Third reasoning step (new block)',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-            systemMessageMode: 'system',
-          });
-
-          expect(result.messages).toEqual([
-            {
-              type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step',
-                },
-                {
-                  type: 'summary_text',
-                  text: 'Second reasoning step (same block)',
-                },
-              ],
-            },
-            {
-              role: 'assistant',
-              content: [{ type: 'output_text', text: 'Intermediate output' }],
-            },
-            {
-              type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'Third reasoning step (new block)',
                 },
               ],
             },
@@ -1418,124 +1225,6 @@ describe('convertToOpenAIResponsesMessages', () => {
           });
         });
 
-        it('should warn when consecutive parts have mismatched encrypted content', async () => {
-          const result = await convertToOpenAIResponsesMessages({
-            prompt: [
-              {
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'reasoning',
-                    text: 'First reasoning step',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                          encryptedContent: 'encrypted_content_001',
-                        },
-                      },
-                    },
-                  },
-                  {
-                    type: 'reasoning',
-                    text: 'Second reasoning step',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                          encryptedContent: 'encrypted_content_002',
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-            systemMessageMode: 'system',
-          });
-
-          expect(result.messages).toEqual([
-            {
-              type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: 'encrypted_content_001',
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step',
-                },
-              ],
-            },
-          ]);
-
-          expect(result.warnings).toHaveLength(1);
-          expect(result.warnings[0]).toMatchObject({
-            type: 'other',
-            message: expect.stringContaining(
-              'Consecutive reasoning parts with same ID must have matching encrypted content',
-            ),
-          });
-        });
-
-        it('should warn when mixing encrypted and non-encrypted parts', async () => {
-          const result = await convertToOpenAIResponsesMessages({
-            prompt: [
-              {
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'reasoning',
-                    text: 'First reasoning step',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                          encryptedContent: 'encrypted_content_001',
-                        },
-                      },
-                    },
-                  },
-                  {
-                    type: 'reasoning',
-                    text: 'Second reasoning step',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: 'reasoning_001',
-                          // No encryptedContent - should cause mismatch
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-            systemMessageMode: 'system',
-          });
-
-          expect(result.messages).toEqual([
-            {
-              type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: 'encrypted_content_001',
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step',
-                },
-              ],
-            },
-          ]);
-
-          expect(result.warnings).toHaveLength(1);
-          expect(result.warnings[0]).toMatchObject({
-            type: 'other',
-            message: expect.stringContaining(
-              'Consecutive reasoning parts with same ID must have matching encrypted content',
-            ),
-          });
-        });
-
         it('should warn when appending empty text to existing sequence', async () => {
           const result = await convertToOpenAIResponsesMessages({
             prompt: [
@@ -1584,13 +1273,14 @@ describe('convertToOpenAIResponsesMessages', () => {
             },
           ]);
 
-          expect(result.warnings).toHaveLength(1);
-          expect(result.warnings[0]).toMatchObject({
-            type: 'other',
-            message: expect.stringContaining(
-              'Cannot append empty reasoning part to existing reasoning sequence',
-            ),
-          });
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"reasoning":{"id":"reasoning_001"}}}}.",
+                "type": "other",
+              },
+            ]
+          `);
         });
       });
     });

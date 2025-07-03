@@ -27,13 +27,6 @@ export async function convertToOpenAIResponsesMessages({
   const messages: OpenAIResponsesPrompt = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
 
-  const generateReasoningId = createIdGenerator({
-    prefix: 'rs',
-    separator: '_',
-    size: 48,
-    alphabet: '0123456789abcdef',
-  });
-
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
@@ -115,20 +108,11 @@ export async function convertToOpenAIResponsesMessages({
       }
 
       case 'assistant': {
-        // Track reasoning messages within this assistant message by ID.
-        // This allows multiple consecutive reasoning parts with the same ID to be merged into a single reasoning message with combined summaries.
-        let reasoningMessagesInScope: Record<string, OpenAIResponsesReasoning> =
-          {};
+        // multiple consecutive reasoning parts with the same ID need to be merged
+        // into a single reasoning message with combined summaries.
+        const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
 
         for (const part of content) {
-          if (part.type !== 'reasoning') {
-            // Reset reasoning state when encountering non-reasoning content.
-            // This ensures that reasoning parts separated by non-reasoning content are treated as separate reasoning sequences.
-            // This supports alternating patterns like:
-            // reasoning → reasoning → tool-call → tool-result → reasoning → reasoning → reasoning → tool-call → tool-result → ... → text.
-            reasoningMessagesInScope = {};
-          }
-
           switch (part.type) {
             case 'text': {
               messages.push({
@@ -177,46 +161,44 @@ export async function convertToOpenAIResponsesMessages({
                 break;
               }
 
-              const reasoningId =
-                providerOptions?.reasoning?.id ?? generateReasoningId();
-              const existingReasoningMessage =
-                reasoningMessagesInScope[reasoningId];
-              if (existingReasoningMessage === undefined) {
-                const newReasoningMessage = {
-                  type: 'reasoning' as const,
-                  id: reasoningId,
-                  encrypted_content:
-                    providerOptions?.reasoning?.encryptedContent,
-                  summary:
-                    part.text.length > 0
-                      ? [{ type: 'summary_text' as const, text: part.text }]
-                      : [],
-                } satisfies OpenAIResponsesReasoning;
-                reasoningMessagesInScope[reasoningId] = newReasoningMessage;
-                messages.push(newReasoningMessage);
-              } else {
-                if (
-                  existingReasoningMessage.encrypted_content !==
-                  providerOptions?.reasoning?.encryptedContent
-                ) {
-                  warnings.push({
-                    type: 'other',
-                    message: `Consecutive reasoning parts with same ID must have matching encrypted content. Skipping reasoning part: ${JSON.stringify(part)}.`,
-                  });
-                  break;
-                }
+              const reasoningId = providerOptions?.reasoning?.id;
+
+              if (reasoningId != null) {
+                const existingReasoningMessage = reasoningMessages[reasoningId];
+
+                const summaryParts: Array<{
+                  type: 'summary_text';
+                  text: string;
+                }> = [];
+
                 if (part.text.length > 0) {
-                  existingReasoningMessage.summary.push({
-                    type: 'summary_text' as const,
-                    text: part.text,
-                  });
+                  summaryParts.push({ type: 'summary_text', text: part.text });
                 } else {
                   warnings.push({
                     type: 'other',
                     message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
                   });
-                  break;
                 }
+
+                if (existingReasoningMessage === undefined) {
+                  const newReasoningMessage = {
+                    type: 'reasoning',
+                    id: reasoningId,
+                    encrypted_content:
+                      providerOptions?.reasoning?.encryptedContent,
+                    summary: summaryParts,
+                  } satisfies OpenAIResponsesReasoning;
+                  reasoningMessages[reasoningId] = newReasoningMessage;
+                  messages.push(newReasoningMessage);
+                } else {
+                  existingReasoningMessage.summary.push(...summaryParts);
+                }
+              } else {
+                warnings.push({
+                  type: 'other',
+                  message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                });
+                break;
               }
               break;
             }
