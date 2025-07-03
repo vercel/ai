@@ -691,6 +691,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: 'reasoning-delta',
                 id: value.item_id,
                 delta: value.delta,
+                providerMetadata: {
+                  openai: {
+                    reasoning: {
+                      id: value.item_id,
+                      summary_index: value.summary_index,
+                    },
+                  },
+                },
               });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
@@ -881,6 +889,7 @@ const responseAnnotationAddedSchema = z.object({
 const responseReasoningSummaryTextDeltaSchema = z.object({
   type: z.literal('response.reasoning_summary_text.delta'),
   item_id: z.string(),
+  summary_index: z.number(),
   delta: z.string(),
 });
 
