@@ -339,7 +339,7 @@ import { generateText, streamText } from 'ai';
 
 // For generateText:
 const { text, reasoning, reasoningDetails } = await generateText({
-  model: vertex('gemini-2.0-flash-exp'), // Or other supported model via Vertex
+  model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
   providerOptions: {
     google: {
       // Options are nested under 'google' for Vertex provider
@@ -358,7 +358,7 @@ console.log('Final Text:', text);
 
 // For streamText:
 const result = streamText({
-  model: vertex('gemini-2.0-flash-exp'), // Or other supported model via Vertex
+  model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
   providerOptions: {
     google: {
       // Options are nested under 'google' for Vertex provider
