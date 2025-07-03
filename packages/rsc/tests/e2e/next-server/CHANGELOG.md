@@ -4,6 +4,30 @@
 
 ### Patch Changes
 
+- Updated dependencies [143c55b]
+- Updated dependencies [f04ffe4]
+- Updated dependencies [97c35c0]
+- Updated dependencies [fccf75c]
+  - ai@5.0.0-beta.6
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [4f3e637]
+  - ai@5.0.0-beta.5
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [09f41ac]
+  - ai@5.0.0-beta.4
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - ai@5.0.0-beta.3
 
 ## 0.0.1-beta.0

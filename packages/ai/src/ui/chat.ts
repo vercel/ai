@@ -21,6 +21,7 @@ import {
 } from './should-resubmit-messages';
 import {
   isToolUIPart,
+  type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
   type InferUIMessageMetadata,
@@ -90,6 +91,22 @@ export interface ChatState<UI_MESSAGE extends UIMessage> {
   snapshot: <T>(thing: T) => T;
 }
 
+export type ChatOnErrorCallback = (error: Error) => void;
+
+export type ChatOnToolCallCallback = ({
+  toolCall,
+}: {
+  toolCall: ToolCall<string, unknown>;
+}) => void | Promise<unknown> | unknown;
+
+export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
+  dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
+) => void;
+
+export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
+  message: UI_MESSAGE;
+}) => void;
+
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
@@ -117,7 +134,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * Callback function to be called when an error is encountered.
    */
-  onError?: (error: Error) => void;
+  onError?: ChatOnErrorCallback;
 
   /**
   Optional callback function that is invoked when a tool call is received.
@@ -126,18 +143,21 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   You can optionally return a result for the tool call,
   either synchronously or asynchronously.
      */
-  onToolCall?: ({
-    toolCall,
-  }: {
-    toolCall: ToolCall<string, unknown>;
-  }) => void | Promise<unknown> | unknown;
+  onToolCall?: ChatOnToolCallCallback;
 
   /**
    * Optional callback function that is called when the assistant message is finished streaming.
    *
    * @param message The message that was streamed.
    */
-  onFinish?: (options: { message: UI_MESSAGE }) => void;
+  onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
+
+  /**
+   * Optional callback function that is called when a data part is received.
+   *
+   * @param data The data part that was received.
+   */
+  onData?: ChatOnDataCallback<UI_MESSAGE>;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
@@ -158,6 +178,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onError?: ChatInit<UI_MESSAGE>['onError'];
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
+  private onData?: ChatInit<UI_MESSAGE>['onData'];
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -173,6 +194,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onError,
     onToolCall,
     onFinish,
+    onData,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
@@ -186,6 +208,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onError = onError;
     this.onToolCall = onToolCall;
     this.onFinish = onFinish;
+    this.onData = onData;
   }
 
   /**
@@ -299,12 +322,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ...uiMessage,
         id: message.messageId,
         role: uiMessage.role ?? 'user',
+        metadata: message.metadata,
       } as UI_MESSAGE);
     } else {
       this.state.pushMessage({
         ...uiMessage,
         id: uiMessage.id ?? this.generateId(),
         role: uiMessage.role ?? 'user',
+        metadata: message.metadata,
       } as UI_MESSAGE);
     }
 
@@ -493,6 +518,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           onToolCall: this.onToolCall,
+          onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,

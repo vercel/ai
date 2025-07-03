@@ -130,6 +130,7 @@ describe('chat', () => {
         [
           {
             "id": "id-0",
+            "metadata": undefined,
             "parts": [
               {
                 "text": "Hello, world!",
@@ -162,6 +163,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -174,6 +176,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -201,6 +204,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -228,6 +232,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -255,6 +260,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -282,6 +288,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -309,6 +316,212 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        ]
+      `);
+    });
+
+    it('should include the metadata of text message', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatStreamPart({ type: 'start' }),
+          formatStreamPart({ type: 'start-step' }),
+          formatStreamPart({ type: 'text-start', id: 'text-1' }),
+          formatStreamPart({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'Hello, world.',
+          }),
+          formatStreamPart({ type: 'text-end', id: 'text-1' }),
+          formatStreamPart({ type: 'finish-step' }),
+          formatStreamPart({ type: 'finish' }),
+        ],
+      };
+
+      const finishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        onFinish: () => finishPromise.resolve(),
+      });
+
+      chat.sendMessage({
+        text: 'Hello, world!',
+        metadata: { someData: true },
+      });
+
+      await finishPromise.promise;
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
+        `
+        {
+          "id": "123",
+          "messages": [
+            {
+              "id": "id-0",
+              "metadata": {
+                "someData": true,
+              },
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "trigger": "submit-user-message",
+        }
+      `,
+      );
+
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": {
+              "someData": true,
+            },
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "state": "done",
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      expect(chat.history).toMatchInlineSnapshot(`
+        [
+          [],
+          [
+            {
+              "id": "id-0",
+              "metadata": {
+                "someData": true,
+              },
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": {
+                "someData": true,
+              },
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": {
+                "someData": true,
+              },
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "state": "streaming",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": {
+                "someData": true,
+              },
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -420,6 +633,7 @@ describe('chat', () => {
         [
           {
             "id": "id-0",
+            "metadata": undefined,
             "parts": [
               {
                 "text": "Hello, world!",
@@ -474,6 +688,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -486,6 +701,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -513,6 +729,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -540,6 +757,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -567,6 +785,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -594,6 +813,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",
@@ -621,6 +841,7 @@ describe('chat', () => {
           [
             {
               "id": "id-0",
+              "metadata": undefined,
               "parts": [
                 {
                   "text": "Hello, world!",

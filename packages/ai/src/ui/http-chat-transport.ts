@@ -3,9 +3,6 @@ import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-part
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
 
-// use function to allow for mocking in tests:
-const getOriginalFetch = () => fetch;
-
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
     id: string;
@@ -111,7 +108,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   protected credentials?: RequestCredentials;
   protected headers?: Record<string, string> | Headers;
   protected body?: object;
-  protected fetch: FetchFunction;
+  protected fetch?: FetchFunction;
   protected prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
   protected prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 
@@ -120,7 +117,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     credentials,
     headers,
     body,
-    fetch = getOriginalFetch(),
+    fetch,
     prepareSendMessagesRequest,
     prepareReconnectToStreamRequest,
   }: HttpChatTransportInitOptions<UI_MESSAGE>) {
@@ -167,7 +164,10 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
           };
     const credentials = preparedRequest?.credentials ?? this.credentials;
 
-    const response = await this.fetch.call(undefined, api, {
+    // avoid caching globalThis.fetch in case it is patched by other libraries
+    const fetch = this.fetch ?? globalThis.fetch;
+
+    const response = await fetch(api, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -210,7 +210,10 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
         : { ...this.headers, ...options.headers };
     const credentials = preparedRequest?.credentials ?? this.credentials;
 
-    const response = await this.fetch.call(undefined, api, {
+    // avoid caching globalThis.fetch in case it is patched by other libraries
+    const fetch = this.fetch ?? globalThis.fetch;
+
+    const response = await fetch(api, {
       method: 'GET',
       headers,
       credentials,
