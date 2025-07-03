@@ -239,7 +239,8 @@ You can use the `bedrock` provider options to utilize [Amazon Bedrock Guardrails
 
 ```ts
 const result = await generateText({
-  bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  model: bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  prompt: 'Write a story about space exploration.',
   providerOptions: {
     bedrock: {
       guardrailConfig: {
@@ -518,9 +519,29 @@ const { image } = await generateImage({
   prompt: 'A beautiful sunset over a calm ocean',
   size: '512x512',
   seed: 42,
-  providerOptions: { bedrock: { quality: 'premium' } },
+  providerOptions: { 
+    bedrock: { 
+      quality: 'premium',
+      negativeText: 'blurry, low quality',
+      cfgScale: 7.5,
+    } 
+  },
 });
 ```
+
+The following optional provider options are available for Amazon Nova Canvas:
+
+- **quality** _string_
+
+  The quality level for image generation. Accepts `'standard'` or `'premium'`.
+
+- **negativeText** _string_
+
+  Text describing what you don't want in the generated image.
+
+- **cfgScale** _number_
+
+  Controls how closely the generated image adheres to the prompt. Higher values result in images that are more closely aligned to the prompt.
 
 Documentation for additional settings can be found within the [Amazon Bedrock
 User Guide for Amazon Nova
