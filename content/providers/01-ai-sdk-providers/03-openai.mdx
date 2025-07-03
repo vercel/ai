@@ -227,7 +227,8 @@ The following optional provider options are available for OpenAI chat models:
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
-Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available.
+Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available via both the chat and responses APIs. The
+models `codex-mini-latest` and `computer-use-preview` are available only via the [responses API](#responses-models).
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
 
@@ -892,10 +893,10 @@ The following optional provider options are available for OpenAI completion mode
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = openai.embedding('text-embedding-3-large');
+const model = openai.textEmbeddingModel('text-embedding-3-large');
 ```
 
 OpenAI embedding models support several additional provider options.
@@ -906,7 +907,7 @@ import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: openai.embedding('text-embedding-3-large'),
+  model: openai.textEmbeddingModel('text-embedding-3-large'),
   value: 'sunny day at the beach',
   providerOptions: {
     openai: {
