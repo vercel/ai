@@ -1,0 +1,111 @@
+---
+title: GitHub Models
+description: Learn how to use GitHub Models with the AI SDK.
+---
+
+# GitHub Models Provider
+
+The [GitHub Models](https://github.com/features/models) provider gives you access to the GitHub Models catalog of large language models, designed for building modern web applications.
+GitHub Models has support for multiple model families, like [xAI](https://github.com/marketplace?publisher=xAI&type=models), [OpenAI](https://github.com/marketplace?publisher=OpenAI&type=models) and [Meta](https://github.com/marketplace?publisher=Meta&type=models).
+
+To get started, create a [GitHub PAT (personal access token)](https://github.com/settings/tokens).
+
+<Note>
+  If you want to use GitHub Models beyond the [free
+  usage](https://gh.io/models-rate-limits) included in your account, you can
+  choose to opt in to paid usage. For more information, visit the [pricing
+  page](https://gh.io/github-models-pricing).
+</Note>
+
+## Setup
+
+The GitHub Models provider is available via the `@ai-sdk/github-models` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/github-models" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/github-models" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/github-models" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+The GitHub Models provider instance is used to create model instances that call the [GitHub Models Inference API](https://docs.github.com/en/rest/models/inference?apiVersion=2022-11-28#run-an-inference-request).
+The models available with this provider can be [found here](https://github.com/marketplace?type=models).
+
+```ts
+import { githubModels } from '@ai-sdk/github-models';
+```
+
+If you need a customized setup, you can import `createGithubModels` from `@ai-sdk/github-models` and create a provider instance with your settings:
+
+```ts
+import { createGithubModels } from '@ai-sdk/github-models';
+
+const githubModels = createGithubModels({
+  org: 'my-org',
+});
+```
+
+You can use the following optional settings to customize the GitHub Models provider instance:
+
+- **org** _string_
+
+  Set the organization that should be used to attribute inference.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. The default prefix is `https://models.github.ai/inference`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. Either a
+  GitHub PAT [_(Personal Access Token)_](https://github.com/settings/tokens), or FGT [_(Fine-Grained Token)_](https://github.com/settings/personal-access-tokens) with the `read:models` scope.
+  It defaults to the `GITHUB_TOKEN` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Language Models
+
+You can create language models using a provider instance. The first argument is the model ID, for example:
+
+```ts
+import { githubModels } from '@ai-sdk/github-models';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: githubModels('meta/meta-llama-3.1-8b-instruct'),
+  prompt: 'I want 100 words on how to inflate a balloon.',
+});
+```
+
+### Model Capabilities
+
+| Model                       | Text Generation     | Tool Usage          | Tool Streaming      |
+| --------------------------- | ------------------- | ------------------- | ------------------- |
+| `openai/gpt-4.1`            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-4o`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek/deepseek-v3-0324` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `xai/grok-3`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `microsoft/phi-4`           | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+<Note>
+  The table above lists popular models. Please see [GitHub
+  Models](https://github.com/marketplace?type=models) for a full list of
+  available models. You can also pass any available model ID as a string if
+  needed.
+</Note>
