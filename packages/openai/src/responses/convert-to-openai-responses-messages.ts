@@ -105,8 +105,6 @@ export async function convertToOpenAIResponsesMessages({
       }
 
       case 'assistant': {
-        // multiple consecutive reasoning parts with the same ID need to be merged
-        // into a single reasoning message with combined summaries.
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
 
         for (const part of content) {
@@ -159,7 +157,7 @@ export async function convertToOpenAIResponsesMessages({
 
                 if (part.text.length > 0) {
                   summaryParts.push({ type: 'summary_text', text: part.text });
-                } else {
+                } else if (existingReasoningMessage !== undefined) {
                   warnings.push({
                     type: 'other',
                     message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
