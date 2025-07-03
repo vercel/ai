@@ -13,14 +13,13 @@ Use of LangChain's open-source frameworks is not necessary.
 <Note>
   A version of this guide is also available in the [LangSmith
   documentation](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_with_vercel_ai_sdk).
-  If you are using an older version of the `langsmith` client, see the legacy guide linked from that page.
+  If you are using an older version of the `langsmith` client, see the legacy
+  guide linked from that page.
 </Note>
 
 ## Setup
 
-<Note>
-  The steps in this guide assume you are using `langsmith>=0.3.37.`.
-</Note>
+<Note>The steps in this guide assume you are using `langsmith>=0.3.37.`.</Note>
 
 Install an [AI SDK model provider](/providers/ai-sdk-providers) and the [LangSmith client SDK](https://npmjs.com/package/langsmith).
 The code snippets below will use the [AI SDK's OpenAI provider](/providers/ai-sdk-providers/openai), but you can use any [other supported provider](/providers/ai-sdk-providers/) as well.
@@ -41,13 +40,22 @@ You will also need to install the following OpenTelemetry packages:
 
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
-    <Snippet text="pnpm add @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks" dark />
+    <Snippet
+      text="pnpm add @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks"
+      dark
+    />
   </Tab>
   <Tab>
-    <Snippet text="npm install @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks" dark />
+    <Snippet
+      text="npm install @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks"
+      dark
+    />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks" dark />
+    <Snippet
+      text="yarn add @opentelemetry/sdk-trace-base @opentelemetry/exporter-trace-otlp-proto @opentelemetry/context-async-hooks"
+      dark
+    />
   </Tab>
 </Tabs>
 
@@ -66,7 +74,7 @@ export OPENAI_API_KEY=<your-openai-api-key> # The examples use OpenAI (replace w
 To start tracing, you will need to import and call the `initializeOTEL` method at the start of your code:
 
 ```ts
-import { initializeOTEL } from "langsmith/experimental/otel/setup";
+import { initializeOTEL } from 'langsmith/experimental/otel/setup';
 
 const { DEFAULT_LANGSMITH_SPAN_PROCESSOR } = initializeOTEL();
 ```
@@ -74,23 +82,25 @@ const { DEFAULT_LANGSMITH_SPAN_PROCESSOR } = initializeOTEL();
 Afterwards, add the `experimental_telemetry` argument to your AI SDK calls that you want to trace.
 
 <Note>
-Do not forget to call `await DEFAULT_LANGSMITH_SPAN_PROCESSOR.shutdown()` or `.forceFlush()` before your application shuts down in order to flush any remaining traces to LangSmith.
+  Do not forget to call `await DEFAULT_LANGSMITH_SPAN_PROCESSOR.shutdown()` or
+  `.forceFlush()` before your application shuts down in order to flush any
+  remaining traces to LangSmith.
 </Note>
 
 ```ts highlight="14"
-import { initializeOTEL } from "langsmith/experimental/otel/setup";
+import { initializeOTEL } from 'langsmith/experimental/otel/setup';
 
 const { DEFAULT_LANGSMITH_SPAN_PROCESSOR } = initializeOTEL();
 
-import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 let result;
 
 try {
   result = await generateText({
-    model: openai("gpt-4.1-nano"),
-    prompt: "Write a vegetarian lasagna recipe for 4 people.",
+    model: openai('gpt-4.1-nano'),
+    prompt: 'Write a vegetarian lasagna recipe for 4 people.',
     experimental_telemetry: { isEnabled: true },
   });
 } finally {
@@ -103,27 +113,27 @@ You should see a trace in your LangSmith dashboard [like this one](https://smith
 You can also trace runs with tool calls:
 
 ```ts
-import { generateText, tool } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 await generateText({
-  model: openai("gpt-4.1-nano"),
+  model: openai('gpt-4.1-nano'),
   messages: [
     {
-      role: "user",
-      content: "What are my orders and where are they? My user ID is 123",
+      role: 'user',
+      content: 'What are my orders and where are they? My user ID is 123',
     },
   ],
   tools: {
     listOrders: tool({
-      description: "list all orders",
+      description: 'list all orders',
       parameters: z.object({ userId: z.string() }),
       execute: async ({ userId }) =>
         `User ${userId} has the following orders: 1`,
     }),
     viewTrackingInformation: tool({
-      description: "view tracking information for a specific order",
+      description: 'view tracking information for a specific order',
       parameters: z.object({ orderId: z.string() }),
       execute: async ({ orderId }) =>
         `Here is the tracking information for ${orderId}`,
@@ -145,33 +155,33 @@ that you pass into each `traceable`, then call `client.awaitPendingTraceBatches(
 to manually call `shutdown()` or `forceFlush()` on the `DEFAULT_LANGSMITH_SPAN_PROCESSOR`. Here's an example:
 
 ```ts highlight="40"
-import { initializeOTEL } from "langsmith/experimental/otel/setup";
+import { initializeOTEL } from 'langsmith/experimental/otel/setup';
 
 initializeOTEL();
 
-import { Client } from "langsmith";
-import { traceable } from "langsmith/traceable";
-import { generateText, tool } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
+import { Client } from 'langsmith';
+import { traceable } from 'langsmith/traceable';
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 const client = new Client();
 
 const wrappedText = traceable(
   async (content: string) => {
     const { text } = await generateText({
-      model: openai("gpt-4.1-nano"),
-      messages: [{ role: "user", content }],
+      model: openai('gpt-4.1-nano'),
+      messages: [{ role: 'user', content }],
       tools: {
         listOrders: tool({
-          description: "list all orders",
+          description: 'list all orders',
           parameters: z.object({ userId: z.string() }),
           execute: async ({ userId }) => {
             const getOrderNumber = traceable(
               async () => {
-                return "1234";
+                return '1234';
               },
-              { name: "getOrderNumber" }
+              { name: 'getOrderNumber' },
             );
             const orderNumber = await getOrderNumber();
             return `User ${userId} has the following order: ${orderNumber}`;
@@ -186,13 +196,13 @@ const wrappedText = traceable(
 
     return { text };
   },
-  { name: "parentTraceable", client }
+  { name: 'parentTraceable', client },
 );
 
 let result;
 
 try {
-  result = await wrappedText("What are my orders?");
+  result = await wrappedText('What are my orders?');
 } finally {
   await client.awaitPendingTraceBatches();
 }
