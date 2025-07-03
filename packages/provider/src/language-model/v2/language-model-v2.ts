@@ -134,4 +134,20 @@ Response headers.
       headers?: SharedV2Headers;
     };
   }>;
+
+  /**
+Optional function to determine the index for reasoning parts within a reasoning sequence.
+This allows providers to handle multiple reasoning parts that share the same ID by 
+returning different indices based on provider metadata (e.g., summary_index).
+If not provided, the default implementation always returns 0.
+
+@param options - The options for determining the reasoning part index.
+@param options.id - The ID of the reasoning part.
+@param options.providerMetadata - Optional provider metadata that may contain indexing information.
+@returns The array index where this reasoning part should be stored (0-based).
+   */
+  getReasoningPartIndex?: (options: {
+    id: string;
+    providerMetadata?: SharedV2ProviderMetadata;
+  }) => number;
 };
