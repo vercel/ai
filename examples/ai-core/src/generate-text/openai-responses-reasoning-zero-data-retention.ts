@@ -25,12 +25,21 @@ async function main() {
   console.log('Finish reason:', result1.finishReason);
   console.log('Usage:', result1.usage);
   console.log();
-  console.log('Request:', JSON.stringify(result1.request, null, 2));
-  console.log('Response:', JSON.stringify(result1.response, null, 2));
+  console.log('Request body:', JSON.stringify(result1.request.body, null, 2));
+  console.log('Response body:', JSON.stringify(result1.response.body, null, 2));
 
   const result2 = await generateText({
     model: openai.responses('o3-mini'),
     prompt: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Analyze the following encrypted data: U2VjcmV0UGFzc3dvcmQxMjM=. What type of encryption is this and what secret does it contain?',
+          },
+        ],
+      },
       ...result1.response.messages, // Need to pass all previous messages to the follow-up request
       {
         role: 'user',
@@ -57,8 +66,8 @@ async function main() {
   console.log('Finish reason:', result2.finishReason);
   console.log('Usage:', result2.usage);
   console.log();
-  console.log('Request:', JSON.stringify(result2.request, null, 2));
-  console.log('Response:', JSON.stringify(result2.response, null, 2));
+  console.log('Request body:', JSON.stringify(result2.request.body, null, 2));
+  console.log('Response body:', JSON.stringify(result2.response.body, null, 2));
 }
 
 main().catch(console.error);
