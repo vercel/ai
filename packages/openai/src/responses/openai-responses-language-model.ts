@@ -311,14 +311,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     for (const part of response.output) {
       switch (part.type) {
         case 'reasoning': {
-          const summaryTexts = [
-            ...part.summary.map(summary => summary.text),
-            ...(part.summary.length === 0 ? [''] : []),
-          ];
-          summaryTexts.forEach(summaryText => {
-            const newReasoning = {
+          // when there are no summary parts, we need to add an empty reasoning part:
+          if (part.summary.length === 0) {
+            part.summary.push({ type: 'summary_text', text: '' });
+          }
+
+          for (const summary of part.summary) {
+            content.push({
               type: 'reasoning' as const,
-              text: summaryText,
+              text: summary.text,
               providerMetadata: {
                 openai: {
                   reasoning: {
@@ -327,9 +328,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 },
               },
-            };
-            content.push(newReasoning);
-          });
+            });
+          }
           break;
         }
 
