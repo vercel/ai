@@ -3,6 +3,7 @@ import {
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
+  ImageModelV2
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -20,7 +21,6 @@ import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
-import { ImageModelV2 } from '@ai-sdk/provider';
 import {
   GoogleGenerativeAIImageSettings,
   GoogleGenerativeAIImageModelId,
@@ -155,9 +155,6 @@ export function createGoogleGenerativeAI(
         baseURL,
         headers: getHeaders,
         fetch: options.fetch,
-        // Note: generateId is included in your earlier example but not in the embedding model
-        // Check if it's needed based on other models
-        generateId: options.generateId ?? generateId,
       });
   
   
