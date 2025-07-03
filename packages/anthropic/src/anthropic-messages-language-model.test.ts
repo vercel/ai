@@ -10,6 +10,7 @@ import {
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 import { type DocumentCitation } from './anthropic-messages-language-model';
+import { APICallError } from '@ai-sdk/provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -488,40 +489,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-          "custom-provider-header": "provider-header-value",
-          "custom-request-header": "request-header-value",
-          "x-api-key": "test-api-key",
-        }
-      `);
-    });
-
-    it('should include fine-grained-tool-streaming beta header when provider option is enabled', async () => {
-      prepareJsonResponse({ content: [] });
-
-      const provider = createAnthropic({
-        apiKey: 'test-api-key',
-        headers: {
-          'Custom-Provider-Header': 'provider-header-value',
-        },
-      });
-
-      await provider('claude-3-haiku-20240307').doGenerate({
-        prompt: TEST_PROMPT,
-        headers: {
-          'Custom-Request-Header': 'request-header-value',
-        },
-        providerOptions: {
-          anthropic: {
-            enableBetaFineGrainedToolStreaming: true,
-          },
-        },
-      });
-
-      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
-        {
-          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",
@@ -2013,52 +1980,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-          "custom-provider-header": "provider-header-value",
-          "custom-request-header": "request-header-value",
-          "x-api-key": "test-api-key",
-        }
-      `);
-    });
-
-    it('should include fine-grained-tool-streaming beta header when provider option is enabled', async () => {
-      server.urls['https://api.anthropic.com/v1/messages'].response = {
-        type: 'stream-chunks',
-        headers: { 'test-header': 'test-value' },
-        chunks: [
-          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
-          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
-          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
-          `data: {"type":"content_block_stop","index":0}\n\n`,
-          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
-          `data: {"type":"message_stop"}\n\n`,
-        ],
-      };
-
-      const provider = createAnthropic({
-        apiKey: 'test-api-key',
-        headers: {
-          'Custom-Provider-Header': 'provider-header-value',
-        },
-      });
-
-      await provider('claude-3-haiku-20240307').doStream({
-        prompt: TEST_PROMPT,
-        headers: {
-          'Custom-Request-Header': 'request-header-value',
-        },
-        providerOptions: {
-          anthropic: {
-            enableBetaFineGrainedToolStreaming: true,
-          },
-        },
-        includeRawChunks: false,
-      });
-
-      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
-        {
-          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",

@@ -112,15 +112,15 @@ function createCitationSource(
   const providerMetadata =
     citation.type === 'page_location'
       ? {
-        citedText: citation.cited_text,
-        startPageNumber: citation.start_page_number,
-        endPageNumber: citation.end_page_number,
-      }
+          citedText: citation.cited_text,
+          startPageNumber: citation.start_page_number,
+          endPageNumber: citation.end_page_number,
+        }
       : {
-        citedText: citation.cited_text,
-        startCharIndex: citation.start_char_index,
-        endCharIndex: citation.end_char_index,
-      };
+          citedText: citation.cited_text,
+          startCharIndex: citation.start_char_index,
+          endCharIndex: citation.end_char_index,
+        };
 
   return {
     type: 'source' as const,
@@ -236,11 +236,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' && responseFormat.schema != null
         ? {
-          type: 'function',
-          name: 'json',
-          description: 'Respond with a JSON object.',
-          inputSchema: responseFormat.schema,
-        }
+            type: 'function',
+            name: 'json',
+            description: 'Respond with a JSON object.',
+            inputSchema: responseFormat.schema,
+          }
         : undefined;
 
     const anthropicOptions = await parseProviderOptions({
@@ -326,9 +326,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     } = prepareTools(
       jsonResponseTool != null
         ? {
-          tools: [jsonResponseTool],
-          toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
-        }
+            tools: [jsonResponseTool],
+            toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
+          }
         : { tools: tools ?? [], toolChoice },
     );
 
@@ -339,10 +339,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         tool_choice: anthropicToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
-      betas: new Set([
-        ...messagesBetas,
-        ...toolsBetas,
-      ]),
+      betas: new Set([...messagesBetas, ...toolsBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
     };
   }
@@ -494,15 +491,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             // when a json response tool is used, the tool call becomes the text:
             usesJsonResponseTool
               ? {
-                type: 'text',
-                text: JSON.stringify(part.input),
-              }
+                  type: 'text',
+                  text: JSON.stringify(part.input),
+                }
               : {
-                type: 'tool-call',
-                toolCallId: part.id,
-                toolName: part.name,
-                input: JSON.stringify(part.input),
-              },
+                  type: 'tool-call',
+                  toolCallId: part.id,
+                  toolName: part.name,
+                  input: JSON.stringify(part.input),
+                },
           );
 
           break;
@@ -630,12 +627,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const contentBlocks: Record<
       number,
       | {
-        type: 'tool-call';
-        toolCallId: string;
-        toolName: string;
-        input: string;
-        providerExecuted?: boolean;
-      }
+          type: 'tool-call';
+          toolCallId: string;
+          toolName: string;
+          input: string;
+          providerExecuted?: boolean;
+        }
       | { type: 'text' | 'reasoning' }
     > = {};
 
@@ -721,20 +718,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     contentBlocks[value.index] = usesJsonResponseTool
                       ? { type: 'text' }
                       : {
-                        type: 'tool-call',
-                        toolCallId: value.content_block.id,
-                        toolName: value.content_block.name,
-                        input: '',
-                      };
+                          type: 'tool-call',
+                          toolCallId: value.content_block.id,
+                          toolName: value.content_block.name,
+                          input: '',
+                        };
 
                     controller.enqueue(
                       usesJsonResponseTool
                         ? { type: 'text-start', id: String(value.index) }
                         : {
-                          type: 'tool-input-start',
-                          id: value.content_block.id,
-                          toolName: value.content_block.name,
-                        },
+                            type: 'tool-input-start',
+                            id: value.content_block.id,
+                            toolName: value.content_block.name,
+                          },
                     );
                     return;
                   }
