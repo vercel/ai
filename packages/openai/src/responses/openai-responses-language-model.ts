@@ -172,6 +172,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           details: 'topP is not supported for reasoning models',
         });
       }
+    } else {
+      if (openaiOptions?.reasoningEffort != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'reasoningEffort',
+          details: 'reasoningEffort is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningSummary != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'reasoningSummary',
+          details: 'reasoningSummary is not supported for non-reasoning models',
+        });
+      }
     }
 
     // Validate flex processing support
@@ -877,7 +893,11 @@ type ResponsesModelConfig = {
 
 function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   // o series reasoning models:
-  if (modelId.startsWith('o')) {
+  if (
+    modelId.startsWith('o') ||
+    modelId.startsWith('codex-') ||
+    modelId.startsWith('computer-use')
+  ) {
     if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
       return {
         isReasoningModel: true,
