@@ -2,4 +2,4 @@
 '@ai-sdk/openai': patch
 ---
 
-Add full reasoning support for OpenAI responses API
+feat (provider/openai): add support for encrypted_reasoning to responses api
