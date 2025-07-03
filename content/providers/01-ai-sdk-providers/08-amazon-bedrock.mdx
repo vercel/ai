@@ -524,12 +524,12 @@ const { image } = await generateImage({
   prompt: 'A beautiful sunset over a calm ocean',
   size: '512x512',
   seed: 42,
-  providerOptions: { 
-    bedrock: { 
+  providerOptions: {
+    bedrock: {
       quality: 'premium',
       negativeText: 'blurry, low quality',
       cfgScale: 7.5,
-    } 
+    },
   },
 });
 ```
