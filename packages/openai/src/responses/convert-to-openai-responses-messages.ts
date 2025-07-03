@@ -157,10 +157,7 @@ export async function convertToOpenAIResponsesMessages({
 
                 if (part.text.length > 0) {
                   summaryParts.push({ type: 'summary_text', text: part.text });
-                } else if (
-                  part.text.length === 0 &&
-                  existingReasoningMessage !== undefined
-                ) {
+                } else if (existingReasoningMessage !== undefined) {
                   warnings.push({
                     type: 'other',
                     message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
