@@ -88,7 +88,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: groq('qwen-qwq-32b'),
   providerOptions: {
-    groq: { 
+    groq: {
       reasoningFormat: 'parsed',
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
