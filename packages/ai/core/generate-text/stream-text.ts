@@ -622,14 +622,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       }
     > = {};
 
+    let activeReasoningStartProviderMetadata: Record<
+      string,
+      ProviderMetadata | undefined
+    > = {};
+
     let activeReasoningContent: Record<
       string,
-      {
-        type: 'reasoning';
-        text: string;
-        providerMetadata: ProviderMetadata | undefined;
-      }
+      | Array<{
+          type: 'reasoning';
+          text: string;
+          providerMetadata: ProviderMetadata | undefined;
+        }>
+      | undefined
     > = {};
+
+    const getReasoningPartIndex = model.getReasoningPartIndex ?? (() => 0);
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
@@ -690,13 +698,28 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'reasoning-start') {
-          activeReasoningContent[part.id] = {
-            type: 'reasoning',
+          const activeReasoning = activeReasoningContent[part.id];
+
+          if (activeReasoning != null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `reasoning part ${part.id} already started`,
+              },
+              partialOutput: undefined,
+            });
+            return;
+          }
+
+          const reasoningPart = {
+            type: 'reasoning' as const,
             text: '',
             providerMetadata: part.providerMetadata,
           };
 
-          recordedContent.push(activeReasoningContent[part.id]);
+          activeReasoningStartProviderMetadata[part.id] = part.providerMetadata;
+          activeReasoningContent[part.id] = [reasoningPart];
+          recordedContent.push(reasoningPart);
         }
 
         if (part.type === 'reasoning') {
@@ -713,9 +736,28 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             return;
           }
 
-          activeReasoning.text += part.text;
-          activeReasoning.providerMetadata =
-            part.providerMetadata ?? activeReasoning.providerMetadata;
+          const reasoningPartIndex = getReasoningPartIndex({
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          let reasoningPart = activeReasoning.at(reasoningPartIndex);
+
+          if (reasoningPart != null) {
+            reasoningPart.text += part.text;
+            reasoningPart.providerMetadata =
+              part.providerMetadata ?? reasoningPart.providerMetadata;
+          } else {
+            reasoningPart = {
+              type: 'reasoning' as const,
+              text: part.text,
+              providerMetadata:
+                part.providerMetadata ??
+                activeReasoningStartProviderMetadata[part.id],
+            };
+
+            activeReasoning[reasoningPartIndex] = reasoningPart;
+            recordedContent.push(reasoningPart);
+          }
         }
 
         if (part.type === 'reasoning-end') {
@@ -732,8 +774,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             return;
           }
 
-          activeReasoning.providerMetadata =
-            part.providerMetadata ?? activeReasoning.providerMetadata;
+          for (const reasoningPart of activeReasoning) {
+            reasoningPart.providerMetadata =
+              part.providerMetadata ?? reasoningPart.providerMetadata;
+          }
 
           delete activeReasoningContent[part.id];
         }

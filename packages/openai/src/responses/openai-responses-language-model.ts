@@ -747,6 +747,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       response: { headers: responseHeaders },
     };
   }
+
+  getReasoningPartIndex = (options: {
+    id: string;
+    providerMetadata?: any;
+  }): number => {
+    // For OpenAI, use the summary_index from provider metadata to determine array index
+    // This allows multiple reasoning parts with the same ID to be stored at different indices
+    const summaryIndex =
+      options.providerMetadata?.openai?.reasoning?.summary_index;
+    return summaryIndex ?? 0;
+  };
 }
 
 const usageSchema = z.object({
