@@ -2544,7 +2544,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           stream: true,
         });
       });
-
     });
 
     describe('server-side tools', () => {
