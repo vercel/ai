@@ -1,5 +1,4 @@
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
-import { OpenAIResponsesReasoning } from './openai-responses-api-types';
 
 describe('convertToOpenAIResponsesMessages', () => {
   describe('system messages', () => {
@@ -1191,40 +1190,6 @@ describe('convertToOpenAIResponsesMessages', () => {
       });
 
       describe('error handling', () => {
-        it('should warn when provider options parsing fails', async () => {
-          const result = await convertToOpenAIResponsesMessages({
-            prompt: [
-              {
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'reasoning',
-                    text: 'Test reasoning with invalid provider options',
-                    providerOptions: {
-                      openai: {
-                        reasoning: {
-                          id: 123, // Invalid - should be string
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-            systemMessageMode: 'system',
-          });
-
-          expect(result.messages).toHaveLength(0);
-
-          expect(result.warnings).toHaveLength(1);
-          expect(result.warnings[0]).toMatchObject({
-            type: 'other',
-            message: expect.stringContaining(
-              'Failed to parse provider options',
-            ),
-          });
-        });
-
         it('should warn when appending empty text to existing sequence', async () => {
           const result = await convertToOpenAIResponsesMessages({
             prompt: [

@@ -4,10 +4,7 @@ import {
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  createIdGenerator,
-  parseProviderOptions,
-} from '@ai-sdk/provider-utils';
+import { parseProviderOptions } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   OpenAIResponsesPrompt,
@@ -144,22 +141,11 @@ export async function convertToOpenAIResponsesMessages({
             }
 
             case 'reasoning': {
-              let providerOptions:
-                | OpenAIResponsesReasoningProviderOptions
-                | undefined;
-              try {
-                providerOptions = await parseProviderOptions({
-                  provider: 'openai',
-                  providerOptions: part.providerOptions,
-                  schema: openaiResponsesReasoningProviderOptionsSchema,
-                });
-              } catch (error) {
-                warnings.push({
-                  type: 'other',
-                  message: `Failed to parse provider options: ${error instanceof InvalidArgumentError ? error.cause : 'Unknown error'}. Skipping reasoning part: ${JSON.stringify(part)}.`,
-                });
-                break;
-              }
+              const providerOptions = await parseProviderOptions({
+                provider: 'openai',
+                providerOptions: part.providerOptions,
+                schema: openaiResponsesReasoningProviderOptionsSchema,
+              });
 
               const reasoningId = providerOptions?.reasoning?.id;
 
@@ -181,15 +167,14 @@ export async function convertToOpenAIResponsesMessages({
                 }
 
                 if (existingReasoningMessage === undefined) {
-                  const newReasoningMessage = {
+                  reasoningMessages[reasoningId] = {
                     type: 'reasoning',
                     id: reasoningId,
                     encrypted_content:
                       providerOptions?.reasoning?.encryptedContent,
                     summary: summaryParts,
-                  } satisfies OpenAIResponsesReasoning;
-                  reasoningMessages[reasoningId] = newReasoningMessage;
-                  messages.push(newReasoningMessage);
+                  };
+                  messages.push(reasoningMessages[reasoningId]);
                 } else {
                   existingReasoningMessage.summary.push(...summaryParts);
                 }
@@ -198,7 +183,6 @@ export async function convertToOpenAIResponsesMessages({
                   type: 'other',
                   message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
                 });
-                break;
               }
               break;
             }
