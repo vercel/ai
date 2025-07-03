@@ -1499,6 +1499,68 @@ describe('generateText', () => {
       `);
     });
 
+    it('should record error on tool call', async () => {
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              throw new Error('Tool execution failed');
+            },
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        _internal: {
+          generateId: () => 'test-id',
+          currentDate: () => new Date(0),
+        },
+      });
+
+      expect(tracer.jsonSpans).toHaveLength(3);
+
+      // Check that we have the expected spans
+      expect(tracer.jsonSpans[0].name).toBe('ai.generateText');
+      expect(tracer.jsonSpans[1].name).toBe('ai.generateText.doGenerate');
+      expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
+
+      // Check that the tool call span has error status
+      const toolCallSpan = tracer.jsonSpans[2];
+      expect(toolCallSpan.status).toEqual({
+        code: 2,
+        message: 'Tool execution failed',
+      });
+
+      expect(toolCallSpan.events).toHaveLength(1);
+      const exceptionEvent = toolCallSpan.events[0];
+      expect(exceptionEvent.name).toBe('exception');
+      expect(exceptionEvent.attributes).toMatchObject({
+        'exception.message': 'Tool execution failed',
+        'exception.name': 'Error',
+      });
+      expect(exceptionEvent.attributes?.['exception.stack']).toContain(
+        'Tool execution failed',
+      );
+      expect(exceptionEvent.time).toEqual([0, 0]);
+    });
+
     it('should not record telemetry inputs / outputs when disabled', async () => {
       await generateText({
         model: new MockLanguageModelV2({

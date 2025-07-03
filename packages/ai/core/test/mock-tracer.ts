@@ -2,9 +2,12 @@ import {
   AttributeValue,
   Attributes,
   Context,
+  Exception,
   Span,
   SpanContext,
   SpanOptions,
+  SpanStatus,
+  TimeInput,
   Tracer,
 } from '@opentelemetry/api';
 
@@ -16,6 +19,7 @@ export class MockTracer implements Tracer {
       name: span.name,
       attributes: span.attributes,
       events: span.events,
+      ...(span.status && { status: span.status }),
     }));
   }
 
@@ -67,7 +71,12 @@ class MockSpan implements Span {
   context?: Context;
   options?: SpanOptions;
   attributes: Attributes;
-  events: Array<{ name: string; attributes: Attributes | undefined }> = [];
+  events: Array<{
+    name: string;
+    attributes: Attributes | undefined;
+    time?: [number, number];
+  }> = [];
+  status?: SpanStatus;
 
   readonly _spanContext: SpanContext = new MockSpanContext();
 
@@ -111,7 +120,8 @@ class MockSpan implements Span {
   addLinks() {
     return this;
   }
-  setStatus() {
+  setStatus(status: SpanStatus) {
+    this.status = status;
     return this;
   }
   updateName() {
@@ -123,8 +133,19 @@ class MockSpan implements Span {
   isRecording() {
     return false;
   }
-  recordException() {
-    return this;
+  recordException(exception: Exception, time?: TimeInput) {
+    const errorObj =
+      typeof exception === 'string' ? new Error(exception) : exception;
+    this.events.push({
+      name: 'exception',
+      attributes: {
+        'exception.type': errorObj.constructor?.name || 'Error',
+        'exception.name': errorObj.name || 'Error',
+        'exception.message': errorObj.message || '',
+        'exception.stack': errorObj.stack || '',
+      },
+      time: Array.isArray(time) ? time : [0, 0],
+    });
   }
 }
 
