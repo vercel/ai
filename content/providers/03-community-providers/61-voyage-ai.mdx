@@ -55,12 +55,12 @@ You can use the following optional settings to customize the Voyage provider ins
 ## Embedding Models
 
 You can create models that call the [Voyage embeddings API](https://docs.voyageai.com/reference/embeddings-api)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
 import { voyage } from 'voyage-ai-provider';
 
-const embeddingModel = voyage.embedding('voyage-3');
+const embeddingModel = voyage.textEmbeddingModel('voyage-3');
 ```
 
 You can find more models on the [Voyage Library](https://docs.voyageai.com/docs/embeddings) homepage.
@@ -91,7 +91,7 @@ The settings object should contain the settings you want to add to the model.
 ```ts
 import { voyage } from 'voyage-ai-provider';
 
-const embeddingModel = voyage.embedding('voyage-3', {
+const embeddingModel = voyage.textEmbeddingModel('voyage-3', {
   inputType: 'document', // 'document' or 'query'
   truncation: false,
   outputDimension: 1024, // the new model voyage-code-3, voyage-3-large has 4 different output dimensions: 256, 512, 1024 (default), 2048

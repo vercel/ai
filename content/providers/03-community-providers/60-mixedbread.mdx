@@ -55,12 +55,12 @@ You can use the following optional settings to customize the Mixedbread provider
 ## Embedding Models
 
 You can create models that call the [Mixedbread embeddings API](https://www.mixedbread.ai/api-reference/endpoints/embeddings)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
 import { mixedbread } from 'mixedbread-ai-provider';
 
-const embeddingModel = mixedbread.embedding(
+const embeddingModel = mixedbread.textEmbeddingModel(
   'mixedbread-ai/mxbai-embed-large-v1',
 );
 ```
@@ -85,7 +85,7 @@ The settings object should contain the settings you want to add to the model.
 ```ts
 import { mixedbread } from 'mixedbread-ai-provider';
 
-const embeddingModel = mixedbread.embedding(
+const embeddingModel = mixedbread.textEmbeddingModel(
   'mixedbread-ai/mxbai-embed-large-v1',
   {
     prompt: 'Generate embeddings for text', // Max 256 characters
