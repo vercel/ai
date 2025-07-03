@@ -684,18 +684,10 @@ describe('extractReasoningMiddleware', () => {
               "type": "text-start",
             },
             {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
-            },
-            {
               "id": "1",
               "providerMetadata": undefined,
               "text": "ana",
               "type": "text",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
             },
             {
               "id": "1",
@@ -705,18 +697,10 @@ describe('extractReasoningMiddleware', () => {
               "type": "text",
             },
             {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
-            },
-            {
               "id": "1",
               "providerMetadata": undefined,
               "text": "</think>",
               "type": "text",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
             },
             {
               "id": "1",
