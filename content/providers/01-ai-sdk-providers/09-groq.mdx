@@ -128,6 +128,57 @@ const { text } = await generateText({
 });
 ```
 
+### Image Input
+
+Groq's multimodal models like `meta-llama/llama-4-scout-17b-16e-instruct` support image inputs. You can include images in your messages using either URLs or base64-encoded data:
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What do you see in this image?' },
+        {
+          type: 'image',
+          image: 'https://example.com/image.jpg',
+        },
+      ],
+    },
+  ],
+});
+```
+
+You can also use base64-encoded images:
+
+```ts
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
+import { readFileSync } from 'fs';
+
+const imageData = readFileSync('path/to/image.jpg', 'base64');
+
+const { text } = await generateText({
+  model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image in detail.' },
+        {
+          type: 'image',
+          image: `data:image/jpeg;base64,${imageData}`,
+        },
+      ],
+    },
+  ],
+});
+```
+
 ## Model Capabilities
 
 | Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
