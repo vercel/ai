@@ -8,6 +8,11 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
+import {
+  OpenAIResponsesModelId,
+  openaiResponsesModelIds,
+  openaiResponsesReasoningModelIds,
+} from './openai-responses-settings';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -35,6 +40,13 @@ const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
     },
   },
 ];
+
+const nonReasoningModelIds = openaiResponsesModelIds.filter(
+  modelId =>
+    !openaiResponsesReasoningModelIds.includes(
+      modelId as (typeof openaiResponsesReasoningModelIds)[number],
+    ),
+);
 
 function createModel(modelId: string) {
   return new OpenAIResponsesLanguageModel(modelId, {
@@ -216,37 +228,71 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]);
       });
 
-      it('should remove unsupported settings for o3', async () => {
-        const { warnings } = await createModel('o3').doGenerate({
-          prompt: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
-          ],
-          temperature: 0.5,
-          topP: 0.3,
-        });
+      it.each(openaiResponsesReasoningModelIds)(
+        'should remove and warn about unsupported settings for reasoning model %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: [
+              { role: 'system', content: 'You are a helpful assistant.' },
+              { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+            ],
+            temperature: 0.5,
+            topP: 0.3,
+          });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'o3',
-          input: [
-            { role: 'developer', content: 'You are a helpful assistant.' },
+          const expectedMessages = [
+            // o1 models prior to o1-2024-12-17 should remove system messages, all other models should replace
+            // them with developer messages
+            ...(![
+              'o1-mini',
+              'o1-mini-2024-09-12',
+              'o1-preview',
+              'o1-preview-2024-09-12',
+            ].includes(modelId)
+              ? [
+                  {
+                    role: 'developer',
+                    content: 'You are a helpful assistant.',
+                  },
+                ]
+              : []),
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+          ];
 
-        expect(warnings).toStrictEqual([
-          {
-            details: 'temperature is not supported for reasoning models',
-            setting: 'temperature',
-            type: 'unsupported-setting',
-          },
-          {
-            details: 'topP is not supported for reasoning models',
-            setting: 'topP',
-            type: 'unsupported-setting',
-          },
-        ]);
-      });
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: modelId,
+            input: expectedMessages,
+          });
+
+          expect(warnings).toStrictEqual([
+            // o1 models prior to o1-2024-12-17 should remove system messages, all other models should replace
+            // them with developer messages
+            ...([
+              'o1-mini',
+              'o1-mini-2024-09-12',
+              'o1-preview',
+              'o1-preview-2024-09-12',
+            ].includes(modelId)
+              ? [
+                  {
+                    message: 'system messages are removed for this model',
+                    type: 'other',
+                  },
+                ]
+              : []),
+            {
+              details: 'temperature is not supported for reasoning models',
+              setting: 'temperature',
+              type: 'unsupported-setting',
+            },
+            {
+              details: 'topP is not supported for reasoning models',
+              setting: 'topP',
+              type: 'unsupported-setting',
+            },
+          ]);
+        },
+      );
 
       it('should send response format json schema', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
@@ -434,32 +480,69 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send reasoning provider options', async () => {
-        const { warnings } = await createModel('o3').doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            openai: {
-              reasoningEffort: 'low',
-              reasoningSummary: 'auto',
-              include: ['reasoning.encrypted_content'],
+      it.each(openaiResponsesReasoningModelIds)(
+        'should send reasoningEffort and reasoningSummary provider options for %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: {
+                reasoningEffort: 'low',
+                reasoningSummary: 'auto',
+              },
             },
-          },
-        });
+          });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'o3',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          reasoning: {
-            effort: 'low',
-            summary: 'auto',
-          },
-          include: ['reasoning.encrypted_content'],
-        });
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: modelId,
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            reasoning: {
+              effort: 'low',
+              summary: 'auto',
+            },
+          });
 
-        expect(warnings).toStrictEqual([]);
-      });
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
+      it.each(nonReasoningModelIds)(
+        'should not send and warn about unsupported reasoningEffort and reasoningSummary provider options for %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: {
+                reasoningEffort: 'low',
+              },
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: modelId,
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+          });
+
+          expect(warnings).toStrictEqual([
+            {
+              type: 'unsupported-setting',
+              setting: 'reasoningEffort',
+              details:
+                'reasoningEffort is not supported for non-reasoning models',
+            },
+          ]);
+        },
+      );
 
       it('should send instructions provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
