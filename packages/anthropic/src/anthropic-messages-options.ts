@@ -61,14 +61,6 @@ export const anthropicProviderOptions = z.object({
       budgetTokens: z.number().optional(),
     })
     .optional(),
-
-  /**
-   * Enable beta fine-grained tool streaming for reduced latency.
-   * This may cause a parsing error due to invalid JSON from the model with some
-   * tool input schemas.
-   * @see https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming
-   */
-  enableBetaFineGrainedToolStreaming: z.boolean().optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

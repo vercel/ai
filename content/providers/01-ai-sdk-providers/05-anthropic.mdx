@@ -108,18 +108,6 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Reasoning section](#reasoning) for more details.
 
-- `enableBetaFineGrainedToolStreaming` _boolean_
-
-  Enables the Anthropic `fine-grained-tool-streaming-2025-05-14` beta, which skips buffering
-  and JSON validation when streaming tool calls to reduce latency.
-
-  <Note type="warning">
-    Enabling this beta can cause parsing errors with some tool input schemas due
-    to invalid JSON output from the LLM. See [the beta
-    docs](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming)
-    for more information.
-  </Note>
-
 ### Reasoning
 
 Anthropic has reasoning support for `claude-4-opus-20250514`, `claude-4-sonnet-20250514`, and `claude-3-7-sonnet-20250219` models.
