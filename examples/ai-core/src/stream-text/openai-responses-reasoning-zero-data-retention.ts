@@ -1,5 +1,5 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { streamText, UserModelMessage } from 'ai';
+import { APICallError, streamText, UserModelMessage } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -56,6 +56,13 @@ async function main() {
         reasoningSummary: 'auto',
         include: ['reasoning.encrypted_content'], // Hence, we need to retrieve the model's encrypted reasoning to be able to pass it to follow-up requests
       } satisfies OpenAIResponsesProviderOptions,
+    },
+    onError: ({ error }) => {
+      console.error(error);
+
+      if (APICallError.isInstance(error)) {
+        console.error(JSON.stringify(error.requestBodyValues, null, 2));
+      }
     },
   });
 
