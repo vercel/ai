@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- 84577c8: fix (providers/anthropic): remove fine grained tool streaming beta
+
 ## 2.0.0-beta.3
 
 ### Patch Changes
