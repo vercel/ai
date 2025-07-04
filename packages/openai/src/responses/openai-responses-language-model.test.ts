@@ -1289,6 +1289,177 @@ describe('OpenAIResponsesLanguageModel', () => {
           include: ['reasoning.encrypted_content'],
         });
       });
+
+      it('should handle multiple reasoning blocks', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'o3-mini-2025-01-31',
+            output: [
+              {
+                id: 'rs_first_6808709f6fcc8191ad2e2fdd784017b3',
+                type: 'reasoning',
+                summary: [
+                  {
+                    type: 'summary_text',
+                    text: '**Initial analysis**\n\nFirst reasoning block: analyzing the problem structure.',
+                  },
+                  {
+                    type: 'summary_text',
+                    text: '**Deeper consideration**\n\nLet me think about the various approaches available.',
+                  },
+                ],
+              },
+              {
+                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Let me think about this step by step.',
+                    annotations: [],
+                  },
+                ],
+              },
+              {
+                id: 'rs_second_7908809g7gcc9291be3e3fee895028c4',
+                type: 'reasoning',
+                summary: [
+                  {
+                    type: 'summary_text',
+                    text: 'Second reasoning block: considering alternative approaches.',
+                  },
+                ],
+              },
+              {
+                id: 'msg_final_78d08d03767d92908f25523f5ge51e77',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Based on my analysis, here is the solution.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: 'medium',
+              summary: 'auto',
+            },
+            store: true,
+            temperature: null,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: null,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 45,
+              input_tokens_details: {
+                cached_tokens: 0,
+              },
+              output_tokens: 628,
+              output_tokens_details: {
+                reasoning_tokens: 420,
+              },
+              total_tokens: 673,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('o3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'medium',
+              reasoningSummary: 'auto',
+            },
+          },
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": null,
+                    "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
+                },
+              },
+              "text": "**Initial analysis**
+
+          First reasoning block: analyzing the problem structure.",
+              "type": "reasoning",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": null,
+                    "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
+                },
+              },
+              "text": "**Deeper consideration**
+
+          Let me think about the various approaches available.",
+              "type": "reasoning",
+            },
+            {
+              "text": "Let me think about this step by step.",
+              "type": "text",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "reasoning": {
+                    "encryptedContent": null,
+                    "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                  },
+                },
+              },
+              "text": "Second reasoning block: considering alternative approaches.",
+              "type": "reasoning",
+            },
+            {
+              "text": "Based on my analysis, here is the solution.",
+              "type": "text",
+            },
+          ]
+        `);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'o3-mini',
+          reasoning: {
+            effort: 'medium',
+            summary: 'auto',
+          },
+        });
+      });
     });
 
     describe('tool calls', () => {
@@ -2703,6 +2874,238 @@ describe('OpenAIResponsesLanguageModel', () => {
             effort: 'low',
           },
           include: ['reasoning.encrypted_content'],
+          stream: true,
+        });
+      });
+
+      it('should handle multiple reasoning blocks', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            // First reasoning block (with multiple summary parts)
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3","type":"reasoning"}}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3"}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3","delta":"**Initial analysis**\\n\\nFirst reasoning block:"}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3","delta":" analyzing the problem structure."}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3"}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3"}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3","delta":"**Deeper consideration**\\n\\nLet me think about"}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3","delta":" the various approaches available."}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3"}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3","type":"reasoning"}}\n\n`,
+            // First message
+            `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_67c97c02656c81908e080dfdf4a03cd1","type":"message"}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":"Let me think about"}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":" this step by step."}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_67c97c02656c81908e080dfdf4a03cd1","type":"message"}}\n\n`,
+            // Second reasoning block
+            `data:{"type":"response.output_item.added","output_index":2,"item":{"id":"rs_second_7908809g7gcc9291be3e3fee895028c4","type":"reasoning"}}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_second_7908809g7gcc9291be3e3fee895028c4"}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_second_7908809g7gcc9291be3e3fee895028c4","delta":"Second reasoning block:"}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_second_7908809g7gcc9291be3e3fee895028c4","delta":" considering alternative approaches."}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_second_7908809g7gcc9291be3e3fee895028c4"}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":2,"item":{"id":"rs_second_7908809g7gcc9291be3e3fee895028c4","type":"reasoning"}}\n\n`,
+            // Final message
+            `data:{"type":"response.output_item.added","output_index":3,"item":{"id":"msg_final_78d08d03767d92908f25523f5ge51e77","type":"message"}}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_final_78d08d03767d92908f25523f5ge51e77","delta":"Based on my analysis,"}\n\n`,
+            `data:{"type":"response.output_text.delta","item_id":"msg_final_78d08d03767d92908f25523f5ge51e77","delta":" here is the solution."}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":3,"item":{"id":"msg_final_78d08d03767d92908f25523f5ge51e77","type":"message"}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[{"id":"rs_first_6808709f6fcc8191ad2e2fdd784017b3","type":"reasoning","summary":[{"type":"summary_text","text":"**Initial analysis**\\n\\nFirst reasoning block: analyzing the problem structure."},{"type":"summary_text","text":"**Deeper consideration**\\n\\nLet me think about the various approaches available."}]},{"id":"msg_67c97c02656c81908e080dfdf4a03cd1","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Let me think about this step by step.","annotations":[]}]},{"id":"rs_second_7908809g7gcc9291be3e3fee895028c4","type":"reasoning","summary":[{"type":"summary_text","text":"Second reasoning block: considering alternative approaches."}]},{"id":"msg_final_78d08d03767d92908f25523f5ge51e77","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on my analysis, here is the solution.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":45,"input_tokens_details":{"cached_tokens":0},"output_tokens":628,"output_tokens_details":{"reasoning_tokens":420},"total_tokens":673},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('o3-mini').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'medium',
+              reasoningSummary: 'auto',
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                "modelId": "o3-mini-2025-01-31",
+                "timestamp": 2025-03-06T13:50:19.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "encryptedContent": null,
+                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "delta": "**Initial analysis**
+
+            First reasoning block:",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "type": "reasoning-delta",
+              },
+              {
+                "delta": " analyzing the problem structure.",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "type": "reasoning-delta",
+              },
+              {
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "encryptedContent": null,
+                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "encryptedContent": null,
+                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "delta": "**Deeper consideration**
+
+            Let me think about",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "type": "reasoning-delta",
+              },
+              {
+                "delta": " the various approaches available.",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "type": "reasoning-delta",
+              },
+              {
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "encryptedContent": null,
+                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "type": "text-start",
+              },
+              {
+                "delta": "Let me think about",
+                "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "type": "text-delta",
+              },
+              {
+                "delta": " this step by step.",
+                "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "type": "text-end",
+              },
+              {
+                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "encryptedContent": null,
+                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                    },
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "delta": "Second reasoning block:",
+                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                "type": "reasoning-delta",
+              },
+              {
+                "delta": " considering alternative approaches.",
+                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                "type": "reasoning-delta",
+              },
+              {
+                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "encryptedContent": null,
+                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                    },
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "type": "text-start",
+              },
+              {
+                "delta": "Based on my analysis,",
+                "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "type": "text-delta",
+              },
+              {
+                "delta": " here is the solution.",
+                "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 45,
+                  "outputTokens": 628,
+                  "reasoningTokens": 420,
+                  "totalTokens": 673,
+                },
+              },
+            ]
+          `);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'o3-mini',
+          reasoning: {
+            effort: 'medium',
+            summary: 'auto',
+          },
           stream: true,
         });
       });
