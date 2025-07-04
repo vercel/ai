@@ -499,6 +499,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     let activeReasoning:
       | {
           id: string;
+          hasSummary: boolean;
           encryptedContent?: string | null;
         }
       | undefined = undefined;
@@ -569,6 +570,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               } else if (isResponseOutputItemAddedReasoningChunk(value)) {
                 activeReasoning = {
                   id: value.item.id,
+                  hasSummary: false,
                   encryptedContent: value.item.encrypted_content,
                 };
               }
@@ -647,6 +649,40 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'text-end',
                   id: value.item.id,
                 });
+              } else if (isResponseOutputItemDoneReasoningChunk(value)) {
+                if (activeReasoning?.id === value.item.id) {
+                  if (!activeReasoning.hasSummary) {
+                    controller.enqueue({
+                      type: 'reasoning-start',
+                      id: value.item.id,
+                      providerMetadata: {
+                        openai: {
+                          reasoning: {
+                            id: value.item.id,
+                            encryptedContent:
+                              activeReasoning?.encryptedContent ?? null,
+                          },
+                        },
+                      },
+                    });
+
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: value.item.id,
+                      providerMetadata: {
+                        openai: {
+                          reasoning: {
+                            id: value.item.id,
+                            encryptedContent:
+                              activeReasoning?.encryptedContent ?? null,
+                          },
+                        },
+                      },
+                    });
+                  }
+
+                  activeReasoning = undefined;
+                }
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
@@ -673,43 +709,47 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 delta: value.delta,
               });
             } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: value.item_id,
-                providerMetadata: {
-                  openai: {
-                    reasoning: {
-                      id: value.item_id,
-                      encryptedContent:
-                        activeReasoning?.id === value.item_id
-                          ? (activeReasoning?.encryptedContent ?? null)
-                          : null,
+              if (activeReasoning?.id === value.item_id) {
+                activeReasoning.hasSummary = true;
+
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: value.item_id,
+                  providerMetadata: {
+                    openai: {
+                      reasoning: {
+                        id: value.item_id,
+                        encryptedContent:
+                          activeReasoning?.encryptedContent ?? null,
+                      },
                     },
                   },
-                },
-              });
+                });
+              }
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
-              controller.enqueue({
-                type: 'reasoning-delta',
-                id: value.item_id,
-                delta: value.delta,
-              });
+              if (activeReasoning?.id === value.item_id) {
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  id: value.item_id,
+                  delta: value.delta,
+                });
+              }
             } else if (isResponseReasoningSummaryPartDoneChunk(value)) {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: value.item_id,
-                providerMetadata: {
-                  openai: {
-                    reasoning: {
-                      id: value.item_id,
-                      encryptedContent:
-                        activeReasoning?.id === value.item_id
-                          ? (activeReasoning?.encryptedContent ?? null)
-                          : null,
+              if (activeReasoning?.id === value.item_id) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: value.item_id,
+                  providerMetadata: {
+                    openai: {
+                      reasoning: {
+                        id: value.item_id,
+                        encryptedContent:
+                          activeReasoning?.encryptedContent ?? null,
+                      },
                     },
                   },
-                },
-              });
+                });
+              }
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
@@ -843,6 +883,10 @@ const responseOutputItemDoneSchema = z.object({
       id: z.string(),
     }),
     z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+    }),
+    z.object({
       type: z.literal('function_call'),
       id: z.string(),
       call_id: z.string(),
@@ -925,6 +969,19 @@ function isResponseOutputItemDoneChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseOutputItemDoneSchema> {
   return chunk.type === 'response.output_item.done';
+}
+
+function isResponseOutputItemDoneReasoningChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseOutputItemDoneSchema> & {
+  item: ExtractByType<
+    z.infer<typeof responseOutputItemDoneSchema>['item'],
+    'reasoning'
+  >;
+} {
+  return (
+    isResponseOutputItemDoneChunk(chunk) && chunk.item.type === 'reasoning'
+  );
 }
 
 function isResponseFinishedChunk(
