@@ -1,11 +1,5 @@
 import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import {
-  APICallError,
-  defaultSettingsMiddleware,
-  wrapLanguageModel,
-  ImageModelV2,
-  LanguageModelV2,
-} from '@ai-sdk/provider';
+import { APICallError, ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
@@ -16,6 +10,8 @@ import {
   createImageModelWithCapabilities,
   defaultChatModelCapabilities,
 } from './feature-test-suite';
+import { wrapLanguageModel } from 'ai';
+import { defaultSettingsMiddleware } from 'ai';
 
 const createChatModel = (
   modelId: string,

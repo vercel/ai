@@ -8,7 +8,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
-import { getModelPath } from './get-model-path';
 import {
   GoogleGenerativeAIImageModelId,
   GoogleGenerativeAIImageSettings,
