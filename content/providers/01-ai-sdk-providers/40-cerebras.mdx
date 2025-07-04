@@ -80,17 +80,40 @@ const { text } = await generateText({
 Cerebras language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Available Factory Methods
+
+The Cerebras provider supports several factory methods:
+
+```ts
+// Default function
+const model = cerebras('llama3.1-8b');
+
+// Language model factory
+const model = cerebras.languageModel('llama3.1-8b');
+
+// Chat model factory  
+const model = cerebras.chat('llama3.1-8b');
+```
+
 ## Model Capabilities
 
-| Model          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `llama3.1-8b`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama3.1-70b` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama3.3-70b` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `llama3.1-8b`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama3.1-70b`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-3.3-70b` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Please see the [Cerebras
   docs](https://inference-docs.cerebras.ai/introduction) for more details about
   the available models. Note that context windows are temporarily limited to
-  8192 tokens in the Free Tier.
+  8192 tokens in the Free Tier. You can also pass any available provider
+  model ID as a string if needed.
 </Note>
+
+## Limitations
+
+The Cerebras provider does not support:
+
+- **Embedding models** - Use `textEmbeddingModel()` will throw a `NoSuchModelError`
+- **Image generation** - Use `imageModel()` will throw a `NoSuchModelError`
