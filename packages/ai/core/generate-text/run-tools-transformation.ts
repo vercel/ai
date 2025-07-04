@@ -3,9 +3,9 @@ import {
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { generateId, ModelMessage } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import { SpanStatusCode, Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { recordSpan } from '../telemetry/record-span';
+import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
@@ -265,6 +265,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       abortSignal,
                     });
                   } catch (error) {
+                    recordErrorOnSpan(span, error);
                     toolResultsStreamController!.enqueue({
                       ...toolCall,
                       type: 'tool-error',

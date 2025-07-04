@@ -24,19 +24,7 @@ export function recordSpan<T>({
       return result;
     } catch (error) {
       try {
-        if (error instanceof Error) {
-          span.recordException({
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-          });
-          span.setStatus({
-            code: SpanStatusCode.ERROR,
-            message: error.message,
-          });
-        } else {
-          span.setStatus({ code: SpanStatusCode.ERROR });
-        }
+        recordErrorOnSpan(span, error);
       } finally {
         // always stop the span when there is an error:
         span.end();
@@ -45,4 +33,27 @@ export function recordSpan<T>({
       throw error;
     }
   });
+}
+
+/**
+ * Record an error on a span. If the error is an instance of Error, an exception event will be recorded on the span, otherwise
+ * the span will be set to an error status.
+ *
+ * @param span - The span to record the error on.
+ * @param error - The error to record on the span.
+ */
+export function recordErrorOnSpan(span: Span, error: unknown) {
+  if (error instanceof Error) {
+    span.recordException({
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: error.message,
+    });
+  } else {
+    span.setStatus({ code: SpanStatusCode.ERROR });
+  }
 }
