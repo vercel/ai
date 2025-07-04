@@ -1,8 +1,8 @@
 import {
   EmbeddingModelV2,
   LanguageModelV2,
-  NoSuchModelError,
   ProviderV2,
+  ImageModelV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -10,10 +10,19 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
+
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+
+import {
+  GoogleGenerativeAIImageSettings,
+  GoogleGenerativeAIImageModelId,
+} from './google-generative-ai-image-settings';
+import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+
+import { isSupportedFileUrl } from './google-supported-file-url';
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
@@ -21,6 +30,14 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
   languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   chat(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
+
+  /**
+Creates a model for image generation.
+ */
+  image(
+    modelId: GoogleGenerativeAIImageModelId,
+    settings?: GoogleGenerativeAIImageSettings,
+  ): ImageModelV2;
 
   /**
    * @deprecated Use `chat()` instead.
@@ -119,6 +136,17 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createImageModel = (
+    modelId: GoogleGenerativeAIImageModelId,
+    settings: GoogleGenerativeAIImageSettings = {},
+  ) =>
+    new GoogleGenerativeAIImageModel(modelId, settings, {
+      provider: 'google.generative-ai',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
@@ -135,12 +163,10 @@ export function createGoogleGenerativeAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
-
-  return provider;
+  return provider as GoogleGenerativeAIProvider;
 }
 
 /**
