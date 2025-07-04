@@ -113,7 +113,7 @@ You should see a trace in your LangSmith dashboard [like this one](https://smith
 You can also trace runs with tool calls:
 
 ```ts
-import { generateText, tool } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
