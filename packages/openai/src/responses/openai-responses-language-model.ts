@@ -4,9 +4,8 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2Reasoning,
   LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
+  LanguageModelV2Usage
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
