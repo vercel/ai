@@ -121,13 +121,6 @@ export function convertJSONSchemaToOpenAPISchema(
     result.minLength = minLength;
   }
 
-  if (additionalProperties === true) {
-    result.additionalProperties = true;
-  } else if (additionalProperties) {
-    result.additionalProperties =
-      convertJSONSchemaToOpenAPISchema(additionalProperties);
-  }
-
   if ($ref) {
     result.ref = $ref
       .replace('#/$defs/', '#/defs/')
