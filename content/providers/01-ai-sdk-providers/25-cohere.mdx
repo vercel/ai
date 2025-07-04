@@ -141,7 +141,25 @@ const { embedding } = await embed({
 });
 ```
 
-Cohere embedding models support provider options. You can pass them as an options argument:
+Cohere embedding models support additional provider options that can be passed via `providerOptions.cohere`:
+
+```ts
+import { cohere } from '@ai-sdk/cohere';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: cohere.textEmbeddingModel('embed-english-v3.0'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    cohere: {
+      inputType: 'search_document',
+      truncate: 'END',
+    },
+  },
+});
+```
+
+The following provider options are available:
 
 - **inputType** _'search_document' | 'search_query' | 'classification' | 'clustering'_
 
