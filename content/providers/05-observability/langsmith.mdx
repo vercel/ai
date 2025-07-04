@@ -142,7 +142,7 @@ await generateText({
   experimental_telemetry: {
     isEnabled: true,
   },
-  maxSteps: 10,
+  stopWhen: stepCountIs(10),
 });
 ```
 
