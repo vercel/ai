@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.0-beta.7
+
+### Patch Changes
+
+- 60132dd: fixed date formatting for updated mcp protocol version
+
 ## 5.0.0-beta.6
 
 ### Patch Changes

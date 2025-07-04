@@ -26,10 +26,10 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0 Beta.
 
 You need to update the following packages to the following versions in your `package.json` file(s):
 
-- `ai` package: `5.0.0-beta`
-- `@ai-sdk/provider` package: `2.0.0-beta`
-- `@ai-sdk/provider-utils` package: `3.0.0-beta`
-- `@ai-sdk/*` packages: `2.0.0-beta` (other `@ai-sdk` packages)
+- `ai` package: `5.0.0-beta@latest`
+- `@ai-sdk/provider` package: `2.0.0-beta@latest`
+- `@ai-sdk/provider-utils` package: `3.0.0-beta@latest`
+- `@ai-sdk/*` packages: `2.0.0-beta@latest` (other `@ai-sdk` packages)
 
 Additionally, you need to update the following peer dependencies:
 
@@ -398,6 +398,60 @@ In v5, UI tool parts use typed naming: `tool-${toolName}` instead of generic typ
   });
 }
 ```
+
+### Tool UI Part State Changes
+
+Tool UI parts now use more granular states that better represent the streaming lifecycle and error handling.
+
+```tsx filename="AI SDK 4.0"
+// Old states
+{
+  message.parts.map(part => {
+    if (part.type === 'tool-invocation') {
+      switch (part.toolInvocation.state) {
+        case 'partial-call':
+          return <div>Loading...</div>;
+        case 'call':
+          return (
+            <div>
+              Tool called with {JSON.stringify(part.toolInvocation.args)}
+            </div>
+          );
+        case 'result':
+          return <div>Result: {part.toolInvocation.result}</div>;
+      }
+    }
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+// New granular states
+{
+  message.parts.map(part => {
+    switch (part.type) {
+      case 'tool-getWeatherInformation':
+        switch (part.state) {
+          case 'input-streaming':
+            return <pre>{JSON.stringify(part.input, null, 2)}</pre>;
+          case 'input-available':
+            return <div>Getting weather for {part.input.city}...</div>;
+          case 'output-available':
+            return <div>Weather: {part.output}</div>;
+          case 'output-error':
+            return <div>Error: {part.errorText}</div>;
+        }
+    }
+  });
+}
+```
+
+**State Changes:**
+
+- `partial-call` → `input-streaming` (tool input being streamed)
+- `call` → `input-available` (tool input complete, ready to execute)
+- `result` → `output-available` (tool execution successful)
+- New: `output-error` (tool execution failed)
 
 #### Media Type Standardization
 
@@ -1204,7 +1258,7 @@ const { response } = await embed(/* */);
 ```tsx filename="AI SDK 5.0"
 const { embeddings, usage } = await embedMany({
   maxParallelCalls: 2, // Limit parallel requests
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   values: [
     'sunny day at the beach',
     'rainy afternoon in the city',
