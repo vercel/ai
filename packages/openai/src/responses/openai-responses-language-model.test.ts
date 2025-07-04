@@ -2216,27 +2216,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
             The user is",
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                "providerMetadata": {
-                  "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                      "summary_index": 0,
-                    },
-                  },
-                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                "providerMetadata": {
-                  "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                      "summary_index": 0,
-                    },
-                  },
-                },
                 "type": "reasoning-delta",
               },
               {
@@ -2244,27 +2228,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
             There's a fascinating debate",
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                "providerMetadata": {
-                  "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                      "summary_index": 1,
-                    },
-                  },
-                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " about who created the Mission burrito.",
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                "providerMetadata": {
-                  "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                      "summary_index": 1,
-                    },
-                  },
-                },
                 "type": "reasoning-delta",
               },
               {
@@ -2502,27 +2470,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
             The user is",
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                "providerMetadata": {
-                  "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                      "summary_index": 0,
-                    },
-                  },
-                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                "providerMetadata": {
-                  "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                      "summary_index": 0,
-                    },
-                  },
-                },
                 "type": "reasoning-delta",
               },
               {
@@ -2530,27 +2482,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
             There's a fascinating debate",
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                "providerMetadata": {
-                  "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                      "summary_index": 1,
-                    },
-                  },
-                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " about who created the Mission burrito.",
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                "providerMetadata": {
-                  "openai": {
-                    "reasoning": {
-                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                      "summary_index": 1,
-                    },
-                  },
-                },
                 "type": "reasoning-delta",
               },
               {

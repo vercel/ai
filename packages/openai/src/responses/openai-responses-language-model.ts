@@ -691,14 +691,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 type: 'reasoning-delta',
                 id: value.item_id,
                 delta: value.delta,
-                providerMetadata: {
-                  openai: {
-                    reasoning: {
-                      id: value.item_id,
-                      summary_index: value.summary_index,
-                    },
-                  },
-                },
               });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
@@ -747,17 +739,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       response: { headers: responseHeaders },
     };
   }
-
-  getReasoningPartIndex = (options: {
-    id: string;
-    providerMetadata?: any;
-  }): number => {
-    // For OpenAI, use the summary_index from provider metadata to determine array index
-    // This allows multiple reasoning parts with the same ID to be stored at different indices
-    const summaryIndex =
-      options.providerMetadata?.openai?.reasoning?.summary_index;
-    return summaryIndex ?? 0;
-  };
 }
 
 const usageSchema = z.object({
@@ -900,7 +881,6 @@ const responseAnnotationAddedSchema = z.object({
 const responseReasoningSummaryTextDeltaSchema = z.object({
   type: z.literal('response.reasoning_summary_text.delta'),
   item_id: z.string(),
-  summary_index: z.number(),
   delta: z.string(),
 });
 
