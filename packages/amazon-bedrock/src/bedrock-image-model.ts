@@ -10,6 +10,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   BedrockImageModelId,
+  BedrockImageStyle,
   modelMaxImagesPerCall,
 } from './bedrock-image-settings';
 import { BedrockErrorSchema } from './bedrock-error';
@@ -63,6 +64,11 @@ export class BedrockImageModel implements ImageModelV2 {
         ...(providerOptions?.bedrock?.negativeText
           ? {
               negativeText: providerOptions.bedrock.negativeText,
+            }
+          : {}),
+        ...(providerOptions?.bedrock?.style
+          ? {
+              style: providerOptions.bedrock.style,
             }
           : {}),
       },
