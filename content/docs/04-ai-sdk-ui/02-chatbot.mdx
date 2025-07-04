@@ -709,11 +709,7 @@ messages.map(message => (
 
       // reasoning parts:
       if (part.type === 'reasoning') {
-        return (
-          <pre key={index}>
-            {part.text}
-          </pre>
-        );
+        return <pre key={index}>{part.text}</pre>;
       }
     })}
   </div>
@@ -773,9 +769,7 @@ messages.map(message => (
       .filter(part => part.type === 'source-document')
       .map(part => (
         <span key={`source-${part.id}`}>
-          [
-          <span>{part.title ?? `Document ${part.id}`}</span>
-          ]
+          [<span>{part.title ?? `Document ${part.id}`}</span>]
         </span>
       ))}
   </div>
@@ -797,9 +791,7 @@ messages.map(message => (
       if (part.type === 'text') {
         return <div key={index}>{part.text}</div>;
       } else if (part.type === 'file' && part.mediaType.startsWith('image/')) {
-        return (
-          <img key={index} src={part.url} alt="Generated image" />
-        );
+        return <img key={index} src={part.url} alt="Generated image" />;
       }
     })}
   </div>
