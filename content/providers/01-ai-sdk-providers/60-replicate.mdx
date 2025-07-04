@@ -75,15 +75,15 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
   `providerOptions.replicate`.
 </Note>
 
-### Available Factory Methods
-
-The Replicate provider supports the following factory methods:
+You can create Replicate image models using the `.imageModel()` factory method:
 
 ```ts
-// Recommended: Image model factory
 const model = replicate.imageModel('black-forest-labs/flux-schnell');
+```
 
-// Deprecated: Use imageModel instead
+You can also use the deprecated `.image()` method:
+
+```ts
 const model = replicate.image('black-forest-labs/flux-schnell');
 ```
 
@@ -178,10 +178,3 @@ const { image } = await generateImage({
 ```
 
 For more details, see the [Replicate models page](https://replicate.com/explore).
-
-## Limitations
-
-The Replicate provider does not support:
-
-- **Language models** - Use `languageModel()` will throw a `NoSuchModelError`
-- **Embedding models** - Use `textEmbeddingModel()` will throw a `NoSuchModelError`
