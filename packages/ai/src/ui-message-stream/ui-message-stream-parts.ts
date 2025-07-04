@@ -104,6 +104,7 @@ export const uiMessageStreamPartSchema = z.union([
     type: z.string().startsWith('data-'),
     id: z.string().optional(),
     data: z.unknown(),
+    transient: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('start-step'),
@@ -131,6 +132,7 @@ export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
     type: `data-${NAME}`;
     id?: string;
     data: DATA_TYPES[NAME];
+    transient?: boolean;
   };
 }>;
 
