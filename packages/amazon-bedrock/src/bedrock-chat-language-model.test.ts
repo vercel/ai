@@ -1350,6 +1350,59 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should transform reasoningConfig to thinking in stream requests', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 100,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    
+    // Should contain thinking in additionalModelRequestFields
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        thinking: {
+          type: 'enabled',
+          budget_tokens: 2000,
+        },
+      },
+      // Should have adjusted maxOutputTokens (100 + 2000)
+      inferenceConfig: {
+        maxOutputTokens: 2100,
+      },
+    });
+
+    // Should NOT contain reasoningConfig at the top level
+    expect(requestBody).not.toHaveProperty('reasoningConfig');
+  });
 });
 
 describe('doGenerate', () => {
@@ -1751,6 +1804,42 @@ describe('doGenerate', () => {
       system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });
+  });
+
+  it('should transform reasoningConfig to thinking in additionalModelRequestFields', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 100,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    
+    // Should contain thinking in additionalModelRequestFields
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        thinking: {
+          type: 'enabled',
+          budget_tokens: 2000,
+        },
+      },
+      // Should have adjusted maxOutputTokens (100 + 2000)
+      inferenceConfig: {
+        maxOutputTokens: 2100,
+      },
+    });
+
+    // Should NOT contain reasoningConfig at the top level
+    expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
   it('should extract reasoning text with signature', async () => {
