@@ -4,7 +4,13 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
 import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
@@ -57,30 +63,32 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
-  const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
+  const chat = useMemo(() => {
+    return 'chat' in options ? options.chat : new Chat(options);
+  }, [options]);
 
   const subscribeToMessages = useCallback(
     (update: () => void) =>
-      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    [throttleWaitMs],
+      chat['~registerMessagesCallback'](update, throttleWaitMs),
+    [throttleWaitMs, chat],
   );
 
   const messages = useSyncExternalStore(
     subscribeToMessages,
-    () => chatRef.current.messages,
-    () => chatRef.current.messages,
+    () => chat.messages,
+    () => chat.messages,
   );
 
   const status = useSyncExternalStore(
-    chatRef.current['~registerStatusCallback'],
-    () => chatRef.current.status,
-    () => chatRef.current.status,
+    chat['~registerStatusCallback'],
+    () => chat.status,
+    () => chat.status,
   );
 
   const error = useSyncExternalStore(
-    chatRef.current['~registerErrorCallback'],
-    () => chatRef.current.error,
-    () => chatRef.current.error,
+    chat['~registerErrorCallback'],
+    () => chat.error,
+    () => chat.error,
   );
 
   const setMessages = useCallback(
@@ -91,27 +99,27 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
         messagesParam = messagesParam(messages);
       }
 
-      chatRef.current.messages = messagesParam;
+      chat.messages = messagesParam;
     },
-    [messages, chatRef],
+    [messages, chat],
   );
 
   useEffect(() => {
     if (resume) {
-      chatRef.current.resumeStream();
+      chat.resumeStream();
     }
-  }, [resume, chatRef]);
+  }, [resume, chat]);
 
   return {
-    id: chatRef.current.id,
+    id: chat.id,
     messages,
     setMessages,
-    sendMessage: chatRef.current.sendMessage,
-    regenerate: chatRef.current.regenerate,
-    stop: chatRef.current.stop,
+    sendMessage: chat.sendMessage,
+    regenerate: chat.regenerate,
+    stop: chat.stop,
     error,
-    resumeStream: chatRef.current.resumeStream,
+    resumeStream: chat.resumeStream,
     status,
-    addToolResult: chatRef.current.addToolResult,
+    addToolResult: chat.addToolResult,
   };
 }
