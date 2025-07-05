@@ -1032,7 +1032,8 @@ const chat = new Chat({
   transport: new DefaultChatTransport({ api: '/api/chat' }),
 });
 
-const handleSubmit = () => {
+const handleSubmit = (e: Event) => {
+  e.preventDefault();
   chat.sendMessage({ text: input.value });
   input.value = '';
 };
