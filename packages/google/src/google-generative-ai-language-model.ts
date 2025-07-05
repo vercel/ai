@@ -15,6 +15,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -31,6 +32,7 @@ import {
 } from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
+import { urlContextMetadataSchema } from './tool/url-context';
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -51,6 +53,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   readonly modelId: GoogleGenerativeAIModelId;
 
   private readonly config: GoogleGenerativeAIConfig;
+  private readonly generateId: () => string;
 
   constructor(
     modelId: GoogleGenerativeAIModelId,
@@ -58,6 +61,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   ) {
     this.modelId = modelId;
     this.config = config;
+    this.generateId = config.generateId ?? generateId;
   }
 
   get provider(): string {
@@ -119,11 +123,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      useSearchGrounding: googleOptions?.useSearchGrounding ?? false,
-      useUrlContext: googleOptions?.useUrlContext ?? false,
-      dynamicRetrievalConfig: googleOptions?.dynamicRetrievalConfig,
       modelId: this.modelId,
     });
+
+    console.log('googleTools', googleTools);
 
     return {
       args: {
@@ -259,6 +262,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       providerMetadata: {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
+          urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
         },
       },
@@ -482,6 +486,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               providerMetadata = {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
+                  urlContextMetadata: candidate.urlContextMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
                 },
               };
@@ -676,6 +681,7 @@ const responseSchema = z.object({
       finishReason: z.string().nullish(),
       safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),
+      urlContextMetadata: urlContextMetadataSchema.nullish(),
     }),
   ),
   usageMetadata: usageSchema.nullish(),
@@ -691,6 +697,7 @@ const chunkSchema = z.object({
         finishReason: z.string().nullish(),
         safetyRatings: z.array(safetyRatingSchema).nullish(),
         groundingMetadata: groundingMetadataSchema.nullish(),
+        urlContextMetadata: urlContextMetadataSchema.nullish(),
       }),
     )
     .nullish(),

@@ -16,10 +16,8 @@ async function main() {
         ],
       },
     ],
-    providerOptions: {
-      google: {
-        useUrlContext: true,
-      },
+    tools: {
+      url_context: google.tools.urlContext({}),
     },
   });
 

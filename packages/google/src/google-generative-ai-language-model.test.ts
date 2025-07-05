@@ -7,7 +7,14 @@ import {
   GoogleGenerativeAILanguageModel,
   groundingMetadataSchema,
 } from './google-generative-ai-language-model';
-import { GoogleGenerativeAIGroundingMetadata } from './google-generative-ai-prompt';
+import {
+  urlContextMetadataSchema,
+  urlContextOutputSchema,
+} from './tool/url-context';
+import {
+  GoogleGenerativeAIGroundingMetadata,
+  GoogleGenerativeAIUrlContextMetadata,
+} from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -141,6 +148,59 @@ describe('groundingMetadataSchema', () => {
 
     const result = groundingMetadataSchema.safeParse(metadata);
     expect(result.success).toBe(false);
+  });
+});
+
+describe('urlContextOutputSchema', () => {
+  it('validates complete url context output', () => {
+    const output = {
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: {
+              uri: 'https://example.com/weather',
+              title: 'Chicago Weather Forecast',
+            },
+          },
+        ],
+        groundingSupports: [
+          {
+            segment: {
+              startIndex: 0,
+              endIndex: 65,
+              text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+            },
+            groundingChunkIndices: [0],
+          },
+        ],
+      },
+      urlContextMetadata: {
+        urlMetadata: [
+          {
+            retrievedUrl: 'https://example.com/weather',
+            urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+          },
+        ],
+      },
+    };
+
+    const result = urlContextOutputSchema.safeParse(output);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates empty url context output', () => {
+    const output = {
+      groundingMetadata: {
+        groundingChunks: [],
+        groundingSupports: [],
+      },
+      urlContextMetadata: {
+        urlMetadata: [],
+      },
+    };
+
+    const result = urlContextOutputSchema.safeParse(output);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -971,11 +1031,14 @@ describe('doGenerate', () => {
       const gemini2Pro = provider.languageModel('gemini-2.0-pro');
       await gemini2Pro.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -991,11 +1054,14 @@ describe('doGenerate', () => {
       const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp');
       await gemini2Flash.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1011,11 +1077,14 @@ describe('doGenerate', () => {
       const geminiPro = provider.languageModel('gemini-1.0-pro');
       await geminiPro.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1032,15 +1101,17 @@ describe('doGenerate', () => {
 
       await geminiPro.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
-            dynamicRetrievalConfig: {
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {
               mode: 'MODE_DYNAMIC',
               dynamicThreshold: 1,
             },
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1062,11 +1133,14 @@ describe('doGenerate', () => {
       const gemini2Pro = provider.languageModel('gemini-2.0-pro');
       await gemini2Pro.doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            useUrlContext: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.url_context',
+            name: 'url_context',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1466,11 +1540,13 @@ describe('doStream', () => {
     content,
     headers,
     groundingMetadata,
+    urlContextMetadata,
     url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
   }: {
     content: string[];
     headers?: Record<string, string>;
     groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
+    urlContextMetadata?: GoogleGenerativeAIUrlContextMetadata;
     url?:
       | typeof TEST_URL_GEMINI_PRO
       | typeof TEST_URL_GEMINI_2_0_PRO
@@ -1491,6 +1567,7 @@ describe('doStream', () => {
                 index: 0,
                 safetyRatings: SAFETY_RATINGS,
                 ...(groundingMetadata && { groundingMetadata }),
+                ...(urlContextMetadata && { urlContextMetadata }),
               },
             ],
             // Include usage metadata only in the last chunk
@@ -1580,6 +1657,40 @@ describe('doStream', () => {
     });
   });
 
+  it('should expose url context metadata in provider metadata on finish', async () => {
+    prepareStreamResponse({
+      content: ['test'],
+      urlContextMetadata: {
+        urlMetadata: [
+          {
+            retrievedUrl: 'https://example.com/weather',
+            urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+          },
+        ],
+      },
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.urlContextMetadata,
+    ).toStrictEqual({
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/weather',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
+    });
+  });
+
   it('should stream text deltas', async () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
 
@@ -1640,6 +1751,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "urlContextMetadata": null,
             },
           },
           "type": "finish",
@@ -1705,11 +1817,14 @@ describe('doStream', () => {
       await gemini2Pro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1728,11 +1843,14 @@ describe('doStream', () => {
       await gemini2Flash.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1750,11 +1868,14 @@ describe('doStream', () => {
       await geminiPro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1773,15 +1894,17 @@ describe('doStream', () => {
       await geminiPro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
-            dynamicRetrievalConfig: {
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {
               mode: 'MODE_DYNAMIC',
               dynamicThreshold: 1,
             },
           },
-        },
+        ],
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1888,6 +2011,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "urlContextMetadata": null,
             },
           },
           "type": "finish",
@@ -2143,6 +2267,7 @@ describe('doStream', () => {
             "google": {
               "groundingMetadata": null,
               "safetyRatings": null,
+              "urlContextMetadata": null,
             },
           },
           "type": "finish",

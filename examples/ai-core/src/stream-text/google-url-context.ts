@@ -7,10 +7,8 @@ async function main() {
     model: google('gemini-2.5-flash'),
     prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context#limitations.
             Answer this question: How many links we can consume in one request?`,
-    providerOptions: {
-      google: {
-        useUrlContext: true,
-      },
+    tools: {
+      url_context: google.tools.urlContext({}),
     },
   });
 
