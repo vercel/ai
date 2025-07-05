@@ -52,14 +52,17 @@ Default is undefined, which disables throttling.
   resume?: boolean;
 };
 
-export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
-  experimental_throttle: throttleWaitMs,
-  resume = false,
-  ...options
-}: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
+export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
+  {
+    experimental_throttle: throttleWaitMs,
+    resume = false,
+    ...options
+  }: UseChatOptions<UI_MESSAGE> = {},
+  deps: any[] = [],
+): UseChatHelpers<UI_MESSAGE> {
   const chat = useMemo(() => {
     return 'chat' in options ? options.chat : new Chat(options);
-  }, [options]);
+  }, [...deps]);
 
   const subscribeToMessages = useCallback(
     (update: () => void) =>
@@ -72,15 +75,23 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     () => chat.messages,
     () => chat.messages,
   );
+  const subscribeToStatus = useCallback(
+    (cb: () => void) => chat['~registerStatusCallback'](cb),
+    [chat],
+  );
 
   const status = useSyncExternalStore(
-    chat['~registerStatusCallback'],
+    subscribeToStatus,
     () => chat.status,
     () => chat.status,
   );
+  const subscribeToError = useCallback(
+    (cb: () => void) => chat['~registerErrorCallback'](cb),
+    [chat],
+  );
 
   const error = useSyncExternalStore(
-    chat['~registerErrorCallback'],
+    subscribeToError,
     () => chat.error,
     () => chat.error,
   );
@@ -95,14 +106,14 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
       chat.messages = messagesParam;
     },
-    [messages, chat],
+    [chat, messages],
   );
 
   useEffect(() => {
     if (resume) {
       chat.resumeStream();
     }
-  }, [resume, chat]);
+  }, [chat, resume]);
 
   return {
     id: chat.id,
