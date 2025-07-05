@@ -126,8 +126,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       modelId: this.modelId,
     });
 
-    console.log('googleTools', googleTools);
-
     return {
       args: {
         generationConfig: {
