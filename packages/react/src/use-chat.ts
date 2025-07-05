@@ -4,7 +4,7 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
@@ -52,35 +52,48 @@ Default is undefined, which disables throttling.
   resume?: boolean;
 };
 
-export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
-  experimental_throttle: throttleWaitMs,
-  resume = false,
-  ...options
-}: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
-  const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
+export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
+  {
+    experimental_throttle: throttleWaitMs,
+    resume = false,
+    ...options
+  }: UseChatOptions<UI_MESSAGE> = {},
+  deps: any[] = [],
+): UseChatHelpers<UI_MESSAGE> {
+  const chat = useMemo(() => {
+    return 'chat' in options ? options.chat : new Chat(options);
+  }, [...deps]);
 
   const subscribeToMessages = useCallback(
     (update: () => void) =>
-      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    [throttleWaitMs],
+      chat['~registerMessagesCallback'](update, throttleWaitMs),
+    [throttleWaitMs, chat],
   );
 
   const messages = useSyncExternalStore(
     subscribeToMessages,
-    () => chatRef.current.messages,
-    () => chatRef.current.messages,
+    () => chat.messages,
+    () => chat.messages,
+  );
+  const subscribeToStatus = useCallback(
+    (cb: () => void) => chat['~registerStatusCallback'](cb),
+    [chat],
   );
 
   const status = useSyncExternalStore(
-    chatRef.current['~registerStatusCallback'],
-    () => chatRef.current.status,
-    () => chatRef.current.status,
+    subscribeToStatus,
+    () => chat.status,
+    () => chat.status,
+  );
+  const subscribeToError = useCallback(
+    (cb: () => void) => chat['~registerErrorCallback'](cb),
+    [chat],
   );
 
   const error = useSyncExternalStore(
-    chatRef.current['~registerErrorCallback'],
-    () => chatRef.current.error,
-    () => chatRef.current.error,
+    subscribeToError,
+    () => chat.error,
+    () => chat.error,
   );
 
   const setMessages = useCallback(
@@ -91,27 +104,27 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
         messagesParam = messagesParam(messages);
       }
 
-      chatRef.current.messages = messagesParam;
+      chat.messages = messagesParam;
     },
-    [messages, chatRef],
+    [chat, messages],
   );
 
   useEffect(() => {
     if (resume) {
-      chatRef.current.resumeStream();
+      chat.resumeStream();
     }
-  }, [resume, chatRef]);
+  }, [chat, resume]);
 
   return {
-    id: chatRef.current.id,
+    id: chat.id,
     messages,
     setMessages,
-    sendMessage: chatRef.current.sendMessage,
-    regenerate: chatRef.current.regenerate,
-    stop: chatRef.current.stop,
+    sendMessage: chat.sendMessage,
+    regenerate: chat.regenerate,
+    stop: chat.stop,
     error,
-    resumeStream: chatRef.current.resumeStream,
+    resumeStream: chat.resumeStream,
     status,
-    addToolResult: chatRef.current.addToolResult,
+    addToolResult: chat.addToolResult,
   };
 }
