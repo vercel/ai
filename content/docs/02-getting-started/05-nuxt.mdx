@@ -73,7 +73,7 @@ Create a `.env` file in your project root and add your OpenAI API Key. This key 
 Edit the `.env` file:
 
 ```env filename=".env"
-OPENAI_API_KEY=xxxxxxxxx
+NUXT_OPENAI_API_KEY=xxxxxxxxx
 ```
 
 Replace `xxxxxxxxx` with your actual OpenAI API key and configure the environment variable in `nuxt.config.ts`:
@@ -82,7 +82,7 @@ Replace `xxxxxxxxx` with your actual OpenAI API key and configure the environmen
 export default defineNuxtConfig({
   // rest of your nuxt config
   runtimeConfig: {
-    openaiApiKey: process.env.OPENAI_API_KEY,
+    openaiApiKey: '',
   },
 });
 ```
