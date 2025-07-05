@@ -2,6 +2,7 @@ import {
   groundingMetadataSchema,
   safetyRatingSchema,
 } from './google-generative-ai-language-model';
+import { urlContextMetadataSchema } from './tool/url-context';
 import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIPrompt = {
@@ -29,9 +30,14 @@ export type GoogleGenerativeAIGroundingMetadata = z.infer<
   typeof groundingMetadataSchema
 >;
 
+export type GoogleGenerativeAIUrlContextMetadata = z.infer<
+  typeof urlContextMetadataSchema
+>;
+
 export type GoogleGenerativeAISafetyRating = z.infer<typeof safetyRatingSchema>;
 
 export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
+  urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
 }

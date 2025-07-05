@@ -5,9 +5,19 @@ import 'dotenv/config';
 async function main() {
   const result = await generateText({
     model: google('gemini-2.5-flash'),
-    prompt: 'List the top 5 San Francisco news from the past week.',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK`,
+          },
+        ],
+      },
+    ],
     tools: {
-      google_search: google.tools.googleSearch({}),
+      url_context: google.tools.urlContext({}),
     },
   });
 

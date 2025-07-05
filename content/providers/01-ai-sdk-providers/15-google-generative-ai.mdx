@@ -278,23 +278,23 @@ const { text: meatLasangaRecipe } = await generateText({
 });
 ```
 
-### Search Grounding
+### Google Search
 
-With [search grounding](https://ai.google.dev/gemini-api/docs/grounding),
+Google provides a provider-defined Google search tool.
+
+With [google search](https://ai.google.dev/gemini-api/docs/google-search),
 the model has access to the latest information using Google search.
-Search grounding can be used to provide answers around current events:
+Google search can be used to provide answers around current events:
 
-```ts highlight="7,14-20"
+```ts highlight="8,17-20"
 import { google } from '@ai-sdk/google';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
-  model: google('gemini-1.5-pro'),
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
-    },
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
   },
   prompt:
     'List the top 5 San Francisco news from the past week.' +
@@ -360,20 +360,19 @@ Example response:
 
 With [dynamic retrieval](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval), you can configure how the model decides when to turn on Grounding with Google Search. This gives you more control over when and how the model grounds its responses.
 
-```ts highlight="7-10"
+```ts highlight="7-12"
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
   model: google('gemini-1.5-flash'),
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
+  tools: {
+    google_search: google.tools.googleSearch({
       dynamicRetrievalConfig: {
         mode: 'MODE_DYNAMIC',
         dynamicThreshold: 0.8,
       },
-    },
+    }),
   },
   prompt: 'Who won the latest F1 grand prix?',
 });
@@ -393,9 +392,112 @@ The `dynamicRetrievalConfig` describes the options to customize dynamic retrieva
   supported with 8B variants.
 </Note>
 
+### URL Context
+
+Google provides a provider-defined URL context tool.
+
+The URL context tool allows the you to provide specific URLs that you want the model to analyze directly in from the prompt.
+
+```ts highlight="9,13-17"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, providerMetadata } = await generateText({
+  model: google('gemini-2.5-flash'),
+  prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
+          Answer this question: How many links we can consume in one request?`,
+  tools: {
+    url_context: google.tools.urlContext({}),
+  },
+});
+
+const metadata = providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
+const urlContextMetadata = metadata?.urlContextMetadata;
+const safetyRatings = metadata?.safetyRatings;
+```
+
+The URL context metadata includes detailed information about how the model used the URL context to generate the response. Here are the available fields:
+
+- **`urlMetadata`** (`{ retrievedUrl: string; urlRetrievalStatus: string; }[] | null`)
+
+  - Array of URL context metadata
+  - Each object includes:
+    - **`retrievedUrl`**: The URL of the context
+    - **`urlRetrievalStatus`**: The status of the URL retrieval
+
+Example response:
+
+```json
+{
+  "urlMetadata": [
+    {
+      "retrievedUrl": "https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai",
+      "urlRetrievalStatus": "URL_RETRIEVAL_STATUS_SUCCESS"
+    }
+  ]
+}
+```
+
+With the URL context tool, you will also get the `groundingMetadata`.
+
+```json
+"groundingMetadata": {
+    "groundingChunks": [
+        {
+            "web": {
+                "uri": "https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai",
+                "title": "Google Generative AI - AI SDK Providers"
+            }
+        }
+    ],
+    "groundingSupports": [
+        {
+            "segment": {
+                "startIndex": 67,
+                "endIndex": 157,
+                "text": "**Installation**: Install the `@ai-sdk/google` module using your preferred package manager"
+            },
+            "groundingChunkIndices": [
+                0
+            ]
+        },
+    ]
+}
+```
+
+<Note>You can add up to 20 URLs per request.</Note>
+
+<Note>
+  The URL context tool is only supported for Gemini 2.0 Flash models and above.
+  Check the [supported models for URL context
+  tool](https://ai.google.dev/gemini-api/docs/url-context#supported-models).
+</Note>
+
+#### Combine URL Context with Search Grounding
+
+You can combine the URL context tool with search grounding to provide the model with the latest information from the web.
+
+```ts highlight="9-10"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: google('gemini-2.5-flash'),
+  prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK.
+    Also, provide the latest news about AI SDK V5.`,
+  tools: {
+    google_search: google.tools.googleSearch({}),
+    url_context: google.tools.urlContext({}),
+  },
+});
+```
+
 ### Sources
 
-When you use [Search Grounding](#search-grounding), the model will include sources in the response.
+When you use [Google Search](#google-search) or [URL Context](#url-context), the model will include sources in the response.
 You can access them using the `sources` property of the result:
 
 ```ts
@@ -403,11 +505,9 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { sources } = await generateText({
-  model: google('gemini-2.0-flash-exp'),
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
-    },
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
   },
   prompt: 'List the top 5 San Francisco news from the past week.',
 });
@@ -526,17 +626,17 @@ The following Zod features are known to not work with Google Generative AI:
 
 ### Model Capabilities
 
-| Model                        | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-2.5-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-pro-latest`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash-latest`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash-8b`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash-8b-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                        | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
+| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-2.5-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.0-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-1.5-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-1.5-pro-latest`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-1.5-flash`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-1.5-flash-latest`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-1.5-flash-8b`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-1.5-flash-8b-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Google Generative AI
