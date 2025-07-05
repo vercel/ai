@@ -4,13 +4,7 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useSyncExternalStore,
-} from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
