@@ -293,9 +293,9 @@ import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
   model: google('gemini-2.5-flash'),
-  tools: [
+  tools: {
     google_search: google.tools.googleSearch({}),
-  ],
+  },
   prompt:
     'List the top 5 San Francisco news from the past week.' +
     'You must include the date of each article.',
@@ -366,14 +366,14 @@ import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
   model: google('gemini-1.5-flash'),
-  tools: [
+  tools: {
     google_search: google.tools.googleSearch({
       dynamicRetrievalConfig: {
         mode: 'MODE_DYNAMIC',
         dynamicThreshold: 0.8,
       },
     }),
-  ],
+  },
   prompt: 'Who won the latest F1 grand prix?',
 });
 ```
@@ -406,9 +406,9 @@ const { text, providerMetadata } = await generateText({
   model: google('gemini-2.5-flash'),
   prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
           Answer this question: How many links we can consume in one request?`,
-  tools: [
+  tools: {
     url_context: google.tools.urlContext({}),
-  ],
+  },
 });
 
 const metadata = providerMetadata?.google as
@@ -488,10 +488,10 @@ const { text, sources } = await generateText({
   model: google('gemini-2.5-flash'),
   prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK.
     Also, provide the latest news about AI SDK V5.`,
-  tools: [
+  tools: {
     google_search: google.tools.googleSearch({}),
     url_context: google.tools.urlContext({}),
-  ],
+  },
 });
 ```
 
@@ -506,9 +506,9 @@ import { generateText } from 'ai';
 
 const { sources } = await generateText({
   model: google('gemini-2.5-flash'),
-  tools: [
+  tools: {
     google_search: google.tools.googleSearch({}),
-  ],
+  },
   prompt: 'List the top 5 San Francisco news from the past week.',
 });
 ```
