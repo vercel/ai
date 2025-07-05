@@ -136,10 +136,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         inferenceConfig.maxOutputTokens = thinkingBudget + 4096; // Default + thinking budget maxOutputTokens = 4096, TODO update default in v5
       }
       // Add them to additional model request fields
-      // Add reasoning config to additionalModelRequestFields
+      // Add thinking config to additionalModelRequestFields
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,
-        reasoningConfig: {
+        thinking: {
           type: bedrockOptions.reasoningConfig?.type,
           budget_tokens: thinkingBudget,
         },
@@ -167,6 +167,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     }
 
     const { toolConfig, toolWarnings } = prepareTools({ tools, toolChoice });
+
+    // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
+    const { reasoningConfig: _, ...filteredBedrockOptions } =
+      providerOptions?.bedrock || {};
+
     return {
       command: {
         system,
@@ -176,7 +181,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
         }),
-        ...providerOptions?.bedrock,
+        ...filteredBedrockOptions,
         ...(toolConfig.tools?.length ? { toolConfig } : {}),
       },
       warnings: [...warnings, ...toolWarnings],
