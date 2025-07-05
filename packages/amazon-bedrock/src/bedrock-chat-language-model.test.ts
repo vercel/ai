@@ -1385,7 +1385,7 @@ describe('doStream', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    
+
     // Should contain thinking in additionalModelRequestFields
     expect(requestBody).toMatchObject({
       additionalModelRequestFields: {
@@ -1823,7 +1823,7 @@ describe('doGenerate', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    
+
     // Should contain thinking in additionalModelRequestFields
     expect(requestBody).toMatchObject({
       additionalModelRequestFields: {
