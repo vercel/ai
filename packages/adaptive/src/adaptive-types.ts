@@ -17,11 +17,6 @@ export interface AdaptiveChatCompletionRequest {
   user?: string;
   costBias?: number;
   /**
-   * Optional comparison provider for cost optimization or benchmarking.
-   * This is sent as comparison_provider in the request JSON.
-   */
-  comparison_provider?: { provider: string; model: string };
-  /**
    * Optional stream options for streaming requests.
    */
   stream_options?: {

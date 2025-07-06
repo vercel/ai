@@ -56,18 +56,6 @@ export const MODELS: Record<ProviderName, readonly string[]> = {
   grok: ['grok-3', 'grok-3-mini', 'grok-3-fast', 'grok-beta'],
 } as const;
 
-export type ComparisonProvider = {
-  [P in ProviderName]: { provider: P; model: (typeof MODELS)[P][number] };
-}[ProviderName];
-
-export const comparisonProviderSchema = z
-  .object({
-    provider: z.enum(PROVIDERS),
-    model: z.string(),
-  })
-  .refine(({ provider, model }) => MODELS[provider].includes(model), {
-    message: 'Invalid model for provider',
-  });
 // --- End provider/model type inference ---
 
 /**
@@ -105,10 +93,6 @@ export const adaptiveProviderOptions = z.object({
    * Cost bias for optimization.
    */
   costBias: z.number().optional(),
-  /**
-   * Optional comparison provider for cost optimization or benchmarking.
-   */
-  comparisonProvider: comparisonProviderSchema.optional(),
 });
 
 /**
