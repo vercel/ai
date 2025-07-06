@@ -3,10 +3,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
-import {
-  AdaptiveChatCompletionMessage,
-  AdaptiveChatCompletionContentPart,
-} from './adaptive-types';
+import { AdaptiveChatCompletionMessage } from './adaptive-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToAdaptiveChatMessages({

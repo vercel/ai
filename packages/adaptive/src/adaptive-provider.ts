@@ -81,7 +81,7 @@ export function createAdaptive(
     ...options.headers,
   });
 
-  const DEFAULT_MODEL_ID = '';
+  const DEFAULT_MODEL_ID = 'openai-gpt-4o';
   const createChatModel = (modelId?: AdaptiveChatModelId) =>
     new AdaptiveChatLanguageModel(modelId ?? DEFAULT_MODEL_ID, {
       provider: 'adaptive.chat',

@@ -3,7 +3,6 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
@@ -11,16 +10,12 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
-  parseProviderOptions,
-  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   AdaptiveChatCompletionRequest,
   AdaptiveChatCompletionMessage,
-  AdaptiveChatCompletionResponse,
-  AdaptiveChatCompletionUsage,
 } from './adaptive-types';
 import { convertToAdaptiveChatMessages } from './convert-to-adaptive-chat-messages';
 import { mapAdaptiveFinishReason } from './map-adaptive-finish-reason';
@@ -59,11 +54,10 @@ const adaptiveChatResponseSchema = z.object({
       completion_tokens: z.number(),
       prompt_tokens: z.number(),
       total_tokens: z.number(),
-      cost_saved: z.number().optional(),
     })
     .optional(),
   systemFingerprint: z.string().optional(),
-  providers: z.array(z.string()).optional(),
+  provider: z.string(),
 });
 
 const adaptiveChatChunkSchema = z.object({
@@ -87,10 +81,9 @@ const adaptiveChatChunkSchema = z.object({
       completion_tokens: z.number(),
       prompt_tokens: z.number(),
       total_tokens: z.number(),
-      cost_saved: z.number().optional(),
     })
     .optional(),
-  providers: z.array(z.string()).optional(),
+  provider: z.string(),
 });
 
 export class AdaptiveChatLanguageModel implements LanguageModelV2 {
@@ -153,9 +146,20 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
       convertToAdaptiveChatMessages({ prompt });
     warnings.push(...messageWarnings);
 
+    // Parse model ID to extract provider and model
+    const dashIndex = this.modelId.indexOf('-');
+    if (dashIndex === -1) {
+      throw new Error(
+        `Invalid model ID format. Expected "providername-modelname", got "${this.modelId}"`,
+      );
+    }
+    const provider = this.modelId.substring(0, dashIndex);
+    const model = this.modelId.substring(dashIndex + 1);
+
     // Standardized settings
     const standardizedArgs = {
-      model: this.modelId,
+      model,
+      provider,
       messages: messages as AdaptiveChatCompletionMessage[],
       max_tokens:
         typeof maxOutputTokens === 'number' ? maxOutputTokens : undefined,
@@ -221,8 +225,8 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
       }
     }
 
-    // Extract cost_saved from usage
-    const { cost_saved, prompt_tokens, completion_tokens, total_tokens } =
+    // Extract usage information
+    const { prompt_tokens, completion_tokens, total_tokens } =
       value.usage ?? {};
 
     return {
@@ -237,15 +241,13 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
             totalTokens: total_tokens,
           }
         : { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-      providerMetadata:
-        cost_saved !== undefined || value.providers
-          ? { 
-              adaptive: { 
-                ...(cost_saved !== undefined && { cost_saved }),
-                ...(value.providers && { providers: value.providers }),
-              } 
-            }
-          : undefined,
+      providerMetadata: value.provider
+        ? {
+            adaptive: {
+              provider: value.provider,
+            },
+          }
+        : undefined,
       request: { body },
       response: {
         id: value.id,
@@ -289,8 +291,7 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
       } as LanguageModelV2Usage,
       isFirstChunk: true,
       isActiveText: false,
-      cost_saved: undefined as number | undefined,
-      providers: undefined as string[] | undefined,
+      provider: undefined as string | undefined,
     };
 
     return {
@@ -330,13 +331,10 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
               state.usage.outputTokens =
                 value.usage.completion_tokens ?? undefined;
               state.usage.totalTokens = value.usage.total_tokens ?? undefined;
-              if (value.usage.cost_saved !== undefined) {
-                state.cost_saved = value.usage.cost_saved;
-              }
             }
 
-            if (value.providers) {
-              state.providers = value.providers;
+            if (value.provider) {
+              state.provider = value.provider;
             }
 
             const choice = value.choices[0];
@@ -383,15 +381,13 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
                 outputTokens: 0,
                 totalTokens: 0,
               },
-              providerMetadata:
-                state.cost_saved !== undefined || state.providers
-                  ? { 
-                      adaptive: { 
-                        ...(state.cost_saved !== undefined && { cost_saved: state.cost_saved }),
-                        ...(state.providers && { providers: state.providers }),
-                      } 
-                    }
-                  : undefined,
+              providerMetadata: state.provider
+                ? {
+                    adaptive: {
+                      provider: state.provider,
+                    },
+                  }
+                : undefined,
             });
           },
         }),
