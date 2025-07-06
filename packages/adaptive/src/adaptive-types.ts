@@ -3,9 +3,6 @@
  */
 export interface AdaptiveChatCompletionRequest {
   model: string;
-  /**
-   * Provider name extracted from providername-modelname format.
-   */
   provider: string;
   messages: AdaptiveChatCompletionMessage[];
   max_tokens?: number;
