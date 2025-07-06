@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.0-beta.5
+
+### Patch Changes
+
+- 4f3e637: fix (ui): avoid caching globalThis.fetch in case it is patched by other libraries
+
 ## 5.0.0-beta.4
 
 ### Patch Changes
