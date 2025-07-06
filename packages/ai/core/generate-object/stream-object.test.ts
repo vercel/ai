@@ -1399,6 +1399,11 @@ describe('streamObject', () => {
               type: 'finish',
               finishReason: 'stop',
               usage: testUsage,
+              providerMetadata: {
+                testProvider: {
+                  testKey: 'testValue',
+                },
+              },
             },
           ]),
         }),
