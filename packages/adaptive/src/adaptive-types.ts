@@ -3,6 +3,10 @@
  */
 export interface AdaptiveChatCompletionRequest {
   model: string;
+  /**
+   * Provider name extracted from providername-modelname format.
+   */
+  provider: string;
   messages: AdaptiveChatCompletionMessage[];
   max_tokens?: number;
   temperature?: number;
@@ -109,7 +113,7 @@ export interface AdaptiveChatCompletionResponse {
     finish_reason: string | null;
   }>;
   usage?: AdaptiveChatCompletionUsage;
-  providers?: string[];
+  provider: string;
 }
 
 /**
@@ -119,5 +123,4 @@ export interface AdaptiveChatCompletionUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
-  cost_saved?: number;
 }

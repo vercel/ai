@@ -14,7 +14,16 @@ export const PROVIDERS = [
 export type ProviderName = (typeof PROVIDERS)[number];
 
 export const MODELS: Record<ProviderName, readonly string[]> = {
-  openai: ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-4', 'gpt-4-turbo'],
+  openai: [
+    'gpt-3.5-turbo',
+    'gpt-4o',
+    'gpt-4o-mini',
+    'gpt-4',
+    'gpt-4-turbo',
+    'o3',
+    'o3-mini',
+    'o4-mini',
+  ],
   anthropic: [
     'claude-3.5-sonnet',
     'claude-3.5-haiku',
@@ -47,25 +56,29 @@ export const MODELS: Record<ProviderName, readonly string[]> = {
   grok: ['grok-3', 'grok-3-mini', 'grok-3-fast', 'grok-beta'],
 } as const;
 
-export type ProviderModelPair = {
+export type ComparisonProvider = {
   [P in ProviderName]: { provider: P; model: (typeof MODELS)[P][number] };
 }[ProviderName];
-export type ComparisonProvider = ProviderModelPair;
 
 export const comparisonProviderSchema = z
   .object({
     provider: z.enum(PROVIDERS),
     model: z.string(),
   })
-  .refine(({ provider, model }) => MODELS[provider].includes(model as any), {
+  .refine(({ provider, model }) => MODELS[provider].includes(model), {
     message: 'Invalid model for provider',
   });
 // --- End provider/model type inference ---
 
 /**
- * The model ID for Adaptive chat models.
+ * The model ID for Adaptive chat models in providername-modelname format.
+ * Examples: "openai-gpt-4", "anthropic-claude-3.5-sonnet", "google-gemini-2.5-pro"
  */
-export type AdaptiveChatModelId = string;
+export type AdaptiveChatModelId =
+  | {
+      [P in ProviderName]: `${P}-${(typeof MODELS)[P][number]}`;
+    }[ProviderName]
+  | (string & {});
 
 /**
  * Provider options for Adaptive chat models.
