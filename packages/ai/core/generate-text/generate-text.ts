@@ -391,6 +391,9 @@ A function that attempts to repair a tool call that failed to parse.
                       'ai.response.model': responseData.modelId,
                       'ai.response.timestamp':
                         responseData.timestamp.toISOString(),
+                      'ai.response.providerMetadata': JSON.stringify(
+                        result.providerMetadata,
+                      ),
 
                       // TODO rename telemetry attributes to inputTokens and outputTokens
                       'ai.usage.promptTokens': result.usage.inputTokens,
@@ -517,6 +520,9 @@ A function that attempts to repair a tool call that failed to parse.
                     : JSON.stringify(toolCalls);
                 },
               },
+              'ai.response.providerMetadata': JSON.stringify(
+                currentModelResponse.providerMetadata,
+              ),
 
               // TODO rename telemetry attributes to inputTokens and outputTokens
               'ai.usage.promptTokens': currentModelResponse.usage.inputTokens,
