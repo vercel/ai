@@ -55,6 +55,11 @@ function createTestModel({
       type: 'finish',
       finishReason: 'stop',
       usage: testUsage,
+      providerMetadata: {
+        testProvider: {
+          testKey: 'testValue',
+        },
+      },
     },
   ]),
   request = undefined,

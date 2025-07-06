@@ -96,6 +96,11 @@ exports[`streamObject > output = "object" > result.fullStream > should send full
   },
   {
     "finishReason": "stop",
+    "providerMetadata": {
+      "testProvider": {
+        "testKey": "testValue",
+      },
+    },
     "response": {
       "id": "id-0",
       "modelId": "mock-model-id",
