@@ -169,7 +169,6 @@ export class AdaptiveChatLanguageModel implements LanguageModelV2 {
       presence_penalty: presencePenalty,
       frequency_penalty: frequencyPenalty,
       user: adaptiveOptions.user,
-      comparison_provider: adaptiveOptions.comparisonProvider,
     };
 
     // logit_bias

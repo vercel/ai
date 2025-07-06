@@ -108,10 +108,7 @@ const model = adaptive('openai-gpt-4o');
 await generateText({
   model,
   providerOptions: {
-    adaptive: {
-      comparisonProvider: { provider: 'openai', model: 'gpt-4' },
-      costBias: 0.8,
-    },
+    costBias: 0.8,
   },
 });
 ```
