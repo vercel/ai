@@ -104,6 +104,7 @@ const result = await generateText({
   - `ai.response.text`: the text that was generated
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.finishReason`: the reason why the generation finished
+  - `ai.response.providerMetadata`: provider specific metadata returned with the generation
 
 - `ai.toolCall` (span): a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
@@ -140,6 +141,7 @@ const result = await generateText({
   - `ai.response.msToFinish`: the time it took to receive the finish part of the LLM stream in milliseconds
   - `ai.response.avgCompletionTokensPerSecond`: the average number of completion tokens per second
   - `ai.response.finishReason`: the reason why the generation finished
+  - `ai.response.providerMetadata`: provider specific metadata returned with the generation
 
 - `ai.toolCall` (span): a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
 
@@ -175,6 +177,7 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.response.object`: the object that was generated (stringified JSON)
   - `ai.response.finishReason`: the reason why the generation finished
+  - `ai.response.providerMetadata`: provider specific metadata returned with the generation
 
 ### streamObject function
 
@@ -202,6 +205,7 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.response.object`: the object that was generated (stringified JSON)
   - `ai.response.msToFirstChunk`: the time it took to receive the first chunk
   - `ai.response.finishReason`: the reason why the generation finished
+  - `ai.response.providerMetadata`: provider specific metadata returned with the generation
 
 - `ai.stream.firstChunk` (event): an event that is emitted when the first chunk of the stream is received.
   - `ai.response.msToFirstChunk`: the time it took to receive the first chunk
