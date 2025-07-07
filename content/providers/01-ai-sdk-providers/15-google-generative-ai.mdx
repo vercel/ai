@@ -301,14 +301,24 @@ const { name: cachedContent } = await cacheManager.create({
   ttlSeconds: 60 * 5,
 });
 
-const { text: veggieLasagnaRecipe } = await generateText({
-  model: google(model, { cachedContent }),
+const { text: veggieLasangaRecipe } = await generateText({
+  model: google(model),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    google: {
+      cachedContent,
+    },
+  },
 });
 
-const { text: meatLasagnaRecipe } = await generateText({
-  model: google(model, { cachedContent }),
+const { text: meatLasangaRecipe } = await generateText({
+  model: google(model),
   prompt: 'Write a meat lasagna recipe for 12 people.',
+  providerOptions: {
+    google: {
+      cachedContent,
+    },
+  },
 });
 ```
 
