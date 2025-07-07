@@ -132,7 +132,7 @@ describe('google-vertex-anthropic-provider', () => {
       {},
       expect.objectContaining({
         provider: 'vertex.anthropic.messages',
-        supportedUrls: expect.any(Function),
+        supportsUrl: expect.any(Function),
         supportsImageUrls: false,
       }),
     );
@@ -143,6 +143,6 @@ describe('google-vertex-anthropic-provider', () => {
     const config = constructorCall[2];
 
     // Verify that supportedUrls returns empty object to force base64 conversion
-    expect(config.supportedUrls()).toEqual({});
+    expect(config.supportsUrl()).toEqual({});
   });
 });
