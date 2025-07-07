@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.17
+
+### Patch Changes
+
+- a288694: Expose provider metadata as an attribute on exported OTEL spans
+
 ## 4.3.16
 
 ### Patch Changes
