@@ -433,6 +433,9 @@ A function that attempts to repair a tool call that failed to parse.
                     'ai.response.model': responseData.modelId,
                     'ai.response.timestamp':
                       responseData.timestamp.toISOString(),
+                    'ai.response.providerMetadata': JSON.stringify(
+                      result.providerMetadata,
+                    ),
 
                     'ai.usage.promptTokens': result.usage.promptTokens,
                     'ai.usage.completionTokens': result.usage.completionTokens,
@@ -610,6 +613,9 @@ A function that attempts to repair a tool call that failed to parse.
             'ai.usage.promptTokens': currentModelResponse.usage.promptTokens,
             'ai.usage.completionTokens':
               currentModelResponse.usage.completionTokens,
+            'ai.response.providerMetadata': JSON.stringify(
+              currentModelResponse.providerMetadata,
+            ),
           },
         }),
       );

@@ -102,6 +102,7 @@ const modelWithSources = new MockLanguageModelV1({
         finishReason: 'stop',
         logprobs: undefined,
         usage: { completionTokens: 10, promptTokens: 3 },
+        providerMetadata: { testprovider: { testkey: 'testvalue' } },
       },
     ]),
     rawCall: { rawPrompt: 'prompt', rawSettings: {} },

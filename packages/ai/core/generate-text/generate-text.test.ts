@@ -1306,6 +1306,11 @@ describe('telemetry', () => {
             timestamp: new Date(10000),
             modelId: 'test-response-model-id',
           },
+          providerMetadata: {
+            testprovider: {
+              testkey: 'testvalue',
+            },
+          },
         }),
       }),
       prompt: 'prompt',

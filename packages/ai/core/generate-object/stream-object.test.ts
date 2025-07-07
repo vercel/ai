@@ -64,6 +64,11 @@ describe('streamObject', () => {
                     type: 'finish',
                     finishReason: 'stop',
                     usage: { completionTokens: 10, promptTokens: 3 },
+                    providerMetadata: {
+                      testprovider: {
+                        testkey: 'testvalue',
+                      },
+                    },
                   },
                 ]),
                 rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -1944,6 +1949,11 @@ describe('streamObject', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 usage: { completionTokens: 10, promptTokens: 3 },
+                providerMetadata: {
+                  testprovider: {
+                    testkey: 'testvalue',
+                  },
+                },
               },
             ]),
             rawCall: { rawPrompt: 'prompt', rawSettings: {} },
