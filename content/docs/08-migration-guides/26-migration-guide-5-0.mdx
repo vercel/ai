@@ -529,7 +529,7 @@ In `generateText()` and `streamText()` results, reasoning properties have been r
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: anthropic('claude-4-sonnet-20250514'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'Explain your reasoning',
 });
 
@@ -539,7 +539,7 @@ console.log(result.reasoningDetails); // Array of reasoning details
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: anthropic('claude-4-sonnet-20250514'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'Explain your reasoning',
 });
 
@@ -1032,7 +1032,8 @@ const chat = new Chat({
   transport: new DefaultChatTransport({ api: '/api/chat' }),
 });
 
-const handleSubmit = () => {
+const handleSubmit = (e: Event) => {
+  e.preventDefault();
   chat.sendMessage({ text: input.value });
   input.value = '';
 };
