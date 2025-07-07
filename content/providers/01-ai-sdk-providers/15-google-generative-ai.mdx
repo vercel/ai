@@ -556,9 +556,14 @@ const model = google.textEmbeddingModel('text-embedding-004');
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
 
 ```ts
+import { google } from '@ai-sdk/google';
+import { embed } from 'ai';
+
 const model = google.textEmbeddingModel('text-embedding-004');
 
-await model.doEmbed({
+const { embedding } = await embed({
+  model,
+  value: 'sunny day at the beach',
   providerOptions: {
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
