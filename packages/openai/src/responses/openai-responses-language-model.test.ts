@@ -1567,7 +1567,6 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 });
 
-
 describe('errors', () => {
   const server = createTestServer({
     'https://api.openai.com/v1/responses': {},
@@ -1628,7 +1627,7 @@ describe('errors', () => {
       createModel('gpt-4o').doGenerate({
         prompt: TEST_PROMPT,
         inputFormat: 'prompt',
-        mode: { type: 'regular' }
+        mode: { type: 'regular' },
       }),
     ).rejects.toThrow('Something went wrong');
   });
@@ -1651,11 +1650,10 @@ describe('errors', () => {
     const { stream } = await createModel('gpt-4o-mini').doStream({
       prompt: TEST_PROMPT,
       inputFormat: 'prompt',
-      mode: { type: 'regular' }
+      mode: { type: 'regular' },
     });
 
-    expect(await convertReadableStreamToArray(stream))
-      .toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
           "id": "resp_67cf3390786881908b27489d7e8cfb6b",

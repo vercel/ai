@@ -265,11 +265,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         z.object({
           id: z.string(),
           created_at: z.number(),
-          error: z.object({
-            message: z.string(),
-            code: z.string(),
-          })
-          .nullish(),
+          error: z
+            .object({
+              message: z.string(),
+              code: z.string(),
+            })
+            .nullish(),
           model: z.string(),
           output: z.array(
             z.discriminatedUnion('type', [
