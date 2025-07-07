@@ -910,6 +910,11 @@ describe('telemetry', () => {
             timestamp: new Date(10000),
             modelId: 'test-response-model-id',
           },
+          providerMetadata: {
+            testProvider: {
+              testKey: 'testValue',
+            },
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),
