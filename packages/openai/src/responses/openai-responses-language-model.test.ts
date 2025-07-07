@@ -1566,3 +1566,114 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
   });
 });
+
+describe('errors', () => {
+  const server = createTestServer({
+    'https://api.openai.com/v1/responses': {},
+  });
+
+  it('should throw an API call error when the response contains an error part', async () => {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: {
+        id: 'resp_67c97c0203188190a025beb4a75242bc',
+        object: 'response',
+        created_at: 1741257730,
+        status: 'completed',
+        error: {
+          code: 'ERR_SOMETHING',
+          message: 'Something went wrong',
+        },
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o-2024-07-18',
+        output: [],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: {
+          effort: null,
+          summary: null,
+        },
+        store: true,
+        temperature: 1,
+        text: {
+          format: {
+            type: 'text',
+          },
+        },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 345,
+          input_tokens_details: {
+            cached_tokens: 234,
+          },
+          output_tokens: 538,
+          output_tokens_details: {
+            reasoning_tokens: 123,
+          },
+          total_tokens: 572,
+        },
+        user: null,
+        metadata: {},
+      },
+    };
+
+    await expect(
+      createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+      }),
+    ).rejects.toThrow('Something went wrong');
+  });
+
+  it('should stream error parts', async () => {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search_preview","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+        `data:{"type":"error","code":"ERR_SOMETHING","message":"Something went wrong","param":null,"sequence_number":1}\n\n`,
+      ],
+    };
+
+    const { stream } = await createModel('gpt-4o-mini').doStream({
+      prompt: TEST_PROMPT,
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+          "modelId": "gpt-4o-mini-2024-07-18",
+          "timestamp": 2025-03-10T18:46:40.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "error": {
+            "code": "ERR_SOMETHING",
+            "message": "Something went wrong",
+            "param": null,
+            "sequence_number": 1,
+            "type": "error",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "unknown",
+          "type": "finish",
+          "usage": {
+            "completionTokens": NaN,
+            "promptTokens": NaN,
+          },
+        },
+      ]
+    `);
+  });
+});
