@@ -5,9 +5,7 @@ import 'dotenv/config';
 async function main() {
   const agent = new Agent({
     model: openai('gpt-3.5-turbo'),
-    maxOutputTokens: 512,
-    temperature: 0.3,
-    maxRetries: 5,
+    system: 'You are a helpful assistant.',
   });
 
   const result = agent.stream({
