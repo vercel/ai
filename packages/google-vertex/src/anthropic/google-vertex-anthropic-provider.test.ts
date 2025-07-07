@@ -108,4 +108,41 @@ describe('google-vertex-anthropic-provider', () => {
       }),
     );
   });
+  
+  it('should create a Google Vertex Anthropic provider instance with custom settings', () => {
+    const customProvider = createVertexAnthropic({
+      project: 'custom-project',
+      location: 'custom-location',
+      baseURL: 'https://custom.base.url',
+      headers: { 'Custom-Header': 'value' },
+    });
+
+    expect(customProvider).toBeDefined();
+    expect(typeof customProvider).toBe('function');
+    expect(customProvider.languageModel).toBeDefined();
+  });
+
+  it('should not support URL sources to force base64 conversion', () => {
+    const provider = createVertexAnthropic();
+    provider('test-model-id');
+
+    // Assert that the model constructor was called with the correct configuration
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      {},
+      expect.objectContaining({
+        provider: 'vertex.anthropic.messages',
+        supportedUrls: expect.any(Function),
+        supportsImageUrls: false,
+      }),
+    );
+
+    // Get the actual config passed to the constructor
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[2]; // Changed from [1] to [2] since supportedUrls is in the third argument
+
+    // Verify that supportedUrls returns empty object to force base64 conversion
+    expect(config.supportedUrls()).toEqual({});
+  });
 });
