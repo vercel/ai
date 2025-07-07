@@ -1623,19 +1623,13 @@ describe('errors', () => {
       },
     };
 
-    expect(
+    await expect(
       createModel('gpt-4o').doGenerate({
         prompt: TEST_PROMPT,
         inputFormat: 'prompt',
         mode: { type: 'regular' },
       }),
     ).rejects.toThrow('Something went wrong');
-  });
-});
-
-describe('errors', () => {
-  const server = createTestServer({
-    'https://api.openai.com/v1/responses': {},
   });
 
   it('should stream error parts', async () => {
