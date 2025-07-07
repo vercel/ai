@@ -2,4 +2,4 @@
 '@ai-sdk/openai-compatible': patch
 ---
 
-fix reasoningEffort Option
+allow any string as reasoningEffort

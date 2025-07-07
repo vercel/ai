@@ -11,9 +11,8 @@ export const openaiCompatibleProviderOptions = z.object({
 
   /**
    * Reasoning effort for reasoning models. Defaults to `medium`.
-   * https://ai.google.dev/gemini-api/docs/openai#thinking
    */
-  reasoningEffort: z.enum(['low', 'medium', 'high', 'none']).optional(),
+  reasoningEffort: z.string().optional(),
 });
 
 export type OpenAICompatibleProviderOptions = z.infer<
