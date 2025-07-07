@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -246,16 +247,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args: body, warnings } = this.getArgs(options);
+    const url = this.config.url({
+      path: '/responses',
+      modelId: this.modelId,
+    });
 
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: '/responses',
-        modelId: this.modelId,
-      }),
+      url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -263,6 +265,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         z.object({
           id: z.string(),
           created_at: z.number(),
+          error: z.object({
+            message: z.string(),
+            code: z.string(),
+          })
+          .nullish(),
           model: z.string(),
           output: z.array(
             z.discriminatedUnion('type', [
@@ -315,6 +322,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+
+    if (response.error) {
+      throw new APICallError({
+        message: response.error.message,
+        url,
+        requestBodyValues: body,
+        statusCode: 400,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
 
     const outputTextElements = response.output
       .filter(output => output.type === 'message')
@@ -521,6 +540,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                   title: value.annotation.title,
                 },
               });
+            } else if (isErrorChunk(value)) {
+              controller.enqueue({ type: 'error', error: value });
             }
           },
 
@@ -645,6 +666,14 @@ const responseReasoningSummaryTextDeltaSchema = z.object({
   delta: z.string(),
 });
 
+const errorChunkSchema = z.object({
+  type: z.literal('error'),
+  code: z.string(),
+  message: z.string(),
+  param: z.string().nullish(),
+  sequence_number: z.number(),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -654,6 +683,7 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
+  errorChunkSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -705,6 +735,12 @@ function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
+function isErrorChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof errorChunkSchema> {
+  return chunk.type === 'error';
 }
 
 type ResponsesModelConfig = {
