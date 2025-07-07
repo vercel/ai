@@ -101,6 +101,7 @@ export function createVertexAnthropic(
         headers: options.headers ?? {},
         fetch: options.fetch,
         supportsImageUrls: false,
+        supportsUrl: () => false,
         buildRequestUrl: (baseURL, isStreaming) =>
           `${baseURL}/${modelId}:${
             isStreaming ? 'streamRawPredict' : 'rawPredict'
@@ -113,7 +114,6 @@ export function createVertexAnthropic(
             anthropic_version: 'vertex-2023-10-16',
           };
         },
-        supportsUrl: () => ({}),
       },
     );
 
