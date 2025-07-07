@@ -661,4 +661,96 @@ describe('convertToModelMessages', () => {
       }).toThrow('Unsupported role: unknown');
     });
   });
+
+  describe('when ignoring incomplete tool calls', () => {
+    it('should handle conversation with multiple tool invocations and user message at the end', () => {
+      const result = convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-screenshot',
+                state: 'output-available',
+                toolCallId: 'call-1',
+                input: { value: 'value-1' },
+                output: 'result-1',
+              },
+              { type: 'step-start' },
+              {
+                type: 'tool-screenshot',
+                state: 'input-streaming',
+                toolCallId: 'call-2',
+                input: { value: 'value-2' },
+              },
+              {
+                type: 'tool-screenshot',
+                state: 'input-available',
+                toolCallId: 'call-3',
+                input: { value: 'value-3' },
+              },
+              { type: 'text', text: 'response', state: 'done' },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Thanks!' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value-1",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result-1",
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "response",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "text": "Thanks!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
 });
