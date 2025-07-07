@@ -140,7 +140,7 @@ describe('google-vertex-anthropic-provider', () => {
     // Get the actual config passed to the constructor
     const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[2]; // Changed from [1] to [2] since supportedUrls is in the third argument
+    const config = constructorCall[2];
 
     // Verify that supportedUrls returns empty object to force base64 conversion
     expect(config.supportedUrls()).toEqual({});
