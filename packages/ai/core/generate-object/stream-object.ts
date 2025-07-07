@@ -935,9 +935,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         'ai.response.model': response.modelId,
                         'ai.response.timestamp':
                           response.timestamp.toISOString(),
-                        'ai.response.providerMetadata': JSON.stringify(
-                          providerMetadata,
-                        ),
+                        'ai.response.providerMetadata':
+                          JSON.stringify(providerMetadata),
 
                         'ai.usage.promptTokens': finalUsage.promptTokens,
                         'ai.usage.completionTokens':
@@ -968,9 +967,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         'ai.response.object': {
                           output: () => JSON.stringify(object),
                         },
-                        'ai.response.providerMetadata': JSON.stringify(
-                          providerMetadata,
-                        ),
+                        'ai.response.providerMetadata':
+                          JSON.stringify(providerMetadata),
                       },
                     }),
                   );

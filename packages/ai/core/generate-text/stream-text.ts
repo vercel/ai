@@ -1356,9 +1356,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           'ai.response.model': stepResponse.modelId,
                           'ai.response.timestamp':
                             stepResponse.timestamp.toISOString(),
-                          'ai.response.providerMetadata': JSON.stringify(
-                            stepProviderMetadata,
-                          ),
+                          'ai.response.providerMetadata':
+                            JSON.stringify(stepProviderMetadata),
 
                           'ai.usage.promptTokens': stepUsage.promptTokens,
                           'ai.usage.completionTokens':
