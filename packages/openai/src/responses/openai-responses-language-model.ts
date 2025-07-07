@@ -498,8 +498,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     let activeReasoning:
       | {
           id: string;
-          hasSummary: boolean;
           encryptedContent?: string | null;
+          summary: Map<number, string>;
         }
       | undefined = undefined;
 
@@ -569,9 +569,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               } else if (isResponseOutputItemAddedReasoningChunk(value)) {
                 activeReasoning = {
                   id: value.item.id,
-                  hasSummary: false,
                   encryptedContent: value.item.encrypted_content,
+                  summary: new Map<number, string>(),
                 };
+
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: value.item.id,
+                  providerMetadata: {
+                    openai: {
+                      reasoning: {
+                        id: value.item.id,
+                        encryptedContent: value.item.encrypted_content ?? null,
+                      },
+                    },
+                  },
+                });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'function_call') {
@@ -650,21 +663,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (isResponseOutputItemDoneReasoningChunk(value)) {
                 if (activeReasoning?.id === value.item.id) {
-                  if (!activeReasoning.hasSummary) {
-                    controller.enqueue({
-                      type: 'reasoning-start',
-                      id: value.item.id,
-                      providerMetadata: {
-                        openai: {
-                          reasoning: {
-                            id: value.item.id,
-                            encryptedContent:
-                              activeReasoning?.encryptedContent ?? null,
-                          },
-                        },
-                      },
-                    });
+                  activeReasoning.encryptedContent =
+                    value.item.encrypted_content;
 
+                  for (
+                    let summaryIndex = 0;
+                    summaryIndex < Math.max(activeReasoning.summary.size, 1);
+                    summaryIndex++
+                  ) {
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: value.item.id,
@@ -673,7 +679,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                           reasoning: {
                             id: value.item.id,
                             encryptedContent:
-                              activeReasoning?.encryptedContent ?? null,
+                              value.item.encrypted_content ?? null,
                           },
                         },
                       },
@@ -708,45 +714,43 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 delta: value.delta,
               });
             } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
-              if (activeReasoning?.id === value.item_id) {
-                activeReasoning.hasSummary = true;
+              if (
+                activeReasoning?.id === value.item_id &&
+                !activeReasoning?.summary.has(value.summary_index)
+              ) {
+                activeReasoning.summary.set(value.summary_index, '');
 
-                controller.enqueue({
-                  type: 'reasoning-start',
-                  id: value.item_id,
-                  providerMetadata: {
-                    openai: {
-                      reasoning: {
-                        id: value.item_id,
-                        encryptedContent:
-                          activeReasoning?.encryptedContent ?? null,
+                if (activeReasoning.summary.size > 1) {
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: value.item_id,
+                    providerMetadata: {
+                      openai: {
+                        reasoning: {
+                          id: value.item_id,
+                          encryptedContent:
+                            activeReasoning?.encryptedContent ?? null,
+                        },
                       },
                     },
-                  },
-                });
+                  });
+                }
               }
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
-              if (activeReasoning?.id === value.item_id) {
+              if (
+                activeReasoning?.id === value.item_id &&
+                activeReasoning?.summary.has(value.summary_index)
+              ) {
+                activeReasoning.summary.set(
+                  value.summary_index,
+                  activeReasoning.summary.get(value.summary_index) +
+                    value.delta,
+                );
+
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: value.item_id,
                   delta: value.delta,
-                });
-              }
-            } else if (isResponseReasoningSummaryPartDoneChunk(value)) {
-              if (activeReasoning?.id === value.item_id) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: value.item_id,
-                  providerMetadata: {
-                    openai: {
-                      reasoning: {
-                        id: value.item_id,
-                        encryptedContent:
-                          activeReasoning?.encryptedContent ?? null,
-                      },
-                    },
-                  },
                 });
               }
             } else if (isResponseFinishedChunk(value)) {
@@ -884,6 +888,7 @@ const responseOutputItemDoneSchema = z.object({
     z.object({
       type: z.literal('reasoning'),
       id: z.string(),
+      encrypted_content: z.string().nullish(),
     }),
     z.object({
       type: z.literal('function_call'),
@@ -925,17 +930,14 @@ const responseAnnotationAddedSchema = z.object({
 const responseReasoningSummaryPartAddedSchema = z.object({
   type: z.literal('response.reasoning_summary_part.added'),
   item_id: z.string(),
+  summary_index: z.number(),
 });
 
 const responseReasoningSummaryTextDeltaSchema = z.object({
   type: z.literal('response.reasoning_summary_text.delta'),
   item_id: z.string(),
+  summary_index: z.number(),
   delta: z.string(),
-});
-
-const responseReasoningSummaryPartDoneSchema = z.object({
-  type: z.literal('response.reasoning_summary_part.done'),
-  item_id: z.string(),
 });
 
 const openaiResponsesChunkSchema = z.union([
@@ -948,7 +950,6 @@ const openaiResponsesChunkSchema = z.union([
   responseAnnotationAddedSchema,
   responseReasoningSummaryPartAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
-  responseReasoningSummaryPartDoneSchema,
   errorChunkSchema,
   z.object({ type: z.string() }).loose(), // fallback for unknown chunks
 ]);
@@ -1038,12 +1039,6 @@ function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
-}
-
-function isResponseReasoningSummaryPartDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryPartDoneSchema> {
-  return chunk.type === 'response.reasoning_summary_part.done';
 }
 
 function isErrorChunk(
