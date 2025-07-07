@@ -859,6 +859,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       ? JSON.stringify(finalStep.toolCalls)
                       : undefined,
                 },
+                'ai.response.providerMetadata': JSON.stringify(
+                  finalStep.providerMetadata,
+                ),
 
                 'ai.usage.inputTokens': totalUsage.inputTokens,
                 'ai.usage.outputTokens': totalUsage.outputTokens,
@@ -1309,6 +1312,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           'ai.response.model': stepResponse.modelId,
                           'ai.response.timestamp':
                             stepResponse.timestamp.toISOString(),
+                          'ai.response.providerMetadata':
+                            JSON.stringify(stepProviderMetadata),
 
                           'ai.usage.inputTokens': stepUsage.inputTokens,
                           'ai.usage.outputTokens': stepUsage.outputTokens,

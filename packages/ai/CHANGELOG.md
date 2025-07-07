@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.0-beta.8
+
+### Patch Changes
+
+- 6909543: feat (ai): support system parameter in Agent constructor
+- c8fce91: feat (ai): add experimental Agent abstraction
+- 9121250: Expose provider metadata as an attribute on exported OTEL spans
+- Updated dependencies [97fedf9]
+  - @ai-sdk/gateway@1.0.0-beta.4
+
 ## 5.0.0-beta.7
 
 ### Patch Changes

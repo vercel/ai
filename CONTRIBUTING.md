@@ -90,11 +90,4 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 
 7. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
 
-### Fixing Prettier Issues
-
-> [!TIP]
-> Run `pnpm prettier-fix` before opening a pull request.
-
-If you encounter any prettier issues, you can fix them by running `pnpm prettier-fix`. This command will automatically fix any formatting issues in your code.
-
 Thank you for contributing to the AI SDK! Your efforts help us improve the project for everyone.
