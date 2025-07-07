@@ -1,8 +1,7 @@
 import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-// https://ai.google.dev/gemini-api/docs/grounding
-// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
+// https://ai.google.dev/gemini-api/docs/url-context
 const groundingChunkSchema = z.object({
   web: z.object({ uri: z.string(), title: z.string() }).nullish(),
   retrievedContext: z.object({ uri: z.string(), title: z.string() }).nullish(),
@@ -30,6 +29,7 @@ export const groundingMetadataSchema = z.object({
   webSearchQueries: z.array(z.string()).nullish(),
 });
 
+// https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 const urlMetadataSchema = z.object({
   retrievedUrl: z.string(),
   urlRetrievalStatus: z.string(),

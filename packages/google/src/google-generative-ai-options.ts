@@ -117,22 +117,6 @@ Optional. A list of unique safety settings for blocking unsafe content.
    * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding
    */
   audioTimestamp: z.boolean().optional(),
-
-  /**
-Optional. When enabled, the model will use Google search to ground the response.
-
-@see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
- */
-  useSearchGrounding: z.boolean().optional(),
-
-  /**
-Optional. Specifies the dynamic retrieval configuration.
-
-@note Dynamic retrieval is only compatible with Gemini 1.5 Flash.
-
-@see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval
- */
-  dynamicRetrievalConfig: dynamicRetrievalConfig.optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<
