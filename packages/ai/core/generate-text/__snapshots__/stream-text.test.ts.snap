@@ -2489,11 +2489,19 @@ exports[`streamText > options.onFinish > should send files 1`] = `
 
 exports[`streamText > options.onFinish > should send sources 1`] = `
 {
-  "experimental_providerMetadata": undefined,
+  "experimental_providerMetadata": {
+    "testprovider": {
+      "testkey": "testvalue",
+    },
+  },
   "files": [],
   "finishReason": "stop",
   "logprobs": undefined,
-  "providerMetadata": undefined,
+  "providerMetadata": {
+    "testprovider": {
+      "testkey": "testvalue",
+    },
+  },
   "reasoning": undefined,
   "reasoningDetails": [],
   "request": {},
@@ -2541,12 +2549,20 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
   ],
   "steps": [
     {
-      "experimental_providerMetadata": undefined,
+      "experimental_providerMetadata": {
+        "testprovider": {
+          "testkey": "testvalue",
+        },
+      },
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
-      "providerMetadata": undefined,
+      "providerMetadata": {
+        "testprovider": {
+          "testkey": "testvalue",
+        },
+      },
       "reasoning": undefined,
       "reasoningDetails": [],
       "request": {},
@@ -3065,6 +3081,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.operationId": "ai.streamText",
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
+      "ai.response.providerMetadata": "{"testProvider":{"testKey":"TEST VALUE"}}",
       "ai.response.text": "HELLO, WORLD!",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
@@ -3093,6 +3110,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
+      "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"VALUE"}}]",
@@ -3583,12 +3601,20 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
     "type": "source",
   },
   {
-    "experimental_providerMetadata": undefined,
+    "experimental_providerMetadata": {
+      "testprovider": {
+        "testkey": "testvalue",
+      },
+    },
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "testprovider": {
+        "testkey": "testvalue",
+      },
+    },
     "request": {},
     "response": {
       "headers": undefined,
@@ -3605,10 +3631,18 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
+    "experimental_providerMetadata": {
+      "testprovider": {
+        "testkey": "testvalue",
+      },
+    },
     "finishReason": "stop",
     "logprobs": undefined,
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "testprovider": {
+        "testkey": "testvalue",
+      },
+    },
     "response": {
       "headers": undefined,
       "id": "id-1",
@@ -4475,12 +4509,20 @@ exports[`streamText > result.steps > should add the reasoning from the model res
 exports[`streamText > result.steps > should add the sources from the model response to the step result 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
+    "experimental_providerMetadata": {
+      "testprovider": {
+        "testkey": "testvalue",
+      },
+    },
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "testprovider": {
+        "testkey": "testvalue",
+      },
+    },
     "reasoning": undefined,
     "reasoningDetails": [],
     "request": {},

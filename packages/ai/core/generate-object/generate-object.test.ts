@@ -1166,6 +1166,11 @@ describe('telemetry', () => {
             timestamp: new Date(10000),
             modelId: 'test-response-model-id',
           },
+          providerMetadata: {
+            testprovider: {
+              test1: 'value1',
+            },
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),

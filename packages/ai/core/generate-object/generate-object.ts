@@ -572,7 +572,9 @@ export async function generateObject<SCHEMA, RESULT>({
                       'ai.response.model': responseData.modelId,
                       'ai.response.timestamp':
                         responseData.timestamp.toISOString(),
-
+                      'ai.response.providerMetadata': JSON.stringify(
+                        result.providerMetadata,
+                      ),
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
@@ -698,7 +700,9 @@ export async function generateObject<SCHEMA, RESULT>({
                       'ai.response.model': responseData.modelId,
                       'ai.response.timestamp':
                         responseData.timestamp.toISOString(),
-
+                      'ai.response.providerMetadata': JSON.stringify(
+                        result.providerMetadata,
+                      ),
                       'ai.usage.promptTokens': result.usage.promptTokens,
                       'ai.usage.completionTokens':
                         result.usage.completionTokens,
