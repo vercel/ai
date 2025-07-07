@@ -33,9 +33,8 @@ export function convertToModelMessages(
   },
 ): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
-  const ignoreIncompleteToolCalls = options?.ignoreIncompleteToolCalls ?? false;
 
-  if (ignoreIncompleteToolCalls) {
+  if (options?.ignoreIncompleteToolCalls) {
     messages = messages.map(message => {
       if (message.role !== 'assistant' || message.parts == null) {
         return message;
