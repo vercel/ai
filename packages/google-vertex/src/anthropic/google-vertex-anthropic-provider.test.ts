@@ -108,7 +108,7 @@ describe('google-vertex-anthropic-provider', () => {
       }),
     );
   });
-  
+
   it('should create a Google Vertex Anthropic provider instance with custom settings', () => {
     const customProvider = createVertexAnthropic({
       project: 'custom-project',
