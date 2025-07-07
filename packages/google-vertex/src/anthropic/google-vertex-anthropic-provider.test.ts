@@ -142,7 +142,7 @@ describe('google-vertex-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[2];
 
-    // Verify that supportedUrls returns empty object to force base64 conversion
+    // Verify that supportsUrl returns empty object to force base64 conversion
     expect(config.supportsUrl()).toEqual({});
   });
 });
