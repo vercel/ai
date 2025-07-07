@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.23
+
+### Patch Changes
+
+- c3f5106: fix (provider/openai): handle responses api errors
+
 ## 1.3.22
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.2.15
+
+### Patch Changes
+
+- 2a8a853: Allow passing config to chat models
+
 ## 0.2.14
 
 ### Patch Changes
