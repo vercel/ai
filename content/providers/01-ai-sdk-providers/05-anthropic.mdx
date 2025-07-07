@@ -110,7 +110,7 @@ The following optional provider options are available for Anthropic models:
 
 ### Reasoning
 
-Anthropic has reasoning support for `claude-4-opus-20250514`, `claude-4-sonnet-20250514`, and `claude-3-7-sonnet-20250219` models.
+Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-3-7-sonnet-20250219` models.
 
 You can enable it using the `thinking` provider option
 and specifying a thinking budget in tokens.
@@ -120,7 +120,7 @@ import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoning, reasoningDetails } = await generateText({
-  model: anthropic('claude-4-opus-20250514'),
+  model: anthropic('claude-opus-4-20250514'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     anthropic: {
@@ -371,7 +371,7 @@ const webSearchTool = anthropic.tools.webSearch_20250305({
 });
 
 const result = await generateText({
-  model: anthropic('claude-4-opus-20250514'),
+  model: anthropic('claude-opus-4-20250514'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: webSearchTool,
@@ -414,7 +414,7 @@ const webSearchTool = anthropic.tools.webSearch_20250305({
 });
 
 const result = await generateText({
-  model: anthropic('claude-4-opus-20250514'),
+  model: anthropic('claude-opus-4-20250514'),
   prompt: 'Find local news about technology',
   tools: {
     web_search: webSearchTool,
@@ -432,7 +432,7 @@ Web search errors throw exceptions that you can catch:
 ```ts
 try {
   const result = await generateText({
-    model: anthropic('claude-4-opus-20250514'),
+    model: anthropic('claude-opus-4-20250514'),
     prompt: 'Search for something',
     tools: {
       web_search: webSearchTool,
@@ -451,7 +451,7 @@ Web search errors are delivered as error parts in the stream:
 
 ```ts
 const result = await streamText({
-  model: anthropic('claude-4-opus-20250514'),
+  model: anthropic('claude-opus-4-20250514'),
   prompt: 'Search for something',
   tools: {
     web_search: webSearchTool,
@@ -530,8 +530,8 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                        | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
 | ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-4-opus-20250514`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-4-sonnet-20250514`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4-20250514`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4-20250514`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-7-sonnet-20250219` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-5-sonnet-20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-5-sonnet-20240620` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> |
