@@ -35,21 +35,15 @@ export function convertToModelMessages(
   const modelMessages: ModelMessage[] = [];
 
   if (options?.ignoreIncompleteToolCalls) {
-    messages = messages.map(message => {
-      if (message.role !== 'assistant' || message.parts == null) {
-        return message;
-      }
-
-      return {
-        ...message,
-        parts: message.parts.filter(
-          part =>
-            !isToolUIPart(part) ||
-            (part.state !== 'input-streaming' &&
-              part.state !== 'input-available'),
-        ),
-      };
-    });
+    messages = messages.map(message => ({
+      ...message,
+      parts: message.parts.filter(
+        part =>
+          !isToolUIPart(part) ||
+          (part.state !== 'input-streaming' &&
+            part.state !== 'input-available'),
+      ),
+    }));
   }
 
   for (const message of messages) {
