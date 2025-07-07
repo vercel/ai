@@ -20,12 +20,31 @@ import {
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
+
+@param messages - The messages to convert.
+@param options.tools - The tools to use.
+@param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
  */
 export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
-  options?: { tools?: ToolSet },
+  options?: {
+    tools?: ToolSet;
+    ignoreIncompleteToolCalls?: boolean;
+  },
 ): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
+
+  if (options?.ignoreIncompleteToolCalls) {
+    messages = messages.map(message => ({
+      ...message,
+      parts: message.parts.filter(
+        part =>
+          !isToolUIPart(part) ||
+          (part.state !== 'input-streaming' &&
+            part.state !== 'input-available'),
+      ),
+    }));
+  }
 
   for (const message of messages) {
     switch (message.role) {
