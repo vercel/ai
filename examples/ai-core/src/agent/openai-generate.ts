@@ -5,6 +5,7 @@ import 'dotenv/config';
 async function main() {
   const agent = new Agent({
     model: openai('gpt-4o'),
+    system: 'You are a helpful assistant.',
   });
 
   const { text, usage } = await agent.generate({

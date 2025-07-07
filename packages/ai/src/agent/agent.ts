@@ -23,6 +23,11 @@ export type AgentSettings<
   OUTPUT_PARTIAL = never,
 > = CallSettings & {
   /**
+   * The system prompt to use.
+   */
+  system?: string;
+
+  /**
 The language model to use.
    */
   model: LanguageModel;
