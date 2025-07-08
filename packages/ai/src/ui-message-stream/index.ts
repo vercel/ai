@@ -3,5 +3,5 @@ export { createUIMessageStreamResponse } from './create-ui-message-stream-respon
 export { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 export { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 export { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
-export type { UIMessageStreamPart } from './ui-message-stream-parts';
+export type { UIMessageChunk } from './ui-message-chunks';
 export type { UIMessageStreamWriter } from './ui-message-stream-writer';

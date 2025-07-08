@@ -19,9 +19,9 @@ import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response
 import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
 import {
-  InferUIMessageStreamPart,
-  UIMessageStreamPart,
-} from '../../src/ui-message-stream/ui-message-stream-parts';
+  InferUIMessageChunk,
+  UIMessageChunk,
+} from '../../src/ui-message-stream/ui-message-chunks';
 import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 import {
   InferUIMessageData,
@@ -1580,7 +1580,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendFinish = true,
     onError = getErrorMessage,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): ReadableStream<
-    InferUIMessageStreamPart<UI_MESSAGE>
+    InferUIMessageChunk<UI_MESSAGE>
   > {
     const responseMessageId = getResponseUIMessageId({
       originalMessages,
@@ -1590,7 +1590,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
-        UIMessageStreamPart<
+        UIMessageChunk<
           InferUIMessageMetadata<UI_MESSAGE>,
           InferUIMessageData<UI_MESSAGE>
         >
