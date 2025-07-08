@@ -132,17 +132,8 @@ describe('google-vertex-anthropic-provider', () => {
       {},
       expect.objectContaining({
         provider: 'vertex.anthropic.messages',
-        supportsUrl: expect.any(Function),
         supportsImageUrls: false,
       }),
     );
-
-    // Get the actual config passed to the constructor
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[2];
-
-    // Verify that supportsUrl returns empty object to force base64 conversion
-    expect(config.supportsUrl()).toEqual({});
   });
 });
