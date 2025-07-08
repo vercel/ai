@@ -239,7 +239,8 @@ You can use the `bedrock` provider options to utilize [Amazon Bedrock Guardrails
 
 ```ts
 const result = await generateText({
-  bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  model: bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
+  prompt: 'Write a story about space exploration.',
   providerOptions: {
     bedrock: {
       guardrailConfig: {
@@ -394,24 +395,23 @@ on how to integrate reasoning into your chatbot.
 | ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `amazon.titan-tg1-large`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `amazon.titan-text-express-v1`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `amazon.nova-micro-v1:0`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `amazon.nova-lite-v1:0`                     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `amazon.nova-pro-v1:0`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic.claude-4-sonnet-20250514-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic.claude-4-opus-20250514-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `amazon.titan-text-lite-v1`                 | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `anthropic.claude-sonnet-4-20250514-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-opus-4-20250514-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-7-sonnet-20250219-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic.claude-3-5-haiku-20241022-v1:0`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `anthropic.claude-3-5-haiku-20241022-v1:0`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `anthropic.claude-3-opus-20240229-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-sonnet-20240229-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-haiku-20240307-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-v2`                       | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `anthropic.claude-v2:1`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `anthropic.claude-instant-v1`               | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `cohere.command-text-v14`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `cohere.command-light-text-v14`             | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `cohere.command-r-v1:0`                     | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `cohere.command-r-plus-v1:0`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `deepseek.r1-v1:0`                          | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta.llama2-13b-chat-v1`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta.llama2-70b-chat-v1`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-8b-instruct-v1:0`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-70b-instruct-v1:0`             | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-1-8b-instruct-v1:0`            | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
@@ -436,23 +436,28 @@ on how to integrate reasoning into your chatbot.
 ## Embedding Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
-using the `.embedding()` factory method.
+using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v1');
+const model = bedrock.textEmbeddingModel('amazon.titan-embed-text-v1');
 ```
 
 Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several additional settings.
 You can pass them as an options argument:
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { embed } from 'ai';
 
-await model.doEmbed({
+const model = bedrock.textEmbeddingModel('amazon.titan-embed-text-v2:0');
+
+const { embedding } = await embed({
+  model,
+  value: 'sunny day at the beach',
   providerOptions: {
     bedrock: {
-      dimensions: 512 // optional, number of dimensions for the embedding
-      normalize: true // optional  normalize the output embeddings
+      dimensions: 512, // optional, number of dimensions for the embedding
+      normalize: true, // optional, normalize the output embeddings
     },
   },
 });
@@ -474,6 +479,8 @@ The following optional provider options are available for Bedrock Titan embeddin
 | ------------------------------ | ------------------ | ------------------- |
 | `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> |
 | `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |
+| `cohere.embed-english-v3`      | 1024               | <Cross size={18} /> |
+| `cohere.embed-multilingual-v3` | 1024               | <Cross size={18} /> |
 
 ## Image Models
 
@@ -517,9 +524,38 @@ const { image } = await generateImage({
   prompt: 'A beautiful sunset over a calm ocean',
   size: '512x512',
   seed: 42,
-  providerOptions: { bedrock: { quality: 'premium' } },
+  providerOptions: {
+    bedrock: {
+      quality: 'premium',
+      negativeText: 'blurry, low quality',
+      cfgScale: 7.5,
+      style: 'PHOTOREALISM',
+    },
+  },
 });
 ```
+
+The following optional provider options are available for Amazon Nova Canvas:
+
+- **quality** _string_
+
+  The quality level for image generation. Accepts `'standard'` or `'premium'`.
+
+- **negativeText** _string_
+
+  Text describing what you don't want in the generated image.
+
+- **cfgScale** _number_
+
+  Controls how closely the generated image adheres to the prompt. Higher values result in images that are more closely aligned to the prompt.
+
+- **style** _string_
+
+  Predefined visual style for image generation.  
+  Accepts one of:
+  `3D_ANIMATED_FAMILY_FILM` · `DESIGN_SKETCH` · `FLAT_VECTOR_ILLUSTRATION` ·  
+  `GRAPHIC_NOVEL_ILLUSTRATION` · `MAXIMALISM` · `MIDCENTURY_RETRO` ·  
+  `PHOTOREALISM` · `SOFT_DIGITAL_PAINTING`.
 
 Documentation for additional settings can be found within the [Amazon Bedrock
 User Guide for Amazon Nova

@@ -5,15 +5,17 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
-  InferUIMessageStreamPart,
-  isDataUIMessageStreamPart,
-  UIMessageStreamPart,
-} from '../ui-message-stream/ui-message-stream-parts';
+  InferUIMessageChunk,
+  DataUIMessageChunk,
+  isDataUIMessageChunk,
+  UIMessageChunk,
+} from '../ui-message-stream/ui-message-chunks';
 import { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { UIDataTypesToSchemas } from './chat';
 import {
+  DataUIPart,
   getToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
@@ -69,9 +71,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   dataPartSchemas,
   runUpdateMessageJob,
   onError,
+  onData,
 }: {
   // input stream is not fully typed yet:
-  stream: ReadableStream<UIMessageStreamPart>;
+  stream: ReadableStream<UIMessageChunk>;
   messageMetadataSchema?:
     | Validator<InferUIMessageMetadata<UI_MESSAGE>>
     | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
@@ -79,6 +82,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onToolCall?: (options: {
     toolCall: ToolCall<string, unknown>;
   }) => void | Promise<unknown> | unknown;
+  onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
@@ -86,12 +90,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     }) => Promise<void>,
   ) => Promise<void>;
   onError: ErrorHandler;
-}): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
+}): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   return stream.pipeThrough(
-    new TransformStream<
-      UIMessageStreamPart,
-      InferUIMessageStreamPart<UI_MESSAGE>
-    >({
+    new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(part, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function updateToolInvocationPart(
@@ -467,32 +468,46 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             default: {
-              if (isDataUIMessageStreamPart(part)) {
+              if (isDataUIMessageChunk(part)) {
+                // TODO validate against dataPartSchemas
+                const dataPart = part as DataUIMessageChunk<
+                  InferUIMessageData<UI_MESSAGE>
+                >;
+
+                // transient parts are not added to the message state
+                if (dataPart.transient) {
+                  onData?.(dataPart);
+                  break;
+                }
+
                 // TODO improve type safety
                 const existingPart: any =
-                  part.id != null
+                  dataPart.id != null
                     ? state.message.parts.find(
                         (partArg: any) =>
-                          part.type === partArg.type && part.id === partArg.id,
+                          dataPart.type === partArg.type &&
+                          dataPart.id === partArg.id,
                       )
                     : undefined;
 
                 if (existingPart != null) {
-                  // TODO improve type safety
+                  // TODO validate merged data against dataPartSchemas
                   existingPart.data =
-                    isObject(existingPart.data) && isObject(part.data)
-                      ? mergeObjects(existingPart.data, part.data)
-                      : part.data;
+                    isObject(existingPart.data) && isObject(dataPart.data)
+                      ? mergeObjects(existingPart.data, dataPart.data)
+                      : dataPart.data;
                 } else {
-                  // TODO improve type safety
-                  state.message.parts.push(part as any);
+                  state.message.parts.push(dataPart);
                 }
+
+                onData?.(dataPart);
+
                 write();
               }
             }
           }
 
-          controller.enqueue(part as InferUIMessageStreamPart<UI_MESSAGE>);
+          controller.enqueue(part as InferUIMessageChunk<UI_MESSAGE>);
         });
       },
     }),

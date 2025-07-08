@@ -5,10 +5,7 @@ import {
 } from '../ui/process-ui-message-stream';
 import { UIMessage } from '../ui/ui-messages';
 import { ErrorHandler } from '../util/error-handler';
-import {
-  InferUIMessageStreamPart,
-  UIMessageStreamPart,
-} from './ui-message-stream-parts';
+import { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
@@ -17,7 +14,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   onError,
   stream,
 }: {
-  stream: ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
+  stream: ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
 
   messageId: string;
 
@@ -46,7 +43,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
      */
     responseMessage: UI_MESSAGE;
   }) => void;
-}): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
+}): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   if (onFinish == null) {
     return stream;
   }
@@ -72,15 +69,15 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   return processUIMessageStream<UI_MESSAGE>({
     stream: stream.pipeThrough(
       new TransformStream<
-        InferUIMessageStreamPart<UI_MESSAGE>,
-        InferUIMessageStreamPart<UI_MESSAGE>
+        InferUIMessageChunk<UI_MESSAGE>,
+        InferUIMessageChunk<UI_MESSAGE>
       >({
         transform(chunk, controller) {
           // when there is no messageId in the start chunk,
           // but the user checked for persistence,
           // inject the messageId into the chunk
           if (chunk.type === 'start') {
-            const startChunk = chunk as UIMessageStreamPart & { type: 'start' };
+            const startChunk = chunk as UIMessageChunk & { type: 'start' };
             if (startChunk.messageId == null) {
               startChunk.messageId = messageId;
             }
@@ -94,8 +91,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     onError,
   }).pipeThrough(
     new TransformStream<
-      InferUIMessageStreamPart<UI_MESSAGE>,
-      InferUIMessageStreamPart<UI_MESSAGE>
+      InferUIMessageChunk<UI_MESSAGE>,
+      InferUIMessageChunk<UI_MESSAGE>
     >({
       transform(chunk, controller) {
         controller.enqueue(chunk);

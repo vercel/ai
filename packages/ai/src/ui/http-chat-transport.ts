@@ -1,5 +1,5 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
 
@@ -193,7 +193,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
   async reconnectToStream(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
-  ): Promise<ReadableStream<UIMessageStreamPart> | null> {
+  ): Promise<ReadableStream<UIMessageChunk> | null> {
     const preparedRequest = await this.prepareReconnectToStreamRequest?.({
       api: this.api,
       id: options.chatId,
@@ -239,5 +239,5 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
   protected abstract processResponseStream(
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
-  ): ReadableStream<UIMessageStreamPart>;
+  ): ReadableStream<UIMessageChunk>;
 }

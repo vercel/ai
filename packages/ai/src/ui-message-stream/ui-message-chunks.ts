@@ -8,7 +8,7 @@ import {
 } from '../ui/ui-messages';
 import { ProviderMetadata } from '../../core/types/provider-metadata';
 
-export const uiMessageStreamPartSchema = z.union([
+export const uiMessageChunkSchema = z.union([
   z.strictObject({
     type: z.literal('text-start'),
     id: z.string(),
@@ -104,6 +104,7 @@ export const uiMessageStreamPartSchema = z.union([
     type: z.string().startsWith('data-'),
     id: z.string().optional(),
     data: z.unknown(),
+    transient: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('start-step'),
@@ -126,15 +127,16 @@ export const uiMessageStreamPartSchema = z.union([
   }),
 ]);
 
-export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
+export type DataUIMessageChunk<DATA_TYPES extends UIDataTypes> = ValueOf<{
   [NAME in keyof DATA_TYPES & string]: {
     type: `data-${NAME}`;
     id?: string;
     data: DATA_TYPES[NAME];
+    transient?: boolean;
   };
 }>;
 
-export type UIMessageStreamPart<
+export type UIMessageChunk<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
 > =
@@ -207,7 +209,7 @@ export type UIMessageStreamPart<
       url: string;
       mediaType: string;
     }
-  | DataUIMessageStreamPart<DATA_TYPES>
+  | DataUIMessageChunk<DATA_TYPES>
   | {
       type: 'start-step';
     }
@@ -228,13 +230,13 @@ export type UIMessageStreamPart<
       messageMetadata: METADATA;
     };
 
-export function isDataUIMessageStreamPart(
-  part: UIMessageStreamPart,
-): part is DataUIMessageStreamPart<UIDataTypes> {
-  return part.type.startsWith('data-');
+export function isDataUIMessageChunk(
+  chunk: UIMessageChunk,
+): chunk is DataUIMessageChunk<UIDataTypes> {
+  return chunk.type.startsWith('data-');
 }
 
-export type InferUIMessageStreamPart<T extends UIMessage> = UIMessageStreamPart<
+export type InferUIMessageChunk<T extends UIMessage> = UIMessageChunk<
   InferUIMessageMetadata<T>,
   InferUIMessageData<T>
 >;

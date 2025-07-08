@@ -19,9 +19,9 @@ import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response
 import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
 import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
 import {
-  InferUIMessageStreamPart,
-  UIMessageStreamPart,
-} from '../../src/ui-message-stream/ui-message-stream-parts';
+  InferUIMessageChunk,
+  UIMessageChunk,
+} from '../../src/ui-message-stream/ui-message-chunks';
 import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 import {
   InferUIMessageData,
@@ -859,6 +859,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       ? JSON.stringify(finalStep.toolCalls)
                       : undefined,
                 },
+                'ai.response.providerMetadata': JSON.stringify(
+                  finalStep.providerMetadata,
+                ),
 
                 'ai.usage.inputTokens': totalUsage.inputTokens,
                 'ai.usage.outputTokens': totalUsage.outputTokens,
@@ -1309,6 +1312,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           'ai.response.model': stepResponse.modelId,
                           'ai.response.timestamp':
                             stepResponse.timestamp.toISOString(),
+                          'ai.response.providerMetadata':
+                            JSON.stringify(stepProviderMetadata),
 
                           'ai.usage.inputTokens': stepUsage.inputTokens,
                           'ai.usage.outputTokens': stepUsage.outputTokens,
@@ -1575,7 +1580,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendFinish = true,
     onError = getErrorMessage,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): ReadableStream<
-    InferUIMessageStreamPart<UI_MESSAGE>
+    InferUIMessageChunk<UI_MESSAGE>
   > {
     const responseMessageId = getResponseUIMessageId({
       originalMessages,
@@ -1585,7 +1590,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
-        UIMessageStreamPart<
+        UIMessageChunk<
           InferUIMessageMetadata<UI_MESSAGE>,
           InferUIMessageData<UI_MESSAGE>
         >

@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 48249c4: Do not warn if empty text is the first part of a reasoning sequence
+- e497698: fix (provider/openai): handle responses api errors
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- b3c3450: feat (provider/openai): add support for encrypted_reasoning to responses api
+- ad2a3d5: feat(provider/openai): add missing reasoning models to responses API
+
 ## 2.0.0-beta.3
 
 ### Major Changes
