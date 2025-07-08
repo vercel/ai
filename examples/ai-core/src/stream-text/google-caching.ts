@@ -11,9 +11,7 @@ async function main() {
     prompt: errorMessage,
   });
 
-  for await (const _ of result1.textStream) {
-    void _;
-  }
+  await result1.consumeStream();
 
   const providerMetadata1 = await result1.providerMetadata;
   console.log(providerMetadata1?.google);
@@ -35,9 +33,7 @@ async function main() {
     prompt: errorMessage,
   });
 
-  for await (const _ of result2.textStream) {
-    void _;
-  }
+  await result2.consumeStream();
 
   const providerMetadata2 = await result2.providerMetadata;
   console.log(providerMetadata2?.google);
