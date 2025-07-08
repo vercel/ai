@@ -40,23 +40,22 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
     lastMessage: message,
   });
 
-  const runUpdateMessageJob = (
-    job: (options: {
-      state: StreamingUIMessageState<UI_MESSAGE>;
-      write: () => void;
-    }) => Promise<void>,
-  ) =>
-    job({
-      state,
-      write: () => {
-        controller?.enqueue(structuredClone(state.message));
-      },
-    });
-
   consumeStream({
     stream: processUIMessageStream({
       stream,
-      runUpdateMessageJob,
+      runUpdateMessageJob(
+        job: (options: {
+          state: StreamingUIMessageState<UI_MESSAGE>;
+          write: () => void;
+        }) => Promise<void>,
+      ) {
+        return job({
+          state,
+          write: () => {
+            controller?.enqueue(structuredClone(state.message));
+          },
+        });
+      },
       onError: error => {
         throw error;
       },
