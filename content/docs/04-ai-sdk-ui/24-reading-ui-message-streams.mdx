@@ -88,7 +88,7 @@ async function resumeConversation(lastMessage: UIMessage) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: [
-      { role: 'user', content: 'Continue our previous conversation.' }
+      { role: 'user', content: 'Continue our previous conversation.' },
     ],
   });
 
