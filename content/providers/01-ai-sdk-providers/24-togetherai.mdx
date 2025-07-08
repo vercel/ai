@@ -199,9 +199,7 @@ import { togetherai } from '@ai-sdk/togetherai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: togetherai.textEmbedding(
-    'togethercomputer/m2-bert-80M-2k-retrieval',
-  ),
+  model: togetherai.textEmbedding('togethercomputer/m2-bert-80M-2k-retrieval'),
   value: 'sunny day at the beach',
 });
 ```
