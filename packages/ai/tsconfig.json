@@ -27,6 +27,18 @@
     },
     {
       "path": "../gateway"
+    },
+    {
+      "path": "../openai"
+    },
+    {
+      "path": "../anthropic"
+    },
+    {
+      "path": "../google"
+    },
+    {
+      "path": "../groq"
     }
   ]
 }
