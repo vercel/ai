@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Allow destrucuting `ToolUIPart` type
+Allow destructuring `ToolUIPart` type
