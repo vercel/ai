@@ -11,6 +11,15 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 
+/**
+ * Transforms a stream of `UIMessageChunk`s into an `AsyncIterableStream` of `UIMessage`s.
+ *
+ * @param options.message - The last assistant message to use as a starting point when the conversation is resumed. Otherwise undefined.
+ * @param options.stream - The stream of `UIMessageChunk`s to read.
+ *
+ * @returns An `AsyncIterableStream` of `UIMessage`s. Each stream part is a different state of the same message
+ * as it is being completed.
+ */
 export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   message,
   stream,
