@@ -1,5 +1,5 @@
 import { UIMessage } from './ui-messages';
-import { UIMessageStreamPart } from '../ui-message-stream';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
@@ -13,7 +13,7 @@ export function createUiMessageIterable<UI_MESSAGE extends UIMessage>({
   stream,
 }: {
   message?: UI_MESSAGE;
-  stream: ReadableStream<UIMessageStreamPart>;
+  stream: ReadableStream<UIMessageChunk>;
 }): AsyncIterable<UI_MESSAGE> {
   let controller: ReadableStreamDefaultController<UI_MESSAGE> | undefined;
 
