@@ -32,6 +32,10 @@ import {
 } from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
+import {
+  groundingChunkSchema,
+  groundingMetadataSchema,
+} from './tool/google-search';
 import { urlContextMetadataSchema } from './tool/url-context';
 
 type GoogleGenerativeAIConfig = {
@@ -613,44 +617,6 @@ const contentSchema = z.object({
         }),
       ]),
     )
-    .nullish(),
-});
-
-// https://ai.google.dev/gemini-api/docs/grounding
-// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search
-const groundingChunkSchema = z.object({
-  web: z.object({ uri: z.string(), title: z.string() }).nullish(),
-  retrievedContext: z.object({ uri: z.string(), title: z.string() }).nullish(),
-});
-
-export const groundingMetadataSchema = z.object({
-  webSearchQueries: z.array(z.string()).nullish(),
-  retrievalQueries: z.array(z.string()).nullish(),
-  searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
-  groundingChunks: z.array(groundingChunkSchema).nullish(),
-  groundingSupports: z
-    .array(
-      z.object({
-        segment: z.object({
-          startIndex: z.number().nullish(),
-          endIndex: z.number().nullish(),
-          text: z.string().nullish(),
-        }),
-        segment_text: z.string().nullish(),
-        groundingChunkIndices: z.array(z.number()).nullish(),
-        supportChunkIndices: z.array(z.number()).nullish(),
-        confidenceScores: z.array(z.number()).nullish(),
-        confidenceScore: z.array(z.number()).nullish(),
-      }),
-    )
-    .nullish(),
-  retrievalMetadata: z
-    .union([
-      z.object({
-        webDynamicRetrievalScore: z.number(),
-      }),
-      z.object({}),
-    ])
     .nullish(),
 });
 

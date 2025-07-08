@@ -32,21 +32,6 @@ export type GoogleGenerativeAIModelId =
   | 'gemma-3-27b-it'
   | (string & {});
 
-const dynamicRetrievalConfig = z.object({
-  /**
-   * The mode of the predictor to be used in dynamic retrieval.
-   */
-  mode: z.enum(['MODE_UNSPECIFIED', 'MODE_DYNAMIC']).optional(),
-
-  /**
-   * The threshold to be used in dynamic retrieval. If not set, a system default
-   * value is used.
-   */
-  dynamicThreshold: z.number().optional(),
-});
-
-export type DynamicRetrievalConfig = z.infer<typeof dynamicRetrievalConfig>;
-
 export const googleGenerativeAIProviderOptions = z.object({
   responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
 

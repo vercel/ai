@@ -3,19 +3,15 @@ import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import {
-  GoogleGenerativeAILanguageModel,
-  groundingMetadataSchema,
-} from './google-generative-ai-language-model';
-import {
-  urlContextMetadataSchema,
-  urlContextOutputSchema,
-} from './tool/url-context';
+import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+
 import {
   GoogleGenerativeAIGroundingMetadata,
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
+import { groundingMetadataSchema } from './tool/google-search';
+import { urlContextMetadataSchema } from './tool/url-context';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -151,55 +147,27 @@ describe('groundingMetadataSchema', () => {
   });
 });
 
-describe('urlContextOutputSchema', () => {
+describe('urlContextMetadata', () => {
   it('validates complete url context output', () => {
     const output = {
-      groundingMetadata: {
-        groundingChunks: [
-          {
-            web: {
-              uri: 'https://example.com/weather',
-              title: 'Chicago Weather Forecast',
-            },
-          },
-        ],
-        groundingSupports: [
-          {
-            segment: {
-              startIndex: 0,
-              endIndex: 65,
-              text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
-            },
-            groundingChunkIndices: [0],
-          },
-        ],
-      },
-      urlContextMetadata: {
-        urlMetadata: [
-          {
-            retrievedUrl: 'https://example.com/weather',
-            urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
-          },
-        ],
-      },
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/weather',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
     };
 
-    const result = urlContextOutputSchema.safeParse(output);
+    const result = urlContextMetadataSchema.safeParse(output);
     expect(result.success).toBe(true);
   });
 
   it('validates empty url context output', () => {
     const output = {
-      groundingMetadata: {
-        groundingChunks: [],
-        groundingSupports: [],
-      },
-      urlContextMetadata: {
-        urlMetadata: [],
-      },
+      urlMetadata: [],
     };
 
-    const result = urlContextOutputSchema.safeParse(output);
+    const result = urlContextMetadataSchema.safeParse(output);
     expect(result.success).toBe(true);
   });
 });
