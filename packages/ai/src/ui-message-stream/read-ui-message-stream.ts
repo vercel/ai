@@ -45,14 +45,13 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
       state: StreamingUIMessageState<UI_MESSAGE>;
       write: () => void;
     }) => Promise<void>,
-  ) => {
-    return job({
+  ) =>
+    job({
       state,
       write: () => {
         controller?.enqueue(structuredClone(state.message));
       },
     });
-  };
 
   consumeStream({
     stream: processUIMessageStream({
