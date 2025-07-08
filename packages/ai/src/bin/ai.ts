@@ -153,7 +153,7 @@ function parseArgs(): CLIOptions {
 
   const promptArgs: string[] = [];
   let i = 0;
-  
+
   while (i < args.length) {
     const arg = args[i];
 
