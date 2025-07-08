@@ -169,7 +169,6 @@ export type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
     data: DATA_TYPES[NAME];
   };
 }>;
-
 export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   [NAME in keyof TOOLS & string]: {
     type: `tool-${NAME}`;
@@ -179,27 +178,27 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         state: 'input-streaming';
         input: DeepPartial<TOOLS[NAME]['input']>;
         providerExecuted?: boolean;
-        output: undefined;
-        errorText: undefined;
+        output?: never;
+        errorText?: never;
       }
     | {
         state: 'input-available';
         input: TOOLS[NAME]['input'];
         providerExecuted?: boolean;
-        output: undefined;
-        errorText: undefined;
+        output?: never;
+        errorText?: never;
       }
     | {
         state: 'output-available';
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
-        errorText: undefined;
+        errorText?: never;
         providerExecuted?: boolean;
       }
     | {
         state: 'output-error';
         input: TOOLS[NAME]['input'];
-        output: undefined;
+        output?: never;
         errorText: string;
         providerExecuted?: boolean;
       }
