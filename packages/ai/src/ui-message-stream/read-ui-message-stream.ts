@@ -1,0 +1,68 @@
+import { UIMessage } from '../ui/ui-messages';
+import { UIMessageChunk } from './ui-message-chunks';
+import {
+  createStreamingUIMessageState,
+  processUIMessageStream,
+  StreamingUIMessageState,
+} from '../ui/process-ui-message-stream';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
+import { consumeStream } from '../util/consume-stream';
+
+/**
+ * Transforms a stream of `UIMessageChunk`s into an `AsyncIterableStream` of `UIMessage`s.
+ *
+ * @param options.message - The last assistant message to use as a starting point when the conversation is resumed. Otherwise undefined.
+ * @param options.stream - The stream of `UIMessageChunk`s to read.
+ *
+ * @returns An `AsyncIterableStream` of `UIMessage`s. Each stream part is a different state of the same message
+ * as it is being completed.
+ */
+export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
+  message,
+  stream,
+}: {
+  message?: UI_MESSAGE;
+  stream: ReadableStream<UIMessageChunk>;
+}): AsyncIterableStream<UI_MESSAGE> {
+  let controller: ReadableStreamDefaultController<UI_MESSAGE> | undefined;
+
+  const outputStream = new ReadableStream<UI_MESSAGE>({
+    start(controllerParam) {
+      controller = controllerParam;
+    },
+  });
+
+  const state = createStreamingUIMessageState<UI_MESSAGE>({
+    messageId: message?.id ?? '',
+    lastMessage: message,
+  });
+
+  consumeStream({
+    stream: processUIMessageStream({
+      stream,
+      runUpdateMessageJob(
+        job: (options: {
+          state: StreamingUIMessageState<UI_MESSAGE>;
+          write: () => void;
+        }) => Promise<void>,
+      ) {
+        return job({
+          state,
+          write: () => {
+            controller?.enqueue(structuredClone(state.message));
+          },
+        });
+      },
+      onError: error => {
+        throw error;
+      },
+    }),
+  }).finally(() => {
+    controller?.close();
+  });
+
+  return createAsyncIterableStream(outputStream);
+}
