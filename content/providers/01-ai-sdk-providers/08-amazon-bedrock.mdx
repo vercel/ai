@@ -529,6 +529,7 @@ const { image } = await generateImage({
       quality: 'premium',
       negativeText: 'blurry, low quality',
       cfgScale: 7.5,
+      style: 'PHOTOREALISM',
     },
   },
 });
@@ -547,6 +548,14 @@ The following optional provider options are available for Amazon Nova Canvas:
 - **cfgScale** _number_
 
   Controls how closely the generated image adheres to the prompt. Higher values result in images that are more closely aligned to the prompt.
+
+- **style** _string_
+
+  Predefined visual style for image generation.  
+  Accepts one of:
+  `3D_ANIMATED_FAMILY_FILM` · `DESIGN_SKETCH` · `FLAT_VECTOR_ILLUSTRATION` ·  
+  `GRAPHIC_NOVEL_ILLUSTRATION` · `MAXIMALISM` · `MIDCENTURY_RETRO` ·  
+  `PHOTOREALISM` · `SOFT_DIGITAL_PAINTING`.
 
 Documentation for additional settings can be found within the [Amazon Bedrock
 User Guide for Amazon Nova
