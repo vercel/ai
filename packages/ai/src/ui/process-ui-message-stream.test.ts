@@ -1,5 +1,5 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { UIMessageChunk } from '../../src/ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import {
   createStreamingUIMessageState,
@@ -8,7 +8,7 @@ import {
 } from './process-ui-message-stream';
 import { InferUIMessageData, UIMessage } from './ui-messages';
 
-function createUIMessageStream(parts: UIMessageStreamPart[]) {
+function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
 }
 

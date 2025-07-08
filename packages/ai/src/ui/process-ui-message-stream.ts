@@ -5,11 +5,11 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
-  InferUIMessageStreamPart,
-  DataUIMessageStreamPart,
-  isDataUIMessageStreamPart,
-  UIMessageStreamPart,
-} from '../ui-message-stream/ui-message-stream-parts';
+  InferUIMessageChunk,
+  DataUIMessageChunk,
+  isDataUIMessageChunk,
+  UIMessageChunk,
+} from '../ui-message-stream/ui-message-chunks';
 import { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
@@ -74,7 +74,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onData,
 }: {
   // input stream is not fully typed yet:
-  stream: ReadableStream<UIMessageStreamPart>;
+  stream: ReadableStream<UIMessageChunk>;
   messageMetadataSchema?:
     | Validator<InferUIMessageMetadata<UI_MESSAGE>>
     | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
@@ -90,12 +90,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     }) => Promise<void>,
   ) => Promise<void>;
   onError: ErrorHandler;
-}): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
+}): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   return stream.pipeThrough(
-    new TransformStream<
-      UIMessageStreamPart,
-      InferUIMessageStreamPart<UI_MESSAGE>
-    >({
+    new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(part, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function updateToolInvocationPart(
@@ -471,9 +468,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             default: {
-              if (isDataUIMessageStreamPart(part)) {
+              if (isDataUIMessageChunk(part)) {
                 // TODO validate against dataPartSchemas
-                const dataPart = part as DataUIMessageStreamPart<
+                const dataPart = part as DataUIMessageChunk<
                   InferUIMessageData<UI_MESSAGE>
                 >;
 
@@ -510,7 +507,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
           }
 
-          controller.enqueue(part as InferUIMessageStreamPart<UI_MESSAGE>);
+          controller.enqueue(part as InferUIMessageChunk<UI_MESSAGE>);
         });
       },
     }),
