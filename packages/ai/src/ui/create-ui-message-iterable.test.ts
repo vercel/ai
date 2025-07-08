@@ -22,7 +22,6 @@ describe('createUiMessageGenerator', () => {
       { type: 'finish' },
     ]);
 
-    // TODO need a better name
     const iterable = createUiMessageIterable({ stream });
 
     expect(await convertAsyncIterableToArray(iterable)).toMatchInlineSnapshot(`
