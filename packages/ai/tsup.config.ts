@@ -43,4 +43,16 @@ export default defineConfig([
       js: '#!/usr/bin/env node',
     },
   },
+  // CLI binary minified
+  {
+    entry: ['src/bin/ai.ts'],
+    outDir: 'dist/bin',
+    outExtension: () => ({ js: '.min.js' }),
+    format: ['cjs'],
+    minify: true,
+    sourcemap: false,
+    banner: {
+      js: '#!/usr/bin/env node',
+    },
+  },
 ]);
