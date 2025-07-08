@@ -571,7 +571,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   activeReasoning = {
                     id: value.item.id,
                     encryptedContent: value.item.encrypted_content,
-                    summary: new Map<number, string>(),
+                    summary: new Map(),
                   };
 
                   controller.enqueue({
