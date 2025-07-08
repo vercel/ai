@@ -1621,6 +1621,11 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "usageMetadata": {
+                "candidatesTokenCount": 233,
+                "promptTokenCount": 294,
+                "totalTokenCount": 527,
+              },
             },
           },
           "type": "finish",
@@ -2124,6 +2129,12 @@ describe('doStream', () => {
             "google": {
               "groundingMetadata": null,
               "safetyRatings": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 18,
+                "promptTokenCount": 14,
+                "thoughtsTokenCount": 142,
+                "totalTokenCount": 174,
+              },
             },
           },
           "type": "finish",

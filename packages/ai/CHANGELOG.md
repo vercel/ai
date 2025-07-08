@@ -1,5 +1,48 @@
 # ai
 
+## 5.0.0-beta.10
+
+### Major Changes
+
+- 2b637d6: chore (ai): rename UIMessageStreamPart to UIMessageChunk
+
+### Patch Changes
+
+- 16ccfb2: feat (ai): add readUIMessageStream helper
+- 90ca2b9: feat(ai): Record tool call errors on tool call spans recorded in `generateText` and `streamText`.
+- af1d5a5: fix(ai): Unexpected reasoning-start event in extract reasoning middleware
+
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- 86cfc72: feat (ai): add ignoreIncompleteToolCalls option to convertToModelMessages
+
+## 5.0.0-beta.8
+
+### Patch Changes
+
+- 6909543: feat (ai): support system parameter in Agent constructor
+- c8fce91: feat (ai): add experimental Agent abstraction
+- 9121250: Expose provider metadata as an attribute on exported OTEL spans
+- Updated dependencies [97fedf9]
+  - @ai-sdk/gateway@1.0.0-beta.4
+
+## 5.0.0-beta.7
+
+### Patch Changes
+
+- 60132dd: fixed date formatting for updated mcp protocol version
+
+## 5.0.0-beta.6
+
+### Patch Changes
+
+- 143c55b: feat (ai): export Chat callback types
+- f04ffe4: feat (ui): add onData callback to Chat
+- 97c35c0: feat (ui): transient data parts
+- fccf75c: update mcp protocol version
+
 ## 5.0.0-beta.5
 
 ### Patch Changes

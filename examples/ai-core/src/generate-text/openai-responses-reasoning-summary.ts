@@ -17,18 +17,15 @@ async function main() {
   });
 
   process.stdout.write('\x1b[34m');
-  console.log(result.reasoning);
+  console.log(JSON.stringify(result.reasoning, null, 2));
   process.stdout.write('\x1b[0m');
   console.log(result.text);
   console.log();
   console.log('Finish reason:', result.finishReason);
-  console.log('Usage:', {
-    ...result.usage,
-    reasoningTokens: result.providerMetadata?.openai?.reasoningTokens,
-  });
+  console.log('Usage:', result.usage);
   console.log();
-  console.log('Request:', JSON.stringify(result.request, null, 2));
-  console.log('Response:', JSON.stringify(result.response, null, 2));
+  console.log('Request body:', JSON.stringify(result.request.body, null, 2));
+  console.log('Response body:', JSON.stringify(result.response.body, null, 2));
 }
 
 main().catch(console.error);

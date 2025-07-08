@@ -77,6 +77,9 @@ function createTestModel({
       type: 'finish',
       finishReason: 'stop',
       usage: testUsage,
+      providerMetadata: {
+        testProvider: { testKey: 'testValue' },
+      },
     },
   ]),
   request = undefined,
@@ -7995,6 +7998,72 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should record error on tool call', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              throw new Error('Tool execution failed');
+            },
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: { isEnabled: true, tracer },
+        _internal: { now: mockValues(0, 100, 500) },
+      });
+
+      await result.consumeStream();
+
+      expect(tracer.jsonSpans).toHaveLength(3);
+
+      // Check that we have the expected spans
+      expect(tracer.jsonSpans[0].name).toBe('ai.streamText');
+      expect(tracer.jsonSpans[1].name).toBe('ai.streamText.doStream');
+      expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
+
+      // Check that the tool call span has error status
+      const toolCallSpan = tracer.jsonSpans[2];
+      expect(toolCallSpan.status).toEqual({
+        code: 2,
+        message: 'Tool execution failed',
+      });
+
+      // Check that the tool call span has exception event
+      expect(toolCallSpan.events).toHaveLength(1);
+      const exceptionEvent = toolCallSpan.events[0];
+      expect(exceptionEvent.name).toBe('exception');
+      expect(exceptionEvent.attributes).toMatchObject({
+        'exception.message': 'Tool execution failed',
+        'exception.name': 'Error',
+      });
+      expect(exceptionEvent.attributes?.['exception.stack']).toContain(
+        'Tool execution failed',
+      );
+      expect(exceptionEvent.time).toEqual([0, 0]);
     });
 
     it('should not record telemetry inputs / outputs when disabled', async () => {

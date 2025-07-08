@@ -1,5 +1,5 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
-import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
   HttpChatTransportInitOptions,
@@ -12,7 +12,7 @@ class MockHttpChatTransport extends HttpChatTransport<UIMessage> {
   }
   protected processResponseStream(
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
-  ): ReadableStream<UIMessageStreamPart> {
+  ): ReadableStream<UIMessageChunk> {
     return new ReadableStream();
   }
 }

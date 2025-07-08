@@ -387,6 +387,9 @@ Default and recommended: 'auto' (best mode for the model).
                     'ai.response.model': responseData.modelId,
                     'ai.response.timestamp':
                       responseData.timestamp.toISOString(),
+                    'ai.response.providerMetadata': JSON.stringify(
+                      result.providerMetadata,
+                    ),
 
                     // TODO rename telemetry attributes to inputTokens and outputTokens
                     'ai.usage.promptTokens': result.usage.inputTokens,
@@ -486,6 +489,9 @@ Default and recommended: 'auto' (best mode for the model).
               'ai.response.object': {
                 output: () => JSON.stringify(object),
               },
+              'ai.response.providerMetadata': JSON.stringify(
+                resultProviderMetadata,
+              ),
 
               // TODO rename telemetry attributes to inputTokens and outputTokens
               'ai.usage.promptTokens': usage.inputTokens,
