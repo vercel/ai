@@ -79,7 +79,7 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
    - **Please do not use minor or major changesets**, we'll let you know when you need to use a different changeset type than patch.
    - You don't need to select any of the `examples/*` packages, as they are not released.
 
-3. **Add a codemod**: If the change introduces a deprecation or a breaking change, add a codemod if possible. See [instructions below](#how-to-create-a-codemod)
+3. **Add a codemod**: If the change introduces a deprecation or a breaking change, add a codemod if possible. See [how to contribute codemods](contributing/codemods.md)
 4. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
 5. **Fix prettier issues**: Run `pnpm prettier-fix` to fix any formatting issues in your code.
 6. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
@@ -92,76 +92,3 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 8. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
 
 Thank you for contributing to the AI SDK! Your efforts help us improve the project for everyone.
-
-#### How to create a codemod
-
-We strongly recommend to utilize an AI model to create a codemod for your changes, such as [Cursor](https://cursor.com) with `claude-4-sonnet`.
-
-Here is a list of instructions that will help the AI model to come up with a better result
-
-```md
-- Start all input/output fixtures files with `// @ts-nocheck`. Make sure the comment remains in place in the output fixture file.
-- Update `packages/codemod/src/lib/upgrade.ts`
-- Use `import { createTransformer } from './lib/create-transformer';` for codemods. Do not import anything from `jscodeshift` directly.
-- No need to cover imports that use `require()`
-- The codemod should not return anything. It should set `context.hasChanges` to `true` instead.
-- See files in `packages/codemod/src/codemods` for conventions
-- Multiple input/output files can be used in case of import conflicts.
-- Run tests to verify the change
-- Run the codemod manually to verify that it's working
-- If you need to create temporary files for testing, create them in `packages/codemod/`, and remove them when done.
-```
-
-Depending on the complexity of the changes, you can instruct the AI to review changes directly from a pull request, e.g. https://github.com/vercel/ai/pull/5750.diff. If that doesn't yield a useful result, try describing the breaking change such as in the example below
-
-<details>
-<summary>Example</summary>
-
-````md
-# Breaking change
-
-## **`streamtext()`: `result.file.{mediaType,data}` properties is now `result.{mediaType,data}`**
-
-Before:
-
-```ts
-import { streamText } from 'ai';
-
-const result = await streamText({
-  model: someModel,
-  prompt: 'Generate an image',
-});
-
-for await (const delta of result.fullStream) {
-  switch (delta.type) {
-    case 'file': {
-      console.log('Media type:', delta.file.mediaType);
-      console.log('File data:', delta.file.data);
-      break;
-    }
-  }
-}
-```
-
-After:
-
-```ts
-import { streamText } from 'ai';
-
-const result = await streamText({
-  model: someModel,
-  prompt: 'Generate an image',
-});
-
-for await (const delta of result.fullStream) {
-  switch (delta.type) {
-    case 'file': {
-      console.log('Media type:', delta.mediaType);
-      console.log('File data:', delta.data);
-      break;
-    }
-  }
-}
-```
-````
-</details>
