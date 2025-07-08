@@ -1,8 +1,8 @@
 import { mistral } from '@ai-sdk/mistral';
-import { maxSteps, ModelMessage, streamText, tool } from 'ai';
+import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -26,7 +26,7 @@ async function main() {
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
-          parameters: z.object({
+          inputSchema: z.object({
             location: z
               .string()
               .describe('The location to get the weather for'),
@@ -37,7 +37,7 @@ async function main() {
           }),
         }),
       },
-      continueUntil: maxSteps(5),
+      stopWhen: stepCountIs(5),
       messages,
     });
 

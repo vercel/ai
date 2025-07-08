@@ -5,24 +5,22 @@ import {
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  convertToBase64,
-  createIdGenerator,
-  parseProviderOptions,
-} from '@ai-sdk/provider-utils';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
   BEDROCK_CACHE_POINT,
+  BEDROCK_DOCUMENT_MIME_TYPES,
+  BEDROCK_IMAGE_MIME_TYPES,
   BedrockAssistantMessage,
   BedrockCachePoint,
   BedrockDocumentFormat,
+  BedrockDocumentMimeType,
   BedrockImageFormat,
+  BedrockImageMimeType,
   BedrockMessages,
   BedrockSystemMessages,
   BedrockUserMessage,
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
-
-const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
 function getCachePoint(
   providerMetadata: SharedV2ProviderMetadata | undefined,
@@ -40,6 +38,9 @@ export async function convertToBedrockChatMessages(
 
   let system: BedrockSystemMessages = [];
   const messages: BedrockMessages = [];
+
+  let documentCounter = 0;
+  const generateDocumentName = () => `document-${++documentCounter}`;
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -92,24 +93,25 @@ export async function convertToBedrockChatMessages(
                     }
 
                     if (part.mediaType.startsWith('image/')) {
-                      const bedrockImageFormat =
-                        part.mediaType === 'image/*'
-                          ? undefined
-                          : part.mediaType?.split('/')?.[1];
-
                       bedrockContent.push({
                         image: {
-                          format: bedrockImageFormat as BedrockImageFormat,
+                          format: getBedrockImageFormat(part.mediaType),
                           source: { bytes: convertToBase64(part.data) },
                         },
                       });
                     } else {
+                      if (!part.mediaType) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'file without mime type',
+                          message:
+                            'File mime type is required in user message part content',
+                        });
+                      }
+
                       bedrockContent.push({
                         document: {
-                          format: part.mediaType?.split(
-                            '/',
-                          )?.[1] as BedrockDocumentFormat,
-                          name: generateFileId(),
+                          format: getBedrockDocumentFormat(part.mediaType),
+                          name: generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                         },
                       });
@@ -123,39 +125,49 @@ export async function convertToBedrockChatMessages(
               break;
             }
             case 'tool': {
-              for (let i = 0; i < content.length; i++) {
-                const part = content[i];
-                const toolResultContent =
-                  part.content != undefined
-                    ? part.content.map(part => {
-                        switch (part.type) {
-                          case 'text':
-                            return {
-                              text: part.text,
-                            };
-                          case 'image':
-                            if (!part.mediaType) {
-                              throw new Error(
-                                'Image mime type is required in tool result part content',
-                              );
-                            }
-                            const format = part.mediaType.split('/')[1];
-                            if (!isBedrockImageFormat(format)) {
-                              throw new Error(
-                                `Unsupported image format: ${format}`,
-                              );
-                            }
-                            return {
-                              image: {
-                                format,
-                                source: {
-                                  bytes: part.data,
-                                },
-                              },
-                            };
-                        }
-                      })
-                    : [{ text: JSON.stringify(part.result) }];
+              for (const part of content) {
+                let toolResultContent;
+
+                const output = part.output;
+                switch (output.type) {
+                  case 'content': {
+                    toolResultContent = output.value.map(contentPart => {
+                      switch (contentPart.type) {
+                        case 'text':
+                          return { text: contentPart.text };
+                        case 'media':
+                          if (!contentPart.mediaType.startsWith('image/')) {
+                            throw new UnsupportedFunctionalityError({
+                              functionality: `media type: ${contentPart.mediaType}`,
+                            });
+                          }
+
+                          const format = getBedrockImageFormat(
+                            contentPart.mediaType,
+                          );
+
+                          return {
+                            image: {
+                              format,
+                              source: { bytes: contentPart.data },
+                            },
+                          };
+                      }
+                    });
+                    break;
+                  }
+                  case 'text':
+                  case 'error-text':
+                    toolResultContent = [{ text: output.value }];
+                    break;
+                  case 'json':
+                  case 'error-json':
+                  default:
+                    toolResultContent = [
+                      { text: JSON.stringify(output.value) },
+                    ];
+                    break;
+                }
 
                 bedrockContent.push({
                   toolResult: {
@@ -257,7 +269,7 @@ export async function convertToBedrockChatMessages(
                   toolUse: {
                     toolUseId: part.toolCallId,
                     name: part.toolName,
-                    input: part.args as JSONObject,
+                    input: part.input as JSONObject,
                   },
                 });
                 break;
@@ -285,7 +297,40 @@ export async function convertToBedrockChatMessages(
 }
 
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {
-  return ['jpeg', 'png', 'gif'].includes(format);
+  return Object.values(BEDROCK_IMAGE_MIME_TYPES).includes(
+    format as BedrockImageFormat,
+  );
+}
+
+function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
+  if (!mimeType) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'image without mime type',
+      message: 'Image mime type is required in user message part content',
+    });
+  }
+
+  const format = BEDROCK_IMAGE_MIME_TYPES[mimeType as BedrockImageMimeType];
+  if (!format) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `image mime type: ${mimeType}`,
+      message: `Unsupported image mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_IMAGE_MIME_TYPES).join(', ')}`,
+    });
+  }
+
+  return format;
+}
+
+function getBedrockDocumentFormat(mimeType: string): BedrockDocumentFormat {
+  const format =
+    BEDROCK_DOCUMENT_MIME_TYPES[mimeType as BedrockDocumentMimeType];
+  if (!format) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `file mime type: ${mimeType}`,
+      message: `Unsupported file mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_DOCUMENT_MIME_TYPES).join(', ')}`,
+    });
+  }
+  return format;
 }
 
 function trimIfLast(

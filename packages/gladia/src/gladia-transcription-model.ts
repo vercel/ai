@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV1,
-  TranscriptionModelV1CallWarning,
+  TranscriptionModelV2,
+  TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,7 +13,7 @@ import {
   postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
 import { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
@@ -258,7 +258,7 @@ const gladiaProviderOptionsSchema = z.object({
       /**
        * Dictionary of custom spellings.
        */
-      spellingDictionary: z.record(z.array(z.string())),
+      spellingDictionary: z.record(z.string(), z.array(z.string())),
     })
     .nullish(),
 
@@ -304,7 +304,7 @@ const gladiaProviderOptionsSchema = z.object({
   /**
    * Custom metadata to include with the transcription.
    */
-  customMetadata: z.record(z.any()).nullish(),
+  customMetadata: z.record(z.string(), z.any()).nullish(),
 
   /**
    * Whether to include sentence-level segmentation.
@@ -332,8 +332,8 @@ interface GladiaTranscriptionModelConfig extends GladiaConfig {
   };
 }
 
-export class GladiaTranscriptionModel implements TranscriptionModelV1 {
-  readonly specificationVersion = 'v1';
+export class GladiaTranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
@@ -346,8 +346,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV1CallWarning[] = [];
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
 
     // Parse provider options
     const gladiaOptions = await parseProviderOptions({
@@ -486,8 +486,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     // Create form data with base fields

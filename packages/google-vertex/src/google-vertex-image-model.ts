@@ -7,7 +7,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 
@@ -91,13 +91,28 @@ export class GoogleVertexImageModel implements ImageModelV2 {
     return {
       images:
         response.predictions?.map(
-          (p: { bytesBase64Encoded: string }) => p.bytesBase64Encoded,
+          ({ bytesBase64Encoded }) => bytesBase64Encoded,
         ) ?? [],
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
+      },
+      providerMetadata: {
+        vertex: {
+          images:
+            response.predictions?.map(prediction => {
+              const {
+                // normalize revised prompt property
+                prompt: revisedPrompt,
+              } = prediction;
+
+              return {
+                revisedPrompt,
+              };
+            }) ?? [],
+        },
       },
     };
   }
@@ -106,7 +121,15 @@ export class GoogleVertexImageModel implements ImageModelV2 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const vertexImageResponseSchema = z.object({
-  predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).nullish(),
+  predictions: z
+    .array(
+      z.object({
+        bytesBase64Encoded: z.string(),
+        mimeType: z.string(),
+        prompt: z.string(),
+      }),
+    )
+    .nullish(),
 });
 
 const vertexImageProviderOptionsSchema = z.object({

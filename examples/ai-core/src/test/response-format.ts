@@ -25,6 +25,7 @@ async function main() {
         ],
       },
     ],
+    includeRawChunks: false,
   });
 
   const reader = result.stream.getReader();
@@ -34,8 +35,8 @@ async function main() {
       break;
     }
 
-    if (value.type === 'text') {
-      process.stdout.write(value.text);
+    if (value.type === 'text-delta') {
+      process.stdout.write(value.delta);
     }
   }
 }

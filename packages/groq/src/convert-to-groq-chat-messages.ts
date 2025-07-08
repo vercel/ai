@@ -76,7 +76,7 @@ export function convertToGroqChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
               });
               break;
@@ -95,10 +95,25 @@ export function convertToGroqChatMessages(
 
       case 'tool': {
         for (const toolResponse of content) {
+          const output = toolResponse.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error-text':
+              contentValue = output.value;
+              break;
+            case 'content':
+            case 'json':
+            case 'error-json':
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.result),
+            content: contentValue,
           });
         }
         break;

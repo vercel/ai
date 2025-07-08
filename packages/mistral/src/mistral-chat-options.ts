@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // https://docs.mistral.ai/getting-started/models/models_overview/
 export type MistralChatModelId =
@@ -8,6 +8,9 @@ export type MistralChatModelId =
   | 'mistral-large-latest'
   | 'mistral-small-latest'
   | 'pixtral-large-latest'
+  // reasoning models
+  | 'magistral-small-2506'
+  | 'magistral-medium-2506'
   // free
   | 'pixtral-12b-2409'
   // legacy

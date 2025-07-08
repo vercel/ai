@@ -19,7 +19,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
@@ -91,8 +91,26 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       schema: googleGenerativeAIProviderOptions,
     });
 
-    const { contents, systemInstruction } =
-      convertToGoogleGenerativeAIMessages(prompt);
+    // Add warning if includeThoughts is used with a non-Vertex Google provider
+    if (
+      googleOptions?.thinkingConfig?.includeThoughts === true &&
+      !this.config.provider.startsWith('google.vertex.')
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          `(${this.config.provider}).`,
+      });
+    }
+
+    const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+
+    const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
+      prompt,
+      { isGemmaModel },
+    );
 
     const {
       tools: googleTools,
@@ -140,7 +158,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           thinkingConfig: googleOptions?.thinkingConfig,
         },
         contents,
-        systemInstruction,
+        systemInstruction: isGemmaModel ? undefined : systemInstruction,
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
         toolConfig: googleToolConfig,
@@ -188,16 +206,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         ? []
         : (candidate.content.parts ?? []);
 
+    const usageMetadata = response.usageMetadata;
+
+    // Build content array from all parts
     for (const part of parts) {
-      if ('text' in part && part.text.length > 0) {
-        content.push({ type: 'text', text: part.text });
+      if ('text' in part && part.text != null && part.text.length > 0) {
+        if (part.thought === true) {
+          content.push({ type: 'reasoning', text: part.text });
+        } else {
+          content.push({ type: 'text', text: part.text });
+        }
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
-          toolCallType: 'function' as const,
           toolCallId: this.config.generateId(),
           toolName: part.functionCall.name,
-          args: JSON.stringify(part.functionCall.args),
+          input: JSON.stringify(part.functionCall.args),
         });
       } else if ('inlineData' in part) {
         content.push({
@@ -208,7 +232,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       }
     }
 
-    // sources
     const sources =
       extractSources({
         groundingMetadata: candidate.groundingMetadata,
@@ -217,8 +240,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     for (const source of sources) {
       content.push(source);
     }
-
-    const usageMetadata = response.usageMetadata;
 
     return {
       content,
@@ -283,6 +304,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const generateId = this.config.generateId;
     let hasToolCalls = false;
 
+    // Track active blocks to group consecutive parts of same type
+    let currentTextBlockId: string | null = null;
+    let currentReasoningBlockId: string | null = null;
+    let blockCounter = 0;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -294,6 +320,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
@@ -325,9 +355,64 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
-              const deltaText = getTextFromParts(content.parts);
-              if (deltaText != null) {
-                controller.enqueue(deltaText);
+              // Process text parts individually to handle reasoning parts
+              const parts = content.parts ?? [];
+              for (const part of parts) {
+                if (
+                  'text' in part &&
+                  part.text != null &&
+                  part.text.length > 0
+                ) {
+                  if (part.thought === true) {
+                    // End any active text block before starting reasoning
+                    if (currentTextBlockId !== null) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: currentTextBlockId,
+                      });
+                      currentTextBlockId = null;
+                    }
+
+                    // Start new reasoning block if not already active
+                    if (currentReasoningBlockId === null) {
+                      currentReasoningBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: currentReasoningBlockId,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      id: currentReasoningBlockId,
+                      delta: part.text,
+                    });
+                  } else {
+                    // End any active reasoning block before starting text
+                    if (currentReasoningBlockId !== null) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: currentReasoningBlockId,
+                      });
+                      currentReasoningBlockId = null;
+                    }
+
+                    // Start new text block if not already active
+                    if (currentTextBlockId === null) {
+                      currentTextBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: currentTextBlockId,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: currentTextBlockId,
+                      delta: part.text,
+                    });
+                  }
+                }
               }
 
               const inlineDataParts = getInlineDataParts(content.parts);
@@ -349,19 +434,27 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               if (toolCallDeltas != null) {
                 for (const toolCall of toolCallDeltas) {
                   controller.enqueue({
-                    type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: toolCall.toolCallId,
+                    type: 'tool-input-start',
+                    id: toolCall.toolCallId,
                     toolName: toolCall.toolName,
-                    argsTextDelta: toolCall.args,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.toolCallId,
+                    delta: toolCall.args,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.toolCallId,
                   });
 
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallType: 'function',
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,
-                    args: toolCall.args,
+                    input: toolCall.args,
                   });
 
                   hasToolCalls = true;
@@ -395,6 +488,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            // Close any open blocks before finishing
+            if (currentTextBlockId !== null) {
+              controller.enqueue({
+                type: 'text-end',
+                id: currentTextBlockId,
+              });
+            }
+            if (currentReasoningBlockId !== null) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: currentReasoningBlockId,
+              });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -429,7 +536,6 @@ function getToolCallsFromParts({
     ? undefined
     : functionCallParts.map(part => ({
         type: 'tool-call' as const,
-        toolCallType: 'function' as const,
         toolCallId: generateId(),
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),
@@ -443,10 +549,7 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
 
   return textParts == null || textParts.length === 0
     ? undefined
-    : {
-        type: 'text' as const,
-        text: textParts.map(part => part.text).join(''),
-      };
+    : textParts.map(part => part.text).join('');
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -484,13 +587,10 @@ function extractSources({
 }
 
 const contentSchema = z.object({
-  role: z.string(),
   parts: z
     .array(
       z.union([
-        z.object({
-          text: z.string(),
-        }),
+        // note: order matters since text can be fully empty
         z.object({
           functionCall: z.object({
             name: z.string(),
@@ -502,6 +602,10 @@ const contentSchema = z.object({
             mimeType: z.string(),
             data: z.string(),
           }),
+        }),
+        z.object({
+          text: z.string().nullish(),
+          thought: z.boolean().nullish(),
         }),
       ]),
     )

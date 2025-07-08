@@ -1,19 +1,21 @@
 import { streamObject } from 'ai';
 import { convertArrayToReadableStream, MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamObject({
     model: new MockLanguageModelV2({
       doStream: async () => ({
         stream: convertArrayToReadableStream([
-          { type: 'text', text: '{ ' },
-          { type: 'text', text: '"content": ' },
-          { type: 'text', text: `"Hello, ` },
-          { type: 'text', text: `world` },
-          { type: 'text', text: `!"` },
-          { type: 'text', text: ' }' },
+          { type: 'text-start', id: '0' },
+          { type: 'text-delta', id: '0', delta: '{ ' },
+          { type: 'text-delta', id: '0', delta: '"content": ' },
+          { type: 'text-delta', id: '0', delta: `"Hello, ` },
+          { type: 'text-delta', id: '0', delta: `world` },
+          { type: 'text-delta', id: '0', delta: `!"` },
+          { type: 'text-delta', id: '0', delta: ' }' },
+          { type: 'text-end', id: '0' },
           {
             type: 'finish',
             finishReason: 'stop',

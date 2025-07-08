@@ -1,7 +1,5 @@
-import { z } from 'zod';
+import { ModelMessage } from '@ai-sdk/provider-utils';
 import { convertToModelMessages } from './convert-to-model-messages';
-import { ModelMessage } from '../../core/prompt/message';
-import { tool } from '../../core/tool/tool';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
@@ -77,7 +75,7 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
-          parts: [{ type: 'text', text: 'Hello, human!' }],
+          parts: [{ type: 'text', text: 'Hello, human!', state: 'done' }],
         },
       ]);
 
@@ -102,6 +100,7 @@ describe('convertToModelMessages', () => {
                   signature: '1234567890',
                 },
               },
+              state: 'done',
             },
             {
               type: 'reasoning',
@@ -109,8 +108,9 @@ describe('convertToModelMessages', () => {
               providerMetadata: {
                 testProvider: { isRedacted: true },
               },
+              state: 'done',
             },
-            { type: 'text', text: 'Hello, human!' },
+            { type: 'text', text: 'Hello, human!', state: 'done' },
           ],
         },
       ]);
@@ -163,63 +163,275 @@ describe('convertToModelMessages', () => {
       ] satisfies ModelMessage[]);
     });
 
-    it('should handle assistant message with tool invocations', () => {
+    it('should handle assistant message with tool output available', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
           parts: [
-            { type: 'text', text: 'Let me calculate that for you.' },
+            { type: 'step-start' },
             {
-              type: 'tool-invocation',
-              toolInvocation: {
-                state: 'result',
-                toolCallId: 'call1',
-                toolName: 'calculator',
-                args: { operation: 'add', numbers: [1, 2] },
-                result: '3',
-                step: 0,
-              },
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'add', numbers: [1, 2] },
+              output: '3',
             },
           ],
         },
       ]);
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "3",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should handle assistant message with tool output error', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
+            {
+              type: 'tool-calculator',
+              state: 'output-error',
+              toolCallId: 'call1',
+              input: { operation: 'add', numbers: [1, 2] },
+              errorText: 'Error: Invalid input',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Error: Invalid input",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should handle assistant message with provider-executed tool output available', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'add', numbers: [1, 2] },
+              output: '3',
+              providerExecuted: true,
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "3",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should handle assistant message with provider-executed tool output error', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
+            {
+              type: 'tool-calculator',
+              state: 'output-error',
+              toolCallId: 'call1',
+              input: { operation: 'add', numbers: [1, 2] },
+              errorText: 'Error: Invalid input',
+              providerExecuted: true,
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "error-json",
+                  "value": "Error: Invalid input",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
     });
 
     it('should handle assistant message with tool invocations that have multi-part responses', () => {
-      const tools = {
-        screenshot: tool({
-          parameters: z.object({}),
-          execute: async () => 'imgbase64',
-          experimental_toToolResultContent: result => [
-            { type: 'image', data: result },
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Let me calculate that for you.',
+              state: 'done',
+            },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: {},
+              output: 'imgbase64',
+            },
           ],
-        }),
-      };
-
-      const result = convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
-              { type: 'text', text: 'Let me calculate that for you.' },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call1',
-                  toolName: 'screenshot',
-                  args: {},
-                  result: 'imgbase64',
-                  step: 0,
-                },
-              },
-            ],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
+        },
+      ]);
 
       expect(result).toMatchSnapshot();
     });
@@ -232,7 +444,7 @@ describe('convertToModelMessages', () => {
         },
         {
           role: 'assistant',
-          parts: [{ type: 'text', text: 'text2' }],
+          parts: [{ type: 'text', text: 'text2', state: 'done' }],
         },
       ]);
 
@@ -240,137 +452,96 @@ describe('convertToModelMessages', () => {
     });
 
     it('should handle conversation with multiple tool invocations that have step information', () => {
-      const tools = {
-        screenshot: tool({
-          parameters: z.object({ value: z.string() }),
-          execute: async () => 'imgbase64',
-        }),
-      };
-
-      const result = convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
-              { type: 'text', text: 'response' },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-1',
-                  toolName: 'screenshot',
-                  args: { value: 'value-1' },
-                  result: 'result-1',
-                  step: 0,
-                },
-              },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-2',
-                  toolName: 'screenshot',
-                  args: { value: 'value-2' },
-                  result: 'result-2',
-                  step: 1,
-                },
-              },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-3',
-                  toolName: 'screenshot',
-                  args: { value: 'value-3' },
-                  result: 'result-3',
-                  step: 1,
-                },
-              },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-4',
-                  toolName: 'screenshot',
-                  args: { value: 'value-4' },
-                  result: 'result-4',
-                  step: 2,
-                },
-              },
-            ],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'response', state: 'done' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { value: 'value-1' },
+              output: 'result-1',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-2',
+              input: { value: 'value-2' },
+              output: 'result-2',
+            },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-3',
+              input: { value: 'value-3' },
+              output: 'result-3',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-4',
+              input: { value: 'value-4' },
+              output: 'result-4',
+            },
+          ],
+        },
+      ]);
 
       expect(result).toMatchSnapshot();
     });
 
     it('should handle conversation with mix of tool invocations and text', () => {
-      const tools = {
-        screenshot: tool({
-          parameters: z.object({ value: z.string() }),
-          execute: async () => 'imgbase64',
-        }),
-      };
-
-      const result = convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
-              { type: 'text', text: 'i am gonna use tool1' },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-1',
-                  toolName: 'screenshot',
-                  args: { value: 'value-1' },
-                  result: 'result-1',
-                  step: 0,
-                },
-              },
-              { type: 'text', text: 'i am gonna use tool2 and tool3' },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-2',
-                  toolName: 'screenshot',
-                  args: { value: 'value-2' },
-                  result: 'result-2',
-                  step: 1,
-                },
-              },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-3',
-                  toolName: 'screenshot',
-                  args: { value: 'value-3' },
-                  result: 'result-3',
-                  step: 1,
-                },
-              },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-4',
-                  toolName: 'screenshot',
-                  args: { value: 'value-4' },
-                  result: 'result-4',
-                  step: 2,
-                },
-              },
-              { type: 'text', text: 'final response' },
-            ],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'i am gonna use tool1', state: 'done' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { value: 'value-1' },
+              output: 'result-1',
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'i am gonna use tool2 and tool3',
+              state: 'done',
+            },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-2',
+              input: { value: 'value-2' },
+              output: 'result-2',
+            },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-3',
+              input: { value: 'value-3' },
+              output: 'result-3',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-4',
+              input: { value: 'value-4' },
+              output: 'result-4',
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'final response', state: 'done' },
+          ],
+        },
+      ]);
 
       expect(result).toMatchSnapshot();
     });
@@ -385,7 +556,9 @@ describe('convertToModelMessages', () => {
         },
         {
           role: 'assistant',
-          parts: [{ type: 'text', text: "I'll check that for you." }],
+          parts: [
+            { type: 'text', text: "I'll check that for you.", state: 'done' },
+          ],
         },
         {
           role: 'user',
@@ -427,73 +600,50 @@ describe('convertToModelMessages', () => {
     });
 
     it('should handle conversation with multiple tool invocations and user message at the end', () => {
-      const tools = {
-        screenshot: tool({
-          parameters: z.object({ value: z.string() }),
-          execute: async () => 'imgbase64',
-        }),
-      };
-
-      const result = convertToModelMessages(
-        [
-          {
-            role: 'assistant',
-            parts: [
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-1',
-                  toolName: 'screenshot',
-                  args: { value: 'value-1' },
-                  result: 'result-1',
-                  step: 0,
-                },
-              },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-2',
-                  toolName: 'screenshot',
-                  args: { value: 'value-2' },
-                  result: 'result-2',
-                  step: 1,
-                },
-              },
-
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-3',
-                  toolName: 'screenshot',
-                  args: { value: 'value-3' },
-                  result: 'result-3',
-                  step: 1,
-                },
-              },
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-4',
-                  toolName: 'screenshot',
-                  args: { value: 'value-4' },
-                  result: 'result-4',
-                  step: 2,
-                },
-              },
-              { type: 'text', text: 'response' },
-            ],
-          },
-          {
-            role: 'user',
-            parts: [{ type: 'text', text: 'Thanks!' }],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-1',
+              input: { value: 'value-1' },
+              output: 'result-1',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-2',
+              input: { value: 'value-2' },
+              output: 'result-2',
+            },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-3',
+              input: { value: 'value-3' },
+              output: 'result-3',
+            },
+            { type: 'step-start' },
+            {
+              type: 'tool-screenshot',
+              state: 'output-available',
+              toolCallId: 'call-4',
+              input: { value: 'value-4' },
+              output: 'result-4',
+            },
+            { type: 'step-start' },
+            { type: 'text', text: 'response', state: 'done' },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'Thanks!' }],
+        },
+      ]);
 
       expect(result).toMatchSnapshot();
     });

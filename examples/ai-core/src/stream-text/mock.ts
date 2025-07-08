@@ -7,9 +7,11 @@ async function main() {
     model: new MockLanguageModelV2({
       doStream: async () => ({
         stream: convertArrayToReadableStream([
-          { type: 'text', text: 'Hello' },
-          { type: 'text', text: ', ' },
-          { type: 'text', text: `world!` },
+          { type: 'text-start', id: '0' },
+          { type: 'text-delta', id: '0', delta: 'Hello' },
+          { type: 'text-delta', id: '0', delta: ', ' },
+          { type: 'text-delta', id: '0', delta: `world!` },
+          { type: 'text-end', id: '0' },
           {
             type: 'finish',
             finishReason: 'stop',

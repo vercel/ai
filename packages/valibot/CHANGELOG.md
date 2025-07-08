@@ -1,5 +1,94 @@
 # @ai-sdk/valibot
 
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider-utils@3.0.0-beta.1
+
+## 1.0.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [8ba77a7]
+  - @ai-sdk/provider-utils@3.0.0-alpha.15
+
+## 1.0.0-alpha.14
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.14
+
+## 1.0.0-alpha.13
+
+### Patch Changes
+
+- d7cb6b4: chore (valibot): update to valibot 1.1
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 1.0.0-alpha.11
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 1.0.0-alpha.10
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 1.0.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [4fef487]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+
+## 1.0.0-alpha.7
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.7
+
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.6
+
+## 1.0.0-alpha.4
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-alpha.4
+
 ## 1.0.0-alpha.3
 
 ### Patch Changes

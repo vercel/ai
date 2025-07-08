@@ -87,12 +87,13 @@ export function smoothStream<TOOLS extends ToolSet>({
 
   return () => {
     let buffer = '';
+    let id = '';
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type !== 'text') {
           if (buffer.length > 0) {
-            controller.enqueue({ type: 'text', text: buffer });
+            controller.enqueue({ type: 'text', text: buffer, id });
             buffer = '';
           }
 
@@ -100,12 +101,18 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
+        if (chunk.id !== id && buffer.length > 0) {
+          controller.enqueue({ type: 'text', text: buffer, id });
+          buffer = '';
+        }
+
         buffer += chunk.text;
+        id = chunk.id;
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type: 'text', text: match });
+          controller.enqueue({ type: 'text', text: match, id });
           buffer = buffer.slice(match.length);
 
           await delay(delayInMs);

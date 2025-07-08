@@ -1,4 +1,5 @@
 import { JSONSchema7 } from 'json-schema';
+import { SharedV2ProviderOptions } from '../../shared';
 
 /**
 A tool has a name, a description, and a set of parameters.
@@ -27,5 +28,10 @@ tool's purpose and to provide better completion suggestions.
 The parameters that the tool expects. The language model uses this to
 understand the tool's input requirements and to provide matching suggestions.
    */
-  parameters: JSONSchema7;
+  inputSchema: JSONSchema7;
+
+  /**
+The provider-specific options for the tool.
+   */
+  providerOptions?: SharedV2ProviderOptions;
 };

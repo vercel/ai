@@ -77,7 +77,7 @@ describe('tool calls', () => {
         content: [
           {
             type: 'tool-call',
-            args: { foo: 'bar123' },
+            input: { foo: 'bar123' },
             toolCallId: 'quux',
             toolName: 'thwomp',
           },
@@ -90,7 +90,7 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'quux',
             toolName: 'thwomp',
-            result: { oof: '321rab' },
+            output: { type: 'json', value: { oof: '321rab' } },
           },
         ],
       },
@@ -115,6 +115,55 @@ describe('tool calls', () => {
         role: 'tool',
         content: JSON.stringify({ oof: '321rab' }),
         tool_call_id: 'quux',
+      },
+    ]);
+  });
+
+  it('should handle text output type in tool results', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { query: 'weather' },
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'It is sunny today' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-1',
+            function: {
+              name: 'getWeather',
+              arguments: JSON.stringify({ query: 'weather' }),
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'It is sunny today',
+        tool_call_id: 'call-1',
       },
     ]);
   });
@@ -211,7 +260,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call1',
             toolName: 'calculator',
-            args: { x: 1, y: 2 },
+            input: { x: 1, y: 2 },
             providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' },
@@ -379,7 +428,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call1',
             toolName: 'searchTool',
-            args: { query: 'Weather' },
+            input: { query: 'Weather' },
             providerOptions: {
               openaiCompatible: { function_call_reason: 'user request' },
             },
@@ -389,7 +438,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'call2',
             toolName: 'mapsTool',
-            args: { location: 'Paris' },
+            input: { location: 'Paris' },
           },
         ],
       },
@@ -435,7 +484,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-result',
             toolCallId: 'call123',
             toolName: 'calculator',
-            result: { stepOne: 'data chunk 1' },
+            output: { type: 'json', value: { stepOne: 'data chunk 1' } },
           },
           {
             type: 'tool-result',
@@ -444,7 +493,7 @@ describe('provider-specific metadata merging', () => {
             providerOptions: {
               openaiCompatible: { partial: true },
             },
-            result: { stepTwo: 'data chunk 2' },
+            output: { type: 'json', value: { stepTwo: 'data chunk 2' } },
           },
         ],
       },
@@ -529,7 +578,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'callXYZ',
             toolName: 'awesomeTool',
-            args: { param: 'someValue' },
+            input: { param: 'someValue' },
             providerOptions: {
               openaiCompatible: {
                 toolPriority: 'critical',
@@ -575,7 +624,7 @@ describe('provider-specific metadata merging', () => {
             type: 'tool-call',
             toolCallId: 'collisionToolCall',
             toolName: 'collider',
-            args: { num: 42 },
+            input: { num: 42 },
             providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' }, // overwrites top-level

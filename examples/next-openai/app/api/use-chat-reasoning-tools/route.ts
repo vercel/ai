@@ -3,12 +3,14 @@ import { fireworks } from '@ai-sdk/fireworks';
 import {
   convertToModelMessages,
   extractReasoningMiddleware,
-  maxSteps,
+  stepCountIs,
   streamText,
   tool,
+  UIDataTypes,
+  UIMessage,
   wrapLanguageModel,
 } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const anthropic = createAnthropic({
   // example fetch wrapper that logs the input to the API call:
@@ -21,6 +23,25 @@ const anthropic = createAnthropic({
     return await fetch(url, options);
   },
 });
+
+export type ReasoningToolsMessage = UIMessage<
+  never, // could define metadata here
+  UIDataTypes, // could define data parts here
+  {
+    getWeatherInformation: {
+      input: { city: string };
+      output: string;
+    };
+    askForConfirmation: {
+      input: { message: string };
+      output: string;
+    };
+    getLocation: {
+      input: {};
+      output: string;
+    };
+  }
+>;
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -36,14 +57,13 @@ export async function POST(req: Request) {
       middleware: extractReasoningMiddleware({ tagName: 'think' }),
     }),
     messages: convertToModelMessages(messages),
-    toolCallStreaming: true,
-    continueUntil: maxSteps(5), // multi-steps for server-side tools
+    stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: tool({
         description: 'show the weather in a given city to the user',
-        parameters: z.object({ city: z.string() }),
-        execute: async ({}: { city: string }) => {
+        inputSchema: z.object({ city: z.string() }),
+        execute: async ({ city }: { city: string }) => {
           // Add artificial delay of 2 seconds
           await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -56,7 +76,7 @@ export async function POST(req: Request) {
       // client-side tool that starts user interaction:
       askForConfirmation: tool({
         description: 'Ask the user for confirmation.',
-        parameters: z.object({
+        inputSchema: z.object({
           message: z.string().describe('The message to ask for confirmation.'),
         }),
       }),
@@ -64,7 +84,7 @@ export async function POST(req: Request) {
       getLocation: tool({
         description:
           'Get the user location. Always ask for confirmation before using this tool.',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
       }),
     },
   });

@@ -14,6 +14,7 @@
     { "path": "packages/elevenlabs" },
     { "path": "packages/fal" },
     { "path": "packages/fireworks" },
+    { "path": "packages/gateway" },
     { "path": "packages/gladia" },
     { "path": "packages/google" },
     { "path": "packages/google-vertex" },
@@ -36,6 +37,7 @@
     { "path": "packages/svelte" },
     { "path": "packages/togetherai" },
     { "path": "packages/valibot" },
+    { "path": "packages/vercel" },
     { "path": "packages/vue" },
     { "path": "packages/xai" }
   ],

@@ -1,5 +1,282 @@
 # ai
 
+## 5.0.0-beta.5
+
+### Patch Changes
+
+- 4f3e637: fix (ui): avoid caching globalThis.fetch in case it is patched by other libraries
+
+## 5.0.0-beta.4
+
+### Patch Changes
+
+- 09f41ac: fix (ui): add message metadata in Chat.sendMessage
+
+## 5.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [f3639fa]
+- Updated dependencies [d454e4b]
+  - @ai-sdk/gateway@1.0.0-beta.3
+
+## 5.0.0-beta.2
+
+### Patch Changes
+
+- 0d9583c: fix (ai): use user-provided media type when available
+- c6b64a7: feat (ai): allow async prepareRequest on HttpChatTransport
+- cb3b9c9: fix (ai): catch errors in ui message stream
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [c91586a]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+  - @ai-sdk/gateway@1.0.0-beta.2
+
+## 5.0.0-beta.1
+
+### Major Changes
+
+- 9ad0484: feat (ai): automatic tool execution error handling
+
+### Patch Changes
+
+- d88455d: feat (ai): expose http chat transport type
+- 4048ce3: fix (ai): add tests and examples for openai responses
+- f2b041e: Fix custom `fetch` in HttpChatTransport
+- cb68df0: feat: add transcription and speech model support to provider registry
+- 26695a3: feat (ui): add state for text and reasoning ui message parts
+- e7d2ce3: feat: provider-executed tools
+- 102b066: fix (ai): fix invalid fetch call
+- e862b5b: feat (ai): allow sync tool.execute
+- 7bd025b: fix (ai): fix sync tool execute with streamText
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [f77bc38]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider@2.0.0-beta.1
+  - @ai-sdk/provider-utils@3.0.0-beta.1
+  - @ai-sdk/gateway@1.0.0-beta.1
+
+## 5.0.0-alpha.15
+
+### Major Changes
+
+- 04d5063: chore (ai): rename default provider global to AI_SDK_DEFAULT_PROVIDER
+- b4b4bb2: chore (ui): rename experimental_resume to resumeStream
+- d884051: feat (ai): simplify default provider setup
+- 954aa73: feat (ui): extended regenerate support
+- 60e2c56: feat (ai): restructure chat transports
+
+### Patch Changes
+
+- b1e3abd: feat (ai): expose ui message stream headers
+- 142576e: feat (ui): support message replacement in chat via messageId param on sendMessage
+- 395c85e: feat (ai): add consumeSseStream option to UI message stream responses
+- Updated dependencies [48d257a]
+- Updated dependencies [8ba77a7]
+- Updated dependencies [c145d62]
+  - @ai-sdk/provider@2.0.0-alpha.15
+  - @ai-sdk/provider-utils@3.0.0-alpha.15
+  - @ai-sdk/gateway@1.0.0-alpha.15
+
+## 5.0.0-alpha.14
+
+### Major Changes
+
+- 63f9e9b: chore (provider,ai): tools have input/output instead of args,result
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/gateway@1.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
+## 5.0.0-alpha.13
+
+### Major Changes
+
+- 0a710d8: feat (ui): typed tool parts in ui messages
+- 6a83f7d: refactoring (ai): restructure message metadata transfer
+- 1f55c21: chore (ai): send reasoning to the client by default
+- 33eb499: feat (ai): inject message id in createUIMessageStream
+- 901df02: feat (ui): use UI_MESSAGE generic
+
+### Patch Changes
+
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/gateway@1.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 5.0.0-alpha.12
+
+### Major Changes
+
+- 4892798: chore (ai): always stream tool calls
+
+### Patch Changes
+
+- da1e6f0: feat (ui): add generics to ui message stream parts
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/gateway@1.0.0-alpha.12
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 5.0.0-alpha.11
+
+### Major Changes
+
+- e8324c5: feat (ai): add args callbacks to tools
+
+### Patch Changes
+
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/gateway@1.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 5.0.0-alpha.10
+
+### Major Changes
+
+- 98f25e5: chore (ui): remove managed chat inputs
+- 7bb58d4: chore (ai): restructure prepareRequest
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/gateway@1.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 5.0.0-alpha.9
+
+### Major Changes
+
+- 9ae327d: chore (ui): replace chat store concept with chat instances
+
+### Patch Changes
+
+- 8255639: ### Fix use with Google APIs + zod v4's `.literal()` schema
+
+  Before [zod@3.25.49](https://github.com/colinhacks/zod/releases/tag/v3.25.49), requests to Google's APIs failed due to a missing `type` in the provided schema. The problem has been resolved for the `ai` SDK by bumping our `zod` peer dependencies to `^3.25.49`.
+
+  pull request: https://github.com/vercel/ai/pull/6609
+
+- Updated dependencies [26b6dd0]
+- Updated dependencies [811dff3]
+  - @ai-sdk/gateway@1.0.0-alpha.9
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 5.0.0-alpha.8
+
+### Major Changes
+
+- c25cbce: feat (ai): use console.error as default error handler for streamText and streamObject
+
+### Patch Changes
+
+- 4fef487: feat: support for zod v4 for schema validation
+
+  All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
+  - `generateObject()`
+  - `streamObject()`
+  - `generateText()`
+  - `experimental_useObject()` from `@ai-sdk/react`
+  - `streamUI()` from `@ai-sdk/rsc`
+
+- 6b1c55c: feat (ai): introduce GLOBAL_DEFAULT_PROVIDER
+- 2e4f9e4: feat (ai): improved error messages when using gateway
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+- Updated dependencies [3cbcbb7]
+- Updated dependencies [989ac75]
+- Updated dependencies [7742ba3]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+  - @ai-sdk/gateway@1.0.0-alpha.8
+
+## 5.0.0-alpha.7
+
+### Major Changes
+
+- db345da: chore (ai): remove exports of internal ui functions
+- 247ee0c: chore (ai): remove steps from tool invocation ui parts
+
+### Patch Changes
+
+- 9b0da33: fix (ai): do not send id with start unless specified
+- Updated dependencies [5c56081]
+  - @ai-sdk/provider@2.0.0-alpha.7
+  - @ai-sdk/gateway@1.0.0-alpha.7
+  - @ai-sdk/provider-utils@3.0.0-alpha.7
+
+## 5.0.0-alpha.6
+
+### Patch Changes
+
+- 0d2c085: feat (ai): support string model ids through gateway
+- 48a7606: feat (ai): support changing the system prompt in prepareSteps
+- Updated dependencies [0d2c085]
+- Updated dependencies [6c2c708]
+  - @ai-sdk/provider@2.0.0-alpha.6
+  - @ai-sdk/gateway@1.0.0-alpha.6
+  - @ai-sdk/provider-utils@3.0.0-alpha.6
+
+## 5.0.0-alpha.5
+
+### Major Changes
+
+- ef256ed: chore (ai): refactor and use chatstore in svelte
+- 1ed0287: chore (ai): stable sendStart/sendFinish options
+
+### Patch Changes
+
+- 655cf3c: feat (ui): add onFinish to createUIMessageStream
+- 1675396: fix: avoid job executor deadlock when adding tool result
+- cf9af6e: feat (ai): allow sync prepareStep
+- 825e8d7: release alpha.5
+- 7324c21: fix (ai/telemetry): Avoid JSON.stringify on Uint8Arrays for telemetry
+
+## 5.0.0-alpha.4
+
+### Major Changes
+
+- 72d7d72: chore (ai): stable activeTools
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+
+### Patch Changes
+
+- b32c141: feat (ai): add array support to stopWhen
+- 7d97ab6: release alpha.4
+- 37a916d: feat (ai): add prepareSteps to streamText
+- 5f2b3d4: chore (ai): stable prepareStep
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+  - @ai-sdk/provider-utils@3.0.0-alpha.4
+
 ## 5.0.0-alpha.3
 
 ### Major Changes

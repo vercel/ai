@@ -315,7 +315,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                 type: 'tool-call',
                 toolCallId: 'call_123',
                 toolName: 'search',
-                args: { query: 'weather in San Francisco' },
+                input: { query: 'weather in San Francisco' },
               },
             ],
           },
@@ -352,13 +352,13 @@ describe('convertToOpenAIResponsesMessages', () => {
                 type: 'tool-call',
                 toolCallId: 'call_123',
                 toolName: 'search',
-                args: { query: 'weather in San Francisco' },
+                input: { query: 'weather in San Francisco' },
               },
               {
                 type: 'tool-call',
                 toolCallId: 'call_456',
                 toolName: 'calculator',
-                args: { expression: '2 + 2' },
+                input: { expression: '2 + 2' },
               },
             ],
           },
@@ -394,7 +394,10 @@ describe('convertToOpenAIResponsesMessages', () => {
                 type: 'tool-result',
                 toolCallId: 'call_123',
                 toolName: 'search',
-                result: { temperature: '72°F', condition: 'Sunny' },
+                output: {
+                  type: 'json',
+                  value: { temperature: '72°F', condition: 'Sunny' },
+                },
               },
             ],
           },
@@ -421,13 +424,16 @@ describe('convertToOpenAIResponsesMessages', () => {
                 type: 'tool-result',
                 toolCallId: 'call_123',
                 toolName: 'search',
-                result: { temperature: '72°F', condition: 'Sunny' },
+                output: {
+                  type: 'json',
+                  value: { temperature: '72°F', condition: 'Sunny' },
+                },
               },
               {
                 type: 'tool-result',
                 toolCallId: 'call_456',
                 toolName: 'calculator',
-                result: 4,
+                output: { type: 'json', value: 4 },
               },
             ],
           },
@@ -447,6 +453,116 @@ describe('convertToOpenAIResponsesMessages', () => {
           output: JSON.stringify(4),
         },
       ]);
+    });
+  });
+
+  describe('provider-executed tool calls', () => {
+    it('should exclude provider-executed tool calls and results from prompt', () => {
+      const result = convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Let me search for recent news from San Francisco.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
+                toolName: 'web_search_preview',
+                input: {
+                  query: 'San Francisco major news events June 22 2025',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
+                toolName: 'web_search_preview',
+                output: {
+                  type: 'json',
+                  value: [
+                    {
+                      url: 'https://patch.com/california/san-francisco/calendar',
+                    },
+                  ],
+                },
+              },
+              {
+                type: 'text',
+                text: 'Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Let me search for recent news from San Francisco.",
+                  "type": "output_text",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
+                  "type": "output_text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "warnings": [
+            {
+              "message": "tool result parts in assistant messages are not supported for OpenAI responses",
+              "type": "other",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should include client-side tool calls in prompt', () => {
+      const result = convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'calculator',
+                input: { a: 1, b: 2 },
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "arguments": "{"a":1,"b":2}",
+              "call_id": "call-1",
+              "name": "calculator",
+              "type": "function_call",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
     });
   });
 });

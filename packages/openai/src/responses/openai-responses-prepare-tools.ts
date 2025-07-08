@@ -8,11 +8,11 @@ import { OpenAIResponsesTool } from './openai-responses-api-types';
 export function prepareResponsesTools({
   tools,
   toolChoice,
-  strict,
+  strictJsonSchema,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
-  strict: boolean;
+  strictJsonSchema: boolean;
 }): {
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -41,8 +41,8 @@ export function prepareResponsesTools({
           type: 'function',
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters,
-          strict: strict ? true : undefined,
+          parameters: tool.inputSchema,
+          strict: strictJsonSchema,
         });
         break;
       case 'provider-defined':

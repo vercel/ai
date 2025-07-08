@@ -52,7 +52,7 @@ The AI SDK abstracts away the differences between model providers, eliminates bo
 
 At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call OpenAI o3-mini with the AI SDK:
 
-```tsx
+```ts
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -75,7 +75,7 @@ const { text } = await generateText({
 You can control the amount of reasoning effort expended by o3-mini through the `reasoningEffort` parameter.
 This parameter can be set to `low`, `medium`, or `high` to adjust how much time and computation the model spends on internal reasoning before producing a response.
 
-```tsx highlight="9"
+```ts highlight="9"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -93,7 +93,7 @@ const { text } = await generateText({
 
 While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
 
-```tsx
+```ts
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -117,9 +117,10 @@ This code snippet will generate a type-safe recipe that conforms to the specifie
 
 o3-mini supports tool calling out of the box, allowing it to interact with external systems and perform discrete tasks. Here's an example of using tool calling with the AI SDK:
 
-```tsx
+```ts
 import { generateText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 const { text } = await generateText({
   model: openai('o3-mini'),
@@ -153,26 +154,26 @@ Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK,
 
 In a new Next.js application, first install the AI SDK and the DeepSeek provider:
 
-<Snippet text="npm install ai @ai-sdk/openai" />
+<Snippet text="pnpm install ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta" />
 
 Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow responses up to 5 minutes
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('o3-mini'),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 

@@ -2,10 +2,12 @@ import {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2FunctionTool,
+  LanguageModelV2ProviderDefinedTool,
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import { delay, jsonSchema } from '@ai-sdk/provider-utils';
+import { delay, jsonSchema, tool, Tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -14,18 +16,17 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
-import { Tool, tool } from '../tool/tool';
 import { object, text } from './output';
 import { StepResult } from './step-result';
+import { stepCountIs } from './stop-condition';
 import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { maxSteps } from './stop-condition';
 
 const defaultSettings = () =>
   ({
@@ -35,6 +36,7 @@ const defaultSettings = () =>
       generateId: mockId({ prefix: 'id' }),
       currentDate: () => new Date(0),
     },
+    onError: () => {},
   }) as const;
 
 const testUsage = {
@@ -66,9 +68,11 @@ function createTestModel({
       modelId: 'mock-model-id',
       timestamp: new Date(0),
     },
-    { type: 'text', text: 'Hello' },
-    { type: 'text', text: ', ' },
-    { type: 'text', text: `world!` },
+    { type: 'text-start', id: '1' },
+    { type: 'text-delta', id: '1', delta: 'Hello' },
+    { type: 'text-delta', id: '1', delta: ', ' },
+    { type: 'text-delta', id: '1', delta: `world!` },
+    { type: 'text-end', id: '1' },
     {
       type: 'finish',
       finishReason: 'stop',
@@ -99,7 +103,9 @@ const modelWithSources = new MockLanguageModelV2({
         title: 'Example',
         providerMetadata: { provider: { custom: 'value' } },
       },
-      { type: 'text', text: 'Hello!' },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'source',
         sourceType: 'url',
@@ -107,6 +113,38 @@ const modelWithSources = new MockLanguageModelV2({
         url: 'https://example.com/2',
         title: 'Example 2',
         providerMetadata: { provider: { custom: 'value2' } },
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
+const modelWithDocumentSources = new MockLanguageModelV2({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'source',
+        sourceType: 'document',
+        id: 'doc-123',
+        mediaType: 'application/pdf',
+        title: 'Document Example',
+        filename: 'example.pdf',
+        providerMetadata: { provider: { custom: 'doc-value' } },
+      },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello from document!' },
+      { type: 'text-end', id: '1' },
+      {
+        type: 'source',
+        sourceType: 'document',
+        id: 'doc-456',
+        mediaType: 'text/plain',
+        title: 'Text Document',
+        providerMetadata: { provider: { custom: 'doc-value2' } },
       },
       {
         type: 'finish',
@@ -125,7 +163,9 @@ const modelWithFiles = new MockLanguageModelV2({
         data: 'Hello World',
         mediaType: 'text/plain',
       },
-      { type: 'text', text: 'Hello!' },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'file',
         data: 'QkFVRw==',
@@ -149,48 +189,56 @@ const modelWithReasoning = new MockLanguageModelV2({
         modelId: 'mock-model-id',
         timestamp: new Date(0),
       },
+      { type: 'reasoning-start', id: '1' },
       {
-        type: 'reasoning',
-        text: 'I will open the conversation',
+        type: 'reasoning-delta',
+        id: '1',
+        delta: 'I will open the conversation',
       },
       {
-        type: 'reasoning',
-        text: ' with witty banter. ',
+        type: 'reasoning-delta',
+        id: '1',
+        delta: ' with witty banter. ',
       },
       {
-        type: 'reasoning',
-        text: '',
+        type: 'reasoning-delta',
+        id: '1',
+        delta: '',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
         } as SharedV2ProviderMetadata,
       },
-      { type: 'reasoning-part-finish' },
+      { type: 'reasoning-end', id: '1' },
       {
-        type: 'reasoning',
-        text: '',
+        type: 'reasoning-start',
+        id: '2',
         providerMetadata: {
           testProvider: { redactedData: 'redacted-reasoning-data' },
         },
       },
-      { type: 'reasoning-part-finish' },
+      { type: 'reasoning-end', id: '2' },
+      { type: 'reasoning-start', id: '3' },
       {
-        type: 'reasoning',
-        text: 'Once the user has relaxed,',
+        type: 'reasoning-delta',
+        id: '3',
+        delta: 'Once the user has relaxed,',
       },
       {
-        type: 'reasoning',
-        text: ' I will pry for valuable information.',
+        type: 'reasoning-delta',
+        id: '3',
+        delta: ' I will pry for valuable information.',
       },
       {
-        type: 'reasoning',
-        text: '',
+        type: 'reasoning-end',
+        id: '3',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        },
+        } as SharedV2ProviderMetadata,
       },
-      { type: 'reasoning-part-finish' },
-      { type: 'text', text: 'Hi' },
-      { type: 'text', text: ' there!' },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hi' },
+      { type: 'text-delta', id: '1', delta: ' there!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -216,9 +264,11 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -240,13 +290,15 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: '' },
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: '' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: '' },
-            { type: 'text', text: 'world!' },
-            { type: 'text', text: '' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -281,6 +333,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
+        onError: () => {},
       });
 
       expect(
@@ -310,9 +363,11 @@ describe('streamText', () => {
                   modelId: 'response-model-id',
                   timestamp: new Date(5000),
                 },
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -325,9 +380,74 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": ", ",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "response-id",
+              "modelId": "response-model-id",
+              "timestamp": 1970-01-01T00:00:05.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send reasoning deltas', async () => {
@@ -336,9 +456,136 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "I will open the conversation",
+            "type": "reasoning",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": " with witty banter. ",
+            "type": "reasoning",
+          },
+          {
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1234567890",
+              },
+            },
+            "text": "",
+            "type": "reasoning",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "providerMetadata": {
+              "testProvider": {
+                "redactedData": "redacted-reasoning-data",
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "3",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "3",
+            "providerMetadata": undefined,
+            "text": "Once the user has relaxed,",
+            "type": "reasoning",
+          },
+          {
+            "id": "3",
+            "providerMetadata": undefined,
+            "text": " I will pry for valuable information.",
+            "type": "reasoning",
+          },
+          {
+            "id": "3",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1234567890",
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hi",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": " there!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send sources', async () => {
@@ -347,9 +594,86 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "123",
+            "providerMetadata": {
+              "provider": {
+                "custom": "value",
+              },
+            },
+            "sourceType": "url",
+            "title": "Example",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "id": "456",
+            "providerMetadata": {
+              "provider": {
+                "custom": "value2",
+              },
+            },
+            "sourceType": "url",
+            "title": "Example 2",
+            "type": "source",
+            "url": "https://example.com/2",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send files', async () => {
@@ -358,9 +682,80 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "Hello World",
+              "mediaType": "text/plain",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "type": "file",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "QkFVRw==",
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "type": "file",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
@@ -377,9 +772,11 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -396,9 +793,74 @@ describe('streamText', () => {
         },
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": ", ",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-2000",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:02.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send tool calls', async () => {
@@ -410,7 +872,7 @@ describe('streamText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
-                parameters: {
+                inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
@@ -440,10 +902,9 @@ describe('streamText', () => {
                 },
                 {
                   type: 'tool-call',
-                  toolCallType: 'function',
                   toolCallId: 'call-1',
                   toolName: 'tool1',
-                  args: `{ "value": "value" }`,
+                  input: `{ "value": "value" }`,
                 },
                 {
                   type: 'finish',
@@ -455,9 +916,9 @@ describe('streamText', () => {
           },
         }),
         tools: {
-          tool1: {
-            parameters: z.object({ value: z.string() }),
-          },
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
         },
         toolChoice: 'required',
         prompt: 'test-input',
@@ -468,125 +929,8 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
+    it('should send tool call deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV2({
-          doStream: async ({ prompt, tools, toolChoice }) => {
-            expect(tools).toStrictEqual([
-              {
-                type: 'function',
-                name: 'test-tool',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
-              },
-            ]);
-
-            expect(toolChoice).toStrictEqual({ type: 'required' });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'test-input' }],
-                providerOptions: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '{"',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'value',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '":"',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'Spark',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'le',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: ' Day',
-                },
-                {
-                  type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '"}',
-                },
-                {
-                  type: 'tool-call',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  args: '{"value":"Sparkle Day"}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'tool-calls',
-                  usage: testUsage2,
-                },
-              ]),
-            };
-          },
-        }),
-        tools: {
-          'test-tool': {
-            parameters: z.object({ value: z.string() }),
-          },
-        },
-        toolChoice: 'required',
-        prompt: 'test-input',
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
-    });
-
-    it('should send tool call deltas when toolCallStreaming is enabled', async () => {
-      const result = streamText({
-        toolCallStreaming: true,
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
@@ -596,60 +940,54 @@ describe('streamText', () => {
               timestamp: new Date(0),
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
+              type: 'tool-input-start',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
               toolName: 'test-tool',
-              argsTextDelta: '{"',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: 'value',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '{"',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: '":"',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'value',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: 'Spark',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '":"',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: 'le',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'Spark',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: ' Day',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'le',
             },
             {
-              type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: '"}',
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: ' Day',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '"}',
+            },
+            {
+              type: 'tool-input-end',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
             },
             {
               type: 'tool-call',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
               toolName: 'test-tool',
-              args: '{"value":"Sparkle Day"}',
+              input: '{"value":"Sparkle Day"}',
             },
             {
               type: 'finish',
@@ -659,17 +997,109 @@ describe('streamText', () => {
           ]),
         }),
         tools: {
-          'test-tool': {
-            parameters: z.object({ value: z.string() }),
-          },
+          'test-tool': tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
         },
         toolChoice: 'required',
         prompt: 'test-input',
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "toolName": "test-tool",
+              "type": "tool-input-start",
+            },
+            {
+              "delta": "{"",
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "type": "tool-input-delta",
+            },
+            {
+              "delta": "value",
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "type": "tool-input-delta",
+            },
+            {
+              "delta": "":"",
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "type": "tool-input-delta",
+            },
+            {
+              "delta": "Spark",
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "type": "tool-input-delta",
+            },
+            {
+              "delta": "le",
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "type": "tool-input-delta",
+            },
+            {
+              "delta": " Day",
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "type": "tool-input-delta",
+            },
+            {
+              "delta": ""}",
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "type": "tool-input-delta",
+            },
+            {
+              "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "type": "tool-input-end",
+            },
+            {
+              "input": {
+                "value": "Sparkle Day",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "toolName": "test-tool",
+              "type": "tool-call",
+            },
+            {
+              "finishReason": "tool-calls",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": 3,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": 10,
+                "totalTokens": 23,
+              },
+            },
+            {
+              "finishReason": "tool-calls",
+              "totalUsage": {
+                "cachedInputTokens": 3,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": 10,
+                "totalTokens": 23,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send tool results', async () => {
@@ -684,10 +1114,9 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -698,13 +1127,13 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
-            parameters: z.object({ value: z.string() }),
-            execute: async (args, options) => {
-              expect(args).toStrictEqual({ value: 'value' });
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (input, options) => {
+              expect(input).toStrictEqual({ value: 'value' });
               expect(options.messages).toStrictEqual([
                 { role: 'user', content: 'test-input' },
               ]);
-              return `${args.value}-result`;
+              return `${input.value}-result`;
             },
           }),
         },
@@ -728,10 +1157,9 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -742,7 +1170,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => {
               await delay(50); // delay to show bug where step finish is sent before tool result
               return `${value}-result`;
@@ -767,13 +1195,15 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: '' },
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: '' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: '' },
-            { type: 'text', text: 'world!' },
-            { type: 'text', text: '' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -784,9 +1214,74 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchSnapshot();
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": ", ",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should forward error in doStream as error stream part', async () => {
@@ -797,6 +1292,7 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
+        onError: () => {},
       });
 
       expect(
@@ -820,6 +1316,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse);
@@ -844,13 +1343,19 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"text","text":"Hello"}
+          "data: {"type":"text-start","id":"1"}
 
         ",
-          "data: {"type":"text","text":", "}
+          "data: {"type":"text-delta","id":"1","delta":"Hello"}
 
         ",
-          "data: {"type":"text","text":"world!"}
+          "data: {"type":"text-delta","id":"1","delta":", "}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"world!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"finish-step"}
@@ -872,6 +1377,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse, {
@@ -906,13 +1414,19 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"text","text":"Hello"}
+          "data: {"type":"text-start","id":"1"}
 
         ",
-          "data: {"type":"text","text":", "}
+          "data: {"type":"text-delta","id":"1","delta":"Hello"}
 
         ",
-          "data: {"type":"text","text":"world!"}
+          "data: {"type":"text-delta","id":"1","delta":", "}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"world!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"finish-step"}
@@ -938,6 +1452,10 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
+        onError: () => {},
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse);
@@ -957,6 +1475,10 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
+        onError: () => {},
       });
 
       result.pipeUIMessageStreamToResponse(mockResponse, {
@@ -974,7 +1496,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, World!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, World!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -985,13 +1509,35 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      result.pipeUIMessageStreamToResponse(mockResponse, {
-        experimental_sendFinish: false,
-      });
+      result.pipeUIMessageStreamToResponse(mockResponse, { sendFinish: false });
 
       await mockResponse.waitForEnd();
 
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+      expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+        [
+          "data: {"type":"start"}
+
+        ",
+          "data: {"type":"start-step"}
+
+        ",
+          "data: {"type":"text-start","id":"1"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello, World!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
+
+        ",
+          "data: {"type":"finish-step"}
+
+        ",
+          "data: [DONE]
+
+        ",
+        ]
+      `);
     });
 
     it('should write reasoning content to a Node.js response-like object', async () => {
@@ -1026,40 +1572,49 @@ describe('streamText', () => {
           "data: {"type":"start-step"}
 
         ",
-          "data: {"type":"reasoning","text":"I will open the conversation"}
+          "data: {"type":"reasoning-start","id":"1"}
 
         ",
-          "data: {"type":"reasoning","text":" with witty banter. "}
+          "data: {"type":"reasoning-delta","id":"1","delta":"I will open the conversation"}
 
         ",
-          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+          "data: {"type":"reasoning-delta","id":"1","delta":" with witty banter. "}
 
         ",
-          "data: {"type":"reasoning-part-finish"}
+          "data: {"type":"reasoning-delta","id":"1","delta":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 
         ",
-          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
+          "data: {"type":"reasoning-end","id":"1"}
 
         ",
-          "data: {"type":"reasoning-part-finish"}
+          "data: {"type":"reasoning-start","id":"2","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
 
         ",
-          "data: {"type":"reasoning","text":"Once the user has relaxed,"}
+          "data: {"type":"reasoning-end","id":"2"}
 
         ",
-          "data: {"type":"reasoning","text":" I will pry for valuable information."}
+          "data: {"type":"reasoning-start","id":"3"}
 
         ",
-          "data: {"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+          "data: {"type":"reasoning-delta","id":"3","delta":"Once the user has relaxed,"}
 
         ",
-          "data: {"type":"reasoning-part-finish"}
+          "data: {"type":"reasoning-delta","id":"3","delta":" I will pry for valuable information."}
 
         ",
-          "data: {"type":"text","text":"Hi"}
+          "data: {"type":"reasoning-end","id":"3","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 
         ",
-          "data: {"type":"text","text":" there!"}
+          "data: {"type":"text-start","id":"1"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hi"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":" there!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"finish-step"}
@@ -1110,7 +1665,13 @@ describe('streamText', () => {
           "data: {"type":"source-url","sourceId":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
 
         ",
-          "data: {"type":"text","text":"Hello!"}
+          "data: {"type":"text-start","id":"1"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"source-url","sourceId":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
@@ -1162,7 +1723,13 @@ describe('streamText', () => {
           "data: {"type":"file","mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}
 
         ",
-          "data: {"type":"text","text":"Hello!"}
+          "data: {"type":"text-start","id":"1"}
+
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello!"}
+
+        ",
+          "data: {"type":"text-end","id":"1"}
 
         ",
           "data: {"type":"file","mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
@@ -1189,9 +1756,11 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: 'world!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
           ]),
         }),
         prompt: 'test-input',
@@ -1224,35 +1793,64 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream();
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": ", ",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": "world!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
-    it('should send tool call and tool result stream parts', async () => {
+    it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '{ "value":',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: ' "value" }',
-            },
+            { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+            { type: 'tool-input-delta', id: 'call-1', delta: '{ "value":' },
+            { type: 'tool-input-delta', id: 'call-1', delta: ' "value" }' },
+            { type: 'tool-input-end', id: 'call-1' },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -1263,57 +1861,10 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
-        ...defaultSettings(),
-      });
-
-      expect(
-        await convertReadableStreamToArray(result.toUIMessageStream()),
-      ).toMatchSnapshot();
-    });
-
-    it('should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '{ "value":',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: ' "value" }',
-            },
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            parameters: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
-        toolCallStreaming: true,
         ...defaultSettings(),
       });
 
@@ -1334,6 +1885,10 @@ describe('streamText', () => {
           { key2: 'value2' },
           { key3: 'value3' },
           { key4: 'value4' },
+          { key5: 'value5' },
+          { key6: 'value6' },
+          { key7: 'value7' },
+          { key8: 'value8' },
         ),
       });
 
@@ -1342,38 +1897,85 @@ describe('streamText', () => {
           [
             {
               "messageId": undefined,
-              "metadata": {
+              "messageMetadata": {
                 "key1": "value1",
               },
               "type": "start",
             },
             {
-              "metadata": {
-                "key2": "value2",
-              },
               "type": "start-step",
             },
             {
-              "text": "Hello",
-              "type": "text",
+              "messageMetadata": {
+                "key2": "value2",
+              },
+              "type": "message-metadata",
             },
             {
-              "text": ", ",
-              "type": "text",
+              "id": "1",
+              "type": "text-start",
             },
             {
-              "text": "world!",
-              "type": "text",
-            },
-            {
-              "metadata": {
+              "messageMetadata": {
                 "key3": "value3",
               },
+              "type": "message-metadata",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "messageMetadata": {
+                "key4": "value4",
+              },
+              "type": "message-metadata",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "messageMetadata": {
+                "key5": "value5",
+              },
+              "type": "message-metadata",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "messageMetadata": {
+                "key6": "value6",
+              },
+              "type": "message-metadata",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "messageMetadata": {
+                "key7": "value7",
+              },
+              "type": "message-metadata",
+            },
+            {
               "type": "finish-step",
             },
             {
-              "metadata": {
-                "key4": "value4",
+              "messageMetadata": {
+                "key8": "value8",
+              },
+              "type": "message-metadata",
+            },
+            {
+              "messageMetadata": {
+                "key8": "value8",
               },
               "type": "finish",
             },
@@ -1389,6 +1991,7 @@ describe('streamText', () => {
           ]),
         }),
         ...defaultSettings(),
+        onError: () => {},
       });
 
       const uiMessageStream = result.toUIMessageStream();
@@ -1406,6 +2009,7 @@ describe('streamText', () => {
           ]),
         }),
         ...defaultSettings(),
+        onError: () => {},
       });
 
       const uiMessageStream = result.toUIMessageStream({
@@ -1422,7 +2026,9 @@ describe('streamText', () => {
         model: createTestModel({
           stream: convertArrayToReadableStream([
             { type: 'stream-start', warnings: [] },
-            { type: 'text', text: 'Hello, World!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, World!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1433,13 +2039,37 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const uiMessageStream = result.toUIMessageStream({
-        experimental_sendFinish: false,
-      });
+      const uiMessageStream = result.toUIMessageStream({ sendFinish: false });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello, World!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+        ]
+      `);
     });
 
     it('should omit message start event when sendStart is false', async () => {
@@ -1447,7 +2077,9 @@ describe('streamText', () => {
         model: createTestModel({
           stream: convertArrayToReadableStream([
             { type: 'stream-start', warnings: [] },
-            { type: 'text', text: 'Hello, World!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, World!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1458,13 +2090,36 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const uiMessageStream = result.toUIMessageStream({
-        experimental_sendStart: false,
-      });
+      const uiMessageStream = result.toUIMessageStream({ sendStart: false });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello, World!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send reasoning content when sendReasoning is true', async () => {
@@ -1475,9 +2130,116 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream({ sendReasoning: true });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "I will open the conversation",
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": " with witty banter. ",
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": "",
+            "id": "1",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1234567890",
+              },
+            },
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "providerMetadata": {
+              "testProvider": {
+                "redactedData": "redacted-reasoning-data",
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "id": "2",
+            "providerMetadata": undefined,
+            "type": "reasoning-end",
+          },
+          {
+            "id": "3",
+            "providerMetadata": undefined,
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "Once the user has relaxed,",
+            "id": "3",
+            "providerMetadata": undefined,
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": " I will pry for valuable information.",
+            "id": "3",
+            "providerMetadata": undefined,
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "3",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "1234567890",
+              },
+            },
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hi",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": " there!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send source content when sendSources is true', async () => {
@@ -1488,9 +2250,128 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream({ sendSources: true });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "providerMetadata": {
+              "provider": {
+                "custom": "value",
+              },
+            },
+            "sourceId": "123",
+            "title": "Example",
+            "type": "source-url",
+            "url": "https://example.com",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "providerMetadata": {
+              "provider": {
+                "custom": "value2",
+              },
+            },
+            "sourceId": "456",
+            "title": "Example 2",
+            "type": "source-url",
+            "url": "https://example.com/2",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
+    });
+
+    it('should send document source content when sendSources is true', async () => {
+      const result = streamText({
+        model: modelWithDocumentSources,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({ sendSources: true });
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "filename": "example.pdf",
+            "mediaType": "application/pdf",
+            "providerMetadata": {
+              "provider": {
+                "custom": "doc-value",
+              },
+            },
+            "sourceId": "doc-123",
+            "title": "Document Example",
+            "type": "source-document",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello from document!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "filename": undefined,
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "provider": {
+                "custom": "doc-value2",
+              },
+            },
+            "sourceId": "doc-456",
+            "title": "Text Document",
+            "type": "source-document",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should send file content', async () => {
@@ -1501,9 +2382,49 @@ describe('streamText', () => {
 
       const uiMessageStream = result.toUIMessageStream();
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "mediaType": "text/plain",
+            "type": "file",
+            "url": "data:text/plain;base64,Hello World",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "mediaType": "image/jpeg",
+            "type": "file",
+            "url": "data:image/jpeg;base64,QkFVRw==",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
     });
   });
 
@@ -1512,6 +2433,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       const response = result.toUIMessageStreamResponse();
@@ -1530,39 +2454,48 @@ describe('streamText', () => {
 
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
-          [
-            "data: {"type":"start"}
+        [
+          "data: {"type":"start"}
 
-          ",
-            "data: {"type":"start-step"}
+        ",
+          "data: {"type":"start-step"}
 
-          ",
-            "data: {"type":"text","text":"Hello"}
+        ",
+          "data: {"type":"text-start","id":"1"}
 
-          ",
-            "data: {"type":"text","text":", "}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello"}
 
-          ",
-            "data: {"type":"text","text":"world!"}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":", "}
 
-          ",
-            "data: {"type":"finish-step"}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"world!"}
 
-          ",
-            "data: {"type":"finish"}
+        ",
+          "data: {"type":"text-end","id":"1"}
 
-          ",
-            "data: [DONE]
+        ",
+          "data: {"type":"finish-step"}
 
-          ",
-          ]
-        `);
+        ",
+          "data: {"type":"finish"}
+
+        ",
+          "data: [DONE]
+
+        ",
+        ]
+      `);
     });
 
     it('should create a Response with a data stream and custom headers', async () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       const response = result.toUIMessageStreamResponse({
@@ -1588,33 +2521,39 @@ describe('streamText', () => {
         `);
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
-          [
-            "data: {"type":"start"}
+        [
+          "data: {"type":"start"}
 
-          ",
-            "data: {"type":"start-step"}
+        ",
+          "data: {"type":"start-step"}
 
-          ",
-            "data: {"type":"text","text":"Hello"}
+        ",
+          "data: {"type":"text-start","id":"1"}
 
-          ",
-            "data: {"type":"text","text":", "}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"Hello"}
 
-          ",
-            "data: {"type":"text","text":"world!"}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":", "}
 
-          ",
-            "data: {"type":"finish-step"}
+        ",
+          "data: {"type":"text-delta","id":"1","delta":"world!"}
 
-          ",
-            "data: {"type":"finish"}
+        ",
+          "data: {"type":"text-end","id":"1"}
 
-          ",
-            "data: [DONE]
+        ",
+          "data: {"type":"finish-step"}
 
-          ",
-          ]
-        `);
+        ",
+          "data: {"type":"finish"}
+
+        ",
+          "data: [DONE]
+
+        ",
+        ]
+      `);
     });
 
     it('should mask error messages by default', async () => {
@@ -1625,6 +2564,10 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
+        onError: () => {},
       });
 
       const response = result.toUIMessageStreamResponse();
@@ -1640,6 +2583,10 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
+        onError: () => {},
       });
 
       const response = result.toUIMessageStreamResponse({
@@ -1677,7 +2624,12 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: 'Hello' });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
               queueMicrotask(() => {
                 controller.error(
                   Object.assign(new Error('Stream aborted'), {
@@ -1699,7 +2651,12 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: 'Hello' });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
               queueMicrotask(() => {
                 controller.error(
                   Object.assign(new Error('Response aborted'), {
@@ -1721,7 +2678,12 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: 'Hello' });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
               queueMicrotask(() => {
                 controller.error(Object.assign(new Error('Some error')));
               });
@@ -1740,7 +2702,12 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text', text: 'Hello' });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
               queueMicrotask(() => {
                 controller.error(Object.assign(new Error('Some error')));
               });
@@ -1768,9 +2735,11 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: 'world!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1779,6 +2748,9 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
       });
 
       expect({
@@ -1787,7 +2759,120 @@ describe('streamText', () => {
         uiMessageStream: await convertReadableStreamToArray(
           result.toUIMessageStream(),
         ),
-      }).toMatchSnapshot();
+      }).toMatchInlineSnapshot(`
+        {
+          "fullStream": [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": ", ",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "world!",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ],
+          "textStream": [
+            "Hello",
+            ", ",
+            "world!",
+          ],
+          "uiMessageStream": [
+            {
+              "messageId": undefined,
+              "messageMetadata": undefined,
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": ", ",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "messageMetadata": undefined,
+              "type": "finish",
+            },
+          ],
+        }
+      `);
     });
   });
 
@@ -1813,7 +2898,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1843,7 +2930,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1865,7 +2954,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1928,6 +3019,7 @@ describe('streamText', () => {
                 "type": "reasoning",
               },
               {
+                "providerMetadata": undefined,
                 "text": "Hi there!",
                 "type": "text",
               },
@@ -1950,7 +3042,9 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1981,7 +3075,9 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: 'Hello' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1995,7 +3091,28 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect(await result.response).toMatchSnapshot();
+      expect(await result.response).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "call": "2",
+          },
+          "id": "id-0",
+          "messages": [
+            {
+              "content": [
+                {
+                  "providerMetadata": undefined,
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "modelId": "mock-model-id",
+          "timestamp": 1970-01-01T00:00:00.000Z,
+        }
+      `);
     });
   });
 
@@ -2073,7 +3190,102 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect(await result.steps).toMatchSnapshot();
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "content": [
+              {
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "I will open the conversation with witty banter. ",
+                "type": "reasoning",
+              },
+              {
+                "providerMetadata": {
+                  "testProvider": {
+                    "redactedData": "redacted-reasoning-data",
+                  },
+                },
+                "text": "",
+                "type": "reasoning",
+              },
+              {
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Once the user has relaxed, I will pry for valuable information.",
+                "type": "reasoning",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Hi there!",
+                "type": "text",
+              },
+            ],
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "1234567890",
+                        },
+                      },
+                      "text": "I will open the conversation with witty banter. ",
+                      "type": "reasoning",
+                    },
+                    {
+                      "providerOptions": {
+                        "testProvider": {
+                          "redactedData": "redacted-reasoning-data",
+                        },
+                      },
+                      "text": "",
+                      "type": "reasoning",
+                    },
+                    {
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "1234567890",
+                        },
+                      },
+                      "text": "Once the user has relaxed, I will pry for valuable information.",
+                      "type": "reasoning",
+                    },
+                    {
+                      "providerMetadata": undefined,
+                      "text": "Hi there!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
     });
 
     it('should add the sources from the model response to the step result', async () => {
@@ -2084,7 +3296,72 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect(await result.steps).toMatchSnapshot();
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "content": [
+              {
+                "id": "123",
+                "providerMetadata": {
+                  "provider": {
+                    "custom": "value",
+                  },
+                },
+                "sourceType": "url",
+                "title": "Example",
+                "type": "source",
+                "url": "https://example.com",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Hello!",
+                "type": "text",
+              },
+              {
+                "id": "456",
+                "providerMetadata": {
+                  "provider": {
+                    "custom": "value2",
+                  },
+                },
+                "sourceType": "url",
+                "title": "Example 2",
+                "type": "source",
+                "url": "https://example.com/2",
+              },
+            ],
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "Hello!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
     });
 
     it('should add the files from the model response to the step result', async () => {
@@ -2095,7 +3372,76 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect(await result.steps).toMatchSnapshot();
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "content": [
+              {
+                "file": DefaultGeneratedFileWithType {
+                  "base64Data": "Hello World",
+                  "mediaType": "text/plain",
+                  "type": "file",
+                  "uint8ArrayData": undefined,
+                },
+                "type": "file",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Hello!",
+                "type": "text",
+              },
+              {
+                "file": DefaultGeneratedFileWithType {
+                  "base64Data": "QkFVRw==",
+                  "mediaType": "image/jpeg",
+                  "type": "file",
+                  "uint8ArrayData": undefined,
+                },
+                "type": "file",
+              },
+            ],
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "data": "Hello World",
+                      "mediaType": "text/plain",
+                      "type": "file",
+                    },
+                    {
+                      "providerMetadata": undefined,
+                      "text": "Hello!",
+                      "type": "text",
+                    },
+                    {
+                      "data": "QkFVRw==",
+                      "mediaType": "image/jpeg",
+                      "type": "file",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
     });
   });
 
@@ -2106,10 +3452,9 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -2119,23 +3464,28 @@ describe('streamText', () => {
           ]),
         }),
         tools: {
-          tool1: {
-            parameters: z.object({ value: z.string() }),
-          },
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
         },
         prompt: 'test-input',
       });
 
       result.consumeStream();
 
-      expect(await result.toolCalls).toStrictEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-      ]);
+      expect(await result.toolCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "value",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ]
+      `);
     });
   });
 
@@ -2146,10 +3496,9 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -2160,7 +3509,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -2169,15 +3518,20 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      assert.deepStrictEqual(await result.toolResults, [
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-          result: 'value-result',
-        },
-      ]);
+      expect(await result.toolResults).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "value",
+            },
+            "output": "value-result",
+            "providerExecuted": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ]
+      `);
     });
   });
 
@@ -2191,9 +3545,10 @@ describe('streamText', () => {
             | 'reasoning'
             | 'source'
             | 'tool-call'
-            | 'tool-call-streaming-start'
-            | 'tool-call-delta'
-            | 'tool-result';
+            | 'tool-input-start'
+            | 'tool-input-delta'
+            | 'tool-result'
+            | 'raw';
         }
       >
     >;
@@ -2204,33 +3559,16 @@ describe('streamText', () => {
       const resultObject = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
-            {
-              type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '{"value": "',
-            },
-            {
-              type: 'reasoning',
-              reasoningType: 'text',
-              text: 'Feeling clever',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: 'test',
-            },
-            {
-              type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '"}',
-            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            { type: 'tool-input-start', id: '2', toolName: 'tool1' },
+            { type: 'tool-input-delta', id: '2', delta: '{"value": "' },
+            { type: 'reasoning-start', id: '3' },
+            { type: 'reasoning-delta', id: '3', delta: 'Feeling clever' },
+            { type: 'reasoning-end', id: '3' },
+            { type: 'tool-input-delta', id: '2', delta: 'test' },
+            { type: 'tool-input-delta', id: '2', delta: '"}' },
             {
               type: 'source',
               sourceType: 'url',
@@ -2239,14 +3577,17 @@ describe('streamText', () => {
               title: 'Example',
               providerMetadata: { provider: { custom: 'value' } },
             },
+            { type: 'tool-input-end', id: '2' },
             {
               type: 'tool-call',
-              toolCallId: '1',
-              toolCallType: 'function',
+              toolCallId: '2',
               toolName: 'tool1',
-              args: `{ "value": "test" }`,
+              input: `{ "value": "test" }`,
+              providerMetadata: { provider: { custom: 'value' } },
             },
-            { type: 'text', text: ' World' },
+            { type: 'text-start', id: '4' },
+            { type: 'text-delta', id: '4', delta: ' World' },
+            { type: 'text-end', id: '4' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2256,12 +3597,11 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
         prompt: 'test-input',
-        toolCallStreaming: true,
         onChunk(event) {
           result.push(event.chunk);
         },
@@ -2271,7 +3611,79 @@ describe('streamText', () => {
     });
 
     it('should return events in order', async () => {
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "id": "2",
+            "toolName": "tool1",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{"value": "",
+            "id": "2",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "3",
+            "providerMetadata": undefined,
+            "text": "Feeling clever",
+            "type": "reasoning",
+          },
+          {
+            "delta": "test",
+            "id": "2",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""}",
+            "id": "2",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "123",
+            "providerMetadata": {
+              "provider": {
+                "custom": "value",
+              },
+            },
+            "sourceType": "url",
+            "title": "Example",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "toolCallId": "2",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+          {
+            "input": {
+              "value": "test",
+            },
+            "output": "test-result",
+            "providerExecuted": undefined,
+            "toolCallId": "2",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+          {
+            "id": "4",
+            "providerMetadata": undefined,
+            "text": " World",
+            "type": "text",
+          },
+        ]
+      `);
     });
   });
 
@@ -2312,16 +3724,17 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: ', ' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', ' },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
-            { type: 'text', text: `world!` },
+            { type: 'text-delta', id: '1', delta: `world!` },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2335,7 +3748,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -2347,7 +3760,217 @@ describe('streamText', () => {
 
       await resultObject.consumeStream();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "providerMetadata": undefined,
+              "text": "Hello, world!",
+              "type": "text",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "files": [],
+          "finishReason": "stop",
+          "providerMetadata": {
+            "testProvider": {
+              "testKey": "testValue",
+            },
+          },
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {},
+          "response": {
+            "headers": {
+              "call": "2",
+            },
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
+                    "text": "Hello, world!",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "value-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
+          "sources": [],
+          "steps": [
+            DefaultStepResult {
+              "content": [
+                {
+                  "providerMetadata": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "value-result",
+                  "providerExecuted": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": {
+                "testProvider": {
+                  "testKey": "testValue",
+                },
+              },
+              "request": {},
+              "response": {
+                "headers": {
+                  "call": "2",
+                },
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerMetadata": undefined,
+                        "text": "Hello, world!",
+                        "type": "text",
+                      },
+                      {
+                        "input": {
+                          "value": "value",
+                        },
+                        "providerExecuted": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "text",
+                          "value": "value-result",
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ],
+          "text": "Hello, world!",
+          "toolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "toolResults": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "totalUsage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "warnings": [],
+        }
+      `);
     });
 
     it('should send sources', async () => {
@@ -2365,7 +3988,173 @@ describe('streamText', () => {
 
       await resultObject.consumeStream();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "id": "123",
+              "providerMetadata": {
+                "provider": {
+                  "custom": "value",
+                },
+              },
+              "sourceType": "url",
+              "title": "Example",
+              "type": "source",
+              "url": "https://example.com",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Hello!",
+              "type": "text",
+            },
+            {
+              "id": "456",
+              "providerMetadata": {
+                "provider": {
+                  "custom": "value2",
+                },
+              },
+              "sourceType": "url",
+              "title": "Example 2",
+              "type": "source",
+              "url": "https://example.com/2",
+            },
+          ],
+          "files": [],
+          "finishReason": "stop",
+          "providerMetadata": undefined,
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {},
+          "response": {
+            "headers": undefined,
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
+                    "text": "Hello!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
+          "sources": [
+            {
+              "id": "123",
+              "providerMetadata": {
+                "provider": {
+                  "custom": "value",
+                },
+              },
+              "sourceType": "url",
+              "title": "Example",
+              "type": "source",
+              "url": "https://example.com",
+            },
+            {
+              "id": "456",
+              "providerMetadata": {
+                "provider": {
+                  "custom": "value2",
+                },
+              },
+              "sourceType": "url",
+              "title": "Example 2",
+              "type": "source",
+              "url": "https://example.com/2",
+            },
+          ],
+          "steps": [
+            DefaultStepResult {
+              "content": [
+                {
+                  "id": "123",
+                  "providerMetadata": {
+                    "provider": {
+                      "custom": "value",
+                    },
+                  },
+                  "sourceType": "url",
+                  "title": "Example",
+                  "type": "source",
+                  "url": "https://example.com",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "Hello!",
+                  "type": "text",
+                },
+                {
+                  "id": "456",
+                  "providerMetadata": {
+                    "provider": {
+                      "custom": "value2",
+                    },
+                  },
+                  "sourceType": "url",
+                  "title": "Example 2",
+                  "type": "source",
+                  "url": "https://example.com/2",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerMetadata": undefined,
+                        "text": "Hello!",
+                        "type": "text",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ],
+          "text": "Hello!",
+          "toolCalls": [],
+          "toolResults": [],
+          "totalUsage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "warnings": [],
+        }
+      `);
     });
 
     it('should send files', async () => {
@@ -2383,7 +4172,169 @@ describe('streamText', () => {
 
       await resultObject.consumeStream();
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "file": DefaultGeneratedFileWithType {
+                "base64Data": "Hello World",
+                "mediaType": "text/plain",
+                "type": "file",
+                "uint8ArrayData": undefined,
+              },
+              "type": "file",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Hello!",
+              "type": "text",
+            },
+            {
+              "file": DefaultGeneratedFileWithType {
+                "base64Data": "QkFVRw==",
+                "mediaType": "image/jpeg",
+                "type": "file",
+                "uint8ArrayData": undefined,
+              },
+              "type": "file",
+            },
+          ],
+          "files": [
+            DefaultGeneratedFileWithType {
+              "base64Data": "Hello World",
+              "mediaType": "text/plain",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            DefaultGeneratedFileWithType {
+              "base64Data": "QkFVRw==",
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+          ],
+          "finishReason": "stop",
+          "providerMetadata": undefined,
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {},
+          "response": {
+            "headers": undefined,
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "data": "Hello World",
+                    "mediaType": "text/plain",
+                    "type": "file",
+                  },
+                  {
+                    "providerMetadata": undefined,
+                    "text": "Hello!",
+                    "type": "text",
+                  },
+                  {
+                    "data": "QkFVRw==",
+                    "mediaType": "image/jpeg",
+                    "type": "file",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
+          "sources": [],
+          "steps": [
+            DefaultStepResult {
+              "content": [
+                {
+                  "file": DefaultGeneratedFileWithType {
+                    "base64Data": "Hello World",
+                    "mediaType": "text/plain",
+                    "type": "file",
+                    "uint8ArrayData": undefined,
+                  },
+                  "type": "file",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "Hello!",
+                  "type": "text",
+                },
+                {
+                  "file": DefaultGeneratedFileWithType {
+                    "base64Data": "QkFVRw==",
+                    "mediaType": "image/jpeg",
+                    "type": "file",
+                    "uint8ArrayData": undefined,
+                  },
+                  "type": "file",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "data": "Hello World",
+                        "mediaType": "text/plain",
+                        "type": "file",
+                      },
+                      {
+                        "providerMetadata": undefined,
+                        "text": "Hello!",
+                        "type": "text",
+                      },
+                      {
+                        "data": "QkFVRw==",
+                        "mediaType": "image/jpeg",
+                        "type": "file",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ],
+          "text": "Hello!",
+          "toolCalls": [],
+          "toolResults": [],
+          "totalUsage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "warnings": [],
+        }
+      `);
     });
 
     it('should not prevent error from being forwarded', async () => {
@@ -2395,6 +4346,7 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
         onFinish() {}, // just defined; do nothing
+        onError: () => {},
       });
 
       expect(
@@ -2416,8 +4368,10 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, ' },
-            { type: 'text', text: 'world!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, ' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2430,21 +4384,35 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect((await result.response).messages).toMatchSnapshot();
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerMetadata": undefined,
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
     });
 
     it('should contain assistant response message and tool message when there are tool calls with results', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, ' },
-            { type: 'text', text: 'world!' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, ' },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -2455,7 +4423,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async () => 'result1',
           },
         },
@@ -2464,20 +4432,58 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect((await result.response).messages).toMatchSnapshot();
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerMetadata": undefined,
+                "text": "Hello, world!",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result1",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
     });
   });
 
-  describe('options.maxSteps', () => {
+  describe('options.stopWhen', () => {
     let result: StreamTextResult<any, any>;
     let onFinishResult: Parameters<
       Required<Parameters<typeof streamText>[0]>['onFinish']
     >[0];
     let onStepFinishResults: StepResult<any>[];
     let tracer: MockTracer;
+    let stepInputs: Array<any>;
 
     beforeEach(() => {
       tracer = new MockTracer();
+      stepInputs = [];
     });
 
     describe('2 steps: initial, tool-result', () => {
@@ -2490,33 +4496,10 @@ describe('streamText', () => {
         result = streamText({
           model: new MockLanguageModelV2({
             doStream: async ({ prompt, tools, toolChoice }) => {
+              stepInputs.push({ prompt, tools, toolChoice });
+
               switch (responseCount++) {
                 case 0: {
-                  expect(tools).toStrictEqual([
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
-                    },
-                  ]);
-
-                  expect(toolChoice).toStrictEqual({ type: 'auto' });
-
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
                   return {
                     stream: convertArrayToReadableStream([
                       {
@@ -2525,17 +4508,15 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(0),
                       },
-                      {
-                        type: 'reasoning',
-                        reasoningType: 'text',
-                        text: 'thinking',
-                      },
+                      { type: 'reasoning-start', id: '0' },
+                      { type: 'reasoning-delta', id: '0', delta: 'thinking' },
+                      { type: 'reasoning-end', id: '0' },
                       {
                         type: 'tool-call',
-                        toolCallType: 'function',
+                        id: 'call-1',
                         toolCallId: 'call-1',
                         toolName: 'tool1',
-                        args: `{ "value": "value" }`,
+                        input: `{ "value": "value" }`,
                       },
                       {
                         type: 'finish',
@@ -2547,64 +4528,6 @@ describe('streamText', () => {
                   };
                 }
                 case 1: {
-                  expect(tools).toStrictEqual([
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
-                    },
-                  ]);
-
-                  expect(toolChoice).toStrictEqual({ type: 'auto' });
-
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'reasoning',
-                          text: 'thinking',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'tool-call',
-                          toolCallId: 'call-1',
-                          toolName: 'tool1',
-                          args: { value: 'value' },
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'tool',
-                      content: [
-                        {
-                          type: 'tool-result',
-                          toolCallId: 'call-1',
-                          toolName: 'tool1',
-                          result: 'result1',
-                          content: undefined,
-                          isError: undefined,
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
                   return {
                     stream: convertArrayToReadableStream([
                       {
@@ -2613,8 +4536,10 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(1000),
                       },
-                      { type: 'text', text: 'Hello, ' },
-                      { type: 'text', text: `world!` },
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                      { type: 'text-delta', id: '1', delta: `world!` },
+                      { type: 'text-end', id: '1' },
                       {
                         type: 'finish',
                         finishReason: 'stop',
@@ -2633,7 +4558,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -2646,431 +4571,257 @@ describe('streamText', () => {
             onStepFinishResults.push(event);
           },
           experimental_telemetry: { isEnabled: true, tracer },
-          continueUntil: maxSteps(3),
+          stopWhen: stepCountIs(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
+            generateId: mockId({ prefix: 'id' }),
           },
         });
       });
 
-      it('should contain assistant response message and tool message from all steps', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.fullStream),
-        ).toMatchSnapshot();
-      });
-
-      describe('callbacks', () => {
-        beforeEach(async () => {
-          await result.consumeStream();
-        });
-
-        it('onFinish should send correct information', async () => {
-          expect(onFinishResult).toMatchSnapshot();
-        });
-
-        it('onStepFinish should send correct information', async () => {
-          expect(onStepFinishResults).toMatchSnapshot();
-        });
-      });
-
-      describe('value promises', () => {
-        beforeEach(async () => {
-          await result.consumeStream();
-        });
-
-        it('result.totalUsage should contain total token usage', async () => {
-          expect(await result.totalUsage).toMatchInlineSnapshot(`
-            {
-              "cachedInputTokens": 3,
-              "inputTokens": 6,
-              "outputTokens": 20,
-              "reasoningTokens": 10,
-              "totalTokens": 36,
-            }
-          `);
-        });
-
-        it('result.usage should contain token usage from final step', async () => {
-          expect(await result.totalUsage).toMatchInlineSnapshot(`
-          {
-            "cachedInputTokens": 3,
-            "inputTokens": 6,
-            "outputTokens": 20,
-            "reasoningTokens": 10,
-            "totalTokens": 36,
-          }
-        `);
-        });
-
-        it('result.finishReason should contain finish reason from final step', async () => {
-          assert.strictEqual(await result.finishReason, 'stop');
-        });
-
-        it('result.text should contain text from final step', async () => {
-          assert.strictEqual(await result.text, 'Hello, world!');
-        });
-
-        it('result.steps should contain all steps', async () => {
-          expect(await result.steps).toMatchSnapshot();
-        });
-
-        it('result.response.messages should contain response messages from all steps', async () => {
-          expect((await result.response).messages).toMatchSnapshot();
-        });
-      });
-
-      it('should record telemetry data for each step', async () => {
+      it('should contain correct step inputs', async () => {
         await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchSnapshot();
-      });
 
-      it('should have correct ui message stream', async () => {
-        expect(await convertReadableStreamToArray(result.toUIMessageStream()))
-          .toMatchInlineSnapshot(`
+        expect(stepInputs).toMatchInlineSnapshot(`
           [
             {
-              "messageId": undefined,
-              "metadata": undefined,
-              "type": "start",
-            },
-            {
-              "metadata": undefined,
-              "type": "start-step",
-            },
-            {
-              "args": {
-                "value": "value",
+              "prompt": [
+                {
+                  "content": [
+                    {
+                      "text": "test-input",
+                      "type": "text",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "user",
+                },
+              ],
+              "toolChoice": {
+                "type": "auto",
               },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
+              "tools": [
+                {
+                  "description": undefined,
+                  "inputSchema": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "value",
+                    ],
+                    "type": "object",
+                  },
+                  "name": "tool1",
+                  "type": "function",
+                },
+              ],
             },
             {
-              "result": "result1",
-              "toolCallId": "call-1",
-              "type": "tool-result",
-            },
-            {
-              "metadata": undefined,
-              "type": "finish-step",
-            },
-            {
-              "metadata": undefined,
-              "type": "start-step",
-            },
-            {
-              "text": "Hello, ",
-              "type": "text",
-            },
-            {
-              "text": "world!",
-              "type": "text",
-            },
-            {
-              "metadata": undefined,
-              "type": "finish-step",
-            },
-            {
-              "metadata": undefined,
-              "type": "finish",
+              "prompt": [
+                {
+                  "content": [
+                    {
+                      "text": "test-input",
+                      "type": "text",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "user",
+                },
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "result1",
+                      },
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "tool",
+                },
+              ],
+              "toolChoice": {
+                "type": "auto",
+              },
+              "tools": [
+                {
+                  "description": undefined,
+                  "inputSchema": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "value",
+                    ],
+                    "type": "object",
+                  },
+                  "name": "tool1",
+                  "type": "function",
+                },
+              ],
             },
           ]
         `);
-      });
-    });
-
-    describe('2 steps: initial, tool-result with transformed tool results', () => {
-      const upperCaseToolResultTransform = () =>
-        new TransformStream<
-          TextStreamPart<{ tool1: Tool<{ value: string }, string> }>,
-          TextStreamPart<{ tool1: Tool<{ value: string }, string> }>
-        >({
-          transform(chunk, controller) {
-            if (chunk.type === 'tool-result') {
-              chunk.result = chunk.result.toUpperCase();
-              chunk.args = {
-                ...chunk.args,
-                value: chunk.args.value.toUpperCase(),
-              };
-            }
-
-            controller.enqueue(chunk);
-          },
-        });
-
-      beforeEach(async () => {
-        result = undefined as any;
-        onFinishResult = undefined as any;
-        onStepFinishResults = [];
-
-        let responseCount = 0;
-        result = streamText({
-          model: new MockLanguageModelV2({
-            doStream: async ({ prompt, tools, toolChoice }) => {
-              switch (responseCount++) {
-                case 0: {
-                  expect(tools).toStrictEqual([
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
-                    },
-                  ]);
-
-                  expect(toolChoice).toStrictEqual({ type: 'auto' });
-
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-0',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(0),
-                      },
-                      {
-                        type: 'reasoning',
-                        reasoningType: 'text',
-                        text: 'thinking',
-                      },
-                      {
-                        type: 'tool-call',
-                        toolCallType: 'function',
-                        toolCallId: 'call-1',
-                        toolName: 'tool1',
-                        args: `{ "value": "value" }`,
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: 'tool-calls',
-                        usage: testUsage,
-                      },
-                    ]),
-                    response: { headers: { call: '1' } },
-                  };
-                }
-                case 1: {
-                  expect(tools).toStrictEqual([
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
-                    },
-                  ]);
-
-                  expect(toolChoice).toStrictEqual({ type: 'auto' });
-
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'reasoning',
-                          text: 'thinking',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'tool-call',
-                          toolCallId: 'call-1',
-                          toolName: 'tool1',
-                          args: { value: 'value' },
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'tool',
-                      content: [
-                        {
-                          type: 'tool-result',
-                          toolCallId: 'call-1',
-                          toolName: 'tool1',
-                          result: 'RESULT1',
-                          content: undefined,
-                          isError: undefined,
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-1',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(1000),
-                      },
-                      { type: 'text', text: 'Hello, ' },
-                      { type: 'text', text: `world!` },
-                      {
-                        type: 'finish',
-                        finishReason: 'stop',
-                        usage: testUsage2,
-                      },
-                    ]),
-                    response: { headers: { call: '2' } },
-                  };
-                }
-                default:
-                  throw new Error(
-                    `Unexpected response count: ${responseCount}`,
-                  );
-              }
-            },
-          }),
-          tools: {
-            tool1: {
-              parameters: z.object({ value: z.string() }),
-              execute: async () => 'result1',
-            },
-          },
-          experimental_transform: upperCaseToolResultTransform,
-          prompt: 'test-input',
-          onFinish: async event => {
-            expect(onFinishResult).to.be.undefined;
-            onFinishResult = event as unknown as typeof onFinishResult;
-          },
-          onStepFinish: async event => {
-            onStepFinishResults.push(event);
-          },
-          experimental_telemetry: { isEnabled: true, tracer },
-          continueUntil: maxSteps(3),
-          _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
-          },
-        });
       });
 
       it('should contain assistant response message and tool message from all steps', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
-            },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "reasoningType": "text",
-              "text": "thinking",
-              "type": "reasoning",
-            },
-            {
-              "args": {
-                "value": "value",
+            [
+              {
+                "type": "start",
               },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-            {
-              "args": {
-                "value": "VALUE",
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
               },
-              "result": "RESULT1",
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-            {
-              "finishReason": "tool-calls",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": {
-                  "call": "1",
+              {
+                "id": "0",
+                "type": "reasoning-start",
+              },
+              {
+                "id": "0",
+                "providerMetadata": undefined,
+                "text": "thinking",
+                "type": "reasoning",
+              },
+              {
+                "id": "0",
+                "type": "reasoning-end",
+              },
+              {
+                "input": {
+                  "value": "value",
                 },
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
-            },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "text": "Hello, ",
-              "type": "text",
-            },
-            {
-              "text": "world!",
-              "type": "text",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": {
-                  "call": "2",
+              {
+                "input": {
+                  "value": "value",
                 },
-                "id": "id-1",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:01.000Z,
+                "output": "result1",
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": 3,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": 10,
-                "totalTokens": 23,
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": {
+                    "call": "1",
+                  },
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
               },
-            },
-            {
-              "finishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": 3,
-                "inputTokens": 6,
-                "outputTokens": 20,
-                "reasoningTokens": 10,
-                "totalTokens": 36,
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
               },
-              "type": "finish",
-            },
-          ]
-        `);
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "Hello, ",
+                "type": "text",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "world!",
+                "type": "text",
+              },
+              {
+                "id": "1",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": {
+                    "call": "2",
+                  },
+                  "id": "id-1",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:01.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": 3,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": 10,
+                  "totalTokens": 23,
+                },
+              },
+              {
+                "finishReason": "stop",
+                "totalUsage": {
+                  "cachedInputTokens": 3,
+                  "inputTokens": 6,
+                  "outputTokens": 20,
+                  "reasoningTokens": 10,
+                  "totalTokens": 36,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
       });
 
       describe('callbacks', () => {
@@ -3083,6 +4834,7 @@ describe('streamText', () => {
             {
               "content": [
                 {
+                  "providerMetadata": undefined,
                   "text": "Hello, world!",
                   "type": "text",
                 },
@@ -3107,9 +4859,10 @@ describe('streamText', () => {
                         "type": "reasoning",
                       },
                       {
-                        "args": {
+                        "input": {
                           "value": "value",
                         },
+                        "providerExecuted": undefined,
                         "toolCallId": "call-1",
                         "toolName": "tool1",
                         "type": "tool-call",
@@ -3120,7 +4873,10 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
-                        "result": "RESULT1",
+                        "output": {
+                          "type": "text",
+                          "value": "result1",
+                        },
                         "toolCallId": "call-1",
                         "toolName": "tool1",
                         "type": "tool-result",
@@ -3131,6 +4887,7 @@ describe('streamText', () => {
                   {
                     "content": [
                       {
+                        "providerMetadata": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -3151,18 +4908,20 @@ describe('streamText', () => {
                       "type": "reasoning",
                     },
                     {
-                      "args": {
+                      "input": {
                         "value": "value",
                       },
+                      "providerExecuted": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
                     },
                     {
-                      "args": {
-                        "value": "VALUE",
+                      "input": {
+                        "value": "value",
                       },
-                      "result": "RESULT1",
+                      "output": "result1",
+                      "providerExecuted": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-result",
@@ -3185,9 +4944,10 @@ describe('streamText', () => {
                             "type": "reasoning",
                           },
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
+                            "providerExecuted": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -3198,7 +4958,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "RESULT1",
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3222,6 +4985,7 @@ describe('streamText', () => {
                 DefaultStepResult {
                   "content": [
                     {
+                      "providerMetadata": undefined,
                       "text": "Hello, world!",
                       "type": "text",
                     },
@@ -3243,9 +5007,10 @@ describe('streamText', () => {
                             "type": "reasoning",
                           },
                           {
-                            "args": {
+                            "input": {
                               "value": "value",
                             },
+                            "providerExecuted": undefined,
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-call",
@@ -3256,7 +5021,10 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "result": "RESULT1",
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
                             "toolCallId": "call-1",
                             "toolName": "tool1",
                             "type": "tool-result",
@@ -3267,6 +5035,7 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
+                            "providerMetadata": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -3320,18 +5089,20 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
+                    "providerExecuted": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
                   },
                   {
-                    "args": {
-                      "value": "VALUE",
+                    "input": {
+                      "value": "value",
                     },
-                    "result": "RESULT1",
+                    "output": "result1",
+                    "providerExecuted": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -3354,9 +5125,10 @@ describe('streamText', () => {
                           "type": "reasoning",
                         },
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
+                          "providerExecuted": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -3367,7 +5139,10 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "result": "RESULT1",
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -3391,6 +5166,7 @@ describe('streamText', () => {
               DefaultStepResult {
                 "content": [
                   {
+                    "providerMetadata": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -3412,9 +5188,10 @@ describe('streamText', () => {
                           "type": "reasoning",
                         },
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
+                          "providerExecuted": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -3425,7 +5202,10 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "result": "RESULT1",
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -3436,6 +5216,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
+                          "providerMetadata": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -3508,18 +5289,20 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
+                    "providerExecuted": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
                   },
                   {
-                    "args": {
-                      "value": "VALUE",
+                    "input": {
+                      "value": "value",
                     },
-                    "result": "RESULT1",
+                    "output": "result1",
+                    "providerExecuted": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -3542,9 +5325,10 @@ describe('streamText', () => {
                           "type": "reasoning",
                         },
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
+                          "providerExecuted": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -3555,7 +5339,10 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "result": "RESULT1",
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -3579,6 +5366,7 @@ describe('streamText', () => {
               DefaultStepResult {
                 "content": [
                   {
+                    "providerMetadata": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -3600,9 +5388,10 @@ describe('streamText', () => {
                           "type": "reasoning",
                         },
                         {
-                          "args": {
+                          "input": {
                             "value": "value",
                           },
+                          "providerExecuted": undefined,
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-call",
@@ -3613,7 +5402,10 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
-                          "result": "RESULT1",
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
                           "toolCallId": "call-1",
                           "toolName": "tool1",
                           "type": "tool-result",
@@ -3624,6 +5416,7 @@ describe('streamText', () => {
                     {
                       "content": [
                         {
+                          "providerMetadata": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -3658,9 +5451,10 @@ describe('streamText', () => {
                     "type": "reasoning",
                   },
                   {
-                    "args": {
+                    "input": {
                       "value": "value",
                     },
+                    "providerExecuted": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -3671,7 +5465,10 @@ describe('streamText', () => {
               {
                 "content": [
                   {
-                    "result": "RESULT1",
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-result",
@@ -3682,6 +5479,1524 @@ describe('streamText', () => {
               {
                 "content": [
                   {
+                    "providerMetadata": undefined,
+                    "text": "Hello, world!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ]
+          `);
+        });
+      });
+
+      it('should record telemetry data for each step', async () => {
+        await result.consumeStream();
+        expect(tracer.jsonSpans).toMatchSnapshot();
+      });
+
+      it('should have correct ui message stream', async () => {
+        expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "messageId": undefined,
+                "messageMetadata": undefined,
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "id": "0",
+                "providerMetadata": undefined,
+                "type": "reasoning-start",
+              },
+              {
+                "delta": "thinking",
+                "id": "0",
+                "providerMetadata": undefined,
+                "type": "reasoning-delta",
+              },
+              {
+                "id": "0",
+                "providerMetadata": undefined,
+                "type": "reasoning-end",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-input-available",
+              },
+              {
+                "output": "result1",
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "type": "tool-output-available",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "delta": "Hello, ",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "delta": "world!",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "id": "1",
+                "type": "text-end",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "messageMetadata": undefined,
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+    });
+
+    describe('2 steps: initial, tool-result with prepareStep', () => {
+      let result: StreamTextResult<any, any>;
+      let doStreamCalls: Array<LanguageModelV2CallOptions>;
+      let prepareStepCalls: Array<{
+        stepNumber: number;
+        steps: Array<StepResult<any>>;
+      }>;
+
+      beforeEach(async () => {
+        doStreamCalls = [];
+        prepareStepCalls = [];
+
+        result = streamText({
+          model: new MockLanguageModelV2({
+            doStream: async options => {
+              doStreamCalls.push(options);
+              switch (doStreamCalls.length) {
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-0',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+                case 2:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-1',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(1000),
+                      },
+                      { type: 'text-start', id: '2' },
+                      { type: 'text-delta', id: '2', delta: 'Hello, ' },
+                      { type: 'text-delta', id: '2', delta: `world!` },
+                      { type: 'text-end', id: '2' },
+                      {
+                        type: 'finish',
+                        finishReason: 'stop',
+                        usage: testUsage2,
+                      },
+                    ]),
+                    response: { headers: { call: '2' } },
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${doStreamCalls.length}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          prompt: 'test-input',
+          stopWhen: stepCountIs(3),
+          prepareStep: async ({ model, stepNumber, steps }) => {
+            prepareStepCalls.push({ stepNumber, steps });
+
+            if (stepNumber === 0) {
+              return {
+                toolChoice: {
+                  type: 'tool',
+                  toolName: 'tool1' as const,
+                },
+                system: 'system-message-0',
+              };
+            }
+
+            if (stepNumber === 1) {
+              return {
+                activeTools: [],
+                system: 'system-message-1',
+              };
+            }
+          },
+        });
+      });
+
+      it('should contain all doStream calls', async () => {
+        await result.consumeStream();
+        expect(doStreamCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "abortSignal": undefined,
+              "frequencyPenalty": undefined,
+              "headers": undefined,
+              "includeRawChunks": false,
+              "maxOutputTokens": undefined,
+              "presencePenalty": undefined,
+              "prompt": [
+                {
+                  "content": "system-message-0",
+                  "role": "system",
+                },
+                {
+                  "content": [
+                    {
+                      "text": "test-input",
+                      "type": "text",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "user",
+                },
+              ],
+              "providerOptions": undefined,
+              "responseFormat": undefined,
+              "seed": undefined,
+              "stopSequences": undefined,
+              "temperature": undefined,
+              "toolChoice": {
+                "toolName": "tool1",
+                "type": "tool",
+              },
+              "tools": [
+                {
+                  "description": undefined,
+                  "inputSchema": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "value",
+                    ],
+                    "type": "object",
+                  },
+                  "name": "tool1",
+                  "type": "function",
+                },
+              ],
+              "topK": undefined,
+              "topP": undefined,
+            },
+            {
+              "abortSignal": undefined,
+              "frequencyPenalty": undefined,
+              "headers": undefined,
+              "includeRawChunks": false,
+              "maxOutputTokens": undefined,
+              "presencePenalty": undefined,
+              "prompt": [
+                {
+                  "content": "system-message-1",
+                  "role": "system",
+                },
+                {
+                  "content": [
+                    {
+                      "text": "test-input",
+                      "type": "text",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "user",
+                },
+                {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "result1",
+                      },
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "role": "tool",
+                },
+              ],
+              "providerOptions": undefined,
+              "responseFormat": undefined,
+              "seed": undefined,
+              "stopSequences": undefined,
+              "temperature": undefined,
+              "toolChoice": {
+                "type": "auto",
+              },
+              "tools": [],
+              "topK": undefined,
+              "topP": undefined,
+            },
+          ]
+        `);
+      });
+
+      it('should contain all prepareStep calls', async () => {
+        await result.consumeStream();
+        expect(prepareStepCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "stepNumber": 0,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "finishReason": "stop",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "2",
+                    },
+                    "id": "id-1",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                      {
+                        "content": [
+                          {
+                            "providerMetadata": undefined,
+                            "text": "Hello, world!",
+                            "type": "text",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:01.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": 3,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": 10,
+                    "totalTokens": 23,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+            {
+              "stepNumber": 1,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "finishReason": "stop",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "2",
+                    },
+                    "id": "id-1",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                      {
+                        "content": [
+                          {
+                            "providerMetadata": undefined,
+                            "text": "Hello, world!",
+                            "type": "text",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:01.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": 3,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": 10,
+                    "totalTokens": 23,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('2 steps: initial, tool-result with transformed tool results', () => {
+      const upperCaseToolResultTransform = () =>
+        new TransformStream<
+          TextStreamPart<{ tool1: Tool<{ value: string }, string> }>,
+          TextStreamPart<{ tool1: Tool<{ value: string }, string> }>
+        >({
+          transform(chunk, controller) {
+            if (chunk.type === 'tool-result') {
+              chunk.output = chunk.output.toUpperCase();
+              chunk.input = {
+                ...chunk.input,
+                value: chunk.input.value.toUpperCase(),
+              };
+            }
+
+            controller.enqueue(chunk);
+          },
+        });
+
+      beforeEach(async () => {
+        result = undefined as any;
+        onFinishResult = undefined as any;
+        onStepFinishResults = [];
+
+        let responseCount = 0;
+        result = streamText({
+          model: new MockLanguageModelV2({
+            doStream: async ({ prompt, tools, toolChoice }) => {
+              switch (responseCount++) {
+                case 0: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-0',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      { type: 'reasoning-start', id: 'id-0' },
+                      {
+                        type: 'reasoning-delta',
+                        id: 'id-0',
+                        delta: 'thinking',
+                      },
+                      { type: 'reasoning-end', id: 'id-0' },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+                }
+                case 1: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-1',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(1000),
+                      },
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                      { type: 'text-delta', id: '1', delta: `world!` },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'finish',
+                        finishReason: 'stop',
+                        usage: testUsage2,
+                      },
+                    ]),
+                    response: { headers: { call: '2' } },
+                  };
+                }
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            },
+          },
+          experimental_transform: upperCaseToolResultTransform,
+          prompt: 'test-input',
+          onFinish: async event => {
+            expect(onFinishResult).to.be.undefined;
+            onFinishResult = event as unknown as typeof onFinishResult;
+          },
+          onStepFinish: async event => {
+            onStepFinishResults.push(event);
+          },
+          experimental_telemetry: { isEnabled: true, tracer },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            now: mockValues(0, 100, 500, 600, 1000),
+            generateId: mockId({ prefix: 'id' }),
+          },
+        });
+      });
+
+      it('should contain assistant response message and tool message from all steps', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "id": "id-0",
+                "type": "reasoning-start",
+              },
+              {
+                "id": "id-0",
+                "providerMetadata": undefined,
+                "text": "thinking",
+                "type": "reasoning",
+              },
+              {
+                "id": "id-0",
+                "type": "reasoning-end",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "output": "RESULT1",
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": {
+                    "call": "1",
+                  },
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "Hello, ",
+                "type": "text",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "world!",
+                "type": "text",
+              },
+              {
+                "id": "1",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": {
+                    "call": "2",
+                  },
+                  "id": "id-1",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:01.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": 3,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": 10,
+                  "totalTokens": 23,
+                },
+              },
+              {
+                "finishReason": "stop",
+                "totalUsage": {
+                  "cachedInputTokens": 3,
+                  "inputTokens": 6,
+                  "outputTokens": 20,
+                  "reasoningTokens": 10,
+                  "totalTokens": 36,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      describe('callbacks', () => {
+        beforeEach(async () => {
+          await result.consumeStream();
+        });
+
+        it('onFinish should send correct information', async () => {
+          expect(onFinishResult).toMatchInlineSnapshot(`
+            {
+              "content": [
+                {
+                  "providerMetadata": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "files": [],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "reasoning": [],
+              "reasoningText": undefined,
+              "request": {},
+              "response": {
+                "headers": {
+                  "call": "2",
+                },
+                "id": "id-1",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "thinking",
+                        "type": "reasoning",
+                      },
+                      {
+                        "input": {
+                          "value": "value",
+                        },
+                        "providerExecuted": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "text",
+                          "value": "RESULT1",
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                  {
+                    "content": [
+                      {
+                        "providerMetadata": undefined,
+                        "text": "Hello, world!",
+                        "type": "text",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:01.000Z,
+              },
+              "sources": [],
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "VALUE",
+                      },
+                      "output": "RESULT1",
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "providerOptions": undefined,
+                            "text": "thinking",
+                            "type": "reasoning",
+                          },
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "RESULT1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "finishReason": "stop",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "2",
+                    },
+                    "id": "id-1",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "providerOptions": undefined,
+                            "text": "thinking",
+                            "type": "reasoning",
+                          },
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "RESULT1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                      {
+                        "content": [
+                          {
+                            "providerMetadata": undefined,
+                            "text": "Hello, world!",
+                            "type": "text",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:01.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": 3,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": 10,
+                    "totalTokens": 23,
+                  },
+                  "warnings": [],
+                },
+              ],
+              "text": "Hello, world!",
+              "toolCalls": [],
+              "toolResults": [],
+              "totalUsage": {
+                "cachedInputTokens": 3,
+                "inputTokens": 6,
+                "outputTokens": 20,
+                "reasoningTokens": 10,
+                "totalTokens": 36,
+              },
+              "usage": {
+                "cachedInputTokens": 3,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": 10,
+                "totalTokens": 23,
+              },
+              "warnings": [],
+            }
+          `);
+        });
+
+        it('onStepFinish should send correct information', async () => {
+          expect(onStepFinishResults).toMatchInlineSnapshot(`
+            [
+              DefaultStepResult {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
+                    "text": "thinking",
+                    "type": "reasoning",
+                  },
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "value": "VALUE",
+                    },
+                    "output": "RESULT1",
+                    "providerExecuted": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "request": {},
+                "response": {
+                  "headers": {
+                    "call": "1",
+                  },
+                  "id": "id-0",
+                  "messages": [
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "thinking",
+                          "type": "reasoning",
+                        },
+                        {
+                          "input": {
+                            "value": "value",
+                          },
+                          "providerExecuted": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "warnings": [],
+              },
+              DefaultStepResult {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
+                    "text": "Hello, world!",
+                    "type": "text",
+                  },
+                ],
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "request": {},
+                "response": {
+                  "headers": {
+                    "call": "2",
+                  },
+                  "id": "id-1",
+                  "messages": [
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "thinking",
+                          "type": "reasoning",
+                        },
+                        {
+                          "input": {
+                            "value": "value",
+                          },
+                          "providerExecuted": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                    {
+                      "content": [
+                        {
+                          "providerMetadata": undefined,
+                          "text": "Hello, world!",
+                          "type": "text",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                  ],
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:01.000Z,
+                },
+                "usage": {
+                  "cachedInputTokens": 3,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": 10,
+                  "totalTokens": 23,
+                },
+                "warnings": [],
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('value promises', () => {
+        beforeEach(async () => {
+          await result.consumeStream();
+        });
+
+        it('result.totalUsage should contain total token usage', async () => {
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
+            {
+              "cachedInputTokens": 3,
+              "inputTokens": 6,
+              "outputTokens": 20,
+              "reasoningTokens": 10,
+              "totalTokens": 36,
+            }
+          `);
+        });
+
+        it('result.usage should contain token usage from final step', async () => {
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 3,
+            "inputTokens": 6,
+            "outputTokens": 20,
+            "reasoningTokens": 10,
+            "totalTokens": 36,
+          }
+        `);
+        });
+
+        it('result.finishReason should contain finish reason from final step', async () => {
+          assert.strictEqual(await result.finishReason, 'stop');
+        });
+
+        it('result.text should contain text from final step', async () => {
+          assert.strictEqual(await result.text, 'Hello, world!');
+        });
+
+        it('result.steps should contain all steps', async () => {
+          expect(await result.steps).toMatchInlineSnapshot(`
+            [
+              DefaultStepResult {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
+                    "text": "thinking",
+                    "type": "reasoning",
+                  },
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "value": "VALUE",
+                    },
+                    "output": "RESULT1",
+                    "providerExecuted": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "request": {},
+                "response": {
+                  "headers": {
+                    "call": "1",
+                  },
+                  "id": "id-0",
+                  "messages": [
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "thinking",
+                          "type": "reasoning",
+                        },
+                        {
+                          "input": {
+                            "value": "value",
+                          },
+                          "providerExecuted": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "warnings": [],
+              },
+              DefaultStepResult {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
+                    "text": "Hello, world!",
+                    "type": "text",
+                  },
+                ],
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "request": {},
+                "response": {
+                  "headers": {
+                    "call": "2",
+                  },
+                  "id": "id-1",
+                  "messages": [
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "thinking",
+                          "type": "reasoning",
+                        },
+                        {
+                          "input": {
+                            "value": "value",
+                          },
+                          "providerExecuted": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                    {
+                      "content": [
+                        {
+                          "providerMetadata": undefined,
+                          "text": "Hello, world!",
+                          "type": "text",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                  ],
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:01.000Z,
+                },
+                "usage": {
+                  "cachedInputTokens": 3,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": 10,
+                  "totalTokens": 23,
+                },
+                "warnings": [],
+              },
+            ]
+          `);
+        });
+
+        it('result.response.messages should contain response messages from all steps', async () => {
+          expect((await result.response).messages).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "thinking",
+                    "type": "reasoning",
+                  },
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "RESULT1",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
                     "text": "Hello, world!",
                     "type": "text",
                   },
@@ -3724,7 +7039,7 @@ describe('streamText', () => {
                 "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
                 ],
                 "ai.response.avgOutputTokensPerSecond": 20,
                 "ai.response.finishReason": "tool-calls",
@@ -3734,7 +7049,7 @@ describe('streamText', () => {
                 "ai.response.msToFirstChunk": 100,
                 "ai.response.text": "",
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-                "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
+                "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.inputTokens": 3,
                 "ai.usage.outputTokens": 10,
@@ -3767,10 +7082,10 @@ describe('streamText', () => {
             {
               "attributes": {
                 "ai.operationId": "ai.toolCall",
-                "ai.toolCall.args": "{"value":"value"}",
                 "ai.toolCall.id": "call-1",
+                "ai.toolCall.input": "{"value":"value"}",
                 "ai.toolCall.name": "tool1",
-                "ai.toolCall.result": ""result1"",
+                "ai.toolCall.output": ""result1"",
                 "operation.name": "ai.toolCall",
               },
               "events": [],
@@ -3781,10 +7096,10 @@ describe('streamText', () => {
                 "ai.model.id": "mock-model-id",
                 "ai.model.provider": "mock-provider",
                 "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"RESULT1"}]}]",
+                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
+                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
                 ],
                 "ai.response.avgOutputTokensPerSecond": 25,
                 "ai.response.finishReason": "stop",
@@ -3835,52 +7150,347 @@ describe('streamText', () => {
             [
               {
                 "messageId": undefined,
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "start",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
               },
               {
-                "args": {
+                "id": "id-0",
+                "providerMetadata": undefined,
+                "type": "reasoning-start",
+              },
+              {
+                "delta": "thinking",
+                "id": "id-0",
+                "providerMetadata": undefined,
+                "type": "reasoning-delta",
+              },
+              {
+                "id": "id-0",
+                "providerMetadata": undefined,
+                "type": "reasoning-end",
+              },
+              {
+                "input": {
                   "value": "value",
                 },
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
-                "type": "tool-call",
+                "type": "tool-input-available",
               },
               {
-                "result": "RESULT1",
+                "output": "RESULT1",
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
-                "type": "tool-result",
+                "type": "tool-output-available",
               },
               {
-                "metadata": undefined,
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
                 "type": "start-step",
               },
               {
-                "text": "Hello, ",
-                "type": "text",
+                "id": "1",
+                "type": "text-start",
               },
               {
-                "text": "world!",
-                "type": "text",
+                "delta": "Hello, ",
+                "id": "1",
+                "type": "text-delta",
               },
               {
-                "metadata": undefined,
+                "delta": "world!",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "id": "1",
+                "type": "text-end",
+              },
+              {
                 "type": "finish-step",
               },
               {
-                "metadata": undefined,
+                "messageMetadata": undefined,
                 "type": "finish",
               },
             ]
           `);
+      });
+    });
+
+    describe('2 stop conditions', () => {
+      let stopConditionCalls: Array<{
+        number: number;
+        steps: StepResult<any>[];
+      }>;
+
+      beforeEach(async () => {
+        stopConditionCalls = [];
+
+        let responseCount = 0;
+        result = streamText({
+          model: new MockLanguageModelV2({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-0',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'reasoning-start',
+                        id: 'id-0',
+                      },
+                      {
+                        type: 'reasoning-delta',
+                        id: 'id-0',
+                        delta: 'thinking',
+                      },
+                      {
+                        type: 'reasoning-end',
+                        id: 'id-0',
+                      },
+                      {
+                        type: 'tool-call',
+                        id: 'call-1',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+                }
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            },
+          },
+          prompt: 'test-input',
+          experimental_telemetry: { isEnabled: true, tracer },
+          stopWhen: [
+            ({ steps }) => {
+              stopConditionCalls.push({ number: 0, steps });
+              return false;
+            },
+            ({ steps }) => {
+              stopConditionCalls.push({ number: 1, steps });
+              return true;
+            },
+          ],
+          _internal: {
+            now: mockValues(0, 100, 500, 600, 1000),
+          },
+        });
+      });
+
+      it('result.steps should contain a single step', async () => {
+        await result.consumeStream();
+        expect((await result.steps).length).toStrictEqual(1);
+      });
+
+      it('stopConditionCalls should be called for each stop condition', async () => {
+        await result.consumeStream();
+        expect(stopConditionCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "number": 0,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "providerOptions": undefined,
+                            "text": "thinking",
+                            "type": "reasoning",
+                          },
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+            {
+              "number": 1,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "id-0",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "providerOptions": undefined,
+                            "text": "thinking",
+                            "type": "reasoning",
+                          },
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "mock-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+          ]
+        `);
       });
     });
   });
@@ -3896,9 +7506,11 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: `world!` },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -3919,6 +7531,295 @@ describe('streamText', () => {
     });
   });
 
+  describe('provider-executed tools', () => {
+    describe('single provider-executed tool call and result', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'web_search',
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-input-delta',
+                id: 'call-1',
+                delta: '{ "value": "value" }',
+              },
+              {
+                type: 'tool-input-end',
+                id: 'call-1',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                input: `{ "value": "value" }`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                result: `{ "value": "result1" }`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'web_search',
+                input: `{ "value": "value" }`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-2',
+                toolName: 'web_search',
+                result: `ERROR`,
+                isError: true,
+                providerExecuted: true,
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            web_search: {
+              type: 'provider-defined',
+              id: 'test.web_search',
+              name: 'web_search',
+              inputSchema: z.object({ value: z.string() }),
+              outputSchema: z.object({ value: z.string() }),
+              args: {},
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: stepCountIs(4),
+        });
+      });
+
+      it('should only execute a single step', async () => {
+        await result.consumeStream();
+        expect((await result.steps).length).toBe(1);
+      });
+
+      it('should include provider-executed tool call and result content', async () => {
+        await result.consumeStream();
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "error": "ERROR",
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-error",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed tool call and result in the full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "call-1",
+              "providerExecuted": true,
+              "toolName": "web_search",
+              "type": "tool-input-start",
+            },
+            {
+              "delta": "{ "value": "value" }",
+              "id": "call-1",
+              "type": "tool-input-delta",
+            },
+            {
+              "id": "call-1",
+              "type": "tool-input-end",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "output": "{ "value": "result1" }",
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "web_search",
+              "type": "tool-result",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "error": "ERROR",
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-2",
+              "toolName": "web_search",
+              "type": "tool-error",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+
+      it('should include provider-executed tool call and result in the ui message stream', async () => {
+        expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "messageId": undefined,
+                "messageMetadata": undefined,
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-input-start",
+              },
+              {
+                "inputTextDelta": "{ "value": "value" }",
+                "toolCallId": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-input-available",
+              },
+              {
+                "output": "{ "value": "result1" }",
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "type": "tool-output-available",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-2",
+                "toolName": "web_search",
+                "type": "tool-input-available",
+              },
+              {
+                "errorText": "ERROR",
+                "providerExecuted": true,
+                "toolCallId": "call-2",
+                "type": "tool-output-error",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "messageMetadata": undefined,
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+    });
+  });
+
   describe('options.providerMetadata', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({
@@ -3930,7 +7831,13 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'provider metadata test' },
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'provider metadata test',
+                },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -3963,10 +7870,9 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -3977,7 +7883,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: toolExecuteMock,
           },
         },
@@ -4064,10 +7970,9 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -4078,7 +7983,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -4104,10 +8009,9 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -4118,7 +8022,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           },
         },
@@ -4138,6 +8042,238 @@ describe('streamText', () => {
     });
   });
 
+  describe('tool callbacks', () => {
+    it('should invoke callbacks in the correct order', async () => {
+      const recordedCalls: unknown[] = [];
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-input-start',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolName: 'test-tool',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '{"',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'value',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '":"',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'Spark',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: 'le',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: ' Day',
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              delta: '"}',
+            },
+            {
+              type: 'tool-input-end',
+              id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+              toolName: 'test-tool',
+              input: '{"value":"Sparkle Day"}',
+            },
+            {
+              type: 'finish',
+              finishReason: 'tool-calls',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          'test-tool': tool({
+            inputSchema: jsonSchema<{ value: string }>({
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+            }),
+            onInputAvailable: options => {
+              recordedCalls.push({ type: 'onInputAvailable', options });
+            },
+            onInputStart: options => {
+              recordedCalls.push({ type: 'onInputStart', options });
+            },
+            onInputDelta: options => {
+              recordedCalls.push({ type: 'onInputDelta', options });
+            },
+          }),
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+        _internal: {
+          now: mockValues(0, 100, 500),
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(recordedCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "inputTextDelta": "{"",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "inputTextDelta": "value",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "inputTextDelta": "":"",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "inputTextDelta": "Spark",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "inputTextDelta": "le",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "inputTextDelta": " Day",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "inputTextDelta": ""}",
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputDelta",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "input": {
+                "value": "Sparkle Day",
+              },
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+            },
+            "type": "onInputAvailable",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('tools with custom schema', () => {
     it('should send tool calls', async () => {
       const result = streamText({
@@ -4148,7 +8284,7 @@ describe('streamText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
-                parameters: {
+                inputSchema: {
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
                   required: ['value'],
@@ -4176,10 +8312,9 @@ describe('streamText', () => {
                 },
                 {
                   type: 'tool-call',
-                  toolCallType: 'function',
                   toolCallId: 'call-1',
                   toolName: 'tool1',
-                  args: `{ "value": "value" }`,
+                  input: `{ "value": "value" }`,
                 },
                 {
                   type: 'finish',
@@ -4192,7 +8327,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
-            parameters: jsonSchema<{ value: string }>({
+            inputSchema: jsonSchema<{ value: string }>({
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -4231,9 +8366,11 @@ describe('streamText', () => {
             },
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                { type: 'text', text: ', ' },
-                { type: 'text', text: 'world!' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: 'world!' },
+                { type: 'text-end', id: '1' },
               ]),
             }),
           });
@@ -4259,8 +8396,10 @@ describe('streamText', () => {
   });
 
   describe('tool execution errors', () => {
-    it('should send a ToolExecutionError when a tool execution throws an error', async () => {
-      const result = streamText({
+    let result: StreamTextResult<any, any>;
+
+    beforeEach(async () => {
+      result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
@@ -4271,10 +8410,9 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              input: `{ "value": "value" }`,
             },
             {
               type: 'finish',
@@ -4285,7 +8423,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
-            parameters: z.object({ value: z.string() }),
+            inputSchema: z.object({ value: z.string() }),
             execute: async (): Promise<string> => {
               throw new Error('test error');
             },
@@ -4293,7 +8431,9 @@ describe('streamText', () => {
         },
         ...defaultSettings(),
       });
+    });
 
+    it('should include tool error part in the full stream', async () => {
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
           [
@@ -4306,16 +8446,23 @@ describe('streamText', () => {
               "warnings": [],
             },
             {
-              "args": {
+              "input": {
                 "value": "value",
               },
+              "providerExecuted": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
             },
             {
-              "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
-              "type": "error",
+              "error": [Error: test error],
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-error",
             },
             {
               "finishReason": "stop",
@@ -4349,6 +8496,160 @@ describe('streamText', () => {
           ]
         `);
     });
+
+    it('should include the error part in the step stream', async () => {
+      await result.consumeStream();
+
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "content": [
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "error": [Error: test error],
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-error",
+              },
+            ],
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "error-text",
+                        "value": "test error",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
+    });
+
+    it('should include error result in response messages', async () => {
+      await result.consumeStream();
+
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "test error",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should add tool-error parts to ui message stream', async () => {
+      expect(await convertReadableStreamToArray(result.toUIMessageStream()))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "messageId": undefined,
+              "messageMetadata": undefined,
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-input-available",
+            },
+            {
+              "errorText": "test error",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "type": "tool-output-error",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "messageMetadata": undefined,
+              "type": "finish",
+            },
+          ]
+        `);
+    });
   });
 
   describe('options.transform', () => {
@@ -4359,27 +8660,27 @@ describe('streamText', () => {
           TextStreamPart<{ tool1: Tool<{ value: string }> }>
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'text') {
+            if (chunk.type === 'text' || chunk.type === 'reasoning') {
               chunk.text = chunk.text.toUpperCase();
             }
 
-            if (chunk.type === 'tool-call-delta') {
-              chunk.argsTextDelta = chunk.argsTextDelta.toUpperCase();
+            if (chunk.type === 'tool-input-delta') {
+              chunk.delta = chunk.delta.toUpperCase();
             }
 
             // assuming test arg structure:
             if (chunk.type === 'tool-call') {
-              chunk.args = {
-                ...chunk.args,
-                value: chunk.args.value.toUpperCase(),
+              chunk.input = {
+                ...chunk.input,
+                value: chunk.input.value.toUpperCase(),
               };
             }
 
             if (chunk.type === 'tool-result') {
-              chunk.result = chunk.result.toUpperCase();
-              chunk.args = {
-                ...chunk.args,
-                value: chunk.args.value.toUpperCase(),
+              chunk.output = chunk.output.toUpperCase();
+              chunk.input = {
+                ...chunk.input,
+                value: chunk.input.value.toUpperCase(),
               };
             }
 
@@ -4446,6 +8747,7 @@ describe('streamText', () => {
               role: 'assistant',
               content: [
                 {
+                  providerMetadata: undefined,
                   text: 'HELLO, WORLD!',
                   type: 'text',
                 },
@@ -4459,7 +8761,9 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4500,7 +8804,9 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'length',
@@ -4529,14 +8835,15 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'world!' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               {
                 type: 'finish',
@@ -4547,7 +8854,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -4557,28 +8864,34 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(await result.toolCalls).toStrictEqual([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            args: { value: 'VALUE' },
-          },
-        ]);
+        expect(await result.toolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "VALUE",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ]
+        `);
       });
 
       it('result.toolResults should be transformed', async () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'world!' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               {
                 type: 'finish',
@@ -4589,7 +8902,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -4599,15 +8912,20 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(await result.toolResults).toStrictEqual([
-          {
-            type: 'tool-result',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            args: { value: 'VALUE' },
-            result: 'RESULT1',
-          },
-        ]);
+        expect(await result.toolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "VALUE",
+              },
+              "output": "RESULT1",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ]
+        `);
       });
 
       it('result.steps should be transformed', async () => {
@@ -4620,14 +8938,15 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'world!' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
               {
                 type: 'finish',
@@ -4638,7 +8957,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
             },
           },
@@ -4648,7 +8967,90 @@ describe('streamText', () => {
 
         result.consumeStream();
 
-        expect(await result.steps).toMatchSnapshot();
+        expect(await result.steps).toMatchInlineSnapshot(`
+          [
+            DefaultStepResult {
+              "content": [
+                {
+                  "providerMetadata": undefined,
+                  "text": "HELLO, WORLD!",
+                  "type": "text",
+                },
+                {
+                  "input": {
+                    "value": "VALUE",
+                  },
+                  "providerExecuted": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "input": {
+                    "value": "VALUE",
+                  },
+                  "output": "RESULT1",
+                  "providerExecuted": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerMetadata": undefined,
+                        "text": "HELLO, WORLD!",
+                        "type": "text",
+                      },
+                      {
+                        "input": {
+                          "value": "VALUE",
+                        },
+                        "providerExecuted": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "text",
+                          "value": "RESULT1",
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ]
+        `);
       });
 
       it('result.request should be transformed', async () => {
@@ -4661,7 +9063,9 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4691,7 +9095,9 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4734,16 +9140,17 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
-              { type: 'text', text: ', ' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
-              { type: 'text', text: `world!` },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4757,7 +9164,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async ({ value }) => `${value}-result`,
             },
           },
@@ -4770,7 +9177,217 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        expect(result).toMatchSnapshot();
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "providerMetadata": undefined,
+                "text": "HELLO, WORLD!",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "output": "VALUE-RESULT",
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "files": [],
+            "finishReason": "stop",
+            "providerMetadata": {
+              "testProvider": {
+                "testKey": "TEST VALUE",
+              },
+            },
+            "reasoning": [],
+            "reasoningText": undefined,
+            "request": {},
+            "response": {
+              "headers": {
+                "call": "2",
+              },
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "HELLO, WORLD!",
+                      "type": "text",
+                    },
+                    {
+                      "input": {
+                        "value": "VALUE",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "VALUE-RESULT",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "sources": [],
+            "steps": [
+              DefaultStepResult {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
+                    "text": "HELLO, WORLD!",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "value": "VALUE",
+                    },
+                    "providerExecuted": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "value": "VALUE",
+                    },
+                    "output": "VALUE-RESULT",
+                    "providerExecuted": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "finishReason": "stop",
+                "providerMetadata": {
+                  "testProvider": {
+                    "testKey": "TEST VALUE",
+                  },
+                },
+                "request": {},
+                "response": {
+                  "headers": {
+                    "call": "2",
+                  },
+                  "id": "id-0",
+                  "messages": [
+                    {
+                      "content": [
+                        {
+                          "providerMetadata": undefined,
+                          "text": "HELLO, WORLD!",
+                          "type": "text",
+                        },
+                        {
+                          "input": {
+                            "value": "VALUE",
+                          },
+                          "providerExecuted": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "VALUE-RESULT",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "warnings": [],
+              },
+            ],
+            "text": "HELLO, WORLD!",
+            "toolCalls": [
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "toolResults": [
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "output": "VALUE-RESULT",
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          }
+        `);
       });
 
       it('options.onStepFinish should receive transformed data', async () => {
@@ -4787,16 +9404,17 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
-              { type: 'text', text: ', ' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
-              { type: 'text', text: `world!` },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4810,7 +9428,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: tool({
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async ({ value }) => `${value}-result`,
             }),
           },
@@ -4823,7 +9441,94 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        expect(result).toMatchSnapshot();
+        expect(result).toMatchInlineSnapshot(`
+          DefaultStepResult {
+            "content": [
+              {
+                "providerMetadata": undefined,
+                "text": "HELLO, WORLD!",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "input": {
+                  "value": "VALUE",
+                },
+                "output": "VALUE-RESULT",
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "finishReason": "stop",
+            "providerMetadata": {
+              "testProvider": {
+                "testKey": "TEST VALUE",
+              },
+            },
+            "request": {},
+            "response": {
+              "headers": {
+                "call": "2",
+              },
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "HELLO, WORLD!",
+                      "type": "text",
+                    },
+                    {
+                      "input": {
+                        "value": "VALUE",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "VALUE-RESULT",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          }
+        `);
       });
 
       it('telemetry should record transformed data when enabled', async () => {
@@ -4838,16 +9543,17 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: 'Hello' },
-              { type: 'text', text: ', ' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                input: `{ "value": "value" }`,
               },
-              { type: 'text', text: `world!` },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4860,7 +9566,7 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: tool({
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async ({ value }) => `${value}-result`,
             }),
           },
@@ -4885,9 +9591,10 @@ describe('streamText', () => {
                 | 'reasoning'
                 | 'source'
                 | 'tool-call'
-                | 'tool-call-streaming-start'
-                | 'tool-call-delta'
-                | 'tool-result';
+                | 'tool-input-start'
+                | 'tool-input-delta'
+                | 'tool-result'
+                | 'raw';
             }
           >
         > = [];
@@ -4895,41 +9602,24 @@ describe('streamText', () => {
         const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello' },
-              {
-                type: 'reasoning',
-                reasoningType: 'text',
-                text: 'Feeling clever',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallId: '1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: '{"value": "',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallId: '1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: 'test',
-              },
-              {
-                type: 'tool-call-delta',
-                toolCallId: '1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: '"}',
-              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'reasoning-start', id: '2' },
+              { type: 'reasoning-delta', id: '2', delta: 'Feeling clever' },
+              { type: 'reasoning-end', id: '2' },
+              { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+              { type: 'tool-input-delta', id: 'call-1', delta: '{"value": "' },
+              { type: 'tool-input-delta', id: 'call-1', delta: 'test' },
+              { type: 'tool-input-delta', id: 'call-1', delta: '"}' },
+              { type: 'tool-input-end', id: 'call-1' },
               {
                 type: 'tool-call',
-                toolCallId: '1',
-                toolCallType: 'function',
+                toolCallId: 'call-1',
                 toolName: 'tool1',
-                args: `{ "value": "test" }`,
+                input: `{ "value": "test" }`,
               },
-              { type: 'text', text: ' World' },
+              { type: 'text-delta', id: '1', delta: ' World' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4939,12 +9629,11 @@ describe('streamText', () => {
           }),
           tools: {
             tool1: {
-              parameters: z.object({ value: z.string() }),
+              inputSchema: z.object({ value: z.string() }),
               execute: async ({ value }) => `${value}-result`,
             },
           },
           prompt: 'test-input',
-          toolCallStreaming: true,
           onChunk(event) {
             result.push(event.chunk);
           },
@@ -4956,55 +9645,59 @@ describe('streamText', () => {
         expect(result).toMatchInlineSnapshot(`
           [
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": "HELLO",
               "type": "text",
             },
             {
-              "reasoningType": "text",
-              "text": "Feeling clever",
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": "FEELING CLEVER",
               "type": "reasoning",
             },
             {
-              "toolCallId": "1",
+              "id": "call-1",
               "toolName": "tool1",
-              "type": "tool-call-streaming-start",
+              "type": "tool-input-start",
             },
             {
-              "argsTextDelta": "{"VALUE": "",
-              "toolCallId": "1",
-              "toolName": "tool1",
-              "type": "tool-call-delta",
+              "delta": "{"VALUE": "",
+              "id": "call-1",
+              "type": "tool-input-delta",
             },
             {
-              "argsTextDelta": "TEST",
-              "toolCallId": "1",
-              "toolName": "tool1",
-              "type": "tool-call-delta",
+              "delta": "TEST",
+              "id": "call-1",
+              "type": "tool-input-delta",
             },
             {
-              "argsTextDelta": ""}",
-              "toolCallId": "1",
-              "toolName": "tool1",
-              "type": "tool-call-delta",
+              "delta": ""}",
+              "id": "call-1",
+              "type": "tool-input-delta",
             },
             {
-              "args": {
+              "input": {
                 "value": "TEST",
               },
-              "toolCallId": "1",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
             },
             {
-              "args": {
+              "input": {
                 "value": "TEST",
               },
-              "result": "TEST-RESULT",
-              "toolCallId": "1",
+              "output": "TEST-RESULT",
+              "providerExecuted": undefined,
+              "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
               "text": " WORLD",
               "type": "text",
             },
@@ -5123,9 +9816,11 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'STOP' },
-              { type: 'text', text: ' World' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'STOP' },
+              { type: 'text-delta', id: '1', delta: ' World' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5145,49 +9840,55 @@ describe('streamText', () => {
 
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello, ",
+              "type": "text",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "id": "response-id",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
               },
-              {
-                "text": "Hello, ",
-                "type": "text",
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
               },
-              {
-                "finishReason": "stop",
-                "providerMetadata": undefined,
-                "response": {
-                  "id": "response-id",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "finish-step",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "reasoningTokens": undefined,
-                  "totalTokens": undefined,
-                },
-              },
-              {
-                "finishReason": "stop",
-                "totalUsage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "reasoningTokens": undefined,
-                  "totalTokens": undefined,
-                },
-                "type": "finish",
-              },
-            ]
-          `);
+              "type": "finish",
+            },
+          ]
+        `);
       });
 
       it('options.onStepFinish should be called', async () => {
@@ -5198,9 +9899,11 @@ describe('streamText', () => {
         const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: 'STOP' },
-              { type: 'text', text: ' World' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'STOP' },
+              { type: 'text-delta', id: '1', delta: ' World' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5217,7 +9920,45 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        expect(result).toMatchSnapshot();
+        expect(result).toMatchInlineSnapshot(`
+          DefaultStepResult {
+            "content": [
+              {
+                "providerMetadata": undefined,
+                "text": "Hello, ",
+                "type": "text",
+              },
+            ],
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "id": "response-id",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "Hello, ",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
+            },
+            "warnings": [],
+          }
+        `);
       });
     });
   });
@@ -5228,12 +9969,14 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5257,9 +10000,11 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello, ' },
-              { type: 'text', text: ',' },
-              { type: 'text', text: ' world!' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: ',' },
+              { type: 'text-delta', id: '1', delta: ' world!' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5289,12 +10034,14 @@ describe('streamText', () => {
               callOptions = args;
               return {
                 stream: convertArrayToReadableStream([
-                  { type: 'text', text: '{ ' },
-                  { type: 'text', text: '"value": ' },
-                  { type: 'text', text: `"Hello, ` },
-                  { type: 'text', text: `world` },
-                  { type: 'text', text: `!"` },
-                  { type: 'text', text: ' }' },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: '{ ' },
+                  { type: 'text-delta', id: '1', delta: '"value": ' },
+                  { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                  { type: 'text-delta', id: '1', delta: `world` },
+                  { type: 'text-delta', id: '1', delta: `!"` },
+                  { type: 'text-delta', id: '1', delta: ' }' },
+                  { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -5317,6 +10064,7 @@ describe('streamText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": undefined,
+            "includeRawChunks": false,
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,
             "prompt": [
@@ -5363,12 +10111,14 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5398,12 +10148,14 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5433,10 +10185,12 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world!" }` },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world!" }` },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5461,11 +10215,13 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world!" ` },
-              { type: 'text', text: '}' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world!" ` },
+              { type: 'text-delta', id: '1', delta: '}' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5492,11 +10248,13 @@ describe('streamText', () => {
         const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"value": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world!" ` },
-              { type: 'text', text: '}' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world!" ` },
+              { type: 'text-delta', id: '1', delta: '}' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -5521,7 +10279,729 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        expect(result).toMatchSnapshot();
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "providerMetadata": undefined,
+                "text": "{ "value": "Hello, world!" }",
+                "type": "text",
+              },
+            ],
+            "files": [],
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "reasoning": [],
+            "reasoningText": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerMetadata": undefined,
+                      "text": "{ "value": "Hello, world!" }",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "sources": [],
+            "steps": [
+              DefaultStepResult {
+                "content": [
+                  {
+                    "providerMetadata": undefined,
+                    "text": "{ "value": "Hello, world!" }",
+                    "type": "text",
+                  },
+                ],
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "request": {},
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "messages": [
+                    {
+                      "content": [
+                        {
+                          "providerMetadata": undefined,
+                          "text": "{ "value": "Hello, world!" }",
+                          "type": "text",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                  ],
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "warnings": [],
+              },
+            ],
+            "text": "{ "value": "Hello, world!" }",
+            "toolCalls": [],
+            "toolResults": [],
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          }
+        `);
+      });
+    });
+  });
+
+  describe('options.activeTools', () => {
+    it('should filter available tools to only the ones in activeTools', async () => {
+      let tools:
+        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async ({ tools: toolsArg }) => {
+            tools = toolsArg;
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+          tool2: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result2',
+          },
+        },
+        prompt: 'test-input',
+        activeTools: ['tool1'],
+      });
+
+      await result.consumeStream();
+
+      expect(tools).toMatchInlineSnapshot(`
+        [
+          {
+            "description": undefined,
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "name": "tool1",
+            "type": "function",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('raw chunks forwarding', () => {
+    it('should forward raw chunks when includeRawChunks is enabled', async () => {
+      const modelWithRawChunks = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'raw',
+            rawValue: {
+              type: 'raw-data',
+              content: 'should appear',
+            },
+          },
+          {
+            type: 'response-metadata',
+            id: 'test-id',
+            modelId: 'test-model',
+            timestamp: new Date(0),
+          },
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "rawValue": {
+                "content": "should appear",
+                "type": "raw-data",
+              },
+              "type": "raw",
+            },
+          ]
+        `);
+    });
+
+    it('should not forward raw chunks when includeRawChunks is disabled', async () => {
+      const modelWithRawChunks = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'raw',
+            rawValue: {
+              type: 'raw-data',
+              content: 'should not appear',
+            },
+          },
+          {
+            type: 'response-metadata',
+            id: 'test-id',
+            modelId: 'test-model',
+            timestamp: new Date(0),
+          },
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should pass through the includeRawChunks flag correctly to the model', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV2({
+        doStream: async options => {
+          capturedOptions = options;
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'finish', finishReason: 'stop', usage: testUsage },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(true);
+    });
+
+    it('should call onChunk with raw chunks when includeRawChunks is enabled', async () => {
+      const onChunkCalls: Array<any> = [];
+
+      const modelWithRawChunks = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'raw',
+            rawValue: { type: 'stream-start', data: 'start' },
+          },
+          {
+            type: 'raw',
+            rawValue: {
+              type: 'response-metadata',
+              id: 'test-id',
+              modelId: 'test-model',
+            },
+          },
+          {
+            type: 'raw',
+            rawValue: { type: 'text-delta', content: 'Hello' },
+          },
+          {
+            type: 'raw',
+            rawValue: { type: 'text-delta', content: ', world!' },
+          },
+          {
+            type: 'raw',
+            rawValue: { type: 'finish', reason: 'stop' },
+          },
+          {
+            type: 'response-metadata',
+            id: 'test-id',
+            modelId: 'test-model',
+            timestamp: new Date(0),
+          },
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model: modelWithRawChunks,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+        onChunk({ chunk }) {
+          onChunkCalls.push(chunk);
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(onChunkCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "data": "start",
+              "type": "stream-start",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "id": "test-id",
+              "modelId": "test-model",
+              "type": "response-metadata",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "content": "Hello",
+              "type": "text-delta",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "content": ", world!",
+              "type": "text-delta",
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "reason": "stop",
+              "type": "finish",
+            },
+            "type": "raw",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should pass includeRawChunks flag correctly to the model', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV2({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'test-id',
+                modelId: 'test-model',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(true);
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: false,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
+    });
+  });
+
+  describe('mixed multi content streaming with interleaving parts', () => {
+    describe('mixed text and reasoning blocks', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'reasoning-start', id: '0' },
+              { type: 'text-start', id: '1' },
+              { type: 'reasoning-delta', id: '0', delta: 'Thinking...' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', id: '2', delta: `This ` },
+              { type: 'text-delta', id: '2', delta: `is ` },
+              { type: 'reasoning-start', id: '3' },
+              { type: 'reasoning-delta', id: '0', delta: `I'm thinking...` },
+              { type: 'reasoning-delta', id: '3', delta: `Separate thoughts` },
+              { type: 'text-delta', id: '2', delta: `a` },
+              { type: 'text-delta', id: '1', delta: `world!` },
+              { type: 'reasoning-end', id: '0' },
+              { type: 'text-delta', id: '2', delta: ` test.` },
+              { type: 'text-end', id: '2' },
+              { type: 'reasoning-end', id: '3' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            currentDate: mockValues(new Date(2000)),
+            generateId: mockId(),
+          },
+        });
+      });
+
+      it('should return the full stream with the correct parts', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "0",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "0",
+              "providerMetadata": undefined,
+              "text": "Thinking...",
+              "type": "reasoning",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": ", ",
+              "type": "text",
+            },
+            {
+              "id": "2",
+              "type": "text-start",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": "This ",
+              "type": "text",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": "is ",
+              "type": "text",
+            },
+            {
+              "id": "3",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "0",
+              "providerMetadata": undefined,
+              "text": "I'm thinking...",
+              "type": "reasoning",
+            },
+            {
+              "id": "3",
+              "providerMetadata": undefined,
+              "text": "Separate thoughts",
+              "type": "reasoning",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": "a",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "world!",
+              "type": "text",
+            },
+            {
+              "id": "0",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "text": " test.",
+              "type": "text",
+            },
+            {
+              "id": "2",
+              "type": "text-end",
+            },
+            {
+              "id": "3",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+      });
+
+      it('should return the content parts in the correct order', async () => {
+        await result.consumeStream();
+
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "Thinking...I'm thinking...",
+              "type": "reasoning",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Hello, world!",
+              "type": "text",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "This is a test.",
+              "type": "text",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Separate thoughts",
+              "type": "reasoning",
+            },
+          ]
+        `);
+      });
+
+      it('should return the step content parts in the correct order', async () => {
+        await result.consumeStream();
+
+        expect(await result.steps).toMatchInlineSnapshot(`
+          [
+            DefaultStepResult {
+              "content": [
+                {
+                  "providerMetadata": undefined,
+                  "text": "Thinking...I'm thinking...",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "This is a test.",
+                  "type": "text",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "text": "Separate thoughts",
+                  "type": "reasoning",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "Thinking...I'm thinking...",
+                        "type": "reasoning",
+                      },
+                      {
+                        "providerMetadata": undefined,
+                        "text": "Hello, world!",
+                        "type": "text",
+                      },
+                      {
+                        "providerMetadata": undefined,
+                        "text": "This is a test.",
+                        "type": "text",
+                      },
+                      {
+                        "providerOptions": undefined,
+                        "text": "Separate thoughts",
+                        "type": "reasoning",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:02.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ]
+        `);
       });
     });
   });

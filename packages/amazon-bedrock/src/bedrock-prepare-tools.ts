@@ -38,7 +38,7 @@ export function prepareTools({
           name: tool.name,
           description: tool.description,
           inputSchema: {
-            json: tool.parameters as JSONObject,
+            json: tool.inputSchema as JSONObject,
           },
         },
       });

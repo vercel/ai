@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { MappedTool, Tool, ToolParameters } from '../tool';
+import { z } from 'zod/v4';
 import { JSONObject } from '@ai-sdk/provider';
+import { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
 export const LATEST_PROTOCOL_VERSION = '2024-11-05';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
@@ -9,19 +9,26 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
 ];
 
 export type ToolSchemas =
-  | Record<string, { parameters: ToolParameters<JSONObject | unknown> }>
+  | Record<string, { inputSchema: FlexibleSchema<JSONObject | unknown> }>
   | 'automatic'
   | undefined;
 
+type MappedTool<T extends Tool | JSONObject, OUTPUT extends any> =
+  T extends Tool<infer INPUT>
+    ? Tool<INPUT, OUTPUT>
+    : T extends JSONObject
+      ? Tool<T, OUTPUT>
+      : never;
+
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
-  TOOL_SCHEMAS extends Record<string, { parameters: ToolParameters<any> }>
+  TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<unknown> }>
     ? {
         [K in keyof TOOL_SCHEMAS]: MappedTool<TOOL_SCHEMAS[K], CallToolResult> &
           Required<
             Pick<MappedTool<TOOL_SCHEMAS[K], CallToolResult>, 'execute'>
           >;
       }
-    : McpToolSet<Record<string, { parameters: ToolParameters<unknown> }>>;
+    : McpToolSet<Record<string, { inputSchema: FlexibleSchema<unknown> }>>;
 
 const ClientOrServerImplementationSchema = z
   .object({

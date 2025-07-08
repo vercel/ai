@@ -5,7 +5,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   NoObjectGeneratedError,
   verifyNoObjectGeneratedError,
@@ -16,6 +16,11 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+import {
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
 
 const testUsage = {
   inputTokens: 3,
@@ -25,27 +30,51 @@ const testUsage = {
   cachedInputTokens: undefined,
 };
 
+function createTestModel({
+  warnings = [],
+  stream = convertArrayToReadableStream([
+    {
+      type: 'stream-start',
+      warnings,
+    },
+    {
+      type: 'response-metadata',
+      id: 'id-0',
+      modelId: 'mock-model-id',
+      timestamp: new Date(0),
+    },
+    { type: 'text-start', id: '1' },
+    { type: 'text-delta', id: '1', delta: '{ ' },
+    { type: 'text-delta', id: '1', delta: '"content": ' },
+    { type: 'text-delta', id: '1', delta: `"Hello, ` },
+    { type: 'text-delta', id: '1', delta: `world` },
+    { type: 'text-delta', id: '1', delta: `!"` },
+    { type: 'text-delta', id: '1', delta: ' }' },
+    { type: 'text-end', id: '1' },
+    {
+      type: 'finish',
+      finishReason: 'stop',
+      usage: testUsage,
+    },
+  ]),
+  request = undefined,
+  response = undefined,
+}: {
+  stream?: ReadableStream<LanguageModelV2StreamPart>;
+  request?: { body: string };
+  response?: { headers: Record<string, string> };
+  warnings?: LanguageModelV2CallWarning[];
+} = {}) {
+  return new MockLanguageModelV2({
+    doStream: async () => ({ stream, request, response, warnings }),
+  });
+}
+
 describe('streamObject', () => {
   describe('output = "object"', () => {
     describe('result.objectStream', () => {
       it('should send object deltas', async () => {
-        const mockModel = new MockLanguageModelV2({
-          doStream: {
-            stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"content": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: testUsage,
-              },
-            ]),
-          },
-        });
+        const mockModel = createTestModel();
 
         const result = streamObject({
           model: mockModel,
@@ -93,23 +122,7 @@ describe('streamObject', () => {
       });
 
       it('should use name and description', async () => {
-        const model = new MockLanguageModelV2({
-          doStream: {
-            stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"content": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: testUsage,
-              },
-            ]),
-          },
-        });
+        const model = createTestModel();
 
         const result = streamObject({
           model,
@@ -179,6 +192,7 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
+          onError: () => {},
         });
 
         expect(
@@ -212,29 +226,7 @@ describe('streamObject', () => {
     describe('result.fullStream', () => {
       it('should send full stream data', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"content": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            }),
-          }),
+          model: createTestModel(),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
         });
@@ -248,23 +240,7 @@ describe('streamObject', () => {
     describe('result.textStream', () => {
       it('should send text stream', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"content": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            }),
-          }),
+          model: createTestModel(),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
         });
@@ -279,23 +255,7 @@ describe('streamObject', () => {
     describe('result.toTextStreamResponse', () => {
       it('should create a Response with a text stream', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"content": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            }),
-          }),
+          model: createTestModel(),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
         });
@@ -322,23 +282,7 @@ describe('streamObject', () => {
         const mockResponse = createMockServerResponse();
 
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"content": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            }),
-          }),
+          model: createTestModel(),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
         });
@@ -368,20 +312,17 @@ describe('streamObject', () => {
     describe('result.usage', () => {
       it('should resolve with token usage', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'text',
-                  text: '{ "content": "Hello, world!" }',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            }),
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              { type: 'finish', finishReason: 'stop', usage: testUsage },
+            ]),
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
@@ -405,23 +346,24 @@ describe('streamObject', () => {
     describe('result.providerMetadata', () => {
       it('should resolve with provider metadata', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'text',
-                  text: '{ "content": "Hello, world!" }',
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
                 },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                  providerMetadata: {
-                    testProvider: { testKey: 'testValue' },
-                  },
-                },
-              ]),
-            }),
+              },
+            ]),
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
@@ -439,27 +381,28 @@ describe('streamObject', () => {
     describe('result.response', () => {
       it('should resolve with response information', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                {
-                  type: 'text',
-                  text: '{"content": "Hello, world!"}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-              response: { headers: { call: '2' } },
-            }),
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{"content": "Hello, world!"}',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+            response: { headers: { call: '2' } },
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
@@ -489,10 +432,13 @@ describe('streamObject', () => {
                   modelId: 'mock-model-id',
                   timestamp: new Date(0),
                 },
+                { type: 'text-start', id: '1' },
                 {
-                  type: 'text',
-                  text: '{"content": "Hello, world!"}',
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{"content": "Hello, world!"}',
                 },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -521,12 +467,14 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"content": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"content": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -552,12 +500,14 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"invalid": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"invalid": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -581,12 +531,14 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"invalid": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"invalid": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -622,10 +574,13 @@ describe('streamObject', () => {
                   modelId: 'mock-model-id',
                   timestamp: new Date(0),
                 },
+                { type: 'text-start', id: '1' },
                 {
-                  type: 'text',
-                  text: '{ "content": "Hello, world!" }',
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
                 },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -665,12 +620,14 @@ describe('streamObject', () => {
                   modelId: 'mock-model-id',
                   timestamp: new Date(0),
                 },
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"invalid": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"invalid": ' },
+                { type: 'text-delta', id: '1', delta: `"Hello, ` },
+                { type: 'text-delta', id: '1', delta: `world` },
+                { type: 'text-delta', id: '1', delta: `!"` },
+                { type: 'text-delta', id: '1', delta: ' }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -707,10 +664,13 @@ describe('streamObject', () => {
 
               return {
                 stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
                   {
-                    type: 'text',
-                    text: `{ "content": "headers test" }`,
+                    type: 'text-delta',
+                    id: '1',
+                    delta: `{ "content": "headers test" }`,
                   },
+                  { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -742,10 +702,13 @@ describe('streamObject', () => {
 
               return {
                 stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
                   {
-                    type: 'text',
-                    text: `{ "content": "provider metadata test" }`,
+                    type: 'text-delta',
+                    id: '1',
+                    delta: `{ "content": "provider metadata test" }`,
                   },
+                  { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -770,23 +733,8 @@ describe('streamObject', () => {
 
     describe('custom schema', () => {
       it('should send object deltas', async () => {
-        const mockModel = new MockLanguageModelV2({
-          doStream: {
-            stream: convertArrayToReadableStream([
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"content": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: testUsage,
-              },
-            ]),
-          },
-        });
+        const mockModel = createTestModel();
+
         const result = streamObject({
           model: mockModel,
           schema: jsonSchema({
@@ -843,7 +791,9 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ "content": 123 }' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ "content": 123 }' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'response-metadata',
                   id: 'id-1',
@@ -885,7 +835,9 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ broken json' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ broken json' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'response-metadata',
                   id: 'id-1',
@@ -979,36 +931,36 @@ describe('streamObject', () => {
 
       beforeEach(async () => {
         result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: {
-              stream: convertArrayToReadableStream([
-                { type: 'text', text: '{"elements":[' },
-                // first element:
-                { type: 'text', text: '{' },
-                { type: 'text', text: '"content":' },
-                { type: 'text', text: `"element 1"` },
-                { type: 'text', text: '},' },
-                // second element:
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"content": ' },
-                { type: 'text', text: `"element 2"` },
-                { type: 'text', text: '},' },
-                // third element:
-                { type: 'text', text: '{' },
-                { type: 'text', text: '"content":' },
-                { type: 'text', text: `"element 3"` },
-                { type: 'text', text: '}' },
-                // end of array
-                { type: 'text', text: ']' },
-                { type: 'text', text: '}' },
-                // finish
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            },
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{"elements":[' },
+              // first element:
+              { type: 'text-delta', id: '1', delta: '{' },
+              { type: 'text-delta', id: '1', delta: '"content":' },
+              { type: 'text-delta', id: '1', delta: `"element 1"` },
+              { type: 'text-delta', id: '1', delta: '},' },
+              // second element:
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"content": ' },
+              { type: 'text-delta', id: '1', delta: `"element 2"` },
+              { type: 'text-delta', id: '1', delta: '},' },
+              // third element:
+              { type: 'text-delta', id: '1', delta: '{' },
+              { type: 'text-delta', id: '1', delta: '"content":' },
+              { type: 'text-delta', id: '1', delta: `"element 3"` },
+              { type: 'text-delta', id: '1', delta: '}' },
+              // end of array
+              { type: 'text-delta', id: '1', delta: ']' },
+              { type: 'text-delta', id: '1', delta: '}' },
+              { type: 'text-end', id: '1' },
+              // finish
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
           }),
           schema: z.object({ content: z.string() }),
           output: 'array',
@@ -1091,20 +1043,28 @@ describe('streamObject', () => {
 
       beforeEach(async () => {
         result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'text',
-                  text: '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
-                },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            },
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'text-start',
+                id: '1',
+              },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta:
+                  '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
+              },
+              {
+                type: 'text-end',
+                id: '1',
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
           }),
           schema: z.object({ content: z.string() }),
           output: 'array',
@@ -1157,22 +1117,18 @@ describe('streamObject', () => {
 
   describe('output = "enum"', () => {
     it('should stream an enum value', async () => {
-      const mockModel = new MockLanguageModelV2({
-        doStream: {
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: '{ ' },
-            { type: 'text', text: '"result": ' },
-            { type: 'text', text: `"su` },
-            { type: 'text', text: `nny` },
-            { type: 'text', text: `"` },
-            { type: 'text', text: ' }' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        },
+      const mockModel = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"result": ' },
+          { type: 'text-delta', id: '1', delta: `"su` },
+          { type: 'text-delta', id: '1', delta: `nny` },
+          { type: 'text-delta', id: '1', delta: `"` },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          { type: 'text-end', id: '1' },
+          { type: 'finish', finishReason: 'stop', usage: testUsage },
+        ]),
       });
 
       const result = streamObject({
@@ -1220,12 +1176,14 @@ describe('streamObject', () => {
       const mockModel = new MockLanguageModelV2({
         doStream: {
           stream: convertArrayToReadableStream([
-            { type: 'text', text: '{ ' },
-            { type: 'text', text: '"result": ' },
-            { type: 'text', text: `"foo` },
-            { type: 'text', text: `bar` },
-            { type: 'text', text: `"` },
-            { type: 'text', text: ' }' },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"foo` },
+            { type: 'text-delta', id: '1', delta: `bar` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1248,22 +1206,21 @@ describe('streamObject', () => {
     });
 
     it('should handle ambiguous values', async () => {
-      const mockModel = new MockLanguageModelV2({
-        doStream: {
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: '{ ' },
-            { type: 'text', text: '"result": ' },
-            { type: 'text', text: `"foo` },
-            { type: 'text', text: `bar` },
-            { type: 'text', text: `"` },
-            { type: 'text', text: ' }' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        },
+      const mockModel = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"result": ' },
+          { type: 'text-delta', id: '1', delta: `"foo` },
+          { type: 'text-delta', id: '1', delta: `bar` },
+          { type: 'text-delta', id: '1', delta: `"` },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
       });
 
       const result = streamObject({
@@ -1283,22 +1240,22 @@ describe('streamObject', () => {
     });
 
     it('should handle non-ambiguous values', async () => {
-      const mockModel = new MockLanguageModelV2({
-        doStream: {
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: '{ ' },
-            { type: 'text', text: '"result": ' },
-            { type: 'text', text: `"foo` },
-            { type: 'text', text: `bar` },
-            { type: 'text', text: `"` },
-            { type: 'text', text: ' }' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        },
+      const mockModel = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"result": ' },
+          { type: 'text-delta', id: '1', delta: `"foo` },
+          { type: 'text-delta', id: '1', delta: `bar` },
+          { type: 'text-delta', id: '1', delta: `"` },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
       });
 
       const result = streamObject({
@@ -1319,22 +1276,22 @@ describe('streamObject', () => {
 
   describe('output = "no-schema"', () => {
     it('should send object deltas', async () => {
-      const mockModel = new MockLanguageModelV2({
-        doStream: {
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: '{ ' },
-            { type: 'text', text: '"content": ' },
-            { type: 'text', text: `"Hello, ` },
-            { type: 'text', text: `world` },
-            { type: 'text', text: `!"` },
-            { type: 'text', text: ' }' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        },
+      const mockModel = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"content": ' },
+          { type: 'text-delta', id: '1', delta: `"Hello, ` },
+          { type: 'text-delta', id: '1', delta: `world` },
+          { type: 'text-delta', id: '1', delta: `!"` },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]),
       });
 
       const result = streamObject({
@@ -1388,12 +1345,14 @@ describe('streamObject', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"content": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"content": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -1415,28 +1374,28 @@ describe('streamObject', () => {
 
     it('should record telemetry data when enabled', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV2({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"content": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                usage: testUsage,
-              },
-            ]),
-          }),
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"content": ' },
+            { type: 'text-delta', id: '1', delta: `"Hello, ` },
+            { type: 'text-delta', id: '1', delta: `world` },
+            { type: 'text-delta', id: '1', delta: `!"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
         }),
         schema: z.object({ content: z.string() }),
         schemaName: 'test-name',
@@ -1480,12 +1439,14 @@ describe('streamObject', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text', text: '{ ' },
-              { type: 'text', text: '"content": ' },
-              { type: 'text', text: `"Hello, ` },
-              { type: 'text', text: `world` },
-              { type: 'text', text: `!"` },
-              { type: 'text', text: ' }' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"content": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -1530,15 +1491,14 @@ describe('streamObject', () => {
             },
             doStream: async () => ({
               stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
                 {
-                  type: 'text',
-                  text: '{ "content": "Hello, world!" }',
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
                 },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
+                { type: 'text-end', id: '1' },
+                { type: 'finish', finishReason: 'stop', usage: testUsage },
               ]),
             }),
           });

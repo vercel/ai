@@ -1,128 +1,156 @@
 import {
   StandardSchemaV1,
+  ToolCall,
   validateTypes,
   Validator,
 } from '@ai-sdk/provider-utils';
 import {
+  InferUIMessageStreamPart,
   isDataUIMessageStreamPart,
   UIMessageStreamPart,
 } from '../ui-message-stream/ui-message-stream-parts';
+import { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
-import { InferUIDataParts, UIDataPartSchemas } from './chat-store';
-import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
-import { getToolInvocations } from './get-tool-invocations';
-import type {
+import { UIDataTypesToSchemas } from './chat';
+import {
+  getToolName,
+  InferUIMessageData,
+  InferUIMessageMetadata,
+  InferUIMessageTools,
+  isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
-  ToolInvocation,
-  ToolInvocationUIPart,
+  ToolUIPart,
   UIMessage,
   UIMessagePart,
 } from './ui-messages';
-import { UseChatOptions } from './use-chat';
 
-export type StreamingUIMessageState<
-  MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
-> = {
-  message: UIMessage<MESSAGE_METADATA, InferUIDataParts<UI_DATA_PART_SCHEMAS>>;
-  activeTextPart: TextUIPart | undefined;
-  activeReasoningPart: ReasoningUIPart | undefined;
+export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
+  message: UI_MESSAGE;
+  activeTextParts: Record<string, TextUIPart>;
+  activeReasoningParts: Record<string, ReasoningUIPart>;
   partialToolCalls: Record<
     string,
-    { text: string; step: number; index: number; toolName: string }
+    { text: string; index: number; toolName: string }
   >;
-  step: number;
 };
 
-export function createStreamingUIMessageState<
-  MESSAGE_METADATA = unknown,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas = UIDataPartSchemas,
->({
+export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
-  newMessageId = 'no-id',
+  messageId,
 }: {
-  lastMessage?: UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  >;
-  newMessageId?: string;
-} = {}): StreamingUIMessageState<MESSAGE_METADATA, UI_DATA_PART_SCHEMAS> {
-  const isContinuation = lastMessage?.role === 'assistant';
-
-  const step = isContinuation
-    ? 1 + (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0)
-    : 0;
-
-  const message: UIMessage<
-    MESSAGE_METADATA,
-    InferUIDataParts<UI_DATA_PART_SCHEMAS>
-  > = isContinuation
-    ? structuredClone(lastMessage)
-    : {
-        id: newMessageId,
-        metadata: {} as MESSAGE_METADATA,
-        role: 'assistant',
-        parts: [],
-      };
-
+  lastMessage: UI_MESSAGE | undefined;
+  messageId: string;
+}): StreamingUIMessageState<UI_MESSAGE> {
   return {
-    message,
-    activeTextPart: undefined,
-    activeReasoningPart: undefined,
+    message:
+      lastMessage?.role === 'assistant'
+        ? lastMessage
+        : ({
+            id: messageId,
+            metadata: undefined,
+            role: 'assistant',
+            parts: [] as UIMessagePart<
+              InferUIMessageData<UI_MESSAGE>,
+              InferUIMessageTools<UI_MESSAGE>
+            >[],
+          } as UI_MESSAGE),
+    activeTextParts: {},
+    activeReasoningParts: {},
     partialToolCalls: {},
-    step,
   };
 }
 
-export function processUIMessageStream<
-  MESSAGE_METADATA,
-  UI_DATA_PART_SCHEMAS extends UIDataPartSchemas,
->({
+export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   stream,
   onToolCall,
   messageMetadataSchema,
   dataPartSchemas,
   runUpdateMessageJob,
+  onError,
 }: {
+  // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageStreamPart>;
   messageMetadataSchema?:
-    | Validator<MESSAGE_METADATA>
-    | StandardSchemaV1<MESSAGE_METADATA>;
-  dataPartSchemas?: UI_DATA_PART_SCHEMAS;
-  onToolCall?: UseChatOptions['onToolCall'];
+    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
+    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
+  dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
+  onToolCall?: (options: {
+    toolCall: ToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
   runUpdateMessageJob: (
     job: (options: {
-      state: StreamingUIMessageState<
-        NoInfer<MESSAGE_METADATA>,
-        NoInfer<UI_DATA_PART_SCHEMAS>
-      >;
+      state: StreamingUIMessageState<UI_MESSAGE>;
       write: () => void;
     }) => Promise<void>,
   ) => Promise<void>;
-}): ReadableStream<UIMessageStreamPart> {
+  onError: ErrorHandler;
+}): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>> {
   return stream.pipeThrough(
-    new TransformStream<UIMessageStreamPart, UIMessageStreamPart>({
+    new TransformStream<
+      UIMessageStreamPart,
+      InferUIMessageStreamPart<UI_MESSAGE>
+    >({
       async transform(part, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function updateToolInvocationPart(
-            toolCallId: string,
-            invocation: ToolInvocation,
+            options: {
+              toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
+              toolCallId: string;
+              providerExecuted?: boolean;
+            } & (
+              | {
+                  state: 'input-streaming';
+                  input: unknown;
+                  providerExecuted?: boolean;
+                }
+              | {
+                  state: 'input-available';
+                  input: unknown;
+                  providerExecuted?: boolean;
+                }
+              | {
+                  state: 'output-available';
+                  input: unknown;
+                  output: unknown;
+                  providerExecuted?: boolean;
+                }
+              | {
+                  state: 'output-error';
+                  input: unknown;
+                  errorText: string;
+                  providerExecuted?: boolean;
+                }
+            ),
           ) {
             const part = state.message.parts.find(
               part =>
-                isToolInvocationUIPart(part) &&
-                part.toolInvocation.toolCallId === toolCallId,
-            ) as ToolInvocationUIPart | undefined;
+                isToolUIPart(part) && part.toolCallId === options.toolCallId,
+            ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
+
+            const anyOptions = options as any;
+            const anyPart = part as any;
 
             if (part != null) {
-              part.toolInvocation = invocation;
+              part.state = options.state;
+              anyPart.input = anyOptions.input;
+              anyPart.output = anyOptions.output;
+              anyPart.errorText = anyOptions.errorText;
+
+              // once providerExecuted is set, it stays for streaming
+              anyPart.providerExecuted =
+                anyOptions.providerExecuted ?? part.providerExecuted;
             } else {
               state.message.parts.push({
-                type: 'tool-invocation',
-                toolInvocation: invocation,
-              });
+                type: `tool-${options.toolName}`,
+                toolCallId: options.toolCallId,
+                state: options.state,
+                input: anyOptions.input,
+                output: anyOptions.output,
+                errorText: anyOptions.errorText,
+                providerExecuted: anyOptions.providerExecuted,
+              } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
 
@@ -140,48 +168,68 @@ export function processUIMessageStream<
                 });
               }
 
-              state.message.metadata = mergedMetadata as MESSAGE_METADATA;
+              state.message.metadata =
+                mergedMetadata as InferUIMessageMetadata<UI_MESSAGE>;
             }
           }
 
           switch (part.type) {
-            case 'text': {
-              if (state.activeTextPart == null) {
-                state.activeTextPart = {
-                  type: 'text',
-                  text: part.text,
-                };
-                state.message.parts.push(state.activeTextPart);
-              } else {
-                state.activeTextPart.text += part.text;
-              }
-
+            case 'text-start': {
+              const textPart: TextUIPart = {
+                type: 'text',
+                text: '',
+                state: 'streaming',
+              };
+              state.activeTextParts[part.id] = textPart;
+              state.message.parts.push(textPart);
               write();
               break;
             }
 
-            case 'reasoning': {
-              if (state.activeReasoningPart == null) {
-                state.activeReasoningPart = {
-                  type: 'reasoning',
-                  text: part.text,
-                  providerMetadata: part.providerMetadata,
-                };
-                state.message.parts.push(state.activeReasoningPart);
-              } else {
-                state.activeReasoningPart.text += part.text;
-                state.activeReasoningPart.providerMetadata =
-                  part.providerMetadata;
-              }
-
+            case 'text-delta': {
+              state.activeTextParts[part.id].text += part.delta;
               write();
               break;
             }
 
-            case 'reasoning-part-finish': {
-              if (state.activeReasoningPart != null) {
-                state.activeReasoningPart = undefined;
-              }
+            case 'text-end': {
+              const textPart = state.activeTextParts[part.id];
+              textPart.state = 'done';
+              delete state.activeTextParts[part.id];
+              write();
+              break;
+            }
+
+            case 'reasoning-start': {
+              const reasoningPart: ReasoningUIPart = {
+                type: 'reasoning',
+                text: '',
+                providerMetadata: part.providerMetadata,
+                state: 'streaming',
+              };
+              state.activeReasoningParts[part.id] = reasoningPart;
+              state.message.parts.push(reasoningPart);
+              write();
+              break;
+            }
+
+            case 'reasoning-delta': {
+              const reasoningPart = state.activeReasoningParts[part.id];
+              reasoningPart.text += part.delta;
+              reasoningPart.providerMetadata =
+                part.providerMetadata ?? reasoningPart.providerMetadata;
+              write();
+              break;
+            }
+
+            case 'reasoning-end': {
+              const reasoningPart = state.activeReasoningParts[part.id];
+              reasoningPart.providerMetadata =
+                part.providerMetadata ?? reasoningPart.providerMetadata;
+              reasoningPart.state = 'done';
+              delete state.activeReasoningParts[part.id];
+
+              write();
               break;
             }
 
@@ -209,77 +257,89 @@ export function processUIMessageStream<
               break;
             }
 
-            case 'tool-call-streaming-start': {
-              const toolInvocations = getToolInvocations(state.message);
-
-              // add the partial tool call to the map
-              state.partialToolCalls[part.toolCallId] = {
-                text: '',
-                step: state.step,
-                toolName: part.toolName,
-                index: toolInvocations.length,
-              };
-
-              updateToolInvocationPart(part.toolCallId, {
-                state: 'partial-call',
-                step: state.step,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                args: undefined,
-              } as const);
+            case 'source-document': {
+              state.message.parts.push({
+                type: 'source-document',
+                sourceId: part.sourceId,
+                mediaType: part.mediaType,
+                title: part.title,
+                filename: part.filename,
+                providerMetadata: part.providerMetadata,
+              });
 
               write();
               break;
             }
 
-            case 'tool-call-delta': {
+            case 'tool-input-start': {
+              const toolInvocations = state.message.parts.filter(isToolUIPart);
+
+              // add the partial tool call to the map
+              state.partialToolCalls[part.toolCallId] = {
+                text: '',
+                toolName: part.toolName,
+                index: toolInvocations.length,
+              };
+
+              updateToolInvocationPart({
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                state: 'input-streaming',
+                input: undefined,
+                providerExecuted: part.providerExecuted,
+              });
+
+              write();
+              break;
+            }
+
+            case 'tool-input-delta': {
               const partialToolCall = state.partialToolCalls[part.toolCallId];
 
-              partialToolCall.text += part.argsTextDelta;
+              partialToolCall.text += part.inputTextDelta;
 
               const { value: partialArgs } = await parsePartialJson(
                 partialToolCall.text,
               );
 
-              updateToolInvocationPart(part.toolCallId, {
-                state: 'partial-call',
-                step: partialToolCall.step,
+              updateToolInvocationPart({
                 toolCallId: part.toolCallId,
                 toolName: partialToolCall.toolName,
-                args: partialArgs,
-              } as const);
+                state: 'input-streaming',
+                input: partialArgs,
+              });
 
               write();
               break;
             }
 
-            case 'tool-call': {
-              updateToolInvocationPart(part.toolCallId, {
-                state: 'call',
-                step: state.step,
+            case 'tool-input-available': {
+              updateToolInvocationPart({
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
-                args: part.args,
-              } as const);
+                state: 'input-available',
+                input: part.input,
+                providerExecuted: part.providerExecuted,
+              });
 
               write();
 
               // invoke the onToolCall callback if it exists. This is blocking.
               // In the future we should make this non-blocking, which
               // requires additional state management for error handling etc.
-              if (onToolCall) {
+              // Skip calling onToolCall for provider-executed tools since they are already executed
+              if (onToolCall && !part.providerExecuted) {
                 const result = await onToolCall({
                   toolCall: part,
                 });
                 if (result != null) {
-                  updateToolInvocationPart(part.toolCallId, {
-                    state: 'result',
-                    step: state.step,
+                  updateToolInvocationPart({
                     toolCallId: part.toolCallId,
                     toolName: part.toolName,
-                    args: part.args,
-                    result,
-                  } as const);
+                    state: 'output-available',
+                    input: part.input,
+                    output: result,
+                  });
 
                   write();
                 }
@@ -287,8 +347,8 @@ export function processUIMessageStream<
               break;
             }
 
-            case 'tool-result': {
-              const toolInvocations = getToolInvocations(state.message);
+            case 'tool-output-available': {
+              const toolInvocations = state.message.parts.filter(isToolUIPart);
 
               if (toolInvocations == null) {
                 throw new Error('tool_result must be preceded by a tool_call');
@@ -306,11 +366,54 @@ export function processUIMessageStream<
                 );
               }
 
-              updateToolInvocationPart(part.toolCallId, {
-                ...toolInvocations[toolInvocationIndex],
-                state: 'result' as const,
-                result: part.result,
-              } as const);
+              const toolName = getToolName(
+                toolInvocations[toolInvocationIndex],
+              );
+
+              updateToolInvocationPart({
+                toolCallId: part.toolCallId,
+                toolName,
+                state: 'output-available',
+                input: (toolInvocations[toolInvocationIndex] as any).input,
+                output: part.output,
+                providerExecuted: part.providerExecuted,
+              });
+
+              write();
+              break;
+            }
+
+            case 'tool-output-error': {
+              const toolInvocations = state.message.parts.filter(isToolUIPart);
+
+              if (toolInvocations == null) {
+                throw new Error('tool_result must be preceded by a tool_call');
+              }
+
+              // find if there is any tool invocation with the same toolCallId
+              // and replace it with the result
+              const toolInvocationIndex = toolInvocations.findIndex(
+                invocation => invocation.toolCallId === part.toolCallId,
+              );
+
+              if (toolInvocationIndex === -1) {
+                throw new Error(
+                  'tool_result must be preceded by a tool_call with the same toolCallId',
+                );
+              }
+
+              const toolName = getToolName(
+                toolInvocations[toolInvocationIndex],
+              );
+
+              updateToolInvocationPart({
+                toolCallId: part.toolCallId,
+                toolName,
+                state: 'output-error',
+                input: (toolInvocations[toolInvocationIndex] as any).input,
+                errorText: part.errorText,
+                providerExecuted: part.providerExecuted,
+              });
 
               write();
               break;
@@ -319,23 +422,13 @@ export function processUIMessageStream<
             case 'start-step': {
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
-
-              await updateMessageMetadata(part.metadata);
-              write();
               break;
             }
 
             case 'finish-step': {
-              state.step += 1;
-
               // reset the current text and reasoning parts
-              state.activeTextPart = undefined;
-              state.activeReasoningPart = undefined;
-
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
-                write();
-              }
+              state.activeTextParts = {};
+              state.activeReasoningParts = {};
               break;
             }
 
@@ -344,32 +437,33 @@ export function processUIMessageStream<
                 state.message.id = part.messageId;
               }
 
-              await updateMessageMetadata(part.metadata);
+              await updateMessageMetadata(part.messageMetadata);
 
-              if (part.messageId != null || part.metadata != null) {
+              if (part.messageId != null || part.messageMetadata != null) {
                 write();
               }
               break;
             }
 
             case 'finish': {
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
+              await updateMessageMetadata(part.messageMetadata);
+              if (part.messageMetadata != null) {
                 write();
               }
               break;
             }
 
-            case 'metadata': {
-              await updateMessageMetadata(part.metadata);
-              if (part.metadata != null) {
+            case 'message-metadata': {
+              await updateMessageMetadata(part.messageMetadata);
+              if (part.messageMetadata != null) {
                 write();
               }
               break;
             }
 
             case 'error': {
-              throw new Error(part.errorText);
+              onError?.(new Error(part.errorText));
+              break;
             }
 
             default: {
@@ -398,18 +492,11 @@ export function processUIMessageStream<
             }
           }
 
-          controller.enqueue(part);
+          controller.enqueue(part as InferUIMessageStreamPart<UI_MESSAGE>);
         });
       },
     }),
   );
-}
-
-// helper function to narrow the type of a UIMessagePart
-function isToolInvocationUIPart(
-  part: UIMessagePart<any>,
-): part is ToolInvocationUIPart {
-  return part.type === 'tool-invocation';
 }
 
 function isObject(value: unknown): value is object {

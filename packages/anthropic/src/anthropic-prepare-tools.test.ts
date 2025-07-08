@@ -27,7 +27,7 @@ it('should correctly prepare function tools', () => {
         type: 'function',
         name: 'testFunction',
         description: 'A test function',
-        parameters: { type: 'object', properties: {} },
+        inputSchema: { type: 'object', properties: {} },
       },
     ],
   });
@@ -74,7 +74,7 @@ it('should correctly prepare provider-defined tools', () => {
       display_number: 1,
     },
     {
-      name: 'text_editor',
+      name: 'str_replace_editor',
       type: 'text_editor_20241022',
     },
     {
@@ -92,24 +92,26 @@ it('should add warnings for unsupported tools', () => {
       {
         type: 'provider-defined',
         id: 'unsupported.tool',
-        name: 'unsupportedProviderTool',
+        name: 'unsupported_tool',
         args: {},
       },
     ],
   });
   expect(result.tools).toEqual([]);
   expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'provider-defined',
-        id: 'unsupported.tool',
-        name: 'unsupportedProviderTool',
-        args: {},
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "tool": {
+          "args": {},
+          "id": "unsupported.tool",
+          "name": "unsupported_tool",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
       },
-    },
-  ]);
+    ]
+  `);
 });
 
 it('should handle tool choice "auto"', () => {
@@ -119,7 +121,7 @@ it('should handle tool choice "auto"', () => {
         type: 'function',
         name: 'testFunction',
         description: 'Test',
-        parameters: {},
+        inputSchema: {},
       },
     ],
     toolChoice: { type: 'auto' },
@@ -134,7 +136,7 @@ it('should handle tool choice "required"', () => {
         type: 'function',
         name: 'testFunction',
         description: 'Test',
-        parameters: {},
+        inputSchema: {},
       },
     ],
     toolChoice: { type: 'required' },
@@ -149,7 +151,7 @@ it('should handle tool choice "none"', () => {
         type: 'function',
         name: 'testFunction',
         description: 'Test',
-        parameters: {},
+        inputSchema: {},
       },
     ],
     toolChoice: { type: 'none' },
@@ -165,7 +167,7 @@ it('should handle tool choice "tool"', () => {
         type: 'function',
         name: 'testFunction',
         description: 'Test',
-        parameters: {},
+        inputSchema: {},
       },
     ],
     toolChoice: { type: 'tool', toolName: 'testFunction' },

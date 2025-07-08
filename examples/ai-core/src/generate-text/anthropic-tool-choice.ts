@@ -1,7 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
@@ -11,7 +11,7 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     toolChoice: {

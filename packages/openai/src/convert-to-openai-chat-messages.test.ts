@@ -276,6 +276,42 @@ describe('user messages', () => {
       ]);
     });
 
+    it('should convert messages with binary PDF file parts', async () => {
+      const data = Uint8Array.from([1, 2, 3, 4, 5]);
+
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data,
+                filename: 'document.pdf',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'document.pdf',
+                file_data: 'data:application/pdf;base64,AQIDBAU=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should use default filename for PDF file parts when not provided', async () => {
       const base64Data = 'AQIDBAU=';
 
@@ -364,7 +400,7 @@ describe('tool calls', () => {
           content: [
             {
               type: 'tool-call',
-              args: { foo: 'bar123' },
+              input: { foo: 'bar123' },
               toolCallId: 'quux',
               toolName: 'thwomp',
             },
@@ -377,7 +413,7 @@ describe('tool calls', () => {
               type: 'tool-result',
               toolCallId: 'quux',
               toolName: 'thwomp',
-              result: { oof: '321rab' },
+              output: { type: 'json', value: { oof: '321rab' } },
             },
           ],
         },
@@ -405,5 +441,44 @@ describe('tool calls', () => {
         tool_call_id: 'quux',
       },
     ]);
+  });
+
+  it('should handle different tool output types', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'text-tool',
+              toolName: 'text-tool',
+              output: { type: 'text', value: 'Hello world' },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'error-tool',
+              toolName: 'error-tool',
+              output: { type: 'error-text', value: 'Something went wrong' },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "Hello world",
+          "role": "tool",
+          "tool_call_id": "text-tool",
+        },
+        {
+          "content": "Something went wrong",
+          "role": "tool",
+          "tool_call_id": "error-tool",
+        },
+      ]
+    `);
   });
 });

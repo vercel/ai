@@ -45,17 +45,21 @@ async function main() {
         toolCalls.push(delta);
 
         process.stdout.write(
-          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.args)}`,
+          `\nTool call: '${delta.toolName}' ${JSON.stringify(delta.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
-        toolResponses.push(delta);
+        const transformedDelta: ToolResultPart = {
+          ...delta,
+          output: { type: 'json', value: delta.output },
+        };
+        toolResponses.push(transformedDelta);
 
         process.stdout.write(
           `\nTool response: '${delta.toolName}' ${JSON.stringify(
-            delta.result,
+            delta.output,
           )}`,
         );
         break;

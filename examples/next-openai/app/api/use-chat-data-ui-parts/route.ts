@@ -4,23 +4,23 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  maxSteps,
+  stepCountIs,
   streamText,
 } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const stream = createUIMessageStream({
-    execute: writer => {
+    execute: ({ writer }) => {
       const result = streamText({
         model: openai('gpt-4o'),
-        continueUntil: maxSteps(2),
+        stopWhen: stepCountIs(2),
         tools: {
           weather: {
             description: 'Get the weather in a city',
-            parameters: z.object({
+            inputSchema: z.object({
               city: z.string(),
             }),
             execute: async ({ city }, { toolCallId }) => {

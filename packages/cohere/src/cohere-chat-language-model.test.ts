@@ -102,7 +102,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -121,9 +121,8 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "args": "{"value":"example value"}",
+          "input": "{"value":"example value"}",
           "toolCallId": "test-id-1",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -251,7 +250,7 @@ describe('doGenerate', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: {
                 value: { type: 'string' },
@@ -413,7 +412,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'currentTime',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: {},
             required: [],
@@ -433,14 +432,332 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{}",
+          "input": "{}",
           "toolCallId": "test-id-1",
-          "toolCallType": "function",
           "toolName": "currentTime",
           "type": "tool-call",
         },
       ]
     `);
+  });
+
+  describe('citations', () => {
+    it('should extract text documents and send to API', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What does this say?' },
+              {
+                type: 'file',
+                data: 'This is a test document.',
+                mediaType: 'text/plain',
+                filename: 'test.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "data": {
+                "text": "This is a test document.",
+                "title": "test.txt",
+              },
+            },
+          ],
+          "messages": [
+            {
+              "content": "What does this say?",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
+    });
+
+    it('should extract multiple text documents', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What do these documents say?' },
+              {
+                type: 'file',
+                data: Buffer.from('First document content'),
+                mediaType: 'text/plain',
+                filename: 'doc1.txt',
+              },
+              {
+                type: 'file',
+                data: Buffer.from('Second document content'),
+                mediaType: 'text/plain',
+                filename: 'doc2.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "data": {
+                "text": "First document content",
+                "title": "doc1.txt",
+              },
+            },
+            {
+              "data": {
+                "text": "Second document content",
+                "title": "doc2.txt",
+              },
+            },
+          ],
+          "messages": [
+            {
+              "content": "What do these documents say?",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
+    });
+
+    it('should support JSON files', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is in this JSON?' },
+              {
+                type: 'file',
+                data: Buffer.from('{"key": "value"}'),
+                mediaType: 'application/json',
+                filename: 'data.json',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "data": {
+                "text": "{"key": "value"}",
+                "title": "data.json",
+              },
+            },
+          ],
+          "messages": [
+            {
+              "content": "What is in this JSON?",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
+    });
+
+    it('should throw error for unsupported file types', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await expect(
+        model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'What is this?' },
+                {
+                  type: 'file',
+                  data: Buffer.from('PDF binary data'),
+                  mediaType: 'application/pdf',
+                  filename: 'document.pdf',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        "Media type 'application/pdf' is not supported. Supported media types are: text/* and application/json.",
+      );
+    });
+
+    it('should successfully process supported text media types', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is this?' },
+              {
+                type: 'file',
+                data: Buffer.from('This is plain text content'),
+                mediaType: 'text/plain',
+                filename: 'text.txt',
+              },
+              {
+                type: 'file',
+                data: Buffer.from('# Markdown Header\nContent'),
+                mediaType: 'text/markdown',
+                filename: 'doc.md',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        documents: [
+          {
+            data: {
+              text: 'This is plain text content',
+              title: 'text.txt',
+            },
+          },
+          {
+            data: {
+              text: '# Markdown Header\nContent',
+              title: 'doc.md',
+            },
+          },
+        ],
+      });
+    });
+
+    it('should extract citations from response', async () => {
+      const mockGenerateId = vi.fn().mockReturnValue('test-citation-id');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-r-plus');
+
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          response_id: '0cf61ae0-1f60-4c18-9802-be7be809e712',
+          generation_id: 'dad0c7cd-7982-42a7-acfb-706ccf598291',
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'AI has many benefits including automation.',
+              },
+            ],
+            citations: [
+              {
+                start: 31,
+                end: 41,
+                text: 'automation',
+                type: 'TEXT_CONTENT',
+                sources: [
+                  {
+                    type: 'document',
+                    id: 'doc:0',
+                    document: {
+                      id: 'doc:0',
+                      text: 'AI provides automation and efficiency.',
+                      title: 'ai-benefits.txt',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: { input_tokens: 9, output_tokens: 415 },
+            tokens: { input_tokens: 4, output_tokens: 30 },
+          },
+        },
+      };
+
+      const { content } = await testModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What are AI benefits?' },
+              {
+                type: 'file',
+                data: 'AI provides automation and efficiency.',
+                mediaType: 'text/plain',
+                filename: 'ai-benefits.txt',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "AI has many benefits including automation.",
+            "type": "text",
+          },
+          {
+            "id": "test-citation-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "cohere": {
+                "citationType": "TEXT_CONTENT",
+                "end": 41,
+                "sources": [
+                  {
+                    "document": {
+                      "id": "doc:0",
+                      "text": "AI provides automation and efficiency.",
+                      "title": "ai-benefits.txt",
+                    },
+                    "id": "doc:0",
+                    "type": "document",
+                  },
+                ],
+                "start": 31,
+                "text": "automation",
+              },
+            },
+            "sourceType": "document",
+            "title": "ai-benefits.txt",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should not include documents parameter when no files present', async () => {
+      prepareJsonResponse({ text: 'Hello, World!' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.documents).toBeUndefined();
+    });
   });
 });
 
@@ -466,11 +783,13 @@ describe('doStream', () => {
       type: 'stream-chunks',
       headers,
       chunks: [
-        `event: message-start\ndata: {"type":"message-start","id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb"}\n\n`,
+        `event: message-start\ndata: {"type":"message-start","id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}\n\n`,
+        `event: content-start\ndata: {"type":"content-start","index":0,"delta":{"message":{"content":{"type":"text","text":""}}}}\n\n`,
         ...content.map(
           text =>
-            `event: content-delta\ndata: {"type":"content-delta","delta":{"message":{"content":{"text":"${text}"}}}}\n\n`,
+            `event: content-delta\ndata: {"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"${text}"}}}}\n\n`,
         ),
+        `event: content-end\ndata: {"type":"content-end","index":0}\n\n`,
         `event: message-end\ndata: {"type":"message-end","delta":` +
           `{"finish_reason":"${finish_reason}",` +
           `"usage":{"tokens":{"input_tokens":${usage.input_tokens},"output_tokens":${usage.output_tokens}}}}}\n\n`,
@@ -491,6 +810,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -504,16 +824,27 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -532,7 +863,7 @@ describe('doStream', () => {
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        `event: message-start\ndata: {"type":"message-start","id":"29f14a5a-11de-4cae-9800-25e4747408ea"}\n\n`,
+        `event: message-start\ndata: {"type":"message-start","id":"29f14a5a-11de-4cae-9800-25e4747408ea","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}\n\n`,
         `event: tool-call-start\ndata: {"type":"tool-call-start","delta":{"message":{"tool_calls":{"id":"test-id-1","type":"function","function":{"name":"test-tool","arguments":""}}}}}\n\n`,
         `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"{\\n    \\""}}}}}\n\n`,
         `event: tool-call-delta\ndata: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"ticker"}}}}}\n\n`,
@@ -556,7 +887,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -565,6 +896,7 @@ describe('doStream', () => {
           },
         },
       ],
+      includeRawChunks: false,
     });
 
     const responseArray = await convertReadableStreamToArray(stream);
@@ -580,88 +912,69 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
+          "id": "test-id-1",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "{
+          "delta": "{
           "",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "ticker",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "ticker",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "_",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "_",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "symbol",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "symbol",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "":",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "":",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " "",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": " "",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "AAPL",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "AAPL",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": """,
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": """,
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "
+          "delta": "
       ",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "}",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "}",
+          "id": "test-id-1",
+          "type": "tool-input-delta",
         },
         {
-          "args": "{"ticker_symbol":"AAPL"}",
+          "id": "test-id-1",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"ticker_symbol":"AAPL"}",
           "toolCallId": "test-id-1",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -680,9 +993,10 @@ describe('doStream', () => {
     // Check if the tool call ID is the same in the tool call delta and the tool call
     const toolCallIds = responseArray
       .filter(
-        chunk => chunk.type === 'tool-call-delta' || chunk.type === 'tool-call',
+        chunk =>
+          chunk.type === 'tool-input-delta' || chunk.type === 'tool-call',
       )
-      .map(chunk => chunk.toolCallId);
+      .map(chunk => (chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id));
 
     expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });
@@ -697,6 +1011,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -732,6 +1047,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -750,6 +1066,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -783,6 +1100,7 @@ describe('doStream', () => {
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
+      includeRawChunks: false,
     });
 
     expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -798,6 +1116,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -835,7 +1154,7 @@ describe('doStream', () => {
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'stream-chunks',
       chunks: [
-        `event: message-start\ndata: {"type":"message-start","id":"test-id"}\n\n`,
+        `event: message-start\ndata: {"type":"message-start","id":"test-id","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}\n\n`,
         `event: tool-call-start\ndata: {"type":"tool-call-start","delta":{"message":{"tool_calls":{"id":"test-id-1","type":"function","function":{"name":"test-tool","arguments":""}}}}}\n\n`,
         `event: tool-call-end\ndata: {"type":"tool-call-end"}\n\n`,
         `event: message-end\ndata: {"type":"message-end","delta":{"finish_reason":"COMPLETE","usage":{"tokens":{"input_tokens":10,"output_tokens":5}}}}\n\n`,
@@ -849,7 +1168,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: {},
             required: [],
@@ -858,6 +1177,7 @@ describe('doStream', () => {
           },
         },
       ],
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -871,16 +1191,17 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "",
-          "toolCallId": "test-id-1",
-          "toolCallType": "function",
+          "id": "test-id-1",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "args": "{}",
+          "id": "test-id-1",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{}",
           "toolCallId": "test-id-1",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -895,5 +1216,119 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should include raw chunks when includeRawChunks is enabled', async () => {
+    prepareStreamResponse({
+      content: ['Hello', ' World!'],
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks.filter(chunk => chunk.type === 'raw')).toMatchInlineSnapshot(`
+      [
+        {
+          "rawValue": {
+            "delta": {
+              "message": {
+                "citations": [],
+                "content": [],
+                "role": "assistant",
+                "tool_calls": [],
+                "tool_plan": "",
+              },
+            },
+            "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+            "type": "message-start",
+          },
+          "type": "raw",
+        },
+        {
+          "rawValue": {
+            "delta": {
+              "message": {
+                "content": {
+                  "text": "",
+                  "type": "text",
+                },
+              },
+            },
+            "index": 0,
+            "type": "content-start",
+          },
+          "type": "raw",
+        },
+        {
+          "rawValue": {
+            "delta": {
+              "message": {
+                "content": {
+                  "text": "Hello",
+                },
+              },
+            },
+            "index": 0,
+            "type": "content-delta",
+          },
+          "type": "raw",
+        },
+        {
+          "rawValue": {
+            "delta": {
+              "message": {
+                "content": {
+                  "text": " World!",
+                },
+              },
+            },
+            "index": 0,
+            "type": "content-delta",
+          },
+          "type": "raw",
+        },
+        {
+          "rawValue": {
+            "index": 0,
+            "type": "content-end",
+          },
+          "type": "raw",
+        },
+        {
+          "rawValue": {
+            "delta": {
+              "finish_reason": "COMPLETE",
+              "usage": {
+                "tokens": {
+                  "input_tokens": 17,
+                  "output_tokens": 244,
+                },
+              },
+            },
+            "type": "message-end",
+          },
+          "type": "raw",
+        },
+      ]
+    `);
+  });
+
+  it('should not include raw chunks when includeRawChunks is false', async () => {
+    prepareStreamResponse({
+      content: ['Hello', ' World!'],
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
   });
 });

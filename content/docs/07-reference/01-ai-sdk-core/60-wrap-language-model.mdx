@@ -13,7 +13,7 @@ See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more informati
 import { wrapLanguageModel } from 'ai';
 
 const wrappedLanguageModel = wrapLanguageModel({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   middleware: yourLanguageModelMiddleware,
 });
 ```
@@ -30,8 +30,8 @@ const wrappedLanguageModel = wrapLanguageModel({
   content={[
     {
       name: 'model',
-      type: 'LanguageModelV1',
-      description: 'The original LanguageModelV1 instance to be wrapped.',
+      type: 'LanguageModelV2',
+      description: 'The original LanguageModelV2 instance to be wrapped.',
     },
     {
       name: 'middleware',
@@ -56,4 +56,4 @@ const wrappedLanguageModel = wrapLanguageModel({
 
 ### Returns
 
-A new `LanguageModelV1` instance with middleware applied.
+A new `LanguageModelV2` instance with middleware applied.

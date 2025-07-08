@@ -1,5 +1,129 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- 0571b98: chore (provider-utils): update eventsource-parser to 3.0.3
+- 39a4fab: fix (provider-utils): detect failed fetch in browser environments
+- d1a034f: feature: using Zod 4 for internal stuff
+
+## 3.0.0-beta.1
+
+### Major Changes
+
+- e025824: refactoring (ai): restructure provider-defined tools
+- 71f938d: feat (ai): add output schema for tools
+
+### Patch Changes
+
+- 45c1ea2: refactoring: introduce FlexibleSchema
+- bfdca8d: feat (ai): add InferToolInput and InferToolOutput helpers
+- 28a5ed5: refactoring: move tools helper into provider-utils
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+  - @ai-sdk/provider@2.0.0-beta.1
+
+## 3.0.0-alpha.15
+
+### Patch Changes
+
+- 8ba77a7: chore (provider-utils): use eventsource-parser library
+- Updated dependencies [48d257a]
+  - @ai-sdk/provider@2.0.0-alpha.15
+
+## 3.0.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+
+## 3.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+
+## 3.0.0-alpha.12
+
+### Patch Changes
+
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+
+## 3.0.0-alpha.11
+
+### Patch Changes
+
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+
+## 3.0.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+
+## 3.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+
+## 3.0.0-alpha.8
+
+### Patch Changes
+
+- 4fef487: feat: support for zod v4 for schema validation
+
+  All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
+  - `generateObject()`
+  - `streamObject()`
+  - `generateText()`
+  - `experimental_useObject()` from `@ai-sdk/react`
+  - `streamUI()` from `@ai-sdk/rsc`
+
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider@2.0.0-alpha.8
+
+## 3.0.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [5c56081]
+  - @ai-sdk/provider@2.0.0-alpha.7
+
+## 3.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+  - @ai-sdk/provider@2.0.0-alpha.6
+
+## 3.0.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+
 ## 3.0.0-alpha.3
 
 ### Patch Changes

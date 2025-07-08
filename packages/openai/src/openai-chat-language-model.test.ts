@@ -266,6 +266,7 @@ describe('doGenerate', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
+          "service_tier": undefined,
           "stop": undefined,
           "store": undefined,
           "temperature": undefined,
@@ -496,7 +497,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -544,7 +545,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": true,
+              "strict": false,
             },
             "type": "function",
           },
@@ -601,7 +602,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -620,9 +621,8 @@ describe('doGenerate', () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{"value":"Spark"}",
+          "input": "{"value":"Spark"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -732,24 +732,37 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "name": "response",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
 
       expect(warnings).toEqual([]);
     });
@@ -773,24 +786,37 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "name": "response",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
@@ -814,25 +840,38 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'test-name',
-            description: 'test description',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "description": "test description",
+              "name": "test-name",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
@@ -880,7 +919,7 @@ describe('doGenerate', () => {
             type: 'function',
             name: 'test-tool',
             description: 'test description',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -893,35 +932,47 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        tool_choice: 'required',
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              description: 'test description',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-              strict: true,
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
-          },
-        ],
-      });
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "tool_choice": "required",
+          "tools": [
+            {
+              "function": {
+                "description": "test description",
+                "name": "test-tool",
+                "parameters": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
 
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "args": "{"value":"Spark"}",
+            "input": "{"value":"Spark"}",
             "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-            "toolCallType": "function",
             "toolName": "test-tool",
             "type": "tool-call",
           },
@@ -951,7 +1002,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -967,34 +1018,51 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gpt-4o-2024-08-06',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tool_choice: { type: 'function', function: { name: 'test-tool' } },
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-            strict: true,
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gpt-4o-2024-08-06",
+        "tool_choice": {
+          "function": {
+            "name": "test-tool",
+          },
+          "type": "function",
         },
-      ],
-    });
+        "tools": [
+          {
+            "function": {
+              "name": "test-tool",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "function",
+          },
+        ],
+      }
+    `);
 
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{"value":"Spark"}",
+          "input": "{"value":"Spark"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1349,6 +1417,77 @@ describe('doGenerate', () => {
         'temperature is not supported for the search preview models and has been removed.',
     });
   });
+
+  it('should send serviceTier flex processing setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('o3-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "o3-mini",
+        "service_tier": "flex",
+      }
+    `);
+  });
+
+  it('should show warning when using flex processing with unsupported model', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o-mini');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'serviceTier',
+      details: 'flex processing is only available for o3 and o4-mini models',
+    });
+  });
+
+  it('should allow flex processing with o4-mini model without warnings', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('o4-mini');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBe('flex');
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe('doStream', () => {
@@ -1430,6 +1569,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1445,20 +1585,32 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "delta": "",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -1613,7 +1765,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1623,6 +1775,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1638,58 +1791,52 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "value",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "{"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "":"",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "value",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "Spark",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "":"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "le",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "Spark",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " Day",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "le",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": ""}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": " Day",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "delta": ""}",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1753,7 +1900,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1763,6 +1910,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1778,65 +1926,57 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "va",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "{"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "lue",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "va",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "":"",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "lue",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "Spark",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "":"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "le",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "Spark",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " Day",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "le",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": ""}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": " Day",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "delta": ""}",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1906,7 +2046,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'searchGoogle',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { query: { type: 'string' } },
             required: ['query'],
@@ -1916,6 +2056,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1931,50 +2072,57 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "argsTextDelta": "{"query": "",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
+          "delta": "",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "latest",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
-          "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "delta": "{"query": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " news",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
-          "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "delta": "latest",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " on",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
-          "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "delta": " news",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " ai"}",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
-          "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "delta": " on",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
         },
         {
-          "args": "{"query": "latest news on ai"}",
+          "delta": " ai"}",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"query": "latest news on ai"}",
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
           "toolName": "searchGoogle",
           "type": "tool-call",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "tool-calls",
@@ -2015,7 +2163,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -2025,6 +2173,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2040,16 +2189,22 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"value":"Sparkle Day"}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "delta": "{"value":"Sparkle Day"}",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -2083,6 +2238,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2126,6 +2282,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2161,6 +2318,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -2185,6 +2343,7 @@ describe('doStream', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
+          "service_tier": undefined,
           "stop": undefined,
           "store": undefined,
           "stream": true,
@@ -2209,6 +2368,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -2227,6 +2387,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2254,6 +2415,7 @@ describe('doStream', () => {
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
+      includeRawChunks: false,
     });
 
     expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -2281,6 +2443,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2325,6 +2488,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2366,6 +2530,7 @@ describe('doStream', () => {
           store: true,
         },
       },
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2389,6 +2554,7 @@ describe('doStream', () => {
           },
         },
       },
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -2402,6 +2568,39 @@ describe('doStream', () => {
     });
   });
 
+  it('should send serviceTier flex processing setting in streaming', async () => {
+    prepareStreamResponse({ content: [] });
+
+    const model = provider.chat('o3-mini');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'flex',
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "o3-mini",
+        "service_tier": "flex",
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
+  });
+
   describe('reasoning models', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
@@ -2413,6 +2612,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2428,12 +2628,22 @@ describe('doStream', () => {
             "type": "response-metadata",
           },
           {
-            "text": "",
-            "type": "text",
+            "id": "0",
+            "type": "text-start",
           },
           {
-            "text": "Hello, World!",
-            "type": "text",
+            "delta": "",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "delta": "Hello, World!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -2471,6 +2681,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -2486,12 +2697,22 @@ describe('doStream', () => {
             "type": "response-metadata",
           },
           {
-            "text": "",
-            "type": "text",
+            "id": "0",
+            "type": "text-start",
           },
           {
-            "text": "Hello, World!",
-            "type": "text",
+            "delta": "",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "delta": "Hello, World!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
           },
           {
             "finishReason": "stop",
@@ -2509,6 +2730,134 @@ describe('doStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('raw chunks', () => {
+    it('should include raw chunks when includeRawChunks is enabled', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' World!'],
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw'))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "",
+                    "role": "assistant",
+                  },
+                  "finish_reason": null,
+                  "index": 0,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": "Hello",
+                  },
+                  "finish_reason": null,
+                  "index": 1,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {
+                    "content": " World!",
+                  },
+                  "finish_reason": null,
+                  "index": 1,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [
+                {
+                  "delta": {},
+                  "finish_reason": "stop",
+                  "index": 0,
+                  "logprobs": null,
+                },
+              ],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": null,
+            },
+            "type": "raw",
+          },
+          {
+            "rawValue": {
+              "choices": [],
+              "created": 1702657020,
+              "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+              "model": "gpt-3.5-turbo-0613",
+              "object": "chat.completion.chunk",
+              "system_fingerprint": "fp_3bc1b5746c",
+              "usage": {
+                "completion_tokens": 227,
+                "prompt_tokens": 17,
+                "total_tokens": 244,
+              },
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+    });
+
+    it('should not include raw chunks when includeRawChunks is false', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' World!'],
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
   });
 });

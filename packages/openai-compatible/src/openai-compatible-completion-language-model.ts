@@ -18,7 +18,7 @@ import {
   postJsonToApi,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
@@ -262,6 +262,10 @@ export class OpenAICompatibleCompletionLanguageModel
           },
 
           transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -285,6 +289,11 @@ export class OpenAICompatibleCompletionLanguageModel
                 type: 'response-metadata',
                 ...getResponseMetadata(value),
               });
+
+              controller.enqueue({
+                type: 'text-start',
+                id: '0',
+              });
             }
 
             if (value.usage != null) {
@@ -303,13 +312,18 @@ export class OpenAICompatibleCompletionLanguageModel
 
             if (choice?.text != null) {
               controller.enqueue({
-                type: 'text',
-                text: choice.text,
+                type: 'text-delta',
+                id: '0',
+                delta: choice.text,
               });
             }
           },
 
           flush(controller) {
+            if (!isFirstChunk) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,

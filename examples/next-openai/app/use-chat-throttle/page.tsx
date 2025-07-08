@@ -1,7 +1,8 @@
 'use client';
 
+import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStore } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { useLayoutEffect, useRef } from 'react';
 
 export default function Chat() {
@@ -10,10 +11,8 @@ export default function Chat() {
     console.log(`component rendered #${++renderCount.current}`);
   });
 
-  const { messages, input, status, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStore({
-      api: '/api/use-chat-throttle',
-    }),
+  const { messages, status, sendMessage } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/use-chat-throttle' }),
     experimental_throttle: 50,
   });
 
@@ -30,15 +29,8 @@ export default function Chat() {
             .join('')}
         </div>
       ))}
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-          disabled={status !== 'ready'}
-        />
-      </form>
+
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

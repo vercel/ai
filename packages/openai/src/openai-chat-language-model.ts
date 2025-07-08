@@ -20,7 +20,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -117,6 +117,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     warnings.push(...messageWarnings);
 
+    const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -147,13 +149,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? // TODO convert into provider option
-            structuredOutputs && responseFormat.schema != null
+          ? structuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
                   schema: responseFormat.schema,
-                  strict: true,
+                  strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
                 },
@@ -170,6 +171,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
       reasoning_effort: openaiOptions.reasoningEffort,
+      service_tier: openaiOptions.serviceTier,
 
       // messages:
       messages,
@@ -253,6 +255,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         });
       }
     }
+
+    // Validate flex processing support
+    if (
+      openaiOptions.serviceTier === 'flex' &&
+      !supportsFlexProcessing(this.modelId)
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'serviceTier',
+        details: 'flex processing is only available for o3 and o4-mini models',
+      });
+      baseArgs.service_tier = undefined;
+    }
+
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
@@ -261,6 +277,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
       structuredOutputs,
+      strictJsonSchema,
     });
 
     return {
@@ -310,10 +327,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     for (const toolCall of choice.message.tool_calls ?? []) {
       content.push({
         type: 'tool-call' as const,
-        toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
         toolName: toolCall.function.name,
-        args: toolCall.function.arguments!,
+        input: toolCall.function.arguments!,
       });
     }
 
@@ -399,6 +415,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let isFirstChunk = true;
+    let isActiveText = false;
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
 
@@ -413,6 +430,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -481,9 +502,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
             const delta = choice.delta;
 
             if (delta.content != null) {
+              if (!isActiveText) {
+                controller.enqueue({ type: 'text-start', id: '0' });
+                isActiveText = true;
+              }
+
               controller.enqueue({
-                type: 'text',
-                text: delta.content,
+                type: 'text-delta',
+                id: '0',
+                delta: delta.content,
               });
             }
 
@@ -514,6 +541,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                     });
                   }
 
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallDelta.id,
+                    toolName: toolCallDelta.function.name,
+                  });
+
                   toolCalls[index] = {
                     id: toolCallDelta.id,
                     type: 'function',
@@ -533,11 +566,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                     // send delta if the argument text has already started:
                     if (toolCall.function.arguments.length > 0) {
                       controller.enqueue({
-                        type: 'tool-call-delta',
-                        toolCallType: 'function',
-                        toolCallId: toolCall.id,
-                        toolName: toolCall.function.name,
-                        argsTextDelta: toolCall.function.arguments,
+                        type: 'tool-input-delta',
+                        id: toolCall.id,
+                        delta: toolCall.function.arguments,
                       });
                     }
 
@@ -545,11 +576,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                     // (some providers send the full tool call in one chunk):
                     if (isParsableJson(toolCall.function.arguments)) {
                       controller.enqueue({
+                        type: 'tool-input-end',
+                        id: toolCall.id,
+                      });
+
+                      controller.enqueue({
                         type: 'tool-call',
-                        toolCallType: 'function',
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
-                        args: toolCall.function.arguments,
+                        input: toolCall.function.arguments,
                       });
                       toolCall.hasFinished = true;
                     }
@@ -572,11 +607,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
                 // send delta
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  argsTextDelta: toolCallDelta.function.arguments ?? '',
+                  type: 'tool-input-delta',
+                  id: toolCall.id,
+                  delta: toolCallDelta.function.arguments ?? '',
                 });
 
                 // check if tool call is complete
@@ -586,11 +619,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                   isParsableJson(toolCall.function.arguments)
                 ) {
                   controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.id,
+                  });
+
+                  controller.enqueue({
                     type: 'tool-call',
-                    toolCallType: 'function',
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
-                    args: toolCall.function.arguments,
+                    input: toolCall.function.arguments,
                   });
                   toolCall.hasFinished = true;
                 }
@@ -599,6 +636,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (isActiveText) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -744,6 +785,10 @@ function isReasoningModel(modelId: string) {
 
 function isAudioModel(modelId: string) {
   return modelId.startsWith('gpt-4o-audio-preview');
+}
+
+function supportsFlexProcessing(modelId: string) {
+  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
 }
 
 function getSystemMessageMode(modelId: string) {

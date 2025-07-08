@@ -1,34 +1,25 @@
 import {
-  JSONSchema7,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { OpenAITools, OpenAIToolChoice } from './openai-types';
+import { fileSearchArgsSchema } from './tool/file-search';
+import { webSearchPreviewArgsSchema } from './tool/web-search-preview';
 
 export function prepareTools({
   tools,
   toolChoice,
   structuredOutputs,
+  strictJsonSchema,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   structuredOutputs: boolean;
+  strictJsonSchema: boolean;
 }): {
-  tools?: {
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-      strict?: boolean;
-    };
-  }[];
-  toolChoice?:
-    | 'auto'
-    | 'none'
-    | 'required'
-    | { type: 'function'; function: { name: string } };
-
+  tools?: OpenAITools;
+  toolChoice?: OpenAIToolChoice;
   toolWarnings: Array<LanguageModelV2CallWarning>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -40,29 +31,50 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const openaiTools: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-      strict: boolean | undefined;
-    };
-  }> = [];
+  const openaiTools: OpenAITools = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
-    } else {
-      openaiTools.push({
-        type: 'function',
-        function: {
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters,
-          strict: structuredOutputs ? true : undefined,
-        },
-      });
+    switch (tool.type) {
+      case 'function':
+        openaiTools.push({
+          type: 'function',
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.inputSchema,
+            strict: structuredOutputs ? strictJsonSchema : undefined,
+          },
+        });
+        break;
+      case 'provider-defined':
+        switch (tool.id) {
+          case 'openai.file_search': {
+            const args = fileSearchArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'file_search',
+              vector_store_ids: args.vectorStoreIds,
+              max_results: args.maxResults,
+              search_type: args.searchType,
+            });
+            break;
+          }
+          case 'openai.web_search_preview': {
+            const args = webSearchPreviewArgsSchema.parse(tool.args);
+            openaiTools.push({
+              type: 'web_search_preview',
+              search_context_size: args.searchContextSize,
+              user_location: args.userLocation,
+            });
+            break;
+          }
+          default:
+            toolWarnings.push({ type: 'unsupported-tool', tool });
+            break;
+        }
+        break;
+      default:
+        toolWarnings.push({ type: 'unsupported-tool', tool });
+        break;
     }
   }
 

@@ -8,7 +8,7 @@ async function main() {
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: jsonSchema<{ location: string }>({
+        inputSchema: jsonSchema<{ location: string }>({
           type: 'object',
           properties: {
             location: { type: 'string' },
@@ -22,7 +22,7 @@ async function main() {
         }),
       }),
       cityAttractions: tool({
-        parameters: jsonSchema<{ city: string }>({
+        inputSchema: jsonSchema<{ city: string }>({
           type: 'object',
           properties: {
             city: { type: 'string' },
@@ -45,13 +45,13 @@ async function main() {
         switch (part.toolName) {
           case 'cityAttractions': {
             console.log('TOOL CALL cityAttractions');
-            console.log(`city: ${part.args.city}`); // string
+            console.log(`city: ${part.input.city}`); // string
             break;
           }
 
           case 'weather': {
             console.log('TOOL CALL weather');
-            console.log(`location: ${part.args.location}`); // string
+            console.log(`location: ${part.input.location}`); // string
             break;
           }
         }
@@ -64,15 +64,15 @@ async function main() {
           // NOT AVAILABLE (NO EXECUTE METHOD)
           // case 'cityAttractions': {
           //   console.log('TOOL RESULT cityAttractions');
-          //   console.log(`city: ${part.args.city}`); // string
+          //   console.log(`city: ${part.input.city}`); // string
           //   console.log(`result: ${part.result}`);
           //   break;
           // }
 
           case 'weather': {
             console.log('TOOL RESULT weather');
-            console.log(`location: ${part.args.location}`); // string
-            console.log(`temperature: ${part.result.temperature}`); // number
+            console.log(`location: ${part.input.location}`); // string
+            console.log(`temperature: ${part.output.temperature}`); // number
             break;
           }
         }

@@ -1,3 +1,4 @@
+import { JSONValue } from '../../json-value/json-value';
 import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
 import { LanguageModelV2DataContent } from './language-model-v2-data-content';
 
@@ -32,6 +33,7 @@ export type LanguageModelV2Message =
           | LanguageModelV2FilePart
           | LanguageModelV2ReasoningPart
           | LanguageModelV2ToolCallPart
+          | LanguageModelV2ToolResultPart
         >;
       }
     | {
@@ -137,7 +139,13 @@ Name of the tool that is being called.
   /**
 Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
    */
-  args: unknown;
+  input: unknown;
+
+  /**
+   * Whether the tool call will be executed by the provider.
+   * If this flag is not set or is false, the tool call will be executed by the client.
+   */
+  providerExecuted?: boolean;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -164,44 +172,9 @@ Name of the tool that generated this result.
   toolName: string;
 
   /**
-Result of the tool call. This is a JSON-serializable object.
+Result of the tool call.
    */
-  result: unknown;
-
-  /**
-Optional flag if the result is an error or an error message.
-   */
-  isError?: boolean;
-
-  /**
-Tool results as an array of parts. This enables advanced tool results including images.
-When this is used, the `result` field should be ignored (if the provider supports content).
-   */
-  content?: Array<
-    | {
-        type: 'text';
-
-        /**
-Text content.
-         */
-        text: string;
-      }
-    | {
-        type: 'image';
-
-        /**
-base-64 encoded image data
-         */
-        data: string;
-
-        /**
-IANA media type of the image.
-
-@see https://www.iana.org/assignments/media-types/media-types.xhtml
-         */
-        mediaType?: string;
-      }
-  >;
+  output: LanguageModelV2ToolResultOutput;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -210,3 +183,36 @@ IANA media type of the image.
    */
   providerOptions?: SharedV2ProviderOptions;
 }
+
+export type LanguageModelV2ToolResultOutput =
+  | { type: 'text'; value: string }
+  | { type: 'json'; value: JSONValue }
+  | { type: 'error-text'; value: string }
+  | { type: 'error-json'; value: JSONValue }
+  | {
+      type: 'content';
+      value: Array<
+        | {
+            type: 'text';
+
+            /**
+Text content.
+*/
+            text: string;
+          }
+        | {
+            type: 'media';
+
+            /**
+Base-64 encoded media data.
+*/
+            data: string;
+
+            /**
+IANA media type.
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+*/
+            mediaType: string;
+          }
+      >;
+    };

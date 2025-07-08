@@ -1,6 +1,6 @@
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 
@@ -11,7 +11,7 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     toolChoice: {

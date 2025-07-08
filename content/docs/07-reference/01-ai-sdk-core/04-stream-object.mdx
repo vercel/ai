@@ -17,7 +17,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -45,7 +45,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -69,7 +69,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -89,7 +89,7 @@ and provide the list of possible values in the `enum` parameter.
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -114,7 +114,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     {
       name: 'model',
       type: 'LanguageModel',
-      description: "The language model to use. Example: openai('gpt-4-turbo')",
+      description: "The language model to use. Example: openai('gpt-4.1')",
     },
     {
       name: 'output',
@@ -168,12 +168,12 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'messages',
-      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage> | Array<UIMessage>',
+      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage> | Array<UIMessage>',
       description:
         'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
         {
-          type: 'CoreSystemMessage',
+          type: 'SystemModelMessage',
           parameters: [
             {
               name: 'role',
@@ -188,7 +188,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
           ],
         },
         {
-          type: 'CoreUserMessage',
+          type: 'UserModelMessage',
           parameters: [
             {
               name: 'role',
@@ -264,7 +264,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
           ],
         },
         {
-          type: 'CoreAssistantMessage',
+          type: 'AssistantModelMessage',
           parameters: [
             {
               name: 'role',
@@ -273,7 +273,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ReasoningPart | RedactedReasoningPart | ToolCallPart>',
+              type: 'string | Array<TextPart | FilePart | ReasoningPart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -297,31 +297,39 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                     {
                       name: 'type',
                       type: "'reasoning'",
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'text',
                       type: 'string',
                       description: 'The reasoning text.',
                     },
-                    {
-                      name: 'signature',
-                      type: 'string',
-                      isOptional: true,
-                      description: 'The signature for the reasoning.',
-                    },
                   ],
                 },
                 {
-                  type: 'RedactedReasoningPart',
+                  type: 'FilePart',
                   parameters: [
                     {
                       name: 'type',
-                      type: "'redacted-reasoning'",
+                      type: "'file'",
+                      description: 'The type of the message part.',
                     },
                     {
                       name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mediaType',
                       type: 'string',
-                      description: 'The redacted data.',
+                      description: 'The IANA media type of the file.',
+                    },
+                    {
+                      name: 'filename',
+                      type: 'string',
+                      description: 'The name of the file.',
+                      isOptional: true,
                     },
                   ],
                 },
@@ -346,7 +354,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                     },
                     {
                       name: 'args',
-                      type: 'object based on schema',
+                      type: 'object based on zod schema',
                       description:
                         'Parameters generated by the model to be used by the tool.',
                     },
@@ -357,7 +365,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
           ],
         },
         {
-          type: 'CoreToolMessage',
+          type: 'ToolModelMessage',
           parameters: [
             {
               name: 'role',
@@ -565,27 +573,40 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
           parameters: [
             {
               name: 'usage',
-              type: 'CompletionTokenUsage',
+              type: 'LanguageModelUsage',
               description: 'The token usage of the generated text.',
               properties: [
                 {
-                  type: 'CompletionTokenUsage',
+                  type: 'LanguageModelUsage',
                   parameters: [
                     {
-                      name: 'promptTokens',
-                      type: 'number',
-                      description: 'The total number of tokens in the prompt.',
+                      name: 'inputTokens',
+                      type: 'number | undefined',
+                      description: 'The number of input (prompt) tokens used.',
                     },
                     {
-                      name: 'completionTokens',
-                      type: 'number',
+                      name: 'outputTokens',
+                      type: 'number | undefined',
                       description:
-                        'The total number of tokens in the completion.',
+                        'The number of output (completion) tokens used.',
                     },
                     {
                       name: 'totalTokens',
-                      type: 'number',
-                      description: 'The total number of tokens generated.',
+                      type: 'number | undefined',
+                      description:
+                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+                    },
+                    {
+                      name: 'reasoningTokens',
+                      type: 'number | undefined',
+                      isOptional: true,
+                      description: 'The number of reasoning tokens used.',
+                    },
+                    {
+                      name: 'cachedInputTokens',
+                      type: 'number | undefined',
+                      isOptional: true,
+                      description: 'The number of cached input tokens.',
                     },
                   ],
                 },
@@ -593,7 +614,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'providerMetadata',
-              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              type: 'ProviderMetadata | undefined',
               description:
                 'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
             },
@@ -611,7 +632,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'warnings',
-              type: 'Warning[] | undefined',
+              type: 'CallWarning[] | undefined',
               description:
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
@@ -665,27 +686,40 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
   content={[
     {
       name: 'usage',
-      type: 'Promise<CompletionTokenUsage>',
+      type: 'Promise<LanguageModelUsage>',
       description:
         'The token usage of the generated text. Resolved when the response is finished.',
       properties: [
         {
-          type: 'CompletionTokenUsage',
+          type: 'LanguageModelUsage',
           parameters: [
             {
-              name: 'promptTokens',
-              type: 'number',
-              description: 'The total number of tokens in the prompt.',
+              name: 'inputTokens',
+              type: 'number | undefined',
+              description: 'The number of input (prompt) tokens used.',
             },
             {
-              name: 'completionTokens',
-              type: 'number',
-              description: 'The total number of tokens in the completion.',
+              name: 'outputTokens',
+              type: 'number | undefined',
+              description: 'The number of output (completion) tokens used.',
             },
             {
               name: 'totalTokens',
-              type: 'number',
-              description: 'The total number of tokens generated.',
+              type: 'number | undefined',
+              description:
+                'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+            },
+            {
+              name: 'reasoningTokens',
+              type: 'number | undefined',
+              isOptional: true,
+              description: 'The number of reasoning tokens used.',
+            },
+            {
+              name: 'cachedInputTokens',
+              type: 'number | undefined',
+              isOptional: true,
+              description: 'The number of cached input tokens.',
             },
           ],
         },
@@ -826,12 +860,11 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'request',
-      type: 'Promise<RequestMetadata>',
-      isOptional: true,
+      type: 'Promise<LanguageModelRequestMetadata>',
       description: 'Request metadata.',
       properties: [
         {
-          type: 'RequestMetadata',
+          type: 'LanguageModelRequestMetadata',
           parameters: [
             {
               name: 'body',
@@ -845,12 +878,11 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'response',
-      type: 'Promise<ResponseMetadata>',
-      isOptional: true,
+      type: 'Promise<LanguageModelResponseMetadata>',
       description: 'Response metadata. Resolved when the response is finished.',
       properties: [
         {
-          type: 'ResponseMetadata',
+          type: 'LanguageModelResponseMetadata',
           parameters: [
             {
               name: 'id',
@@ -882,7 +914,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'warnings',
-      type: 'Warning[] | undefined',
+      type: 'CallWarning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },

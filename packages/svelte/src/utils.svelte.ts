@@ -1,4 +1,4 @@
-import { hasContext, getContext, setContext, untrack } from 'svelte';
+import { getContext, hasContext, setContext, untrack } from 'svelte';
 import { SvelteMap } from 'svelte/reactivity';
 
 export function createContext<T>(name: string) {

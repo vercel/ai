@@ -1,6 +1,7 @@
 import { Validator, validatorSymbol } from './validator';
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4';
 import { zodSchema } from './zod-schema';
 
 /**
@@ -24,6 +25,16 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
    */
   readonly jsonSchema: JSONSchema7;
 };
+
+export type FlexibleSchema<T> = z4.ZodType<T> | z3.Schema<T> | Schema<T>;
+
+export type InferSchema<SCHEMA> = SCHEMA extends z3.Schema
+  ? z3.infer<SCHEMA>
+  : SCHEMA extends z4.ZodType
+    ? z4.infer<SCHEMA>
+    : SCHEMA extends Schema<infer T>
+      ? T
+      : never;
 
 /**
  * Create a schema using a JSON Schema.
@@ -62,7 +73,11 @@ function isSchema(value: unknown): value is Schema {
 }
 
 export function asSchema<OBJECT>(
-  schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT> | undefined,
+  schema:
+    | z4.ZodType<OBJECT, any>
+    | z3.Schema<OBJECT, z3.ZodTypeDef, any>
+    | Schema<OBJECT>
+    | undefined,
 ): Schema<OBJECT> {
   return schema == null
     ? jsonSchema({

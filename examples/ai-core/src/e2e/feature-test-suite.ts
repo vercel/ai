@@ -11,13 +11,13 @@ import {
   experimental_generateImage as generateImage,
   generateObject,
   generateText,
-  maxSteps,
+  stepCountIs,
   streamObject,
   streamText,
 } from 'ai';
 import fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export type Capability =
   | 'audioInput'
@@ -614,7 +614,7 @@ export function createFeatureTestSuite({
                     'What is 2+2? Use the calculator tool to compute this.',
                   tools: {
                     calculator: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         expression: z
                           .string()
                           .describe('The mathematical expression to evaluate'),
@@ -627,9 +627,9 @@ export function createFeatureTestSuite({
 
                 expect(result.toolCalls?.[0]).toMatchObject({
                   toolName: 'calculator',
-                  args: { expression: '2+2' },
+                  input: { expression: '2+2' },
                 });
-                expect(result.toolResults?.[0].result).toBe('4');
+                expect(result.toolResults?.[0].output).toBe('4');
                 if (!customAssertions.skipUsage) {
                   expect(result.usage?.totalTokens).toBeGreaterThan(0);
                 }
@@ -643,7 +643,7 @@ export function createFeatureTestSuite({
                     'What is 2+2? Use the calculator tool to compute this.',
                   tools: {
                     calculator: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         expression: z.string(),
                       }),
                       execute: async ({ expression }) => {
@@ -678,7 +678,7 @@ export function createFeatureTestSuite({
                     'Check the temperature in San Francisco and play music that matches the weather. Be sure to report the chosen song name.',
                   tools: {
                     getTemperature: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         city: z
                           .string()
                           .describe('The city to check temperature for'),
@@ -689,7 +689,7 @@ export function createFeatureTestSuite({
                       },
                     },
                     playWeatherMusic: {
-                      parameters: z.object({
+                      inputSchema: z.object({
                         temperature: z
                           .number()
                           .describe('Temperature in Celsius'),
@@ -708,7 +708,7 @@ export function createFeatureTestSuite({
                       },
                     },
                   },
-                  continueUntil: maxSteps(10),
+                  stopWhen: stepCountIs(10),
                 });
 
                 expect(weatherCalls).toBe(1);

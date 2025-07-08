@@ -1,5 +1,153 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- a85c85f: fix (provider/anthropic): streaming json output
+- d1a034f: feature: using Zod 4 for internal stuff
+- 0b678b2: feat (provider/anthropic): enable streaming tool calls
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- d601ed9: fix (provider/anthropic): send tool call id in tool-input-start chunk
+
+## 2.0.0-beta.1
+
+### Patch Changes
+
+- 8f2854f: feat (provider/anthropic): send web search tool calls
+- 5d959e7: refactor: updated openai + anthropic tool use server side
+- 9f73965: feat (provider/anthropic): parse websearch tool args
+- 399e056: fix: anthropic computer tool
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider@2.0.0-beta.1
+  - @ai-sdk/provider-utils@3.0.0-beta.1
+
+## 2.0.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [48d257a]
+- Updated dependencies [8ba77a7]
+  - @ai-sdk/provider@2.0.0-alpha.15
+  - @ai-sdk/provider-utils@3.0.0-alpha.15
+
+## 2.0.0-alpha.14
+
+### Patch Changes
+
+- 2e13791: feat(anthropic): add server-side web search support
+- 6392f60: fix(anthropic): resolve web search API validation errors with partial location + provider output
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
+## 2.0.0-alpha.13
+
+### Patch Changes
+
+- 8dfcb11: feat(anthropic/citation): text support for citations
+- ee5a9c0: feat: streamText onChunk raw chunk support
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 2.0.0-alpha.11
+
+### Patch Changes
+
+- 25f3454: feat(provider/anthropic): add PDF citation support with document sources for streamText
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- 362b048: add web search tool support
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- ad66c0e: feat (provider/anthropic): json response schema support via tool calls
+- 075711d: fix (provider/anthropic): return stop finish reason for json output with tool
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
+## 2.0.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [5c56081]
+  - @ai-sdk/provider@2.0.0-alpha.7
+  - @ai-sdk/provider-utils@3.0.0-alpha.7
+
+## 2.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+  - @ai-sdk/provider@2.0.0-alpha.6
+  - @ai-sdk/provider-utils@3.0.0-alpha.6
+
+## 2.0.0-alpha.4
+
+### Patch Changes
+
+- ca8aac6: feat (providers/anthropic): add claude v4 models
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+  - @ai-sdk/provider-utils@3.0.0-alpha.4
+
 ## 2.0.0-alpha.3
 
 ### Patch Changes

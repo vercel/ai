@@ -6,9 +6,13 @@ exports[`zodSchema > json schema conversion > nullable > should support nullable
   "additionalProperties": false,
   "properties": {
     "location": {
-      "type": [
-        "string",
-        "null",
+      "anyOf": [
+        {
+          "type": "string",
+        },
+        {
+          "type": "null",
+        },
       ],
     },
   },
@@ -209,8 +213,8 @@ exports[`zodSchema > json schema conversion > should use recursive references wi
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
-  "properties": {
-    "category": {
+  "definitions": {
+    "__schema0": {
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -218,7 +222,7 @@ exports[`zodSchema > json schema conversion > should use recursive references wi
         },
         "subcategories": {
           "items": {
-            "$ref": "#/properties/category",
+            "$ref": "#/definitions/__schema0",
           },
           "type": "array",
         },
@@ -228,6 +232,11 @@ exports[`zodSchema > json schema conversion > should use recursive references wi
         "subcategories",
       ],
       "type": "object",
+    },
+  },
+  "properties": {
+    "category": {
+      "$ref": "#/definitions/__schema0",
     },
   },
   "required": [
@@ -241,29 +250,34 @@ exports[`zodSchema > json schema conversion > should use references when useRefe
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
+  "definitions": {
+    "__schema0": {
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "type": "number",
+        },
+        "text": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "text",
+        "number",
+      ],
+      "type": "object",
+    },
+  },
   "properties": {
     "group1": {
       "items": {
-        "additionalProperties": false,
-        "properties": {
-          "number": {
-            "type": "number",
-          },
-          "text": {
-            "type": "string",
-          },
-        },
-        "required": [
-          "text",
-          "number",
-        ],
-        "type": "object",
+        "$ref": "#/definitions/__schema0",
       },
       "type": "array",
     },
     "group2": {
       "items": {
-        "$ref": "#/properties/group1/items",
+        "$ref": "#/definitions/__schema0",
       },
       "type": "array",
     },
@@ -271,6 +285,32 @@ exports[`zodSchema > json schema conversion > should use references when useRefe
   "required": [
     "group1",
     "group2",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`zodSchema > json schema conversion > z4 schema > generates correct JSON SChema for z4 and .literal and .enum 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "number": {
+      "enum": [
+        "one",
+        "two",
+        "three",
+      ],
+      "type": "string",
+    },
+    "text": {
+      "const": "hello",
+      "type": "string",
+    },
+  },
+  "required": [
+    "text",
+    "number",
   ],
   "type": "object",
 }

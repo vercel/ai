@@ -24,6 +24,9 @@
     },
     {
       "path": "../provider-utils"
+    },
+    {
+      "path": "../gateway"
     }
   ]
 }

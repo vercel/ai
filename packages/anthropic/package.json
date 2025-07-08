@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/anthropic",
-  "version": "2.0.0-alpha.3",
+  "version": "2.0.0-beta.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
+    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
@@ -47,10 +47,10 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "zod": "3.24.4"
+    "zod": "3.25.49"
   },
   "peerDependencies": {
-    "zod": "^3.24.0"
+    "zod": "^3.25.49"
   },
   "engines": {
     "node": ">=18"

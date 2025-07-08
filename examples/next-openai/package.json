@@ -9,15 +9,20 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/cohere": "workspace:*",
     "@ai-sdk/deepseek": "workspace:*",
     "@ai-sdk/fireworks": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/mistral": "workspace:*",
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
+    "@ai-sdk/groq": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@ai-sdk/perplexity": "workspace:*",
     "@ai-sdk/react": "workspace:*",
+    "@ai-sdk/xai": "workspace:*",
     "@ai-sdk/rsc": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@vercel/blob": "^0.26.0",
@@ -28,7 +33,7 @@
     "react-markdown": "9.0.1",
     "redis": "^4.7.0",
     "resumable-stream": "^2.0.0",
-    "zod": "3.24.4"
+    "zod": "3.25.49"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

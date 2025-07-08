@@ -1,20 +1,75 @@
 import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
-import { LanguageModelV2Content } from './language-model-v2-content';
+import { LanguageModelV2File } from './language-model-v2-file';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2ResponseMetadata } from './language-model-v2-response-metadata';
-import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
+import { LanguageModelV2Source } from './language-model-v2-source';
+import { LanguageModelV2ToolCall } from './language-model-v2-tool-call';
+import { LanguageModelV2ToolResult } from './language-model-v2-tool-result';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
 export type LanguageModelV2StreamPart =
-  // Content (similar to doGenerate):
-  | LanguageModelV2Content
+  // Text blocks:
+  | {
+      type: 'text-start';
+      providerMetadata?: SharedV2ProviderMetadata;
+      id: string;
+    }
+  | {
+      type: 'text-delta';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+      delta: string;
+    }
+  | {
+      type: 'text-end';
+      providerMetadata?: SharedV2ProviderMetadata;
+      id: string;
+    }
 
-  // Reasoning part end marker:
-  | { type: 'reasoning-part-finish' }
+  // Reasoning blocks:
+  | {
+      type: 'reasoning-start';
+      providerMetadata?: SharedV2ProviderMetadata;
+      id: string;
+    }
+  | {
+      type: 'reasoning-delta';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+      delta: string;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
 
-  // Tool calls delta:
-  | LanguageModelV2ToolCallDelta
+  // Tool calls and results:
+  | {
+      type: 'tool-input-start';
+      id: string;
+      toolName: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+      providerExecuted?: boolean;
+    }
+  | {
+      type: 'tool-input-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-end';
+      id: string;
+      providerMetadata?: SharedV2ProviderMetadata;
+    }
+  | LanguageModelV2ToolCall
+  | LanguageModelV2ToolResult
+
+  // Files and sources:
+  | LanguageModelV2File
+  | LanguageModelV2Source
 
   // stream start event with warnings for the call, e.g. unsupported settings:
   | {
@@ -32,6 +87,12 @@ export type LanguageModelV2StreamPart =
       usage: LanguageModelV2Usage;
       finishReason: LanguageModelV2FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
+    }
+
+  // raw chunks if enabled
+  | {
+      type: 'raw';
+      rawValue: unknown;
     }
 
   // error parts are streamed, allowing for multiple errors

@@ -14,7 +14,9 @@ describe('pipeUIMessageStreamToResponse', () => {
         'Custom-Header': 'test',
       },
       stream: convertArrayToReadableStream([
-        { type: 'text', text: 'test-data' },
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', delta: 'test-data' },
+        { type: 'text-end', id: '1' },
       ]),
     });
 
@@ -41,7 +43,13 @@ describe('pipeUIMessageStreamToResponse', () => {
     const decodedChunks = mockResponse.getDecodedChunks();
     expect(decodedChunks).toMatchInlineSnapshot(`
       [
-        "data: {"type":"text","text":"test-data"}
+        "data: {"type":"text-start","id":"1"}
+
+      ",
+        "data: {"type":"text-delta","id":"1","delta":"test-data"}
+
+      ",
+        "data: {"type":"text-end","id":"1"}
 
       ",
         "data: [DONE]

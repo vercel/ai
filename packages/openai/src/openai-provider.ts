@@ -3,8 +3,8 @@ import {
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
-  TranscriptionModelV1,
-  SpeechModelV1,
+  TranscriptionModelV2,
+  SpeechModelV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -28,16 +28,12 @@ import { OpenAISpeechModel } from './openai-speech-model';
 import { OpenAISpeechModelId } from './openai-speech-options';
 
 export interface OpenAIProvider extends ProviderV2 {
-  (modelId: 'gpt-3.5-turbo-instruct'): OpenAICompletionLanguageModel;
-  (modelId: OpenAIChatModelId): LanguageModelV2;
+  (modelId: OpenAIResponsesModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI model for text generation.
    */
-  languageModel(
-    modelId: 'gpt-3.5-turbo-instruct',
-  ): OpenAICompletionLanguageModel;
-  languageModel(modelId: OpenAIChatModelId): LanguageModelV2;
+  languageModel(modelId: OpenAIResponsesModelId): OpenAIResponsesLanguageModel;
 
   /**
 Creates an OpenAI chat model for text generation.
@@ -85,12 +81,12 @@ Creates a model for image generation.
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV1;
+  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV2;
 
   /**
 Creates a model for speech generation.
    */
-  speech(modelId: OpenAISpeechModelId): SpeechModelV1;
+  speech(modelId: OpenAISpeechModelId): SpeechModelV2;
 
   /**
 OpenAI-specific tools.
@@ -206,20 +202,14 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createLanguageModel = (
-    modelId: OpenAIChatModelId | OpenAICompletionModelId,
-  ) => {
+  const createLanguageModel = (modelId: OpenAIResponsesModelId) => {
     if (new.target) {
       throw new Error(
         'The OpenAI model function cannot be called with the new keyword.',
       );
     }
 
-    if (modelId === 'gpt-3.5-turbo-instruct') {
-      return createCompletionModel(modelId);
-    }
-
-    return createChatModel(modelId);
+    return createResponsesModel(modelId);
   };
 
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
@@ -231,9 +221,7 @@ export function createOpenAI(
     });
   };
 
-  const provider = function (
-    modelId: OpenAIChatModelId | OpenAICompletionModelId,
-  ) {
+  const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
   };
 

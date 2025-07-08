@@ -4,6 +4,7 @@ import {
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createMistral } from './mistral-provider';
+import { vi } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -143,9 +144,8 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{"location": "paris"}",
+          "input": "{"location": "paris"}",
           "toolCallId": "gSIMJiOkT",
-          "toolCallType": "function",
           "toolName": "weatherTool",
           "type": "tool-call",
         },
@@ -233,7 +233,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -377,6 +377,34 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it('should return raw text with think tags for reasoning models', async () => {
+    const reasoningModel = provider.chat('magistral-small-2506');
+
+    prepareJsonResponse({
+      content:
+        "<think>\nLet me think about this problem step by step.\nFirst, I need to understand what the user is asking.\nThen I can provide a helpful response.\n</think>\n\nHello! I'm ready to help you with your question.",
+    });
+
+    const { content } = await reasoningModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "<think>
+      Let me think about this problem step by step.
+      First, I need to understand what the user is asking.
+      Then I can provide a helpful response.
+      </think>
+
+      Hello! I'm ready to help you with your question.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream', () => {
@@ -391,18 +419,18 @@ describe('doStream', () => {
       type: 'stream-chunks',
       headers,
       chunks: [
-        `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
-          `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
+        `data:  {"id":"53ff663126294946a6b7a4747b70597e","object":"chat.completion.chunk",` +
+          `"created":1750537996,"model":"mistral-small-latest","choices":[{"index":0,` +
           `"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}\n\n`,
         ...content.map(text => {
           return (
-            `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
-            `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
+            `data:  {"id":"53ff663126294946a6b7a4747b70597e","object":"chat.completion.chunk",` +
+            `"created":1750537996,"model":"mistral-small-latest","choices":[{"index":0,` +
             `"delta":{"role":"assistant","content":"${text}"},"finish_reason":null,"logprobs":null}]}\n\n`
           );
         }),
-        `data:  {"id":"6e2cd91750904b7092f49bdca9083de1","object":"chat.completion.chunk",` +
-          `"created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,` +
+        `data:  {"id":"53ff663126294946a6b7a4747b70597e","object":"chat.completion.chunk",` +
+          `"created":1750537996,"model":"mistral-small-latest","choices":[{"index":0,` +
           `"delta":{"content":""},"finish_reason":"stop","logprobs":null}],` +
           `"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
         `data: [DONE]\n\n`,
@@ -415,6 +443,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -424,30 +453,33 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "id": "6e2cd91750904b7092f49bdca9083de1",
+          "id": "53ff663126294946a6b7a4747b70597e",
           "modelId": "mistral-small-latest",
-          "timestamp": 2024-03-22T08:46:15.000Z,
+          "timestamp": 2025-06-21T20:33:16.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "world!",
-          "type": "text",
+          "delta": "world!",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -473,6 +505,7 @@ describe('doStream', () => {
           content: [{ type: 'text', text: 'prefix ' }],
         },
       ],
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -482,26 +515,33 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "id": "6e2cd91750904b7092f49bdca9083de1",
+          "id": "53ff663126294946a6b7a4747b70597e",
           "modelId": "mistral-small-latest",
-          "timestamp": 2024-03-22T08:46:15.000Z,
+          "timestamp": 2025-06-21T20:33:16.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": "and",
-          "type": "text",
+          "delta": "prefix",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": " more content",
-          "type": "text",
+          "delta": " and",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "",
-          "type": "text",
+          "delta": " more content",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -520,10 +560,10 @@ describe('doStream', () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"ad6f7ce6543c4d0890280ae184fe4dd8","object":"chat.completion.chunk","created":1711365023,"model":"mistral-large-latest",` +
+        `data: {"id":"a8f32d91e5b64c2f9e7b3a8d4f6c1e5a","object":"chat.completion.chunk","created":1750538400,"model":"mistral-large-latest",` +
           `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}\n\n`,
-        `data: {"id":"ad6f7ce6543c4d0890280ae184fe4dd8","object":"chat.completion.chunk","created":1711365023,"model":"mistral-large-latest",` +
-          `"choices":[{"index":0,"delta":{"content":null,"tool_calls":[{"id":"yfBEybNYi","function":{"name":"test-tool","arguments":` +
+        `data: {"id":"a8f32d91e5b64c2f9e7b3a8d4f6c1e5a","object":"chat.completion.chunk","created":1750538400,"model":"mistral-large-latest",` +
+          `"choices":[{"index":0,"delta":{"content":null,"tool_calls":[{"id":"call_9K8xFjN2mP3qR7sT","function":{"name":"test-tool","arguments":` +
           `"{\\"value\\":\\"Sparkle Day\\"}"` +
           `}}]},"finish_reason":"tool_calls","logprobs":null}],"usage":{"prompt_tokens":183,"total_tokens":316,"completion_tokens":133}}\n\n`,
         'data: [DONE]\n\n',
@@ -539,7 +579,7 @@ describe('doStream', () => {
           {
             type: 'function',
             name: 'test-tool',
-            parameters: {
+            inputSchema: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
@@ -549,6 +589,7 @@ describe('doStream', () => {
           },
         ],
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -558,26 +599,28 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "id": "ad6f7ce6543c4d0890280ae184fe4dd8",
+          "id": "a8f32d91e5b64c2f9e7b3a8d4f6c1e5a",
           "modelId": "mistral-large-latest",
-          "timestamp": 2024-03-25T11:10:23.000Z,
+          "timestamp": 2025-06-21T20:40:00.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
-        },
-        {
-          "argsTextDelta": "{"value":"Sparkle Day"}",
-          "toolCallId": "yfBEybNYi",
-          "toolCallType": "function",
+          "id": "call_9K8xFjN2mP3qR7sT",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
-          "toolCallId": "yfBEybNYi",
-          "toolCallType": "function",
+          "delta": "{"value":"Sparkle Day"}",
+          "id": "call_9K8xFjN2mP3qR7sT",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_9K8xFjN2mP3qR7sT",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_9K8xFjN2mP3qR7sT",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -602,6 +645,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -620,6 +664,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -641,6 +686,7 @@ describe('doStream', () => {
 
     await provider.chat('mistral-small-latest').doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -659,6 +705,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -698,15 +745,16 @@ describe('doStream', () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":""}]},"finish_reason":null,"logprobs":null}]}\n\n`,
-        `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":[{"type":"text","text":"Hello"}]},"finish_reason":null,"logprobs":null}]}\n\n`,
-        `data: {"id":"stream-object-id","object":"chat.completion.chunk","created":1711097175,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":[{"type":"text","text":", world!"}]},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
+        `data: {"id":"b9e43f82d6c74a1e9f5b2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538500,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"text","text":""}]},"finish_reason":null,"logprobs":null}]}\n\n`,
+        `data: {"id":"b9e43f82d6c74a1e9f5b2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538500,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":[{"type":"text","text":"Hello"}]},"finish_reason":null,"logprobs":null}]}\n\n`,
+        `data: {"id":"b9e43f82d6c74a1e9f5b2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538500,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":[{"type":"text","text":", world!"}]},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32}}\n\n`,
         `data: [DONE]\n\n`,
       ],
     };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -716,22 +764,28 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "id": "stream-object-id",
+          "id": "b9e43f82d6c74a1e9f5b2c8e7a9d4f6b",
           "modelId": "mistral-small-latest",
-          "timestamp": 2024-03-22T08:46:15.000Z,
+          "timestamp": 2025-06-21T20:41:40.000Z,
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": ", world!",
-          "type": "text",
+          "delta": ", world!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -744,5 +798,193 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+});
+
+describe('doStream with raw chunks', () => {
+  it('should stream raw chunks when includeRawChunks is true', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"c7d54e93f8a64b2e9c1f5a8b7d9e2f4c","object":"chat.completion.chunk","created":1750538600,"model":"mistral-large-latest","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null,"logprobs":null}]}\n\n`,
+        `data: {"id":"d8e65fa4g9b75c3f0d2g6b9c8e0f3g5d","object":"chat.completion.chunk","created":1750538601,"model":"mistral-large-latest","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null,"logprobs":null}]}\n\n`,
+        `data: {"id":"e9f76gb5h0c86d4g1e3h7c0d9f1g4h6e","object":"chat.completion.chunk","created":1750538602,"model":"mistral-large-latest","choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                  "role": "assistant",
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+              },
+            ],
+            "created": 1750538600,
+            "id": "c7d54e93f8a64b2e9c1f5a8b7d9e2f4c",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+          },
+          "type": "raw",
+        },
+        {
+          "id": "c7d54e93f8a64b2e9c1f5a8b7d9e2f4c",
+          "modelId": "mistral-large-latest",
+          "timestamp": 2025-06-21T20:43:20.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": " world",
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+              },
+            ],
+            "created": 1750538601,
+            "id": "d8e65fa4g9b75c3f0d2g6b9c8e0f3g5d",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+          },
+          "type": "raw",
+        },
+        {
+          "delta": " world",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+              },
+            ],
+            "created": 1750538602,
+            "id": "e9f76gb5h0c86d4g1e3h7c0d9f1g4h6e",
+            "model": "mistral-large-latest",
+            "object": "chat.completion.chunk",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
+          },
+          "type": "raw",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 5,
+            "totalTokens": 15,
+          },
+        },
+      ]
+    `);
+  });
+});
+
+describe('tool result format support', () => {
+  it('should handle new LanguageModelV2ToolResultOutput format', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-id',
+        object: 'chat.completion',
+        created: 1234567890,
+        model: 'mistral-small',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Here is the result',
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 5,
+          total_tokens: 15,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              input: { query: 'test' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              output: { type: 'json', value: { result: 'success' } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Here is the result' },
+    ]);
+    expect(result.finishReason).toBe('stop');
   });
 });

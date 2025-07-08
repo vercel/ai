@@ -2,15 +2,11 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useChat } from '@ai-sdk/react';
-import { convertFileListToFileUIParts, defaultChatStore } from 'ai';
 import { useRef, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, setInput, append, status } = useChat({
-    chatStore: defaultChatStore({
-      api: '/api/chat',
-    }),
-  });
+  const { messages, sendMessage, status } = useChat();
+  const [input, setInput] = useState('');
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,13 +47,7 @@ export default function Page() {
         onSubmit={async event => {
           event.preventDefault();
 
-          append({
-            role: 'user',
-            parts: [
-              ...(await convertFileListToFileUIParts(files)),
-              { type: 'text', text: input },
-            ],
-          });
+          sendMessage({ text: input, files });
 
           setFiles(undefined);
           setInput('');
@@ -103,9 +93,7 @@ export default function Page() {
         <input
           value={input}
           placeholder="Send message..."
-          onChange={event => {
-            setInput(event.target.value);
-          }}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-2 bg-zinc-100"
           disabled={status !== 'ready'}
         />

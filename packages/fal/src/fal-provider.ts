@@ -2,7 +2,7 @@ import {
   ImageModelV2,
   NoSuchModelError,
   ProviderV2,
-  TranscriptionModelV1,
+  TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { withoutTrailingSlash } from '@ai-sdk/provider-utils';
@@ -51,7 +51,7 @@ Creates a model for image generation.
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: FalTranscriptionModelId): TranscriptionModelV1;
+  transcription(modelId: FalTranscriptionModelId): TranscriptionModelV2;
 }
 
 const defaultBaseURL = 'https://fal.run';

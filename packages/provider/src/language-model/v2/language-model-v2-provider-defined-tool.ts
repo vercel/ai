@@ -8,12 +8,12 @@ The type of the tool (always 'provider-defined').
   type: 'provider-defined';
 
   /**
-The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
+The ID of the tool. Should follow the format `<provider-name>.<unique-tool-name>`.
    */
   id: `${string}.${string}`;
 
   /**
-The name of the tool. Unique within this model call.
+The name of the tool that the user must use in the tool set.
    */
   name: string;
 

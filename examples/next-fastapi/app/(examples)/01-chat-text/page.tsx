@@ -2,14 +2,14 @@
 
 import { Card } from '@/app/components';
 import { useChat } from '@ai-sdk/react';
-import { ChatStore, TextStreamChatTransport } from 'ai';
+import { TextStreamChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } = useChat({
-    chatStore: new ChatStore({
-      transport: new TextStreamChatTransport({
-        api: '/api/chat?protocol=text',
-      }),
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat({
+    transport: new TextStreamChatTransport({
+      api: '/api/chat?protocol=text',
     }),
   });
 
@@ -31,13 +31,17 @@ export default function Page() {
       {messages.length === 0 && <Card type="chat-text" />}
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
         className="fixed bottom-0 flex flex-col w-full border-t"
       >
         <input
           value={input}
           placeholder="Why is the sky blue?"
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-4 bg-transparent outline-none"
           disabled={status !== 'ready'}
         />

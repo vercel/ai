@@ -1,12 +1,4 @@
 export type { CallSettings } from './call-settings';
-export type {
-  FilePart,
-  ImagePart,
-  TextPart,
-  ToolCallPart,
-  ToolResultPart,
-} from './content-part';
-export type { DataContent } from './data-content';
 export {
   assistantModelMessageSchema,
   coreAssistantMessageSchema,
@@ -20,18 +12,28 @@ export {
   userModelMessageSchema,
 } from './message';
 export type {
-  AssistantContent,
-  AssistantModelMessage,
   CoreAssistantMessage,
   CoreMessage,
   CoreSystemMessage,
   CoreToolMessage,
   CoreUserMessage,
-  ModelMessage,
-  SystemModelMessage,
-  ToolContent,
-  ToolModelMessage,
-  UserContent,
-  UserModelMessage,
 } from './message';
 export type { Prompt } from './prompt';
+
+// re-export types from provider-utils
+export type {
+  AssistantContent,
+  AssistantModelMessage,
+  DataContent,
+  FilePart,
+  ImagePart,
+  ModelMessage,
+  SystemModelMessage,
+  TextPart,
+  ToolCallPart,
+  ToolContent,
+  ToolModelMessage,
+  ToolResultPart,
+  UserContent,
+  UserModelMessage,
+} from '@ai-sdk/provider-utils';

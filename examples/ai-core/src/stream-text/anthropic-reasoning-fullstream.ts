@@ -1,7 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import {
   extractReasoningMiddleware,
-  maxSteps,
+  stepCountIs,
   streamText,
   ToolCallPart,
   ToolResultPart,
@@ -29,7 +29,7 @@ async function main() {
       weather: weatherTool,
     },
     prompt: 'What is the weather in San Francisco?',
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
   });
 
   let enteredReasoning = false;
@@ -61,16 +61,20 @@ async function main() {
         toolCalls.push(part);
 
         process.stdout.write(
-          `\nTool call: '${part.toolName}' ${JSON.stringify(part.args)}`,
+          `\nTool call: '${part.toolName}' ${JSON.stringify(part.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
-        toolResponses.push(part);
+        const transformedPart: ToolResultPart = {
+          ...part,
+          output: { type: 'json', value: part.output },
+        };
+        toolResponses.push(transformedPart);
 
         process.stdout.write(
-          `\nTool response: '${part.toolName}' ${JSON.stringify(part.result)}`,
+          `\nTool response: '${part.toolName}' ${JSON.stringify(part.output)}`,
         );
         break;
       }

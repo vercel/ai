@@ -1,7 +1,9 @@
+import { ReasoningPart } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
-import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { InferUIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
+import { InferUIMessageMetadata, UIMessage } from '../../src/ui/ui-messages';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
-import { ReasoningPart } from '../prompt/content-part';
 import {
   CallWarning,
   FinishReason,
@@ -16,29 +18,22 @@ import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
-import { ToolResultUnion } from './tool-result';
+import { ToolErrorUnion, ToolResultUnion } from './tool-output';
 import { ToolSet } from './tool-set';
-import { UIMessage } from '../../src/ui/ui-messages';
+import { ErrorHandler } from '../../src/util/error-handler';
 
-export type UIMessageStreamOptions = {
+export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
-   * Message ID that is sent to the client if a new message is created.
-   * This is intended to be used for the UI message,
-   * if the last original message is not an assistant message
-   * (in which case that message ID is used).
+   * The original messages. If they are provided, persistence mode is assumed,
+   * and a message ID is provided for the response message.
    */
-  newMessageId?: string;
-
-  /**
-   * The original messages.
-   */
-  originalMessages?: UIMessage[];
+  originalMessages?: UI_MESSAGE[];
 
   onFinish?: (options: {
     /**
      * The updates list of UI messages.
      */
-    messages: UIMessage[];
+    messages: UI_MESSAGE[];
 
     /**
      * Indicates whether the response message is a continuation of the last original message,
@@ -50,7 +45,7 @@ export type UIMessageStreamOptions = {
      * The message that was sent to the client as a response
      * (including the original message if it was extended).
      */
-    responseMessage: UIMessage;
+    responseMessage: UI_MESSAGE;
   }) => void;
 
   /**
@@ -59,14 +54,12 @@ export type UIMessageStreamOptions = {
    * Called on `start` and `finish` events.
    */
   messageMetadata?: (options: {
-    part: TextStreamPart<ToolSet> & {
-      type: 'start' | 'finish' | 'start-step' | 'finish-step';
-    };
-  }) => unknown;
+    part: TextStreamPart<ToolSet>;
+  }) => InferUIMessageMetadata<UI_MESSAGE> | undefined;
 
   /**
    * Send reasoning parts to the client.
-   * Default to false.
+   * Default to true.
    */
   sendReasoning?: boolean;
 
@@ -82,7 +75,7 @@ export type UIMessageStreamOptions = {
    * that send additional data.
    * Default to true.
    */
-  experimental_sendFinish?: boolean;
+  sendFinish?: boolean;
 
   /**
    * Send the message start event to the client.
@@ -95,7 +88,7 @@ export type UIMessageStreamOptions = {
    * streamText calls that send additional data to prevent
    * the message start event from being sent multiple times.
    */
-  experimental_sendStart?: boolean;
+  sendStart?: boolean;
 
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
@@ -106,7 +99,7 @@ export type UIMessageStreamOptions = {
 };
 
 export type ConsumeStreamOptions = {
-  onError?: (error: unknown) => void;
+  onError?: ErrorHandler;
 };
 
 /**
@@ -274,9 +267,9 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   @return A UI message stream.
      */
-  toUIMessageStream(
-    options?: UIMessageStreamOptions,
-  ): ReadableStream<UIMessageStreamPart>;
+  toUIMessageStream<UI_MESSAGE extends UIMessage>(
+    options?: UIMessageStreamOptions<UI_MESSAGE>,
+  ): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
 
   /**
   Writes UI message stream output to a Node.js response-like object.
@@ -288,9 +281,9 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
      */
-  pipeUIMessageStreamToResponse(
+  pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
-    options?: ResponseInit & UIMessageStreamOptions,
+    options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): void;
 
   /**
@@ -313,8 +306,8 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
   @return A response object.
      */
-  toUIMessageStreamResponse(
-    options?: ResponseInit & UIMessageStreamOptions,
+  toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
+    options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
   ): Response;
 
   /**
@@ -327,19 +320,61 @@ If an error occurs, it is passed to the optional `onError` callback.
 }
 
 export type TextStreamPart<TOOLS extends ToolSet> =
-  | ContentPart<TOOLS>
-  | { type: 'reasoning-part-finish' }
   | {
-      type: 'tool-call-streaming-start';
-      toolCallId: string;
-      toolName: string;
+      type: 'text-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
     }
   | {
-      type: 'tool-call-delta';
-      toolCallId: string;
-      toolName: string;
-      argsTextDelta: string;
+      type: 'text-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
     }
+  | {
+      type: 'text';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+      text: string;
+    }
+  | {
+      type: 'reasoning-start';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning';
+      providerMetadata?: ProviderMetadata;
+      id: string;
+      text: string;
+    }
+  | {
+      type: 'tool-input-start';
+      id: string;
+      toolName: string;
+      providerMetadata?: ProviderMetadata;
+      providerExecuted?: boolean;
+    }
+  | {
+      type: 'tool-input-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'tool-input-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | ({ type: 'source' } & Source)
+  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
+  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
+  | ({ type: 'tool-result' } & ToolResultUnion<TOOLS>)
+  | ({ type: 'tool-error' } & ToolErrorUnion<TOOLS>)
   | {
       type: 'start-step';
       request: LanguageModelRequestMetadata;
@@ -363,4 +398,8 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'error';
       error: unknown;
+    }
+  | {
+      type: 'raw';
+      rawValue: unknown;
     };

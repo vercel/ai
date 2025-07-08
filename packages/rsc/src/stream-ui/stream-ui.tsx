@@ -1,16 +1,20 @@
 import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import {
+  InferSchema,
+  ProviderOptions,
+  safeParseJSON,
+} from '@ai-sdk/provider-utils';
 import { ReactNode } from 'react';
-import { z } from 'zod';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4';
 import {
   CallWarning,
   FinishReason,
-  ProviderOptions,
   LanguageModelUsage,
   ToolChoice,
   Prompt,
   CallSettings,
-  InvalidToolArgumentsError,
+  InvalidToolInputError,
   NoSuchToolError,
   Schema,
 } from 'ai';
@@ -35,16 +39,12 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<PARAMETERS extends z.Schema | Schema = any> = {
+type RenderTool<INPUT_SCHEMA extends z4.ZodType | z3.Schema | Schema = any> = {
   description?: string;
-  parameters: PARAMETERS;
+  inputSchema: INPUT_SCHEMA;
   generate?: Renderer<
     [
-      PARAMETERS extends z.Schema
-        ? z.infer<PARAMETERS>
-        : PARAMETERS extends Schema<infer T>
-          ? T
-          : never,
+      InferSchema<INPUT_SCHEMA>,
       {
         toolName: string;
         toolCallId: string;
@@ -86,7 +86,7 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
  * `streamUI` is a helper function to create a streamable UI from LLMs.
  */
 export async function streamUI<
-  TOOLS extends { [name: string]: z.Schema | Schema } = {},
+  TOOLS extends { [name: string]: z4.ZodType | z3.Schema | Schema } = {},
 >({
   model,
   tools,
@@ -277,6 +277,7 @@ functionality that can be fully encapsulated in the provider.
       providerOptions,
       abortSignal,
       headers,
+      includeRawChunks: false,
     }),
   );
 
@@ -299,17 +300,18 @@ functionality that can be fully encapsulated in the provider.
             break;
           }
 
-          case 'text': {
-            content += value.text;
+          case 'text-delta': {
+            content += value.delta;
             render({
               renderer: textRender,
-              args: [{ content, done: false, delta: value.text }],
+              args: [{ content, done: false, delta: value.delta }],
               streamableUI: ui,
             });
             break;
           }
 
-          case 'tool-call-delta': {
+          case 'tool-input-start':
+          case 'tool-input-delta': {
             hasToolCall = true;
             break;
           }
@@ -331,14 +333,14 @@ functionality that can be fully encapsulated in the provider.
 
             hasToolCall = true;
             const parseResult = await safeParseJSON({
-              text: value.args,
-              schema: tool.parameters,
+              text: value.input,
+              schema: tool.inputSchema,
             });
 
             if (parseResult.success === false) {
-              throw new InvalidToolArgumentsError({
+              throw new InvalidToolInputError({
                 toolName,
-                toolArgs: value.args,
+                toolInput: value.input,
                 cause: parseResult.error,
               });
             }

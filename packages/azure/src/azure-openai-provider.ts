@@ -11,7 +11,7 @@ import {
   LanguageModelV2,
   ProviderV2,
   ImageModelV2,
-  TranscriptionModelV1,
+  TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
@@ -67,7 +67,7 @@ Creates an Azure OpenAI model for text embeddings.
   /**
    * Creates an Azure OpenAI model for audio transcription.
    */
-  transcription(deploymentId: string): TranscriptionModelV1;
+  transcription(deploymentId: string): TranscriptionModelV2;
 }
 
 export interface AzureOpenAIProviderSettings {

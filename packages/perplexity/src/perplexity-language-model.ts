@@ -15,7 +15,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
 import { PerplexityLanguageModelId } from './perplexity-language-model-options';
@@ -245,6 +245,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       },
     };
     let isFirstChunk = true;
+    let isActive = false;
 
     const self = this;
 
@@ -259,6 +260,11 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
@@ -316,14 +322,24 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
             const textContent = delta.content;
 
             if (textContent != null) {
+              if (!isActive) {
+                controller.enqueue({ type: 'text-start', id: '0' });
+                isActive = true;
+              }
+
               controller.enqueue({
-                type: 'text',
-                text: textContent,
+                type: 'text-delta',
+                id: '0',
+                delta: textContent,
               });
             }
           },
 
           flush(controller) {
+            if (isActive) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,

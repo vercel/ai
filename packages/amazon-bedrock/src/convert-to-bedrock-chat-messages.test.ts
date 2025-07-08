@@ -87,23 +87,114 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(messages).toEqual([
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+            },
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-1",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should use consistent document names for prompt cache effectiveness', async () => {
+    const fileData1 = new Uint8Array([0, 1, 2, 3]);
+    const fileData2 = new Uint8Array([4, 5, 6, 7]);
+
+    const { messages } = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [
-          { text: 'Hello' },
           {
-            document: {
-              format: 'pdf',
-              name: expect.any(String),
-              source: {
-                bytes: 'AAECAw==',
-              },
-            },
+            type: 'file',
+            data: Buffer.from(fileData1).toString('base64'),
+            mediaType: 'application/pdf',
+          },
+          {
+            type: 'file',
+            data: Buffer.from(fileData2).toString('base64'),
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'OK' }],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(fileData1).toString('base64'),
+            mediaType: 'application/pdf',
           },
         ],
       },
     ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-1",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-2",
+                "source": {
+                  "bytes": "BAUGBw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "content": [
+            {
+              "text": "OK",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "document": {
+                "format": "pdf",
+                "name": "document-3",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should extract the system message', async () => {
@@ -464,8 +555,10 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'calculator',
-            result: { value: 42 },
-            content: [{ type: 'text', text: 'The result is 42' }],
+            output: {
+              type: 'content',
+              value: [{ type: 'text', text: 'The result is 42' }],
+            },
           },
         ],
       },
@@ -493,14 +586,16 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'image-generator',
-            result: undefined,
-            content: [
-              {
-                type: 'image',
-                data: 'base64data',
-                mediaType: 'image/jpeg',
-              },
-            ],
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'media',
+                  data: 'base64data',
+                  mediaType: 'image/jpeg',
+                },
+              ],
+            },
           },
         ],
       },
@@ -536,22 +631,26 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolCallId: 'call-123',
               toolName: 'image-generator',
-              result: undefined,
-              content: [
-                {
-                  type: 'image',
-                  data: 'base64data',
-                  mediaType: 'image/webp', // unsupported format
-                },
-              ],
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'media',
+                    data: 'base64data',
+                    mediaType: 'image/avif', // unsupported format
+                  },
+                ],
+              },
             },
           ],
         },
       ]),
-    ).rejects.toThrow('Unsupported image format: webp');
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_UnsupportedFunctionalityError: Unsupported image mime type: image/avif, expected one of: image/jpeg, image/png, image/gif, image/webp]`,
+    );
   });
 
-  it('should throw error for missing mime type in tool result image content', async () => {
+  it('should throw error for unsupported mime type in tool result image content', async () => {
     await expect(
       convertToBedrockChatMessages([
         {
@@ -561,20 +660,22 @@ describe('tool messages', () => {
               type: 'tool-result',
               toolCallId: 'call-123',
               toolName: 'image-generator',
-              result: undefined,
-              content: [
-                {
-                  type: 'image',
-                  data: 'base64data',
-                  // missing mediaType
-                },
-              ],
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'media',
+                    data: 'base64data',
+                    mediaType: 'unsupported/mime-type',
+                  },
+                ],
+              },
             },
           ],
         },
       ]),
-    ).rejects.toThrow(
-      'Image mime type is required in tool result part content',
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_UnsupportedFunctionalityError: 'media type: unsupported/mime-type' functionality not supported.]`,
     );
   });
 
@@ -587,7 +688,7 @@ describe('tool messages', () => {
             type: 'tool-result',
             toolCallId: 'call-123',
             toolName: 'calculator',
-            result: { value: 42 },
+            output: { type: 'json', value: { value: 42 } },
           },
         ],
       },
@@ -604,5 +705,102 @@ describe('tool messages', () => {
         },
       ],
     });
+  });
+});
+
+describe('additional file format tests', () => {
+  it('should throw an error for unsupported file mime type in user message content', async () => {
+    await expect(
+      convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64data',
+              mediaType: 'application/rtf',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_UnsupportedFunctionalityError: Unsupported file mime type: application/rtf, expected one of: application/pdf, text/csv, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/html, text/plain, text/markdown]`,
+    );
+  });
+
+  it('should handle xlsx files correctly', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'base64data',
+            mediaType:
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
+              {
+                "document": {
+                  "format": "xlsx",
+                  "name": "document-1",
+                  "source": {
+                    "bytes": "base64data",
+                  },
+                },
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [],
+      }
+    `);
+  });
+
+  it('should handle docx files correctly', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'base64data',
+            mediaType:
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
+              {
+                "document": {
+                  "format": "docx",
+                  "name": "document-1",
+                  "source": {
+                    "bytes": "base64data",
+                  },
+                },
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [],
+      }
+    `);
   });
 });

@@ -1,20 +1,33 @@
 <script setup lang="ts">
-import { useChat } from '@ai-sdk/vue';
+import { Chat } from '@ai-sdk/vue';
+import { DefaultChatTransport } from 'ai';
+import { computed, ref } from 'vue';
 
-const { input, handleSubmit, messages, addToolResult } = useChat({
-  api: '/api/use-chat-tools',
-  maxSteps: 5,
-
+const chat = new Chat({
   // run client-side tools that are automatically executed:
   async onToolCall({ toolCall }) {
+    // artificial 2 second delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     if (toolCall.toolName === 'getLocation') {
       const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
       return cities[Math.floor(Math.random() * cities.length)];
     }
   },
+  transport: new DefaultChatTransport({
+    api: '/api/use-chat-tools',
+  }),
+  maxSteps: 5,
 });
 
-const messageList = computed(() => messages.value); // computer property for type inference
+const messageList = computed(() => chat.messages); // computer property for type inference
+const input = ref('');
+
+const handleSubmit = (e: Event) => {
+  e.preventDefault();
+  chat.sendMessage({ text: input.value });
+  input.value = '';
+};
 </script>
 
 <template>
@@ -38,12 +51,12 @@ const messageList = computed(() => messages.value); // computer property for typ
                 :key="part.toolInvocation.toolCallId"
                 className="text-gray-500"
               >
-                {{ part.toolInvocation.args.message }}
+                {{ part.toolInvocation.input.message }}
                 <div className="flex gap-2">
                   <button
                     class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                     @click="
-                      addToolResult({
+                      chat.addToolResult({
                         toolCallId: part.toolInvocation.toolCallId,
                         result: 'Yes, confirmed.',
                       })
@@ -54,7 +67,7 @@ const messageList = computed(() => messages.value); // computer property for typ
                   <button
                     class="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                     @click="
-                      addToolResult({
+                      chat.addToolResult({
                         toolCallId: part.toolInvocation.toolCallId,
                         result: 'No, denied',
                       })
@@ -108,7 +121,7 @@ const messageList = computed(() => messages.value); // computer property for typ
                 className="text-gray-500"
               >
                 Getting weather information for
-                {{ part.toolInvocation.args.city }}...
+                {{ part.toolInvocation.input.city }}...
               </div>
             </template>
             <template v-if="part.toolInvocation.state === 'result'">
@@ -116,7 +129,7 @@ const messageList = computed(() => messages.value); // computer property for typ
                 :key="part.toolInvocation.toolCallId"
                 className="text-gray-500"
               >
-                Weather in {{ part.toolInvocation.args.city }}:
+                Weather in {{ part.toolInvocation.input.city }}:
                 {{ part.toolInvocation.result }}
               </div>
             </template>

@@ -92,15 +92,17 @@ describe('doStream', () => {
           chunks = text
             .split('\n')
             .filter(Boolean)
-            .map(chunk => ({
-              success: true,
-              value: JSON.parse(chunk),
-            }));
+            .map(chunk => {
+              const parsedChunk = JSON.parse(chunk);
+              return {
+                success: true,
+                value: parsedChunk,
+                rawValue: parsedChunk,
+              };
+            });
         }
-        const headers: Record<string, string> = {};
-        response.headers.forEach((value, key) => {
-          headers[key] = value;
-        });
+        const headers = Object.fromEntries<string>([...response.headers]);
+
         return {
           responseHeaders: headers,
           value: new ReadableStream({
@@ -166,6 +168,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -175,16 +178,31 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": ", ",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "2",
+          "type": "text-start",
+        },
+        {
+          "delta": "World!",
+          "id": "2",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -241,7 +259,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -252,6 +270,7 @@ describe('doStream', () => {
       ],
       toolChoice: { type: 'tool', toolName: 'test-tool' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -261,23 +280,27 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "argsTextDelta": "{"value":",
-          "toolCallId": "tool-use-id",
-          "toolCallType": "function",
+          "id": "tool-use-id",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": ""Sparkle Day"}",
-          "toolCallId": "tool-use-id",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "{"value":",
+          "id": "tool-use-id",
+          "type": "tool-input-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "tool-use-id",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -358,7 +381,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool-1',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value1: { type: 'string' } },
             required: ['value'],
@@ -369,7 +392,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool-2',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value2: { type: 'string' } },
             required: ['value'],
@@ -380,6 +403,7 @@ describe('doStream', () => {
       ],
       toolChoice: { type: 'tool', toolName: 'test-tool' },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -389,44 +413,52 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "argsTextDelta": "{"value1":",
-          "toolCallId": "tool-use-id-1",
-          "toolCallType": "function",
+          "id": "tool-use-id-1",
           "toolName": "test-tool-1",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "{"value2":",
-          "toolCallId": "tool-use-id-2",
-          "toolCallType": "function",
+          "delta": "{"value1":",
+          "id": "tool-use-id-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id-2",
           "toolName": "test-tool-2",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": ""Sparkle Day"}",
-          "toolCallId": "tool-use-id-2",
-          "toolCallType": "function",
-          "toolName": "test-tool-2",
-          "type": "tool-call-delta",
+          "delta": "{"value2":",
+          "id": "tool-use-id-2",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": ""Sparkle Day"}",
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id-2",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""Sparkle Day"}",
+          "id": "tool-use-id-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-use-id-1",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value1":"Sparkle Day"}",
           "toolCallId": "tool-use-id-1",
-          "toolCallType": "function",
-          "toolName": "test-tool-1",
-          "type": "tool-call-delta",
-        },
-        {
-          "args": "{"value1":"Sparkle Day"}",
-          "toolCallId": "tool-use-id-1",
-          "toolCallType": "function",
           "toolName": "test-tool-1",
           "type": "tool-call",
         },
         {
-          "args": "{"value2":"Sparkle Day"}",
+          "id": "tool-use-id-2",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value2":"Sparkle Day"}",
           "toolCallId": "tool-use-id-2",
-          "toolCallType": "function",
           "toolName": "test-tool-2",
           "type": "tool-call",
         },
@@ -461,6 +493,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -509,6 +542,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -557,6 +591,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -605,6 +640,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -643,6 +679,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -679,6 +716,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -696,6 +734,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       providerOptions: {
         bedrock: {
           guardrailConfig: {
@@ -748,6 +787,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -757,8 +797,13 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -829,6 +874,7 @@ describe('doStream', () => {
 
     const result = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(result.response?.headers).toEqual({
@@ -886,6 +932,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: optionsHeaders,
     });
 
@@ -914,6 +961,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const requestHeaders = server.calls[0].requestHeaders;
@@ -941,6 +989,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       providerOptions: {
         bedrock: {
           foo: 'bar',
@@ -985,6 +1034,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -994,8 +1044,13 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -1046,6 +1101,7 @@ describe('doStream', () => {
         },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -1099,6 +1155,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1108,28 +1165,37 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "text": "I am thinking",
-          "type": "reasoning",
+          "id": "0",
+          "type": "reasoning-start",
         },
         {
-          "text": " about this problem...",
-          "type": "reasoning",
+          "delta": "I am thinking",
+          "id": "0",
+          "type": "reasoning-delta",
         },
         {
+          "delta": " about this problem...",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "",
+          "id": "0",
           "providerMetadata": {
             "bedrock": {
               "signature": "abc123signature",
             },
           },
-          "text": "",
-          "type": "reasoning",
+          "type": "reasoning-delta",
         },
         {
-          "type": "reasoning-part-finish",
+          "id": "1",
+          "type": "text-start",
         },
         {
-          "text": "Based on my reasoning, the answer is 42.",
-          "type": "text",
+          "delta": "Based on my reasoning, the answer is 42.",
+          "id": "1",
+          "type": "text-delta",
         },
         {
           "finishReason": "stop",
@@ -1173,6 +1239,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1182,20 +1249,94 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "delta": "",
+          "id": "0",
           "providerMetadata": {
             "bedrock": {
               "redactedData": "redacted-reasoning-data",
             },
           },
-          "text": "",
-          "type": "reasoning",
+          "type": "reasoning-delta",
         },
         {
-          "type": "reasoning-part-finish",
+          "id": "1",
+          "type": "text-start",
         },
         {
-          "text": "Here is my answer.",
-          "type": "text",
+          "delta": "Here is my answer.",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should include raw chunks when includeRawChunks is true', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "contentBlockDelta": {
+              "contentBlockIndex": 0,
+              "delta": {
+                "text": "Hello",
+              },
+            },
+          },
+          "type": "raw",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "rawValue": {
+            "messageStop": {
+              "stopReason": "stop_sequence",
+            },
+          },
+          "type": "raw",
         },
         {
           "finishReason": "stop",
@@ -1435,7 +1576,7 @@ describe('doGenerate', () => {
           type: 'function',
           name: 'test-tool-1',
           description: 'A test tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: {
               param1: { type: 'string' },

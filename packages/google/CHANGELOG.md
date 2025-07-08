@@ -1,5 +1,160 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- 878bf45: removes (unsupported) `additionalProperties` from the Schema sent in the request payloads to Google APIs
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 42fcd32: feat(google): automatically handle system instructions for Gemma models
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- c68931f: Support tool schemas that allow additional properties (e.g `z.record(z.string())`)
+- 8e6b69d: feat(providers/google): Add support for Gemini 2.5 Pro and Gemini 2.5 Flash (now stable)
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- cb787ac: fix: remove non-functional models
+- d1a034f: feature: using Zod 4 for internal stuff
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- a313780: fix: omit system message for gemma models
+
+## 2.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider@2.0.0-beta.1
+  - @ai-sdk/provider-utils@3.0.0-beta.1
+
+## 2.0.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [48d257a]
+- Updated dependencies [8ba77a7]
+  - @ai-sdk/provider@2.0.0-alpha.15
+  - @ai-sdk/provider-utils@3.0.0-alpha.15
+
+## 2.0.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
+## 2.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 2.0.0-alpha.11
+
+### Patch Changes
+
+- Updated dependencies [c1e6647]
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- 581a9be: fix (provider/google): prevent error when thinking signature is used
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- 1a635b5: update supportedUrls to only support native URL
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+
+## 2.0.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [5c56081]
+  - @ai-sdk/provider@2.0.0-alpha.7
+  - @ai-sdk/provider-utils@3.0.0-alpha.7
+
+## 2.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+  - @ai-sdk/provider@2.0.0-alpha.6
+  - @ai-sdk/provider-utils@3.0.0-alpha.6
+
+## 2.0.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+  - @ai-sdk/provider-utils@3.0.0-alpha.4
+
 ## 2.0.0-alpha.3
 
 ### Patch Changes

@@ -1,37 +1,45 @@
-export { appendClientMessage } from './append-client-message';
-export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
 export {
-  ChatStore,
+  AbstractChat,
+  type ChatInit,
+  type ChatRequestOptions,
+  type ChatState,
   type ChatStatus,
-  type ChatStoreEvent,
-  type InferUIDataParts as InferUIDataTypes,
-  type UIDataPartSchemas as UIDataTypesSchemas,
-} from './chat-store';
-export {
-  DefaultChatTransport,
-  TextStreamChatTransport,
-  type ChatTransport,
-} from './chat-transport';
+  type CreateUIMessage,
+  type InferUIDataParts,
+  type UIDataPartSchemas,
+} from './chat';
+export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {
   convertToCoreMessages,
   convertToModelMessages,
 } from './convert-to-model-messages';
-export { defaultChatStore } from './default-chat-store';
-export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
-export { getToolInvocations } from './get-tool-invocations';
+export { DefaultChatTransport } from './default-chat-transport';
 export {
-  isAssistantMessageWithCompletedToolCalls,
-  shouldResubmitMessages,
-} from './should-resubmit-messages';
-export * from './ui-messages';
-export { updateToolCallResult } from './update-tool-call-result';
+  HttpChatTransport,
+  type HttpChatTransportInitOptions,
+  type PrepareReconnectToStreamRequest,
+  type PrepareSendMessagesRequest,
+} from './http-chat-transport';
+export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
-  type ChatRequestOptions,
-  type OriginalUseChatOptions,
-  type UseChatOptions,
-} from './use-chat';
+  getToolName,
+  isToolUIPart,
+  type DataUIPart,
+  type FileUIPart,
+  type InferUITool,
+  type ReasoningUIPart,
+  type SourceUrlUIPart,
+  type StepStartUIPart,
+  type TextUIPart,
+  type ToolUIPart,
+  type UIDataTypes,
+  type UIMessage,
+  type UIMessagePart,
+  type UITool,
+  type UITools,
+} from './ui-messages';
 export {
   type CompletionRequestOptions,
   type UseCompletionOptions,

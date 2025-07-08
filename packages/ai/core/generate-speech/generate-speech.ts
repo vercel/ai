@@ -1,11 +1,10 @@
-import { JSONValue, SpeechModelV1 } from '@ai-sdk/provider';
+import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
 import { NoSpeechGeneratedError } from '../../src/error/no-speech-generated-error';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../../src/util/detect-media-type';
 import { prepareRetries } from '../../src/util/prepare-retries';
-import { ProviderOptions } from '../types/provider-metadata';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
@@ -13,6 +12,7 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 
 /**
 Generates speech audio using a speech model.
@@ -38,6 +38,7 @@ export async function generateSpeech({
   outputFormat,
   instructions,
   speed,
+  language,
   providerOptions = {},
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -46,7 +47,7 @@ export async function generateSpeech({
   /**
 The speech model to use.
      */
-  model: SpeechModelV1;
+  model: SpeechModelV2;
 
   /**
 The text to convert to speech.
@@ -72,6 +73,12 @@ The voice to use for speech generation.
   The speed of the speech generation.
    */
   speed?: number;
+
+  /**
+  The language for speech generation. This should be an ISO 639-1 language code (e.g. "en", "es", "fr")
+  or "auto" for automatic language detection. Provider support varies.
+   */
+  language?: string;
 
   /**
 Additional provider-specific options that are passed through to the provider
@@ -114,6 +121,7 @@ Only applicable for HTTP-based providers.
       outputFormat,
       instructions,
       speed,
+      language,
       abortSignal,
       headers,
       providerOptions,

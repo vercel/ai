@@ -15,6 +15,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/deepseek](./packages/deepseek/CHANGELOG.md)
 - [@ai-sdk/fal](./packages/fal/CHANGELOG.md)
 - [@ai-sdk/fireworks](./packages/fireworks/CHANGELOG.md)
+- [@ai-sdk/gateway](./packages/gateway/CHANGELOG.md)
 - [@ai-sdk/google](./packages/google/CHANGELOG.md)
 - [@ai-sdk/google-vertex](./packages/google-vertex/CHANGELOG.md)
 - [@ai-sdk/groq](./packages/groq/CHANGELOG.md)
@@ -24,6 +25,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/openai-compatible](./packages/openai-compatible/CHANGELOG.md)
 - [@ai-sdk/perplexity](./packages/perplexity/CHANGELOG.md)
 - [@ai-sdk/togetherai](./packages/togetherai/CHANGELOG.md)
+- [@ai-sdk/vercel](./packages/vercel/CHANGELOG.md)
 - [@ai-sdk/xai](./packages/xai/CHANGELOG.md)
 
 ### UI integrations

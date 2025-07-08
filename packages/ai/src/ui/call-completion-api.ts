@@ -5,6 +5,7 @@ import {
 } from '../ui-message-stream/ui-message-stream-parts';
 import { consumeStream } from '../util/consume-stream';
 import { processTextStream } from './process-text-stream';
+import { UIDataTypes } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -103,8 +104,8 @@ export async function callCompletionApi({
                 }
 
                 const streamPart = part.value;
-                if (streamPart.type === 'text') {
-                  result += streamPart.text;
+                if (streamPart.type === 'text-delta') {
+                  result += streamPart.delta;
                   setCompletion(result);
                 } else if (streamPart.type === 'error') {
                   throw new Error(streamPart.errorText);

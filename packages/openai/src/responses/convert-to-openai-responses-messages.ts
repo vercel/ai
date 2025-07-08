@@ -109,11 +109,23 @@ export function convertToOpenAIResponsesMessages({
               break;
             }
             case 'tool-call': {
+              if (part.providerExecuted) {
+                break;
+              }
+
               messages.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: part.toolName,
-                arguments: JSON.stringify(part.args),
+                arguments: JSON.stringify(part.input),
+              });
+              break;
+            }
+
+            case 'tool-result': {
+              warnings.push({
+                type: 'other',
+                message: `tool result parts in assistant messages are not supported for OpenAI responses`,
               });
               break;
             }
@@ -125,10 +137,25 @@ export function convertToOpenAIResponsesMessages({
 
       case 'tool': {
         for (const part of content) {
+          const output = part.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error-text':
+              contentValue = output.value;
+              break;
+            case 'content':
+            case 'json':
+            case 'error-json':
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           messages.push({
             type: 'function_call_output',
             call_id: part.toolCallId,
-            output: JSON.stringify(part.result),
+            output: contentValue,
           });
         }
 

@@ -11,8 +11,8 @@ import {
 } from '../generate-text/generated-file';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { ProviderOptions } from '../types/provider-metadata';
 import { GenerateImageResult } from './generate-image-result';
+import { ProviderOptions } from '@ai-sdk/provider-utils';
 
 /**
 Generates images using an image model.

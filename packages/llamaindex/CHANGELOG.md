@@ -1,5 +1,166 @@
 # @ai-sdk/llamaindex
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [4f3e637]
+  - ai@5.0.0-beta.5
+
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [09f41ac]
+  - ai@5.0.0-beta.4
+
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- ai@5.0.0-beta.3
+
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [0d9583c]
+- Updated dependencies [c6b64a7]
+- Updated dependencies [cb3b9c9]
+- Updated dependencies [d1a034f]
+  - ai@5.0.0-beta.2
+
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [d88455d]
+- Updated dependencies [9ad0484]
+- Updated dependencies [4048ce3]
+- Updated dependencies [f2b041e]
+- Updated dependencies [cb68df0]
+- Updated dependencies [26695a3]
+- Updated dependencies [e7d2ce3]
+- Updated dependencies [102b066]
+- Updated dependencies [e862b5b]
+- Updated dependencies [7bd025b]
+  - ai@5.0.0-beta.1
+
+## 1.0.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [b1e3abd]
+- Updated dependencies [04d5063]
+- Updated dependencies [b4b4bb2]
+- Updated dependencies [d884051]
+- Updated dependencies [954aa73]
+- Updated dependencies [142576e]
+- Updated dependencies [395c85e]
+- Updated dependencies [60e2c56]
+  - ai@5.0.0-alpha.15
+
+## 1.0.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [63f9e9b]
+  - ai@5.0.0-alpha.14
+
+## 1.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [0a710d8]
+- Updated dependencies [6a83f7d]
+- Updated dependencies [1f55c21]
+- Updated dependencies [33eb499]
+- Updated dependencies [901df02]
+  - ai@5.0.0-alpha.13
+
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- Updated dependencies [da1e6f0]
+- Updated dependencies [4892798]
+  - ai@5.0.0-alpha.12
+
+## 1.0.0-alpha.11
+
+### Patch Changes
+
+- Updated dependencies [e8324c5]
+  - ai@5.0.0-alpha.11
+
+## 1.0.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [98f25e5]
+- Updated dependencies [7bb58d4]
+  - ai@5.0.0-alpha.10
+
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [8255639]
+- Updated dependencies [9ae327d]
+  - ai@5.0.0-alpha.9
+
+## 1.0.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [4fef487]
+- Updated dependencies [6b1c55c]
+- Updated dependencies [2e4f9e4]
+- Updated dependencies [c25cbce]
+  - ai@5.0.0-alpha.8
+
+## 1.0.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [db345da]
+- Updated dependencies [9b0da33]
+- Updated dependencies [247ee0c]
+  - ai@5.0.0-alpha.7
+
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+- Updated dependencies [48a7606]
+  - ai@5.0.0-alpha.6
+
+## 1.0.0-alpha.5
+
+### Patch Changes
+
+- Updated dependencies [655cf3c]
+- Updated dependencies [1675396]
+- Updated dependencies [cf9af6e]
+- Updated dependencies [ef256ed]
+- Updated dependencies [1ed0287]
+- Updated dependencies [825e8d7]
+- Updated dependencies [7324c21]
+  - ai@5.0.0-alpha.5
+
+## 1.0.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [b32c141]
+- Updated dependencies [72d7d72]
+- Updated dependencies [9315076]
+- Updated dependencies [7d97ab6]
+- Updated dependencies [37a916d]
+- Updated dependencies [5f2b3d4]
+  - ai@5.0.0-alpha.4
+
 ## 1.0.0-alpha.3
 
 ### Patch Changes

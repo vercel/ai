@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { maxSteps, streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
-    continueUntil: maxSteps(5),
+    stopWhen: stepCountIs(5),
     tools: {
       web_search_preview: openai.tools.webSearchPreview({
         searchContextSize: 'high',
@@ -23,7 +23,11 @@ async function main() {
       }
 
       case 'source': {
-        process.stdout.write(`\n\n Source: ${chunk.title} (${chunk.url})`);
+        if (chunk.sourceType === 'url') {
+          process.stdout.write(`\n\n Source: ${chunk.title} (${chunk.url})`);
+        } else {
+          process.stdout.write(`\n\n Document: ${chunk.title}`);
+        }
         break;
       }
 

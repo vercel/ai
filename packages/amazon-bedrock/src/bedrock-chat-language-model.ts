@@ -20,7 +20,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
   BedrockConverseInput,
@@ -255,10 +255,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       if (part.toolUse) {
         content.push({
           type: 'tool-call' as const,
-          toolCallType: 'function',
           toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
           toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
-          args: JSON.stringify(part.toolUse?.input ?? ''),
+          input: JSON.stringify(part.toolUse?.input ?? ''),
         });
       }
     }
@@ -331,13 +330,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
 
-    const toolCallContentBlocks: Record<
+    const contentBlocks: Record<
       number,
-      {
-        toolCallId: string;
-        toolName: string;
-        jsonText: string;
-      }
+      | {
+          type: 'tool-call';
+          toolCallId: string;
+          toolName: string;
+          jsonText: string;
+        }
+      | { type: 'text' | 'reasoning' }
     > = {};
 
     return {
@@ -354,6 +355,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             function enqueueError(bedrockError: Record<string, any>) {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error: bedrockError });
+            }
+
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
 
             // handle failed chunk parsing / validation:
@@ -426,14 +432,69 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             }
 
             if (
+              value.contentBlockStart?.contentBlockIndex != null &&
+              !value.contentBlockStart?.start?.toolUse
+            ) {
+              const blockIndex = value.contentBlockStart.contentBlockIndex;
+              contentBlocks[blockIndex] = { type: 'text' };
+              controller.enqueue({
+                type: 'text-start',
+                id: String(blockIndex),
+              });
+            }
+
+            if (
               value.contentBlockDelta?.delta &&
               'text' in value.contentBlockDelta.delta &&
               value.contentBlockDelta.delta.text
             ) {
+              const blockIndex = value.contentBlockDelta.contentBlockIndex || 0;
+
+              if (contentBlocks[blockIndex] == null) {
+                contentBlocks[blockIndex] = { type: 'text' };
+                controller.enqueue({
+                  type: 'text-start',
+                  id: String(blockIndex),
+                });
+              }
+
               controller.enqueue({
-                type: 'text',
-                text: value.contentBlockDelta.delta.text,
+                type: 'text-delta',
+                id: String(blockIndex),
+                delta: value.contentBlockDelta.delta.text,
               });
+            }
+
+            if (value.contentBlockStop?.contentBlockIndex != null) {
+              const blockIndex = value.contentBlockStop.contentBlockIndex;
+              const contentBlock = contentBlocks[blockIndex];
+
+              if (contentBlock != null) {
+                if (contentBlock.type === 'reasoning') {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: String(blockIndex),
+                  });
+                } else if (contentBlock.type === 'text') {
+                  controller.enqueue({
+                    type: 'text-end',
+                    id: String(blockIndex),
+                  });
+                } else if (contentBlock.type === 'tool-call') {
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: contentBlock.toolCallId,
+                  });
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: contentBlock.toolCallId,
+                    toolName: contentBlock.toolName,
+                    input: contentBlock.jsonText,
+                  });
+                }
+
+                delete contentBlocks[blockIndex];
+              }
             }
 
             if (
@@ -441,49 +502,68 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               'reasoningContent' in value.contentBlockDelta.delta &&
               value.contentBlockDelta.delta.reasoningContent
             ) {
+              const blockIndex = value.contentBlockDelta.contentBlockIndex || 0;
               const reasoningContent =
                 value.contentBlockDelta.delta.reasoningContent;
+
               if ('text' in reasoningContent && reasoningContent.text) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
+
                 controller.enqueue({
-                  type: 'reasoning',
-                  text: reasoningContent.text,
+                  type: 'reasoning-delta',
+                  id: String(blockIndex),
+                  delta: reasoningContent.text,
                 });
               } else if (
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
                 controller.enqueue({
-                  type: 'reasoning',
-                  text: '',
+                  type: 'reasoning-delta',
+                  id: String(blockIndex),
+                  delta: '',
                   providerMetadata: {
                     bedrock: {
                       signature: reasoningContent.signature,
                     } satisfies BedrockReasoningMetadata,
                   },
                 });
-                controller.enqueue({ type: 'reasoning-part-finish' });
               } else if ('data' in reasoningContent && reasoningContent.data) {
                 controller.enqueue({
-                  type: 'reasoning',
-                  text: '',
+                  type: 'reasoning-delta',
+                  id: String(blockIndex),
+                  delta: '',
                   providerMetadata: {
                     bedrock: {
                       redactedData: reasoningContent.data,
                     } satisfies BedrockReasoningMetadata,
                   },
                 });
-                controller.enqueue({ type: 'reasoning-part-finish' });
               }
             }
 
             const contentBlockStart = value.contentBlockStart;
             if (contentBlockStart?.start?.toolUse != null) {
               const toolUse = contentBlockStart.start.toolUse;
-              toolCallContentBlocks[contentBlockStart.contentBlockIndex!] = {
+              const blockIndex = contentBlockStart.contentBlockIndex!;
+              contentBlocks[blockIndex] = {
+                type: 'tool-call',
                 toolCallId: toolUse.toolUseId!,
                 toolName: toolUse.name!,
                 jsonText: '',
               };
+
+              controller.enqueue({
+                type: 'tool-input-start',
+                id: toolUse.toolUseId!,
+                toolName: toolUse.name!,
+              });
             }
 
             const contentBlockDelta = value.contentBlockDelta;
@@ -492,37 +572,19 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               'toolUse' in contentBlockDelta.delta &&
               contentBlockDelta.delta.toolUse
             ) {
-              const contentBlock =
-                toolCallContentBlocks[contentBlockDelta.contentBlockIndex!];
-              const delta = contentBlockDelta.delta.toolUse.input ?? '';
+              const blockIndex = contentBlockDelta.contentBlockIndex!;
+              const contentBlock = contentBlocks[blockIndex];
 
-              controller.enqueue({
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: contentBlock.toolCallId,
-                toolName: contentBlock.toolName,
-                argsTextDelta: delta,
-              });
+              if (contentBlock?.type === 'tool-call') {
+                const delta = contentBlockDelta.delta.toolUse.input ?? '';
 
-              contentBlock.jsonText += delta;
-            }
-
-            const contentBlockStop = value.contentBlockStop;
-            if (contentBlockStop != null) {
-              const index = contentBlockStop.contentBlockIndex!;
-              const contentBlock = toolCallContentBlocks[index];
-
-              // when finishing a tool call block, send the full tool call:
-              if (contentBlock != null) {
                 controller.enqueue({
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: contentBlock.toolCallId,
-                  toolName: contentBlock.toolName,
-                  args: contentBlock.jsonText,
+                  type: 'tool-input-delta',
+                  id: contentBlock.toolCallId,
+                  delta: delta,
                 });
 
-                delete toolCallContentBlocks[index];
+                contentBlock.jsonText += delta;
               }
             }
           },
@@ -647,10 +709,12 @@ const BedrockStreamSchema = z.object({
       contentBlockIndex: z.number(),
     })
     .nullish(),
-  internalServerException: z.record(z.unknown()).nullish(),
+  internalServerException: z.record(z.string(), z.unknown()).nullish(),
   messageStop: z
     .object({
-      additionalModelResponseFields: z.record(z.unknown()).nullish(),
+      additionalModelResponseFields: z
+        .record(z.string(), z.unknown())
+        .nullish(),
       stopReason: BedrockStopReasonSchema,
     })
     .nullish(),
@@ -667,9 +731,9 @@ const BedrockStreamSchema = z.object({
         .nullish(),
     })
     .nullish(),
-  modelStreamErrorException: z.record(z.unknown()).nullish(),
-  throttlingException: z.record(z.unknown()).nullish(),
-  validationException: z.record(z.unknown()).nullish(),
+  modelStreamErrorException: z.record(z.string(), z.unknown()).nullish(),
+  throttlingException: z.record(z.string(), z.unknown()).nullish(),
+  validationException: z.record(z.string(), z.unknown()).nullish(),
 });
 
 export const bedrockReasoningMetadataSchema = z.object({

@@ -1,56 +1,33 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStore, UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import ChatInput from '@component/chat-input';
 
 export function Chat({
-  chatId,
+  id,
   autoResume,
   initialMessages = [],
 }: {
-  chatId: string;
+  id: string;
   autoResume: boolean;
   initialMessages: UIMessage[];
 }) {
-  const {
-    error,
-    input,
-    status,
-    handleInputChange,
-    handleSubmit,
-    messages,
-    reload,
-    stop,
-    experimental_resume,
-  } = useChat({
-    chatId,
-    chatStore: defaultChatStore({
-      api: '/api/use-chat-resume',
-      chats: {
-        [chatId]: {
-          messages: initialMessages,
-        },
-      },
-    }),
+  const { error, status, sendMessage, messages, regenerate, stop } = useChat({
+    id,
+    messages: initialMessages,
+    transport: new DefaultChatTransport({ api: '/api/use-chat-resume' }),
     onError: error => {
       console.error('Error streaming text:', error);
     },
+    resume: autoResume,
   });
-
-  useEffect(() => {
-    if (autoResume) {
-      experimental_resume();
-    }
-    // We want to disable the exhaustive deps rule here because we only want to run this effect once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="flex flex-col w-full max-w-md gap-8 py-24 mx-auto stretch">
-      <Link href={`/use-chat-resume/${chatId}`} target="_noblank">
-        Chat Id: {chatId}
+      <Link href={`/use-chat-resume/${id}`} target="_noblank">
+        Chat Id: {id}
       </Link>
 
       <div>Status: {status}</div>
@@ -93,22 +70,14 @@ export function Chat({
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-            onClick={() => reload()}
+            onClick={() => regenerate()}
           >
             Retry
           </button>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-          disabled={status !== 'ready'}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

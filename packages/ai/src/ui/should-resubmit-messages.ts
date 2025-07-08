@@ -1,6 +1,4 @@
-import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
-import { getToolInvocations } from './get-tool-invocations';
-import { UIMessage } from './ui-messages';
+import { isToolUIPart, UIMessage } from './ui-messages';
 
 export function shouldResubmitMessages({
   originalMaxToolInvocationStep,
@@ -14,6 +12,12 @@ export function shouldResubmitMessages({
   messages: UIMessage[];
 }) {
   const lastMessage = messages[messages.length - 1];
+
+  // count the number of step-start parts in the last message:
+  const lastMessageStepStartCount = lastMessage.parts.filter(
+    part => part.type === 'step-start',
+  ).length;
+
   return (
     // check if the feature is enabled:
     maxSteps > 1 &&
@@ -21,13 +25,11 @@ export function shouldResubmitMessages({
     lastMessage != null &&
     // ensure we actually have new steps (to prevent infinite loops in case of errors):
     (messages.length > originalMessageCount ||
-      extractMaxToolInvocationStep(getToolInvocations(lastMessage)) !==
-        originalMaxToolInvocationStep) &&
+      lastMessageStepStartCount !== originalMaxToolInvocationStep) &&
     // check that next step is possible:
     isAssistantMessageWithCompletedToolCalls(lastMessage) &&
     // limit the number of automatic steps:
-    (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0) <
-      maxSteps
+    lastMessageStepStartCount < maxSteps
   );
 }
 
@@ -37,10 +39,14 @@ The last step of the message must have at least one tool invocation and
 all tool invocations must have a result.
  */
 export function isAssistantMessageWithCompletedToolCalls(
-  message: UIMessage,
+  message: UIMessage | undefined,
 ): message is UIMessage & {
   role: 'assistant';
 } {
+  if (!message) {
+    return false;
+  }
+
   if (message.role !== 'assistant') {
     return false;
   }
@@ -51,10 +57,10 @@ export function isAssistantMessageWithCompletedToolCalls(
 
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
-    .filter(part => part.type === 'tool-invocation');
+    .filter(isToolUIPart);
 
   return (
     lastStepToolInvocations.length > 0 &&
-    lastStepToolInvocations.every(part => 'result' in part.toolInvocation)
+    lastStepToolInvocations.every(part => part.state === 'output-available')
   );
 }

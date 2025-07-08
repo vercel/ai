@@ -181,7 +181,7 @@ exports[`streamObject > telemetry > should record telemetry data when enabled 1`
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
       "ai.response.object": "{"content":"Hello, world!"}",
-      "ai.schema": "{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}",
+      "ai.schema": "{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}",
       "ai.schema.description": "test description",
       "ai.schema.name": "test-name",
       "ai.settings.frequencyPenalty": 0.3,

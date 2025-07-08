@@ -1,8 +1,7 @@
-import { z } from 'zod';
-import { mockValues } from '../test/mock-values';
-import { tool } from '../tool';
+import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
+import { tool } from '../tool';
 
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
@@ -14,10 +13,10 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-        },
+          inputSchema: z.object({}),
+        }),
       },
     });
 
@@ -40,14 +39,14 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-        },
+          inputSchema: z.object({}),
+        }),
       },
     });
 
@@ -60,7 +59,7 @@ describe('toResponseMessages', () => {
             type: 'tool-call',
             toolCallId: '123',
             toolName: 'testTool',
-            args: {},
+            input: {},
           },
         ],
       },
@@ -78,50 +77,123 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
         {
           type: 'tool-result',
           toolCallId: '123',
           toolName: 'testTool',
-          result: 'Tool result',
-          args: {},
+          output: 'Tool result',
+          input: {},
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-          execute: async () => 'Tool result',
-        },
+          inputSchema: z.object({}),
+        }),
       },
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          { type: 'text', text: 'Tool used' },
-          {
-            type: 'tool-call',
-            toolCallId: '123',
-            toolName: 'testTool',
-            args: {},
-          },
-        ],
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Tool used",
+              "type": "text",
+            },
+            {
+              "input": {},
+              "providerExecuted": undefined,
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "text",
+                "value": "Tool result",
+              },
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
+
+  it('should include tool errors as a separate message', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Tool used',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          input: {},
+        },
+        {
+          type: 'tool-error',
+          toolCallId: '123',
+          toolName: 'testTool',
+          error: 'Tool error',
+          input: {},
+        },
+      ],
+      tools: {
+        testTool: tool({
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        }),
       },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: '123',
-            toolName: 'testTool',
-            result: 'Tool result',
-          },
-        ],
-      },
-    ]);
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Tool used",
+              "type": "text",
+            },
+            {
+              "input": {},
+              "providerExecuted": undefined,
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "error-text",
+                "value": "Tool error",
+              },
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 
   it('should handle undefined text', () => {
@@ -229,24 +301,26 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
         {
           type: 'tool-result',
           toolCallId: '123',
           toolName: 'testTool',
-          result: 'image-base64',
-          args: {},
+          output: 'image-base64',
+          input: {},
         },
       ],
       tools: {
         testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-          execute: async () => 'image-base64',
-          experimental_toToolResultContent(result) {
-            return [{ type: 'image', data: result, mediaType: 'image/png' }];
-          },
+          inputSchema: z.object({}),
+          toModelOutput: () => ({
+            type: 'json',
+            value: {
+              proof: 'that toModelOutput is called',
+            },
+          }),
         }),
       },
     });
@@ -260,7 +334,8 @@ describe('toResponseMessages', () => {
               "type": "text",
             },
             {
-              "args": {},
+              "input": {},
+              "providerExecuted": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -271,20 +346,12 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
-              "experimental_content": [
-                {
-                  "data": "image-base64",
-                  "mediaType": "image/png",
-                  "type": "image",
+              "output": {
+                "type": "json",
+                "value": {
+                  "proof": "that toModelOutput is called",
                 },
-              ],
-              "result": [
-                {
-                  "data": "image-base64",
-                  "mediaType": "image/png",
-                  "type": "image",
-                },
-              ],
+              },
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-result",
@@ -412,14 +479,14 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-        },
+          inputSchema: z.object({}),
+        }),
       },
     });
 
@@ -446,7 +513,8 @@ describe('toResponseMessages', () => {
               "type": "text",
             },
             {
-              "args": {},
+              "input": {},
+              "providerExecuted": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -469,14 +537,14 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
-          args: {},
+          input: {},
         },
       ],
       tools: {
-        testTool: {
+        testTool: tool({
           description: 'A test tool',
-          parameters: z.object({}),
-        },
+          inputSchema: z.object({}),
+        }),
       },
     });
 
@@ -485,7 +553,8 @@ describe('toResponseMessages', () => {
         {
           "content": [
             {
-              "args": {},
+              "input": {},
+              "providerExecuted": undefined,
               "toolCallId": "123",
               "toolName": "testTool",
               "type": "tool-call",
@@ -504,5 +573,103 @@ describe('toResponseMessages', () => {
     });
 
     expect(result).toEqual([]);
+  });
+
+  describe('provider-executed tool calls', () => {
+    it('should include provider-executed tool calls and results', () => {
+      const result = toResponseMessages({
+        content: [
+          {
+            type: 'text',
+            text: 'Let me search for recent news from San Francisco.',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+            toolName: 'web_search',
+            input: {
+              query: 'San Francisco major news events June 22 2025',
+            },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+            toolName: 'web_search',
+            input: {
+              query: 'San Francisco major news events June 22 2025',
+            },
+            output: [
+              { url: 'https://patch.com/california/san-francisco/calendar' },
+            ],
+            providerExecuted: true,
+          },
+          {
+            type: 'text',
+            text: 'Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025). Here are the main highlights:\n\n1. Juneteenth Celebration:\n',
+          },
+        ],
+        tools: {
+          web_search: tool({
+            type: 'provider-defined',
+            id: 'test.web_search',
+            name: 'web_search',
+            inputSchema: z.object({
+              query: z.string(),
+            }),
+            outputSchema: z.array(
+              z.object({
+                url: z.string(),
+              }),
+            ),
+            args: {},
+          }),
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me search for recent news from San Francisco.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "query": "San Francisco major news events June 22 2025",
+                },
+                "providerExecuted": true,
+                "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": [
+                    {
+                      "url": "https://patch.com/california/san-francisco/calendar",
+                    },
+                  ],
+                },
+                "providerExecuted": true,
+                "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+              {
+                "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025). Here are the main highlights:
+
+        1. Juneteenth Celebration:
+        ",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
   });
 });

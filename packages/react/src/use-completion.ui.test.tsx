@@ -60,10 +60,10 @@ describe('stream data stream', () => {
       server.urls['/api/completion'].response = {
         type: 'stream-chunks',
         chunks: [
-          formatStreamPart({ type: 'text', text: 'Hello' }),
-          formatStreamPart({ type: 'text', text: ',' }),
-          formatStreamPart({ type: 'text', text: ' world' }),
-          formatStreamPart({ type: 'text', text: '.' }),
+          formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
+          formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
+          formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
         ],
       };
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
@@ -98,7 +98,9 @@ describe('stream data stream', () => {
 
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-      controller.write(formatStreamPart({ type: 'text', text: 'Hello' }));
+      controller.write(
+        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
 
       await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('true');

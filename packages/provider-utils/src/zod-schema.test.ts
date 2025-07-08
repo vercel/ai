@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { zodSchema } from './zod-schema';
 import { safeParseJSON } from './parse-json';
 
@@ -144,6 +144,19 @@ describe('zodSchema', () => {
         expect(schema.jsonSchema).toMatchSnapshot();
       });
     });
+
+    describe('z4 schema', () => {
+      it('generates correct JSON SChema for z4 and .literal and .enum', () => {
+        const schema = zodSchema(
+          z.object({
+            text: z.literal('hello'),
+            number: z.enum(['one', 'two', 'three']),
+          }),
+        );
+
+        expect(schema.jsonSchema).toMatchSnapshot();
+      });
+    });
   });
 
   describe('output validation', () => {
@@ -151,7 +164,10 @@ describe('zodSchema', () => {
       const schema = zodSchema(
         z.object({
           user: z.object({
-            id: z.string().transform(val => parseInt(val, 10)),
+            id: z
+              .string()
+              .transform(val => parseInt(val, 10))
+              .pipe(z.number()),
             name: z.string(),
           }),
         }),

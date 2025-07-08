@@ -406,7 +406,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -493,7 +493,7 @@ describe('doGenerate', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -512,9 +512,8 @@ describe('doGenerate', () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "args": "{"value":"Spark"}",
+          "input": "{"value":"Spark"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -937,6 +936,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const body = await server.calls[0].requestBodyJson;
@@ -953,6 +953,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     // note: space moved to last chunk bc of trimming
@@ -969,20 +970,32 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
         },
         {
-          "text": "Hello",
-          "type": "text",
+          "delta": "",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
-          "text": ", ",
-          "type": "text",
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
         },
         {
-          "text": "World!",
-          "type": "text",
+          "delta": ", ",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -1023,6 +1036,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1038,20 +1052,40 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "Let me think",
-          "type": "reasoning",
+          "id": "reasoning-0",
+          "type": "reasoning-start",
         },
         {
-          "text": " about this",
-          "type": "reasoning",
+          "delta": "Let me think",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
         },
         {
-          "text": "Here's",
-          "type": "text",
+          "delta": " about this",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
         },
         {
-          "text": " my response",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here's",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " my response",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "stop",
@@ -1113,7 +1147,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1123,6 +1157,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1138,58 +1173,52 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "value",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "{"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "":"",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "value",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "Spark",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "":"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "le",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "Spark",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " Day",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "le",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": ""}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": " Day",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "delta": ""}",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1253,7 +1282,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1263,6 +1292,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1278,65 +1308,57 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "va",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "lue",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "va",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "":"",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "lue",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "Spark",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "":"",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": "le",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "Spark",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " Day",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": "le",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": ""}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
-          "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "delta": " Day",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "delta": ""}",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1406,7 +1428,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'searchGoogle',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { query: { type: 'string' } },
             required: ['query'],
@@ -1416,6 +1438,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1431,50 +1454,57 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "text": "",
-          "type": "text",
+          "id": "txt-0",
+          "type": "text-start",
         },
         {
-          "argsTextDelta": "{"query": "",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
+          "delta": "",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "argsTextDelta": "latest",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
-          "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "delta": "{"query": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " news",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
-          "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "delta": "latest",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " on",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
-          "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "delta": " news",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
         },
         {
-          "argsTextDelta": " ai"}",
-          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
-          "toolName": "searchGoogle",
-          "type": "tool-call-delta",
+          "delta": " on",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
         },
         {
-          "args": "{"query": "latest news on ai"}",
+          "delta": " ai"}",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"query": "latest news on ai"}",
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "toolCallType": "function",
           "toolName": "searchGoogle",
           "type": "tool-call",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
         },
         {
           "finishReason": "tool-calls",
@@ -1515,7 +1545,7 @@ describe('doStream', () => {
         {
           type: 'function',
           name: 'test-tool',
-          parameters: {
+          inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
             required: ['value'],
@@ -1525,6 +1555,7 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1540,16 +1571,22 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "argsTextDelta": "{"value":"Sparkle Day"}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
           "toolName": "test-tool",
-          "type": "tool-call-delta",
+          "type": "tool-input-start",
         },
         {
-          "args": "{"value":"Sparkle Day"}",
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"Sparkle Day"}",
           "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolCallType": "function",
           "toolName": "test-tool",
           "type": "tool-call",
         },
@@ -1582,6 +1619,7 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1622,6 +1660,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1661,6 +1700,7 @@ describe('doStream', () => {
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(response?.headers).toStrictEqual({
@@ -1679,6 +1719,7 @@ describe('doStream', () => {
 
     await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1702,6 +1743,7 @@ describe('doStream', () => {
 
     await provider('grok-beta').doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -1725,6 +1767,7 @@ describe('doStream', () => {
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1745,6 +1788,7 @@ describe('doStream', () => {
         },
       },
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -1759,6 +1803,7 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     expect(request).toMatchInlineSnapshot(`
@@ -1809,6 +1854,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -1848,6 +1894,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -1872,6 +1919,7 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
+        includeRawChunks: false,
       });
 
       const parts = await convertReadableStreamToArray(stream);
@@ -2004,6 +2052,7 @@ describe('metadata extraction', () => {
 
     const result = await model.doStream({
       prompt: TEST_PROMPT,
+      includeRawChunks: false,
     });
 
     const parts = await convertReadableStreamToArray(result.stream);
@@ -2020,5 +2069,89 @@ describe('metadata extraction', () => {
       messages: [{ role: 'user', content: 'Hello' }],
       stream: true,
     });
+  });
+});
+
+describe('raw chunks', () => {
+  it('should include raw chunks when includeRawChunks is true', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+        `data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {
+                  "content": "Hello",
+                },
+              },
+            ],
+            "id": "chat-id",
+          },
+          "type": "raw",
+        },
+        {
+          "id": "chat-id",
+          "modelId": undefined,
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "rawValue": {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+              },
+            ],
+          },
+          "type": "raw",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 });

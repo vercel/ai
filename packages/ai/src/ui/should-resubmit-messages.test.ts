@@ -19,7 +19,7 @@ describe('shouldResubmitMessages', () => {
           {
             id: '2',
             role: 'assistant',
-            parts: [{ type: 'text', text: 'Hello' }],
+            parts: [{ type: 'text', text: 'Hello', state: 'done' }],
           },
         ],
       }),
@@ -42,16 +42,13 @@ describe('shouldResubmitMessages', () => {
             id: '2',
             role: 'assistant' as const,
             parts: [
+              { type: 'step-start' },
               {
-                type: 'tool-invocation' as const,
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'tool1',
-                  toolName: 'some-tool',
-                  args: {},
-                  result: 'some result',
-                  step: 1,
-                },
+                type: 'tool-getLocation',
+                toolCallId: 'tool1',
+                state: 'output-available',
+                input: {},
+                output: 'some result',
               },
             ],
           },
@@ -70,20 +67,17 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
         parts: [
           { type: 'step-start' },
           {
-            type: 'tool-invocation',
-            toolInvocation: {
-              state: 'result',
-              step: 1,
-              toolCallId: 'call_CuEdmzpx4ZldCkg5SVr3ikLz',
-              toolName: 'getLocation',
-              args: {},
-              result: 'New York',
-            },
+            type: 'tool-getLocation',
+            toolCallId: 'call_CuEdmzpx4ZldCkg5SVr3ikLz',
+            state: 'output-available',
+            input: {},
+            output: 'New York',
           },
           { type: 'step-start' },
           {
             type: 'text',
             text: 'The current weather in New York is windy.',
+            state: 'done',
           },
         ],
       }),
@@ -98,21 +92,18 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
         parts: [
           { type: 'step-start' },
           {
-            type: 'tool-invocation',
-            toolInvocation: {
-              state: 'result',
-              step: 2,
-              toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
-              toolName: 'getWeatherInformation',
-              args: {
-                city: 'New York',
-              },
-              result: 'windy',
+            type: 'tool-getWeatherInformation',
+            toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
+            state: 'output-available',
+            input: {
+              city: 'New York',
             },
+            output: 'windy',
           },
           {
             type: 'text',
             text: 'The current weather in New York is windy.',
+            state: 'done',
           },
         ],
       }),

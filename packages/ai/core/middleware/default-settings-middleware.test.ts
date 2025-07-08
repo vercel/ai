@@ -1,11 +1,14 @@
 import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { defaultSettingsMiddleware } from './default-settings-middleware';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 
 const BASE_PARAMS: LanguageModelV2CallOptions = {
   prompt: [
     { role: 'user', content: [{ type: 'text', text: 'Hello, world!' }] },
   ],
 };
+
+const MOCK_MODEL = new MockLanguageModelV2();
 
 describe('defaultSettingsMiddleware', () => {
   describe('transformParams', () => {
@@ -16,9 +19,8 @@ describe('defaultSettingsMiddleware', () => {
 
       const result = await middleware.transformParams!({
         type: 'generate',
-        params: {
-          ...BASE_PARAMS,
-        },
+        params: { ...BASE_PARAMS },
+        model: MOCK_MODEL,
       });
 
       expect(result.temperature).toBe(0.7);
@@ -35,6 +37,7 @@ describe('defaultSettingsMiddleware', () => {
           ...BASE_PARAMS,
           temperature: 0.5,
         },
+        model: MOCK_MODEL,
       });
 
       expect(result.temperature).toBe(0.5);
@@ -54,9 +57,8 @@ describe('defaultSettingsMiddleware', () => {
 
       const result = await middleware.transformParams!({
         type: 'generate',
-        params: {
-          ...BASE_PARAMS,
-        },
+        params: { ...BASE_PARAMS },
+        model: MOCK_MODEL,
       });
 
       expect(result.temperature).toBe(0.7);
@@ -93,6 +95,7 @@ describe('defaultSettingsMiddleware', () => {
             },
           },
         },
+        model: MOCK_MODEL,
       });
 
       expect(result.providerOptions).toEqual({
@@ -134,6 +137,7 @@ describe('defaultSettingsMiddleware', () => {
             },
           },
         },
+        model: MOCK_MODEL,
       });
 
       expect(result.providerOptions).toEqual({
@@ -157,6 +161,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, temperature: 0 },
+        model: MOCK_MODEL,
       });
 
       expect(result.temperature).toBe(0);
@@ -170,6 +175,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, temperature: undefined },
+        model: MOCK_MODEL,
       });
 
       expect(result.temperature).toBe(0.7);
@@ -183,6 +189,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, temperature: null as any },
+        model: MOCK_MODEL,
       });
 
       expect(result.temperature).toBe(null);
@@ -196,6 +203,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, temperature: 0.9 },
+        model: MOCK_MODEL,
       });
 
       expect(result.temperature).toBe(0.9);
@@ -210,6 +218,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: BASE_PARAMS,
+        model: MOCK_MODEL,
       });
       expect(result.maxOutputTokens).toBe(100);
     });
@@ -221,6 +230,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, maxOutputTokens: 50 },
+        model: MOCK_MODEL,
       });
       expect(result.maxOutputTokens).toBe(50);
     });
@@ -232,6 +242,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: BASE_PARAMS,
+        model: MOCK_MODEL,
       });
       expect(result.stopSequences).toEqual(['stop']);
     });
@@ -243,6 +254,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, stopSequences: ['end'] },
+        model: MOCK_MODEL,
       });
       expect(result.stopSequences).toEqual(['end']);
     });
@@ -252,6 +264,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: BASE_PARAMS,
+        model: MOCK_MODEL,
       });
       expect(result.topP).toBe(0.9);
     });
@@ -261,6 +274,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, topP: 0.5 },
+        model: MOCK_MODEL,
       });
       expect(result.topP).toBe(0.5);
     });
@@ -280,6 +294,7 @@ describe('defaultSettingsMiddleware', () => {
           ...BASE_PARAMS,
           headers: { 'X-Custom-Header': 'test2' },
         },
+        model: MOCK_MODEL,
       });
 
       expect(result.headers).toEqual({
@@ -295,6 +310,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, headers: { 'X-Param-Header': 'param' } },
+        model: MOCK_MODEL,
       });
       expect(result.headers).toEqual({ 'X-Param-Header': 'param' });
     });
@@ -306,6 +322,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, headers: {} },
+        model: MOCK_MODEL,
       });
       expect(result.headers).toEqual({ 'X-Default-Header': 'default' });
     });
@@ -317,6 +334,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS },
+        model: MOCK_MODEL,
       });
       expect(result.headers).toBeUndefined();
     });
@@ -333,6 +351,7 @@ describe('defaultSettingsMiddleware', () => {
           ...BASE_PARAMS,
           providerOptions: { openai: { user: 'param-user' } },
         },
+        model: MOCK_MODEL,
       });
       expect(result.providerOptions).toEqual({
         openai: { user: 'param-user' },
@@ -346,6 +365,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS, providerOptions: {} },
+        model: MOCK_MODEL,
       });
       expect(result.providerOptions).toEqual({
         anthropic: { user: 'default-user' },
@@ -359,6 +379,7 @@ describe('defaultSettingsMiddleware', () => {
       const result = await middleware.transformParams!({
         type: 'generate',
         params: { ...BASE_PARAMS },
+        model: MOCK_MODEL,
       });
       expect(result.providerOptions).toBeUndefined();
     });

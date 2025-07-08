@@ -517,6 +517,107 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]);
       });
+
+      it('should prioritize user-provided mediaType over downloaded file mediaType', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: new URL('https://example.com/image.jpg'),
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          downloadImplementation: async ({ url }) => {
+            expect(url).toEqual(new URL('https://example.com/image.jpg'));
+            return {
+              data: new Uint8Array([0, 1, 2, 3]),
+              mediaType: 'application/octet-stream',
+            };
+          },
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "data": Uint8Array [
+                    0,
+                    1,
+                    2,
+                    3,
+                  ],
+                  "filename": undefined,
+                  "mediaType": "image/jpeg",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ]
+        `);
+      });
+
+      it('should use downloaded file mediaType as fallback when user provides generic mediaType', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: new URL('https://example.com/document.txt'),
+                    mediaType: 'application/octet-stream',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          downloadImplementation: async ({ url }) => {
+            expect(url).toEqual(new URL('https://example.com/document.txt'));
+            return {
+              data: new Uint8Array([72, 101, 108, 108, 111]),
+              mediaType: 'text/plain',
+            };
+          },
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "data": Uint8Array [
+                    72,
+                    101,
+                    108,
+                    108,
+                    111,
+                  ],
+                  "filename": undefined,
+                  "mediaType": "application/octet-stream",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ]
+        `);
+      });
     });
 
     describe('provider options', async () => {
@@ -571,10 +672,10 @@ describe('convertToLanguageModelMessage', () => {
   describe('user message', () => {
     describe('text parts', () => {
       it('should filter out empty text parts', async () => {
-        const result = convertToLanguageModelMessage(
-          { role: 'user', content: [{ type: 'text', text: '' }] },
-          {},
-        );
+        const result = convertToLanguageModelMessage({
+          message: { role: 'user', content: [{ type: 'text', text: '' }] },
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'user',
@@ -583,13 +684,13 @@ describe('convertToLanguageModelMessage', () => {
       });
 
       it('should pass through non-empty text parts', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'user',
             content: [{ type: 'text', text: 'hello, world!' }],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'user',
@@ -600,8 +701,8 @@ describe('convertToLanguageModelMessage', () => {
 
     describe('image parts', () => {
       it('should convert image string https url to URL object', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'user',
             content: [
               {
@@ -610,8 +711,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'user',
@@ -626,8 +727,8 @@ describe('convertToLanguageModelMessage', () => {
       });
 
       it('should convert image string data url to base64 content', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'user',
             content: [
               {
@@ -636,8 +737,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'user',
@@ -652,8 +753,8 @@ describe('convertToLanguageModelMessage', () => {
       });
 
       it('should prefer detected mediaType', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'user',
             content: [
               {
@@ -663,8 +764,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'user',
@@ -681,8 +782,8 @@ describe('convertToLanguageModelMessage', () => {
 
     describe('file parts', () => {
       it('should convert file string https url to URL object', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'user',
             content: [
               {
@@ -692,8 +793,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'user',
@@ -708,8 +809,8 @@ describe('convertToLanguageModelMessage', () => {
       });
 
       it('should convert file string data url to base64 content', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'user',
             content: [
               {
@@ -719,8 +820,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'user',
@@ -739,8 +840,8 @@ describe('convertToLanguageModelMessage', () => {
   describe('assistant message', () => {
     describe('text parts', () => {
       it('should ignore empty text parts', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'assistant',
             content: [
               {
@@ -751,19 +852,19 @@ describe('convertToLanguageModelMessage', () => {
                 type: 'tool-call',
                 toolName: 'toolName',
                 toolCallId: 'toolCallId',
-                args: {},
+                input: {},
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'assistant',
           content: [
             {
               type: 'tool-call',
-              args: {},
+              input: {},
               toolCallId: 'toolCallId',
               toolName: 'toolName',
             },
@@ -774,8 +875,8 @@ describe('convertToLanguageModelMessage', () => {
 
     describe('reasoning parts', () => {
       it('should pass through provider options', () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'assistant',
             content: [
               {
@@ -790,8 +891,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'assistant',
@@ -811,8 +912,8 @@ describe('convertToLanguageModelMessage', () => {
       });
 
       it('should support a mix of reasoning, redacted reasoning, and text parts', () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'assistant',
             content: [
               {
@@ -836,8 +937,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'assistant',
@@ -868,15 +969,15 @@ describe('convertToLanguageModelMessage', () => {
 
     describe('tool call parts', () => {
       it('should pass through provider options', () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'assistant',
             content: [
               {
                 type: 'tool-call',
                 toolName: 'toolName',
                 toolCallId: 'toolCallId',
-                args: {},
+                input: {},
                 providerOptions: {
                   'test-provider': {
                     'key-a': 'test-value-1',
@@ -886,15 +987,15 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'assistant',
           content: [
             {
               type: 'tool-call',
-              args: {},
+              input: {},
               toolCallId: 'toolCallId',
               toolName: 'toolName',
               providerOptions: {
@@ -907,12 +1008,98 @@ describe('convertToLanguageModelMessage', () => {
           ],
         });
       });
+
+      it('should include providerExecuted flag', () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                input: {},
+                providerExecuted: true,
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": true,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
+      });
+    });
+
+    describe('tool result parts', () => {
+      it('should include providerExecuted flag', () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolCallId',
+                toolName: 'toolName',
+                output: { type: 'json', value: { some: 'result' } },
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "some": "result",
+                  },
+                },
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                    "key-b": "test-value-2",
+                  },
+                },
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
+      });
     });
 
     describe('file parts', () => {
       it('should convert file data correctly', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'assistant',
             content: [
               {
@@ -922,8 +1109,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'assistant',
@@ -938,8 +1125,8 @@ describe('convertToLanguageModelMessage', () => {
       });
 
       it('should preserve filename when present', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'assistant',
             content: [
               {
@@ -950,8 +1137,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'assistant',
@@ -967,8 +1154,8 @@ describe('convertToLanguageModelMessage', () => {
       });
 
       it('should handle provider options', async () => {
-        const result = convertToLanguageModelMessage(
-          {
+        const result = convertToLanguageModelMessage({
+          message: {
             role: 'assistant',
             content: [
               {
@@ -984,8 +1171,8 @@ describe('convertToLanguageModelMessage', () => {
               },
             ],
           },
-          {},
-        );
+          downloadedAssets: {},
+        });
 
         expect(result).toEqual({
           role: 'assistant',
@@ -1009,44 +1196,53 @@ describe('convertToLanguageModelMessage', () => {
 
   describe('tool message', () => {
     it('should convert basic tool result message', () => {
-      const result = convertToLanguageModelMessage(
-        {
+      const result = convertToLanguageModelMessage({
+        message: {
           role: 'tool',
           content: [
             {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              result: { some: 'result' },
+              output: { type: 'json', value: { some: 'result' } },
             },
           ],
         },
-        {},
-      );
-
-      expect(result).toEqual({
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            result: { some: 'result' },
-            toolCallId: 'toolCallId',
-            toolName: 'toolName',
-          },
-        ],
+        downloadedAssets: {},
       });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "json",
+                "value": {
+                  "some": "result",
+                },
+              },
+              "providerOptions": undefined,
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
     });
 
     it('should convert tool result with provider metadata', () => {
-      const result = convertToLanguageModelMessage(
-        {
+      const result = convertToLanguageModelMessage({
+        message: {
           role: 'tool',
           content: [
             {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              result: { some: 'result' },
+              output: { type: 'json', value: { some: 'result' } },
               providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
@@ -1056,92 +1252,119 @@ describe('convertToLanguageModelMessage', () => {
             },
           ],
         },
-        {},
-      );
-
-      expect(result).toEqual({
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            result: { some: 'result' },
-            toolCallId: 'toolCallId',
-            toolName: 'toolName',
-            providerOptions: {
-              'test-provider': {
-                'key-a': 'test-value-1',
-                'key-b': 'test-value-2',
-              },
-            },
-          },
-        ],
+        downloadedAssets: {},
       });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "json",
+                "value": {
+                  "some": "result",
+                },
+              },
+              "providerOptions": {
+                "test-provider": {
+                  "key-a": "test-value-1",
+                  "key-b": "test-value-2",
+                },
+              },
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
     });
 
     it('should include error flag', () => {
-      const result = convertToLanguageModelMessage(
-        {
+      const result = convertToLanguageModelMessage({
+        message: {
           role: 'tool',
           content: [
             {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              result: { some: 'result' },
-              isError: true,
+              output: { type: 'json', value: { some: 'result' } },
             },
           ],
         },
-        {},
-      );
-
-      expect(result).toEqual({
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            result: { some: 'result' },
-            toolCallId: 'toolCallId',
-            toolName: 'toolName',
-            isError: true,
-          },
-        ],
+        downloadedAssets: {},
       });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "json",
+                "value": {
+                  "some": "result",
+                },
+              },
+              "providerOptions": undefined,
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
     });
 
     it('should include multipart content', () => {
-      const result = convertToLanguageModelMessage(
-        {
+      const result = convertToLanguageModelMessage({
+        message: {
           role: 'tool',
           content: [
             {
               type: 'tool-result',
               toolName: 'toolName',
               toolCallId: 'toolCallId',
-              result: { some: 'result' },
-              experimental_content: [
-                { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
-              ],
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'media', data: 'dGVzdA==', mediaType: 'image/png' },
+                ],
+              },
             },
           ],
         },
-        {},
-      );
-
-      expect(result).toEqual({
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            result: { some: 'result' },
-            toolCallId: 'toolCallId',
-            toolName: 'toolName',
-            content: [
-              { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
-            ],
-          },
-        ],
+        downloadedAssets: {},
       });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "content",
+                "value": [
+                  {
+                    "data": "dGVzdA==",
+                    "mediaType": "image/png",
+                    "type": "media",
+                  },
+                ],
+              },
+              "providerOptions": undefined,
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
     });
   });
 });

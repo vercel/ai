@@ -1,29 +1,32 @@
 <script setup lang="ts">
+import { DefaultChatTransport } from 'ai';
 import { computed, ref } from 'vue';
-import { UIMessage, useChat } from './use-chat';
+import { Chat } from './chat.vue';
 
-const bodyOptions = ref<{
-  chatId: string;
-  messages: UIMessage[];
-  requestBody?: object;
-}>();
+const options = ref<any>();
 
-const { messages, append, status } = useChat({
-  experimental_prepareRequestBody(options) {
-    bodyOptions.value = options;
-    return 'test-request-body';
-  },
+const chat = new Chat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+    prepareSendMessagesRequest(optionsArg) {
+      options.value = JSON.parse(JSON.stringify(optionsArg));
+      return {
+        body: { 'body-key': 'body-value' },
+        headers: { 'header-key': 'header-value' },
+      };
+    },
+  }),
 });
 
-const isLoading = computed(() => status.value !== 'ready');
+const isLoading = computed(() => chat.status !== 'ready');
 </script>
 
 <template>
   <div>
     <div data-testid="loading">{{ isLoading?.toString() }}</div>
     <div
-      v-for="(m, idx) in messages"
-      key="m.id"
+      v-for="(m, idx) in chat.messages"
+      :key="m.id"
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
@@ -35,20 +38,22 @@ const isLoading = computed(() => status.value !== 'ready');
     <button
       data-testid="do-append"
       @click="
-        append(
+        chat.sendMessage(
           {
             role: 'user',
             parts: [{ text: 'hi', type: 'text' }],
           },
           {
             body: { 'request-body-key': 'request-body-value' },
+            headers: { 'request-header-key': 'request-header-value' },
+            metadata: { 'request-metadata-key': 'request-metadata-value' },
           },
         )
       "
     />
 
-    <div v-if="bodyOptions" data-testid="on-body-options">
-      {{ bodyOptions }}
+    <div v-if="options" data-testid="on-options">
+      {{ options }}
     </div>
   </div>
 </template>

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIModelId =
   // Stable models
@@ -21,13 +21,15 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.0-pro-exp-02-05'
   | 'gemini-2.0-flash-thinking-exp-01-21'
   | 'gemini-2.0-flash-exp'
+  | 'gemini-2.5-pro'
+  | 'gemini-2.5-flash'
   // Experimental models
   // https://ai.google.dev/gemini-api/docs/models/experimental-models
   | 'gemini-2.5-pro-exp-03-25'
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-exp-1206'
+  | 'gemma-3-12b-it'
   | 'gemma-3-27b-it'
-  | 'learnlm-1.5-pro-experimental'
   | (string & {});
 
 const dynamicRetrievalConfig = z.object({
@@ -51,6 +53,7 @@ export const googleGenerativeAIProviderOptions = z.object({
   thinkingConfig: z
     .object({
       thinkingBudget: z.number().optional(),
+      includeThoughts: z.boolean().optional(),
     })
     .optional(),
 

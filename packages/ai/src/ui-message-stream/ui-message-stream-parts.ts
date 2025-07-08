@@ -1,126 +1,191 @@
-import { z } from 'zod';
-import { ProviderMetadata } from '../../core';
+import { z } from 'zod/v4';
+import { ValueOf } from '../util/value-of';
+import {
+  InferUIMessageData,
+  InferUIMessageMetadata,
+  UIDataTypes,
+  UIMessage,
+} from '../ui/ui-messages';
+import { ProviderMetadata } from '../../core/types/provider-metadata';
 
 export const uiMessageStreamPartSchema = z.union([
-  z.object({
-    type: z.literal('text'),
-    text: z.string(),
+  z.strictObject({
+    type: z.literal('text-start'),
+    id: z.string(),
   }),
-  z.object({
+  z.strictObject({
+    type: z.literal('text-delta'),
+    id: z.string(),
+    delta: z.string(),
+  }),
+  z.strictObject({
+    type: z.literal('text-end'),
+    id: z.string(),
+  }),
+  z.strictObject({
     type: z.literal('error'),
     errorText: z.string(),
   }),
-  z.object({
-    type: z.literal('tool-call-streaming-start'),
+  z.strictObject({
+    type: z.literal('tool-input-start'),
     toolCallId: z.string(),
     toolName: z.string(),
+    providerExecuted: z.boolean().optional(),
   }),
-  z.object({
-    type: z.literal('tool-call-delta'),
+  z.strictObject({
+    type: z.literal('tool-input-delta'),
     toolCallId: z.string(),
-    argsTextDelta: z.string(),
+    inputTextDelta: z.string(),
   }),
-  z.object({
-    type: z.literal('tool-call'),
+  z.strictObject({
+    type: z.literal('tool-input-available'),
     toolCallId: z.string(),
     toolName: z.string(),
-    args: z.unknown(),
+    input: z.unknown(),
+    providerExecuted: z.boolean().optional(),
   }),
-  z.object({
-    type: z.literal('tool-result'),
+  z.strictObject({
+    type: z.literal('tool-output-available'),
     toolCallId: z.string(),
-    result: z.unknown(),
-    providerMetadata: z.any().optional(),
+    output: z.unknown(),
+    providerExecuted: z.boolean().optional(),
   }),
-  z.object({
+  z.strictObject({
+    type: z.literal('tool-output-error'),
+    toolCallId: z.string(),
+    errorText: z.string(),
+    providerExecuted: z.boolean().optional(),
+  }),
+  z.strictObject({
     type: z.literal('reasoning'),
     text: z.string(),
-    providerMetadata: z.record(z.any()).optional(),
+    providerMetadata: z.record(z.string(), z.any()).optional(),
   }),
-  z.object({
+  z.strictObject({
+    type: z.literal('reasoning-start'),
+    id: z.string(),
+    providerMetadata: z.record(z.string(), z.any()).optional(),
+  }),
+  z.strictObject({
+    type: z.literal('reasoning-delta'),
+    id: z.string(),
+    delta: z.string(),
+    providerMetadata: z.record(z.string(), z.any()).optional(),
+  }),
+  z.strictObject({
+    type: z.literal('reasoning-end'),
+    id: z.string(),
+    providerMetadata: z.record(z.string(), z.any()).optional(),
+  }),
+  z.strictObject({
+    type: z.literal('reasoning-part-finish'),
+  }),
+  z.strictObject({
     type: z.literal('source-url'),
     sourceId: z.string(),
     url: z.string(),
     title: z.string().optional(),
     providerMetadata: z.any().optional(), // Use z.any() for generic metadata
   }),
-  z.object({
+  z.strictObject({
+    type: z.literal('source-document'),
+    sourceId: z.string(),
+    mediaType: z.string(),
+    title: z.string(),
+    filename: z.string().optional(),
+    providerMetadata: z.any().optional(), // Use z.any() for generic metadata
+  }),
+  z.strictObject({
     type: z.literal('file'),
     url: z.string(),
     mediaType: z.string(),
   }),
-  z.object({
+  z.strictObject({
     type: z.string().startsWith('data-'),
     id: z.string().optional(),
     data: z.unknown(),
   }),
-  z.object({
-    type: z.literal('metadata'),
-    value: z.object({ metadata: z.unknown() }),
-  }),
-  z.object({
+  z.strictObject({
     type: z.literal('start-step'),
-    metadata: z.unknown().optional(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('finish-step'),
-    metadata: z.unknown().optional(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('start'),
     messageId: z.string().optional(),
-    metadata: z.unknown().optional(),
+    messageMetadata: z.unknown().optional(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('finish'),
-    metadata: z.unknown().optional(),
+    messageMetadata: z.unknown().optional(),
   }),
-  z.object({
-    type: z.literal('reasoning-part-finish'),
+  z.strictObject({
+    type: z.literal('message-metadata'),
+    messageMetadata: z.unknown(),
   }),
 ]);
 
-export type DataUIMessageStreamPart = {
-  type: `data-${string}`;
-  id?: string;
-  data: unknown;
-};
+export type DataUIMessageStreamPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
+  [NAME in keyof DATA_TYPES & string]: {
+    type: `data-${NAME}`;
+    id?: string;
+    data: DATA_TYPES[NAME];
+  };
+}>;
 
-export type UIMessageStreamPart =
+export type UIMessageStreamPart<
+  METADATA = unknown,
+  DATA_TYPES extends UIDataTypes = UIDataTypes,
+> =
+  | { type: 'text-start'; id: string }
+  | { type: 'text-delta'; delta: string; id: string }
+  | { type: 'text-end'; id: string }
+  | { type: 'reasoning-start'; id: string; providerMetadata?: ProviderMetadata }
   | {
-      type: 'text';
-      text: string;
+      type: 'reasoning-delta';
+      id: string;
+      delta: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-end';
+      id: string;
+      providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'error';
       errorText: string;
     }
   | {
-      type: 'tool-call';
+      type: 'tool-input-available';
       toolCallId: string;
       toolName: string;
-      args: unknown;
+      input: unknown;
+      providerExecuted?: boolean;
     }
   | {
-      type: 'tool-result';
+      type: 'tool-output-available';
       toolCallId: string;
-      result: unknown;
-      providerMetadata?: ProviderMetadata;
+      output: unknown;
+      providerExecuted?: boolean;
     }
   | {
-      type: 'tool-call-streaming-start';
+      type: 'tool-output-error';
+      toolCallId: string;
+      errorText: string;
+      providerExecuted?: boolean;
+    }
+  | {
+      type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
+      providerExecuted?: boolean;
     }
   | {
-      type: 'tool-call-delta';
+      type: 'tool-input-delta';
       toolCallId: string;
-      argsTextDelta: string;
-    }
-  | {
-      type: 'reasoning';
-      text: string;
-      providerMetadata?: ProviderMetadata;
+      inputTextDelta: string;
     }
   | {
       type: 'source-url';
@@ -130,38 +195,46 @@ export type UIMessageStreamPart =
       providerMetadata?: ProviderMetadata;
     }
   | {
+      type: 'source-document';
+      sourceId: string;
+      mediaType: string;
+      title: string;
+      filename?: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
       type: 'file';
       url: string;
       mediaType: string;
     }
-  | DataUIMessageStreamPart
-  | {
-      type: 'metadata';
-      metadata: unknown;
-    }
+  | DataUIMessageStreamPart<DATA_TYPES>
   | {
       type: 'start-step';
-      metadata?: unknown;
     }
   | {
       type: 'finish-step';
-      metadata?: unknown;
     }
   | {
       type: 'start';
       messageId?: string;
-      metadata?: unknown;
+      messageMetadata?: METADATA;
     }
   | {
       type: 'finish';
-      metadata?: unknown;
+      messageMetadata?: METADATA;
     }
   | {
-      type: 'reasoning-part-finish';
+      type: 'message-metadata';
+      messageMetadata: METADATA;
     };
 
 export function isDataUIMessageStreamPart(
   part: UIMessageStreamPart,
-): part is DataUIMessageStreamPart {
+): part is DataUIMessageStreamPart<UIDataTypes> {
   return part.type.startsWith('data-');
 }
+
+export type InferUIMessageStreamPart<T extends UIMessage> = UIMessageStreamPart<
+  InferUIMessageMetadata<T>,
+  InferUIMessageData<T>
+>;

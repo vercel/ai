@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
@@ -11,7 +11,7 @@ async function main() {
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     prompt:
@@ -22,12 +22,12 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'cityAttractions': {
-        toolCall.args.city; // string
+        toolCall.input.city; // string
         break;
       }
 
       case 'weather': {
-        toolCall.args.location; // string
+        toolCall.input.location; // string
         break;
       }
     }
@@ -36,17 +36,16 @@ async function main() {
   // typed tool results for tools with execute method:
   for (const toolResult of result.toolResults) {
     switch (toolResult.toolName) {
-      // NOT AVAILABLE (NO EXECUTE METHOD)
-      // case 'cityAttractions': {
-      //   toolResult.args.city; // string
-      //   toolResult.result;
-      //   break;
-      // }
+      case 'cityAttractions': {
+        toolResult.input.city; // string
+        toolResult.output; // any since no outputSchema is provided
+        break;
+      }
 
       case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
+        toolResult.input.location; // string
+        toolResult.output.location; // string
+        toolResult.output.temperature; // number
         break;
       }
     }

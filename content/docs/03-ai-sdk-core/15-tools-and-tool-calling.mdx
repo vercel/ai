@@ -24,7 +24,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -83,7 +83,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const { text, steps } = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -115,7 +115,7 @@ It contains all the text, tool calls, tool results, and more from each step.
 import { generateText } from 'ai';
 
 const { steps } = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   maxSteps: 10,
   // ...
 });
@@ -165,7 +165,7 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   // ...
-  experimental_prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
+  experimental_prepareStep: async ({ model, stepNumber, steps }) => {
     if (stepNumber === 0) {
       return {
         // use a different model for this step:
@@ -173,7 +173,7 @@ const result = await generateText({
         // force a tool choice for this step:
         toolChoice: { type: 'tool', toolName: 'tool1' },
         // limit the tools that are available for this step:
-        experimental_activeTools: ['tool1'],
+        activeTools: ['tool1'],
       };
     }
 
@@ -224,7 +224,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -281,7 +281,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse({ data });
+  return result.toUIMessageStreamResponse({ data });
 }
 ```
 
@@ -318,7 +318,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const result = await generateText({
-  model: yourModel,
+  model: 'openai/gpt-4.1',
   abortSignal: myAbortSignal, // signal that will be forwarded to tools
   tools: {
     weather: tool({
@@ -429,7 +429,7 @@ const result = streamText({
   // ...
 });
 
-return result.toDataStreamResponse({
+return result.toUIMessageStreamResponse({
   getErrorMessage: error => {
     if (NoSuchToolError.isInstance(error)) {
       return 'The model tried to call a unknown tool.';
@@ -576,7 +576,7 @@ const result = await generateText({
 
 Language models can only handle a limited number of tools at a time, depending on the model.
 To allow for static typing using a large number of tools and limiting the available tools to the model at the same time,
-the AI SDK provides the `experimental_activeTools` property.
+the AI SDK provides the `activeTools` property.
 
 It is an array of tool names that are currently active.
 By default, the value is `undefined` and all tools are active.
@@ -588,7 +588,7 @@ import { generateText } from 'ai';
 const { text } = await generateText({
   model: openai('gpt-4o'),
   tools: myToolSet,
-  experimental_activeTools: ['firstTool'],
+  activeTools: ['firstTool'],
 });
 ```
 

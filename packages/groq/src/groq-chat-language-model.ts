@@ -19,7 +19,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
@@ -196,10 +196,9 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallType: 'function',
           toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
-          args: toolCall.function.arguments!,
+          input: toolCall.function.arguments!,
         });
       }
     }
@@ -263,6 +262,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let isFirstChunk = true;
+    let isActiveText = false;
+    let isActiveReasoning = false;
 
     let providerMetadata: SharedV2ProviderMetadata | undefined;
     return {
@@ -276,6 +277,11 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
           },
 
           transform(chunk, controller) {
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -321,16 +327,31 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
             const delta = choice.delta;
 
             if (delta.reasoning != null && delta.reasoning.length > 0) {
+              if (!isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = true;
+              }
+
               controller.enqueue({
-                type: 'reasoning',
-                text: delta.reasoning,
+                type: 'reasoning-delta',
+                id: 'reasoning-0',
+                delta: delta.reasoning,
               });
             }
 
             if (delta.content != null && delta.content.length > 0) {
+              if (!isActiveText) {
+                controller.enqueue({ type: 'text-start', id: 'txt-0' });
+                isActiveText = true;
+              }
+
               controller.enqueue({
-                type: 'text',
-                text: delta.content,
+                type: 'text-delta',
+                id: 'txt-0',
+                delta: delta.content,
               });
             }
 
@@ -360,6 +381,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                     });
                   }
 
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallDelta.id,
+                    toolName: toolCallDelta.function.name,
+                  });
+
                   toolCalls[index] = {
                     id: toolCallDelta.id,
                     type: 'function',
@@ -379,11 +406,9 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                     // send delta if the argument text has already started:
                     if (toolCall.function.arguments.length > 0) {
                       controller.enqueue({
-                        type: 'tool-call-delta',
-                        toolCallType: 'function',
-                        toolCallId: toolCall.id,
-                        toolName: toolCall.function.name,
-                        argsTextDelta: toolCall.function.arguments,
+                        type: 'tool-input-delta',
+                        id: toolCall.id,
+                        delta: toolCall.function.arguments,
                       });
                     }
 
@@ -391,11 +416,15 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                     // (some providers send the full tool call in one chunk):
                     if (isParsableJson(toolCall.function.arguments)) {
                       controller.enqueue({
+                        type: 'tool-input-end',
+                        id: toolCall.id,
+                      });
+
+                      controller.enqueue({
                         type: 'tool-call',
-                        toolCallType: 'function',
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
-                        args: toolCall.function.arguments,
+                        input: toolCall.function.arguments,
                       });
                       toolCall.hasFinished = true;
                     }
@@ -418,11 +447,9 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
                 // send delta
                 controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  argsTextDelta: toolCallDelta.function.arguments ?? '',
+                  type: 'tool-input-delta',
+                  id: toolCall.id,
+                  delta: toolCallDelta.function.arguments ?? '',
                 });
 
                 // check if tool call is complete
@@ -432,11 +459,15 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                   isParsableJson(toolCall.function.arguments)
                 ) {
                   controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.id,
+                  });
+
+                  controller.enqueue({
                     type: 'tool-call',
-                    toolCallType: 'function',
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
-                    args: toolCall.function.arguments,
+                    input: toolCall.function.arguments,
                   });
                   toolCall.hasFinished = true;
                 }
@@ -445,6 +476,14 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
+            if (isActiveReasoning) {
+              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            }
+
+            if (isActiveText) {
+              controller.enqueue({ type: 'text-end', id: 'txt-0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
