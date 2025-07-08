@@ -10,6 +10,7 @@ config({ path: '.env' });
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
+import { groq } from '@ai-sdk/groq';
 
 interface FileAttachment {
   name: string;
@@ -150,7 +151,9 @@ function parseArgs(): CLIOptions {
     system: envConfig.system || configFile.system,
   };
 
+  const promptArgs: string[] = [];
   let i = 0;
+  
   while (i < args.length) {
     const arg = args[i];
 
@@ -198,11 +201,14 @@ function parseArgs(): CLIOptions {
         if (arg.startsWith('-')) {
           throw new Error(`Unknown option: ${arg}`);
         } else {
-          options.prompt = args.slice(i).join(' ');
-          return options;
+          promptArgs.push(arg);
         }
     }
     i++;
+  }
+
+  if (promptArgs.length > 0) {
+    options.prompt = promptArgs.join(' ');
   }
 
   return options;
@@ -239,6 +245,7 @@ Configuration:
   - OPENAI_API_KEY: OpenAI API key (for OpenAI models)
   - ANTHROPIC_API_KEY: Anthropic API key (for Anthropic models)
   - GOOGLE_GENERATIVE_AI_API_KEY: Google API key (for Google models)
+  - GROQ_API_KEY: Groq API key (for Groq models)
 
   Example config file (.ai.json):
   {
@@ -248,29 +255,31 @@ Configuration:
   }
 
 Examples:
-  ai "Hello, world!"
-  ai "Write a poem" -m anthropic/claude-3-5-sonnet-20241022
-  ai "Explain this code" -f script.js -f README.md
-  echo "What is life?" | ai
-  cat file.txt | ai "Summarize this content"
-  ai -f package.json "What dependencies does this project have?"
+  npx ai "Hello, world!"
+  npx ai "Write a poem" -m anthropic/claude-3-5-sonnet-20241022
+  npx ai "Explain quantum physics" -m groq/llama-3.1-8b-instant
+  npx ai "Explain this code" -f script.js -f README.md
+  echo "What is life?" | npx ai
+  cat file.txt | npx ai "Summarize this content"
+  npx ai -f package.json "What dependencies does this project have?"
 
 Unix-style piping:
-  echo "Hello world" | ai "Translate to French"
-  cat README.md | ai "Summarize this"
-  curl -s https://api.github.com/repos/vercel/ai | ai "What is this repository about?"
+  echo "Hello world" | npx ai "Translate to French"
+  cat README.md | npx ai "Summarize this"
+  curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
 
 Authentication:
   This CLI uses direct provider APIs. Set the appropriate API key:
   - OPENAI_API_KEY for OpenAI models (gpt-4, gpt-3.5-turbo, etc.)
   - ANTHROPIC_API_KEY for Anthropic models (claude-3-5-sonnet, claude-3-opus, etc.)
   - GOOGLE_GENERATIVE_AI_API_KEY for Google models (gemini-pro, gemini-1.5-pro, etc.)
+  - GROQ_API_KEY for Groq models (llama-3.1-8b-instant, llama-3.2-90b-text-preview, etc.)
   
   You can set these in your .env or .env.local file.`);
 }
 
-function showVersion(): void {
-  console.log('5.0.0-beta.5');
+function showVersion() {
+  console.log('1.0.0');
 }
 
 function resolveModel(modelString: string): ReturnType<typeof openai> {
@@ -289,9 +298,11 @@ function resolveModel(modelString: string): ReturnType<typeof openai> {
       return anthropic(model);
     case 'google':
       return google(model);
+    case 'groq':
+      return groq(model);
     default:
       throw new Error(
-        `Unsupported provider: ${provider}. Supported providers: openai, anthropic, google`,
+        `Unsupported provider: ${provider}. Supported providers: openai, anthropic, google, groq`,
       );
   }
 }
