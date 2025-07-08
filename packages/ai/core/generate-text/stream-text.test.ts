@@ -240,46 +240,46 @@ const modelWithReasoning = new MockLanguageModelV2({
       },
       {
         type: 'reasoning-start',
-        id: '4',
+        id: '4:0',
         providerMetadata: {
           testProvider: { encryptedContent: 'encrypted_reasoning_data_abc123' },
         } as SharedV2ProviderMetadata,
       },
       {
         type: 'reasoning-delta',
-        id: '4',
+        id: '4:0',
         delta: ' I need to think about',
       },
       {
         type: 'reasoning-delta',
-        id: '4',
+        id: '4:0',
         delta: ' this problem carefully.',
       },
       {
         type: 'reasoning-start',
-        id: '4',
+        id: '4:1',
         providerMetadata: {
           testProvider: { encryptedContent: 'encrypted_reasoning_data_abc123' },
         } as SharedV2ProviderMetadata,
       },
       {
         type: 'reasoning-delta',
-        id: '4',
+        id: '4:1',
         delta: ' The best solution',
       },
       {
         type: 'reasoning-delta',
-        id: '4',
+        id: '4:1',
         delta: ' requires careful',
       },
       {
         type: 'reasoning-delta',
-        id: '4',
+        id: '4:1',
         delta: ' consideration of all factors.',
       },
       {
         type: 'reasoning-end',
-        id: '4',
+        id: '4:0',
         providerMetadata: {
           testProvider: {
             encryptedContent: 'encrypted_reasoning_data_final_def456',
@@ -288,7 +288,7 @@ const modelWithReasoning = new MockLanguageModelV2({
       },
       {
         type: 'reasoning-end',
-        id: '4',
+        id: '4:1',
         providerMetadata: {
           testProvider: {
             encryptedContent: 'encrypted_reasoning_data_final_def456',
@@ -596,7 +596,7 @@ describe('streamText', () => {
               "type": "reasoning-end",
             },
             {
-              "id": "4",
+              "id": "4:0",
               "providerMetadata": {
                 "testProvider": {
                   "encryptedContent": "encrypted_reasoning_data_abc123",
@@ -605,19 +605,19 @@ describe('streamText', () => {
               "type": "reasoning-start",
             },
             {
-              "id": "4",
+              "id": "4:0",
               "providerMetadata": undefined,
               "text": " I need to think about",
               "type": "reasoning",
             },
             {
-              "id": "4",
+              "id": "4:0",
               "providerMetadata": undefined,
               "text": " this problem carefully.",
               "type": "reasoning",
             },
             {
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": {
                 "testProvider": {
                   "encryptedContent": "encrypted_reasoning_data_abc123",
@@ -626,25 +626,25 @@ describe('streamText', () => {
               "type": "reasoning-start",
             },
             {
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": undefined,
               "text": " The best solution",
               "type": "reasoning",
             },
             {
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": undefined,
               "text": " requires careful",
               "type": "reasoning",
             },
             {
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": undefined,
               "text": " consideration of all factors.",
               "type": "reasoning",
             },
             {
-              "id": "4",
+              "id": "4:0",
               "providerMetadata": {
                 "testProvider": {
                   "encryptedContent": "encrypted_reasoning_data_final_def456",
@@ -653,7 +653,7 @@ describe('streamText', () => {
               "type": "reasoning-end",
             },
             {
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": {
                 "testProvider": {
                   "encryptedContent": "encrypted_reasoning_data_final_def456",
@@ -1731,31 +1731,31 @@ describe('streamText', () => {
           "data: {"type":"reasoning-end","id":"3","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 
         ",
-          "data: {"type":"reasoning-start","id":"4","providerMetadata":{"testProvider":{"encryptedContent":"encrypted_reasoning_data_abc123"}}}
+          "data: {"type":"reasoning-start","id":"4:0","providerMetadata":{"testProvider":{"encryptedContent":"encrypted_reasoning_data_abc123"}}}
 
         ",
-          "data: {"type":"reasoning-delta","id":"4","delta":" I need to think about"}
+          "data: {"type":"reasoning-delta","id":"4:0","delta":" I need to think about"}
 
         ",
-          "data: {"type":"reasoning-delta","id":"4","delta":" this problem carefully."}
+          "data: {"type":"reasoning-delta","id":"4:0","delta":" this problem carefully."}
 
         ",
-          "data: {"type":"reasoning-start","id":"4","providerMetadata":{"testProvider":{"encryptedContent":"encrypted_reasoning_data_abc123"}}}
+          "data: {"type":"reasoning-start","id":"4:1","providerMetadata":{"testProvider":{"encryptedContent":"encrypted_reasoning_data_abc123"}}}
 
         ",
-          "data: {"type":"reasoning-delta","id":"4","delta":" The best solution"}
+          "data: {"type":"reasoning-delta","id":"4:1","delta":" The best solution"}
 
         ",
-          "data: {"type":"reasoning-delta","id":"4","delta":" requires careful"}
+          "data: {"type":"reasoning-delta","id":"4:1","delta":" requires careful"}
 
         ",
-          "data: {"type":"reasoning-delta","id":"4","delta":" consideration of all factors."}
+          "data: {"type":"reasoning-delta","id":"4:1","delta":" consideration of all factors."}
 
         ",
-          "data: {"type":"reasoning-end","id":"4","providerMetadata":{"testProvider":{"encryptedContent":"encrypted_reasoning_data_final_def456"}}}
+          "data: {"type":"reasoning-end","id":"4:0","providerMetadata":{"testProvider":{"encryptedContent":"encrypted_reasoning_data_final_def456"}}}
 
         ",
-          "data: {"type":"reasoning-end","id":"4","providerMetadata":{"testProvider":{"encryptedContent":"encrypted_reasoning_data_final_def456"}}}
+          "data: {"type":"reasoning-end","id":"4:1","providerMetadata":{"testProvider":{"encryptedContent":"encrypted_reasoning_data_final_def456"}}}
 
         ",
           "data: {"type":"text-start","id":"1"}
@@ -2367,7 +2367,7 @@ describe('streamText', () => {
               "type": "reasoning-end",
             },
             {
-              "id": "4",
+              "id": "4:0",
               "providerMetadata": {
                 "testProvider": {
                   "encryptedContent": "encrypted_reasoning_data_abc123",
@@ -2377,18 +2377,18 @@ describe('streamText', () => {
             },
             {
               "delta": " I need to think about",
-              "id": "4",
+              "id": "4:0",
               "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " this problem carefully.",
-              "id": "4",
+              "id": "4:0",
               "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": {
                 "testProvider": {
                   "encryptedContent": "encrypted_reasoning_data_abc123",
@@ -2398,24 +2398,24 @@ describe('streamText', () => {
             },
             {
               "delta": " The best solution",
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " requires careful",
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
               "delta": " consideration of all factors.",
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": undefined,
               "type": "reasoning-delta",
             },
             {
-              "id": "4",
+              "id": "4:0",
               "providerMetadata": {
                 "testProvider": {
                   "encryptedContent": "encrypted_reasoning_data_final_def456",
@@ -2424,7 +2424,7 @@ describe('streamText', () => {
               "type": "reasoning-end",
             },
             {
-              "id": "4",
+              "id": "4:1",
               "providerMetadata": {
                 "testProvider": {
                   "encryptedContent": "encrypted_reasoning_data_final_def456",

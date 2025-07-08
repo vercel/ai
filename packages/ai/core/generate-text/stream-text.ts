@@ -622,14 +622,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       }
     > = {};
 
-    const activeReasoningContent: Map<
+    let activeReasoningContent: Record<
       string,
-      Array<{
+      {
         type: 'reasoning';
         text: string;
         providerMetadata: ProviderMetadata | undefined;
-      }>
-    > = new Map();
+      }
+    > = {};
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
@@ -690,22 +690,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'reasoning-start') {
-          const activeReasoning = {
-            type: 'reasoning' as const,
+          activeReasoningContent[part.id] = {
+            type: 'reasoning',
             text: '',
             providerMetadata: part.providerMetadata,
           };
 
-          activeReasoningContent.set(part.id, [
-            ...(activeReasoningContent.get(part.id) ?? []),
-            activeReasoning,
-          ]);
-
-          recordedContent.push(activeReasoning);
+          recordedContent.push(activeReasoningContent[part.id]);
         }
 
         if (part.type === 'reasoning') {
-          const activeReasoning = activeReasoningContent.get(part.id)?.at(-1);
+          const activeReasoning = activeReasoningContent[part.id];
 
           if (activeReasoning == null) {
             controller.enqueue({
@@ -724,7 +719,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'reasoning-end') {
-          const activeReasoning = activeReasoningContent.get(part.id)?.at(0);
+          const activeReasoning = activeReasoningContent[part.id];
 
           if (activeReasoning == null) {
             controller.enqueue({
@@ -740,14 +735,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           activeReasoning.providerMetadata =
             part.providerMetadata ?? activeReasoning.providerMetadata;
 
-          activeReasoningContent.set(
-            part.id,
-            activeReasoningContent.get(part.id)?.slice(1) ?? [],
-          );
-
-          if (activeReasoningContent.get(part.id)?.length === 0) {
-            activeReasoningContent.delete(part.id);
-          }
+          delete activeReasoningContent[part.id];
         }
 
         if (part.type === 'file') {
@@ -800,7 +788,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedSteps.push(currentStepResult);
 
           recordedContent = [];
-          activeReasoningContent.clear();
+          activeReasoningContent = {};
           activeTextContent = {};
 
           recordedResponseMessages.push(...stepMessages);
