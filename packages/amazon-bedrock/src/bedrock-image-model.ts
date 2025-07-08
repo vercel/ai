@@ -10,7 +10,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   BedrockImageModelId,
-  BedrockImageStyle,
   modelMaxImagesPerCall,
 } from './bedrock-image-settings';
 import { BedrockErrorSchema } from './bedrock-error';
