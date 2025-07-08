@@ -557,10 +557,10 @@ The system instruction is automatically formatted and included in the conversati
 ## Embedding Models
 
 You can create models that call the [Google Generative AI embeddings API](https://ai.google.dev/gemini-api/docs/embeddings)
-using the `.textEmbeddingModel()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = google.textEmbeddingModel('text-embedding-004');
+const model = google.textEmbedding('text-embedding-004');
 ```
 
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
@@ -569,7 +569,7 @@ Google Generative AI embedding models support aditional settings. You can pass t
 import { google } from '@ai-sdk/google';
 import { embed } from 'ai';
 
-const model = google.textEmbeddingModel('text-embedding-004');
+const model = google.textEmbedding('text-embedding-004');
 
 const { embedding } = await embed({
   model,

@@ -107,12 +107,10 @@ Fireworks language models can also be used in the `streamText` function
 
 ### Completion Models
 
-You can create models that call the Fireworks completions API using the `.completionModel()` factory method:
+You can create models that call the Fireworks completions API using the `.completion()` factory method:
 
 ```ts
-const model = fireworks.completionModel(
-  'accounts/fireworks/models/firefunction-v1',
-);
+const model = fireworks.completion('accounts/fireworks/models/firefunction-v1');
 ```
 
 ### Model Capabilities
@@ -144,10 +142,10 @@ const model = fireworks.completionModel(
 
 ## Embedding Models
 
-You can create models that call the Fireworks embeddings API using the `.textEmbeddingModel()` factory method:
+You can create models that call the Fireworks embeddings API using the `.textEmbedding()` factory method:
 
 ```ts
-const model = fireworks.textEmbeddingModel('nomic-ai/nomic-embed-text-v1.5');
+const model = fireworks.textEmbedding('nomic-ai/nomic-embed-text-v1.5');
 ```
 
 You can use Fireworks embedding models to generate embeddings with the `embed` function:
@@ -157,7 +155,7 @@ import { fireworks } from '@ai-sdk/fireworks';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: fireworks.textEmbeddingModel('nomic-ai/nomic-embed-text-v1.5'),
+  model: fireworks.textEmbedding('nomic-ai/nomic-embed-text-v1.5'),
   value: 'sunny day at the beach',
 });
 ```
@@ -175,7 +173,7 @@ const { embedding } = await embed({
 
 ## Image Models
 
-You can create Fireworks image models using the `.imageModel()` factory method.
+You can create Fireworks image models using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
@@ -183,7 +181,7 @@ import { fireworks } from '@ai-sdk/fireworks';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: fireworks.imageModel('accounts/fireworks/models/flux-1-dev-fp8'),
+  model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
