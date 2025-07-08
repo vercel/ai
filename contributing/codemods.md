@@ -19,8 +19,7 @@ Here is a list of instructions that will help the AI model to come up with a bet
 
 Depending on the complexity of the changes, you can instruct the AI to review changes directly from a pull request, e.g. https://github.com/vercel/ai/pull/5750.diff. If that doesn't yield a useful result, try describing the breaking change such as in the example below
 
-<details>
-<summary>Example</summary>
+## Example
 
 ````md
 # Breaking change
@@ -69,5 +68,3 @@ for await (const delta of result.fullStream) {
 }
 ```
 ````
-
-</details>
