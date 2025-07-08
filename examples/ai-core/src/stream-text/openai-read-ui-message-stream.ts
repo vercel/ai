@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { createUiMessageIterable, stepCountIs, streamText, tool } from 'ai';
+import { readUIMessageStream, stepCountIs, streamText, tool } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod/v4';
 
@@ -26,11 +26,9 @@ async function main() {
     prompt: 'What is the weather in Tokyo?',
   });
 
-  const uiMessageIterable = createUiMessageIterable({
+  for await (const uiMessage of readUIMessageStream({
     stream: result.toUIMessageStream(),
-  });
-
-  for await (const uiMessage of uiMessageIterable) {
+  })) {
     console.clear();
     console.log(JSON.stringify(uiMessage, null, 2));
   }

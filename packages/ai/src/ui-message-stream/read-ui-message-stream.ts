@@ -1,17 +1,17 @@
-import { UIMessage } from './ui-messages';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import { UIMessage } from '../ui/ui-messages';
+import { UIMessageChunk } from './ui-message-chunks';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
   StreamingUIMessageState,
-} from './process-ui-message-stream';
+} from '../ui/process-ui-message-stream';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 
-export function createUiMessageIterable<UI_MESSAGE extends UIMessage>({
+export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   message,
   stream,
 }: {

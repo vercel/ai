@@ -2,14 +2,14 @@ import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
-import { UIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
-import { createUiMessageIterable } from './create-ui-message-iterable';
+import { UIMessageChunk } from './ui-message-chunks';
+import { readUIMessageStream } from './read-ui-message-stream';
 
-function createUIMessageStream(parts: UIMessageStreamPart[]) {
+function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
 }
 
-describe('createUiMessageGenerator', () => {
+describe('readUIMessageStream', () => {
   it('should return a ui message object stream for a basic input stream', async () => {
     const stream = createUIMessageStream([
       { type: 'start', messageId: 'msg-123' },
@@ -22,9 +22,10 @@ describe('createUiMessageGenerator', () => {
       { type: 'finish' },
     ]);
 
-    const iterable = createUiMessageIterable({ stream });
+    const uiMessages = readUIMessageStream({ stream });
 
-    expect(await convertAsyncIterableToArray(iterable)).toMatchInlineSnapshot(`
+    expect(await convertAsyncIterableToArray(uiMessages))
+      .toMatchInlineSnapshot(`
       [
         {
           "id": "msg-123",

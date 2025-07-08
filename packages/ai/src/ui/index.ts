@@ -19,7 +19,6 @@ export {
   convertToCoreMessages,
   convertToModelMessages,
 } from './convert-to-model-messages';
-export { createUiMessageIterable } from './create-ui-message-iterable';
 export { DefaultChatTransport } from './default-chat-transport';
 export {
   HttpChatTransport,
