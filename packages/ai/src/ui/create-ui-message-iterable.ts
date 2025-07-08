@@ -5,7 +5,10 @@ import {
   processUIMessageStream,
   StreamingUIMessageState,
 } from './process-ui-message-stream';
-import { createAsyncIterableStream } from '../util/async-iterable-stream';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 
 export function createUiMessageIterable<UI_MESSAGE extends UIMessage>({
@@ -14,7 +17,7 @@ export function createUiMessageIterable<UI_MESSAGE extends UIMessage>({
 }: {
   message?: UI_MESSAGE;
   stream: ReadableStream<UIMessageChunk>;
-}): AsyncIterable<UI_MESSAGE> {
+}): AsyncIterableStream<UI_MESSAGE> {
   let controller: ReadableStreamDefaultController<UI_MESSAGE> | undefined;
 
   const outputStream = new ReadableStream<UI_MESSAGE>({

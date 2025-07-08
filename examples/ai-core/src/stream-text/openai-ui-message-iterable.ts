@@ -1,11 +1,29 @@
 import { openai } from '@ai-sdk/openai';
-import { createUiMessageIterable, streamText } from 'ai';
+import { createUiMessageIterable, stepCountIs, streamText, tool } from 'ai';
 import 'dotenv/config';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = streamText({
     model: openai('gpt-4.1-mini'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: ({ location }) => ({
+          location,
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+        }),
+        toModelOutput: ({ location, temperature }) => ({
+          type: 'text',
+          value: `The weather in ${location} is ${temperature} degrees Fahrenheit.`,
+        }),
+      }),
+    },
+    stopWhen: stepCountIs(5),
+    prompt: 'What is the weather in Tokyo?',
   });
 
   const uiMessageIterable = createUiMessageIterable({
