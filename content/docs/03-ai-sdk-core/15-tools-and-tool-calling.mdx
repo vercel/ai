@@ -54,7 +54,8 @@ You can also use it to render user interfaces (Generative UI).
 With the `stopWhen` setting, you can enable multi-step calls in `generateText` and `streamText`. When `stopWhen` is set and the model generates a tool call, the AI SDK will trigger a new generation passing in the tool result until there are no further tool calls or the stopping condition is met.
 
 <Note>
-  The `stopWhen` conditions are only evaluated when the last step contains tool results.
+  The `stopWhen` conditions are only evaluated when the last step contains tool
+  results.
 </Note>
 
 By default, when you use `generateText` or `streamText`, it triggers a single generation. This works well for many use cases where you can rely on the model's training data to generate a response. However, when you provide tools, the model now has the choice to either generate a normal text response, or generate a tool call. If the model generates a tool call, it's generation is complete and that step is finished.
@@ -244,7 +245,12 @@ The ID of the tool call is forwarded to the tool execution.
 You can use it e.g. when sending tool-call related information with stream data.
 
 ```ts highlight="14-20"
-import { streamText, tool, createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+import {
+  streamText,
+  tool,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -272,7 +278,7 @@ export async function POST(req: Request) {
           }),
         },
       });
-      
+
       writer.merge(result.toUIMessageStream());
     },
   });
@@ -624,9 +630,10 @@ const result = await generateText({
       toModelOutput(result) {
         return {
           type: 'content',
-          value: typeof result === 'string'
-            ? [{ type: 'text', text: result }]
-            : [{ type: 'image', data: result.data, mediaType: 'image/png' }],
+          value:
+            typeof result === 'string'
+              ? [{ type: 'text', text: result }]
+              : [{ type: 'image', data: result.data, mediaType: 'image/png' }],
         };
       },
     }),
