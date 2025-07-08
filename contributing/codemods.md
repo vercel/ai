@@ -24,7 +24,7 @@ Depending on the complexity of the changes, you can instruct the AI to review ch
 ````md
 # Breaking change
 
-## **`streamtext()`: `result.file.{mediaType,data}` properties is now `result.{mediaType,data}`**
+## `streamtext()`: `result.file.{mediaType,data}` properties is now `result.{mediaType,data}`
 
 Before:
 
