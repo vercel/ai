@@ -590,7 +590,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 } else {
                   controller.enqueue({
                     type: 'error',
-                    error: `Reasoning part ${value.item.id} already exists`,
+                    error: `reasoning part ${value.item.id} already exists`,
                   });
                 }
               }
@@ -698,7 +698,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 } else {
                   controller.enqueue({
                     type: 'error',
-                    error: `Reasoning part ${value.item.id} not found`,
+                    error: `reasoning part ${value.item.id} not found`,
                   });
                 }
               }
@@ -751,8 +751,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               } else {
                 const errorDetails =
                   activeReasoning?.id !== value.item_id
-                    ? `Reasoning part ${value.item_id} not found`
-                    : `Summary part ${value.summary_index} already exists`;
+                    ? `reasoning part ${value.item_id} not found`
+                    : `summary part ${value.summary_index} already exists`;
 
                 controller.enqueue({
                   type: 'error',
@@ -778,8 +778,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               } else {
                 const errorDetails =
                   activeReasoning?.id !== value.item_id
-                    ? `Reasoning part ${value.item_id} not found`
-                    : `Summary part ${value.summary_index} not found`;
+                    ? `reasoning part ${value.item_id} not found`
+                    : `summary part ${value.summary_index} not found`;
 
                 controller.enqueue({
                   type: 'error',
