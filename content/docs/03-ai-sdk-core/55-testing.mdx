@@ -35,8 +35,9 @@ const result = await generateText({
   model: new MockLanguageModelV2({
     doGenerate: async () => ({
       finishReason: 'stop',
-      usage: { inputTokens: 10, outputTokens: 20 },
-      text: `Hello, world!`,
+      usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+      content: [{ type: 'text', text: `Hello, world!` }],
+      warnings: [],
     }),
   }),
   prompt: 'Hello, test!',
@@ -54,14 +55,16 @@ const result = streamText({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [
-          { type: 'text', text: 'Hello' },
-          { type: 'text', text: ', ' },
-          { type: 'text', text: `world!` },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+          { type: 'text-delta', id: 'text-1', delta: ', ' },
+          { type: 'text-delta', id: 'text-1', delta: 'world!' },
+          { type: 'text-end', id: 'text-1' },
           {
             type: 'finish',
             finishReason: 'stop',
             logprobs: undefined,
-            usage: { inputTokens: 3, outputTokens: 10 },
+            usage: { inputTokens: 3, outputTokens: 10, totalTokens: 13 },
           },
         ],
       }),
@@ -82,8 +85,9 @@ const result = await generateObject({
   model: new MockLanguageModelV2({
     doGenerate: async () => ({
       finishReason: 'stop',
-      usage: { inputTokens: 10, outputTokens: 20 },
-      text: `{"content":"Hello, world!"}`,
+      usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+      content: [{ type: 'text', text: `{"content":"Hello, world!"}` }],
+      warnings: [],
     }),
   }),
   schema: z.object({ content: z.string() }),
@@ -103,17 +107,19 @@ const result = streamObject({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [
-          { type: 'text', text: '{ ' },
-          { type: 'text', text: '"content": ' },
-          { type: 'text', text: `"Hello, ` },
-          { type: 'text', text: `world` },
-          { type: 'text', text: `!"` },
-          { type: 'text', text: ' }' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: '{ ' },
+          { type: 'text-delta', id: 'text-1', delta: '"content": ' },
+          { type: 'text-delta', id: 'text-1', delta: `"Hello, ` },
+          { type: 'text-delta', id: 'text-1', delta: `world` },
+          { type: 'text-delta', id: 'text-1', delta: `!"` },
+          { type: 'text-delta', id: 'text-1', delta: ' }' },
+          { type: 'text-end', id: 'text-1' },
           {
             type: 'finish',
             finishReason: 'stop',
             logprobs: undefined,
-            usage: { inputTokens: 3, outputTokens: 10 },
+            usage: { inputTokens: 3, outputTokens: 10, totalTokens: 13 },
           },
         ],
       }),
@@ -124,9 +130,9 @@ const result = streamObject({
 });
 ```
 
-### Simulate Data Stream Protocol Responses
+### Simulate UI Message Stream Responses
 
-You can also simulate [Data Stream Protocol](/docs/ai-sdk-ui/stream-protocol#data-stream-protocol) responses for testing,
+You can also simulate [UI Message Stream](/docs/ai-sdk-ui/stream-protocol#ui-message-stream) responses for testing,
 debugging, or demonstration purposes.
 
 Here is a Next example:
@@ -140,18 +146,23 @@ export async function POST(req: Request) {
       initialDelayInMs: 1000, // Delay before the first chunk
       chunkDelayInMs: 300, // Delay between chunks
       chunks: [
-        `0:"This"\n`,
-        `0:" is an"\n`,
-        `0:"example."\n`,
-        `e:{"finishReason":"stop","usage":{"promptTokens":20,"completionTokens":50},"isContinued":false}\n`,
-        `d:{"finishReason":"stop","usage":{"promptTokens":20,"completionTokens":50}}\n`,
+        `data: {"type":"start","messageId":"msg-123"}\n\n`,
+        `data: {"type":"text-start","id":"text-1"}\n\n`,
+        `data: {"type":"text-delta","id":"text-1","delta":"This"}\n\n`,
+        `data: {"type":"text-delta","id":"text-1","delta":" is an"}\n\n`,
+        `data: {"type":"text-delta","id":"text-1","delta":" example."}\n\n`,
+        `data: {"type":"text-end","id":"text-1"}\n\n`,
+        `data: {"type":"finish"}\n\n`,
+        `data: [DONE]\n\n`,
       ],
     }).pipeThrough(new TextEncoderStream()),
     {
       status: 200,
       headers: {
-        'X-Vercel-AI-Data-Stream': 'v2',
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        'x-vercel-ai-ui-message-stream': 'v1',
       },
     },
   );
