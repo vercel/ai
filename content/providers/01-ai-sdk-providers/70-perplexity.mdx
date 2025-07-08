@@ -77,6 +77,9 @@ const { text } = await generateText({
 });
 ```
 
+Perplexity language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
 ### Sources
 
 Websites that have been used to generate the response are included in the `sources` property of the result:
@@ -138,9 +141,11 @@ You can enable image responses by setting `return_images: true` in the provider 
 
 | Model                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `sonar-pro`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `sonar`               | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `sonar-deep-research` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `sonar-deep-research` | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `sonar-reasoning-pro` | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `sonar-reasoning`     | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `sonar-pro`           | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `sonar`               | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   Please see the [Perplexity docs](https://docs.perplexity.ai) for detailed API
