@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Allow destructuring `ToolUIPart` type
+Allow destructuring output and errorText on `ToolUIPart` type
