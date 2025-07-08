@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- 7b069ed: allow any string as reasoningEffort
+
 ## 1.0.0-beta.2
 
 ### Patch Changes

@@ -9,7 +9,8 @@ export type OpenAIResponsesMessage =
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
   | OpenAIWebSearchCall
-  | OpenAIComputerCall;
+  | OpenAIComputerCall
+  | OpenAIResponsesReasoning;
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -76,3 +77,13 @@ export type OpenAIResponsesTool =
         region: string;
       };
     };
+
+export type OpenAIResponsesReasoning = {
+  type: 'reasoning';
+  id: string;
+  encrypted_content?: string | null;
+  summary: Array<{
+    type: 'summary_text';
+    text: string;
+  }>;
+};

@@ -1,20 +1,26 @@
 import {
+  InvalidArgumentError,
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAIResponsesPrompt } from './openai-responses-api-types';
+import { parseProviderOptions } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import {
+  OpenAIResponsesPrompt,
+  OpenAIResponsesReasoning,
+} from './openai-responses-api-types';
 
-export function convertToOpenAIResponsesMessages({
+export async function convertToOpenAIResponsesMessages({
   prompt,
   systemMessageMode,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
-}): {
+}): Promise<{
   messages: OpenAIResponsesPrompt;
   warnings: Array<LanguageModelV2CallWarning>;
-} {
+}> {
   const messages: OpenAIResponsesPrompt = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
 
@@ -99,6 +105,8 @@ export function convertToOpenAIResponsesMessages({
       }
 
       case 'assistant': {
+        const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
+
         for (const part of content) {
           switch (part.type) {
             case 'text': {
@@ -127,6 +135,53 @@ export function convertToOpenAIResponsesMessages({
                 type: 'other',
                 message: `tool result parts in assistant messages are not supported for OpenAI responses`,
               });
+              break;
+            }
+
+            case 'reasoning': {
+              const providerOptions = await parseProviderOptions({
+                provider: 'openai',
+                providerOptions: part.providerOptions,
+                schema: openaiResponsesReasoningProviderOptionsSchema,
+              });
+
+              const reasoningId = providerOptions?.reasoning?.id;
+
+              if (reasoningId != null) {
+                const existingReasoningMessage = reasoningMessages[reasoningId];
+
+                const summaryParts: Array<{
+                  type: 'summary_text';
+                  text: string;
+                }> = [];
+
+                if (part.text.length > 0) {
+                  summaryParts.push({ type: 'summary_text', text: part.text });
+                } else if (existingReasoningMessage !== undefined) {
+                  warnings.push({
+                    type: 'other',
+                    message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                  });
+                }
+
+                if (existingReasoningMessage === undefined) {
+                  reasoningMessages[reasoningId] = {
+                    type: 'reasoning',
+                    id: reasoningId,
+                    encrypted_content:
+                      providerOptions?.reasoning?.encryptedContent,
+                    summary: summaryParts,
+                  };
+                  messages.push(reasoningMessages[reasoningId]);
+                } else {
+                  existingReasoningMessage.summary.push(...summaryParts);
+                }
+              } else {
+                warnings.push({
+                  type: 'other',
+                  message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                });
+              }
               break;
             }
           }
@@ -171,3 +226,16 @@ export function convertToOpenAIResponsesMessages({
 
   return { messages, warnings };
 }
+
+const openaiResponsesReasoningProviderOptionsSchema = z.object({
+  reasoning: z
+    .object({
+      id: z.string().nullish(),
+      encryptedContent: z.string().nullish(),
+    })
+    .nullish(),
+});
+
+export type OpenAIResponsesReasoningProviderOptions = z.infer<
+  typeof openaiResponsesReasoningProviderOptionsSchema
+>;

@@ -133,9 +133,9 @@ export function extractReasoningMiddleware({
                       : '';
 
                   if (
-                    (activeExtraction.afterSwitch &&
-                      activeExtraction.isReasoning) ||
-                    activeExtraction.isFirstReasoning
+                    activeExtraction.isReasoning &&
+                    (activeExtraction.afterSwitch ||
+                      activeExtraction.isFirstReasoning)
                   ) {
                     controller.enqueue({
                       type: 'reasoning-start',

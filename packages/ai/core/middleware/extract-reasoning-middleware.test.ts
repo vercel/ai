@@ -684,18 +684,10 @@ describe('extractReasoningMiddleware', () => {
               "type": "text-start",
             },
             {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
-            },
-            {
               "id": "1",
               "providerMetadata": undefined,
               "text": "ana",
               "type": "text",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
             },
             {
               "id": "1",
@@ -705,18 +697,100 @@ describe('extractReasoningMiddleware', () => {
               "type": "text",
             },
             {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
-            },
-            {
               "id": "1",
               "providerMetadata": undefined,
               "text": "</think>",
               "type": "text",
             },
             {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "this is the response",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
+    it('should keep original text when <think> tag is not present', async () => {
+      const mockModel = new MockLanguageModelV2({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'this is the response' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
             },
             {
               "id": "1",
