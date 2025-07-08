@@ -30,7 +30,7 @@ import {
   type UIDataTypes,
   type UIMessage,
 } from './ui-messages';
-import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 
 export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   UI_MESSAGE,
@@ -457,7 +457,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.activeResponse = activeResponse;
 
-      let stream: ReadableStream<UIMessageStreamPart>;
+      let stream: ReadableStream<UIMessageChunk>;
 
       if (trigger === 'resume-stream') {
         const reconnect = await this.transport.reconnectToStream({
