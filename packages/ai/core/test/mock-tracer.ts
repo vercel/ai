@@ -134,15 +134,15 @@ class MockSpan implements Span {
     return false;
   }
   recordException(exception: Exception, time?: TimeInput) {
-    const errorObj =
+    const error =
       typeof exception === 'string' ? new Error(exception) : exception;
     this.events.push({
       name: 'exception',
       attributes: {
-        'exception.type': errorObj.constructor?.name || 'Error',
-        'exception.name': errorObj.name || 'Error',
-        'exception.message': errorObj.message || '',
-        'exception.stack': errorObj.stack || '',
+        'exception.type': error.constructor?.name || 'Error',
+        'exception.name': error.name || 'Error',
+        'exception.message': error.message || '',
+        'exception.stack': error.stack || '',
       },
       time: Array.isArray(time) ? time : [0, 0],
     });
