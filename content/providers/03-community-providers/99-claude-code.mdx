@@ -94,13 +94,20 @@ Claude Code language models can also be used in the `streamText`, `generateObjec
 
 ### Model Capabilities
 
-| Model   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `opus`  | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `sonnet`| <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| -------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `opus`   | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `sonnet` | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
-  The ❌ for "Tool Usage" and "Tool Streaming" refers specifically to the AI SDK's standardized tool interface, which allows defining custom functions with schemas that models can call. The Claude Code provider uses a different architecture where Claude's built-in tools (Bash, Edit, Read, Write, etc.) and MCP servers are managed directly by the Claude Code CLI. While you cannot define custom tools using the AI SDK's conventions, Claude can still effectively use its comprehensive set of built-in tools to perform tasks like file manipulation, web fetching, and command execution.
+  The ❌ for "Tool Usage" and "Tool Streaming" refers specifically to the AI
+  SDK's standardized tool interface, which allows defining custom functions with
+  schemas that models can call. The Claude Code provider uses a different
+  architecture where Claude's built-in tools (Bash, Edit, Read, Write, etc.) and
+  MCP servers are managed directly by the Claude Code CLI. While you cannot
+  define custom tools using the AI SDK's conventions, Claude can still
+  effectively use its comprehensive set of built-in tools to perform tasks like
+  file manipulation, web fetching, and command execution.
 </Note>
 
 ## Authentication
