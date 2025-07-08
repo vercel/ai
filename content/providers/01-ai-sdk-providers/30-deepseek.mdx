@@ -112,12 +112,8 @@ for await (const part of result.fullStream) {
 }
 ```
 
-<Note>
-  DeepSeek reasoning works with both `generateText` and `streamText`. With
-  `generateText`, reasoning content is available in `result.content` parts. With
-  `streamText`, use `result.fullStream` to access reasoning and text parts as
-  they stream.
-</Note>
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
 
 ### Cache Token Usage
 
@@ -158,11 +154,3 @@ The metrics include:
   of available models. You can also pass any available provider model ID as a
   string if needed.
 </Note>
-
-## Limitations
-
-DeepSeek currently only supports text generation models. The provider does not support:
-
-- **Embedding models**: Use other providers like OpenAI or Cohere for text embeddings
-- **Image models**: Use other providers like OpenAI or Fireworks for image generation
-- **Image input**: DeepSeek models do not support vision capabilities
