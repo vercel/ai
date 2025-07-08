@@ -97,6 +97,7 @@ The following provider options are available:
 
   - **url** _string_ - Callback url to invoke when processing is complete.
   - **auth_headers** _object_ - Optional authorization headers, if needed to invoke the callback.
+    - **Authorization** _string_ - Authorization header value.
 
 - **delete_after_seconds** _integer_
 
@@ -109,6 +110,23 @@ The following provider options are available:
 - **rush** _boolean_
 
   [HIPAA Unsupported] Only available for human transcriber option. When set to true, your job is given higher priority.
+
+- **test_mode** _boolean_
+
+  [HIPAA Unsupported] Only available for human transcriber option. When set to true, the behavior will mock a normal human transcription job except no transcription will happen.
+
+- **segments_to_transcribe** _Array_
+
+  [HIPAA Unsupported] Only available for human transcriber option. Use this option to specify which sections of the transcript need to be transcribed.
+
+  - **start** _number_ - The timestamp of the beginning of the segment in seconds.
+  - **end** _number_ - The timestamp of the end of the segment in seconds.
+
+- **speaker_names** _Array_
+
+  [HIPAA Unsupported] Only available for human transcriber option. Use this option to specify up to 100 names of speakers in the transcript.
+
+  - **display_name** _string_ - The name of the speaker to be used when labeling monologues.
 
 - **skip_diarization** _boolean_
 
@@ -197,6 +215,5 @@ The following provider options are available:
 | Model      | Transcription       | Duration            | Segments            | Language            |
 | ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `machine`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `human`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `low_cost` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `fusion`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
