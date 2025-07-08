@@ -499,7 +499,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       | {
           id: string;
           encryptedContent?: string | null;
-          summary: Map<number, string>;
+          summaryIndex: number;
+          hasSummaryParts: boolean;
         }
       | undefined = undefined;
 
@@ -567,32 +568,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.id,
                 });
               } else if (isResponseOutputItemAddedReasoningChunk(value)) {
-                if (activeReasoning == null) {
-                  activeReasoning = {
-                    id: value.item.id,
-                    encryptedContent: value.item.encrypted_content,
-                    summary: new Map(),
-                  };
+                activeReasoning = {
+                  id: value.item.id,
+                  encryptedContent: value.item.encrypted_content,
+                  summaryIndex: 0,
+                  hasSummaryParts: false,
+                };
 
-                  controller.enqueue({
-                    type: 'reasoning-start',
-                    id: value.item.id,
-                    providerMetadata: {
-                      openai: {
-                        reasoning: {
-                          id: value.item.id,
-                          encryptedContent:
-                            value.item.encrypted_content ?? null,
-                        },
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: `${value.item.id}:${activeReasoning.summaryIndex}`,
+                  providerMetadata: {
+                    openai: {
+                      reasoning: {
+                        id: value.item.id,
+                        encryptedContent: value.item.encrypted_content ?? null,
                       },
                     },
-                  });
-                } else {
-                  controller.enqueue({
-                    type: 'error',
-                    error: `reasoning part ${value.item.id} already exists`,
-                  });
-                }
+                  },
+                });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'function_call') {
@@ -671,17 +665,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (isResponseOutputItemDoneReasoningChunk(value)) {
                 if (activeReasoning?.id === value.item.id) {
-                  activeReasoning.encryptedContent =
-                    value.item.encrypted_content;
-
                   for (
                     let summaryIndex = 0;
-                    summaryIndex < Math.max(activeReasoning.summary.size, 1);
+                    summaryIndex < activeReasoning.summaryIndex + 1;
                     summaryIndex++
                   ) {
                     controller.enqueue({
                       type: 'reasoning-end',
-                      id: value.item.id,
+                      id: `${value.item.id}:${summaryIndex}`,
                       providerMetadata: {
                         openai: {
                           reasoning: {
@@ -727,16 +718,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 delta: value.delta,
               });
             } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
-              if (
-                activeReasoning?.id === value.item_id &&
-                !activeReasoning?.summary.has(value.summary_index)
-              ) {
-                activeReasoning.summary.set(value.summary_index, '');
+              if (activeReasoning?.id === value.item_id) {
+                if (!activeReasoning.hasSummaryParts) {
+                  activeReasoning.hasSummaryParts = true;
+                } else {
+                  activeReasoning.summaryIndex += 1;
+                }
 
-                if (activeReasoning.summary.size > 1) {
+                if (activeReasoning.summaryIndex > 0) {
                   controller.enqueue({
                     type: 'reasoning-start',
-                    id: value.item_id,
+                    id: `${value.item_id}:${activeReasoning.summaryIndex}`,
                     providerMetadata: {
                       openai: {
                         reasoning: {
@@ -749,41 +741,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   });
                 }
               } else {
-                const errorDetails =
-                  activeReasoning?.id !== value.item_id
-                    ? `reasoning part ${value.item_id} not found`
-                    : `summary part ${value.summary_index} already exists`;
-
                 controller.enqueue({
                   type: 'error',
-                  error: errorDetails,
+                  error: `reasoning part ${value.item_id} not found`,
                 });
               }
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
-              if (
-                activeReasoning?.id === value.item_id &&
-                activeReasoning?.summary.has(value.summary_index)
-              ) {
-                activeReasoning.summary.set(
-                  value.summary_index,
-                  activeReasoning.summary.get(value.summary_index) +
-                    value.delta,
-                );
-
+              if (activeReasoning?.id === value.item_id) {
                 controller.enqueue({
                   type: 'reasoning-delta',
-                  id: value.item_id,
+                  id: `${value.item_id}:${activeReasoning.summaryIndex}`,
                   delta: value.delta,
+                  providerMetadata: {
+                    openai: {
+                      reasoning: {
+                        id: value.item_id,
+                      },
+                    },
+                  },
                 });
               } else {
-                const errorDetails =
-                  activeReasoning?.id !== value.item_id
-                    ? `reasoning part ${value.item_id} not found`
-                    : `summary part ${value.summary_index} not found`;
-
                 controller.enqueue({
                   type: 'error',
-                  error: errorDetails,
+                  error: `reasoning part ${value.item_id} not found`,
                 });
               }
             } else if (isResponseFinishedChunk(value)) {
@@ -963,13 +943,11 @@ const responseAnnotationAddedSchema = z.object({
 const responseReasoningSummaryPartAddedSchema = z.object({
   type: z.literal('response.reasoning_summary_part.added'),
   item_id: z.string(),
-  summary_index: z.number(),
 });
 
 const responseReasoningSummaryTextDeltaSchema = z.object({
   type: z.literal('response.reasoning_summary_text.delta'),
   item_id: z.string(),
-  summary_index: z.number(),
   delta: z.string(),
 });
 

@@ -2372,7 +2372,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2387,16 +2387,30 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "delta": "**Exploring burrito origins**
 
             The user is",
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2411,16 +2425,30 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "delta": "**Investigating burrito origins**
 
             There's a fascinating debate",
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " about who created the Mission burrito.",
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2432,7 +2460,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-end",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2530,7 +2558,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2542,7 +2570,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-start",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2648,7 +2676,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2663,16 +2691,30 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "delta": "**Exploring burrito origins**
 
             The user is",
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2687,16 +2729,30 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "delta": "**Investigating burrito origins**
 
             There's a fascinating debate",
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " about who created the Mission burrito.",
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2708,7 +2764,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-end",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2808,7 +2864,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2820,7 +2876,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-start",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2940,7 +2996,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2955,16 +3011,30 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "delta": "**Initial analysis**
 
             First reasoning block:",
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " analyzing the problem structure.",
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2979,16 +3049,30 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "delta": "**Deeper consideration**
 
             Let me think about",
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " the various approaches available.",
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -3000,7 +3084,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-end",
               },
               {
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -3030,7 +3114,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -3043,16 +3127,30 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "delta": "Second reasoning block:",
-                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
                 "delta": " considering alternative approaches.",
-                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
+                "providerMetadata": {
+                  "openai": {
+                    "reasoning": {
+                      "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                    },
+                  },
+                },
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4",
+                "id": "rs_second_7908809g7gcc9291be3e3fee895028c4:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
