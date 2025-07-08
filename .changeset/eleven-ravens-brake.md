@@ -1,6 +1,5 @@
 ---
 '@ai-sdk/openai': patch
-'ai': patch
 ---
 
-Fix support for streaming and combining reasoning summary parts
+Fix streaming and reconstruction of reasoning summary parts
