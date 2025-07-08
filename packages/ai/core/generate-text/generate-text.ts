@@ -16,7 +16,7 @@ import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
+import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
@@ -733,6 +733,7 @@ async function executeTools<TOOLS extends ToolSet>({
 
             return result;
           } catch (error) {
+            recordErrorOnSpan(span, error);
             throw new ToolExecutionError({
               toolCallId,
               toolName,

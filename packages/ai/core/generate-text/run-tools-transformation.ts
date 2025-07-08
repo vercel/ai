@@ -4,7 +4,7 @@ import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../errors';
 import { CoreMessage } from '../prompt/message';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { recordSpan } from '../telemetry/record-span';
+import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
@@ -274,6 +274,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                       }
                     },
                     (error: any) => {
+                      recordErrorOnSpan(span, error);
                       toolResultsStreamController!.enqueue({
                         type: 'error',
                         error: new ToolExecutionError({
