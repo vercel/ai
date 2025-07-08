@@ -567,24 +567,32 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.id,
                 });
               } else if (isResponseOutputItemAddedReasoningChunk(value)) {
-                activeReasoning = {
-                  id: value.item.id,
-                  encryptedContent: value.item.encrypted_content,
-                  summary: new Map<number, string>(),
-                };
+                if (activeReasoning == null) {
+                  activeReasoning = {
+                    id: value.item.id,
+                    encryptedContent: value.item.encrypted_content,
+                    summary: new Map<number, string>(),
+                  };
 
-                controller.enqueue({
-                  type: 'reasoning-start',
-                  id: value.item.id,
-                  providerMetadata: {
-                    openai: {
-                      reasoning: {
-                        id: value.item.id,
-                        encryptedContent: value.item.encrypted_content ?? null,
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: value.item.id,
+                    providerMetadata: {
+                      openai: {
+                        reasoning: {
+                          id: value.item.id,
+                          encryptedContent:
+                            value.item.encrypted_content ?? null,
+                        },
                       },
                     },
-                  },
-                });
+                  });
+                } else {
+                  controller.enqueue({
+                    type: 'error',
+                    error: `Reasoning part ${value.item.id} already exists`,
+                  });
+                }
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'function_call') {
@@ -687,6 +695,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   }
 
                   activeReasoning = undefined;
+                } else {
+                  controller.enqueue({
+                    type: 'error',
+                    error: `Reasoning part ${value.item.id} not found`,
+                  });
                 }
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
@@ -735,6 +748,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     },
                   });
                 }
+              } else {
+                const errorDetails =
+                  activeReasoning?.id !== value.item_id
+                    ? `Reasoning part ${value.item_id} not found`
+                    : `Summary part ${value.summary_index} already exists`;
+
+                controller.enqueue({
+                  type: 'error',
+                  error: errorDetails,
+                });
               }
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
               if (
@@ -751,6 +774,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'reasoning-delta',
                   id: value.item_id,
                   delta: value.delta,
+                });
+              } else {
+                const errorDetails =
+                  activeReasoning?.id !== value.item_id
+                    ? `Reasoning part ${value.item_id} not found`
+                    : `Summary part ${value.summary_index} not found`;
+
+                controller.enqueue({
+                  type: 'error',
+                  error: errorDetails,
                 });
               }
             } else if (isResponseFinishedChunk(value)) {
