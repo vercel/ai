@@ -12,11 +12,6 @@ function createUIMessageStream(parts: UIMessageStreamPart[]) {
   return convertArrayToReadableStream(parts);
 }
 
-export function mockId(): () => string {
-  let counter = 0;
-  return () => `id-${counter++}`;
-}
-
 describe('processUIMessageStream', () => {
   let writeCalls: Array<{ message: UIMessage }> = [];
   let state: StreamingUIMessageState<UIMessage> | undefined;
