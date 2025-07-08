@@ -149,18 +149,18 @@ export class GatewayLanguageModel implements LanguageModelV2 {
   }
 
   /**
-   * Encodes image parts in the prompt to base64. Mutates the passed options
-   * instance directly to avoid copying the image data.
+   * Encodes file parts in the prompt to base64. Mutates the passed options
+   * instance directly to avoid copying the file data.
    * @param options - The options to encode.
-   * @returns The options with the image parts encoded.
+   * @returns The options with the file parts encoded.
    */
   private maybeEncodeFileParts(options: LanguageModelV2CallOptions) {
     for (const message of options.prompt) {
       for (const part of message.content) {
         if (this.isFilePart(part)) {
           const filePart = part as LanguageModelV2FilePart;
-          // If the image part is a URL it will get cleanly converted to a string.
-          // If it's a binary image attachment we convert it to a data url.
+          // If the file part is a URL it will get cleanly converted to a string.
+          // If it's a binary file attachment we convert it to a data url.
           // In either case, server-side we should only ever see URLs as strings.
           if (filePart.data instanceof Uint8Array) {
             const buffer = Uint8Array.from(filePart.data);

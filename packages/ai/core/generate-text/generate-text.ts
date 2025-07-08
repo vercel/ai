@@ -24,7 +24,7 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
+import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -391,6 +391,9 @@ A function that attempts to repair a tool call that failed to parse.
                       'ai.response.model': responseData.modelId,
                       'ai.response.timestamp':
                         responseData.timestamp.toISOString(),
+                      'ai.response.providerMetadata': JSON.stringify(
+                        result.providerMetadata,
+                      ),
 
                       // TODO rename telemetry attributes to inputTokens and outputTokens
                       'ai.usage.promptTokens': result.usage.inputTokens,
@@ -517,6 +520,9 @@ A function that attempts to repair a tool call that failed to parse.
                     : JSON.stringify(toolCalls);
                 },
               },
+              'ai.response.providerMetadata': JSON.stringify(
+                currentModelResponse.providerMetadata,
+              ),
 
               // TODO rename telemetry attributes to inputTokens and outputTokens
               'ai.usage.promptTokens': currentModelResponse.usage.inputTokens,
@@ -620,6 +626,7 @@ async function executeTools<TOOLS extends ToolSet>({
               output: result,
             } as ToolResultUnion<TOOLS>;
           } catch (error) {
+            recordErrorOnSpan(span, error);
             return {
               type: 'tool-error',
               toolCallId,

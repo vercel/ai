@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- c3b7069: add Mistral Medium 3 model support
+
 ## 2.0.0-beta.2
 
 ### Patch Changes

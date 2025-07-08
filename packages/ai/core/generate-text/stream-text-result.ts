@@ -1,6 +1,6 @@
 import { ReasoningPart } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
-import { InferUIMessageStreamPart } from '../../src/ui-message-stream/ui-message-stream-parts';
+import { InferUIMessageChunk } from '../../src/ui-message-stream/ui-message-chunks';
 import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
 import { InferUIMessageMetadata, UIMessage } from '../../src/ui/ui-messages';
 import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
@@ -269,7 +269,7 @@ If an error occurs, it is passed to the optional `onError` callback.
      */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamOptions<UI_MESSAGE>,
-  ): ReadableStream<InferUIMessageStreamPart<UI_MESSAGE>>;
+  ): ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
 
   /**
   Writes UI message stream output to a Node.js response-like object.
