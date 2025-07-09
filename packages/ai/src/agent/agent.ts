@@ -2,20 +2,20 @@ import { IdGenerator } from '@ai-sdk/provider-utils';
 import {
   generateText,
   GenerateTextOnStepFinishCallback,
-} from '../../core/generate-text/generate-text';
-import { Output } from '../../core/generate-text/output';
-import { PrepareStepFunction } from '../../core/generate-text/prepare-step';
-import { StopCondition } from '../../core/generate-text/stop-condition';
-import { ToolCallRepairFunction } from '../../core/generate-text/tool-call-repair-function';
-import { ToolSet } from '../../core/generate-text/tool-set';
-import { CallSettings } from '../../core/prompt/call-settings';
-import { TelemetrySettings } from '../../core/telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../../core/types/language-model';
-import { streamText } from '../../core/generate-text/stream-text';
-import { StreamTextResult } from '../../core/generate-text/stream-text-result';
-import { Prompt } from '../../core/prompt/prompt';
-import { ProviderMetadata } from '../../core/types/provider-metadata';
-import { GenerateTextResult } from '../../core/generate-text/generate-text-result';
+} from '../generate-text/generate-text';
+import { GenerateTextResult } from '../generate-text/generate-text-result';
+import { Output } from '../generate-text/output';
+import { PrepareStepFunction } from '../generate-text/prepare-step';
+import { StopCondition } from '../generate-text/stop-condition';
+import { streamText } from '../generate-text/stream-text';
+import { StreamTextResult } from '../generate-text/stream-text-result';
+import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+import { ToolSet } from '../generate-text/tool-set';
+import { CallSettings } from '../prompt/call-settings';
+import { Prompt } from '../prompt/prompt';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { LanguageModel, ToolChoice } from '../types/language-model';
+import { ProviderMetadata } from '../types/provider-metadata';
 
 export type AgentSettings<
   TOOLS extends ToolSet,

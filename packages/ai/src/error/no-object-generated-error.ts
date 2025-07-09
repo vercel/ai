@@ -1,7 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { FinishReason } from '../../core/types/language-model';
-import { LanguageModelResponseMetadata } from '../../core/types/language-model-response-metadata';
-import { LanguageModelUsage } from '../../core/types/usage';
+import { FinishReason } from '../types/language-model';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import { LanguageModelUsage } from '../types/usage';
 
 const name = 'AI_NoObjectGeneratedError';
 const marker = `vercel.ai.error.${name}`;
