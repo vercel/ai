@@ -130,6 +130,13 @@ async function main() {
         break;
     }
   }
+
+  console.log('MESSAGES START');
+  const messages = (await result.steps).map(step => step.response.messages);
+  for (const [i, message] of messages.entries()) {
+    console.log(`Step ${i} messages:`, JSON.stringify(message, null, 2));
+  }
+  console.log('MESSAGES FINISH');
 }
 
 main().catch(console.error);
