@@ -2037,6 +2037,33 @@ const result = generateText({
 });
 ```
 
+### Google
+
+#### Search Grounding is now a provider defined tool
+
+Search Grounding is now called "Google Search" and is now a provider defined tool.
+
+```tsx filename="AI SDK 4.0"
+const { text, providerMetadata } = await generateText({
+  model: google('gemini-1.5-pro', {
+    useSearchGrounding: true,
+  }),
+  prompt: 'List the top 5 San Francisco news from the past week.',
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { google } from '@ai-sdk/google';
+const { text, sources, providerMetadata } = await generateText({
+  model: google('gemini-1.5-pro'),
+  prompt:
+    'List the top 5 San Francisco news from the past week.'
+  tools: {
+    google_search: google.tools.googleSearch({}),
+  },
+});
+```
+
 ### Amazon Bedrock
 
 #### Snake Case → Camel Case
