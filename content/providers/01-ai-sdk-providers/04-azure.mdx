@@ -422,10 +422,10 @@ The following optional provider options are available for Azure OpenAI completio
 ## Embedding Models
 
 You can create models that call the Azure OpenAI embeddings API
-using the `.textEmbeddingModel()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = azure.textEmbeddingModel('your-embedding-deployment');
+const model = azure.textEmbedding('your-embedding-deployment');
 ```
 
 Azure OpenAI embedding models support several additional settings.
@@ -436,7 +436,7 @@ import { azure } from '@ai-sdk/azure';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: azure.textEmbeddingModel('your-embedding-deployment'),
+  model: azure.textEmbedding('your-embedding-deployment'),
   value: 'sunny day at the beach',
   providerOptions: {
     azure: {
@@ -461,17 +461,17 @@ The following optional provider options are available for Azure OpenAI embedding
 
 ## Image Models
 
-You can create models that call the Azure OpenAI image generation API (DALL-E) using the `.imageModel()` factory method. The first argument is your deployment name for the DALL-E model.
+You can create models that call the Azure OpenAI image generation API (DALL-E) using the `.image()` factory method. The first argument is your deployment name for the DALL-E model.
 
 ```ts
-const model = azure.imageModel('your-dalle-deployment-name');
+const model = azure.image('your-dalle-deployment-name');
 ```
 
 Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.azure` when generating the image:
 
 ```ts
 await generateImage({
-  model: azure.imageModel('your-dalle-deployment-name'),
+  model: azure.image('your-dalle-deployment-name'),
   prompt: 'A photorealistic image of a cat astronaut floating in space',
   size: '1024x1024', // '1024x1024', '1792x1024', or '1024x1792' for DALL-E 3
   providerOptions: {
@@ -492,7 +492,7 @@ import { azure } from '@ai-sdk/azure';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: azure.imageModel('your-dalle-deployment-name'),
+  model: azure.image('your-dalle-deployment-name'),
   prompt: 'A photorealistic image of a cat astronaut floating in space',
   size: '1024x1024', // '1024x1024', '1792x1024', or '1024x1792' for DALL-E 3
 });

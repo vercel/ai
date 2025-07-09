@@ -1,8 +1,9 @@
 import { createTestServer, mockId } from '@ai-sdk/provider-utils/test';
-import { DefaultChatTransport, UIMessageStreamPart } from '..';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
 import { UIMessage } from './ui-messages';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import { DefaultChatTransport } from './default-chat-transport';
 
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -53,7 +54,7 @@ class TestChat extends AbstractChat<UIMessage> {
   }
 }
 
-function formatStreamPart(part: UIMessageStreamPart) {
+function formatStreamPart(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 

@@ -1,8 +1,7 @@
-import {
-  groundingMetadataSchema,
-  safetyRatingSchema,
-} from './google-generative-ai-language-model';
 import { z } from 'zod/v4';
+import { groundingMetadataSchema } from './tool/google-search';
+import { urlContextMetadataSchema } from './tool/url-context';
+import { safetyRatingSchema } from './google-generative-ai-language-model';
 
 export type GoogleGenerativeAIPrompt = {
   systemInstruction?: GoogleGenerativeAISystemInstruction;
@@ -29,9 +28,14 @@ export type GoogleGenerativeAIGroundingMetadata = z.infer<
   typeof groundingMetadataSchema
 >;
 
+export type GoogleGenerativeAIUrlContextMetadata = z.infer<
+  typeof urlContextMetadataSchema
+>;
+
 export type GoogleGenerativeAISafetyRating = z.infer<typeof safetyRatingSchema>;
 
 export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
+  urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
 }

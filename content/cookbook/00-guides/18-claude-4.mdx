@@ -37,7 +37,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoning, reasoningDetails } = await generateText({
-  model: anthropic('claude-4-sonnet-20250514'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'How will quantum computing impact cryptography by 2050?',
 });
 console.log(text);
@@ -52,7 +52,7 @@ import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoning, reasoningDetails } = await generateText({
-  model: anthropic('claude-4-sonnet-20250514'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'How will quantum computing impact cryptography by 2050?',
   providerOptions: {
     anthropic: {
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: anthropic('claude-4-sonnet-20250514'),
+    model: anthropic('claude-sonnet-4-20250514'),
     messages,
     headers: {
       'anthropic-beta': 'interleaved-thinking-2025-05-14',

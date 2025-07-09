@@ -529,7 +529,7 @@ In `generateText()` and `streamText()` results, reasoning properties have been r
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: anthropic('claude-4-sonnet-20250514'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'Explain your reasoning',
 });
 
@@ -539,7 +539,7 @@ console.log(result.reasoningDetails); // Array of reasoning details
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: anthropic('claude-4-sonnet-20250514'),
+  model: anthropic('claude-sonnet-4-20250514'),
   prompt: 'Explain your reasoning',
 });
 
@@ -1032,7 +1032,8 @@ const chat = new Chat({
   transport: new DefaultChatTransport({ api: '/api/chat' }),
 });
 
-const handleSubmit = () => {
+const handleSubmit = (e: Event) => {
+  e.preventDefault();
   chat.sendMessage({ text: input.value });
   input.value = '';
 };
@@ -2033,6 +2034,33 @@ const model = wrapLanguageModel({
 const result = generateText({
   model,
   prompt: 'Hello, world!',
+});
+```
+
+### Google
+
+#### Search Grounding is now a provider defined tool
+
+Search Grounding is now called "Google Search" and is now a provider defined tool.
+
+```tsx filename="AI SDK 4.0"
+const { text, providerMetadata } = await generateText({
+  model: google('gemini-1.5-pro', {
+    useSearchGrounding: true,
+  }),
+  prompt: 'List the top 5 San Francisco news from the past week.',
+});
+```
+
+```tsx filename="AI SDK 5.0"
+import { google } from '@ai-sdk/google';
+const { text, sources, providerMetadata } = await generateText({
+  model: google('gemini-1.5-pro'),
+  prompt:
+    'List the top 5 San Francisco news from the past week.'
+  tools: {
+    google_search: google.tools.googleSearch({}),
+  },
 });
 ```
 

@@ -14,6 +14,7 @@ import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embeddi
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import { googleTools } from './google-tools';
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
@@ -44,6 +45,8 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV2<string>;
+
+  tools: typeof googleTools;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -139,6 +142,8 @@ export function createGoogleGenerativeAI(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.tools = googleTools;
 
   return provider;
 }

@@ -163,7 +163,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: openai.image('dall-e-3'),
-  value: 'sunny day at the beach',
+  prompt: 'Santa Claus driving a Cadillac',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
 ```
@@ -186,12 +186,12 @@ Some providers expose additional meta data for the result overall or per image.
 ```tsx
 const prompt = 'Santa Claus driving a Cadillac';
 
-const { image, providerMetaData } = await generateImage({
+const { image, providerMetadata } = await generateImage({
   model: openai.image('dall-e-3'),
   prompt,
 });
 
-const revisedPrompt = providerMetaData.openai.images[0]?.revisedPrompt;
+const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
 
 console.log({
   prompt,
@@ -199,7 +199,7 @@ console.log({
 });
 ```
 
-The outer key of the returned `providerMetaData` is the provider name. The inner values are the metadata. An `images` key is always present in the metadata and is an array with the same length as the top level `images` key.
+The outer key of the returned `providerMetadata` is the provider name. The inner values are the metadata. An `images` key is always present in the metadata and is an array with the same length as the top level `images` key.
 
 ### Error Handling
 

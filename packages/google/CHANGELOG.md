@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- 19a4336: Expose raw usageMetadata returned from Google Generative AI in providerMetadata
+
 ## 2.0.0-beta.6
 
 ### Patch Changes

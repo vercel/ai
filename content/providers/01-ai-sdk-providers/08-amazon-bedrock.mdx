@@ -436,10 +436,10 @@ on how to integrate reasoning into your chatbot.
 ## Embedding Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
-using the `.textEmbeddingModel()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = bedrock.textEmbeddingModel('amazon.titan-embed-text-v1');
+const model = bedrock.textEmbedding('amazon.titan-embed-text-v1');
 ```
 
 Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several additional settings.
@@ -449,7 +449,7 @@ You can pass them as an options argument:
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
-const model = bedrock.textEmbeddingModel('amazon.titan-embed-text-v2:0');
+const model = bedrock.textEmbedding('amazon.titan-embed-text-v2:0');
 
 const { embedding } = await embed({
   model,
@@ -506,7 +506,7 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  model: bedrock.image('amazon.nova-canvas-v1:0'),
   prompt: 'A beautiful sunset over a calm ocean',
   size: '512x512',
   seed: 42,
@@ -520,7 +520,7 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  model: bedrock.image('amazon.nova-canvas-v1:0'),
   prompt: 'A beautiful sunset over a calm ocean',
   size: '512x512',
   seed: 42,
@@ -529,6 +529,7 @@ const { image } = await generateImage({
       quality: 'premium',
       negativeText: 'blurry, low quality',
       cfgScale: 7.5,
+      style: 'PHOTOREALISM',
     },
   },
 });
@@ -548,6 +549,14 @@ The following optional provider options are available for Amazon Nova Canvas:
 
   Controls how closely the generated image adheres to the prompt. Higher values result in images that are more closely aligned to the prompt.
 
+- **style** _string_
+
+  Predefined visual style for image generation.  
+  Accepts one of:
+  `3D_ANIMATED_FAMILY_FILM` · `DESIGN_SKETCH` · `FLAT_VECTOR_ILLUSTRATION` ·  
+  `GRAPHIC_NOVEL_ILLUSTRATION` · `MAXIMALISM` · `MIDCENTURY_RETRO` ·  
+  `PHOTOREALISM` · `SOFT_DIGITAL_PAINTING`.
+
 Documentation for additional settings can be found within the [Amazon Bedrock
 User Guide for Amazon Nova
 Documentation](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html).
@@ -558,7 +567,7 @@ You can customize the generation behavior with optional options:
 
 ```ts
 await generateImage({
-  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  model: bedrock.image('amazon.nova-canvas-v1:0'),
   prompt: 'A beautiful sunset over a calm ocean',
   size: '512x512',
   seed: 42,

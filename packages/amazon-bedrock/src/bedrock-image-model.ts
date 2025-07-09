@@ -65,6 +65,11 @@ export class BedrockImageModel implements ImageModelV2 {
               negativeText: providerOptions.bedrock.negativeText,
             }
           : {}),
+        ...(providerOptions?.bedrock?.style
+          ? {
+              style: providerOptions.bedrock.style,
+            }
+          : {}),
       },
       imageGenerationConfig: {
         ...(width ? { width } : {}),
