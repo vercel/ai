@@ -1,5 +1,23 @@
 # ai
 
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- 9e40cbe: Allow destructuring output and errorText on `ToolUIPart` type
+
+## 5.0.0-beta.10
+
+### Major Changes
+
+- 2b637d6: chore (ai): rename UIMessageStreamPart to UIMessageChunk
+
+### Patch Changes
+
+- 16ccfb2: feat (ai): add readUIMessageStream helper
+- 90ca2b9: feat(ai): Record tool call errors on tool call spans recorded in `generateText` and `streamText`.
+- af1d5a5: fix(ai): Unexpected reasoning-start event in extract reasoning middleware
+
 ## 5.0.0-beta.9
 
 ### Patch Changes

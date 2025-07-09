@@ -266,14 +266,32 @@ const { text: veggieLasagna } = await generateText({
 });
 
 // Second request with same prefix - eligible for cache hit
-const { text: meatLasagna, response } = await generateText({
+const { text: meatLasagna, providerMetadata } = await generateText({
   model: google('gemini-2.5-pro'),
   prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
 });
 
 // Check cached token count in usage metadata
-console.log('Cached tokens:', response.body.usageMetadata);
+console.log('Cached tokens:', providerMetadata.google?.usageMetadata);
+// e.g.
+// {
+//   groundingMetadata: null,
+//   safetyRatings: null,
+//   usageMetadata: {
+//     cachedContentTokenCount: 2027,
+//     thoughtsTokenCount: 702,
+//     promptTokenCount: 2152,
+//     candidatesTokenCount: 710,
+//     totalTokenCount: 3564
+//   }
+// }
 ```
+
+<Note>
+  Usage metadata was added to `providerMetadata` in `@ai-sdk/google@1.2.23`. If
+  you are using an older version, usage metadata is available in the raw HTTP
+  `response` body returned as part of the return value from `generateText`.
+</Note>
 
 #### Explicit Caching
 
@@ -663,10 +681,10 @@ The system instruction is automatically formatted and included in the conversati
 ## Embedding Models
 
 You can create models that call the [Google Generative AI embeddings API](https://ai.google.dev/gemini-api/docs/embeddings)
-using the `.textEmbeddingModel()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = google.textEmbeddingModel('text-embedding-004');
+const model = google.textEmbedding('text-embedding-004');
 ```
 
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
@@ -675,7 +693,7 @@ Google Generative AI embedding models support aditional settings. You can pass t
 import { google } from '@ai-sdk/google';
 import { embed } from 'ai';
 
-const model = google.textEmbeddingModel('text-embedding-004');
+const model = google.textEmbedding('text-embedding-004');
 
 const { embedding } = await embed({
   model,

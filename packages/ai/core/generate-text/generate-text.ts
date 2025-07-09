@@ -24,7 +24,7 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
+import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -626,6 +626,7 @@ async function executeTools<TOOLS extends ToolSet>({
               output: result,
             } as ToolResultUnion<TOOLS>;
           } catch (error) {
+            recordErrorOnSpan(span, error);
             return {
               type: 'tool-error',
               toolCallId,

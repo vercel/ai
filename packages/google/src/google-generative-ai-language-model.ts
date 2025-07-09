@@ -266,6 +266,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           groundingMetadata: candidate.groundingMetadata ?? null,
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
+          usageMetadata: usageMetadata ?? null,
         },
       },
       request: { body },
@@ -492,6 +493,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                   safetyRatings: candidate.safetyRatings ?? null,
                 },
               };
+              if (usageMetadata != null) {
+                providerMetadata.google.usageMetadata = usageMetadata;
+              }
             }
           },
 

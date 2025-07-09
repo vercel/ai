@@ -342,4 +342,40 @@ describe('doGenerate', () => {
       }
     `);
   });
+
+  it('should pass provider options correctly', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        elevenlabs: {
+          languageCode: 'en',
+          fileFormat: 'pcm_s16le_16',
+          tagAudioEvents: false,
+          numSpeakers: 2,
+          timestampsGranularity: 'character',
+          diarize: true,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "diarize": "true",
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "file_format": "pcm_s16le_16",
+        "language_code": "en",
+        "model_id": "scribe_v1",
+        "num_speakers": "2",
+        "tag_audio_events": "false",
+        "timestamps_granularity": "character",
+      }
+    `);
+  });
 });

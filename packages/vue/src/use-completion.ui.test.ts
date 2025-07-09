@@ -5,12 +5,12 @@ import {
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { findByText, screen } from '@testing-library/vue';
-import { UIMessageStreamPart } from 'ai';
+import { UIMessageChunk } from 'ai';
 import TestCompletionComponent from './TestCompletionComponent.vue';
 import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
 import { setupTestComponent } from './setup-test-component';
 
-function formatStreamPart(part: UIMessageStreamPart) {
+function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
@@ -25,12 +25,12 @@ describe('stream data stream', () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
       chunks: [
-        formatStreamPart({ type: 'text-start', id: '0' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ',' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: ' world' }),
-        formatStreamPart({ type: 'text-delta', id: '0', delta: '.' }),
-        formatStreamPart({ type: 'text-end', id: '0' }),
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
       ],
     };
 
@@ -53,11 +53,11 @@ describe('stream data stream', () => {
       await screen.findByTestId('loading');
       expect(screen.getByTestId('loading')).toHaveTextContent('true');
 
-      controller.write(formatStreamPart({ type: 'text-start', id: '0' }));
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
       controller.write(
-        formatStreamPart({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
       );
-      controller.write(formatStreamPart({ type: 'text-end', id: '0' }));
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
       controller.close();
 
       await findByText(await screen.findByTestId('loading'), 'false');
