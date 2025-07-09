@@ -150,15 +150,16 @@ It is called with the following parameters:
 - `stopWhen`: The stopping condition that was passed into `generateText`.
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
+- `messages`: The messages that will be sent to the model for the current step.
 
-You can use it to provide different settings for a step.
+You can use it to provide different settings for a step, including modifying the input messages.
 
 ```tsx highlight="5-7"
 import { generateText } from 'ai';
 
 const result = await generateText({
   // ...
-  prepareStep: async ({ model, stepNumber, steps }) => {
+  prepareStep: async ({ model, stepNumber, steps, messages }) => {
     if (stepNumber === 0) {
       return {
         // use a different model for this step:
@@ -173,6 +174,23 @@ const result = await generateText({
     // when nothing is returned, the default settings are used
   },
 });
+```
+
+#### Message Modification for Longer Agentic Loops
+
+In longer agentic loops, you can use the `messages` parameter to modify the input messages for each step. This is particularly useful for prompt compression:
+
+```tsx
+prepareStep: async ({ stepNumber, steps, messages }) => {
+  // Compress conversation history for longer loops
+  if (messages.length > 20) {
+    return {
+      messages: messages.slice(-10),
+    };
+  }
+
+  return {};
+},
 ```
 
 ## Response Messages

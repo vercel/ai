@@ -285,12 +285,13 @@ A function that attempts to repair a tool call that failed to parse.
             model,
             steps,
             stepNumber: steps.length,
+            messages: stepInputMessages,
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
-              messages: stepInputMessages,
+              messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
           });

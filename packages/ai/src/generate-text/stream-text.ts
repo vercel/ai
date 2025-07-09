@@ -975,12 +975,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             model,
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
+            messages: stepInputMessages,
           });
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
-              messages: stepInputMessages,
+              messages: prepareStepResult?.messages ?? stepInputMessages,
             },
             supportedUrls: await model.supportedUrls,
           });
