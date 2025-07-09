@@ -41,52 +41,52 @@ npx @ai-sdk/codemod rename-format-stream-part .
 
 ### Provider Changes
 
-| Codemod                   | Description                                                                  |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| `replace-baseurl`         | Replaces `baseUrl` with `baseURL` in provider configurations                 |
-| `remove-anthropic-facade` | Removes deprecated `Anthropic` facade, use `createAnthropic()` instead       |
-| `remove-google-facade`    | Removes deprecated `Google` facade, use `createGoogleGenerativeAI()` instead |
-| `remove-mistral-facade`   | Removes deprecated `Mistral` facade, use `createMistral()` instead           |
-| `remove-openai-facade`    | Removes deprecated `OpenAI` facade, use `createOpenAI()` instead             |
+| Codemod | Description |
+| ------- | ----------- |
+| `remove-anthropic-facade` | Removes anthropic facade |
+| `remove-google-facade` | Removes google facade |
+| `remove-mistral-facade` | Removes mistral facade |
+| `remove-openai-facade` | Removes openai facade |
+| `replace-baseurl` | Replaces baseurl |
 
 ### Core API Changes
 
-| Codemod                                       | Description                                                           |
-| --------------------------------------------- | --------------------------------------------------------------------- |
-| `remove-experimental-ai-fn-exports`           | Removes experimental AI function exports that are no longer available |
-| `remove-deprecated-provider-registry-exports` | Removes deprecated provider registry exports                          |
-| `replace-continuation-steps`                  | Replaces continuation steps with new step-based API                   |
-| `replace-roundtrips-with-maxsteps`            | Replaces roundtrip parameters with `maxSteps`                         |
-| `replace-token-usage-types`                   | Updates token usage type references to new structure                  |
+| Codemod | Description |
+| ------- | ----------- |
+| `remove-deprecated-provider-registry-exports` | Removes deprecated provider registry exports |
+| `remove-experimental-ai-fn-exports` | Removes experimental ai fn exports |
+| `replace-continuation-steps` | Replaces continuation steps |
+| `replace-roundtrips-with-maxsteps` | Replaces roundtrips with maxsteps |
+| `replace-token-usage-types` | Replaces token usage types |
 
 ### Streaming and Response Changes
 
-| Codemod                                            | Description                                                    |
-| -------------------------------------------------- | -------------------------------------------------------------- |
-| `remove-ai-stream-methods-from-stream-text-result` | Removes deprecated streaming methods from `streamText` results |
-| `rename-format-stream-part`                        | Renames `formatStreamPart` to new naming convention            |
-| `rename-parse-stream-part`                         | Renames `parseStreamPart` to new naming convention             |
-| `remove-experimental-streamdata`                   | Removes `experimental_StreamData`, use `StreamData` instead    |
+| Codemod | Description |
+| ------- | ----------- |
+| `remove-ai-stream-methods-from-stream-text-result` | Removes ai stream methods from stream text result |
+| `remove-await-streamobject` | Removes await streamobject |
+| `remove-await-streamtext` | Removes await streamtext |
+| `remove-experimental-streamdata` | Removes experimental streamdata |
+| `rename-format-stream-part` | Renames format stream part |
+| `rename-parse-stream-part` | Renames parse stream part |
+| `replace-langchain-toaistream` | Replaces langchain toaistream |
 
 ### UI Framework Changes
 
-| Codemod                             | Description                                                               |
-| ----------------------------------- | ------------------------------------------------------------------------- |
-| `rewrite-framework-imports`         | Rewrites framework imports (Svelte, Vue, Solid) to use dedicated packages |
-| `remove-experimental-useassistant`  | Removes experimental `useAssistant` exports                               |
-| `remove-experimental-message-types` | Removes experimental message type exports                                 |
-| `remove-experimental-tool`          | Removes experimental tool exports                                         |
+| Codemod | Description |
+| ------- | ----------- |
+| `remove-experimental-message-types` | Removes experimental message types |
+| `remove-experimental-tool` | Removes experimental tool |
+| `remove-experimental-useassistant` | Removes experimental useassistant |
+| `rewrite-framework-imports` | Rewrites framework imports |
 
 ### Utility and Helper Changes
 
-| Codemod                        | Description                                             |
-| ------------------------------ | ------------------------------------------------------- |
-| `replace-nanoid`               | Replaces `nanoid` export with `generateId`              |
-| `replace-langchain-toaistream` | Updates LangChain streaming integration                 |
-| `remove-metadata-with-headers` | Removes deprecated metadata with headers pattern        |
-| `remove-isxxxerror`            | Removes deprecated `isXxxError` functions               |
-| `remove-await-streamobject`    | Removes deprecated `await` patterns from `streamObject` |
-| `remove-await-streamtext`      | Removes deprecated `await` patterns from `streamText`   |
+| Codemod | Description |
+| ------- | ----------- |
+| `remove-isxxxerror` | Removes isxxxerror |
+| `remove-metadata-with-headers` | Removes metadata with headers |
+| `replace-nanoid` | Replaces nanoid |
 
 ## CLI Options
 
