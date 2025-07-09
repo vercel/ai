@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- 9e40cbe: Allow destructuring output and errorText on `ToolUIPart` type
+
 ## 5.0.0-beta.10
 
 ### Major Changes
