@@ -5672,6 +5672,12 @@ describe('streamText', () => {
                   toolName: 'tool1' as const,
                 },
                 system: 'system-message-0',
+                messages: [
+                  {
+                    role: 'user',
+                    content: 'new input from prepareStep',
+                  },
+                ],
               };
             }
 
@@ -5704,7 +5710,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "text": "test-input",
+                      "text": "new input from prepareStep",
                       "type": "text",
                     },
                   ],
