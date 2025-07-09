@@ -3,11 +3,18 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2FunctionTool,
+  LanguageModelV2Message,
   LanguageModelV2ProviderDefinedTool,
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import { delay, jsonSchema, tool, Tool } from '@ai-sdk/provider-utils';
+import {
+  delay,
+  jsonSchema,
+  ModelMessage,
+  tool,
+  Tool,
+} from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -5584,6 +5591,7 @@ describe('streamText', () => {
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
+        messages: Array<ModelMessage>;
       }>;
 
       beforeEach(async () => {
@@ -5654,8 +5662,8 @@ describe('streamText', () => {
           },
           prompt: 'test-input',
           stopWhen: stepCountIs(3),
-          prepareStep: async ({ model, stepNumber, steps }) => {
-            prepareStepCalls.push({ stepNumber, steps });
+          prepareStep: async ({ model, stepNumber, steps, messages }) => {
+            prepareStepCalls.push({ stepNumber, steps, messages });
 
             if (stepNumber === 0) {
               return {
@@ -5812,6 +5820,12 @@ describe('streamText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -5957,6 +5971,40 @@ describe('streamText', () => {
               ],
             },
             {
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+                {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "result1",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {

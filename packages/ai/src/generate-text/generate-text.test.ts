@@ -5,7 +5,7 @@ import {
   LanguageModelV2ProviderDefinedTool,
   LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
-import { jsonSchema, tool } from '@ai-sdk/provider-utils';
+import { jsonSchema, ModelMessage, tool } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod/v4';
@@ -755,18 +755,17 @@ describe('generateText', () => {
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: GenerateTextResult<any, any>;
       let onStepFinishResults: StepResult<any>[];
-      let doGenerateCalls: Array<{
-        prompt: LanguageModelV2Prompt;
-        tools?: (
-          | LanguageModelV2FunctionTool
-          | LanguageModelV2ProviderDefinedTool
-        )[];
-        toolChoice?: LanguageModelV2ToolChoice;
+      let doGenerateCalls: Array<LanguageModelV2CallOptions>;
+      let prepareStepCalls: Array<{
+        stepNumber: number;
+        steps: Array<StepResult<any>>;
+        messages: Array<ModelMessage>;
       }>;
 
       beforeEach(async () => {
         onStepFinishResults = [];
         doGenerateCalls = [];
+        prepareStepCalls = [];
 
         let responseCount = 0;
 
@@ -847,8 +846,8 @@ describe('generateText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          prepareStep: async ({ model, stepNumber, steps }) => {
-            expect(model).toStrictEqual(modelWithFiles);
+          prepareStep: async ({ model, stepNumber, steps, messages }) => {
+            prepareStepCalls.push({ stepNumber, steps, messages });
 
             if (stepNumber === 0) {
               expect(steps).toStrictEqual([]);
@@ -878,6 +877,337 @@ describe('generateText', () => {
             }
           },
         });
+      });
+
+      it('should contain all prepareStep calls', async () => {
+        expect(prepareStepCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "stepNumber": 0,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "body": undefined,
+                    "headers": undefined,
+                    "id": "test-id-1-from-model",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "test-response-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 10,
+                    "outputTokens": 5,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 15,
+                  },
+                  "warnings": [],
+                },
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "finishReason": "stop",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "body": undefined,
+                    "headers": {
+                      "custom-response-header": "response-header-value",
+                    },
+                    "id": "test-id-2-from-model",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                      {
+                        "content": [
+                          {
+                            "text": "Hello, world!",
+                            "type": "text",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                    ],
+                    "modelId": "test-response-model-id",
+                    "timestamp": 1970-01-01T00:00:10.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+            {
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+                {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "result1",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
+              "stepNumber": 1,
+              "steps": [
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "output": "result1",
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "finishReason": "tool-calls",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "body": undefined,
+                    "headers": undefined,
+                    "id": "test-id-1-from-model",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                    "modelId": "test-response-model-id",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 10,
+                    "outputTokens": 5,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 15,
+                  },
+                  "warnings": [],
+                },
+                DefaultStepResult {
+                  "content": [
+                    {
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "finishReason": "stop",
+                  "providerMetadata": undefined,
+                  "request": {},
+                  "response": {
+                    "body": undefined,
+                    "headers": {
+                      "custom-response-header": "response-header-value",
+                    },
+                    "id": "test-id-2-from-model",
+                    "messages": [
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                      {
+                        "content": [
+                          {
+                            "text": "Hello, world!",
+                            "type": "text",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                    ],
+                    "modelId": "test-response-model-id",
+                    "timestamp": 1970-01-01T00:00:10.000Z,
+                  },
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokens": 3,
+                    "outputTokens": 10,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 13,
+                  },
+                  "warnings": [],
+                },
+              ],
+            },
+          ]
+        `);
       });
 
       it('doGenerate should be called with the correct arguments', () => {
