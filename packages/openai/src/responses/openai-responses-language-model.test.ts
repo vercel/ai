@@ -2558,7 +2558,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2570,7 +2570,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-start",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2864,7 +2864,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
@@ -2876,7 +2876,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-start",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
                 "providerMetadata": {
                   "openai": {
                     "reasoning": {
