@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- 2e06f14: feat (provider/google): Change to provider defined tools
+
+  - Change the google search tool to be a provider defined tool
+  - Added new URL context tool as a provider defined tool
+
 ## 2.0.0-beta.7
 
 ### Patch Changes
