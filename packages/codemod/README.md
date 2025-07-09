@@ -8,7 +8,7 @@ Codemods are transformations that run on your codebase programmatically, allowin
 
 ### Run All Codemods (Recommended)
 
-To run all codemods for upgrading to AI SDK 5.0:
+To run all codemods:
 
 ```sh
 npx @ai-sdk/codemod upgrade
@@ -147,6 +147,14 @@ If a codemod doesn't transform some code:
 4. Update the bundle in `src/lib/upgrade.ts`
 
 ### Testing Codemods
+
+First, navigate to the codemod directory:
+
+```sh
+cd packages/codemod
+```
+
+Then run the tests:
 
 ```sh
 # Run all tests
