@@ -1,1 +1,0 @@
-# @ai-sdk/adaptive
