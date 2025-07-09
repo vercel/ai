@@ -4,7 +4,11 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
+<<<<<<< HEAD
     model: google('gemini-2.5-pro-preview-05-06'),
+=======
+    model: google('gemini-2.5-pro'),
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 

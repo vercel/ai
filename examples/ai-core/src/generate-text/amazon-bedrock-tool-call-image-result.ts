@@ -1,7 +1,7 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText, tool } from 'ai';
-import { z } from 'zod';
+import { generateText, stepCountIs, tool } from 'ai';
 import 'dotenv/config';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = await generateText({
@@ -20,7 +20,7 @@ async function main() {
     tools: {
       submit: tool({
         description: 'Download an image',
-        parameters: z.object({
+        inputSchema: z.object({
           url: z.string().describe('The image URL'),
         }),
         execute: async ({ url }) => {
@@ -29,18 +29,21 @@ async function main() {
           const bytes = new Uint8Array(arrayBuffer);
           return { bytes };
         },
-        experimental_toToolResultContent(result) {
-          return [
-            {
-              type: 'image',
-              data: Buffer.from(result.bytes).toString('base64'),
-              mimeType: 'image/jpeg',
-            },
-          ];
+        toModelOutput(result) {
+          return {
+            type: 'content',
+            value: [
+              {
+                type: 'media',
+                data: Buffer.from(result.bytes).toString('base64'),
+                mediaType: 'image/jpeg',
+              },
+            ],
+          };
         },
       }),
     },
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   console.log(result.text);

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
@@ -5,6 +6,18 @@ import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-setti
 
 export interface ElevenLabsProvider
   extends Pick<ProviderV1, 'transcriptionModel'> {
+=======
+import {
+  TranscriptionModelV2,
+  ProviderV2,
+  NoSuchModelError,
+} from '@ai-sdk/provider';
+import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
+import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+
+export interface ElevenLabsProvider extends ProviderV2 {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   (
     modelId: 'scribe_v1',
     settings?: {},
@@ -15,7 +28,11 @@ export interface ElevenLabsProvider
   /**
 Creates a model for transcription.
    */
+<<<<<<< HEAD
   transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV1;
+=======
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV2;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 }
 
 export interface ElevenLabsProviderSettings {
@@ -68,6 +85,33 @@ export function createElevenLabs(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
+<<<<<<< HEAD
+=======
+  provider.languageModel = () => {
+    throw new NoSuchModelError({
+      modelId: 'unknown',
+      modelType: 'languageModel',
+      message: 'ElevenLabs does not provide language models',
+    });
+  };
+
+  provider.textEmbeddingModel = () => {
+    throw new NoSuchModelError({
+      modelId: 'unknown',
+      modelType: 'textEmbeddingModel',
+      message: 'ElevenLabs does not provide text embedding models',
+    });
+  };
+
+  provider.imageModel = () => {
+    throw new NoSuchModelError({
+      modelId: 'unknown',
+      modelType: 'imageModel',
+      message: 'ElevenLabs does not provide image models',
+    });
+  };
+
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   return provider as ElevenLabsProvider;
 }
 

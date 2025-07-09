@@ -1,0 +1,184 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`result.responses > should include responses in the result 1`] = `
+[
+  {
+    "body": {
+      "first": true,
+    },
+  },
+  {
+    "body": {
+      "second": true,
+    },
+  },
+  {
+    "body": {
+      "third": true,
+    },
+  },
+]
+`;
+
+exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.tokens": 10,
+      "operation.name": "ai.embedMany",
+    },
+    "events": [],
+    "name": "ai.embedMany",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany.doEmbed",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.tokens": 10,
+      "operation.name": "ai.embedMany.doEmbed",
+    },
+    "events": [],
+    "name": "ai.embedMany.doEmbed",
+  },
+]
+`;
+
+exports[`telemetry > should record telemetry data when enabled (multiple calls path) 1`] = `
+[
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.1,0.2,0.3]",
+        "[0.4,0.5,0.6]",
+        "[0.7,0.8,0.9]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany",
+      "ai.settings.maxRetries": 2,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.tokens": 30,
+      "ai.values": [
+        ""sunny day at the beach"",
+        ""rainy afternoon in the city"",
+        ""snowy night in the mountains"",
+      ],
+      "operation.name": "ai.embedMany test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.embedMany",
+  },
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.1,0.2,0.3]",
+        "[0.4,0.5,0.6]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany.doEmbed",
+      "ai.settings.maxRetries": 2,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.tokens": 10,
+      "ai.values": [
+        ""sunny day at the beach"",
+        ""rainy afternoon in the city"",
+      ],
+      "operation.name": "ai.embedMany.doEmbed test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.embedMany.doEmbed",
+  },
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.7,0.8,0.9]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany.doEmbed",
+      "ai.settings.maxRetries": 2,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.tokens": 20,
+      "ai.values": [
+        ""snowy night in the mountains"",
+      ],
+      "operation.name": "ai.embedMany.doEmbed test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.embedMany.doEmbed",
+  },
+]
+`;
+
+exports[`telemetry > should record telemetry data when enabled (single call path) 1`] = `
+[
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.1,0.2,0.3]",
+        "[0.4,0.5,0.6]",
+        "[0.7,0.8,0.9]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany",
+      "ai.settings.maxRetries": 2,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.tokens": 10,
+      "ai.values": [
+        ""sunny day at the beach"",
+        ""rainy afternoon in the city"",
+        ""snowy night in the mountains"",
+      ],
+      "operation.name": "ai.embedMany test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.embedMany",
+  },
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.1,0.2,0.3]",
+        "[0.4,0.5,0.6]",
+        "[0.7,0.8,0.9]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany.doEmbed",
+      "ai.settings.maxRetries": 2,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.tokens": 10,
+      "ai.values": [
+        ""sunny day at the beach"",
+        ""rainy afternoon in the city"",
+        ""snowy night in the mountains"",
+      ],
+      "operation.name": "ai.embedMany.doEmbed test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.embedMany.doEmbed",
+  },
+]
+`;

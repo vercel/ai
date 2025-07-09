@@ -22,6 +22,24 @@ const audio = await generateSpeech({
 });
 ```
 
+<<<<<<< HEAD
+=======
+### Language Setting
+
+You can specify the language for speech generation (provider support varies):
+
+```ts
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { lmnt } from '@ai-sdk/lmnt';
+
+const audio = await generateSpeech({
+  model: lmnt.speech('aurora'),
+  text: 'Hola, mundo!',
+  language: 'es', // Spanish
+});
+```
+
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 To access the generated audio:
 
 ```ts

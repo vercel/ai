@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { TypeValidationError } from '@ai-sdk/provider';
+import { StandardSchemaV1 } from '@standard-schema/spec';
 
 /**
  * Used to mark validator functions so we can support both Zod and custom schemas.
@@ -19,7 +20,9 @@ export type Validator<OBJECT = unknown> = {
    * Optional. Validates that the structure of a value matches this schema,
    * and returns a typed version of the value if it does.
    */
-  readonly validate?: (value: unknown) => ValidationResult<OBJECT>;
+  readonly validate?: (
+    value: unknown,
+  ) => ValidationResult<OBJECT> | PromiseLike<ValidationResult<OBJECT>>;
 };
 
 /**
@@ -28,7 +31,11 @@ export type Validator<OBJECT = unknown> = {
  * @param validate A validation function for the schema.
  */
 export function validator<OBJECT>(
-  validate?: undefined | ((value: unknown) => ValidationResult<OBJECT>),
+  validate?:
+    | undefined
+    | ((
+        value: unknown,
+      ) => ValidationResult<OBJECT> | PromiseLike<ValidationResult<OBJECT>>),
 ): Validator<OBJECT> {
   return { [validatorSymbol]: true, validate };
 }
@@ -44,18 +51,25 @@ export function isValidator(value: unknown): value is Validator {
 }
 
 export function asValidator<OBJECT>(
-  value: Validator<OBJECT> | z.Schema<OBJECT, z.ZodTypeDef, any>,
+  value: Validator<OBJECT> | StandardSchemaV1<unknown, OBJECT>,
 ): Validator<OBJECT> {
-  return isValidator(value) ? value : zodValidator(value);
+  return isValidator(value) ? value : standardSchemaValidator(value);
 }
 
-export function zodValidator<OBJECT>(
-  zodSchema: z.Schema<OBJECT, z.ZodTypeDef, any>,
+export function standardSchemaValidator<OBJECT>(
+  standardSchema: StandardSchemaV1<unknown, OBJECT>,
 ): Validator<OBJECT> {
-  return validator(value => {
-    const result = zodSchema.safeParse(value);
-    return result.success
-      ? { success: true, value: result.data }
-      : { success: false, error: result.error };
+  return validator(async value => {
+    const result = await standardSchema['~standard'].validate(value);
+
+    return result.issues == null
+      ? { success: true, value: result.value }
+      : {
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause: result.issues,
+          }),
+        };
   });
 }

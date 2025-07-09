@@ -2,10 +2,22 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
+<<<<<<< HEAD
 import { Completion } from './completion.svelte.js';
+=======
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { render } from '@testing-library/svelte';
+import type { UIMessageChunk } from 'ai';
+import { Completion } from './completion.svelte.js';
 import CompletionSynchronization from './tests/completion-synchronization.svelte';
 
+<<<<<<< HEAD
+=======
+function formatChunk(part: UIMessageChunk) {
+  return `data: ${JSON.stringify(part)}\n\n`;
+}
+
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 const server = createTestServer({
   '/api/completion': {},
 });
@@ -14,7 +26,18 @@ describe('Completion', () => {
   it('should render a data stream', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
+<<<<<<< HEAD
       chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+=======
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     };
 
     const completion = new Completion();
@@ -36,7 +59,18 @@ describe('Completion', () => {
   it('should call `onFinish` callback', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
+<<<<<<< HEAD
       chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+=======
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     };
 
     const onFinish = vi.fn();
@@ -83,7 +117,18 @@ describe('Completion', () => {
       },
       {
         type: 'stream-chunks',
+<<<<<<< HEAD
         chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+=======
+        chunks: [
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+          formatChunk({ type: 'text-end', id: '0' }),
+        ],
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       },
     ];
 
@@ -101,7 +146,18 @@ describe('synchronization', () => {
   it('correctly synchronizes content between hook instances', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
+<<<<<<< HEAD
       chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+=======
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     };
 
     const {
@@ -132,7 +188,15 @@ describe('synchronization', () => {
       expect(completion2.loading).toBe(true);
     });
 
+<<<<<<< HEAD
     controller.write('0:"Hello"\n');
+=======
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     await vi.waitFor(() => {
       expect(completion1.completion).toBe('Hello');
       expect(completion2.completion).toBe('Hello');

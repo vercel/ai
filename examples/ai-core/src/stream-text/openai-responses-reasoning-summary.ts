@@ -20,9 +20,15 @@ async function main() {
 
   for await (const part of result.fullStream) {
     if (part.type === 'reasoning') {
+<<<<<<< HEAD
       process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
     } else if (part.type === 'text-delta') {
       process.stdout.write(part.textDelta);
+=======
+      process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
+    } else if (part.type === 'text') {
+      process.stdout.write(part.text);
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     }
   }
 

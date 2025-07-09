@@ -1,35 +1,37 @@
 import { describe, it, expect } from 'vitest';
 import { parseJSON, safeParseJSON, isParsableJson } from './parse-json';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 
 describe('parseJSON', () => {
-  it('should parse basic JSON without schema', () => {
-    const result = parseJSON({ text: '{"foo": "bar"}' });
+  it('should parse basic JSON without schema', async () => {
+    const result = await parseJSON({ text: '{"foo": "bar"}' });
     expect(result).toEqual({ foo: 'bar' });
   });
 
-  it('should parse JSON with schema validation', () => {
+  it('should parse JSON with schema validation', async () => {
     const schema = z.object({ foo: z.string() });
-    const result = parseJSON({ text: '{"foo": "bar"}', schema });
+    const result = await parseJSON({ text: '{"foo": "bar"}', schema });
     expect(result).toEqual({ foo: 'bar' });
   });
 
-  it('should throw JSONParseError for invalid JSON', () => {
-    expect(() => parseJSON({ text: 'invalid json' })).toThrow(JSONParseError);
+  it('should throw JSONParseError for invalid JSON', async () => {
+    await expect(() => parseJSON({ text: 'invalid json' })).rejects.toThrow(
+      JSONParseError,
+    );
   });
 
-  it('should throw TypeValidationError for schema validation failures', () => {
+  it('should throw TypeValidationError for schema validation failures', async () => {
     const schema = z.object({ foo: z.number() });
-    expect(() => parseJSON({ text: '{"foo": "bar"}', schema })).toThrow(
-      TypeValidationError,
-    );
+    await expect(() =>
+      parseJSON({ text: '{"foo": "bar"}', schema }),
+    ).rejects.toThrow(TypeValidationError);
   });
 });
 
 describe('safeParseJSON', () => {
-  it('should safely parse basic JSON without schema and include rawValue', () => {
-    const result = safeParseJSON({ text: '{"foo": "bar"}' });
+  it('should safely parse basic JSON without schema and include rawValue', async () => {
+    const result = await safeParseJSON({ text: '{"foo": "bar"}' });
     expect(result).toEqual({
       success: true,
       value: { foo: 'bar' },
@@ -37,11 +39,11 @@ describe('safeParseJSON', () => {
     });
   });
 
-  it('should preserve rawValue even after schema transformation', () => {
+  it('should preserve rawValue even after schema transformation', async () => {
     const schema = z.object({
       count: z.coerce.number(),
     });
-    const result = safeParseJSON({
+    const result = await safeParseJSON({
       text: '{"count": "42"}',
       schema,
     });
@@ -53,17 +55,17 @@ describe('safeParseJSON', () => {
     });
   });
 
-  it('should handle failed parsing with error details', () => {
-    const result = safeParseJSON({ text: 'invalid json' });
+  it('should handle failed parsing with error details', async () => {
+    const result = await safeParseJSON({ text: 'invalid json' });
     expect(result).toEqual({
       success: false,
       error: expect.any(JSONParseError),
     });
   });
 
-  it('should handle schema validation failures', () => {
+  it('should handle schema validation failures', async () => {
     const schema = z.object({ age: z.number() });
-    const result = safeParseJSON({
+    const result = await safeParseJSON({
       text: '{"age": "twenty"}',
       schema,
     });
@@ -71,10 +73,11 @@ describe('safeParseJSON', () => {
     expect(result).toEqual({
       success: false,
       error: expect.any(TypeValidationError),
+      rawValue: { age: 'twenty' },
     });
   });
 
-  it('should handle nested objects and preserve raw values', () => {
+  it('should handle nested objects and preserve raw values', async () => {
     const schema = z.object({
       user: z.object({
         id: z.string().transform(val => parseInt(val, 10)),
@@ -82,7 +85,7 @@ describe('safeParseJSON', () => {
       }),
     });
 
-    const result = safeParseJSON({
+    const result = await safeParseJSON({
       text: '{"user": {"id": "123", "name": "John"}}',
       schema: schema as any,
     });
@@ -94,9 +97,9 @@ describe('safeParseJSON', () => {
     });
   });
 
-  it('should handle arrays and preserve raw values', () => {
+  it('should handle arrays and preserve raw values', async () => {
     const schema = z.array(z.string().transform(val => val.toUpperCase()));
-    const result = safeParseJSON({
+    const result = await safeParseJSON({
       text: '["hello", "world"]',
       schema,
     });
@@ -108,13 +111,13 @@ describe('safeParseJSON', () => {
     });
   });
 
-  it('should handle discriminated unions in schema', () => {
+  it('should handle discriminated unions in schema', async () => {
     const schema = z.discriminatedUnion('type', [
       z.object({ type: z.literal('text'), content: z.string() }),
       z.object({ type: z.literal('number'), value: z.number() }),
     ]);
 
-    const result = safeParseJSON({
+    const result = await safeParseJSON({
       text: '{"type": "text", "content": "hello"}',
       schema,
     });
@@ -126,13 +129,13 @@ describe('safeParseJSON', () => {
     });
   });
 
-  it('should handle nullable fields in schema', () => {
+  it('should handle nullable fields in schema', async () => {
     const schema = z.object({
       id: z.string().nullish(),
       data: z.string(),
     });
 
-    const result = safeParseJSON({
+    const result = await safeParseJSON({
       text: '{"id": null, "data": "test"}',
       schema,
     });
@@ -144,17 +147,17 @@ describe('safeParseJSON', () => {
     });
   });
 
-  it('should handle union types in schema', () => {
+  it('should handle union types in schema', async () => {
     const schema = z.object({
       value: z.union([z.string(), z.number()]),
     });
 
-    const result1 = safeParseJSON({
+    const result1 = await safeParseJSON({
       text: '{"value": "test"}',
       schema,
     });
 
-    const result2 = safeParseJSON({
+    const result2 = await safeParseJSON({
       text: '{"value": 123}',
       schema,
     });

@@ -1,11 +1,8 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
-import { ZodSchema } from 'zod';
-import {
-  createEventSourceParserStream,
-  EventSourceChunk,
-} from './event-source-parser-stream';
+import { ZodType } from 'zod/v4';
 import { extractResponseHeaders } from './extract-response-headers';
 import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
+import { parseJsonEventStream } from './parse-json-event-stream';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -23,7 +20,7 @@ export const createJsonErrorResponseHandler =
     errorToMessage,
     isRetryable,
   }: {
-    errorSchema: ZodSchema<T>;
+    errorSchema: ZodType<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
   }): ResponseHandler<APICallError> =>
@@ -49,7 +46,7 @@ export const createJsonErrorResponseHandler =
 
     // resilient parsing in case the response is not JSON or does not match the schema:
     try {
-      const parsedError = parseJSON({
+      const parsedError = await parseJSON({
         text: responseBody,
         schema: errorSchema,
       });
@@ -85,7 +82,7 @@ export const createJsonErrorResponseHandler =
 
 export const createEventSourceResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: ZodType<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -96,32 +93,16 @@ export const createEventSourceResponseHandler =
 
     return {
       responseHeaders,
-      value: response.body
-        .pipeThrough(new TextDecoderStream())
-        .pipeThrough(createEventSourceParserStream())
-        .pipeThrough(
-          new TransformStream<EventSourceChunk, ParseResult<T>>({
-            transform({ data }, controller) {
-              // ignore the 'DONE' event that e.g. OpenAI sends:
-              if (data === '[DONE]') {
-                return;
-              }
-
-              controller.enqueue(
-                safeParseJSON({
-                  text: data,
-                  schema: chunkSchema,
-                }),
-              );
-            },
-          }),
-        ),
+      value: parseJsonEventStream({
+        stream: response.body,
+        schema: chunkSchema,
+      }),
     };
   };
 
 export const createJsonStreamResponseHandler =
   <T>(
-    chunkSchema: ZodSchema<T>,
+    chunkSchema: ZodType<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
   async ({ response }: { response: Response }) => {
     const responseHeaders = extractResponseHeaders(response);
@@ -136,10 +117,10 @@ export const createJsonStreamResponseHandler =
       responseHeaders,
       value: response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
         new TransformStream<string, ParseResult<T>>({
-          transform(chunkText, controller) {
+          async transform(chunkText, controller) {
             if (chunkText.endsWith('\n')) {
               controller.enqueue(
-                safeParseJSON({
+                await safeParseJSON({
                   text: buffer + chunkText,
                   schema: chunkSchema,
                 }),
@@ -155,11 +136,11 @@ export const createJsonStreamResponseHandler =
   };
 
 export const createJsonResponseHandler =
-  <T>(responseSchema: ZodSchema<T>): ResponseHandler<T> =>
+  <T>(responseSchema: ZodType<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
 
-    const parsedResult = safeParseJSON({
+    const parsedResult = await safeParseJSON({
       text: responseBody,
       schema: responseSchema,
     });

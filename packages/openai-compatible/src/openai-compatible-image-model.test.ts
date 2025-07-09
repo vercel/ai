@@ -1,9 +1,9 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { ProviderErrorStructure } from './openai-compatible-error';
-import { ImageModelV1CallOptions } from '@ai-sdk/provider';
+import { ImageModelV2CallOptions } from '@ai-sdk/provider';
 
 const prompt = 'A photorealistic astronaut riding a horse';
 
@@ -11,16 +11,14 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  settings,
   errorStructure,
 }: {
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
-  settings?: any;
   errorStructure?: ProviderErrorStructure<any>;
 } = {}) {
-  return new OpenAICompatibleImageModel('dall-e-3', settings ?? {}, {
+  return new OpenAICompatibleImageModel('dall-e-3', {
     provider: 'openai-compatible',
     headers: headers ?? (() => ({ Authorization: 'Bearer test-key' })),
     url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
@@ -32,7 +30,7 @@ function createBasicModel({
   });
 }
 
-function createDefaultGenerateParams(overrides = {}): ImageModelV1CallOptions {
+function createDefaultGenerateParams(overrides = {}): ImageModelV2CallOptions {
   return {
     prompt: 'A photorealistic astronaut riding a horse',
     n: 1,
@@ -71,23 +69,7 @@ describe('OpenAICompatibleImageModel', () => {
 
       expect(model.provider).toBe('openai-compatible');
       expect(model.modelId).toBe('dall-e-3');
-      expect(model.specificationVersion).toBe('v1');
-      expect(model.maxImagesPerCall).toBe(10);
-    });
-
-    it('should use maxImagesPerCall from settings', () => {
-      const model = createBasicModel({
-        settings: {
-          maxImagesPerCall: 5,
-        },
-      });
-
-      expect(model.maxImagesPerCall).toBe(5);
-    });
-
-    it('should default maxImagesPerCall to 10 when not specified', () => {
-      const model = createBasicModel();
-
+      expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(10);
     });
   });
@@ -103,7 +85,7 @@ describe('OpenAICompatibleImageModel', () => {
         }),
       );
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'dall-e-3',
         prompt,
         n: 2,
@@ -259,16 +241,11 @@ describe('OpenAICompatibleImageModel', () => {
     it('should use real date when no custom date provider is specified', async () => {
       const beforeDate = new Date();
 
-      const model = new OpenAICompatibleImageModel(
-        'dall-e-3',
-        {},
-        {
-          provider: 'openai-compatible',
-          headers: () => ({ Authorization: 'Bearer test-key' }),
-          url: ({ modelId, path }) =>
-            `https://api.example.com/${modelId}${path}`,
-        },
-      );
+      const model = new OpenAICompatibleImageModel('dall-e-3', {
+        provider: 'openai-compatible',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
+      });
 
       const result = await model.doGenerate(createDefaultGenerateParams());
 
@@ -284,15 +261,19 @@ describe('OpenAICompatibleImageModel', () => {
     });
 
     it('should pass the user setting in the request', async () => {
-      const model = createBasicModel({
-        settings: {
-          user: 'test-user-id',
-        },
-      });
+      const model = createBasicModel();
 
-      await model.doGenerate(createDefaultGenerateParams());
+      await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            openai: {
+              user: 'test-user-id',
+            },
+          },
+        }),
+      );
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'dall-e-3',
         prompt,
         n: 1,
@@ -302,14 +283,18 @@ describe('OpenAICompatibleImageModel', () => {
       });
     });
 
-    it('should not include user field in request when setting is not provided', async () => {
-      const model = createBasicModel({
-        settings: {}, // explicitly empty settings
-      });
+    it('should not include user field in request when not set via provider options', async () => {
+      const model = createBasicModel();
 
-      await model.doGenerate(createDefaultGenerateParams());
+      await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            openai: {},
+          },
+        }),
+      );
 
-      const requestBody = await server.calls[0].requestBody;
+      const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toStrictEqual({
         model: 'dall-e-3',
         prompt,

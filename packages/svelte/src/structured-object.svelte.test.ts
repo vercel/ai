@@ -3,7 +3,7 @@ import {
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
 import { render } from '@testing-library/svelte';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { StructuredObject } from './structured-object.svelte.js';
 import StructuredObjectSynchronization from './tests/structured-object-synchronization.svelte';
 
@@ -12,12 +12,13 @@ const server = createTestServer({
 });
 
 describe('text stream', () => {
-  let structuredObject: StructuredObject<{ content: string }>;
+  const schema = z.object({ content: z.string() });
+  let structuredObject: StructuredObject<typeof schema>;
 
   beforeEach(() => {
     structuredObject = new StructuredObject({
       api: '/api/object',
-      schema: z.object({ content: z.string() }),
+      schema,
     });
   });
 
@@ -35,7 +36,11 @@ describe('text stream', () => {
     });
 
     it('should send the correct input to the API', async () => {
+<<<<<<< HEAD
       expect(await server.calls[0].requestBody).toBe('test-input');
+=======
+      expect(await server.calls[0].requestBodyJson).toBe('test-input');
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     });
 
     it('should not have an error', () => {
@@ -90,8 +95,13 @@ describe('text stream', () => {
         expect(structuredObject.loading).toBe(false);
       });
 
+<<<<<<< HEAD
       controller.write('ello, world!"}');
       controller.close();
+=======
+      await expect(controller.write('ello, world!"}')).rejects.toThrow();
+      await expect(controller.close()).rejects.toThrow();
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       await submitOperation;
 
       expect(structuredObject.loading).toBe(false);

@@ -1,12 +1,11 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { MistralPrompt } from './mistral-chat-prompt';
 
 export function convertToMistralChatMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): MistralPrompt {
   const messages: MistralPrompt = [];
 
@@ -28,37 +27,31 @@ export function convertToMistralChatMessages(
               case 'text': {
                 return { type: 'text', text: part.text };
               }
-              case 'image': {
-                return {
-                  type: 'image_url',
-                  image_url:
-                    part.image instanceof URL
-                      ? part.image.toString()
-                      : `data:${
-                          part.mimeType ?? 'image/jpeg'
-                        };base64,${convertUint8ArrayToBase64(part.image)}`,
-                };
-              }
-              case 'file': {
-                if (!(part.data instanceof URL)) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'File content parts in user messages',
-                  });
-                }
 
-                switch (part.mimeType) {
-                  case 'application/pdf': {
-                    return {
-                      type: 'document_url',
-                      document_url: part.data.toString(),
-                    };
-                  }
-                  default: {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'Only PDF files are supported in user messages',
-                    });
-                  }
+              case 'file': {
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
+
+                  return {
+                    type: 'image_url',
+                    image_url:
+                      part.data instanceof URL
+                        ? part.data.toString()
+                        : `data:${mediaType};base64,${part.data}`,
+                  };
+                } else if (part.mediaType === 'application/pdf') {
+                  return {
+                    type: 'document_url',
+                    document_url: part.data.toString(),
+                  };
+                } else {
+                  throw new UnsupportedFunctionalityError({
+                    functionality:
+                      'Only images and PDF file parts are supported',
+                  });
                 }
               }
             }
@@ -87,7 +80,7 @@ export function convertToMistralChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
               });
               break;
@@ -106,11 +99,26 @@ export function convertToMistralChatMessages(
       }
       case 'tool': {
         for (const toolResponse of content) {
+          const output = toolResponse.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error-text':
+              contentValue = output.value;
+              break;
+            case 'content':
+            case 'json':
+            case 'error-json':
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
           messages.push({
             role: 'tool',
             name: toolResponse.toolName,
-            content: JSON.stringify(toolResponse.result),
             tool_call_id: toolResponse.toolCallId,
+            content: contentValue,
           });
         }
         break;

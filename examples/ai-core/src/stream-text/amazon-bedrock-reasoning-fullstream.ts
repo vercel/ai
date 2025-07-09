@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { streamText, ToolCallPart, ToolResultPart } from 'ai';
+import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 
@@ -12,10 +12,10 @@ async function main() {
     prompt: 'What is the weather in San Francisco?',
     providerOptions: {
       bedrock: {
-        reasoning_config: { type: 'enabled', budgetTokens: 1024 },
+        reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
       },
     },
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     maxRetries: 5,
   });
 
@@ -31,16 +31,16 @@ async function main() {
           enteredReasoning = true;
           console.log('\nREASONING:\n');
         }
-        process.stdout.write(part.textDelta);
+        process.stdout.write(part.text);
         break;
       }
 
-      case 'text-delta': {
+      case 'text': {
         if (!enteredText) {
           enteredText = true;
           console.log('\nTEXT:\n');
         }
-        process.stdout.write(part.textDelta);
+        process.stdout.write(part.text);
         break;
       }
 
@@ -48,16 +48,20 @@ async function main() {
         toolCalls.push(part);
 
         process.stdout.write(
-          `\nTool call: '${part.toolName}' ${JSON.stringify(part.args)}`,
+          `\nTool call: '${part.toolName}' ${JSON.stringify(part.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
-        toolResponses.push(part);
+        const transformedPart: ToolResultPart = {
+          ...part,
+          output: { type: 'json', value: part.output },
+        };
+        toolResponses.push(transformedPart);
 
         process.stdout.write(
-          `\nTool response: '${part.toolName}' ${JSON.stringify(part.result)}`,
+          `\nTool response: '${part.toolName}' ${JSON.stringify(part.output)}`,
         );
         break;
       }

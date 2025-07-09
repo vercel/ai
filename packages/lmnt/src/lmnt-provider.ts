@@ -1,9 +1,18 @@
+<<<<<<< HEAD
 import { SpeechModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { LMNTSpeechModel } from './lmnt-speech-model';
 import { LMNTSpeechModelId } from './lmnt-speech-settings';
 
 export interface LMNTProvider extends Pick<ProviderV1, 'speechModel'> {
+=======
+import { SpeechModelV2, ProviderV2 } from '@ai-sdk/provider';
+import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import { LMNTSpeechModel } from './lmnt-speech-model';
+import { LMNTSpeechModelId } from './lmnt-speech-options';
+
+export interface LMNTProvider extends Pick<ProviderV2, 'speechModel'> {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   (
     modelId: 'aurora',
     settings?: {},
@@ -14,7 +23,11 @@ export interface LMNTProvider extends Pick<ProviderV1, 'speechModel'> {
   /**
 Creates a model for speech synthesis.
    */
+<<<<<<< HEAD
   speech(modelId: LMNTSpeechModelId): SpeechModelV1;
+=======
+  speech(modelId: LMNTSpeechModelId): SpeechModelV2;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 }
 
 export interface LMNTProviderSettings {

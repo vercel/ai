@@ -36,7 +36,11 @@ describe('doGenerate', () => {
       text: 'Hello from the AI SDK!',
     });
 
+<<<<<<< HEAD
     expect(await server.calls[0].requestBody).toMatchObject({
+=======
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       utterances: [
         {
           text: 'Hello from the AI SDK!',
@@ -87,7 +91,11 @@ describe('doGenerate', () => {
       speed: 1.5,
     });
 
+<<<<<<< HEAD
     expect(await server.calls[0].requestBody).toMatchObject({
+=======
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       utterances: [
         {
           text: 'Hello from the AI SDK!',

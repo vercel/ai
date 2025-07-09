@@ -1,6 +1,11 @@
 import {
+<<<<<<< HEAD
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
+=======
+  TranscriptionModelV2,
+  TranscriptionModelV2CallWarning,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -9,10 +14,17 @@ import {
   parseProviderOptions,
   postToApi,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
 import { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-settings';
+=======
+import { z } from 'zod/v4';
+import { DeepgramConfig } from './deepgram-config';
+import { deepgramFailedResponseHandler } from './deepgram-error';
+import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results
@@ -63,8 +75,13 @@ interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   };
 }
 
+<<<<<<< HEAD
 export class DeepgramTranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
+=======
+export class DeepgramTranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   get provider(): string {
     return this.config.provider;
@@ -75,6 +92,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV1 {
     private readonly config: DeepgramTranscriptionModelConfig,
   ) {}
 
+<<<<<<< HEAD
   private getArgs({
     providerOptions,
   }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
@@ -82,6 +100,15 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV1 {
 
     // Parse provider options
     const deepgramOptions = parseProviderOptions({
+=======
+  private async getArgs({
+    providerOptions,
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const deepgramOptions = await parseProviderOptions({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       provider: 'deepgram',
       providerOptions,
       schema: deepgramProviderOptionsSchema,
@@ -126,10 +153,17 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
+<<<<<<< HEAD
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { queryParams, warnings } = this.getArgs(options);
+=======
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { queryParams, warnings } = await this.getArgs(options);
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
     const {
       value: response,

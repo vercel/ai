@@ -5,9 +5,14 @@ import {
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { findByText, screen } from '@testing-library/vue';
+import { UIMessageChunk } from 'ai';
 import TestCompletionComponent from './TestCompletionComponent.vue';
 import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
 import { setupTestComponent } from './setup-test-component';
+
+function formatChunk(part: UIMessageChunk) {
+  return `data: ${JSON.stringify(part)}\n\n`;
+}
 
 const server = createTestServer({
   '/api/completion': {},
@@ -19,7 +24,14 @@ describe('stream data stream', () => {
   it('should show streamed response', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
     };
 
     await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
@@ -41,7 +53,11 @@ describe('stream data stream', () => {
       await screen.findByTestId('loading');
       expect(screen.getByTestId('loading')).toHaveTextContent('true');
 
-      controller.write('0:"Hello"\n');
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
       controller.close();
 
       await findByText(await screen.findByTestId('loading'), 'false');

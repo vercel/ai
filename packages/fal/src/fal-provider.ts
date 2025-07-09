@@ -1,14 +1,26 @@
 import {
+<<<<<<< HEAD
   ImageModelV1,
   NoSuchModelError,
   ProviderV1,
   TranscriptionModelV1,
+=======
+  ImageModelV2,
+  NoSuchModelError,
+  ProviderV2,
+  TranscriptionModelV2,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
+<<<<<<< HEAD
 import { FalImageModelId, FalImageSettings } from './fal-image-settings';
 import { FalTranscriptionModelId } from './fal-transcription-settings';
+=======
+import { FalImageModelId } from './fal-image-settings';
+import { FalTranscriptionModelId } from './fal-transcription-options';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { FalTranscriptionModel } from './fal-transcription-model';
 
 export interface FalProviderSettings {
@@ -36,24 +48,33 @@ requests, or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface FalProvider extends ProviderV1 {
+export interface FalProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
+@deprecated Use `imageModel` instead.
    */
-  image(modelId: FalImageModelId, settings?: FalImageSettings): ImageModelV1;
+  image(modelId: FalImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
    */
+<<<<<<< HEAD
   imageModel(
     modelId: FalImageModelId,
     settings?: FalImageSettings,
   ): ImageModelV1;
+=======
+  imageModel(modelId: FalImageModelId): ImageModelV2;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   /**
 Creates a model for transcription.
    */
+<<<<<<< HEAD
   transcription(modelId: FalTranscriptionModelId): TranscriptionModelV1;
+=======
+  transcription(modelId: FalTranscriptionModelId): TranscriptionModelV2;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 }
 
 const defaultBaseURL = 'https://fal.run';
@@ -111,11 +132,8 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     ...options.headers,
   });
 
-  const createImageModel = (
-    modelId: FalImageModelId,
-    settings: FalImageSettings = {},
-  ) =>
-    new FalImageModel(modelId, settings, {
+  const createImageModel = (modelId: FalImageModelId) =>
+    new FalImageModel(modelId, {
       provider: 'fal.image',
       baseURL: baseURL ?? defaultBaseURL,
       headers: getHeaders,

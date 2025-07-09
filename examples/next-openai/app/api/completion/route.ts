@@ -8,12 +8,12 @@ export async function POST(req: Request) {
   // Extract the `prompt` from the body of the request
   const { prompt } = await req.json();
 
-  // Ask OpenAI for a streaming chat completion given the prompt
+  // Ask OpenAI for a streaming completion given the prompt
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-3.5-turbo-instruct'),
     prompt,
   });
 
   // Respond with the stream
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

@@ -1,7 +1,12 @@
 import {
   AISDKError,
+<<<<<<< HEAD
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
+=======
+  TranscriptionModelV2,
+  TranscriptionModelV2CallWarning,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,7 +18,11 @@ import {
   postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
+=======
+import { z } from 'zod/v4';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
 import { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
@@ -258,7 +267,11 @@ const gladiaProviderOptionsSchema = z.object({
       /**
        * Dictionary of custom spellings.
        */
+<<<<<<< HEAD
       spellingDictionary: z.record(z.array(z.string())),
+=======
+      spellingDictionary: z.record(z.string(), z.array(z.string())),
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     })
     .nullish(),
 
@@ -304,7 +317,11 @@ const gladiaProviderOptionsSchema = z.object({
   /**
    * Custom metadata to include with the transcription.
    */
+<<<<<<< HEAD
   customMetadata: z.record(z.any()).nullish(),
+=======
+  customMetadata: z.record(z.string(), z.any()).nullish(),
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   /**
    * Whether to include sentence-level segmentation.
@@ -332,8 +349,13 @@ interface GladiaTranscriptionModelConfig extends GladiaConfig {
   };
 }
 
+<<<<<<< HEAD
 export class GladiaTranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
+=======
+export class GladiaTranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   get provider(): string {
     return this.config.provider;
@@ -346,11 +368,19 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
 
   private async getArgs({
     providerOptions,
+<<<<<<< HEAD
   }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
     const gladiaOptions = parseProviderOptions({
+=======
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const gladiaOptions = await parseProviderOptions({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       provider: 'gladia',
       providerOptions,
       schema: gladiaProviderOptionsSchema,
@@ -486,8 +516,13 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
+<<<<<<< HEAD
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+=======
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     // Create form data with base fields

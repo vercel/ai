@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -12,20 +12,18 @@ async function main() {
     },
     providerOptions: {
       bedrock: {
-        reasoning_config: { type: 'enabled', budgetTokens: 1024 },
+        reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
       },
     },
     maxRetries: 0,
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   for await (const part of result.fullStream) {
     if (part.type === 'reasoning') {
-      process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
-    } else if (part.type === 'redacted-reasoning') {
-      process.stdout.write('\x1b[31m' + '<redacted>' + '\x1b[0m');
-    } else if (part.type === 'text-delta') {
-      process.stdout.write(part.textDelta);
+      process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
+    } else if (part.type === 'text') {
+      process.stdout.write(part.text);
     }
   }
 

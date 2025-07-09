@@ -1,19 +1,14 @@
 'use client';
 
+import ChatInput from '@/component/chat-input';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
-  const {
-    error,
-    input,
-    status,
-    handleInputChange,
-    handleSubmit,
-    messages,
-    reload,
-    stop,
-  } = useChat({
-    api: '/api/use-chat-custom-sources',
+  const { error, status, sendMessage, messages, regenerate, stop } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/use-chat-custom-sources',
+    }),
   });
 
   return (
@@ -22,23 +17,23 @@ export default function Chat() {
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
           {message.parts
-            .filter(part => part.type !== 'source')
+            .filter(part => part.type !== 'source-url')
             .map((part, index) => {
               if (part.type === 'text') {
                 return <div key={index}>{part.text}</div>;
               }
             })}
           {message.parts
-            .filter(part => part.type === 'source')
+            .filter(part => part.type === 'source-url')
             .map(part => (
-              <span key={`source-${part.source.id}`}>
+              <span key={`source-${part.sourceId}`}>
                 [
                 <a
-                  href={part.source.url}
+                  href={part.url}
                   target="_blank"
                   className="text-sm font-bold text-blue-500 hover:underline"
                 >
-                  {part.source.title ?? new URL(part.source.url).hostname}
+                  {part.title ?? new URL(part.url).hostname}
                 </a>
                 ]
               </span>
@@ -65,22 +60,14 @@ export default function Chat() {
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-            onClick={() => reload()}
+            onClick={() => regenerate()}
           >
             Retry
           </button>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
-          value={input}
-          placeholder="Say something..."
-          onChange={handleInputChange}
-          disabled={status !== 'ready'}
-        />
-      </form>
+      <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
 }

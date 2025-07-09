@@ -91,7 +91,11 @@ describe('text stream', () => {
       });
 
       it("should send 'test' to the API", async () => {
+<<<<<<< HEAD
         expect(await server.calls[0].requestBody).toBe('test-input');
+=======
+        expect(await server.calls[0].requestBodyJson).toBe('test-input');
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       });
 
       it('should not have an error', async () => {
@@ -156,8 +160,13 @@ describe('text stream', () => {
       });
 
       // this should not be consumed any more:
+<<<<<<< HEAD
       controller.write('ello, world!"}');
       controller.close();
+=======
+      await expect(controller.write('ello, world!"}')).rejects.toThrow();
+      await expect(controller.close()).rejects.toThrow();
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
       // should only show start of object:
       await waitFor(() => {

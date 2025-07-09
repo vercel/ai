@@ -1,6 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import {
   extractReasoningMiddleware,
+  stepCountIs,
   streamText,
   ToolCallPart,
   ToolResultPart,
@@ -12,20 +13,23 @@ import { weatherTool } from '../tools/weather-tool';
 async function main() {
   const result = streamText({
     model: wrapLanguageModel({
-      model: anthropic('claude-3-opus-20240229', {
+      model: anthropic('claude-3-opus-20240229'),
+      middleware: [extractReasoningMiddleware({ tagName: 'thinking' })],
+    }),
+    providerOptions: {
+      anthropic: {
         // Anthropic produces 'thinking' tags for this model and example
         // configuration.  These will never include signature content and so
         // will fail the provider-side signature check if included in subsequent
         // request messages, so we disable sending reasoning content.
         sendReasoning: false,
-      }),
-      middleware: [extractReasoningMiddleware({ tagName: 'thinking' })],
-    }),
+      },
+    },
     tools: {
       weather: weatherTool,
     },
     prompt: 'What is the weather in San Francisco?',
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   let enteredReasoning = false;
@@ -40,16 +44,16 @@ async function main() {
           enteredReasoning = true;
           console.log('\nREASONING:\n');
         }
-        process.stdout.write(part.textDelta);
+        process.stdout.write(part.text);
         break;
       }
 
-      case 'text-delta': {
+      case 'text': {
         if (!enteredText) {
           enteredText = true;
           console.log('\nTEXT:\n');
         }
-        process.stdout.write(part.textDelta);
+        process.stdout.write(part.text);
         break;
       }
 
@@ -57,16 +61,20 @@ async function main() {
         toolCalls.push(part);
 
         process.stdout.write(
-          `\nTool call: '${part.toolName}' ${JSON.stringify(part.args)}`,
+          `\nTool call: '${part.toolName}' ${JSON.stringify(part.input)}`,
         );
         break;
       }
 
       case 'tool-result': {
-        toolResponses.push(part);
+        const transformedPart: ToolResultPart = {
+          ...part,
+          output: { type: 'json', value: part.output },
+        };
+        toolResponses.push(transformedPart);
 
         process.stdout.write(
-          `\nTool response: '${part.toolName}' ${JSON.stringify(part.result)}`,
+          `\nTool response: '${part.toolName}' ${JSON.stringify(part.output)}`,
         );
         break;
       }

@@ -1,11 +1,19 @@
 export { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
-export type { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
+export type {
+  OpenAICompatibleChatModelId,
+  OpenAICompatibleProviderOptions,
+} from './openai-compatible-chat-options';
 export { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
-export type { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
+export type {
+  OpenAICompatibleCompletionModelId,
+  OpenAICompatibleCompletionProviderOptions,
+} from './openai-compatible-completion-options';
 export { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
-export type { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding-settings';
+export type {
+  OpenAICompatibleEmbeddingModelId,
+  OpenAICompatibleEmbeddingProviderOptions,
+} from './openai-compatible-embedding-options';
 export { OpenAICompatibleImageModel } from './openai-compatible-image-model';
-export type { OpenAICompatibleImageSettings } from './openai-compatible-image-settings';
 export type {
   OpenAICompatibleErrorData,
   ProviderErrorStructure,

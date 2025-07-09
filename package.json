@@ -2,17 +2,26 @@
   "private": true,
   "name": "ai-repo",
   "scripts": {
-    "build": "turbo build",
+    "build": "turbo build --concurrency 16",
+    "build:examples": "turbo build --filter=@example/*",
+    "build:packages": "turbo build --filter=@ai-sdk/* --filter=ai",
     "changeset": "changeset",
     "clean": "turbo clean",
     "dev": "turbo dev --no-cache --concurrency 16 --continue",
     "lint": "turbo lint",
     "prepare": "husky install",
+    "update-references": "update-ts-references",
     "prettier-check": "prettier --check \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
-    "type-check": "turbo type-check",
+    "type-check": "tsc --build",
+    "type-check:full": "tsc --build tsconfig.with-examples.json",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "publint": "turbo publint",
+<<<<<<< HEAD
     "test": "turbo test --concurrency 16",
+=======
+    "test": "turbo test --concurrency 16 --filter=!@example/*",
+    "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     "ci:release": "turbo clean && turbo build && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile"
@@ -23,6 +32,7 @@
     ]
   },
   "devDependencies": {
+    "update-ts-references": "^3.6.0",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
     "eslint": "8.57.1",
@@ -31,13 +41,13 @@
     "lint-staged": "15.2.10",
     "next": "15.0.0-canary.23",
     "playwright": "^1.44.1",
-    "prettier": "^3.3.3",
+    "prettier": "3.5.3",
     "prettier-plugin-svelte": "^3.3.3",
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
     "turbo": "2.4.4",
-    "typescript": "5.6.3",
+    "typescript": "5.8.3",
     "vitest": "2.1.4"
   },
   "engines": {

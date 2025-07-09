@@ -1,16 +1,28 @@
 import {
   appendMessageToChat,
   appendStreamId,
+<<<<<<< HEAD
   loadStreams,
+=======
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   saveChat,
 } from '@/util/chat-store';
 import { openai } from '@ai-sdk/openai';
 import {
+<<<<<<< HEAD
   appendResponseMessages,
   createDataStream,
   generateId,
   Message,
   streamText,
+=======
+  convertToModelMessages,
+  createUIMessageStream,
+  generateId,
+  JsonToSseTransformStream,
+  streamText,
+  UIMessage,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
@@ -23,7 +35,11 @@ export async function POST(req: Request) {
     waitUntil: after,
   });
 
+<<<<<<< HEAD
   const { id, messages }: { id: string; messages: Message[] } =
+=======
+  const { chatId, messages }: { chatId: string; messages: UIMessage[] } =
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     await req.json();
 
   const streamId = generateId();
@@ -36,6 +52,7 @@ export async function POST(req: Request) {
     throw new Error('No recent user message found');
   }
 
+<<<<<<< HEAD
   await appendMessageToChat({ chatId: id, message: recentUserMessage });
 
   await appendStreamId({ chatId: id, streamId });
@@ -57,10 +74,31 @@ export async function POST(req: Request) {
       });
 
       result.mergeIntoDataStream(dataStream);
+=======
+  await appendMessageToChat({ chatId, message: recentUserMessage });
+
+  await appendStreamId({ chatId, streamId });
+
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      const result = streamText({
+        model: openai('gpt-4o'),
+        messages: convertToModelMessages(messages),
+      });
+
+      writer.merge(
+        result.toUIMessageStream({
+          onFinish: ({ messages }) => {
+            saveChat({ chatId, messages });
+          },
+        }),
+      );
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     },
   });
 
   return new Response(
+<<<<<<< HEAD
     await streamContext.resumableStream(streamId, () => stream),
   );
 }
@@ -95,5 +133,10 @@ export async function GET(request: Request) {
 
   return new Response(
     await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+=======
+    await streamContext.resumableStream(streamId, () =>
+      stream.pipeThrough(new JsonToSseTransformStream()),
+    ),
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   );
 }

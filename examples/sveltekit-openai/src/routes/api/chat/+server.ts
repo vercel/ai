@@ -1,7 +1,7 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
 import { env } from '$env/dynamic/private';
-import { z } from 'zod';
+import { createOpenAI } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText } from 'ai';
+import { z } from 'zod/v4';
 
 const openai = createOpenAI({
   apiKey: env?.OPENAI_API_KEY,
@@ -12,14 +12,14 @@ export const POST = async ({ request }) => {
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: convertToModelMessages(messages),
     toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {
         description: 'show the weather in a given city to the user',
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
         execute: async ({ city: _ }: { city: string }) => {
           // Add artificial delay of 2 seconds
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -33,7 +33,7 @@ export const POST = async ({ request }) => {
       // client-side tool that starts user interaction:
       askForConfirmation: {
         description: 'Ask the user for confirmation.',
-        parameters: z.object({
+        inputSchema: z.object({
           message: z.string().describe('The message to ask for confirmation.'),
         }),
       },
@@ -41,7 +41,7 @@ export const POST = async ({ request }) => {
       getLocation: {
         description:
           'Get the user location. Always ask for confirmation before using this tool.',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
       },
     },
     onError: error => {
@@ -49,5 +49,5 @@ export const POST = async ({ request }) => {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 };

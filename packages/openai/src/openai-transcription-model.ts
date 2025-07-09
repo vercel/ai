@@ -1,7 +1,13 @@
 import {
+<<<<<<< HEAD
   TranscriptionModelV1,
   TranscriptionModelV1CallOptions,
   TranscriptionModelV1CallWarning,
+=======
+  TranscriptionModelV2,
+  TranscriptionModelV2CallOptions,
+  TranscriptionModelV2CallWarning,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -10,11 +16,16 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
+=======
+import { z } from 'zod/v4';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import {
   OpenAITranscriptionModelId,
+<<<<<<< HEAD
   OpenAITranscriptionModelOptions,
 } from './openai-transcription-settings';
 
@@ -36,6 +47,18 @@ export type OpenAITranscriptionCallOptions = Omit<
 > & {
   providerOptions?: {
     openai?: z.infer<typeof openAIProviderOptionsSchema>;
+=======
+  openAITranscriptionProviderOptions,
+  OpenAITranscriptionProviderOptions,
+} from './openai-transcription-options';
+
+export type OpenAITranscriptionCallOptions = Omit<
+  TranscriptionModelV2CallOptions,
+  'providerOptions'
+> & {
+  providerOptions?: {
+    openai?: OpenAITranscriptionProviderOptions;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   };
 };
 
@@ -106,8 +129,13 @@ const languageMap = {
   welsh: 'cy',
 };
 
+<<<<<<< HEAD
 export class OpenAITranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
+=======
+export class OpenAITranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   get provider(): string {
     return this.config.provider;
@@ -118,11 +146,16 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     private readonly config: OpenAITranscriptionModelConfig,
   ) {}
 
+<<<<<<< HEAD
   private getArgs({
+=======
+  private async getArgs({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     audio,
     mediaType,
     providerOptions,
   }: OpenAITranscriptionCallOptions) {
+<<<<<<< HEAD
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
@@ -130,6 +163,15 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
       provider: 'openai',
       providerOptions,
       schema: openAIProviderOptionsSchema,
+=======
+    const warnings: TranscriptionModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const openAIOptions = await parseProviderOptions({
+      provider: 'openai',
+      providerOptions,
+      schema: openAITranscriptionProviderOptions,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     });
 
     // Create form data with base fields
@@ -144,6 +186,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
     // Add provider-specific options
     if (openAIOptions) {
+<<<<<<< HEAD
       const transcriptionModelOptions: OpenAITranscriptionModelOptions = {
         include: openAIOptions.include ?? undefined,
         language: openAIOptions.language ?? undefined,
@@ -159,6 +202,18 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
             key as keyof OpenAITranscriptionModelOptions
           ];
         if (value !== undefined) {
+=======
+      const transcriptionModelOptions = {
+        include: openAIOptions.include,
+        language: openAIOptions.language,
+        prompt: openAIOptions.prompt,
+        temperature: openAIOptions.temperature,
+        timestamp_granularities: openAIOptions.timestampGranularities,
+      };
+
+      for (const [key, value] of Object.entries(transcriptionModelOptions)) {
+        if (value != null) {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
           formData.append(key, String(value));
         }
       }
@@ -172,9 +227,15 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
   async doGenerate(
     options: OpenAITranscriptionCallOptions,
+<<<<<<< HEAD
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = this.getArgs(options);
+=======
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { formData, warnings } = await this.getArgs(options);
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
     const {
       value: response,

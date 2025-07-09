@@ -1,17 +1,21 @@
 import { xai } from '@ai-sdk/xai';
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = await generateText({
     model: xai('grok-3-beta'),
+<<<<<<< HEAD
     maxTokens: 512,
+=======
+    maxOutputTokens: 512,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     tools: {
       weather: weatherTool,
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     prompt:
@@ -22,12 +26,12 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'cityAttractions': {
-        toolCall.args.city; // string
+        toolCall.input.city; // string
         break;
       }
 
       case 'weather': {
-        toolCall.args.location; // string
+        toolCall.input.location; // string
         break;
       }
     }
@@ -38,15 +42,15 @@ async function main() {
     switch (toolResult.toolName) {
       // NOT AVAILABLE (NO EXECUTE METHOD)
       // case 'cityAttractions': {
-      //   toolResult.args.city; // string
+      //   toolResult.input.city; // string
       //   toolResult.result;
       //   break;
       // }
 
       case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
+        toolResult.input.location; // string
+        toolResult.output.location; // string
+        toolResult.output.temperature; // number
         break;
       }
     }

@@ -1,9 +1,10 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
-  UnsupportedFunctionalityError,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Content,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -14,10 +15,10 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
-import { PerplexityLanguageModelId } from './perplexity-language-model-settings';
+import { z } from 'zod/v4';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
+import { PerplexityLanguageModelId } from './perplexity-language-model-options';
 
 type PerplexityChatConfig = {
   baseURL: string;
@@ -26,11 +27,8 @@ type PerplexityChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class PerplexityLanguageModel implements LanguageModelV1 {
-  readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'json';
-  readonly supportsStructuredOutputs = true;
-  readonly supportsImageUrls = false;
+export class PerplexityLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'v2';
   readonly provider = 'perplexity';
 
   readonly modelId: PerplexityLanguageModelId;
@@ -45,10 +43,13 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
     this.config = config;
   }
 
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    // No URLs are supported.
+  };
+
   private getArgs({
-    mode,
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -57,11 +58,9 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
-    const type = mode.type;
-
-    const warnings: LanguageModelV1CallWarning[] = [];
+    providerOptions,
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
       warnings.push({
@@ -84,69 +83,42 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const baseArgs = {
-      // model id:
-      model: this.modelId,
+    return {
+      args: {
+        // model id:
+        model: this.modelId,
 
-      // standardized settings:
-      frequency_penalty: frequencyPenalty,
-      max_tokens: maxTokens,
-      presence_penalty: presencePenalty,
-      temperature,
-      top_k: topK,
-      top_p: topP,
+        // standardized settings:
+        frequency_penalty: frequencyPenalty,
+        max_tokens: maxOutputTokens,
+        presence_penalty: presencePenalty,
+        temperature,
+        top_k: topK,
+        top_p: topP,
 
-      // response format:
-      response_format:
-        responseFormat?.type === 'json'
-          ? {
-              type: 'json_schema',
-              json_schema: { schema: responseFormat.schema },
-            }
-          : undefined,
+        // response format:
+        response_format:
+          responseFormat?.type === 'json'
+            ? {
+                type: 'json_schema',
+                json_schema: { schema: responseFormat.schema },
+              }
+            : undefined,
 
-      // provider extensions
-      ...(providerMetadata?.perplexity ?? {}),
+        // provider extensions
+        ...(providerOptions?.perplexity ?? {}),
 
-      // messages:
-      messages: convertToPerplexityMessages(prompt),
+        // messages:
+        messages: convertToPerplexityMessages(prompt),
+      },
+      warnings,
     };
-
-    switch (type) {
-      case 'regular': {
-        return { args: baseArgs, warnings };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format: {
-              type: 'json_schema',
-              json_schema: { schema: mode.schema },
-            },
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'tool-mode object generation',
-        });
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    const { args: body, warnings } = this.getArgs(options);
 
     const {
       responseHeaders,
@@ -155,7 +127,7 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
         errorToMessage,
@@ -167,28 +139,42 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
     const text = choice.message.content;
+    if (text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
+    // sources:
+    if (response.citations != null) {
+      for (const url of response.citations) {
+        content.push({
+          type: 'source',
+          sourceType: 'url',
+          id: this.config.generateId(),
+          url,
+        });
+      }
+    }
 
     return {
-      text,
-      toolCalls: [],
+      content,
       finishReason: mapPerplexityFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage?.prompt_tokens ?? Number.NaN,
-        completionTokens: response.usage?.completion_tokens ?? Number.NaN,
+        inputTokens: response.usage?.prompt_tokens,
+        outputTokens: response.usage?.completion_tokens,
+        totalTokens: response.usage?.total_tokens ?? undefined,
       },
-      rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
-      request: { body: JSON.stringify(args) },
-      response: getResponseMetadata(response),
+      request: { body },
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       warnings,
-      sources: response.citations?.map(url => ({
-        sourceType: 'url',
-        id: this.config.generateId(),
-        url,
-      })),
       providerMetadata: {
         perplexity: {
           images:
@@ -208,8 +194,8 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
     const body = { ...args, stream: true };
@@ -229,13 +215,13 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
-
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
     };
+
     const providerMetadata: {
       perplexity: {
         usage: {
@@ -259,6 +245,7 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       },
     };
     let isFirstChunk = true;
+    let isActive = false;
 
     const self = this;
 
@@ -266,9 +253,18 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof perplexityChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
+            // Emit raw chunk if requested (before anything else)
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
@@ -285,11 +281,9 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
               value.citations?.forEach(url => {
                 controller.enqueue({
                   type: 'source',
-                  source: {
-                    sourceType: 'url',
-                    id: self.config.generateId(),
-                    url,
-                  },
+                  sourceType: 'url',
+                  id: self.config.generateId(),
+                  url,
                 });
               });
 
@@ -297,10 +291,8 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
             }
 
             if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens,
-                completionTokens: value.usage.completion_tokens,
-              };
+              usage.inputTokens = value.usage.prompt_tokens;
+              usage.outputTokens = value.usage.completion_tokens;
 
               providerMetadata.perplexity.usage = {
                 citationTokens: value.usage.citation_tokens ?? null,
@@ -330,14 +322,24 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
             const textContent = delta.content;
 
             if (textContent != null) {
+              if (!isActive) {
+                controller.enqueue({ type: 'text-start', id: '0' });
+                isActive = true;
+              }
+
               controller.enqueue({
                 type: 'text-delta',
-                textDelta: textContent,
+                id: '0',
+                delta: textContent,
               });
             }
           },
 
           flush(controller) {
+            if (isActive) {
+              controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -347,10 +349,8 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
-      request: { body: JSON.stringify(body) },
-      warnings,
+      request: { body },
+      response: { headers: responseHeaders },
     };
   }
 }
@@ -374,6 +374,7 @@ function getResponseMetadata({
 const perplexityUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
+  total_tokens: z.number().nullish(),
   citation_tokens: z.number().nullish(),
   num_search_queries: z.number().nullish(),
 });

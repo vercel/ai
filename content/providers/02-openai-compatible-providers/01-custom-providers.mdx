@@ -30,16 +30,10 @@ packages/example/
 1. **example-chat-settings.ts** - Define chat model IDs and settings:
 
 ```ts
-import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
-
 export type ExampleChatModelId =
   | 'example/chat-model-1'
   | 'example/chat-model-2'
   | (string & {});
-
-export interface ExampleChatSettings extends OpenAICompatibleChatSettings {
-  // Add any custom settings here
-}
 ```
 
 The completion, embedding, and image settings are implemented similarly to the chat settings.
@@ -47,7 +41,7 @@ The completion, embedding, and image settings are implemented similarly to the c
 2. **example-provider.ts** - Main provider implementation:
 
 ```ts
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import { LanguageModelV1, EmbeddingModelV2 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -116,7 +110,7 @@ Creates a text embedding model for text generation.
   textEmbeddingModel(
     modelId: ExampleEmbeddingModelId,
     settings?: ExampleEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
 Creates an image model for image generation.
@@ -124,7 +118,7 @@ Creates an image model for image generation.
   imageModel(
     modelId: ExampleImageModelId,
     settings?: ExampleImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 export function createExample(
@@ -166,10 +160,11 @@ export function createExample(
     modelId: ExampleChatModelId,
     settings: ExampleChatSettings = {},
   ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'tool',
-    });
+    return new OpenAICompatibleChatLanguageModel(
+      modelId,
+      settings,
+      getCommonModelConfig('chat'),
+    );
   };
 
   const createCompletionModel = (

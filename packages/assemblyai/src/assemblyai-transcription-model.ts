@@ -1,6 +1,11 @@
 import {
+<<<<<<< HEAD
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
+=======
+  TranscriptionModelV2,
+  TranscriptionModelV2CallWarning,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -9,7 +14,11 @@ import {
   postJsonToApi,
   postToApi,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
+=======
+import { z } from 'zod/v4';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
@@ -177,8 +186,13 @@ interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   };
 }
 
+<<<<<<< HEAD
 export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
+=======
+export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   get provider(): string {
     return this.config.provider;
@@ -191,11 +205,19 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
 
   private async getArgs({
     providerOptions,
+<<<<<<< HEAD
   }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
     const assemblyaiOptions = parseProviderOptions({
+=======
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const assemblyaiOptions = await parseProviderOptions({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       provider: 'assemblyai',
       providerOptions,
       schema: assemblyaiProviderOptionsSchema,
@@ -263,8 +285,13 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
+<<<<<<< HEAD
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+=======
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { value: uploadResponse } = await postToApi({

@@ -26,6 +26,8 @@ export interface AnthropicAssistantMessage {
     | AnthropicThinkingContent
     | AnthropicRedactedThinkingContent
     | AnthropicToolCallContent
+    | AnthropicServerToolUseContent
+    | AnthropicWebSearchToolResultContent
   >;
 }
 
@@ -57,6 +59,14 @@ type AnthropicContentSource =
   | {
       type: 'url';
       url: string;
+<<<<<<< HEAD
+=======
+    }
+  | {
+      type: 'text';
+      media_type: 'text/plain';
+      data: string;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     };
 
 export interface AnthropicImageContent {
@@ -68,6 +78,12 @@ export interface AnthropicImageContent {
 export interface AnthropicDocumentContent {
   type: 'document';
   source: AnthropicContentSource;
+<<<<<<< HEAD
+=======
+  title?: string;
+  context?: string;
+  citations?: { enabled: boolean };
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -79,11 +95,32 @@ export interface AnthropicToolCallContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicServerToolUseContent {
+  type: 'server_tool_use';
+  id: string;
+  name: 'web_search';
+  input: unknown;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
   content: string | Array<AnthropicTextContent | AnthropicImageContent>;
   is_error: boolean | undefined;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicWebSearchToolResultContent {
+  type: 'web_search_tool_result';
+  tool_use_id: string;
+  content: Array<{
+    url: string;
+    title: string;
+    page_age: string | null;
+    encrypted_content: string;
+    type: string;
+  }>;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -107,6 +144,20 @@ export type AnthropicTool =
   | {
       name: string;
       type: 'bash_20250124' | 'bash_20241022';
+    }
+  | {
+      type: 'web_search_20250305';
+      name: string;
+      max_uses?: number;
+      allowed_domains?: string[];
+      blocked_domains?: string[];
+      user_location?: {
+        type: 'approximate';
+        city?: string;
+        region?: string;
+        country?: string;
+        timezone?: string;
+      };
     };
 
 export type AnthropicToolChoice =

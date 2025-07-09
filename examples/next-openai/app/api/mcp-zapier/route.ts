@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_createMCPClient, streamText } from 'ai';
+import { experimental_createMCPClient, stepCountIs, streamText } from 'ai';
 
 export const maxDuration = 30;
 
@@ -23,10 +23,10 @@ export async function POST(req: Request) {
       onFinish: async () => {
         await mcpClient.close();
       },
-      maxSteps: 10,
+      stopWhen: stepCountIs(10),
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     return new Response('Internal Server Error', { status: 500 });
   }

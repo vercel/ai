@@ -80,7 +80,11 @@ import { lmnt } from '@ai-sdk/lmnt';
 const result = await generateSpeech({
   model: lmnt.speech('aurora'),
   text: 'Hello, world!',
+<<<<<<< HEAD
   providerOptions: { lmnt: { language: 'en' } },
+=======
+  language: 'en', // Standardized language parameter
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 });
 ```
 

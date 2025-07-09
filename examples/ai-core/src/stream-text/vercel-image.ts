@@ -15,6 +15,12 @@ async function main() {
         ],
       },
     ],
+<<<<<<< HEAD
+=======
+    onError: error => {
+      console.error(error);
+    },
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   });
 
   for await (const textPart of result.textStream) {

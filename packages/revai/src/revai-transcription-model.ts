@@ -1,7 +1,12 @@
 import {
   AISDKError,
+<<<<<<< HEAD
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
+=======
+  TranscriptionModelV2,
+  TranscriptionModelV2CallWarning,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -12,10 +17,17 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
 import { RevaiConfig } from './revai-config';
 import { revaiFailedResponseHandler } from './revai-error';
 import { RevaiTranscriptionModelId } from './revai-transcription-settings';
+=======
+import { z } from 'zod/v4';
+import { RevaiConfig } from './revai-config';
+import { revaiFailedResponseHandler } from './revai-error';
+import { RevaiTranscriptionModelId } from './revai-transcription-options';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { RevaiTranscriptionAPITypes } from './revai-api-types';
 
 // https://docs.rev.ai/api/asynchronous/reference/#operation/SubmitTranscriptionJob
@@ -219,8 +231,13 @@ interface RevaiTranscriptionModelConfig extends RevaiConfig {
   };
 }
 
+<<<<<<< HEAD
 export class RevaiTranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
+=======
+export class RevaiTranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   get provider(): string {
     return this.config.provider;
@@ -231,6 +248,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     private readonly config: RevaiTranscriptionModelConfig,
   ) {}
 
+<<<<<<< HEAD
   private getArgs({
     audio,
     mediaType,
@@ -240,6 +258,17 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
 
     // Parse provider options
     const revaiOptions = parseProviderOptions({
+=======
+  private async getArgs({
+    audio,
+    mediaType,
+    providerOptions,
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const revaiOptions = await parseProviderOptions({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       provider: 'revai',
       providerOptions,
       schema: revaiProviderOptionsSchema,
@@ -308,10 +337,17 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
+<<<<<<< HEAD
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = this.getArgs(options);
+=======
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { formData, warnings } = await this.getArgs(options);
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
     const { value: submissionResponse } = await postFormDataToApi({
       url: this.config.url({

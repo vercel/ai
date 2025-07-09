@@ -15,7 +15,7 @@ sdk.start();
 async function main() {
   const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620'),
-    maxTokens: 50,
+    maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {
       isEnabled: true,

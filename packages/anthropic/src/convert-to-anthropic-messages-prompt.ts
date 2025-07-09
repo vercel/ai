@@ -1,30 +1,55 @@
 import {
-  LanguageModelV1CallWarning,
-  LanguageModelV1Message,
-  LanguageModelV1Prompt,
-  LanguageModelV1ProviderMetadata,
+  LanguageModelV2CallWarning,
+  LanguageModelV2DataContent,
+  LanguageModelV2Message,
+  LanguageModelV2Prompt,
+  SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
   AnthropicCacheControl,
   AnthropicMessagesPrompt,
+  AnthropicToolResultContent,
   AnthropicUserMessage,
 } from './anthropic-api-types';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
+import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
-export function convertToAnthropicMessagesPrompt({
+function convertToString(data: LanguageModelV2DataContent): string {
+  if (typeof data === 'string') {
+    return Buffer.from(data, 'base64').toString('utf-8');
+  }
+
+  if (data instanceof Uint8Array) {
+    return new TextDecoder().decode(data);
+  }
+
+  if (data instanceof URL) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'URL-based text documents are not supported for citations',
+    });
+  }
+
+  throw new UnsupportedFunctionalityError({
+    functionality: `unsupported data type for text documents: ${typeof data}`,
+  });
+}
+
+export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
 }: {
-  prompt: LanguageModelV1Prompt;
+  prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
-  warnings: LanguageModelV1CallWarning[];
-}): {
+  warnings: LanguageModelV2CallWarning[];
+}): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
-} {
+}> {
   const betas = new Set<string>();
   const blocks = groupIntoBlocks(prompt);
 
@@ -32,7 +57,7 @@ export function convertToAnthropicMessagesPrompt({
   const messages: AnthropicMessagesPrompt['messages'] = [];
 
   function getCacheControl(
-    providerMetadata: LanguageModelV1ProviderMetadata | undefined,
+    providerMetadata: SharedV2ProviderMetadata | undefined,
   ): AnthropicCacheControl | undefined {
     const anthropic = providerMetadata?.anthropic;
 
@@ -43,6 +68,33 @@ export function convertToAnthropicMessagesPrompt({
     // Pass through value assuming it is of the correct type.
     // The Anthropic API will validate the value.
     return cacheControlValue as AnthropicCacheControl | undefined;
+  }
+
+  async function shouldEnableCitations(
+    providerMetadata: SharedV2ProviderMetadata | undefined,
+  ): Promise<boolean> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return anthropicOptions?.citations?.enabled ?? false;
+  }
+
+  async function getDocumentMetadata(
+    providerMetadata: SharedV2ProviderMetadata | undefined,
+  ): Promise<{ title?: string; context?: string }> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return {
+      title: anthropicOptions?.title,
+      context: anthropicOptions?.context,
+    };
   }
 
   for (let i = 0; i < blocks.length; i++) {
@@ -59,10 +111,10 @@ export function convertToAnthropicMessagesPrompt({
           });
         }
 
-        system = block.messages.map(({ content, providerMetadata }) => ({
+        system = block.messages.map(({ content, providerOptions }) => ({
           type: 'text',
           text: content,
-          cache_control: getCacheControl(providerMetadata),
+          cache_control: getCacheControl(providerOptions),
         }));
 
         break;
@@ -85,9 +137,9 @@ export function convertToAnthropicMessagesPrompt({
                 const isLastPart = j === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerMetadata) ??
+                  getCacheControl(part.providerOptions) ??
                   (isLastPart
-                    ? getCacheControl(message.providerMetadata)
+                    ? getCacheControl(message.providerOptions)
                     : undefined);
 
                 switch (part.type) {
@@ -100,27 +152,8 @@ export function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  case 'image': {
-                    anthropicContent.push({
-                      type: 'image',
-                      source:
-                        part.image instanceof URL
-                          ? {
-                              type: 'url',
-                              url: part.image.toString(),
-                            }
-                          : {
-                              type: 'base64',
-                              media_type: part.mimeType ?? 'image/jpeg',
-                              data: convertUint8ArrayToBase64(part.image),
-                            },
-                      cache_control: cacheControl,
-                    });
-
-                    break;
-                  }
-
                   case 'file': {
+<<<<<<< HEAD
                     if (part.mimeType !== 'application/pdf') {
                       throw new UnsupportedFunctionalityError({
                         functionality: 'Non-PDF files in user messages',
@@ -145,6 +178,93 @@ export function convertToAnthropicMessagesPrompt({
                       cache_control: cacheControl,
                     });
 
+=======
+                    if (part.mediaType.startsWith('image/')) {
+                      anthropicContent.push({
+                        type: 'image',
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'base64',
+                                media_type:
+                                  part.mediaType === 'image/*'
+                                    ? 'image/jpeg'
+                                    : part.mediaType,
+                                data: convertToBase64(part.data),
+                              },
+                        cache_control: cacheControl,
+                      });
+                    } else if (part.mediaType === 'application/pdf') {
+                      betas.add('pdfs-2024-09-25');
+
+                      const enableCitations = await shouldEnableCitations(
+                        part.providerOptions,
+                      );
+
+                      const metadata = await getDocumentMetadata(
+                        part.providerOptions,
+                      );
+
+                      anthropicContent.push({
+                        type: 'document',
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'base64',
+                                media_type: 'application/pdf',
+                                data: convertToBase64(part.data),
+                              },
+                        title: metadata.title ?? part.filename,
+                        ...(metadata.context && { context: metadata.context }),
+                        ...(enableCitations && {
+                          citations: { enabled: true },
+                        }),
+                        cache_control: cacheControl,
+                      });
+                    } else if (part.mediaType === 'text/plain') {
+                      const enableCitations = await shouldEnableCitations(
+                        part.providerOptions,
+                      );
+
+                      const metadata = await getDocumentMetadata(
+                        part.providerOptions,
+                      );
+
+                      anthropicContent.push({
+                        type: 'document',
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'text',
+                                media_type: 'text/plain',
+                                data: convertToString(part.data),
+                              },
+                        title: metadata.title ?? part.filename,
+                        ...(metadata.context && { context: metadata.context }),
+                        ...(enableCitations && {
+                          citations: { enabled: true },
+                        }),
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `media type: ${part.mediaType}`,
+                      });
+                    }
+
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
                     break;
                   }
                 }
@@ -162,40 +282,62 @@ export function convertToAnthropicMessagesPrompt({
                 const isLastPart = i === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerMetadata) ??
+                  getCacheControl(part.providerOptions) ??
                   (isLastPart
-                    ? getCacheControl(message.providerMetadata)
+                    ? getCacheControl(message.providerOptions)
                     : undefined);
 
-                const toolResultContent =
-                  part.content != null
-                    ? part.content.map(part => {
-                        switch (part.type) {
-                          case 'text':
+                const output = part.output;
+                let contentValue: AnthropicToolResultContent['content'];
+                switch (output.type) {
+                  case 'content':
+                    contentValue = output.value.map(contentPart => {
+                      switch (contentPart.type) {
+                        case 'text':
+                          return {
+                            type: 'text',
+                            text: contentPart.text,
+                            cache_control: undefined,
+                          };
+                        case 'media': {
+                          if (contentPart.mediaType.startsWith('image/')) {
                             return {
-                              type: 'text' as const,
-                              text: part.text,
-                              cache_control: undefined,
-                            };
-                          case 'image':
-                            return {
-                              type: 'image' as const,
+                              type: 'image',
                               source: {
-                                type: 'base64' as const,
-                                media_type: part.mimeType ?? 'image/jpeg',
-                                data: part.data,
+                                type: 'base64',
+                                media_type: contentPart.mediaType,
+                                data: contentPart.data,
                               },
                               cache_control: undefined,
                             };
+                          }
+
+                          throw new UnsupportedFunctionalityError({
+                            functionality: `media type: ${contentPart.mediaType}`,
+                          });
                         }
-                      })
-                    : JSON.stringify(part.result);
+                      }
+                    });
+                    break;
+                  case 'text':
+                  case 'error-text':
+                    contentValue = output.value;
+                    break;
+                  case 'json':
+                  case 'error-json':
+                  default:
+                    contentValue = JSON.stringify(output.value);
+                    break;
+                }
 
                 anthropicContent.push({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
-                  content: toolResultContent,
-                  is_error: part.isError,
+                  content: contentValue,
+                  is_error:
+                    output.type === 'error-text' || output.type === 'error-json'
+                      ? true
+                      : undefined,
                   cache_control: cacheControl,
                 });
               }
@@ -231,9 +373,9 @@ export function convertToAnthropicMessagesPrompt({
             // for the last part of a message,
             // check also if the message has cache control.
             const cacheControl =
-              getCacheControl(part.providerMetadata) ??
+              getCacheControl(part.providerOptions) ??
               (isLastContentPart
-                ? getCacheControl(message.providerMetadata)
+                ? getCacheControl(message.providerOptions)
                 : undefined);
 
             switch (part.type) {
@@ -255,12 +397,38 @@ export function convertToAnthropicMessagesPrompt({
 
               case 'reasoning': {
                 if (sendReasoning) {
-                  anthropicContent.push({
-                    type: 'thinking',
-                    thinking: part.text,
-                    signature: part.signature!,
-                    cache_control: cacheControl,
+                  const reasoningMetadata = await parseProviderOptions({
+                    provider: 'anthropic',
+                    providerOptions: part.providerOptions,
+                    schema: anthropicReasoningMetadataSchema,
                   });
+
+                  if (reasoningMetadata != null) {
+                    if (reasoningMetadata.signature != null) {
+                      anthropicContent.push({
+                        type: 'thinking',
+                        thinking: part.text,
+                        signature: reasoningMetadata.signature,
+                        cache_control: cacheControl,
+                      });
+                    } else if (reasoningMetadata.redactedData != null) {
+                      anthropicContent.push({
+                        type: 'redacted_thinking',
+                        data: reasoningMetadata.redactedData,
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      warnings.push({
+                        type: 'other',
+                        message: 'unsupported reasoning metadata',
+                      });
+                    }
+                  } else {
+                    warnings.push({
+                      type: 'other',
+                      message: 'unsupported reasoning metadata',
+                    });
+                  }
                 } else {
                   warnings.push({
                     type: 'other',
@@ -271,23 +439,76 @@ export function convertToAnthropicMessagesPrompt({
                 break;
               }
 
-              case 'redacted-reasoning': {
+              case 'tool-call': {
+                if (part.providerExecuted) {
+                  if (part.toolName === 'web_search') {
+                    anthropicContent.push({
+                      type: 'server_tool_use',
+                      id: part.toolCallId,
+                      name: 'web_search',
+                      input: part.input,
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
+
+                  warnings.push({
+                    type: 'other',
+                    message: `provider executed tool call for tool ${part.toolName} is not supported`,
+                  });
+
+                  break;
+                }
+
                 anthropicContent.push({
-                  type: 'redacted_thinking',
-                  data: part.data,
+                  type: 'tool_use',
+                  id: part.toolCallId,
+                  name: part.toolName,
+                  input: part.input,
                   cache_control: cacheControl,
                 });
                 break;
               }
 
-              case 'tool-call': {
-                anthropicContent.push({
-                  type: 'tool_use',
-                  id: part.toolCallId,
-                  name: part.toolName,
-                  input: part.args,
-                  cache_control: cacheControl,
+              case 'tool-result': {
+                if (part.toolName === 'web_search') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const webSearchOutput = webSearch_20250305OutputSchema.parse(
+                    output.value,
+                  );
+
+                  anthropicContent.push({
+                    type: 'web_search_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: webSearchOutput.map(result => ({
+                      url: result.url,
+                      title: result.title,
+                      page_age: result.pageAge,
+                      encrypted_content: result.encryptedContent,
+                      type: result.type,
+                    })),
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
+                warnings.push({
+                  type: 'other',
+                  message: `provider executed tool result for tool ${part.toolName} is not supported`,
                 });
+
                 break;
               }
             }
@@ -301,7 +522,7 @@ export function convertToAnthropicMessagesPrompt({
 
       default: {
         const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+        throw new Error(`content type: ${_exhaustiveCheck}`);
       }
     }
   }
@@ -314,19 +535,19 @@ export function convertToAnthropicMessagesPrompt({
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV1Message & { role: 'system' }>;
+  messages: Array<LanguageModelV2Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV1Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV2Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV1Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV2Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

@@ -38,7 +38,11 @@ The middleware handles all transformations needed to make cached responses indis
 ```ts
 import {
   type LanguageModelV1,
+<<<<<<< HEAD
   type LanguageModelV1Middleware,
+=======
+  type LanguageModelV2Middleware,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   LanguageModelV1Prompt,
   type LanguageModelV1StreamPart,
   simulateReadableStream,
@@ -113,7 +117,11 @@ const cleanPrompt = (prompt: LanguageModelV1Prompt) => {
   });
 };
 
+<<<<<<< HEAD
 export const cacheMiddleware: LanguageModelV1Middleware = {
+=======
+export const cacheMiddleware: LanguageModelV2Middleware = {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify({
       ...cleanPrompt(params.prompt),
@@ -170,7 +178,10 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
           chunkDelayInMs: 10,
           chunks: formattedChunks,
         }),
+<<<<<<< HEAD
         rawCall: { rawPrompt: null, rawSettings: {} },
+=======
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       };
     }
 
@@ -215,7 +226,11 @@ import { cached } from '../middleware/your-cache-middleware';
 async function main() {
   const result = streamText({
     model: cached(openai('gpt-4o')),
+<<<<<<< HEAD
     maxTokens: 512,
+=======
+    maxOutputTokens: 512,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     temperature: 0.3,
     maxRetries: 5,
     prompt: 'Invent a new holiday and describe its traditions.',

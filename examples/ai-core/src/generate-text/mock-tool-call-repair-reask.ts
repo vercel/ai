@@ -1,30 +1,35 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const result = await generateText({
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV2({
       doGenerate: async () => ({
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        usage: { promptTokens: 10, completionTokens: 20 },
+        warnings: [],
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
         finishReason: 'tool-calls',
-        toolCalls: [
+        content: [
           {
+            type: 'tool-call',
             toolCallType: 'function',
             toolCallId: 'call-1',
             toolName: 'cityAttractions',
             // wrong tool call arguments (city vs cities):
-            args: `{ "city": "San Francisco" }`,
+            input: `{ "city": "San Francisco" }`,
           },
         ],
       }),
     }),
     tools: {
       cityAttractions: tool({
-        parameters: z.object({ cities: z.array(z.string()) }),
+        inputSchema: z.object({ cities: z.array(z.string()) }),
       }),
     },
     prompt: 'What are the tourist attractions in San Francisco?',
@@ -48,7 +53,7 @@ async function main() {
                 type: 'tool-call',
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
-                args: toolCall.args,
+                input: toolCall.input,
               },
             ],
           },
@@ -59,7 +64,7 @@ async function main() {
                 type: 'tool-result',
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
-                result: error.message,
+                output: { type: 'error-text', value: error.message },
               },
             ],
           },
@@ -73,10 +78,11 @@ async function main() {
 
       return newToolCall != null
         ? {
+            type: 'tool-call' as const,
             toolCallType: 'function' as const,
             toolCallId: toolCall.toolCallId,
             toolName: toolCall.toolName,
-            args: JSON.stringify(newToolCall.args),
+            input: JSON.stringify(newToolCall.input),
           }
         : null;
     },

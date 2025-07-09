@@ -6,7 +6,7 @@ import fs from 'node:fs';
 async function main() {
   const result = streamText({
     model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     messages: [
       {
         role: 'user',

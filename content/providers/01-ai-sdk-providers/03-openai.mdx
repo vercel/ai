@@ -38,7 +38,9 @@ import { createOpenAI } from '@ai-sdk/openai';
 
 const openai = createOpenAI({
   // custom settings, e.g.
-  compatibility: 'strict', // strict mode, enable when using the OpenAI API
+  headers: {
+    'header-name': 'header-value',
+  },
 });
 ```
 
@@ -78,26 +80,19 @@ You can use the following optional settings to customize the OpenAI provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
-- **compatibility** _"strict" | "compatible"_
-
-  OpenAI compatibility mode. Should be set to `strict` when using the OpenAI API,
-  and `compatible` when using 3rd party providers. In `compatible` mode, newer
-  information such as `streamOptions` are not being sent, resulting in `NaN`
-  token usage. Defaults to 'compatible'.
-
 ## Language Models
 
 The OpenAI provider instance is a function that you can invoke to create a language model:
 
 ```ts
-const model = openai('gpt-4-turbo');
+const model = openai('gpt-4.1');
 ```
 
 It automatically selects the correct API based on the model id.
 You can also pass additional settings in the second argument:
 
 ```ts
-const model = openai('gpt-4-turbo', {
+const model = openai('gpt-4.1', {
   // additional settings
 });
 ```
@@ -114,7 +109,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4.1'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -132,20 +127,27 @@ The OpenAI chat models support tool calls and some have multi-modal capabilities
 const model = openai.chat('gpt-3.5-turbo');
 ```
 
-OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument:
+OpenAI chat models support also some model specific provider options that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
+You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = openai.chat('gpt-3.5-turbo', {
-  logitBias: {
-    // optional likelihood for specific tokens
-    '50256': -100,
+const model = openai.chat('gpt-3.5-turbo');
+
+await generateText({
+  model,
+  providerOptions: {
+    openai: {
+      logitBias: {
+        // optional likelihood for specific tokens
+        '50256': -100,
+      },
+      user: 'test-user', // optional unique user identifier
+    },
   },
-  user: 'test-user', // optional unique user identifier
 });
 ```
 
-The following optional settings are available for OpenAI chat models:
+The following optional provider options are available for OpenAI chat models:
 
 - **logitBias** _Record&lt;number, number&gt;_
 
@@ -177,40 +179,10 @@ The following optional settings are available for OpenAI chat models:
 
   Whether to enable parallel function calling during tool use. Defaults to `true`.
 
-- **useLegacyFunctionCalls** _boolean_
-
-  Whether to use legacy function calling. Defaults to false.
-
-  Required by some open source inference engines which do not support the `tools` API. May also
-  provide a workaround for `parallelToolCalls` resulting in the provider buffering tool calls,
-  which causes `streamObject` to be non-streaming.
-
-  Prefer setting `parallelToolCalls: false` over this option.
-
-- **structuredOutputs** _boolean_
-
-  Whether to use [structured outputs](#structured-outputs).
-  Defaults to `false` for normal models, and `true` for reasoning models.
-
-  When enabled, tool calls and object generation will be strict and follow the provided schema.
-
 - **user** _string_
 
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
-
-- **downloadImages** _boolean_
-
-  Automatically download images and pass the image as data to the model.
-  OpenAI supports image URLs for public models, so this is only needed for
-  private models or when the images are not publicly accessible.
-  Defaults to `false`.
-
-- **simulateStreaming** _boolean_
-
-  Simulates streaming by using a normal generate call and returning it as a stream.
-  Enable this if the model that you are using does not support streaming.
-  Defaults to `false`.
 
 - **reasoningEffort** _'low' | 'medium' | 'high'_
 
@@ -218,10 +190,49 @@ The following optional settings are available for OpenAI chat models:
   `providerOptions` to set the `reasoningEffort` option, this
   model setting will be ignored.
 
+- **structuredOutputs** _boolean_
+
+  Whether to use [structured outputs](#structured-outputs).
+  Defaults to `true`.
+
+  When enabled, tool calls and object generation will be strict and follow the provided schema.
+
+- **maxCompletionTokens** _number_
+
+  Maximum number of completion tokens to generate. Useful for reasoning models.
+
+- **store** _boolean_
+
+  Whether to enable persistence in Responses API.
+
+- **metadata** _Record&lt;string, string&gt;_
+
+  Metadata to associate with the request.
+
+- **prediction** _Record&lt;string, any&gt;_
+
+  Parameters for prediction mode.
+
+- **serviceTier** _'auto' | 'flex'_
+
+  Service tier for the request. Set to 'flex' for 50% cheaper processing
+  at the cost of increased latency. Only available for o3 and o4-mini models.
+  Defaults to 'auto'.
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation.
+  Defaults to `false`.
+
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
+<<<<<<< HEAD
 Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available.
+=======
+Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available via both the chat and responses APIs. The
+models `codex-mini-latest` and `computer-use-preview` are available only via the [responses API](#responses-models).
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
 
@@ -269,15 +280,14 @@ console.log('Usage:', {
 </Note>
 
 <Note>
-  `maxTokens` is automatically mapped to `max_completion_tokens` for reasoning
-  models.
+  `maxOutputTokens` is automatically mapped to `max_completion_tokens` for
+  reasoning models.
 </Note>
 
 #### Structured Outputs
 
-You can enable [OpenAI structured outputs](https://openai.com/index/introducing-structured-outputs-in-the-api/) by setting the `structuredOutputs` option to `true`.
-Structured outputs are a form of grammar-guided generation.
-The JSON schema is used as a grammar and the outputs will always conform to the schema.
+Structured outputs are enabled by default.
+You can disable them by setting the `structuredOutputs` option to `false`.
 
 ```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
@@ -285,9 +295,12 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const result = await generateObject({
-  model: openai('gpt-4o-2024-08-06', {
-    structuredOutputs: true,
-  }),
+  model: openai('gpt-4o-2024-08-06'),
+  providerOptions: {
+    openai: {
+      structuredOutputs: false,
+    },
+  },
   schemaName: 'recipe',
   schemaDescription: 'A recipe for lasagna.',
   schema: z.object({
@@ -317,6 +330,32 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
 
+#### Logprobs
+
+OpenAI provides logprobs information for completion/chat models.
+You can access it in the `providerMetadata` object.
+
+```ts highlight="11"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    openai: {
+      // this can also be a number,
+      // refer to logprobs provider options section for more
+      logprobs: true,
+    },
+  },
+});
+
+const openaiMetadata = (await result.providerMetadata)?.openai;
+
+const logprobs = openaiMetadata?.logprobs;
+```
+
 #### PDF support
 
 The OpenAI Chat API supports reading PDF files.
@@ -336,7 +375,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
       ],
@@ -348,7 +387,7 @@ const result = await generateText({
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
-and the `mimeType` should be set to `'application/pdf'`.
+and the `mediaType` should be set to `'application/pdf'`.
 
 #### Predicted Outputs
 
@@ -426,7 +465,11 @@ const result = await generateText({
 
 <Note type="warning">
   Because the `UIMessage` type (used by AI SDK UI hooks like `useChat`) does not
+<<<<<<< HEAD
   support the `providerOptions` property, you can use `convertToCoreMessages`
+=======
+  support the `providerOptions` property, you can use `convertToModelMessages`
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   first before passing the messages to functions like `generateText` or
   `streamText`. For more details on `providerOptions` usage, see
   [here](/docs/foundations/prompts#provider-options).
@@ -514,7 +557,7 @@ const result = await generateText({
         { type: 'text', text: 'What is the audio saying?' },
         {
           type: 'file',
-          mimeType: 'audio/mpeg',
+          mediaType: 'audio/mpeg',
           data: fs.readFileSync('./data/galileo.mp3'),
         },
       ],
@@ -580,8 +623,18 @@ The following provider options are available:
 - **reasoningSummary** _'auto' | 'detailed'_
   Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
 
+<<<<<<< HEAD
 - **strictSchemas** _boolean_
   Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
+=======
+- **strictJsonSchema** _boolean_
+  Whether to use strict JSON schema validation. Defaults to `false`.
+
+- **serviceTier** _'auto' | 'flex'_
+  Service tier for the request. Set to 'flex' for 50% cheaper processing
+  at the cost of increased latency. Only available for o3 and o4-mini models.
+  Defaults to 'auto'.
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
 The OpenAI responses provider also returns provider-specific metadata:
 
@@ -699,7 +752,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
       ],
@@ -711,7 +764,43 @@ const result = await generateText({
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
-and the `mimeType` should be set to `'application/pdf'`.
+and the `mediaType` should be set to `'application/pdf'`.
+
+#### Structured Outputs
+
+The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `experimental_output` option when using `generateText` or `streamText`.
+
+```ts
+// Using generateObject
+const result = await generateObject({
+  model: openai.responses('gpt-4.1'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(
+        z.object({
+          name: z.string(),
+          amount: z.string(),
+        }),
+      ),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+
+// Using generateText
+const result = await generateText({
+  model: openai.responses('gpt-4.1'),
+  prompt: 'How do I make a pizza?',
+  experimental_output: Output.object({
+    schema: z.object({
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+});
+```
 
 #### Structured Outputs
 
@@ -763,18 +852,24 @@ OpenAI completion models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-const model = openai.completion('gpt-3.5-turbo-instruct', {
-  echo: true, // optional, echo the prompt in addition to the completion
-  logitBias: {
-    // optional likelihood for specific tokens
-    '50256': -100,
+const model = openai.completion('gpt-3.5-turbo-instruct');
+
+await model.doGenerate({
+  providerOptions: {
+    openai: {
+      echo: true, // optional, echo the prompt in addition to the completion
+      logitBias: {
+        // optional likelihood for specific tokens
+        '50256': -100,
+      },
+      suffix: 'some text', // optional suffix that comes after a completion of inserted text
+      user: 'test-user', // optional unique user identifier
+    },
   },
-  suffix: 'some text', // optional suffix that comes after a completion of inserted text
-  user: 'test-user', // optional unique user identifier
 });
 ```
 
-The following optional settings are available for OpenAI completion models:
+The following optional provider options are available for OpenAI completion models:
 
 - **echo**: _boolean_
 
@@ -847,23 +942,32 @@ The following optional settings are available for OpenAI completion models:
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
-using the `.embedding()` factory method.
+using the `.textEmbedding()` factory method.
 
 ```ts
-const model = openai.embedding('text-embedding-3-large');
+const model = openai.textEmbedding('text-embedding-3-large');
 ```
 
-OpenAI embedding models support several additional settings.
+OpenAI embedding models support several additional provider options.
 You can pass them as an options argument:
 
 ```ts
-const model = openai.embedding('text-embedding-3-large', {
-  dimensions: 512 // optional, number of dimensions for the embedding
-  user: 'test-user' // optional unique user identifier
-})
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai.textEmbedding('text-embedding-3-large'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    openai: {
+      dimensions: 512, // optional, number of dimensions for the embedding
+      user: 'test-user', // optional unique user identifier
+    },
+  },
+});
 ```
 
-The following optional settings are available for OpenAI embedding models:
+The following optional provider options are available for OpenAI embedding models:
 
 - **dimensions**: _number_
 
@@ -908,7 +1012,11 @@ const model = openai.image('dall-e-3');
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 
 ```ts
+<<<<<<< HEAD
 const { image } = await generateImage({
+=======
+const { image, providerMetadata } = await generateImage({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   model: openai.image('gpt-image-1'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
@@ -919,6 +1027,11 @@ const { image } = await generateImage({
 
 For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
 
+<<<<<<< HEAD
+=======
+OpenAI's image models may return a revised prompt for each image. It can be access at `providerMetadata.openai.images[0]?.revisedPrompt`.
+
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 For more information on the available OpenAI image model options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 
 ## Transcription Models

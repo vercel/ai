@@ -249,7 +249,11 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
+<<<<<<< HEAD
     expect(await server.calls[1].requestBody).toMatchObject({
+=======
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       audio_url: 'https://storage.assemblyai.com/mock-upload-url',
       speech_model: 'best',
     });

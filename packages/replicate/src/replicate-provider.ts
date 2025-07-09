@@ -1,11 +1,8 @@
-import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
-import {
-  ReplicateImageModelId,
-  ReplicateImageSettings,
-} from './replicate-image-settings';
+import { ReplicateImageModelId } from './replicate-image-settings';
 
 export interface ReplicateProviderSettings {
   /**
@@ -32,22 +29,17 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface ReplicateProvider extends ProviderV1 {
+export interface ReplicateProvider extends ProviderV2 {
   /**
    * Creates a Replicate image generation model.
+   * @deprecated Use `imageModel` instead.
    */
-  image(
-    modelId: ReplicateImageModelId,
-    settings?: ReplicateImageSettings,
-  ): ReplicateImageModel;
+  image(modelId: ReplicateImageModelId): ReplicateImageModel;
 
   /**
    * Creates a Replicate image generation model.
    */
-  imageModel(
-    modelId: ReplicateImageModelId,
-    settings?: ReplicateImageSettings,
-  ): ReplicateImageModel;
+  imageModel(modelId: ReplicateImageModelId): ReplicateImageModel;
 }
 
 /**
@@ -56,11 +48,8 @@ export interface ReplicateProvider extends ProviderV1 {
 export function createReplicate(
   options: ReplicateProviderSettings = {},
 ): ReplicateProvider {
-  const createImageModel = (
-    modelId: ReplicateImageModelId,
-    settings?: ReplicateImageSettings,
-  ) =>
-    new ReplicateImageModel(modelId, settings ?? {}, {
+  const createImageModel = (modelId: ReplicateImageModelId) =>
+    new ReplicateImageModel(modelId, {
       provider: 'replicate',
       baseURL: options.baseURL ?? 'https://api.replicate.com/v1',
       headers: {

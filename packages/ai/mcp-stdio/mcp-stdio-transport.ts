@@ -3,9 +3,9 @@ import { Stream } from 'node:stream';
 import {
   JSONRPCMessage,
   JSONRPCMessageSchema,
-} from '../core/tool/mcp/json-rpc-message';
-import { MCPTransport } from '../core/tool/mcp/mcp-transport';
-import { MCPClientError } from '../errors';
+} from '../src/tool/mcp/json-rpc-message';
+import { MCPTransport } from '../src/tool/mcp/mcp-transport';
+import { MCPClientError } from '../src/error/mcp-client-error';
 import { createChildProcess } from './create-child-process';
 
 export interface StdioConfig {

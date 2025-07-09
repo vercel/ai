@@ -79,7 +79,7 @@ import { fal } from '@ai-sdk/fal';
 import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
-const { image } = await generateImage({
+const { image, providerMetadata } = await generateImage({
   model: fal.image('fal-ai/fast-sdxl'),
   prompt: 'A serene mountain landscape at sunset',
 });
@@ -89,10 +89,22 @@ fs.writeFileSync(filename, image.uint8Array);
 console.log(`Image saved to ${filename}`);
 ```
 
+Fal image models may return additional information for the images and the request.
+
+Here are some examples of properties that may be set for each image
+
+```js
+providerMetadata.fal.images[0].nsfw; // boolean, image is not safe for work
+providerMetadata.fal.images[0].width; // number, image width
+providerMetadata.fal.images[0].height; // number, image height
+providerMetadata.fal.images[0].content_type; // string, mime type of the image
+```
+
 ### Model Capabilities
 
 Fal offers many models optimized for different use cases. Here are a few popular examples. For a full list of models, see the [Fal AI documentation](https://fal.ai/models).
 
+<<<<<<< HEAD
 | Model                               | Description                                                                                                                                                   |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `fal-ai/fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                               |
@@ -104,6 +116,22 @@ Fal offers many models optimized for different use cases. Here are a few popular
 | `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                         |
 | `fal-ai/stable-diffusion-3.5-large` | Advanced MMDiT model with improved typography and complex prompt understanding                                                                                |
 | `fal-ai/hyper-sdxl`                 | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                        |
+=======
+| Model                                | Description                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fal-ai/fast-sdxl`                   | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                               |
+| `fal-ai/flux-pro/kontext`            | FLUX.1 Kontext [pro] handles both text and reference images as inputs, seamlessly enabling targeted, local edits and complex transformations of entire scenes |
+| `fal-ai/flux-pro/kontext/max`        | FLUX.1 Kontext [max] with greatly improved prompt adherence and typography generation, meeting premium consistency for editing without compromise on speed    |
+| `fal-ai/flux-lora`                   | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations.        |
+| `fal-ai/flux-pro/v1.1-ultra`         | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                        |
+| `fal-ai/ideogram/v2`                 | Specialized for high-quality posters and logos with exceptional typography handling                                                                           |
+| `fal-ai/recraft-v3`                  | SOTA in image generation with vector art and brand style capabilities                                                                                         |
+| `fal-ai/stable-diffusion-3.5-large`  | Advanced MMDiT model with improved typography and complex prompt understanding                                                                                |
+| `fal-ai/hyper-sdxl`                  | Performance-optimized SDXL variant with enhanced creative capabilities                                                                                        |
+| `fal-ai/flux/dev`                    | FLUX.1 [dev] model for high-quality image generation                                                                                                          |
+| `fal-ai/flux/schnell`                | FLUX.1 [schnell] model optimized for speed                                                                                                                    |
+| `fal-ai/stable-diffusion-3.5-medium` | Medium-sized Stable Diffusion 3.5 model with good balance of quality and speed                                                                                |
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
 Fal models support the following aspect ratios:
 
@@ -143,6 +171,21 @@ await generateImage({
 });
 ```
 
+<<<<<<< HEAD
+=======
+### Provider Options
+
+Fal image models support flexible provider options through the `providerOptions.fal` object. You can pass any parameters supported by the specific Fal model's API. Common options include:
+
+- **image_url** - Reference image URL for image-to-image generation
+- **strength** - Controls how much the output differs from the input image
+- **guidance_scale** - Controls adherence to the prompt
+- **num_inference_steps** - Number of denoising steps
+- **safety_checker** - Enable/disable safety filtering
+
+Refer to the [Fal AI model documentation](https://fal.ai/models) for model-specific parameters.
+
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 ### Advanced Features
 
 Fal's platform offers several advanced capabilities:
@@ -193,7 +236,11 @@ The following provider options are available:
 
 - **chunkLevel** _string_
   Level of the chunks to return. Either 'segment' or 'word'.
+<<<<<<< HEAD
   Default value: "word"
+=======
+  Default value: "segment"
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   Optional.
 
 - **version** _string_

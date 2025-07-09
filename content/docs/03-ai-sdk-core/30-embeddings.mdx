@@ -12,7 +12,7 @@ In this space, similar words are close to each other, and the distance between w
 
 The AI SDK provides the [`embed`](/docs/reference/ai-sdk-core/embed) function to embed single values, which is useful for tasks such as finding similar words
 or phrases or clustering text.
-You can use it with embeddings models, e.g. `openai.embedding('text-embedding-3-large')` or `mistral.embedding('mistral-embed')`.
+You can use it with embeddings models, e.g. `openai.textEmbeddingModel('text-embedding-3-large')` or `mistral.textEmbeddingModel('mistral-embed')`.
 
 ```tsx
 import { embed } from 'ai';
@@ -20,7 +20,7 @@ import { openai } from '@ai-sdk/openai';
 
 // 'embedding' is a single embedding object (number[])
 const { embedding } = await embed({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   value: 'sunny day at the beach',
 });
 ```
@@ -32,7 +32,7 @@ it is often useful to embed many values at once (batch embedding).
 
 The AI SDK provides the [`embedMany`](/docs/reference/ai-sdk-core/embed-many) function for this purpose.
 Similar to `embed`, you can use it with embeddings models,
-e.g. `openai.embedding('text-embedding-3-large')` or `mistral.embedding('mistral-embed')`.
+e.g. `openai.textEmbeddingModel('text-embedding-3-large')` or `mistral.textEmbeddingModel('mistral-embed')`.
 
 ```tsx
 import { openai } from '@ai-sdk/openai';
@@ -41,7 +41,7 @@ import { embedMany } from 'ai';
 // 'embeddings' is an array of embedding objects (number[][]).
 // It is sorted in the same order as the input values.
 const { embeddings } = await embedMany({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   values: [
     'sunny day at the beach',
     'rainy afternoon in the city',
@@ -61,7 +61,7 @@ import { openai } from '@ai-sdk/openai';
 import { cosineSimilarity, embedMany } from 'ai';
 
 const { embeddings } = await embedMany({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   values: ['sunny day at the beach', 'rainy afternoon in the city'],
 });
 
@@ -80,7 +80,7 @@ import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding, usage } = await embed({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   value: 'sunny day at the beach',
 });
 
@@ -88,6 +88,44 @@ console.log(usage); // { tokens: 10 }
 ```
 
 ## Settings
+
+### Provider Options
+
+Embedding model settings can be configured using `providerOptions` for provider-specific parameters:
+
+```ts highlight={"5-9"}
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    openai: {
+      dimensions: 512, // Reduce embedding dimensions
+    },
+  },
+});
+```
+
+### Parallel Requests
+
+The `embedMany` function now supports parallel processing with configurable `maxParallelCalls` to optimize performance:
+
+```ts highlight={"4"}
+import { openai } from '@ai-sdk/openai';
+import { embedMany } from 'ai';
+
+const { embeddings, usage } = await embedMany({
+  maxParallelCalls: 2, // Limit parallel requests
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
+  values: [
+    'sunny day at the beach',
+    'rainy afternoon in the city',
+    'snowy night in the mountains',
+  ],
+});
+```
 
 ### Retries
 
@@ -100,7 +138,7 @@ import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   value: 'sunny day at the beach',
   maxRetries: 0, // Disable retries
 });
@@ -117,7 +155,7 @@ import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   value: 'sunny day at the beach',
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
@@ -133,10 +171,26 @@ import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: openai.embedding('text-embedding-3-small'),
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
   value: 'sunny day at the beach',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
+```
+
+## Response Information
+
+Both `embed` and `embedMany` return response information that includes the raw provider response:
+
+```ts highlight={"4,9"}
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding, response } = await embed({
+  model: openai.textEmbeddingModel('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+
+console.log(response); // Raw provider response
 ```
 
 ## Embedding Providers & Models
@@ -157,5 +211,5 @@ Several providers offer embedding models:
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                             | `embed-english-v2.0`            | 4096                 |
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                             | `embed-english-light-v2.0`      | 1024                 |
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                             | `embed-multilingual-v2.0`       | 768                  |
-| [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#embedding-models)             | `amazon.titan-embed-text-v1`    | 1024                 |
+| [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#embedding-models)             | `amazon.titan-embed-text-v1`    | 1536                 |
 | [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#embedding-models)             | `amazon.titan-embed-text-v2:0`  | 1024                 |

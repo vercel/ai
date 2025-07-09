@@ -1,15 +1,15 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool } from 'ai';
+import { generateText, stepCountIs, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   const { text, usage } = await generateText({
-    model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
+    model: openai('gpt-4o-2024-08-06'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
         execute: async () => {
           const locations = ['New York', 'London', 'Paris'];
           return {
@@ -19,7 +19,7 @@ async function main() {
       }),
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
@@ -28,7 +28,7 @@ async function main() {
         }),
       }),
     },
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     prompt: 'What is the weather in my current location?',
 
     onStepFinish: step => {

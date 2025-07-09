@@ -1,41 +1,19 @@
-import type {
-  ChatRequest,
-  ChatRequestOptions,
-  CreateMessage,
-  JSONValue,
-  Message,
-  UIMessage,
-  UseChatOptions,
-} from '@ai-sdk/ui-utils';
 import {
-  callChatApi,
-  extractMaxToolInvocationStep,
-  fillMessageParts,
-  generateId as generateIdFunc,
-  getMessageParts,
-  isAssistantMessageWithCompletedToolCalls,
-  prepareAttachmentsForRequest,
-  shouldResubmitMessages,
-  updateToolCallResult,
-} from '@ai-sdk/ui-utils';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
-import { throttle } from './throttle';
-import { useStableValue } from './util/use-stable-value';
+  AbstractChat,
+  ChatInit,
+  type CreateUIMessage,
+  type UIMessage,
+} from 'ai';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { Chat } from './chat.react';
 
-export type { CreateMessage, Message, UseChatOptions };
+export type { CreateUIMessage, UIMessage };
 
-export type UseChatHelpers = {
-  /** Current messages in the chat */
-  messages: UIMessage[];
-  /** The error object of the API request */
-  error: undefined | Error;
+export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   /**
-   * Append a user message to the chat list. This triggers the API call to fetch
-   * the assistant's response.
-   * @param message The message to append
-   * @param options Additional options to pass to the API call
+   * The id of the chat.
    */
+<<<<<<< HEAD
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
@@ -57,6 +35,9 @@ export type UseChatHelpers = {
    * Resume an ongoing chat generation stream. This does not resume an aborted generation.
    */
   experimental_resume: () => void;
+=======
+  readonly id: string;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   /**
    * Update the `messages` state locally. This is useful when you want to
@@ -64,96 +45,25 @@ export type UseChatHelpers = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
-  /** The current value of the input */
-  input: string;
-  /** setState-powered method to update the input value */
-  setInput: React.Dispatch<React.SetStateAction<string>>;
-  /** An input/textarea-ready onChange handler to control the value of the input */
-  handleInputChange: (
-    e:
-      | React.ChangeEvent<HTMLInputElement>
-      | React.ChangeEvent<HTMLTextAreaElement>,
-  ) => void;
-  /** Form submission handler to automatically reset input and append a user message */
-  handleSubmit: (
-    event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions,
-  ) => void;
-  metadata?: Object;
-
-  /**
-   * Whether the API request is in progress
-   *
-   * @deprecated use `status` instead
-   */
-  isLoading: boolean;
-
-  /**
-   * Hook status:
-   *
-   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
-   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
-   * - `ready`: The full response has been received and processed; a new user message can be submitted.
-   * - `error`: An error occurred during the API request, preventing successful completion.
-   */
-  status: 'submitted' | 'streaming' | 'ready' | 'error';
-
-  /** Additional data added on the server via StreamData. */
-  data?: JSONValue[];
-
-  /** Set the data of the chat. You can use this to transform or clear the chat data. */
-  setData: (
-    data:
-      | JSONValue[]
-      | undefined
-      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+    messages: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
   ) => void;
 
-  /** The id of the chat */
-  id: string;
-};
+  error: Error | undefined;
+} & Pick<
+  AbstractChat<UI_MESSAGE>,
+  | 'sendMessage'
+  | 'regenerate'
+  | 'stop'
+  | 'resumeStream'
+  | 'addToolResult'
+  | 'status'
+  | 'messages'
+>;
 
-export function useChat({
-  api = '/api/chat',
-  id,
-  initialMessages,
-  initialInput = '',
-  sendExtraMessageFields,
-  onToolCall,
-  experimental_prepareRequestBody,
-  maxSteps = 1,
-  streamProtocol = 'data',
-  onResponse,
-  onFinish,
-  onError,
-  credentials,
-  headers,
-  body,
-  generateId = generateIdFunc,
-  fetch,
-  keepLastMessageOnError = true,
-  experimental_throttle: throttleWaitMs,
-}: UseChatOptions & {
-  key?: string;
-
-  /**
-   * Experimental (React only). When a function is provided, it will be used
-   * to prepare the request body for the chat API. This can be useful for
-   * customizing the request body based on the messages and data in the chat.
-   *
-   * @param messages The current messages in the chat.
-   * @param requestData The data object passed in the chat request.
-   * @param requestBody The request body object passed in the chat request.
-   */
-  experimental_prepareRequestBody?: (options: {
-    id: string;
-    messages: UIMessage[];
-    requestData?: JSONValue;
-    requestBody?: object;
-  }) => unknown;
-
+export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
+  | { chat: Chat<UI_MESSAGE> }
+  | ChatInit<UI_MESSAGE>
+) & {
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
@@ -161,44 +71,31 @@ Default is undefined, which disables throttling.
   experimental_throttle?: number;
 
   /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-Must be at least 1.
+   * Whether to resume an ongoing chat generation stream.
+   */
+  resume?: boolean;
+};
 
-A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
+  experimental_throttle: throttleWaitMs,
+  resume = false,
+  ...options
+}: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
+  const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
 
-By default, it's set to 1, which means that only a single LLM call is made.
- */
-  maxSteps?: number;
-} = {}): UseChatHelpers & {
-  addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => void;
-} {
-  // Generate ID once, store in state for stability across re-renders
-  const [hookId] = useState(generateId);
-
-  // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
-  const chatId = id ?? hookId;
-  const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
-
-  // Store array of the processed initial messages to avoid re-renders:
-  const stableInitialMessages = useStableValue(initialMessages ?? []);
-  const processedInitialMessages = useMemo(
-    () => fillMessageParts(stableInitialMessages),
-    [stableInitialMessages],
+  const subscribeToMessages = useCallback(
+    (update: () => void) =>
+      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
+    [throttleWaitMs],
   );
 
-  // Store the chat state in SWR, using the chatId as the key to share states.
-  const { data: messages, mutate } = useSWR<UIMessage[]>(
-    [chatKey, 'messages'],
-    null,
-    { fallbackData: processedInitialMessages },
+  const messages = useSyncExternalStore(
+    subscribeToMessages,
+    () => chatRef.current.messages,
+    () => chatRef.current.messages,
   );
 
+<<<<<<< HEAD
   // Keep the latest messages in a ref.
   const messagesRef = useRef<UIMessage[]>(messages || []);
   useEffect(() => {
@@ -472,128 +369,48 @@ By default, it's set to 1, which means that only a single LLM call is made.
     triggerRequest({ messages }, 'resume');
   }, [triggerRequest]);
 
+=======
+  const status = useSyncExternalStore(
+    chatRef.current['~registerStatusCallback'],
+    () => chatRef.current.status,
+    () => chatRef.current.status,
+  );
+
+  const error = useSyncExternalStore(
+    chatRef.current['~registerErrorCallback'],
+    () => chatRef.current.error,
+    () => chatRef.current.error,
+  );
+
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   const setMessages = useCallback(
-    (messages: Message[] | ((messages: Message[]) => Message[])) => {
-      if (typeof messages === 'function') {
-        messages = messages(messagesRef.current);
-      }
-
-      const messagesWithParts = fillMessageParts(messages);
-      mutate(messagesWithParts, false);
-      messagesRef.current = messagesWithParts;
-    },
-    [mutate],
-  );
-
-  const setData = useCallback(
     (
-      data:
-        | JSONValue[]
-        | undefined
-        | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
+      messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
     ) => {
-      if (typeof data === 'function') {
-        data = data(streamDataRef.current);
+      if (typeof messagesParam === 'function') {
+        messagesParam = messagesParam(messages);
       }
 
-      mutateStreamData(data, false);
-      streamDataRef.current = data;
+      chatRef.current.messages = messagesParam;
     },
-    [mutateStreamData],
+    [messages, chatRef],
   );
 
-  // Input state and handlers.
-  const [input, setInput] = useState(initialInput);
-
-  const handleSubmit = useCallback(
-    async (
-      event?: { preventDefault?: () => void },
-      options: ChatRequestOptions = {},
-      metadata?: Object,
-    ) => {
-      event?.preventDefault?.();
-
-      if (!input && !options.allowEmptySubmit) return;
-
-      if (metadata) {
-        extraMetadataRef.current = {
-          ...extraMetadataRef.current,
-          ...metadata,
-        };
-      }
-
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        options.experimental_attachments,
-      );
-
-      const messages = messagesRef.current.concat({
-        id: generateId(),
-        createdAt: new Date(),
-        role: 'user',
-        content: input,
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: [{ type: 'text', text: input }],
-      });
-
-      const chatRequest: ChatRequest = {
-        messages,
-        headers: options.headers,
-        body: options.body,
-        data: options.data,
-      };
-
-      triggerRequest(chatRequest);
-
-      setInput('');
-    },
-    [input, generateId, triggerRequest],
-  );
-
-  const handleInputChange = (e: any) => {
-    setInput(e.target.value);
-  };
-
-  const addToolResult = useCallback(
-    ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
-      const currentMessages = messagesRef.current;
-
-      updateToolCallResult({
-        messages: currentMessages,
-        toolCallId,
-        toolResult: result,
-      });
-
-      // array mutation is required to trigger a re-render
-      mutate(
-        [
-          ...currentMessages.slice(0, currentMessages.length - 1),
-          { ...currentMessages[currentMessages.length - 1] },
-        ],
-        false,
-      );
-
-      // when the request is ongoing, the auto-submit will be triggered after the request is finished
-      if (status === 'submitted' || status === 'streaming') {
-        return;
-      }
-
-      // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = currentMessages[currentMessages.length - 1];
-      if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-        triggerRequest({ messages: currentMessages });
-      }
-    },
-    [mutate, status, triggerRequest],
-  );
+  useEffect(() => {
+    if (resume) {
+      chatRef.current.resumeStream();
+    }
+  }, [resume, chatRef]);
 
   return {
-    messages: messages ?? [],
-    id: chatId,
+    id: chatRef.current.id,
+    messages,
     setMessages,
-    data: streamData,
-    setData,
+    sendMessage: chatRef.current.sendMessage,
+    regenerate: chatRef.current.regenerate,
+    stop: chatRef.current.stop,
     error,
+<<<<<<< HEAD
     append,
     reload,
     stop,
@@ -603,7 +420,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
     handleInputChange,
     handleSubmit,
     isLoading: status === 'submitted' || status === 'streaming',
+=======
+    resumeStream: chatRef.current.resumeStream,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     status,
-    addToolResult,
+    addToolResult: chatRef.current.addToolResult,
   };
 }

@@ -5,7 +5,11 @@ description: Learn how to use Vercel's v0 models with the AI SDK.
 
 # Vercel Provider
 
+<<<<<<< HEAD
 The [Vercel](https://vercel.com) provider gives you access to the [v0 API](https://vercel.com/docs/v0/api), designed for building modern web applications. The `v0-1.0-md` model supports text and image inputs and provides fast streaming responses.
+=======
+The [Vercel](https://vercel.com) provider gives you access to the [v0 API](https://vercel.com/docs/v0/api), designed for building modern web applications. The v0 models support text and image inputs and provide fast streaming responses.
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
 You can create your Vercel API key at [v0.dev](https://v0.dev/chat/settings/keys).
 
@@ -21,7 +25,10 @@ You can create your Vercel API key at [v0.dev](https://v0.dev/chat/settings/keys
 - **Framework aware completions**: Evaluated on modern stacks like Next.js and Vercel
 - **Auto-fix**: Identifies and corrects common coding issues during generation
 - **Quick edit**: Streams inline edits as they're available
+<<<<<<< HEAD
 - **OpenAI compatible**: Can be used with any tool or SDK that supports OpenAI's API format
+=======
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 - **Multimodal**: Supports both text and image inputs
 
 ## Setup
@@ -96,6 +103,7 @@ const { text } = await generateText({
 
 Vercel language models can also be used in the `streamText` function (see [AI SDK Core](/docs/ai-sdk-core)).
 
+<<<<<<< HEAD
 ## Example with AI SDK
 
 ```ts
@@ -120,6 +128,23 @@ const { text } = await generateText({
 The `v0-1.0-md` model is the default model served by the v0 API.
 
 Capabilities:
+=======
+## Models
+
+### v0-1.5-md
+
+The `v0-1.5-md` model is for everyday tasks and UI generation.
+
+### v0-1.5-lg
+
+The `v0-1.5-lg` model is for advanced thinking or reasoning.
+
+### v0-1.0-md (legacy)
+
+The `v0-1.0-md` model is the legacy model served by the v0 API.
+
+All v0 models have the following capabilities:
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
 - Supports text and image inputs (multimodal)
 - Supports function/tool calls
@@ -130,4 +155,9 @@ Capabilities:
 
 | Model       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------- | ------------------- | ------------------- | ------------------- | ------------------- |
+<<<<<<< HEAD
+=======
+| `v0-1.5-md` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `v0-1.5-lg` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 | `v0-1.0-md` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

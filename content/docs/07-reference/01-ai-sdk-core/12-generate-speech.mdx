@@ -37,7 +37,11 @@ console.log(audio);
   content={[
     {
       name: 'model',
+<<<<<<< HEAD
       type: 'SpeechModelV1',
+=======
+      type: 'SpeechModelV2',
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       description: 'The speech model to use.',
     },
     {
@@ -71,6 +75,16 @@ console.log(audio);
       description: 'The speed of the speech generation.',
     },
     {
+<<<<<<< HEAD
+=======
+      name: 'language',
+      type: 'string',
+      isOptional: true,
+      description:
+        'The language for speech generation. This should be an ISO 639-1 language code (e.g. "en", "es", "fr") or "auto" for automatic language detection. Provider support varies.',
+    },
+    {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       name: 'providerOptions',
       type: 'Record<string, Record<string, JSONValue>>',
       isOptional: true,
@@ -160,6 +174,15 @@ console.log(audio);
                 'The ID of the response model that was used to generate the response.',
             },
             {
+<<<<<<< HEAD
+=======
+              name: 'body',
+              isOptional: true,
+              type: 'unknown',
+              description: 'Optional response body.',
+            },
+            {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
               name: 'headers',
               type: 'Record<string, string>',
               isOptional: true,

@@ -11,8 +11,8 @@ All AI SDK functions support the following common settings in addition to the mo
 
 ```ts highlight="3-5"
 const result = await generateText({
-  model: yourModel,
-  maxTokens: 512,
+  model: 'openai/gpt-4.1',
+  maxOutputTokens: 512,
   temperature: 0.3,
   maxRetries: 5,
   prompt: 'Invent a new holiday and describe its traditions.',
@@ -26,7 +26,7 @@ const result = await generateText({
   generated.
 </Note>
 
-### `maxTokens`
+### `maxOutputTokens`
 
 Maximum number of tokens to generate.
 
@@ -38,6 +38,8 @@ The value is passed through to the provider. The range depends on the provider a
 For most providers, `0` means almost deterministic results, and higher values mean more randomness.
 
 It is recommended to set either `temperature` or `topP`, but not both.
+
+<Note>In AI SDK 5.0, temperature is no longer set to `0` by default.</Note>
 
 ### `topP`
 

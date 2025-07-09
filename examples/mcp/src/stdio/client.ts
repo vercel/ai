@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { experimental_createMCPClient, generateText } from 'ai';
+import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 async function main() {
   let mcpClient;
@@ -23,15 +23,15 @@ async function main() {
     });
 
     const { text: answer } = await generateText({
-      model: openai('gpt-4o-mini', { structuredOutputs: true }),
+      model: openai('gpt-4o-mini'),
       tools: await mcpClient.tools({
         schemas: {
           'get-pokemon': {
-            parameters: z.object({ name: z.string() }),
+            inputSchema: z.object({ name: z.string() }),
           },
         },
       }),
-      maxSteps: 10,
+      stopWhen: stepCountIs(10),
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },

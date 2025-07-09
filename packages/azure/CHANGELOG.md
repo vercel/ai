@@ -1,5 +1,6 @@
 # @ai-sdk/azure
 
+<<<<<<< HEAD
 ## 1.3.23
 
 ### Patch Changes
@@ -128,6 +129,500 @@
 - Updated dependencies [2c19b9a]
   - @ai-sdk/provider-utils@2.2.4
   - @ai-sdk/openai@1.3.7
+=======
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [0eee6a8]
+- Updated dependencies [b5a0e32]
+- Updated dependencies [c7d3b2e]
+  - @ai-sdk/openai@2.0.0-beta.6
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [48249c4]
+- Updated dependencies [e497698]
+  - @ai-sdk/openai@2.0.0-beta.5
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [b3c3450]
+- Updated dependencies [ad2a3d5]
+  - @ai-sdk/openai@2.0.0-beta.4
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [efc3a62]
+  - @ai-sdk/openai@2.0.0-beta.3
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [0571b98]
+- Updated dependencies [39a4fab]
+- Updated dependencies [d1a034f]
+  - @ai-sdk/provider-utils@3.0.0-beta.2
+  - @ai-sdk/openai@2.0.0-beta.2
+
+## 2.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [742b7be]
+- Updated dependencies [7cddb72]
+- Updated dependencies [ccce59b]
+- Updated dependencies [e2b9e4b]
+- Updated dependencies [45c1ea2]
+- Updated dependencies [e025824]
+- Updated dependencies [cc62234]
+- Updated dependencies [5d959e7]
+- Updated dependencies [0d06df6]
+- Updated dependencies [472524a]
+- Updated dependencies [dd3ff01]
+- Updated dependencies [7435eb5]
+- Updated dependencies [cb68df0]
+- Updated dependencies [bfdca8d]
+- Updated dependencies [44f4aba]
+- Updated dependencies [023ba40]
+- Updated dependencies [5e57fae]
+- Updated dependencies [71f938d]
+- Updated dependencies [28a5ed5]
+  - @ai-sdk/provider@2.0.0-beta.1
+  - @ai-sdk/provider-utils@3.0.0-beta.1
+  - @ai-sdk/openai@2.0.0-beta.1
+
+## 2.0.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [48d257a]
+- Updated dependencies [8ba77a7]
+  - @ai-sdk/provider@2.0.0-alpha.15
+  - @ai-sdk/provider-utils@3.0.0-alpha.15
+  - @ai-sdk/openai@2.0.0-alpha.15
+
+## 2.0.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [b5da06a]
+- Updated dependencies [63f9e9b]
+- Updated dependencies [2e13791]
+  - @ai-sdk/provider@2.0.0-alpha.14
+  - @ai-sdk/openai@2.0.0-alpha.14
+  - @ai-sdk/provider-utils@3.0.0-alpha.14
+
+## 2.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [68ecf2f]
+  - @ai-sdk/provider@2.0.0-alpha.13
+  - @ai-sdk/openai@2.0.0-alpha.13
+  - @ai-sdk/provider-utils@3.0.0-alpha.13
+
+## 2.0.0-alpha.12
+
+### Patch Changes
+
+- e2aceaf: feat: add raw chunk support
+- Updated dependencies [2f542fa]
+- Updated dependencies [e2aceaf]
+  - @ai-sdk/openai@2.0.0-alpha.12
+  - @ai-sdk/provider@2.0.0-alpha.12
+  - @ai-sdk/provider-utils@3.0.0-alpha.12
+
+## 2.0.0-alpha.11
+
+### Patch Changes
+
+- Updated dependencies [8d12da5]
+- Updated dependencies [c1e6647]
+  - @ai-sdk/openai@2.0.0-alpha.11
+  - @ai-sdk/provider@2.0.0-alpha.11
+  - @ai-sdk/provider-utils@3.0.0-alpha.11
+
+## 2.0.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [c4df419]
+  - @ai-sdk/provider@2.0.0-alpha.10
+  - @ai-sdk/openai@2.0.0-alpha.10
+  - @ai-sdk/provider-utils@3.0.0-alpha.10
+
+## 2.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [811dff3]
+  - @ai-sdk/provider@2.0.0-alpha.9
+  - @ai-sdk/openai@2.0.0-alpha.9
+  - @ai-sdk/provider-utils@3.0.0-alpha.9
+
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [4fef487]
+- Updated dependencies [9222aeb]
+- Updated dependencies [4af5233]
+  - @ai-sdk/provider-utils@3.0.0-alpha.8
+  - @ai-sdk/provider@2.0.0-alpha.8
+  - @ai-sdk/openai@2.0.0-alpha.8
+
+## 2.0.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [5c56081]
+  - @ai-sdk/provider@2.0.0-alpha.7
+  - @ai-sdk/openai@2.0.0-alpha.7
+  - @ai-sdk/provider-utils@3.0.0-alpha.7
+
+## 2.0.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [0d2c085]
+  - @ai-sdk/provider@2.0.0-alpha.6
+  - @ai-sdk/openai@2.0.0-alpha.6
+  - @ai-sdk/provider-utils@3.0.0-alpha.6
+
+## 2.0.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [dc714f3]
+  - @ai-sdk/provider@2.0.0-alpha.4
+  - @ai-sdk/openai@2.0.0-alpha.4
+  - @ai-sdk/provider-utils@3.0.0-alpha.4
+
+## 2.0.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [6b98118]
+  - @ai-sdk/provider@2.0.0-alpha.3
+  - @ai-sdk/openai@2.0.0-alpha.3
+  - @ai-sdk/provider-utils@3.0.0-alpha.3
+
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [26535e0]
+  - @ai-sdk/provider@2.0.0-alpha.2
+  - @ai-sdk/openai@2.0.0-alpha.2
+  - @ai-sdk/provider-utils@3.0.0-alpha.2
+
+## 2.0.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [3f2f00c]
+  - @ai-sdk/provider@2.0.0-alpha.1
+  - @ai-sdk/openai@2.0.0-alpha.1
+  - @ai-sdk/provider-utils@3.0.0-alpha.1
+
+## 2.0.0-canary.21
+
+### Patch Changes
+
+- Updated dependencies [faf8446]
+  - @ai-sdk/provider-utils@3.0.0-canary.19
+  - @ai-sdk/openai@2.0.0-canary.20
+
+## 2.0.0-canary.20
+
+### Patch Changes
+
+- Updated dependencies [40acf9b]
+  - @ai-sdk/provider-utils@3.0.0-canary.18
+  - @ai-sdk/openai@2.0.0-canary.19
+
+## 2.0.0-canary.19
+
+### Major Changes
+
+- 516be5b: ### Move Image Model Settings into generate options
+
+  Image Models no longer have settings. Instead, `maxImagesPerCall` can be passed directly to `generateImage()`. All other image settings can be passed to `providerOptions[provider]`.
+
+  Before
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1', {
+      maxImagesPerCall: 5,
+      pollIntervalMillis: 500,
+    }),
+    prompt,
+    n: 10,
+  });
+  ```
+
+  After
+
+  ```js
+  await generateImage({
+    model: luma.image('photon-flash-1'),
+    prompt,
+    n: 10,
+    maxImagesPerCall: 5,
+    providerOptions: {
+      luma: { pollIntervalMillis: 5 },
+    },
+  });
+  ```
+
+  Pull Request: https://github.com/vercel/ai/pull/6180
+
+### Patch Changes
+
+- Updated dependencies [516be5b]
+- Updated dependencies [ea7a7c9]
+  - @ai-sdk/openai@2.0.0-canary.18
+  - @ai-sdk/provider-utils@3.0.0-canary.17
+
+## 2.0.0-canary.18
+
+### Patch Changes
+
+- 52ce942: chore(providers/openai): remove & enable strict compatibility by default
+- Updated dependencies [52ce942]
+- Updated dependencies [87b828f]
+  - @ai-sdk/openai@2.0.0-canary.17
+  - @ai-sdk/provider-utils@3.0.0-canary.16
+
+## 2.0.0-canary.17
+
+### Patch Changes
+
+- Updated dependencies [a571d6e]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [7979f7f]
+- Updated dependencies [928fadf]
+- Updated dependencies [41fa418]
+- Updated dependencies [6f231db]
+  - @ai-sdk/provider-utils@3.0.0-canary.15
+  - @ai-sdk/provider@2.0.0-canary.14
+  - @ai-sdk/openai@2.0.0-canary.16
+
+## 2.0.0-canary.16
+
+### Patch Changes
+
+- Updated dependencies [957b739]
+- Updated dependencies [136819b]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [284353f]
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+  - @ai-sdk/openai@2.0.0-canary.15
+  - @ai-sdk/provider@2.0.0-canary.13
+
+## 2.0.0-canary.15
+
+### Patch Changes
+
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [fa758ea]
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+  - @ai-sdk/openai@2.0.0-canary.14
+
+## 2.0.0-canary.14
+
+### Patch Changes
+
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 4617fab: chore(embedding-models): remove remaining settings
+- Updated dependencies [177526b]
+- Updated dependencies [c15dfbf]
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/openai@2.0.0-canary.13
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
+## 2.0.0-canary.13
+
+### Patch Changes
+
+- db72adc: chore(providers/openai): update completion model to use providerOptions
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- Updated dependencies [db72adc]
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+- Updated dependencies [7df7a25]
+  - @ai-sdk/openai@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- Updated dependencies [e86be6f]
+- Updated dependencies [8493141]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/openai@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- Updated dependencies [95857aa]
+- Updated dependencies [3bd3c0b]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/openai@2.0.0-canary.10
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- Updated dependencies [d63bcbc]
+- Updated dependencies [d2af019]
+- Updated dependencies [870c5c0]
+- Updated dependencies [06bac05]
+  - @ai-sdk/openai@2.0.0-canary.9
+
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- 3b13ccf: feat(providers/azure): add transcribe
+- Updated dependencies [5d142ab]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [3795467]
+  - @ai-sdk/provider-utils@3.0.0-canary.8
+  - @ai-sdk/provider@2.0.0-canary.7
+  - @ai-sdk/openai@2.0.0-canary.8
+
+## 2.0.0-canary.8
+
+### Patch Changes
+
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [14c9410]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [0054544]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [d0f9495]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [393138b]
+- Updated dependencies [7182d14]
+  - @ai-sdk/provider@2.0.0-canary.6
+  - @ai-sdk/openai@2.0.0-canary.7
+  - @ai-sdk/provider-utils@3.0.0-canary.7
+
+## 2.0.0-canary.7
+
+### Patch Changes
+
+- Updated dependencies [948b755]
+- Updated dependencies [3b1ea10]
+- Updated dependencies [411e483]
+- Updated dependencies [442be08]
+- Updated dependencies [79457bd]
+- Updated dependencies [ad80501]
+- Updated dependencies [5147e6e]
+- Updated dependencies [c2b92cc]
+- Updated dependencies [1766ede]
+- Updated dependencies [f10304b]
+  - @ai-sdk/openai@2.0.0-canary.6
+  - @ai-sdk/provider@2.0.0-canary.5
+  - @ai-sdk/provider-utils@3.0.0-canary.6
+
+## 2.0.0-canary.6
+
+### Patch Changes
+
+- Updated dependencies [6f6bb89]
+  - @ai-sdk/provider@2.0.0-canary.4
+  - @ai-sdk/openai@2.0.0-canary.5
+  - @ai-sdk/provider-utils@3.0.0-canary.5
+
+## 2.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [d1a1aa1]
+  - @ai-sdk/provider@2.0.0-canary.3
+  - @ai-sdk/openai@2.0.0-canary.4
+  - @ai-sdk/provider-utils@3.0.0-canary.4
+
+## 2.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [a166433]
+- Updated dependencies [abf9a79]
+- Updated dependencies [9f95b35]
+- Updated dependencies [0a87932]
+- Updated dependencies [6dc848c]
+- Updated dependencies [0a87932]
+  - @ai-sdk/provider-utils@3.0.0-canary.3
+  - @ai-sdk/provider@2.0.0-canary.2
+  - @ai-sdk/openai@2.0.0-canary.3
+
+## 2.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [c57e248]
+- Updated dependencies [33f4a6a]
+  - @ai-sdk/provider@2.0.0-canary.1
+  - @ai-sdk/openai@2.0.0-canary.2
+  - @ai-sdk/provider-utils@3.0.0-canary.2
+
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- c467b38: feat (provider/azure): add OpenAI responses API support
+
+## 2.0.0-canary.1
+
+### Patch Changes
+
+- Updated dependencies [060370c]
+- Updated dependencies [0c0c0b3]
+- Updated dependencies [63d791d]
+  - @ai-sdk/provider-utils@3.0.0-canary.1
+  - @ai-sdk/openai@2.0.0-canary.1
+
+## 2.0.0-canary.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- Updated dependencies [d5f588f]
+  - @ai-sdk/provider-utils@3.0.0-canary.0
+  - @ai-sdk/openai@2.0.0-canary.0
+  - @ai-sdk/provider@2.0.0-canary.0
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
 ## 1.3.6
 

@@ -8,6 +8,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockImplementation(({ apiKey }) => apiKey),
   generateId: vi.fn().mockReturnValue('mock-id'),
   withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+  createProviderDefinedToolFactory: vi.fn(),
 }));
 
 vi.mock('./google-generative-ai-language-model', () => ({
@@ -31,13 +32,12 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
-      {},
       expect.objectContaining({
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: expect.any(Function),
         generateId: expect.any(Function),
-        isSupportedUrl: expect.any(Function),
+        supportedUrls: expect.any(Function),
       }),
     );
   });
@@ -58,7 +58,6 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledWith(
       'embedding-001',
-      {},
       expect.objectContaining({
         provider: 'google.generative-ai',
         headers: expect.any(Function),
@@ -77,13 +76,12 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       expect.objectContaining({
         headers: expect.any(Function),
       }),
     );
 
-    const options = (GoogleGenerativeAILanguageModel as any).mock.calls[0][2];
+    const options = (GoogleGenerativeAILanguageModel as any).mock.calls[0][1];
     const headers = options.headers();
     expect(headers).toEqual({
       'x-goog-api-key': 'test-api-key',
@@ -101,7 +99,6 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       expect.objectContaining({
         generateId: customGenerateId,
       }),
@@ -112,11 +109,10 @@ describe('google-provider', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
     });
-    provider.chat('gemini-pro', { cachedContent: 'test-name' });
+    provider.chat('gemini-pro');
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
-      { cachedContent: 'test-name' },
       expect.any(Object),
     );
   });
@@ -131,7 +127,6 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
-      {},
       expect.objectContaining({
         baseURL: customBaseURL,
       }),

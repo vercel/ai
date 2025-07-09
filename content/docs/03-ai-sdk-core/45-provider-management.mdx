@@ -28,16 +28,40 @@ with pre-configured settings.
 
 ```ts
 import { openai as originalOpenAI } from '@ai-sdk/openai';
-import { customProvider } from 'ai';
+import {
+  customProvider,
+  defaultSettingsMiddleware,
+  wrapLanguageModel,
+} from 'ai';
 
-// custom provider with different model settings:
+// custom provider with different provider options:
 export const openai = customProvider({
   languageModels: {
-    // replacement model with custom settings:
-    'gpt-4o': originalOpenAI('gpt-4o', { structuredOutputs: true }),
-    // alias model with custom settings:
-    'gpt-4o-mini-structured': originalOpenAI('gpt-4o-mini', {
-      structuredOutputs: true,
+    // replacement model with custom provider options:
+    'gpt-4o': wrapLanguageModel({
+      model: originalOpenAI('gpt-4o'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
+    // alias model with custom provider options:
+    'gpt-4o-mini-high-reasoning': wrapLanguageModel({
+      model: originalOpenAI('gpt-4o-mini'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
     }),
   },
   fallbackProvider: originalOpenAI,
@@ -70,17 +94,43 @@ You can limit the available models in the system, even if you have multiple prov
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
-import { customProvider } from 'ai';
+import {
+  customProvider,
+  defaultSettingsMiddleware,
+  wrapLanguageModel,
+} from 'ai';
 
 export const myProvider = customProvider({
   languageModels: {
     'text-medium': anthropic('claude-3-5-sonnet-20240620'),
     'text-small': openai('gpt-4o-mini'),
-    'structure-medium': openai('gpt-4o', { structuredOutputs: true }),
-    'structure-fast': openai('gpt-4o-mini', { structuredOutputs: true }),
+    'reasoning-medium': wrapLanguageModel({
+      model: openai('gpt-4o'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
+    'reasoning-fast': wrapLanguageModel({
+      model: openai('gpt-4o-mini'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
   },
   embeddingModels: {
-    emdedding: openai.textEmbeddingModel('text-embedding-3-small'),
+    embedding: openai.textEmbeddingModel('text-embedding-3-small'),
   },
   // no fallback provider
 });
@@ -113,6 +163,7 @@ export const registry = createProviderRegistry({
 By default, the registry uses `:` as the separator between provider and model IDs. You can customize this separator:
 
 ```ts filename={"registry.ts"}
+import { createProviderRegistry } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
 
@@ -135,9 +186,9 @@ import { generateText } from 'ai';
 import { registry } from './registry';
 
 const { text } = await generateText({
-  model: registry.languageModel('openai:gpt-4-turbo'), // default separator
+  model: registry.languageModel('openai:gpt-4.1'), // default separator
   // or with custom separator:
-  // model: customSeparatorRegistry.languageModel('openai > gpt-4-turbo'),
+  // model: customSeparatorRegistry.languageModel('openai > gpt-4.1'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```
@@ -225,8 +276,8 @@ export const registry = createProviderRegistry(
           model: anthropic('claude-3-7-sonnet-20250219'),
           middleware: defaultSettingsMiddleware({
             settings: {
-              maxTokens: 100000, // example default setting
-              providerMetadata: {
+              maxOutputTokens: 100000, // example default setting
+              providerOptions: {
                 anthropic: {
                   thinking: {
                     type: 'enabled',

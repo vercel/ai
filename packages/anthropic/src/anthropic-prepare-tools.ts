@@ -1,39 +1,59 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
+import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 
-export function prepareTools(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-): {
+function isWebSearchTool(
+  tool: unknown,
+): tool is Extract<AnthropicTool, { type: 'web_search_20250305' }> {
+  return (
+    typeof tool === 'object' &&
+    tool !== null &&
+    'type' in tool &&
+    tool.type === 'web_search_20250305'
+  );
+}
+
+export function prepareTools({
+  tools,
+  toolChoice,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+}): {
   tools: Array<AnthropicTool> | undefined;
-  tool_choice: AnthropicToolChoice | undefined;
-  toolWarnings: LanguageModelV1CallWarning[];
+  toolChoice: AnthropicToolChoice | undefined;
+  toolWarnings: LanguageModelV2CallWarning[];
   betas: Set<string>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
   const betas = new Set<string>();
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined, toolWarnings, betas };
+    return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
   }
 
   const anthropicTools: AnthropicTool[] = [];
 
   for (const tool of tools) {
+    // handle direct web search tool objects passed from provider options
+    if (isWebSearchTool(tool)) {
+      anthropicTools.push(tool);
+      continue;
+    }
+
     switch (tool.type) {
       case 'function':
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
-          input_schema: tool.parameters,
+          input_schema: tool.inputSchema,
         });
         break;
       case 'provider-defined':
@@ -41,7 +61,7 @@ export function prepareTools(
           case 'anthropic.computer_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
-              name: tool.name,
+              name: 'computer',
               type: 'computer_20250124',
               display_width_px: tool.args.displayWidthPx as number,
               display_height_px: tool.args.displayHeightPx as number,
@@ -51,7 +71,7 @@ export function prepareTools(
           case 'anthropic.computer_20241022':
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
-              name: tool.name,
+              name: 'computer',
               type: 'computer_20241022',
               display_width_px: tool.args.displayWidthPx as number,
               display_height_px: tool.args.displayHeightPx as number,
@@ -61,31 +81,43 @@ export function prepareTools(
           case 'anthropic.text_editor_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
-              name: tool.name,
+              name: 'str_replace_editor',
               type: 'text_editor_20250124',
             });
             break;
           case 'anthropic.text_editor_20241022':
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
-              name: tool.name,
+              name: 'str_replace_editor',
               type: 'text_editor_20241022',
             });
             break;
           case 'anthropic.bash_20250124':
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
-              name: tool.name,
+              name: 'bash',
               type: 'bash_20250124',
             });
             break;
           case 'anthropic.bash_20241022':
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
-              name: tool.name,
+              name: 'bash',
               type: 'bash_20241022',
             });
             break;
+          case 'anthropic.web_search_20250305': {
+            const args = webSearch_20250305ArgsSchema.parse(tool.args);
+            anthropicTools.push({
+              type: 'web_search_20250305',
+              name: 'web_search',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              user_location: args.userLocation,
+            });
+            break;
+          }
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
@@ -97,12 +129,10 @@ export function prepareTools(
     }
   }
 
-  const toolChoice = mode.toolChoice;
-
   if (toolChoice == null) {
     return {
       tools: anthropicTools,
-      tool_choice: undefined,
+      toolChoice: undefined,
       toolWarnings,
       betas,
     };
@@ -114,31 +144,31 @@ export function prepareTools(
     case 'auto':
       return {
         tools: anthropicTools,
-        tool_choice: { type: 'auto' },
+        toolChoice: { type: 'auto' },
         toolWarnings,
         betas,
       };
     case 'required':
       return {
         tools: anthropicTools,
-        tool_choice: { type: 'any' },
+        toolChoice: { type: 'any' },
         toolWarnings,
         betas,
       };
     case 'none':
       // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, tool_choice: undefined, toolWarnings, betas };
+      return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
     case 'tool':
       return {
         tools: anthropicTools,
-        tool_choice: { type: 'tool', name: toolChoice.toolName },
+        toolChoice: { type: 'tool', name: toolChoice.toolName },
         toolWarnings,
         betas,
       };
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }

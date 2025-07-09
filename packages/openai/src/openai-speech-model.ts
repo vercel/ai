@@ -1,14 +1,25 @@
+<<<<<<< HEAD
 import { SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
+=======
+import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import { OpenAISpeechModelId } from './openai-speech-settings';
+=======
+import { z } from 'zod/v4';
+import { OpenAIConfig } from './openai-config';
+import { openaiFailedResponseHandler } from './openai-error';
+import { OpenAISpeechModelId } from './openai-speech-options';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { OpenAISpeechAPITypes } from './openai-api-types';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
@@ -27,8 +38,13 @@ interface OpenAISpeechModelConfig extends OpenAIConfig {
   };
 }
 
+<<<<<<< HEAD
 export class OpenAISpeechModel implements SpeechModelV1 {
   readonly specificationVersion = 'v1';
+=======
+export class OpenAISpeechModel implements SpeechModelV2 {
+  readonly specificationVersion = 'v2';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   get provider(): string {
     return this.config.provider;
@@ -39,18 +55,32 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     private readonly config: OpenAISpeechModelConfig,
   ) {}
 
+<<<<<<< HEAD
   private getArgs({
+=======
+  private async getArgs({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     text,
     voice = 'alloy',
     outputFormat = 'mp3',
     speed,
     instructions,
+<<<<<<< HEAD
     providerOptions,
   }: Parameters<SpeechModelV1['doGenerate']>[0]) {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
     const openAIOptions = parseProviderOptions({
+=======
+    language,
+    providerOptions,
+  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
+    const warnings: SpeechModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const openAIOptions = await parseProviderOptions({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       provider: 'openai',
       providerOptions,
       schema: OpenAIProviderOptionsSchema,
@@ -90,6 +120,17 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       }
     }
 
+<<<<<<< HEAD
+=======
+    if (language) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'language',
+        details: `OpenAI speech models do not support language selection. Language parameter "${language}" was ignored.`,
+      });
+    }
+
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     return {
       requestBody,
       warnings,
@@ -97,10 +138,17 @@ export class OpenAISpeechModel implements SpeechModelV1 {
   }
 
   async doGenerate(
+<<<<<<< HEAD
     options: Parameters<SpeechModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = this.getArgs(options);
+=======
+    options: Parameters<SpeechModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { requestBody, warnings } = await this.getArgs(options);
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
     const {
       value: audio,

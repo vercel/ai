@@ -1,7 +1,7 @@
 import { prepareTools } from './anthropic-prepare-tools';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
-  const result = prepareTools({ type: 'regular', tools: undefined });
+  const result = prepareTools({ tools: undefined });
   expect(result).toEqual({
     tools: undefined,
     tool_choice: undefined,
@@ -11,7 +11,7 @@ it('should return undefined tools and tool_choice when tools are null', () => {
 });
 
 it('should return undefined tools and tool_choice when tools are empty', () => {
-  const result = prepareTools({ type: 'regular', tools: [] });
+  const result = prepareTools({ tools: [] });
   expect(result).toEqual({
     tools: undefined,
     tool_choice: undefined,
@@ -22,13 +22,12 @@ it('should return undefined tools and tool_choice when tools are empty', () => {
 
 it('should correctly prepare function tools', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
         name: 'testFunction',
         description: 'A test function',
-        parameters: { type: 'object', properties: {} },
+        inputSchema: { type: 'object', properties: {} },
       },
     ],
   });
@@ -39,13 +38,12 @@ it('should correctly prepare function tools', () => {
       input_schema: { type: 'object', properties: {} },
     },
   ]);
-  expect(result.tool_choice).toBeUndefined();
+  expect(result.toolChoice).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
 
 it('should correctly prepare provider-defined tools', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'provider-defined',
@@ -76,7 +74,7 @@ it('should correctly prepare provider-defined tools', () => {
       display_number: 1,
     },
     {
-      name: 'text_editor',
+      name: 'str_replace_editor',
       type: 'text_editor_20241022',
     },
     {
@@ -84,98 +82,95 @@ it('should correctly prepare provider-defined tools', () => {
       type: 'bash_20241022',
     },
   ]);
-  expect(result.tool_choice).toBeUndefined();
+  expect(result.toolChoice).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
 
 it('should add warnings for unsupported tools', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'provider-defined',
         id: 'unsupported.tool',
-        name: 'unsupportedProviderTool',
+        name: 'unsupported_tool',
         args: {},
       },
     ],
   });
   expect(result.tools).toEqual([]);
-  expect(result.tool_choice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'provider-defined',
-        id: 'unsupported.tool',
-        name: 'unsupportedProviderTool',
-        args: {},
+  expect(result.toolChoice).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "tool": {
+          "args": {},
+          "id": "unsupported.tool",
+          "name": "unsupported_tool",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
       },
-    },
-  ]);
+    ]
+  `);
 });
 
 it('should handle tool choice "auto"', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
         name: 'testFunction',
         description: 'Test',
-        parameters: {},
+        inputSchema: {},
       },
     ],
     toolChoice: { type: 'auto' },
   });
-  expect(result.tool_choice).toEqual({ type: 'auto' });
+  expect(result.toolChoice).toEqual({ type: 'auto' });
 });
 
 it('should handle tool choice "required"', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
         name: 'testFunction',
         description: 'Test',
-        parameters: {},
+        inputSchema: {},
       },
     ],
     toolChoice: { type: 'required' },
   });
-  expect(result.tool_choice).toEqual({ type: 'any' });
+  expect(result.toolChoice).toEqual({ type: 'any' });
 });
 
 it('should handle tool choice "none"', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
         name: 'testFunction',
         description: 'Test',
-        parameters: {},
+        inputSchema: {},
       },
     ],
     toolChoice: { type: 'none' },
   });
   expect(result.tools).toBeUndefined();
-  expect(result.tool_choice).toBeUndefined();
+  expect(result.toolChoice).toBeUndefined();
 });
 
 it('should handle tool choice "tool"', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
         name: 'testFunction',
         description: 'Test',
-        parameters: {},
+        inputSchema: {},
       },
     ],
     toolChoice: { type: 'tool', toolName: 'testFunction' },
   });
-  expect(result.tool_choice).toEqual({ type: 'tool', name: 'testFunction' });
+  expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
 });

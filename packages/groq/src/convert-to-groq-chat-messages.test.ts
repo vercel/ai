@@ -8,9 +8,9 @@ describe('user messages', () => {
         content: [
           { type: 'text', text: 'Hello' },
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
           },
         ],
       },
@@ -50,7 +50,7 @@ describe('tool calls', () => {
         content: [
           {
             type: 'tool-call',
-            args: { foo: 'bar123' },
+            input: { foo: 'bar123' },
             toolCallId: 'quux',
             toolName: 'thwomp',
           },
@@ -63,7 +63,7 @@ describe('tool calls', () => {
             type: 'tool-result',
             toolCallId: 'quux',
             toolName: 'thwomp',
-            result: { oof: '321rab' },
+            output: { type: 'json', value: { oof: '321rab' } },
           },
         ],
       },

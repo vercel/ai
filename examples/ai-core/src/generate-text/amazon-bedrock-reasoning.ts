@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -9,15 +9,15 @@ async function main() {
     temperature: 0.5, // should get ignored (warning)
     providerOptions: {
       bedrock: {
-        reasoning_config: { type: 'enabled', budgetTokens: 2048 },
+        reasoningConfig: { type: 'enabled', budgetTokens: 2048 },
       },
     },
     maxRetries: 0,
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   console.log('Reasoning:');
-  console.log(result.reasoningDetails);
+  console.log(result.reasoning);
   console.log();
 
   console.log('Text:');

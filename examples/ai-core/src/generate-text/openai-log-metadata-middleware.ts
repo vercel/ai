@@ -1,11 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, LanguageModelV1Middleware, wrapLanguageModel } from 'ai';
+import { LanguageModelV2Middleware } from '@ai-sdk/provider';
+import { generateText, wrapLanguageModel } from 'ai';
 import 'dotenv/config';
 
-const logProviderMetadataMiddleware: LanguageModelV1Middleware = {
+const logProviderMetadataMiddleware: LanguageModelV2Middleware = {
   transformParams: async ({ params }) => {
     console.log(
-      'providerMetadata: ' + JSON.stringify(params.providerMetadata, null, 2),
+      'providerOptions: ' + JSON.stringify(params.providerOptions, null, 2),
     );
     return params;
   },

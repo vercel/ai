@@ -37,7 +37,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.chat',
         baseURL:
@@ -65,7 +64,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
       'test-embedding-model',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.embedding',
         headers: expect.any(Object),
@@ -86,7 +84,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       expect.objectContaining({
         headers: customHeaders,
       }),
@@ -104,7 +101,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       expect.objectContaining({
         generateId: customGenerateId,
       }),
@@ -116,11 +112,10 @@ describe('google-vertex-provider', () => {
       project: 'test-project',
       location: 'test-location',
     });
-    provider.languageModel('test-model-id', { structuredOutputs: true });
+    provider.languageModel('test-model-id');
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      { structuredOutputs: true },
       expect.any(Object),
     );
   });
@@ -136,7 +131,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         baseURL: customBaseURL,
       }),
@@ -152,7 +146,10 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
+<<<<<<< HEAD
       {},
+=======
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
@@ -161,6 +158,7 @@ describe('google-vertex-provider', () => {
       }),
     );
   });
+<<<<<<< HEAD
 
   it('should create an image model with custom maxImagesPerCall', () => {
     const provider = createVertex({
@@ -183,4 +181,6 @@ describe('google-vertex-provider', () => {
       }),
     );
   });
+=======
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 });

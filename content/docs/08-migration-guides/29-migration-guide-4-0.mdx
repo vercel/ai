@@ -344,7 +344,7 @@ const id = generateId(); // now 16 characters
 
 The following types have been removed:
 
-- `ExperimentalMessage` (use `CoreMessage` instead)
+- `ExperimentalMessage` (use `ModelMessage` instead)
 - `ExperimentalUserMessage` (use `CoreUserMessage` instead)
 - `ExperimentalAssistantMessage` (use `CoreAssistantMessage` instead)
 - `ExperimentalToolMessage` (use `CoreToolMessage` instead)
@@ -360,7 +360,7 @@ import {
 
 ```ts filename="AI SDK 4.0"
 import {
-  CoreMessage,
+  ModelMessage,
   CoreUserMessage,
   CoreAssistantMessage,
   CoreToolMessage,
@@ -428,7 +428,7 @@ const result = streamText({
 
 result.toDataStream();
 result.pipeDataStreamToResponse(response);
-result.toDataStreamResponse();
+result.toUIMessageStreamResponse();
 ```
 
 ### Renamed "formatStreamPart" to "formatDataStreamPart"
@@ -561,7 +561,7 @@ const result = await streamText({
   // ...
 });
 
-result.toDataStreamResponse(response, {
+result.toUIMessageStreamResponse(response, {
   init: {
     headers: {
       'X-Custom-Header': 'value',
@@ -576,7 +576,7 @@ const result = streamText({
   // ...
 });
 
-result.toDataStreamResponse(response, {
+result.toUIMessageStreamResponse(response, {
   headers: {
     'X-Custom-Header': 'value',
   },
@@ -731,11 +731,11 @@ The AI SDK RSC 3.0 `render` function has been removed.
 Please use the `streamUI` function instead or [switch to AI SDK UI](/docs/ai-sdk-rsc/migrating-to-ui).
 
 ```ts filename="AI SDK 3.0"
-import { render } from 'ai/rsc';
+import { render } from '@ai-sdk/rsc';
 ```
 
 ```ts filename="AI SDK 4.0"
-import { streamUI } from 'ai/rsc';
+import { streamUI } from '@ai-sdk/rsc';
 ```
 
 ## AI SDK UI Changes

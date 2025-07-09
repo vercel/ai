@@ -1,7 +1,12 @@
 import {
   AISDKError,
+<<<<<<< HEAD
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
+=======
+  TranscriptionModelV2,
+  TranscriptionModelV2CallWarning,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,10 +18,17 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
 import { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
 import { FalTranscriptionModelId } from './fal-transcription-settings';
+=======
+import { z } from 'zod/v4';
+import { FalConfig } from './fal-config';
+import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
+import { FalTranscriptionModelId } from './fal-transcription-options';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { FalTranscriptionAPITypes } from './fal-api-types';
 
 // https://fal.ai/models/fal-ai/whisper/api?platform=http
@@ -67,8 +79,13 @@ interface FalTranscriptionModelConfig extends FalConfig {
   };
 }
 
+<<<<<<< HEAD
 export class FalTranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
+=======
+export class FalTranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   get provider(): string {
     return this.config.provider;
@@ -81,11 +98,19 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
 
   private async getArgs({
     providerOptions,
+<<<<<<< HEAD
   }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
     const falOptions = parseProviderOptions({
+=======
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const falOptions = await parseProviderOptions({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       provider: 'fal',
       providerOptions,
       schema: falProviderOptionsSchema,
@@ -121,8 +146,13 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
+<<<<<<< HEAD
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+=======
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings } = await this.getArgs(options);
 

@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -6,13 +6,12 @@ import {
   FetchFunction,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
-import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
-import { OpenAICompatibleImageSettings } from './openai-compatible-image-settings';
+import { z } from 'zod/v4';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
 } from './openai-compatible-error';
+import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;
@@ -25,12 +24,9 @@ export type OpenAICompatibleImageModelConfig = {
   };
 };
 
-export class OpenAICompatibleImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
-
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 10;
-  }
+export class OpenAICompatibleImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 10;
 
   get provider(): string {
     return this.config.provider;
@@ -38,7 +34,6 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
 
   constructor(
     readonly modelId: OpenAICompatibleImageModelId,
-    private readonly settings: OpenAICompatibleImageSettings,
     private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
 
@@ -51,10 +46,10 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -83,7 +78,6 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
         size,
         ...(providerOptions.openai ?? {}),
         response_format: 'b64_json',
-        ...(this.settings.user ? { user: this.settings.user } : {}),
       },
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,

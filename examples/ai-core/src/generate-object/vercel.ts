@@ -1,7 +1,11 @@
 import { vercel } from '@ai-sdk/vercel';
 import { generateObject } from 'ai';
 import 'dotenv/config';
+<<<<<<< HEAD
 import { z } from 'zod';
+=======
+import { z } from 'zod/v4';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
 async function main() {
   const result = await generateObject({

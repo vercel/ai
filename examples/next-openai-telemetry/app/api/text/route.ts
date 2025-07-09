@@ -6,7 +6,7 @@ export async function POST(req: Request) {
 
   const { text } = await generateText({
     model: openai('gpt-4-turbo'),
-    maxTokens: 100,
+    maxOutputTokens: 100,
     prompt,
     experimental_telemetry: {
       isEnabled: true,

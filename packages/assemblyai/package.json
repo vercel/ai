@@ -1,6 +1,10 @@
 {
   "name": "@ai-sdk/assemblyai",
+<<<<<<< HEAD
   "version": "0.0.1",
+=======
+  "version": "1.0.0-beta.2",
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,11 +15,19 @@
     "CHANGELOG.md"
   ],
   "scripts": {
+<<<<<<< HEAD
     "build": "tsup",
     "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
+=======
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "lint": "eslint \"./**/*.ts*\"",
+    "type-check": "tsc --build",
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run",
@@ -31,18 +43,30 @@
     }
   },
   "dependencies": {
+<<<<<<< HEAD
     "@ai-sdk/provider": "1.1.2",
     "@ai-sdk/provider-utils": "2.2.6"
+=======
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*"
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.6.3",
+<<<<<<< HEAD
     "zod": "3.23.8"
   },
   "peerDependencies": {
     "zod": "^3.0.0"
+=======
+    "zod": "3.25.49"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.49"
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   },
   "engines": {
     "node": ">=18"

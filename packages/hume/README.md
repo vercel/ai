@@ -13,7 +13,11 @@ npm i @ai-sdk/hume
 
 ## Provider Instance
 
+<<<<<<< HEAD
 You can import the default provider instance `lmnt` from `@ai-sdk/lmnt`:
+=======
+You can import the default provider instance `hume` from `@ai-sdk/hume`:
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
 ```ts
 import { hume } from '@ai-sdk/hume';

@@ -1,7 +1,13 @@
 import {
+<<<<<<< HEAD
   TranscriptionModelV1,
   TranscriptionModelV1CallOptions,
   TranscriptionModelV1CallWarning,
+=======
+  TranscriptionModelV2,
+  TranscriptionModelV2CallOptions,
+  TranscriptionModelV2CallWarning,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -10,10 +16,17 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
 import { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
+=======
+import { z } from 'zod/v4';
+import { ElevenLabsConfig } from './elevenlabs-config';
+import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
+import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
@@ -26,7 +39,11 @@ const elevenLabsProviderOptionsSchema = z.object({
     .nullish()
     .default('word'),
   diarize: z.boolean().nullish().default(false),
+<<<<<<< HEAD
   file_format: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
+=======
+  fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 });
 
 export type ElevenLabsTranscriptionCallOptions = z.infer<
@@ -39,8 +56,13 @@ interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
   };
 }
 
+<<<<<<< HEAD
 export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
+=======
+export class ElevenLabsTranscriptionModel implements TranscriptionModelV2 {
+  readonly specificationVersion = 'v2';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
   get provider(): string {
     return this.config.provider;
@@ -51,6 +73,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
     private readonly config: ElevenLabsTranscriptionModelConfig,
   ) {}
 
+<<<<<<< HEAD
   private getArgs({
     audio,
     mediaType,
@@ -60,6 +83,17 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
 
     // Parse provider options
     const elevenlabsOptions = parseProviderOptions({
+=======
+  private async getArgs({
+    audio,
+    mediaType,
+    providerOptions,
+  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const elevenlabsOptions = await parseProviderOptions({
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       provider: 'elevenlabs',
       providerOptions,
       schema: elevenLabsProviderOptionsSchema,
@@ -84,7 +118,11 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
         num_speakers: elevenlabsOptions.numSpeakers ?? undefined,
         timestamps_granularity:
           elevenlabsOptions.timestampsGranularity ?? undefined,
+<<<<<<< HEAD
         file_format: elevenlabsOptions.file_format ?? undefined,
+=======
+        file_format: elevenlabsOptions.fileFormat ?? undefined,
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
       };
 
       if (typeof elevenlabsOptions.diarize === 'boolean') {
@@ -109,10 +147,17 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
+<<<<<<< HEAD
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = this.getArgs(options);
+=======
+    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { formData, warnings } = await this.getArgs(options);
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 
     const {
       value: response,

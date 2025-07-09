@@ -333,9 +333,10 @@ The solution above is low-level and not very friendly to use in a production env
 ### Create Utility Functions
 
 ```ts filename="utils.ts"
-import { formatDataStreamPart, Message } from '@ai-sdk/ui-utils';
 import {
-  convertToCoreMessages,
+  formatDataStreamPart,
+  Message,
+  convertToModelMessages,
   DataStreamWriter,
   ToolExecutionOptions,
   ToolSet,
@@ -418,7 +419,7 @@ export async function processToolCalls<
         const toolInstance = executeFunctions[toolName];
         if (toolInstance) {
           result = await toolInstance(toolInvocation.args, {
-            messages: convertToCoreMessages(messages),
+            messages: convertToModelMessages(messages),
             toolCallId: toolInvocation.toolCallId,
           });
         } else {

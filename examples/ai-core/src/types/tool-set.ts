@@ -1,16 +1,16 @@
 import { openai } from '@ai-sdk/openai';
 import { ToolCallUnion, ToolResultUnion, generateText, tool } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const myToolSet = {
   firstTool: tool({
     description: 'Greets the user',
-    parameters: z.object({ name: z.string() }),
+    inputSchema: z.object({ name: z.string() }),
     execute: async ({ name }) => `Hello, ${name}!`,
   }),
   secondTool: tool({
     description: 'Tells the user their age',
-    parameters: z.object({ age: z.number() }),
+    inputSchema: z.object({ age: z.number() }),
     execute: async ({ age }) => `You are ${age} years old!`,
   }),
 };

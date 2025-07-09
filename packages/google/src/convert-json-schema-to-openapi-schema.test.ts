@@ -23,6 +23,33 @@ it('should remove additionalProperties and $schema', () => {
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
 
+it('should remove additionalProperties object from nested object schemas', function () {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      keys: {
+        type: 'object',
+        additionalProperties: { type: 'string' },
+        description: 'Description for the key',
+      },
+    },
+    additionalProperties: false,
+    $schema: 'http://json-schema.org/draft-07/schema#',
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      keys: {
+        type: 'object',
+        description: 'Description for the key',
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
 it('should handle nested objects and arrays', () => {
   const input: JSONSchema7 = {
     type: 'object',

@@ -10,5 +10,9 @@ export default async function Page({
 
   const messages = await loadChat(id);
 
+<<<<<<< HEAD
   return <Chat chatId={id} autoResume={true} initialMessages={messages} />;
+=======
+  return <Chat id={id} autoResume={true} initialMessages={messages} />;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 }

@@ -1,8 +1,11 @@
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, status } = useChat({
-    api: '/api/chat-edge',
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/chat-edge' }),
   });
 
   return (
@@ -11,16 +14,27 @@ export default function Chat() {
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500">{`${message.role}: `}</div>
-            <div className="w-full">{message.content}</div>
+            <div className="w-full">
+              {message.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="fixed bottom-0 w-full p-2">
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+        className="fixed bottom-0 w-full p-2"
+      >
         <input
           value={input}
           placeholder="Send message..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           className="w-full p-2 bg-zinc-100"
           disabled={status !== 'ready'}
         />

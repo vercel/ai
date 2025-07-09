@@ -3,6 +3,7 @@ import {
   isAbortError,
   safeValidateTypes,
   type FetchFunction,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import {
   asSchema,
@@ -10,8 +11,9 @@ import {
   parsePartialJson,
   type DeepPartial,
   type Schema,
-} from '@ai-sdk/ui-utils';
-import { type z } from 'zod';
+} from 'ai';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
 import {
   getStructuredObjectContext,
   hasStructuredObjectContext,
@@ -19,7 +21,10 @@ import {
   type StructuredObjectStore,
 } from './structured-object-context.svelte.js';
 
-export type Experimental_StructuredObjectOptions<RESULT> = {
+export type Experimental_StructuredObjectOptions<
+  SCHEMA extends z3.Schema | z4.ZodType | Schema,
+  RESULT = InferSchema<SCHEMA>,
+> = {
   /**
    * The API endpoint. It should stream JSON that matches the schema as chunked text.
    */
@@ -28,7 +33,7 @@ export type Experimental_StructuredObjectOptions<RESULT> = {
   /**
    * A Zod schema that defines the shape of the complete object.
    */
-  schema: z.Schema<RESULT, z.ZodTypeDef, unknown> | Schema<RESULT>;
+  schema: SCHEMA;
 
   /**
    * An unique identifier. If not provided, a random one will be
@@ -82,9 +87,13 @@ export type Experimental_StructuredObjectOptions<RESULT> = {
   credentials?: RequestCredentials;
 };
 
-export class StructuredObject<RESULT, INPUT = unknown> {
-  #options: Experimental_StructuredObjectOptions<RESULT> =
-    {} as Experimental_StructuredObjectOptions<RESULT>;
+export class StructuredObject<
+  SCHEMA extends z3.Schema | z4.ZodType | Schema,
+  RESULT = InferSchema<SCHEMA>,
+  INPUT = unknown,
+> {
+  #options: Experimental_StructuredObjectOptions<SCHEMA, RESULT> =
+    {} as Experimental_StructuredObjectOptions<SCHEMA, RESULT>;
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #keyedStore = $state<KeyedStructuredObjectStore>()!;
   readonly #store = $derived(
@@ -114,7 +123,7 @@ export class StructuredObject<RESULT, INPUT = unknown> {
     return this.#store.loading;
   }
 
-  constructor(options: Experimental_StructuredObjectOptions<RESULT>) {
+  constructor(options: Experimental_StructuredObjectOptions<SCHEMA, RESULT>) {
     if (hasStructuredObjectContext()) {
       this.#keyedStore = getStructuredObjectContext();
     } else {
@@ -177,13 +186,13 @@ export class StructuredObject<RESULT, INPUT = unknown> {
 
       await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
-          write: chunk => {
+          write: async chunk => {
             if (abortController?.signal.aborted) {
               throw new DOMException('Stream aborted', 'AbortError');
             }
             accumulatedText += chunk;
 
-            const { value } = parsePartialJson(accumulatedText);
+            const { value } = await parsePartialJson(accumulatedText);
             const currentObject = value as DeepPartial<RESULT>;
 
             if (!isDeepEqualData(latestObject, currentObject)) {
@@ -193,12 +202,12 @@ export class StructuredObject<RESULT, INPUT = unknown> {
             }
           },
 
-          close: () => {
+          close: async () => {
             this.#store.loading = false;
             this.#abortController = undefined;
 
             if (this.#options.onFinish != null) {
-              const validationResult = safeValidateTypes({
+              const validationResult = await safeValidateTypes({
                 value: latestObject,
                 schema: asSchema(this.#options.schema),
               });

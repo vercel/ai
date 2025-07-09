@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const { prompt } = await req.json();
 
   const { image } = await generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.imageModel('dall-e-3'),
     prompt,
     size: '1024x1024',
     providerOptions: {

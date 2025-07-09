@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   FetchFunction,
   Resolvable,
@@ -10,11 +10,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   BedrockImageModelId,
-  BedrockImageSettings,
   modelMaxImagesPerCall,
 } from './bedrock-image-settings';
 import { BedrockErrorSchema } from './bedrock-error';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 type BedrockImageModelConfig = {
   baseUrl: () => string;
@@ -25,14 +24,12 @@ type BedrockImageModelConfig = {
   };
 };
 
-export class BedrockImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class BedrockImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
 
   get maxImagesPerCall(): number {
-    return (
-      this.settings.maxImagesPerCall ?? modelMaxImagesPerCall[this.modelId] ?? 1
-    );
+    return modelMaxImagesPerCall[this.modelId] ?? 1;
   }
 
   private getUrl(modelId: string): string {
@@ -42,7 +39,6 @@ export class BedrockImageModel implements ImageModelV1 {
 
   constructor(
     readonly modelId: BedrockImageModelId,
-    private readonly settings: BedrockImageSettings,
     private readonly config: BedrockImageModelConfig,
   ) {}
 
@@ -55,10 +51,10 @@ export class BedrockImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
     const [width, height] = size ? size.split('x').map(Number) : [];
     const args = {
       taskType: 'TEXT_IMAGE',
@@ -67,6 +63,11 @@ export class BedrockImageModel implements ImageModelV1 {
         ...(providerOptions?.bedrock?.negativeText
           ? {
               negativeText: providerOptions.bedrock.negativeText,
+            }
+          : {}),
+        ...(providerOptions?.bedrock?.style
+          ? {
+              style: providerOptions.bedrock.style,
             }
           : {}),
       },

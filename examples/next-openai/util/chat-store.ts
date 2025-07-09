@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { generateId, Message } from 'ai';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
+=======
+import { generateId, UIMessage } from 'ai';
+import { existsSync, mkdirSync } from 'fs';
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 
@@ -14,13 +19,13 @@ export async function createChat(): Promise<string> {
 }
 
 export async function saveChat({
-  id,
+  chatId,
   messages,
 }: {
-  id: string;
-  messages: Message[];
+  chatId: string;
+  messages: UIMessage[];
 }): Promise<void> {
-  await writeFile(getChatFile(id), JSON.stringify(messages, null, 2));
+  await writeFile(getChatFile(chatId), JSON.stringify(messages, null, 2));
 }
 
 export async function appendMessageToChat({
@@ -28,7 +33,11 @@ export async function appendMessageToChat({
   message,
 }: {
   chatId: string;
+<<<<<<< HEAD
   message: Message;
+=======
+  message: UIMessage;
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
 }): Promise<void> {
   const file = getChatFile(chatId);
   const messages = await loadChat(chatId);
@@ -36,7 +45,11 @@ export async function appendMessageToChat({
   await writeFile(file, JSON.stringify(messages, null, 2));
 }
 
+<<<<<<< HEAD
 export async function loadChat(id: string): Promise<Message[]> {
+=======
+export async function loadChat(id: string): Promise<UIMessage[]> {
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   return JSON.parse(await readFile(getChatFile(id), 'utf8'));
 }
 
@@ -48,7 +61,11 @@ function getChatFile(id: string): string {
   const chatFile = path.join(chatDir, `${id}.json`);
 
   if (!existsSync(chatFile)) {
+<<<<<<< HEAD
     writeFileSync(chatFile, '[]');
+=======
+    writeFile(chatFile, '[]');
+>>>>>>> ffac5e5f564b670187256f9adb84a0095255e1f9
   }
 
   return chatFile;

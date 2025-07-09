@@ -34,15 +34,11 @@ describe('doGenerate', () => {
     },
   });
 
-  const model = new BedrockImageModel(
-    'amazon.nova-canvas-v1:0',
-    {},
-    {
-      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
-      headers: mockConfigHeaders,
-      fetch: fakeFetchWithAuth,
-    },
-  );
+  const model = new BedrockImageModel('amazon.nova-canvas-v1:0', {
+    baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+    headers: mockConfigHeaders,
+    fetch: fakeFetchWithAuth,
+  });
 
   it('should pass the model and the settings', async () => {
     await model.doGenerate({
@@ -60,8 +56,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const body = await server.calls[0].requestBody;
-    expect(body).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       taskType: 'TEXT_IMAGE',
       textToImageParams: {
         text: prompt,
@@ -84,21 +79,17 @@ describe('doGenerate', () => {
       'shared-header': 'options-shared',
     };
 
-    const modelWithHeaders = new BedrockImageModel(
-      'amazon.nova-canvas-v1:0',
-      {},
-      {
-        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
-        headers: {
-          'model-header': 'model-value',
-          'shared-header': 'model-shared',
-        },
-        fetch: injectFetchHeaders({
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
+    const modelWithHeaders = new BedrockImageModel('amazon.nova-canvas-v1:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: {
+        'model-header': 'model-value',
+        'shared-header': 'model-shared',
       },
-    );
+      fetch: injectFetchHeaders({
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+    });
 
     await modelWithHeaders.doGenerate({
       prompt,
@@ -119,11 +110,6 @@ describe('doGenerate', () => {
   });
 
   it('should respect maxImagesPerCall setting', async () => {
-    const customModel = provider.image('amazon.nova-canvas-v1:0', {
-      maxImagesPerCall: 2,
-    });
-    expect(customModel.maxImagesPerCall).toBe(2);
-
     const defaultModel = provider.image('amazon.nova-canvas-v1:0');
     expect(defaultModel.maxImagesPerCall).toBe(5); // 'amazon.nova-canvas-v1:0','s default from settings
 
@@ -167,17 +153,13 @@ describe('doGenerate', () => {
   it('should include response data with timestamp, modelId and headers', async () => {
     const testDate = new Date('2024-03-15T12:00:00Z');
 
-    const customModel = new BedrockImageModel(
-      'amazon.nova-canvas-v1:0',
-      {},
-      {
-        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
-        headers: () => ({}),
-        _internal: {
-          currentDate: () => testDate,
-        },
+    const customModel = new BedrockImageModel('amazon.nova-canvas-v1:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: () => ({}),
+      _internal: {
+        currentDate: () => testDate,
       },
-    );
+    });
 
     const result = await customModel.doGenerate({
       prompt,
@@ -219,5 +201,58 @@ describe('doGenerate', () => {
       afterDate.getTime(),
     );
     expect(result.response.modelId).toBe('amazon.nova-canvas-v1:0');
+  });
+
+  it('should pass the style parameter when provided', async () => {
+    await model.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: 1234,
+      providerOptions: {
+        bedrock: {
+          negativeText: 'bad',
+          quality: 'premium',
+          cfgScale: 1.2,
+          style: 'PHOTOREALISM',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      taskType: 'TEXT_IMAGE',
+      textToImageParams: {
+        text: prompt,
+        negativeText: 'bad',
+        style: 'PHOTOREALISM',
+      },
+      imageGenerationConfig: {
+        numberOfImages: 1,
+        seed: 1234,
+        quality: 'premium',
+        cfgScale: 1.2,
+        width: 1024,
+        height: 1024,
+      },
+    });
+  });
+
+  it('should not include style parameter when not provided', async () => {
+    await model.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: 1234,
+      providerOptions: {
+        bedrock: {
+          quality: 'standard',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.textToImageParams).not.toHaveProperty('style');
   });
 });
