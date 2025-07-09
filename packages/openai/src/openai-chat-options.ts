@@ -122,7 +122,7 @@ export const openaiProviderOptions = z.object({
   /**
    * Whether to use strict JSON schema validation.
    *
-   * @default true
+   * @default false
    */
   strictJsonSchema: z.boolean().optional(),
 });

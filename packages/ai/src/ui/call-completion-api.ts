@@ -1,11 +1,10 @@
 import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
 import {
-  UIMessageStreamPart,
-  uiMessageStreamPartSchema,
-} from '../ui-message-stream/ui-message-stream-parts';
+  UIMessageChunk,
+  uiMessageChunkSchema,
+} from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { processTextStream } from './process-text-stream';
-import { UIDataTypes } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -92,12 +91,9 @@ export async function callCompletionApi({
         await consumeStream({
           stream: parseJsonEventStream({
             stream: response.body,
-            schema: uiMessageStreamPartSchema,
+            schema: uiMessageChunkSchema,
           }).pipeThrough(
-            new TransformStream<
-              ParseResult<UIMessageStreamPart>,
-              UIMessageStreamPart
-            >({
+            new TransformStream<ParseResult<UIMessageChunk>, UIMessageChunk>({
               async transform(part) {
                 if (!part.success) {
                   throw part.error;

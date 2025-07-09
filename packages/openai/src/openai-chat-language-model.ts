@@ -783,10 +783,6 @@ function isReasoningModel(modelId: string) {
   return modelId.startsWith('o');
 }
 
-function isAudioModel(modelId: string) {
-  return modelId.startsWith('gpt-4o-audio-preview');
-}
-
 function supportsFlexProcessing(modelId: string) {
   return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
 }

@@ -574,7 +574,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, system prompt, and input messages for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -603,9 +603,52 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'LanguageModel',
                       description: 'The model that is being used.',
                     },
+                    {
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
+                      description:
+                        'The messages that will be sent to the model for the current step.',
+                    },
                   ],
                 },
               ],
+            },
+          ],
+        },
+        {
+          type: 'PrepareStepResult<TOOLS>',
+          description:
+            'Return value that can modify settings for the current step.',
+          parameters: [
+            {
+              name: 'model',
+              type: 'LanguageModel',
+              isOptional: true,
+              description: 'Change the model for this step.',
+            },
+            {
+              name: 'toolChoice',
+              type: 'ToolChoice<TOOLS>',
+              isOptional: true,
+              description: 'Change the tool choice strategy for this step.',
+            },
+            {
+              name: 'activeTools',
+              type: 'Array<keyof TOOLS>',
+              isOptional: true,
+              description: 'Change which tools are active for this step.',
+            },
+            {
+              name: 'system',
+              type: 'string',
+              isOptional: true,
+              description: 'Change the system prompt for this step.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              isOptional: true,
+              description: 'Modify the input messages for this step.',
             },
           ],
         },
@@ -2285,7 +2328,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'toUIMessageStream',
-      type: '(options?: UIMessageStreamOptions) => ReadableStream<UIMessageStreamPart>',
+      type: '(options?: UIMessageStreamOptions) => ReadableStream<UIMessageChunk>',
       description:
         'Converts the result to a UI message stream.',
       properties: [

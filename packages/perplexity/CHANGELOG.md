@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 2.0.0-beta.3
+
+### Major Changes
+
+- 2a9732b: feat(provider/perplexity): support image input
+
 ## 2.0.0-beta.2
 
 ### Patch Changes
