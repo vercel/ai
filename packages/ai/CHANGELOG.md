@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.0-beta.12
+
+### Patch Changes
+
+- fc0380b: feat (ui): resolvable header, body, credentials in http chat transport
+- 51f497d: feat (ai): step input message modification in prepareStep
+- 4f3776c: feat (ai): add InferUITools helper
+
 ## 5.0.0-beta.11
 
 ### Patch Changes
