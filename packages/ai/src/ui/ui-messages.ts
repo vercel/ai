@@ -1,4 +1,5 @@
 import { InferToolInput, InferToolOutput, Tool } from '@ai-sdk/provider-utils';
+import { ToolSet } from '../generate-text';
 import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
 
@@ -12,9 +13,19 @@ export type UITool = {
   output: unknown | undefined;
 };
 
+/**
+ * Infer the input and output types of a tool so it can be used as a UI tool.
+ */
 export type InferUITool<TOOL extends Tool> = {
   input: InferToolInput<TOOL>;
   output: InferToolOutput<TOOL>;
+};
+
+/**
+ * Infer the input and output types of a tool set so it can be used as a UI tool set.
+ */
+export type InferUITools<TOOLS extends ToolSet> = {
+  [NAME in keyof TOOLS & string]: InferUITool<TOOLS[NAME]>;
 };
 
 export type UITools = Record<string, UITool>;
