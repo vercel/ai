@@ -369,6 +369,25 @@ const { messages, sendMessage } = useChat({
 });
 ```
 
+#### Dynamic Hook-Level Configuration
+
+You can also provide functions that return configuration values. This is useful for authentication tokens that need to be refreshed, or for configuration that depends on runtime conditions:
+
+```tsx
+const { messages, sendMessage } = useChat({
+  api: '/api/chat',
+  headers: () => ({
+    Authorization: `Bearer ${getAuthToken()}`,
+    'X-User-ID': getCurrentUserId(),
+  }),
+  body: () => ({
+    sessionId: getCurrentSessionId(),
+    preferences: getUserPreferences(),
+  }),
+  credentials: () => 'include',
+});
+```
+
 #### Request-Level Configuration (Recommended)
 
 <Note>
