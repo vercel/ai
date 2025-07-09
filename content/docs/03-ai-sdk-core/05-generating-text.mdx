@@ -482,13 +482,11 @@ When you use `generateText`, you can access the sources using the `sources` prop
 
 ```ts
 const result = await generateText({
-  model: google('gemini-2.0-flash-exp'),
-  prompt: 'List the top 5 San Francisco news from the past week.',
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
-    },
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
   },
+  prompt: 'List the top 5 San Francisco news from the past week.',
 });
 
 for (const source of result.sources) {
@@ -506,13 +504,11 @@ When you use `streamText`, you can access the sources using the `fullStream` pro
 
 ```tsx
 const result = streamText({
-  model: google('gemini-2.0-flash-exp'),
-  prompt: 'List the top 5 San Francisco news from the past week.',
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
-    },
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
   },
+  prompt: 'List the top 5 San Francisco news from the past week.',
 });
 
 for await (const part of result.fullStream) {

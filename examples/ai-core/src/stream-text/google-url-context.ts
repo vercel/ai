@@ -5,10 +5,11 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: google('gemini-2.5-flash'),
+    prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context#limitations.
+            Answer this question: How many links we can consume in one request?`,
     tools: {
-      google_search: google.tools.googleSearch({}),
+      url_context: google.tools.urlContext({}),
     },
-    prompt: 'List the top 5 San Francisco news from the past week.',
   });
 
   for await (const part of result.fullStream) {
