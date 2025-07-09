@@ -528,6 +528,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'prepareStep',
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
+      description:
         'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, system prompt, and input messages for each step.',
       properties: [
         {
@@ -560,7 +561,8 @@ To see `generateText` in action, check out [these examples](#examples).
                     {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
-                      description: 'The messages that will be sent to the model for the current step.',
+                      description:
+                        'The messages that will be sent to the model for the current step.',
                     },
                   ],
                 },
@@ -570,7 +572,8 @@ To see `generateText` in action, check out [these examples](#examples).
         },
         {
           type: 'PrepareStepResult<TOOLS>',
-          description: 'Return value that can modify settings for the current step.',
+          description:
+            'Return value that can modify settings for the current step.',
           parameters: [
             {
               name: 'model',
