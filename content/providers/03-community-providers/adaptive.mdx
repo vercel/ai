@@ -9,33 +9,36 @@ The [Adaptive provider](https://ai-sdk.dev/providers/ai-sdk-providers/adaptive) 
 
 ## Setup
 
-The Adaptive provider is available in the `@ai-sdk/adaptive` module. You can install it with
+The Adaptive provider is available in the `@adaptive-llm/adaptive` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add @ai-sdk/adaptive" dark />
+    <Snippet text="pnpm add @adaptive-llm/adaptive" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @ai-sdk/adaptive" dark />
+    <Snippet text="npm install @adaptive-llm/adaptive" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @ai-sdk/adaptive" dark />
+    <Snippet text="yarn add @adaptive-llm/adaptive" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @adaptive-llm/adaptive" dark />
   </Tab>
 </Tabs>
 
 ## Provider Instance
 
-You can import the default provider instance `adaptive` from `@ai-sdk/adaptive`:
+You can import the default provider instance `adaptive` from `@adaptive-llm/adaptive`:
 
 ```ts
-import { adaptive } from '@ai-sdk/adaptive';
+import { adaptive } from '@adaptive-llm/adaptive';
 ```
 
-If you need a customized setup, you can import `createAdaptive` from `@ai-sdk/adaptive`
+If you need a customized setup, you can import `createAdaptive` from `@adaptive-llm/adaptive`
 and create a provider instance with your settings:
 
 ```ts
-import { createAdaptive } from '@ai-sdk/adaptive';
+import { createAdaptive } from '@adaptive-llm/adaptive';
 
 const adaptive = createAdaptive({
   // custom settings
@@ -124,7 +127,7 @@ The following optional provider options are available for Adaptive models:
 You can use Adaptive language models to generate text with the `generateText` function:
 
 ```ts
-import { adaptive } from '@ai-sdk/adaptive';
+import { adaptive } from '@adaptive-llm/adaptive';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
