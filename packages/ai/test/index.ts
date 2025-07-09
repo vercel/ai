@@ -4,9 +4,9 @@ export {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-export { MockEmbeddingModelV2 } from '../core/test/mock-embedding-model-v2';
-export { MockLanguageModelV2 } from '../core/test/mock-language-model-v2';
-export { mockValues } from '../core/test/mock-values';
+export { MockEmbeddingModelV2 } from '../src/test/mock-embedding-model-v2';
+export { MockLanguageModelV2 } from '../src/test/mock-language-model-v2';
+export { mockValues } from '../src/test/mock-values';
 
 import { simulateReadableStream as originalSimulateReadableStream } from '../src/util/simulate-readable-stream';
 
