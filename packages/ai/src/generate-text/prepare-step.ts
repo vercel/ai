@@ -1,4 +1,4 @@
-import { Tool } from '@ai-sdk/provider-utils';
+import { ModelMessage, Tool } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { StepResult } from './step-result';
 
@@ -19,6 +19,7 @@ export type PrepareStepFunction<
   steps: Array<StepResult<NoInfer<TOOLS>>>;
   stepNumber: number;
   model: LanguageModel;
+  messages: Array<ModelMessage>;
 }) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
 
 export type PrepareStepResult<
@@ -29,5 +30,6 @@ export type PrepareStepResult<
       toolChoice?: ToolChoice<NoInfer<TOOLS>>;
       activeTools?: Array<keyof NoInfer<TOOLS>>;
       system?: string;
+      messages?: Array<ModelMessage>;
     }
   | undefined;
