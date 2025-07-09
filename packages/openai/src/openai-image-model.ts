@@ -1,4 +1,9 @@
-import { ImageModelV2, ImageModelV2CallWarning, DataContent, ImageInput } from '@ai-sdk/provider';
+import {
+  ImageModelV2,
+  ImageModelV2CallWarning,
+  DataContent,
+  ImageInput,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -37,7 +42,10 @@ export class OpenAIImageModel implements ImageModelV2 {
     private readonly config: OpenAIImageModelConfig,
   ) {}
 
-  private createDataContentBlob(data: DataContent, mediaType: string = 'image/png'): Blob {
+  private createDataContentBlob(
+    data: DataContent,
+    mediaType: string = 'image/png',
+  ): Blob {
     if (typeof data === 'string') {
       return new Blob([convertBase64ToUint8Array(data)], { type: mediaType });
     } else if (data instanceof Uint8Array) {
@@ -95,12 +103,20 @@ export class OpenAIImageModel implements ImageModelV2 {
       for (let i = 0; i < images.length; i++) {
         const imgInput = images[i];
         const imageData = imgInput.image;
-        
+
         if (imageData instanceof URL) {
-          throw new Error('URL images are not supported for OpenAI image editing. Please provide the image data directly.');
+          throw new Error(
+            'URL images are not supported for OpenAI image editing. Please provide the image data directly.',
+          );
         }
-        
-        formData.append(`image[${i}]`, this.createDataContentBlob(imageData as DataContent, imgInput.mediaType));
+
+        formData.append(
+          `image[${i}]`,
+          this.createDataContentBlob(
+            imageData as DataContent,
+            imgInput.mediaType,
+          ),
+        );
       }
 
       if (mask != null) {
@@ -112,7 +128,9 @@ export class OpenAIImageModel implements ImageModelV2 {
         if (value != null && typeof value !== 'object') {
           formData.append(key, String(value));
         } else if (value != null) {
-          console.warn(`Skipping complex option ${key} - only primitive values supported in form data`);
+          console.warn(
+            `Skipping complex option ${key} - only primitive values supported in form data`,
+          );
         }
       }
 
@@ -146,7 +164,7 @@ export class OpenAIImageModel implements ImageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<ImageModelV2['doGenerate']>[0]
+    options: Parameters<ImageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<ImageModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const args = this.getArgs(options);
@@ -168,12 +186,16 @@ export class OpenAIImageModel implements ImageModelV2 {
       });
 
       return {
-        images: (response as OpenAIImageResponse).data.map(item => item.b64_json),
+        images: (response as OpenAIImageResponse).data.map(
+          item => item.b64_json,
+        ),
         warnings: args.warnings,
         providerMetadata: {
           openai: {
-            images: (response as OpenAIImageResponse).data.map(item => 
-              item.revised_prompt ? { revisedPrompt: item.revised_prompt } : null
+            images: (response as OpenAIImageResponse).data.map(item =>
+              item.revised_prompt
+                ? { revisedPrompt: item.revised_prompt }
+                : null,
             ),
           },
         },
@@ -200,12 +222,16 @@ export class OpenAIImageModel implements ImageModelV2 {
       });
 
       return {
-        images: (response as OpenAIImageResponse).data.map(item => item.b64_json),
+        images: (response as OpenAIImageResponse).data.map(
+          item => item.b64_json,
+        ),
         warnings: args.warnings,
         providerMetadata: {
           openai: {
-            images: (response as OpenAIImageResponse).data.map(item => 
-              item.revised_prompt ? { revisedPrompt: item.revised_prompt } : null
+            images: (response as OpenAIImageResponse).data.map(item =>
+              item.revised_prompt
+                ? { revisedPrompt: item.revised_prompt }
+                : null,
             ),
           },
         },

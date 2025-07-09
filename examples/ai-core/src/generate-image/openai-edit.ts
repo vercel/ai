@@ -7,14 +7,18 @@ import 'dotenv/config';
 async function main() {
   // Example 1: Edit a single image using ImageInput with media type
   console.log('Editing an existing image with ImageInput format...');
-  const imageBuffer = fs.readFileSync(path.join(__dirname, '../../data/comic-cat.png'));
-  
+  const imageBuffer = fs.readFileSync(
+    path.join(__dirname, '../../data/comic-cat.png'),
+  );
+
   const editResult = await generateImage({
     model: openai.imageModel('gpt-image-1'),
-    images: [{
-      image: imageBuffer, // Buffer is supported
-      mediaType: 'image/png'
-    }],
+    images: [
+      {
+        image: imageBuffer, // Buffer is supported
+        mediaType: 'image/png',
+      },
+    ],
     prompt: 'Add a rainbow in the sky above the cat',
     size: '1024x1024',
   });
@@ -30,10 +34,12 @@ async function main() {
 
   const editResultBase64 = await generateImage({
     model: openai.imageModel('gpt-image-1'),
-    images: [{
-      image: base64Image,
-      mediaType: 'image/png'
-    }],
+    images: [
+      {
+        image: base64Image,
+        mediaType: 'image/png',
+      },
+    ],
     prompt: 'Add stars in the night sky',
   });
 
@@ -46,15 +52,17 @@ async function main() {
   console.log('Editing with ArrayBuffer...');
   const arrayBuffer = imageBuffer.buffer.slice(
     imageBuffer.byteOffset,
-    imageBuffer.byteOffset + imageBuffer.byteLength
+    imageBuffer.byteOffset + imageBuffer.byteLength,
   );
 
   const editResultArrayBuffer = await generateImage({
     model: openai.imageModel('gpt-image-1'),
-    images: [{
-      image: arrayBuffer,
-      mediaType: 'image/png'
-    }],
+    images: [
+      {
+        image: arrayBuffer,
+        mediaType: 'image/png',
+      },
+    ],
     prompt: 'Make the image more vibrant and colorful',
   });
 
@@ -65,19 +73,21 @@ async function main() {
 
   // Example 4: Edit multiple images with explicit media types
   console.log('Editing multiple images...');
-  const secondImage = fs.readFileSync(path.join(__dirname, '../../data/screenshot-editor.png'));
-  
+  const secondImage = fs.readFileSync(
+    path.join(__dirname, '../../data/screenshot-editor.png'),
+  );
+
   const multiEditResult = await generateImage({
     model: openai.imageModel('gpt-image-1'),
     images: [
-      { 
+      {
         image: imageBuffer,
-        mediaType: 'image/png'
+        mediaType: 'image/png',
       },
       {
         image: secondImage,
-        mediaType: 'image/png'
-      }
+        mediaType: 'image/png',
+      },
     ],
     prompt: 'Create a creative collage combining these images',
     n: 2, // Generate 2 variations
@@ -95,14 +105,18 @@ async function main() {
 
   // Example 5: Using mask for inpainting (edit specific parts of the image)
   console.log('Editing with mask for inpainting...');
-  const maskBuffer = fs.readFileSync(path.join(__dirname, '../../data/comic-cat-mask.png'));
-  
+  const maskBuffer = fs.readFileSync(
+    path.join(__dirname, '../../data/comic-cat-mask.png'),
+  );
+
   const inpaintResult = await generateImage({
     model: openai.imageModel('gpt-image-1'),
-    images: [{
-      image: imageBuffer,
-      mediaType: 'image/png'
-    }],
+    images: [
+      {
+        image: imageBuffer,
+        mediaType: 'image/png',
+      },
+    ],
     mask: maskBuffer,
     prompt: 'Use a techno style on the masked area',
     size: '1024x1024',

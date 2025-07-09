@@ -1,4 +1,9 @@
-import { ImageModelV2, ImageModelV2ProviderMetadata, ImageInput, DataContent } from '@ai-sdk/provider';
+import {
+  ImageModelV2,
+  ImageModelV2ProviderMetadata,
+  ImageInput,
+  DataContent,
+} from '@ai-sdk/provider';
 import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
 import {
   detectMediaType,
@@ -204,7 +209,12 @@ Only applicable for HTTP-based providers.
     throw new NoImageGeneratedError({ responses });
   }
 
-  return new DefaultGenerateImageResult({ images: resultImages, warnings, responses, providerMetadata });
+  return new DefaultGenerateImageResult({
+    images: resultImages,
+    warnings,
+    responses,
+    providerMetadata,
+  });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {

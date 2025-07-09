@@ -2,7 +2,7 @@ export type {
   ImageModelV2,
   ImageModelV2ProviderMetadata,
 } from './image-model-v2';
-export type { 
+export type {
   ImageModelV2CallOptions,
   DataContent,
   ImageInput,
