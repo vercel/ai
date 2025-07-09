@@ -33,6 +33,7 @@ export {
   type DataUIPart,
   type FileUIPart,
   type InferUITool,
+  type InferUITools,
   type ReasoningUIPart,
   type SourceUrlUIPart,
   type StepStartUIPart,
