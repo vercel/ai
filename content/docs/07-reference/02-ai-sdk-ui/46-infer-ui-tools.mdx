@@ -34,6 +34,7 @@ import { InferUITools } from 'ai';
 A type that maps each tool in the tool set to its inferred input and output types.
 
 The resulting type has the shape:
+
 ```typescript
 {
   [NAME in keyof TOOLS & string]: {
@@ -70,10 +71,14 @@ const tools = {
     }),
     execute: async ({ operation, a, b }) => {
       switch (operation) {
-        case 'add': return a + b;
-        case 'subtract': return a - b;
-        case 'multiply': return a * b;
-        case 'divide': return a / b;
+        case 'add':
+          return a + b;
+        case 'subtract':
+          return a - b;
+        case 'multiply':
+          return a * b;
+        case 'divide':
+          return a / b;
       }
     },
   },
