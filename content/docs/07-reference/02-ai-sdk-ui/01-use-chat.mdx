@@ -95,27 +95,27 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'messages',
       type: 'UIMessage[]',
       isOptional: true,
-      description: 'Initial chat messages.',
+      description: 'Initial chat messages to populate the conversation with.',
     },
     {
       name: 'maxSteps',
       type: 'number',
       isOptional: true,
-      description: 'Maximum number of tool execution steps. Defaults to 1.',
+      description: 'Maximum number of sequential tool execution steps per assistant message. Defaults to 1.',
     },
     {
       name: 'onToolCall',
       type: '({toolCall: ToolCall}) => void | unknown | Promise<unknown>',
       isOptional: true,
       description:
-        'Optional callback function that is invoked when a tool call is received. Intended for automatic client-side tool execution.',
+        'Optional callback function that is invoked when a tool call is received. Return a value to provide the tool result, or return undefined to handle the tool call manually.',
     },
     {
       name: 'onFinish',
       type: '(options: {message: UIMessage}) => void',
       isOptional: true,
       description:
-        'Optional callback function that is called when the assistant message is finished streaming.',
+        'Optional callback function that is called when the assistant message has finished streaming completely.',
     },
     {
       name: 'onError',
@@ -162,11 +162,41 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'messages',
       type: 'UIMessage[]',
       description: 'The current array of chat messages.',
+      properties: [
+        {
+          type: 'UIMessage',
+          parameters: [
+            {
+              name: 'id',
+              type: 'string',
+              description: 'A unique identifier for the message.',
+            },
+            {
+              name: 'role',
+              type: "'system' | 'user' | 'assistant'",
+              description: 'The role of the message.',
+            },
+            {
+              name: 'parts',
+              type: 'UIMessagePart[]',
+              description:
+                'The parts of the message. Use this for rendering the message in the UI.',
+            },
+            {
+              name: 'metadata',
+              type: 'unknown',
+              isOptional: true,
+              description: 'The metadata of the message.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'status',
       type: "'submitted' | 'streaming' | 'ready' | 'error'",
-      description: 'The current status of the chat.',
+      description:
+        'The current status of the chat: "ready" (idle), "submitted" (request sent), "streaming" (receiving response), or "error" (request failed).',
     },
     {
       name: 'error',
@@ -176,33 +206,62 @@ Allows you to easily create a conversational user interface for your chatbot app
     {
       name: 'sendMessage',
       type: '(message: CreateUIMessage | string, options?: ChatRequestOptions) => void',
-      description: 'Function to send a new message to the chat.',
+      description:
+        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response.',
+      properties: [
+        {
+          type: 'ChatRequestOptions',
+          parameters: [
+            {
+              name: 'headers',
+              type: 'Record<string, string> | Headers',
+              description:
+                'Additional headers that should be to be passed to the API endpoint.',
+            },
+            {
+              name: 'body',
+              type: 'object',
+              description:
+                'Additional body JSON properties that should be sent to the API endpoint.',
+            },
+            {
+              name: 'data',
+              type: 'JSONValue',
+              description: 'Additional data to be sent to the API endpoint.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'regenerate',
       type: '(options?: { messageId?: string }) => void',
       description:
-        'Function to regenerate the last assistant message or a specific message.',
+        'Function to regenerate the last assistant message or a specific message. If no messageId is provided, regenerates the last assistant message.',
     },
     {
       name: 'stop',
       type: '() => void',
-      description: 'Function to stop the current streaming response.',
+      description:
+        'Function to abort the current streaming response from the assistant.',
     },
     {
       name: 'resumeStream',
       type: '() => void',
-      description: 'Function to resume an interrupted stream.',
+      description:
+        'Function to resume an interrupted streaming response. Useful when a network error occurs during streaming.',
     },
     {
       name: 'addToolResult',
       type: '(options: { toolCallId: string; result: unknown }) => void',
-      description: 'Function to add a tool result to the chat.',
+      description:
+        'Function to add a tool result to the chat. This will update the chat messages with the tool result and call the API route if all tool results for the last message are available.',
     },
     {
       name: 'setMessages',
       type: '(messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => void',
-      description: 'Function to update the messages state locally.',
+      description:
+        'Function to update the messages state locally without triggering an API call. Useful for optimistic updates.',
     },
   ]}
 />
