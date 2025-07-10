@@ -696,6 +696,12 @@ const result = await generateText({
 });
 ```
 
+<Note>
+  The tool must be named `file_search` when using OpenAI's file search
+  functionality. This name is required by OpenAI's API specification and cannot
+  be customized.
+</Note>
+
 #### Reasoning Summaries
 
 For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
