@@ -89,11 +89,13 @@ send and receive messages:
 
 import { UIMessage, useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
 
 export default function Chat({
   id,
   initialMessages,
 }: { id?: string | undefined; initialMessages?: UIMessage[] } = {}) {
+  const [input, setInput] = useState('');
   const { sendMessage, messages } = useChat({
     id, // use the provided chat ID
     messages: initialMessages, // load initial messages
@@ -101,6 +103,14 @@ export default function Chat({
       api: '/api/chat',
     }),
   });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      sendMessage({ text: input });
+      setInput('');
+    }
+  };
 
   // simplified rendering code, extend as needed:
   return (
@@ -114,16 +124,12 @@ export default function Chat({
         </div>
       ))}
 
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          const formData = new FormData(e.target);
-          const text = formData.get('message');
-          if (text) sendMessage({ text });
-          e.target.reset();
-        }}
-      >
-        <input name="message" placeholder="Type a message..." />
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Type a message..."
+        />
         <button type="submit">Send</button>
       </form>
     </div>
@@ -227,13 +233,16 @@ export async function POST(req: Request) {
   // ...
   const result = streamText({
     // ...
+  });
+
+  return result.toUIMessageStreamResponse({
     // id format for server-side messages:
-    experimental_generateMessageId: createIdGenerator({
+    generateMessageId: createIdGenerator({
       prefix: 'msgs',
       size: 16,
     }),
+    // ...
   });
-  // ...
 }
 ```
 
