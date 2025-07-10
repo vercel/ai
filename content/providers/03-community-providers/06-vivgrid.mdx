@@ -1,0 +1,205 @@
+@@ -0,0 +1,161 @@
+---
+title: Vivgrid
+description: Enterprise-grade AI development platform with managed models, serverless MCP, and global infrastructure
+---
+
+# Vivgrid
+
+[Vivgrid](https://vivgrid.com) is an enterprise-grade AI development platform designed to streamline agent development and deployment. Built on the open-source [YoMo](https://github.com/yomorun/yomo) framework, Vivgrid combines managed AI services with a globally distributed infrastructure to deliver production-ready AI applications.
+
+## Key Features
+
+### 🚀 Zero-Configuration Model Management
+
+Unlike traditional providers that require explicit model selection in code, Vivgrid manages your AI models and system prompts through a centralized console. This allows for dynamic model switching and prompt optimization without code changes.
+
+### ⚡ Serverless MCP
+
+Deploy your LLM function tools as Serverless MCP with one click. This architecture eliminates DevOps overhead while providing automatic scaling and global distribution.
+
+### 🛠️ Type-Safe Function Calling
+
+Write LLM tools in TypeScript with full type safety. Functions are decoupled from your main application, enabling easier testing, debugging, and maintenance.
+
+### 🌍 Global AI Inference Infrastructure
+
+Vivgrid's geo-distributed infrastructure leverages QUIC protocol for low-latency connections across 50+ regions. Requests are automatically routed to the nearest region for optimal performance.
+
+### 📊 Enterprise Observability
+
+Comprehensive monitoring includes latency breakdown analysis, cost tracking, and performance optimization tools. Built-in regression testing ensures consistent model performance over time.
+
+## Installation
+
+Install the Vivgrid provider package:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @vivgrid/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @vivgrid/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @vivgrid/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## API Key Setup
+
+Configure your Vivgrid API key as an environment variable:
+
+```bash
+# Unix/Linux/macOS
+export VIVGRID_API_KEY=your-api-key
+
+# Windows Command Prompt
+set VIVGRID_API_KEY=your-api-key
+
+# Windows PowerShell
+$env:VIVGRID_API_KEY="your-api-key"
+```
+
+Obtain your API key from the [Vivgrid Console](https://console.vivgrid.com).
+
+## Provider Instance
+
+You can import the default provider instance `vivgrid` from `@vivgrid/ai-sdk-provider`:
+
+```typescript
+import { createVivgrid } from "@vivgrid/ai-sdk-provider";
+
+const vivgrid = createVivgrid({
+  apiKey: process.env.VIVGRID_API_KEY,
+});
+```
+
+## Language Models
+
+Vivgrid's unique approach to model management allows you to configure models through the [Console](https://console.vivgrid.com) rather than hardcoding them in your application:
+
+```typescript
+// Using console-managed model configuration
+const model = vivgrid.model('managed');
+
+// Or specify a model directly if needed
+const model = vivgrid.model('gpt-4');
+```
+
+This approach enables:
+
+- **Dynamic model switching** without code change and redeployments
+- **A/B testing** different models in production
+- **Centralized prompt management** across your organization, collaborate with your team
+
+Available models are documented in the [Vivgrid Models Reference](https://docs.vivgrid.com/models).
+
+## Examples
+
+### generateText
+
+```javascript
+import { vivgrid } from "@vivgrid/ai-sdk-provider";
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: vivgrid(), // Uses console-managed model and system prompt
+  prompt: "Write a vegetable lasagna recipe for 4 people",
+});
+
+console.log(text);
+```
+
+### Streaming Text Generation
+
+```typescript
+import { vivgrid } from "@vivgrid/ai-sdk-provider";
+import { streamText } from "ai";
+
+const { textStream } = await streamText({
+  model: vivgrid(),
+  prompt: "Tell me a story about a brave little rabbit",
+});
+
+for await (const textPart of textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Serverless MCP
+
+Tools (LLM Function Calling) can be written in TypeScript with strongly-typed language support. They are decoupled from the main codebase and reduce management overhead through a serverless architecture. Additionally, all tools are automatically served as MCP ervers.
+
+Here's how to implement a `get-weather` tool:
+
+```typescript
+const description = "Get the current weather for `city_name`";
+
+export type Argument = {
+  /**
+   * The name of the city to query weather for
+   */
+  city_name: string;
+}
+
+export async function handler(args: Argument) {
+  const result = await getWeather(args.city_name);
+  return result;
+}
+```
+
+Then [deploy it to Vivgrid](https://docs.vivgrid.com/function-calling), and use it in your code like this:
+
+```typescript
+import { vivgrid } from "@vivgrid/ai-sdk-provider";
+import { generateText } from "ai";
+
+const { text, toolCalls } = await generateText({
+  model: vivgrid(),
+  prompt: "What's the weather like in San Francisco?",
+  /* No need to define tools locally anymore */
+  // tools: {
+  //   weather: {
+  //     description: "Get weather for a specified location",
+  //     parameters: z.object({
+  //       location: z.string().describe("City name"),
+  //     }),
+  //     execute: async ({ location }) => {
+  //       // Actual weather API call
+  //       return `The weather in ${location} is sunny, 22°C`;
+  //     },
+  //   },
+  // },
+});
+```
+
+## Advanced Capabilities
+
+Vivgrid offers powerful features designed to give developers granular control and deep insights into their applications:
+
+- **Cost Management**: Monitor and optimize your expenditures with detailed usage analytics available directly in the Vivgrid console.
+
+- **Latency Analysis**: Gain full visibility into performance bottlenecks. Vivgrid meticulously logs the duration of every operation, from Model API requests to individual tool function calls, enabling precise performance tuning.
+
+- **Flexible Model Integration**: Seamlessly switch between leading models, including those from OpenAI, Gemini, and Claude, without modifying your existing codebase.
+
+- **Regression Testing**: Ensure the continued reliability of your agents. Vivgrid integrates with [Alchemist](https://alchemist.vivgrid.com), a dedicated tool for comprehensive regression testing of your models, system prompts, and tools.
+
+- **Cross-Provider Compatibility**: Write once, deploy anywhere. Maintain a consistent code structure across various model providers, simplifying development and migration.
+
+## Requirements
+
+- **Node.js**: Version 18 or higher
+- **TypeScript**: Version 4.5 or higher (for function development)
+- **Modern browser**: For accessing the Vivgrid Console
+
+## Getting Started
+
+1. **Sign up** for a [free Vivgrid account](https://console.vivgrid.com/?ref=aisdk)
+2. **Install** the provider package
+3. **Configure** your API key
+4. **Deploy** your first serverless function
+5. **Monitor** performance in the console
+
+Ready to build production-ready AI applications? [Start with $100 free credits](https://vivgrid.com/signup?ref=aisdk).
