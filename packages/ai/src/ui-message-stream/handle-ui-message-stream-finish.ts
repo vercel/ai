@@ -16,7 +16,11 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 }: {
   stream: ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
 
-  messageId: string;
+  /**
+   * The message ID to use for the response message.
+   * If not provided, no id will be set for the response message.
+   */
+  messageId?: string;
 
   /**
    * The original messages.
@@ -48,13 +52,21 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     return stream;
   }
 
-  const lastMessage = originalMessages?.[originalMessages.length - 1];
+  // last message is only relevant for assistant messages
+  let lastMessage: UI_MESSAGE | undefined =
+    originalMessages?.[originalMessages.length - 1];
+  if (lastMessage?.role !== 'assistant') {
+    lastMessage = undefined;
+  } else {
+    // appending to the last message, so we need to use the same id
+    messageId = lastMessage.id;
+  }
 
   const state = createStreamingUIMessageState<UI_MESSAGE>({
     lastMessage: lastMessage
       ? (structuredClone(lastMessage) as UI_MESSAGE)
       : undefined,
-    messageId, // will be overridden by the stream
+    messageId: messageId ?? '', // will be overridden by the stream
   });
 
   const runUpdateMessageJob = async (
@@ -78,7 +90,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
           // inject the messageId into the chunk
           if (chunk.type === 'start') {
             const startChunk = chunk as UIMessageChunk & { type: 'start' };
-            if (startChunk.messageId == null) {
+            if (startChunk.messageId == null && messageId != null) {
               startChunk.messageId = messageId;
             }
           }
