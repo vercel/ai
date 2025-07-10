@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- 377bbcf: fix (ui): tool input can be undefined during input-streaming
+- ce1d1f3: feat (ai): export mock image, speech, and transcription models
+- c040e2f: fix (ui): inject generated response message id
+- c808e4d: fix (ui): do not send changing assistant message ids when onFinish is provided
+
 ## 5.0.0-beta.12
 
 ### Patch Changes
