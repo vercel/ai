@@ -2648,7 +2648,7 @@ describe('streamText', () => {
       `);
     });
 
-    it('should not generate a new message id when onFinish is provided', async () => {
+    it('should not generate a new message id when onFinish is provided and generateMessageId is not provided', async () => {
       const result = streamText({
         model: createTestModel(),
         ...defaultSettings(),
@@ -2663,6 +2663,62 @@ describe('streamText', () => {
         [
           {
             "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": ", ",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": "world!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
+    });
+
+    it('should generate a new message id when generateMessageId is provided', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        generateMessageId: mockId({ prefix: 'id' }),
+      });
+
+      expect(
+        await convertReadableStreamToArray(uiMessageStream),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": "id-0",
             "messageMetadata": undefined,
             "type": "start",
           },
