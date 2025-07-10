@@ -248,25 +248,7 @@ const { text } = await generateText({
 
 ## Model Capabilities
 
-The AI Gateway provider supports various capabilities depending on the underlying model:
+Model capabilities depend on the specific provider and model you're using. For detailed capability information, see:
 
-| Provider   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| OpenAI     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Anthropic  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Google     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| xAI        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Meta       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Mistral    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| DeepSeek   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Amazon     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Cohere     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Perplexity | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Alibaba    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Inception  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| Morph      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-
-<Note>
-  Specific capabilities may vary by model. Check the model documentation for
-  detailed capability information.
-</Note>
+- [AI Gateway provider options](https://vercel.com/docs/ai-gateway/provider-options#available-providers) for an overview of available providers
+- Individual [AI SDK provider pages](/providers/ai-sdk-providers) for specific model capabilities and features
