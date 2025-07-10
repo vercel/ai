@@ -102,8 +102,8 @@ export function prepareResponsesTools({
           toolChoice.toolName === 'file_search'
             ? { type: 'file_search' }
             : toolChoice.toolName === 'web_search_preview'
-            ? { type: 'web_search_preview' }
-            : { type: 'function', name: toolChoice.toolName },
+              ? { type: 'web_search_preview' }
+              : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };
     default: {
