@@ -2056,13 +2056,6 @@ const stream = createUIMessageStream({
 return createUIMessageStreamResponse({ stream });
 ```
 
-### Suggested Changes
-
-1. Move `onFinish` from `streamText` to `toUIMessageStreamResponse`
-2. Pass `originalMessages` to `toUIMessageStreamResponse` for full message context
-3. Remove manual message formatting with helper functions
-4. Update storage logic to handle the complete `messages` array directly
-
 ## Provider & Model Changes
 
 ### OpenAI
