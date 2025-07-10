@@ -1,0 +1,330 @@
+---
+title: AI Gateway
+description: Learn how to use the AI Gateway provider with the AI SDK.
+---
+
+# AI Gateway Provider
+
+The [AI Gateway](https://vercel.com/docs/ai-gateway) provider gives you access to a wide variety of AI models and providers through a unified interface. The Gateway provider acts as a proxy that allows you to use multiple AI providers seamlessly without vendor lock-in.
+
+## Features
+
+- **Multi-provider support**: Access models from OpenAI, Anthropic, Google, Meta, xAI, and many more
+- **Unified API**: Use the same interface across all providers
+- **Dynamic model selection**: Choose the best model for your use case
+- **Automatic authentication**: Seamless integration with Vercel deployments
+- **Cost optimization**: Compare pricing across providers
+
+## Setup
+
+The AI Gateway provider is available in the `@ai-sdk/gateway` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/gateway" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/gateway" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/gateway" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `gateway` from `@ai-sdk/gateway`:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+```
+
+If you need a customized setup, you can import `createGateway` from `@ai-sdk/gateway` and create a provider instance with your settings:
+
+```ts
+import { createGateway } from '@ai-sdk/gateway';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the AI Gateway provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v1/ai`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `AI_GATEWAY_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+- **metadataCacheRefreshMillis** _number_
+
+  How frequently to refresh the metadata cache in milliseconds. Defaults to 5 minutes (300,000ms).
+
+## Authentication
+
+The Gateway provider supports two authentication methods:
+
+### API Key Authentication
+
+Set your API key via environment variable:
+
+```bash
+AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Or pass it directly to the provider:
+
+```ts
+import { createGateway } from '@ai-sdk/gateway';
+
+const gateway = createGateway({
+  apiKey: 'your_api_key_here',
+});
+```
+
+### OIDC Authentication (Vercel Deployments)
+
+When deployed on Vercel, the AI Gateway provider automatically uses OIDC tokens for authentication without requiring an API key.
+
+## Language Models
+
+You can create language models using a provider instance. The first argument is the model ID in the format `provider/model-name`:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-4o'),
+  prompt: 'Explain quantum computing in simple terms',
+});
+```
+
+AI Gateway language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions (see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Example
+
+You can use AI Gateway language models to generate text with the `generateText` function:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-3.5-sonnet'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+## Available Models
+
+The AI Gateway provider supports models from multiple providers. Here are some popular options:
+
+### OpenAI Models
+
+- `openai/gpt-4o` - Latest GPT-4 model with vision capabilities
+- `openai/gpt-4o-mini` - Smaller, faster GPT-4 model
+- `openai/gpt-4.1` - Latest GPT-4.1 model
+- `openai/gpt-4.1-mini` - Smaller GPT-4.1 model
+- `openai/gpt-4.1-nano` - Fastest GPT-4.1 model
+- `openai/gpt-4-turbo` - GPT-4 Turbo model
+- `openai/gpt-3.5-turbo` - GPT-3.5 Turbo model
+- `openai/o3` - Advanced reasoning model
+- `openai/o3-mini` - Smaller reasoning model
+- `openai/o4-mini` - Latest reasoning model
+- `openai/o1` - Reasoning model
+
+### Anthropic Models
+
+- `anthropic/claude-4-sonnet` - Latest Claude 4 model
+- `anthropic/claude-4-opus` - Most capable Claude 4 model
+- `anthropic/claude-3.7-sonnet` - Reasoning-capable Claude model
+- `anthropic/claude-3.5-sonnet` - Claude 3.5 Sonnet
+- `anthropic/claude-3-haiku` - Fast and efficient Claude model
+
+### Google Models
+
+- `google/gemini-2.5-pro` - Latest Gemini Pro model
+- `google/gemini-2.5-flash` - Fast Gemini model
+- `google/gemini-2.0-flash` - Gemini 2.0 Flash model
+- `google/gemini-2.0-flash-lite` - Lightweight Gemini 2.0 model
+- `google/gemma-2-9b` - Gemma 2 model
+
+### xAI Models
+
+- `xai/grok-3` - Latest Grok 3 model
+- `xai/grok-3-fast` - Fast Grok 3 model
+- `xai/grok-3-mini` - Smaller Grok model
+- `xai/grok-3-mini-fast` - Fast smaller Grok model
+- `xai/grok-2` - Grok 2 model
+- `xai/grok-2-vision` - Grok with vision capabilities
+
+### Meta Models
+
+- `meta/llama-3.3-70b` - Latest Llama model
+- `meta/llama-4-scout` - Llama 4 Scout model
+- `meta/llama-4-maverick` - Llama 4 Maverick model
+- `meta/llama-3.2-90b` - Large Llama 3.2 model
+- `meta/llama-3.2-11b` - Medium Llama 3.2 model
+- `meta/llama-3.1-70b` - Llama 3.1 large model
+- `meta/llama-3.1-8b` - Llama 3.1 small model
+
+### Mistral Models
+
+- `mistral/mistral-large` - Mistral's largest model
+- `mistral/magistral-medium` - Reasoning-capable model
+- `mistral/magistral-small` - Smaller reasoning model
+- `mistral/pixtral-large` - Multimodal Mistral model
+- `mistral/pixtral-12b` - Smaller multimodal model
+- `mistral/codestral` - Code-focused model
+- `mistral/ministral-8b` - Efficient 8B model
+- `mistral/ministral-3b` - Compact 3B model
+
+### DeepSeek Models
+
+- `deepseek/deepseek-r1` - Latest reasoning model
+- `deepseek/deepseek-v3` - Advanced DeepSeek model
+
+### Amazon Models
+
+- `amazon/nova-pro` - Amazon's most capable model
+- `amazon/nova-lite` - Fast Amazon model
+- `amazon/nova-micro` - Smallest Amazon model
+
+### Cohere Models
+
+- `cohere/command-r-plus` - Cohere's most capable model
+- `cohere/command-r` - Cohere's balanced model
+- `cohere/command-a` - Cohere's fast model
+
+### Perplexity Models
+
+- `perplexity/sonar-reasoning-pro` - Advanced reasoning model
+- `perplexity/sonar-reasoning` - Reasoning model
+- `perplexity/sonar-pro` - Pro search model
+- `perplexity/sonar` - Standard search model
+
+### Alibaba Models
+
+- `alibaba/qwen-3-235b` - Qwen 3 largest model
+- `alibaba/qwen-3-32b` - Qwen 3 medium model
+- `alibaba/qwen-3-30b` - Qwen 3 balanced model
+- `alibaba/qwen-3-14b` - Qwen 3 efficient model
+- `alibaba/qwq-32b` - Qwen reasoning model
+
+## Dynamic Model Discovery
+
+You can discover available models programmatically:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+
+const availableModels = await gateway.getAvailableModels();
+
+// List all available models
+availableModels.models.forEach(model => {
+  console.log(`${model.id}: ${model.name}`);
+  if (model.description) {
+    console.log(`  Description: ${model.description}`);
+  }
+  if (model.pricing) {
+    console.log(`  Input: $${model.pricing.input}/token`);
+    console.log(`  Output: $${model.pricing.output}/token`);
+  }
+});
+```
+
+## Examples
+
+### Basic Text Generation
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-3.5-sonnet'),
+  prompt: 'Write a haiku about programming',
+});
+
+console.log(text);
+```
+
+### Streaming with Multiple Providers
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { streamText } from 'ai';
+
+const { textStream } = await streamText({
+  model: gateway('openai/gpt-4o'),
+  prompt: 'Explain the benefits of serverless architecture',
+});
+
+for await (const textPart of textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Tool Usage
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: gateway('meta/llama-3.3-70b'),
+  prompt: 'What is the weather like in San Francisco?',
+  tools: {
+    getWeather: tool({
+      description: 'Get the current weather for a location',
+      parameters: z.object({
+        location: z.string().describe('The location to get weather for'),
+      }),
+      execute: async ({ location }) => {
+        // Your weather API call here
+        return `It's sunny in ${location}`;
+      },
+    }),
+  },
+});
+```
+
+## Model Capabilities
+
+The AI Gateway provider supports various capabilities depending on the underlying model:
+
+| Provider   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| OpenAI     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Anthropic  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Google     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| xAI        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Meta       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Mistral    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| DeepSeek   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Amazon     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Cohere     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Perplexity | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Alibaba    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  Specific capabilities may vary by model. Check the model documentation for
+  detailed capability information.
+</Note>
