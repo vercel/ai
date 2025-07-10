@@ -2713,9 +2713,8 @@ describe('streamText', () => {
         generateMessageId: mockId({ prefix: 'id' }),
       });
 
-      expect(
-        await convertReadableStreamToArray(uiMessageStream),
-      ).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
         [
           {
             "messageId": "id-0",
