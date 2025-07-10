@@ -33,4 +33,26 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
+  // CLI binary
+  {
+    entry: ['src/bin/ai.ts'],
+    outDir: 'dist/bin',
+    format: ['cjs'],
+    sourcemap: true,
+    banner: {
+      js: '#!/usr/bin/env node',
+    },
+  },
+  // CLI binary minified
+  {
+    entry: ['src/bin/ai.ts'],
+    outDir: 'dist/bin',
+    outExtension: () => ({ js: '.min.js' }),
+    format: ['cjs'],
+    minify: true,
+    sourcemap: false,
+    banner: {
+      js: '#!/usr/bin/env node',
+    },
+  },
 ]);
