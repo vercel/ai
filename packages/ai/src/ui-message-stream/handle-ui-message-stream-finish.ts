@@ -48,10 +48,6 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     responseMessage: UI_MESSAGE;
   }) => void;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
-  if (onFinish == null) {
-    return stream;
-  }
-
   // last message is only relevant for assistant messages
   let lastMessage: UI_MESSAGE | undefined =
     originalMessages?.[originalMessages.length - 1];
@@ -60,6 +56,31 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   } else {
     // appending to the last message, so we need to use the same id
     messageId = lastMessage.id;
+  }
+
+  const idInjectedStream = stream.pipeThrough(
+    new TransformStream<
+      InferUIMessageChunk<UI_MESSAGE>,
+      InferUIMessageChunk<UI_MESSAGE>
+    >({
+      transform(chunk, controller) {
+        // when there is no messageId in the start chunk,
+        // but the user checked for persistence,
+        // inject the messageId into the chunk
+        if (chunk.type === 'start') {
+          const startChunk = chunk as UIMessageChunk & { type: 'start' };
+          if (startChunk.messageId == null && messageId != null) {
+            startChunk.messageId = messageId;
+          }
+        }
+
+        controller.enqueue(chunk);
+      },
+    }),
+  );
+
+  if (onFinish == null) {
+    return idInjectedStream;
   }
 
   const state = createStreamingUIMessageState<UI_MESSAGE>({
@@ -79,26 +100,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   };
 
   return processUIMessageStream<UI_MESSAGE>({
-    stream: stream.pipeThrough(
-      new TransformStream<
-        InferUIMessageChunk<UI_MESSAGE>,
-        InferUIMessageChunk<UI_MESSAGE>
-      >({
-        transform(chunk, controller) {
-          // when there is no messageId in the start chunk,
-          // but the user checked for persistence,
-          // inject the messageId into the chunk
-          if (chunk.type === 'start') {
-            const startChunk = chunk as UIMessageChunk & { type: 'start' };
-            if (startChunk.messageId == null && messageId != null) {
-              startChunk.messageId = messageId;
-            }
-          }
-
-          controller.enqueue(chunk);
-        },
-      }),
-    ),
+    stream: idInjectedStream,
     runUpdateMessageJob,
     onError,
   }).pipeThrough(
