@@ -5,15 +5,16 @@ description: Learn how to use the AI Gateway provider with the AI SDK.
 
 # AI Gateway Provider
 
-The [AI Gateway](https://vercel.com/docs/ai-gateway) provider connects you to models from multiple AI providers through a single interface. Instead of integrating with each provider separately, you can access OpenAI, Anthropic, Google, Meta, xAI, and other models through one consistent API.
+The [AI Gateway](https://vercel.com/docs/ai-gateway) provider connects you to models from multiple AI providers through a single interface. Instead of integrating with each provider separately, you can access OpenAI, Anthropic, Google, Meta, xAI, and other providers and their models.
 
 ## Features
 
-- Access models from multiple providers without switching SDKs
+- Access models from multiple providers without having to install additional provider modules/dependencies
 - Use the same code structure across different AI providers
 - Switch between models and providers easily
 - Automatic authentication when deployed on Vercel
 - View pricing information across providers
+- Observability for AI model usage through the Vercel dashboard
 
 ## Setup
 
@@ -103,7 +104,7 @@ When deployed on Vercel, the AI Gateway provider automatically uses OIDC tokens 
 
 ## Language Models
 
-You can create language models using a provider instance. The first argument is the model ID in the format `provider/model-name`:
+You can create language models using a provider instance. The first argument is the model ID in the format `creator/model-name`:
 
 ```ts
 import { gateway } from '@ai-sdk/gateway';
@@ -133,7 +134,7 @@ const { text } = await generateText({
 
 ## Available Models
 
-The AI Gateway supports models from OpenAI, Anthropic, Google, Meta, xAI, Mistral, DeepSeek, Amazon, Cohere, Perplexity, Alibaba, and other providers.
+The AI Gateway supports models from OpenAI, Anthropic, Google, Meta, xAI, Mistral, DeepSeek, Amazon Bedrock, Cohere, Perplexity, Alibaba, and other providers.
 
 For the complete list of available models, see the [AI Gateway documentation](https://vercel.com/docs/ai-gateway).
 
