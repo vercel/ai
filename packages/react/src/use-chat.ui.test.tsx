@@ -29,6 +29,65 @@ const server = createTestServer({
   '/api/chat/123/stream': {},
 });
 
+describe('initial messages', () => {
+  let onFinishCalls: Array<{ message: UIMessage }> = [];
+
+  setupTestComponent(
+    ({ id: idParam }: { id: string }) => {
+      const [id, setId] = React.useState<string>(idParam);
+      const {
+        messages,
+        status,
+        id: idKey,
+      } = useChat({
+        id,
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+        ],
+      });
+
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="status">{status.toString()}</div>
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
+        </div>
+      );
+    },
+    {
+      // use a random id to avoid conflicts:
+      init: TestComponent => <TestComponent id={`first-${mockId()()}`} />,
+    },
+  );
+
+  beforeEach(() => {
+    onFinishCalls = [];
+  });
+
+  it('should show initial messages', async () => {
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          id: 'id-0',
+        },
+      ]);
+    });
+  });
+});
+
 describe('data protocol stream', () => {
   let onFinishCalls: Array<{ message: UIMessage }> = [];
 
