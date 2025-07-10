@@ -76,6 +76,12 @@ export type OpenAIResponsesTool =
         city: string;
         region: string;
       };
+    }
+  | {
+      type: 'file_search';
+      vector_store_ids?: string[];
+      max_results?: number;
+      search_type?: 'auto' | 'keyword' | 'semantic';
     };
 
 export type OpenAIResponsesReasoning = {
