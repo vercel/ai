@@ -41,52 +41,52 @@ npx @ai-sdk/codemod rename-format-stream-part .
 
 ### Provider Changes
 
-| Codemod | Description |
-| ------- | ----------- |
+| Codemod                   | Description              |
+| ------------------------- | ------------------------ |
 | `remove-anthropic-facade` | Removes anthropic facade |
-| `remove-google-facade` | Removes google facade |
-| `remove-mistral-facade` | Removes mistral facade |
-| `remove-openai-facade` | Removes openai facade |
-| `replace-baseurl` | Replaces baseurl |
+| `remove-google-facade`    | Removes google facade    |
+| `remove-mistral-facade`   | Removes mistral facade   |
+| `remove-openai-facade`    | Removes openai facade    |
+| `replace-baseurl`         | Replaces baseurl         |
 
 ### Core API Changes
 
-| Codemod | Description |
-| ------- | ----------- |
+| Codemod                                       | Description                                  |
+| --------------------------------------------- | -------------------------------------------- |
 | `remove-deprecated-provider-registry-exports` | Removes deprecated provider registry exports |
-| `remove-experimental-ai-fn-exports` | Removes experimental ai fn exports |
-| `replace-continuation-steps` | Replaces continuation steps |
-| `replace-roundtrips-with-maxsteps` | Replaces roundtrips with maxsteps |
-| `replace-token-usage-types` | Replaces token usage types |
+| `remove-experimental-ai-fn-exports`           | Removes experimental ai fn exports           |
+| `replace-continuation-steps`                  | Replaces continuation steps                  |
+| `replace-roundtrips-with-maxsteps`            | Replaces roundtrips with maxsteps            |
+| `replace-token-usage-types`                   | Replaces token usage types                   |
 
 ### Streaming and Response Changes
 
-| Codemod | Description |
-| ------- | ----------- |
+| Codemod                                            | Description                                       |
+| -------------------------------------------------- | ------------------------------------------------- |
 | `remove-ai-stream-methods-from-stream-text-result` | Removes ai stream methods from stream text result |
-| `remove-await-streamobject` | Removes await streamobject |
-| `remove-await-streamtext` | Removes await streamtext |
-| `remove-experimental-streamdata` | Removes experimental streamdata |
-| `rename-format-stream-part` | Renames format stream part |
-| `rename-parse-stream-part` | Renames parse stream part |
-| `replace-langchain-toaistream` | Replaces langchain toaistream |
+| `remove-await-streamobject`                        | Removes await streamobject                        |
+| `remove-await-streamtext`                          | Removes await streamtext                          |
+| `remove-experimental-streamdata`                   | Removes experimental streamdata                   |
+| `rename-format-stream-part`                        | Renames format stream part                        |
+| `rename-parse-stream-part`                         | Renames parse stream part                         |
+| `replace-langchain-toaistream`                     | Replaces langchain toaistream                     |
 
 ### UI Framework Changes
 
-| Codemod | Description |
-| ------- | ----------- |
+| Codemod                             | Description                        |
+| ----------------------------------- | ---------------------------------- |
 | `remove-experimental-message-types` | Removes experimental message types |
-| `remove-experimental-tool` | Removes experimental tool |
-| `remove-experimental-useassistant` | Removes experimental useassistant |
-| `rewrite-framework-imports` | Rewrites framework imports |
+| `remove-experimental-tool`          | Removes experimental tool          |
+| `remove-experimental-useassistant`  | Removes experimental useassistant  |
+| `rewrite-framework-imports`         | Rewrites framework imports         |
 
 ### Utility and Helper Changes
 
-| Codemod | Description |
-| ------- | ----------- |
-| `remove-isxxxerror` | Removes isxxxerror |
+| Codemod                        | Description                   |
+| ------------------------------ | ----------------------------- |
+| `remove-isxxxerror`            | Removes isxxxerror            |
 | `remove-metadata-with-headers` | Removes metadata with headers |
-| `replace-nanoid` | Replaces nanoid |
+| `replace-nanoid`               | Replaces nanoid               |
 
 ## CLI Options
 

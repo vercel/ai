@@ -32,7 +32,8 @@ export async function GET(
     waitUntil: after,
   });
 
-  const resumedStream = await streamContext.resumeExistingStream(recentStreamId);
+  const resumedStream =
+    await streamContext.resumeExistingStream(recentStreamId);
 
   if (!resumedStream) {
     return new Response(null, { status: 204 });
