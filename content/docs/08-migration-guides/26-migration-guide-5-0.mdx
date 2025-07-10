@@ -1987,6 +1987,10 @@ In v5, message persistence is now handled through the `toUIMessageStreamResponse
 import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
+const messages: UIMessage[] = [
+  // Your existing messages in UIMessage format
+];
+
 const result = streamText({
   model: openai('gpt-4o'),
   messages: convertToModelMessages(messages),
