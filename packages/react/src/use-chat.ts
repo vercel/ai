@@ -5,6 +5,7 @@ import {
   type UIMessage,
 } from 'ai';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { getOrCreateChat } from './chat-registry';
 import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
@@ -57,7 +58,15 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
-  const chatRef = useRef('chat' in options ? options.chat : new Chat(options));
+  const chatRef = useRef<Chat<UI_MESSAGE>>(getOrCreateChat(options));
+
+  const shouldRecreateChat =
+    ('chat' in options && options.chat !== chatRef.current) ||
+    ('id' in options && chatRef.current.id !== options.id);
+
+  if (shouldRecreateChat) {
+    chatRef.current = 'chat' in options ? options.chat : new Chat(options);
+  }
 
   const subscribeToMessages = useCallback(
     (update: () => void) =>
