@@ -32,15 +32,37 @@ The AI Gateway provider is available in the `@ai-sdk/gateway` module. You can in
   </Tab>
 </Tabs>
 
+## Basic Usage
+
+For most use cases, you can use the AI Gateway directly with a model string:
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-4o',
+  prompt: 'Hello world',
+});
+```
+
+The AI SDK automatically uses the AI Gateway when you pass a model string in the `creator/model-name` format.
+
 ## Provider Instance
 
-You can import the default provider instance `gateway` from `@ai-sdk/gateway`:
+You can also import the default provider instance `gateway` from `@ai-sdk/gateway`:
 
 ```ts
 import { gateway } from '@ai-sdk/gateway';
 ```
 
-If you need a customized setup, you can import `createGateway` from `@ai-sdk/gateway` and create a provider instance with your settings:
+You may want to create a custom provider instance when you need to:
+
+- Set custom configuration options (API key, base URL, headers)
+- Use the provider in a [provider registry](/docs/ai-sdk-core/provider-registry)
+- Wrap the provider with [middleware](/docs/ai-sdk-core/middleware)
+- Use different settings for different parts of your application
+
+To create a custom provider instance, import `createGateway` from `@ai-sdk/gateway`:
 
 ```ts
 import { createGateway } from '@ai-sdk/gateway';
@@ -144,6 +166,7 @@ You can discover available models programmatically:
 
 ```ts
 import { gateway } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
 
 const availableModels = await gateway.getAvailableModels();
 
@@ -157,6 +180,12 @@ availableModels.models.forEach(model => {
     console.log(`  Input: $${model.pricing.input}/token`);
     console.log(`  Output: $${model.pricing.output}/token`);
   }
+});
+
+// Use any discovered model with plain string
+const { text } = await generateText({
+  model: availableModels.models[0].id, // e.g., 'openai/gpt-4o'
+  prompt: 'Hello world',
 });
 ```
 
