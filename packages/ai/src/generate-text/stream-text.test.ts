@@ -208,7 +208,7 @@ const modelWithReasoning = new MockLanguageModelV2({
       {
         type: 'reasoning-delta',
         id: '1',
-        delta: ' with witty banter. ',
+        delta: ' with witty banter.',
       },
       {
         type: 'reasoning-delta',
@@ -231,7 +231,7 @@ const modelWithReasoning = new MockLanguageModelV2({
       {
         type: 'reasoning-delta',
         id: '3',
-        delta: 'Once the user has relaxed,',
+        delta: ' Once the user has relaxed,',
       },
       {
         type: 'reasoning-delta',
@@ -243,6 +243,59 @@ const modelWithReasoning = new MockLanguageModelV2({
         id: '3',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
+        } as SharedV2ProviderMetadata,
+      },
+      {
+        type: 'reasoning-start',
+        id: '4',
+        providerMetadata: {
+          testProvider: { signature: '1234567890' },
+        } as SharedV2ProviderMetadata,
+      },
+      {
+        type: 'reasoning-delta',
+        id: '4',
+        delta: ' I need to think about',
+      },
+      {
+        type: 'reasoning-delta',
+        id: '4',
+        delta: ' this problem carefully.',
+      },
+      {
+        type: 'reasoning-start',
+        id: '5',
+        providerMetadata: {
+          testProvider: { signature: '1234567890' },
+        } as SharedV2ProviderMetadata,
+      },
+      {
+        type: 'reasoning-delta',
+        id: '5',
+        delta: ' The best solution',
+      },
+      {
+        type: 'reasoning-delta',
+        id: '5',
+        delta: ' requires careful',
+      },
+      {
+        type: 'reasoning-delta',
+        id: '5',
+        delta: ' consideration of all factors.',
+      },
+      {
+        type: 'reasoning-end',
+        id: '4',
+        providerMetadata: {
+          testProvider: { signature: '0987654321' },
+        } as SharedV2ProviderMetadata,
+      },
+      {
+        type: 'reasoning-end',
+        id: '5',
+        providerMetadata: {
+          testProvider: { signature: '0987654321' },
         } as SharedV2ProviderMetadata,
       },
       { type: 'text-start', id: '1' },
@@ -468,134 +521,200 @@ describe('streamText', () => {
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "type": "start",
-          },
-          {
-            "request": {},
-            "type": "start-step",
-            "warnings": [],
-          },
-          {
-            "id": "1",
-            "type": "reasoning-start",
-          },
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "text": "I will open the conversation",
-            "type": "reasoning",
-          },
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "text": " with witty banter. ",
-            "type": "reasoning",
-          },
-          {
-            "id": "1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "1234567890",
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "I will open the conversation",
+              "type": "reasoning",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": " with witty banter.",
+              "type": "reasoning",
+            },
+            {
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "text": "",
+              "type": "reasoning",
+            },
+            {
+              "id": "1",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "2",
+              "providerMetadata": {
+                "testProvider": {
+                  "redactedData": "redacted-reasoning-data",
+                },
+              },
+              "type": "reasoning-start",
+            },
+            {
+              "id": "2",
+              "type": "reasoning-end",
+            },
+            {
+              "id": "3",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "3",
+              "providerMetadata": undefined,
+              "text": " Once the user has relaxed,",
+              "type": "reasoning",
+            },
+            {
+              "id": "3",
+              "providerMetadata": undefined,
+              "text": " I will pry for valuable information.",
+              "type": "reasoning",
+            },
+            {
+              "id": "3",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "type": "reasoning-end",
+            },
+            {
+              "id": "4",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "type": "reasoning-start",
+            },
+            {
+              "id": "4",
+              "providerMetadata": undefined,
+              "text": " I need to think about",
+              "type": "reasoning",
+            },
+            {
+              "id": "4",
+              "providerMetadata": undefined,
+              "text": " this problem carefully.",
+              "type": "reasoning",
+            },
+            {
+              "id": "5",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "type": "reasoning-start",
+            },
+            {
+              "id": "5",
+              "providerMetadata": undefined,
+              "text": " The best solution",
+              "type": "reasoning",
+            },
+            {
+              "id": "5",
+              "providerMetadata": undefined,
+              "text": " requires careful",
+              "type": "reasoning",
+            },
+            {
+              "id": "5",
+              "providerMetadata": undefined,
+              "text": " consideration of all factors.",
+              "type": "reasoning",
+            },
+            {
+              "id": "4",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
+              "type": "reasoning-end",
+            },
+            {
+              "id": "5",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hi",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": " there!",
+              "type": "text",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
               },
             },
-            "text": "",
-            "type": "reasoning",
-          },
-          {
-            "id": "1",
-            "type": "reasoning-end",
-          },
-          {
-            "id": "2",
-            "providerMetadata": {
-              "testProvider": {
-                "redactedData": "redacted-reasoning-data",
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
               },
+              "type": "finish",
             },
-            "type": "reasoning-start",
-          },
-          {
-            "id": "2",
-            "type": "reasoning-end",
-          },
-          {
-            "id": "3",
-            "type": "reasoning-start",
-          },
-          {
-            "id": "3",
-            "providerMetadata": undefined,
-            "text": "Once the user has relaxed,",
-            "type": "reasoning",
-          },
-          {
-            "id": "3",
-            "providerMetadata": undefined,
-            "text": " I will pry for valuable information.",
-            "type": "reasoning",
-          },
-          {
-            "id": "3",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "1234567890",
-              },
-            },
-            "type": "reasoning-end",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "text": "Hi",
-            "type": "text",
-          },
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "text": " there!",
-            "type": "text",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
-            },
-            "type": "finish-step",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 3,
-              "outputTokens": 10,
-              "reasoningTokens": undefined,
-              "totalTokens": 13,
-            },
-          },
-          {
-            "finishReason": "stop",
-            "totalUsage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 3,
-              "outputTokens": 10,
-              "reasoningTokens": undefined,
-              "totalTokens": 13,
-            },
-            "type": "finish",
-          },
-        ]
-      `);
+          ]
+        `);
     });
 
     it('should send sources', async () => {
@@ -1588,7 +1707,7 @@ describe('streamText', () => {
           "data: {"type":"reasoning-delta","id":"1","delta":"I will open the conversation"}
 
         ",
-          "data: {"type":"reasoning-delta","id":"1","delta":" with witty banter. "}
+          "data: {"type":"reasoning-delta","id":"1","delta":" with witty banter."}
 
         ",
           "data: {"type":"reasoning-delta","id":"1","delta":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
@@ -1606,13 +1725,40 @@ describe('streamText', () => {
           "data: {"type":"reasoning-start","id":"3"}
 
         ",
-          "data: {"type":"reasoning-delta","id":"3","delta":"Once the user has relaxed,"}
+          "data: {"type":"reasoning-delta","id":"3","delta":" Once the user has relaxed,"}
 
         ",
           "data: {"type":"reasoning-delta","id":"3","delta":" I will pry for valuable information."}
 
         ",
           "data: {"type":"reasoning-end","id":"3","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+
+        ",
+          "data: {"type":"reasoning-start","id":"4","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+
+        ",
+          "data: {"type":"reasoning-delta","id":"4","delta":" I need to think about"}
+
+        ",
+          "data: {"type":"reasoning-delta","id":"4","delta":" this problem carefully."}
+
+        ",
+          "data: {"type":"reasoning-start","id":"5","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+
+        ",
+          "data: {"type":"reasoning-delta","id":"5","delta":" The best solution"}
+
+        ",
+          "data: {"type":"reasoning-delta","id":"5","delta":" requires careful"}
+
+        ",
+          "data: {"type":"reasoning-delta","id":"5","delta":" consideration of all factors."}
+
+        ",
+          "data: {"type":"reasoning-end","id":"4","providerMetadata":{"testProvider":{"signature":"0987654321"}}}
+
+        ",
+          "data: {"type":"reasoning-end","id":"5","providerMetadata":{"testProvider":{"signature":"0987654321"}}}
 
         ",
           "data: {"type":"text-start","id":"1"}
@@ -2142,114 +2288,180 @@ describe('streamText', () => {
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": undefined,
-            "messageMetadata": undefined,
-            "type": "start",
-          },
-          {
-            "type": "start-step",
-          },
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "type": "reasoning-start",
-          },
-          {
-            "delta": "I will open the conversation",
-            "id": "1",
-            "providerMetadata": undefined,
-            "type": "reasoning-delta",
-          },
-          {
-            "delta": " with witty banter. ",
-            "id": "1",
-            "providerMetadata": undefined,
-            "type": "reasoning-delta",
-          },
-          {
-            "delta": "",
-            "id": "1",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "1234567890",
-              },
+          [
+            {
+              "messageId": undefined,
+              "messageMetadata": undefined,
+              "type": "start",
             },
-            "type": "reasoning-delta",
-          },
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "type": "reasoning-end",
-          },
-          {
-            "id": "2",
-            "providerMetadata": {
-              "testProvider": {
-                "redactedData": "redacted-reasoning-data",
-              },
+            {
+              "type": "start-step",
             },
-            "type": "reasoning-start",
-          },
-          {
-            "id": "2",
-            "providerMetadata": undefined,
-            "type": "reasoning-end",
-          },
-          {
-            "id": "3",
-            "providerMetadata": undefined,
-            "type": "reasoning-start",
-          },
-          {
-            "delta": "Once the user has relaxed,",
-            "id": "3",
-            "providerMetadata": undefined,
-            "type": "reasoning-delta",
-          },
-          {
-            "delta": " I will pry for valuable information.",
-            "id": "3",
-            "providerMetadata": undefined,
-            "type": "reasoning-delta",
-          },
-          {
-            "id": "3",
-            "providerMetadata": {
-              "testProvider": {
-                "signature": "1234567890",
-              },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "type": "reasoning-start",
             },
-            "type": "reasoning-end",
-          },
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hi",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "delta": " there!",
-            "id": "1",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "type": "finish-step",
-          },
-          {
-            "messageMetadata": undefined,
-            "type": "finish",
-          },
-        ]
-      `);
+            {
+              "delta": "I will open the conversation",
+              "id": "1",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "delta": " with witty banter.",
+              "id": "1",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "delta": "",
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "type": "reasoning-end",
+            },
+            {
+              "id": "2",
+              "providerMetadata": {
+                "testProvider": {
+                  "redactedData": "redacted-reasoning-data",
+                },
+              },
+              "type": "reasoning-start",
+            },
+            {
+              "id": "2",
+              "providerMetadata": undefined,
+              "type": "reasoning-end",
+            },
+            {
+              "id": "3",
+              "providerMetadata": undefined,
+              "type": "reasoning-start",
+            },
+            {
+              "delta": " Once the user has relaxed,",
+              "id": "3",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "delta": " I will pry for valuable information.",
+              "id": "3",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "3",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "type": "reasoning-end",
+            },
+            {
+              "id": "4",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "type": "reasoning-start",
+            },
+            {
+              "delta": " I need to think about",
+              "id": "4",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "delta": " this problem carefully.",
+              "id": "4",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "5",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
+              "type": "reasoning-start",
+            },
+            {
+              "delta": " The best solution",
+              "id": "5",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "delta": " requires careful",
+              "id": "5",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "delta": " consideration of all factors.",
+              "id": "5",
+              "providerMetadata": undefined,
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "4",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
+              "type": "reasoning-end",
+            },
+            {
+              "id": "5",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
+              "type": "reasoning-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hi",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": " there!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "messageMetadata": undefined,
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should send source content when sendSources is true', async () => {
@@ -3007,7 +3219,7 @@ describe('streamText', () => {
                     "signature": "1234567890",
                   },
                 },
-                "text": "I will open the conversation with witty banter. ",
+                "text": "I will open the conversation with witty banter.",
                 "type": "reasoning",
               },
               {
@@ -3025,7 +3237,25 @@ describe('streamText', () => {
                     "signature": "1234567890",
                   },
                 },
-                "text": "Once the user has relaxed, I will pry for valuable information.",
+                "text": " Once the user has relaxed, I will pry for valuable information.",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "0987654321",
+                  },
+                },
+                "text": " I need to think about this problem carefully.",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "0987654321",
+                  },
+                },
+                "text": " The best solution requires careful consideration of all factors.",
                 "type": "reasoning",
               },
               {
@@ -3210,7 +3440,7 @@ describe('streamText', () => {
                     "signature": "1234567890",
                   },
                 },
-                "text": "I will open the conversation with witty banter. ",
+                "text": "I will open the conversation with witty banter.",
                 "type": "reasoning",
               },
               {
@@ -3228,7 +3458,25 @@ describe('streamText', () => {
                     "signature": "1234567890",
                   },
                 },
-                "text": "Once the user has relaxed, I will pry for valuable information.",
+                "text": " Once the user has relaxed, I will pry for valuable information.",
+                "type": "reasoning",
+              },
+              {
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "0987654321",
+                  },
+                },
+                "text": " I need to think about this problem carefully.",
+                "type": "reasoning",
+              },
+              {
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "0987654321",
+                  },
+                },
+                "text": " The best solution requires careful consideration of all factors.",
                 "type": "reasoning",
               },
               {
@@ -3252,7 +3500,7 @@ describe('streamText', () => {
                           "signature": "1234567890",
                         },
                       },
-                      "text": "I will open the conversation with witty banter. ",
+                      "text": "I will open the conversation with witty banter.",
                       "type": "reasoning",
                     },
                     {
@@ -3270,7 +3518,25 @@ describe('streamText', () => {
                           "signature": "1234567890",
                         },
                       },
-                      "text": "Once the user has relaxed, I will pry for valuable information.",
+                      "text": " Once the user has relaxed, I will pry for valuable information.",
+                      "type": "reasoning",
+                    },
+                    {
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "0987654321",
+                        },
+                      },
+                      "text": " I need to think about this problem carefully.",
+                      "type": "reasoning",
+                    },
+                    {
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "0987654321",
+                        },
+                      },
+                      "text": " The best solution requires careful consideration of all factors.",
                       "type": "reasoning",
                     },
                     {
