@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { google, GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
@@ -13,10 +13,6 @@ async function main() {
   });
 
   for await (const part of result.fullStream) {
-    if (part.type === 'text') {
-      process.stdout.write(part.text);
-    }
-
     if (part.type === 'source' && part.sourceType === 'url') {
       console.log('\x1b[36m%s\x1b[0m', 'Source');
       console.log('ID:', part.id);
@@ -27,8 +23,13 @@ async function main() {
   }
 
   console.log();
-  console.log('Token usage:', await result.usage);
-  console.log('Finish reason:', await result.finishReason);
+  const metadata = (await result.providerMetadata)?.google as
+    | GoogleGenerativeAIProviderMetadata
+    | undefined;
+  const groundingMetadata = metadata?.groundingMetadata;
+  const urlContextMetadata = metadata?.urlContextMetadata;
+  console.log('Grounding metadata:', groundingMetadata);
+  console.log('URL context metadata:', urlContextMetadata);
 }
 
 main().catch(console.error);
