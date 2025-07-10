@@ -3,7 +3,6 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2FunctionTool,
-  LanguageModelV2Message,
   LanguageModelV2ProviderDefinedTool,
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
@@ -2425,6 +2424,61 @@ describe('streamText', () => {
             "mediaType": "image/jpeg",
             "type": "file",
             "url": "data:image/jpeg;base64,QkFVRw==",
+          },
+          {
+            "type": "finish-step",
+          },
+          {
+            "messageMetadata": undefined,
+            "type": "finish",
+          },
+        ]
+      `);
+    });
+
+    it('should not generate a new message id when onFinish is provided', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        onFinish: () => {}, // provided onFinish should trigger a new message id
+      });
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": undefined,
+            "messageMetadata": undefined,
+            "type": "start",
+          },
+          {
+            "type": "start-step",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": ", ",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "delta": "world!",
+            "id": "1",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
           },
           {
             "type": "finish-step",
