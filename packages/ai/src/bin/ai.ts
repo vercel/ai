@@ -2,15 +2,7 @@ import { streamText } from '../../core/generate-text/stream-text';
 import { readFileSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
 import { homedir } from 'os';
-import { config } from 'dotenv';
-
-config({ path: '.env.local' });
-config({ path: '.env' });
-
-import { openai } from '@ai-sdk/openai';
-import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
-import { groq } from '@ai-sdk/groq';
+import { gateway } from '@ai-sdk/gateway';
 
 interface FileAttachment {
   name: string;
@@ -242,10 +234,8 @@ Configuration:
   - AI_MODEL: Default model to use
   - AI_SYSTEM: Default system message
   - AI_VERBOSE: Set to 'true' to enable verbose output
-  - OPENAI_API_KEY: OpenAI API key (for OpenAI models)
-  - ANTHROPIC_API_KEY: Anthropic API key (for Anthropic models)
-  - GOOGLE_GENERATIVE_AI_API_KEY: Google API key (for Google models)
-  - GROQ_API_KEY: Groq API key (for Groq models)
+  - VERCEL_OIDC_TOKEN: Vercel OIDC token for authentication
+  - AI_GATEWAY_API_KEY: AI Gateway API key for authentication
 
   Example config file (.ai.json):
   {
@@ -269,42 +259,19 @@ Unix-style piping:
   curl -s https://api.github.com/repos/vercel/ai | npx ai "What is this repository about?"
 
 Authentication:
-  This CLI uses direct provider APIs. Set the appropriate API key:
-  - OPENAI_API_KEY for OpenAI models (gpt-4, gpt-3.5-turbo, etc.)
-  - ANTHROPIC_API_KEY for Anthropic models (claude-3-5-sonnet, claude-3-opus, etc.)
-  - GOOGLE_GENERATIVE_AI_API_KEY for Google models (gemini-pro, gemini-1.5-pro, etc.)
-  - GROQ_API_KEY for Groq models (llama-3.1-8b-instant, llama-3.2-90b-text-preview, etc.)
+  This CLI uses the Vercel AI Gateway. Set one of the following for authentication:
+  - VERCEL_OIDC_TOKEN: For OIDC-based authentication
+  - AI_GATEWAY_API_KEY: For API key-based authentication
   
-  You can set these in your .env or .env.local file.`);
+  The gateway supports various model providers including OpenAI, Anthropic, Google, and Groq.`);
 }
 
 function showVersion() {
   console.log('1.0.0');
 }
 
-function resolveModel(modelString: string): ReturnType<typeof openai> {
-  const parts = modelString.split('/');
-
-  if (parts.length === 1) {
-    return openai(parts[0]);
-  }
-
-  const [provider, model] = parts;
-
-  switch (provider.toLowerCase()) {
-    case 'openai':
-      return openai(model);
-    case 'anthropic':
-      return anthropic(model);
-    case 'google':
-      return google(model);
-    case 'groq':
-      return groq(model);
-    default:
-      throw new Error(
-        `Unsupported provider: ${provider}. Supported providers: openai, anthropic, google, groq`,
-      );
-  }
+function resolveModel(modelString: string) {
+  return gateway.languageModel(modelString);
 }
 
 function formatAttachedFiles(files: FileAttachment[]): string {
