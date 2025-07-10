@@ -144,6 +144,7 @@ The AI Gateway provider supports models from multiple providers. Here are some p
 - `openai/gpt-4.1-nano` - Fastest GPT-4.1 model
 - `openai/gpt-4-turbo` - GPT-4 Turbo model
 - `openai/gpt-3.5-turbo` - GPT-3.5 Turbo model
+- `openai/gpt-3.5-turbo-instruct` - GPT-3.5 Turbo instruct model
 - `openai/o3` - Advanced reasoning model
 - `openai/o3-mini` - Smaller reasoning model
 - `openai/o4-mini` - Latest reasoning model
@@ -155,6 +156,8 @@ The AI Gateway provider supports models from multiple providers. Here are some p
 - `anthropic/claude-4-opus` - Most capable Claude 4 model
 - `anthropic/claude-3.7-sonnet` - Reasoning-capable Claude model
 - `anthropic/claude-3.5-sonnet` - Claude 3.5 Sonnet
+- `anthropic/claude-3.5-haiku` - Fast Claude 3.5 model
+- `anthropic/claude-3-opus` - Most capable Claude 3 model
 - `anthropic/claude-3-haiku` - Fast and efficient Claude model
 
 ### Google Models
@@ -181,12 +184,18 @@ The AI Gateway provider supports models from multiple providers. Here are some p
 - `meta/llama-4-maverick` - Llama 4 Maverick model
 - `meta/llama-3.2-90b` - Large Llama 3.2 model
 - `meta/llama-3.2-11b` - Medium Llama 3.2 model
+- `meta/llama-3.2-3b` - Small Llama 3.2 model
+- `meta/llama-3.2-1b` - Tiny Llama 3.2 model
 - `meta/llama-3.1-70b` - Llama 3.1 large model
 - `meta/llama-3.1-8b` - Llama 3.1 small model
+- `meta/llama-3-70b` - Llama 3 large model
+- `meta/llama-3-8b` - Llama 3 small model
 
 ### Mistral Models
 
 - `mistral/mistral-large` - Mistral's largest model
+- `mistral/mistral-saba-24b` - Mistral Saba model
+- `mistral/mistral-small` - Smaller Mistral model
 - `mistral/magistral-medium` - Reasoning-capable model
 - `mistral/magistral-small` - Smaller reasoning model
 - `mistral/pixtral-large` - Multimodal Mistral model
@@ -194,10 +203,12 @@ The AI Gateway provider supports models from multiple providers. Here are some p
 - `mistral/codestral` - Code-focused model
 - `mistral/ministral-8b` - Efficient 8B model
 - `mistral/ministral-3b` - Compact 3B model
+- `mistral/mixtral-8x22b-instruct` - Mixture of experts model
 
 ### DeepSeek Models
 
 - `deepseek/deepseek-r1` - Latest reasoning model
+- `deepseek/deepseek-r1-distill-llama-70b` - Distilled reasoning model
 - `deepseek/deepseek-v3` - Advanced DeepSeek model
 
 ### Amazon Models
@@ -226,6 +237,14 @@ The AI Gateway provider supports models from multiple providers. Here are some p
 - `alibaba/qwen-3-30b` - Qwen 3 balanced model
 - `alibaba/qwen-3-14b` - Qwen 3 efficient model
 - `alibaba/qwq-32b` - Qwen reasoning model
+
+### Inception Models
+
+- `inception/mercury-coder-small` - Small coding model
+
+### Morph Models
+
+- `morph/morph-v2` - Morph v2 model
 
 ## Dynamic Model Discovery
 
@@ -323,6 +342,8 @@ The AI Gateway provider supports various capabilities depending on the underlyin
 | Cohere     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | Perplexity | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | Alibaba    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Inception  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Morph      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Specific capabilities may vary by model. Check the model documentation for
