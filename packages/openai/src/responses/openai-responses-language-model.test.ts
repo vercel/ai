@@ -787,6 +787,144 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send file_search tool', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_123', 'vs_456'],
+                maxResults: 10,
+                searchType: 'auto',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "max_results": 10,
+                "search_type": "auto",
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_123",
+                  "vs_456",
+                ],
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send file_search tool as tool_choice', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          toolChoice: {
+            type: 'tool',
+            toolName: 'file_search',
+          },
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_789'],
+                maxResults: 5,
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tool_choice": {
+              "type": "file_search",
+            },
+            "tools": [
+              {
+                "max_results": 5,
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_789",
+                ],
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send file_search tool with minimal args', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "tools": [
+              {
+                "type": "file_search",
+              },
+            ],
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should warn about unsupported settings', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
