@@ -2,6 +2,7 @@
   "references": [
     { "path": "packages/ai" },
     { "path": "packages/amazon-bedrock" },
+    { "path": "packages/angular" },
     { "path": "packages/anthropic" },
     { "path": "packages/assemblyai" },
     { "path": "packages/azure" },
