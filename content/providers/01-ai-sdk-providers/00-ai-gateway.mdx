@@ -5,15 +5,15 @@ description: Learn how to use the AI Gateway provider with the AI SDK.
 
 # AI Gateway Provider
 
-The [AI Gateway](https://vercel.com/docs/ai-gateway) provider gives you access to a wide variety of AI models and providers through a unified interface. The Gateway provider acts as a proxy that allows you to use multiple AI providers seamlessly without vendor lock-in.
+The [AI Gateway](https://vercel.com/docs/ai-gateway) provider connects you to models from multiple AI providers through a single interface. Instead of integrating with each provider separately, you can access OpenAI, Anthropic, Google, Meta, xAI, and other models through one consistent API.
 
 ## Features
 
-- **Multi-provider support**: Access models from OpenAI, Anthropic, Google, Meta, xAI, and many more
-- **Unified API**: Use the same interface across all providers
-- **Dynamic model selection**: Choose the best model for your use case
-- **Automatic authentication**: Seamless integration with Vercel deployments
-- **Cost optimization**: Compare pricing across providers
+- Access models from multiple providers without switching SDKs
+- Use the same code structure across different AI providers
+- Switch between models and providers easily
+- Automatic authentication when deployed on Vercel
+- View pricing information across providers
 
 ## Setup
 
@@ -133,118 +133,9 @@ const { text } = await generateText({
 
 ## Available Models
 
-The AI Gateway provider supports models from multiple providers. Here are some popular options:
+The AI Gateway supports models from OpenAI, Anthropic, Google, Meta, xAI, Mistral, DeepSeek, Amazon, Cohere, Perplexity, Alibaba, and other providers.
 
-### OpenAI Models
-
-- `openai/gpt-4o` - Latest GPT-4 model with vision capabilities
-- `openai/gpt-4o-mini` - Smaller, faster GPT-4 model
-- `openai/gpt-4.1` - Latest GPT-4.1 model
-- `openai/gpt-4.1-mini` - Smaller GPT-4.1 model
-- `openai/gpt-4.1-nano` - Fastest GPT-4.1 model
-- `openai/gpt-4-turbo` - GPT-4 Turbo model
-- `openai/gpt-3.5-turbo` - GPT-3.5 Turbo model
-- `openai/gpt-3.5-turbo-instruct` - GPT-3.5 Turbo instruct model
-- `openai/o3` - Advanced reasoning model
-- `openai/o3-mini` - Smaller reasoning model
-- `openai/o4-mini` - Latest reasoning model
-- `openai/o1` - Reasoning model
-
-### Anthropic Models
-
-- `anthropic/claude-4-sonnet` - Latest Claude 4 model
-- `anthropic/claude-4-opus` - Most capable Claude 4 model
-- `anthropic/claude-3.7-sonnet` - Reasoning-capable Claude model
-- `anthropic/claude-3.5-sonnet` - Claude 3.5 Sonnet
-- `anthropic/claude-3.5-haiku` - Fast Claude 3.5 model
-- `anthropic/claude-3-opus` - Most capable Claude 3 model
-- `anthropic/claude-3-haiku` - Fast and efficient Claude model
-
-### Google Models
-
-- `google/gemini-2.5-pro` - Latest Gemini Pro model
-- `google/gemini-2.5-flash` - Fast Gemini model
-- `google/gemini-2.0-flash` - Gemini 2.0 Flash model
-- `google/gemini-2.0-flash-lite` - Lightweight Gemini 2.0 model
-- `google/gemma-2-9b` - Gemma 2 model
-
-### xAI Models
-
-- `xai/grok-3` - Latest Grok 3 model
-- `xai/grok-3-fast` - Fast Grok 3 model
-- `xai/grok-3-mini` - Smaller Grok model
-- `xai/grok-3-mini-fast` - Fast smaller Grok model
-- `xai/grok-2` - Grok 2 model
-- `xai/grok-2-vision` - Grok with vision capabilities
-
-### Meta Models
-
-- `meta/llama-3.3-70b` - Latest Llama model
-- `meta/llama-4-scout` - Llama 4 Scout model
-- `meta/llama-4-maverick` - Llama 4 Maverick model
-- `meta/llama-3.2-90b` - Large Llama 3.2 model
-- `meta/llama-3.2-11b` - Medium Llama 3.2 model
-- `meta/llama-3.2-3b` - Small Llama 3.2 model
-- `meta/llama-3.2-1b` - Tiny Llama 3.2 model
-- `meta/llama-3.1-70b` - Llama 3.1 large model
-- `meta/llama-3.1-8b` - Llama 3.1 small model
-- `meta/llama-3-70b` - Llama 3 large model
-- `meta/llama-3-8b` - Llama 3 small model
-
-### Mistral Models
-
-- `mistral/mistral-large` - Mistral's largest model
-- `mistral/mistral-saba-24b` - Mistral Saba model
-- `mistral/mistral-small` - Smaller Mistral model
-- `mistral/magistral-medium` - Reasoning-capable model
-- `mistral/magistral-small` - Smaller reasoning model
-- `mistral/pixtral-large` - Multimodal Mistral model
-- `mistral/pixtral-12b` - Smaller multimodal model
-- `mistral/codestral` - Code-focused model
-- `mistral/ministral-8b` - Efficient 8B model
-- `mistral/ministral-3b` - Compact 3B model
-- `mistral/mixtral-8x22b-instruct` - Mixture of experts model
-
-### DeepSeek Models
-
-- `deepseek/deepseek-r1` - Latest reasoning model
-- `deepseek/deepseek-r1-distill-llama-70b` - Distilled reasoning model
-- `deepseek/deepseek-v3` - Advanced DeepSeek model
-
-### Amazon Models
-
-- `amazon/nova-pro` - Amazon's most capable model
-- `amazon/nova-lite` - Fast Amazon model
-- `amazon/nova-micro` - Smallest Amazon model
-
-### Cohere Models
-
-- `cohere/command-r-plus` - Cohere's most capable model
-- `cohere/command-r` - Cohere's balanced model
-- `cohere/command-a` - Cohere's fast model
-
-### Perplexity Models
-
-- `perplexity/sonar-reasoning-pro` - Advanced reasoning model
-- `perplexity/sonar-reasoning` - Reasoning model
-- `perplexity/sonar-pro` - Pro search model
-- `perplexity/sonar` - Standard search model
-
-### Alibaba Models
-
-- `alibaba/qwen-3-235b` - Qwen 3 largest model
-- `alibaba/qwen-3-32b` - Qwen 3 medium model
-- `alibaba/qwen-3-30b` - Qwen 3 balanced model
-- `alibaba/qwen-3-14b` - Qwen 3 efficient model
-- `alibaba/qwq-32b` - Qwen reasoning model
-
-### Inception Models
-
-- `inception/mercury-coder-small` - Small coding model
-
-### Morph Models
-
-- `morph/morph-v2` - Morph v2 model
+For the complete list of available models, see the [AI Gateway documentation](https://vercel.com/docs/ai-gateway).
 
 ## Dynamic Model Discovery
 
