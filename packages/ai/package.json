@@ -57,19 +57,14 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "workspace:^",
     "@ai-sdk/gateway": "workspace:*",
-    "@ai-sdk/google": "workspace:^",
-    "@ai-sdk/groq": "workspace:^",
-    "@ai-sdk/openai": "workspace:^",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@opentelemetry/api": "1.9.0",
-    "dotenv": "16.4.5"
+    "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
-    "@edge-runtime/vm": "^5.0.0",
     "@types/json-schema": "7.0.15",
+    "@edge-runtime/vm": "^5.0.0",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "8.57.1",
