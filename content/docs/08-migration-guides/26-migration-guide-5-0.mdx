@@ -1964,7 +1964,12 @@ await generateText({
 In v4, you would typically use helper functions like `appendResponseMessages` or `appendClientMessage` to format messages in the `onFinish` callback of `streamText`:
 
 ```tsx filename="AI SDK 4.0"
-import { streamText, convertToModelMessages, appendClientMessage, appendResponseMessages } from 'ai';
+import {
+  streamText,
+  convertToModelMessages,
+  appendClientMessage,
+  appendResponseMessages,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = streamText({
@@ -1972,8 +1977,14 @@ const result = streamText({
   messages: convertToModelMessages(messages),
   onFinish: async ({ responseMessages, usage }) => {
     // Use helper functions to format messages
-    const updatedMessages = appendClientMessage({ messages, message: lastUserMessage });
-    const finalMessages = appendResponseMessages({ messages: updatedMessages, responseMessages });
+    const updatedMessages = appendClientMessage({
+      messages,
+      message: lastUserMessage,
+    });
+    const finalMessages = appendResponseMessages({
+      messages: updatedMessages,
+      responseMessages,
+    });
 
     // Save formatted messages to database
     await saveMessages(finalMessages);
@@ -2010,7 +2021,13 @@ return result.toUIMessageStreamResponse({
 For more complex scenarios, especially when working with data parts, you can use `createUIMessageStream`:
 
 ```tsx filename="AI SDK 5.0 - Advanced"
-import { createUIMessageStream, createUIMessageStreamResponse, streamText, convertToModelMessages, UIMessage } from 'ai';
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  convertToModelMessages,
+  UIMessage,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const stream = createUIMessageStream({
@@ -2019,7 +2036,7 @@ const stream = createUIMessageStream({
     // Write custom data parts
     writer.write({
       type: 'data',
-      data: { status: 'processing', timestamp: Date.now() }
+      data: { status: 'processing', timestamp: Date.now() },
     });
 
     // Stream the AI response
