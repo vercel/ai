@@ -1959,6 +1959,89 @@ await generateText({
 });
 ```
 
+## Message Persistence Changes
+
+In v4, you would typically use helper functions like `appendResponseMessages` or `appendClientMessage` to format messages in the `onFinish` callback of `streamText`:
+
+```tsx filename="AI SDK 4.0"
+import { streamText, convertToModelMessages, appendClientMessage, appendResponseMessages } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages: convertToModelMessages(messages),
+  onFinish: async ({ responseMessages, usage }) => {
+    // Use helper functions to format messages
+    const updatedMessages = appendClientMessage({ messages, message: lastUserMessage });
+    const finalMessages = appendResponseMessages({ messages: updatedMessages, responseMessages });
+
+    // Save formatted messages to database
+    await saveMessages(finalMessages);
+  },
+});
+```
+
+In v5, message persistence is now handled through the `toUIMessageStreamResponse` method, which automatically formats response messages in the `UIMessage` format:
+
+```tsx filename="AI SDK 5.0"
+import { streamText, convertToModelMessages, UIMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  messages: convertToModelMessages(messages),
+});
+
+return result.toUIMessageStreamResponse({
+  originalMessages: messages, // Pass original messages for context
+  onFinish: ({ messages }) => {
+    // messages contains all messages (original + response) in UIMessage format
+    saveChat({ chatId, messages });
+  },
+});
+```
+
+### Alternative: Using createUIMessageStream
+
+For more complex scenarios, especially when working with data parts, you can use `createUIMessageStream`:
+
+```tsx filename="AI SDK 5.0 - Advanced"
+import { createUIMessageStream, createUIMessageStreamResponse, streamText, convertToModelMessages, UIMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const stream = createUIMessageStream({
+  originalMessages: messages,
+  execute: ({ writer }) => {
+    // Write custom data parts
+    writer.write({
+      type: 'data',
+      data: { status: 'processing', timestamp: Date.now() }
+    });
+
+    // Stream the AI response
+    const result = streamText({
+      model: openai('gpt-4o'),
+      messages: convertToModelMessages(messages),
+    });
+
+    writer.merge(result.toUIMessageStream());
+  },
+  onFinish: ({ messages }) => {
+    // messages contains all messages (original + response + data parts) in UIMessage format
+    saveChat({ chatId, messages });
+  },
+});
+
+return createUIMessageStreamResponse({ stream });
+```
+
+### Suggested Changes
+
+1. Move `onFinish` from `streamText` to `toUIMessageStreamResponse`
+2. Pass `originalMessages` to `toUIMessageStreamResponse` for full message context
+3. Remove manual message formatting with helper functions
+4. Update storage logic to handle the complete `messages` array directly
+
 ## Provider & Model Changes
 
 ### OpenAI
