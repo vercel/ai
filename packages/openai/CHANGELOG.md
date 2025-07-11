@@ -1,5 +1,33 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- 209256d: Add missing file_search tool support to OpenAI Responses API
+
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- 0eee6a8: Fix streaming and reconstruction of reasoning summary parts
+- b5a0e32: fix (provider/openai): correct default for chat model strict mode
+- c7d3b2e: fix (provider/openai): push first reasoning chunk in output item added event
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 48249c4: Do not warn if empty text is the first part of a reasoning sequence
+- e497698: fix (provider/openai): handle responses api errors
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- b3c3450: feat (provider/openai): add support for encrypted_reasoning to responses api
+- ad2a3d5: feat(provider/openai): add missing reasoning models to responses API
+
 ## 2.0.0-beta.3
 
 ### Major Changes

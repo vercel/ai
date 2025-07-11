@@ -9,6 +9,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   loadApiKey: vi.fn().mockImplementation(({ apiKey }) => apiKey),
   generateId: vi.fn().mockReturnValue('mock-id'),
   withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+  createProviderDefinedToolFactory: vi.fn(),
 }));
 
 vi.mock('./google-generative-ai-language-model', () => ({

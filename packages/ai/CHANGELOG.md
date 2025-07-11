@@ -1,5 +1,75 @@
 # ai
 
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- 8e31d46: feat (ai): export SourceDocumentUIPart
+
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [30ab1de]
+  - @ai-sdk/gateway@1.0.0-beta.5
+
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- 377bbcf: fix (ui): tool input can be undefined during input-streaming
+- ce1d1f3: feat (ai): export mock image, speech, and transcription models
+- c040e2f: fix (ui): inject generated response message id
+- c808e4d: fix (ui): do not send changing assistant message ids when onFinish is provided
+
+## 5.0.0-beta.12
+
+### Patch Changes
+
+- fc0380b: feat (ui): resolvable header, body, credentials in http chat transport
+- 51f497d: feat (ai): step input message modification in prepareStep
+- 4f3776c: feat (ai): add InferUITools helper
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- 9e40cbe: Allow destructuring output and errorText on `ToolUIPart` type
+
+## 5.0.0-beta.10
+
+### Major Changes
+
+- 2b637d6: chore (ai): rename UIMessageStreamPart to UIMessageChunk
+
+### Patch Changes
+
+- 16ccfb2: feat (ai): add readUIMessageStream helper
+- 90ca2b9: feat(ai): Record tool call errors on tool call spans recorded in `generateText` and `streamText`.
+- af1d5a5: fix(ai): Unexpected reasoning-start event in extract reasoning middleware
+
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- 86cfc72: feat (ai): add ignoreIncompleteToolCalls option to convertToModelMessages
+
+## 5.0.0-beta.8
+
+### Patch Changes
+
+- 6909543: feat (ai): support system parameter in Agent constructor
+- c8fce91: feat (ai): add experimental Agent abstraction
+- 9121250: Expose provider metadata as an attribute on exported OTEL spans
+- Updated dependencies [97fedf9]
+  - @ai-sdk/gateway@1.0.0-beta.4
+
+## 5.0.0-beta.7
+
+### Patch Changes
+
+- 60132dd: fixed date formatting for updated mcp protocol version
+
 ## 5.0.0-beta.6
 
 ### Patch Changes

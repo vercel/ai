@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- 30ab1de: feat (provider/gateway): add grok-4 model id
+
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- 97fedf9: feat (providers/gateway): include description and pricing info in model list
+
 ## 1.0.0-beta.3
 
 ### Patch Changes

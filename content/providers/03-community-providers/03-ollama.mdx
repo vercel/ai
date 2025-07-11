@@ -5,6 +5,13 @@ description: Learn how to use the Ollama provider.
 
 # Ollama Provider
 
+<Note type="warning">
+  This community provider is not yet compatible with AI SDK 5. It uses the
+  deprecated `.embedding()` method instead of the standard
+  `.textEmbeddingModel()` method. Please wait for the provider to be updated or
+  consider using an [AI SDK 5 compatible provider](/providers/ai-sdk-providers).
+</Note>
+
 [sgomez/ollama-ai-provider](https://github.com/sgomez/ollama-ai-provider) is a community provider that uses [Ollama](https://ollama.com/) to provide language model support for the AI SDK.
 
 ## Setup

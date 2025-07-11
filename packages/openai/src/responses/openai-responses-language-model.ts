@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -229,16 +230,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args: body, warnings } = await this.getArgs(options);
+    const url = this.config.url({
+      path: '/responses',
+      modelId: this.modelId,
+    });
 
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: '/responses',
-        modelId: this.modelId,
-      }),
+      url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -246,6 +248,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         z.object({
           id: z.string(),
           created_at: z.number(),
+          error: z
+            .object({
+              code: z.string(),
+              message: z.string(),
+            })
+            .nullish(),
           model: z.string(),
           output: z.array(
             z.discriminatedUnion('type', [
@@ -304,6 +312,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+
+    if (response.error) {
+      throw new APICallError({
+        message: response.error.message,
+        url,
+        requestBodyValues: body,
+        statusCode: 400,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
 
     const content: Array<LanguageModelV2Content> = [];
 
@@ -476,6 +496,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     > = {};
     let hasToolCalls = false;
 
+    const activeReasoning: Record<
+      string,
+      {
+        encryptedContent?: string | null;
+        summaryParts: number[];
+      }
+    > = {};
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -539,10 +567,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'text-start',
                   id: value.item.id,
                 });
-              } else if (value.item.type === 'reasoning') {
+              } else if (isResponseOutputItemAddedReasoningChunk(value)) {
+                activeReasoning[value.item.id] = {
+                  encryptedContent: value.item.encrypted_content,
+                  summaryParts: [0],
+                };
+
                 controller.enqueue({
                   type: 'reasoning-start',
-                  id: value.item.id,
+                  id: `${value.item.id}:0`,
                   providerMetadata: {
                     openai: {
                       reasoning: {
@@ -628,19 +661,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'text-end',
                   id: value.item.id,
                 });
-              } else if (value.item.type === 'reasoning') {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: value.item.id,
-                  providerMetadata: {
-                    openai: {
-                      reasoning: {
-                        id: value.item.id,
-                        encryptedContent: value.item.encrypted_content ?? null,
+              } else if (isResponseOutputItemDoneReasoningChunk(value)) {
+                const activeReasoningPart = activeReasoning[value.item.id];
+
+                for (const summaryIndex of activeReasoningPart.summaryParts) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: `${value.item.id}:${summaryIndex}`,
+                    providerMetadata: {
+                      openai: {
+                        reasoning: {
+                          id: value.item.id,
+                          encryptedContent:
+                            value.item.encrypted_content ?? null,
+                        },
                       },
                     },
-                  },
-                });
+                  });
+                }
+
+                delete activeReasoning[value.item.id];
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
@@ -666,11 +706,40 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 id: value.item_id,
                 delta: value.delta,
               });
+            } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
+              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk.
+              if (value.summary_index > 0) {
+                activeReasoning[value.item_id]?.summaryParts.push(
+                  value.summary_index,
+                );
+
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: `${value.item_id}:${value.summary_index}`,
+                  providerMetadata: {
+                    openai: {
+                      reasoning: {
+                        id: value.item_id,
+                        encryptedContent:
+                          activeReasoning[value.item_id]?.encryptedContent ??
+                          null,
+                      },
+                    },
+                  },
+                });
+              }
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
               controller.enqueue({
                 type: 'reasoning-delta',
-                id: value.item_id,
+                id: `${value.item_id}:${value.summary_index}`,
                 delta: value.delta,
+                providerMetadata: {
+                  openai: {
+                    reasoning: {
+                      id: value.item_id,
+                    },
+                  },
+                },
               });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
@@ -696,6 +765,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 url: value.annotation.url,
                 title: value.annotation.title,
               });
+            } else if (isErrorChunk(value)) {
+              controller.enqueue({ type: 'error', error: value });
             }
           },
 
@@ -736,6 +807,14 @@ const textDeltaChunkSchema = z.object({
   delta: z.string(),
 });
 
+const errorChunkSchema = z.object({
+  type: z.literal('error'),
+  code: z.string(),
+  message: z.string(),
+  param: z.string().nullish(),
+  sequence_number: z.number(),
+});
+
 const responseFinishedChunkSchema = z.object({
   type: z.enum(['response.completed', 'response.incomplete']),
   response: z.object({
@@ -765,12 +844,6 @@ const responseOutputItemAddedSchema = z.object({
       type: z.literal('reasoning'),
       id: z.string(),
       encrypted_content: z.string().nullish(),
-      summary: z.array(
-        z.object({
-          type: z.literal('summary_text'),
-          text: z.string(),
-        }),
-      ),
     }),
     z.object({
       type: z.literal('function_call'),
@@ -804,12 +877,6 @@ const responseOutputItemDoneSchema = z.object({
       type: z.literal('reasoning'),
       id: z.string(),
       encrypted_content: z.string().nullish(),
-      summary: z.array(
-        z.object({
-          type: z.literal('summary_text'),
-          text: z.string(),
-        }),
-      ),
     }),
     z.object({
       type: z.literal('function_call'),
@@ -848,9 +915,16 @@ const responseAnnotationAddedSchema = z.object({
   }),
 });
 
+const responseReasoningSummaryPartAddedSchema = z.object({
+  type: z.literal('response.reasoning_summary_part.added'),
+  item_id: z.string(),
+  summary_index: z.number(),
+});
+
 const responseReasoningSummaryTextDeltaSchema = z.object({
   type: z.literal('response.reasoning_summary_text.delta'),
   item_id: z.string(),
+  summary_index: z.number(),
   delta: z.string(),
 });
 
@@ -862,9 +936,16 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
   responseAnnotationAddedSchema,
+  responseReasoningSummaryPartAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
-  z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
+  errorChunkSchema,
+  z.object({ type: z.string() }).loose(), // fallback for unknown chunks
 ]);
+
+type ExtractByType<
+  T,
+  K extends T extends { type: infer U } ? U : never,
+> = T extends { type: K } ? T : never;
 
 function isTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
@@ -876,6 +957,19 @@ function isResponseOutputItemDoneChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseOutputItemDoneSchema> {
   return chunk.type === 'response.output_item.done';
+}
+
+function isResponseOutputItemDoneReasoningChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseOutputItemDoneSchema> & {
+  item: ExtractByType<
+    z.infer<typeof responseOutputItemDoneSchema>['item'],
+    'reasoning'
+  >;
+} {
+  return (
+    isResponseOutputItemDoneChunk(chunk) && chunk.item.type === 'reasoning'
+  );
 }
 
 function isResponseFinishedChunk(
@@ -904,16 +998,41 @@ function isResponseOutputItemAddedChunk(
   return chunk.type === 'response.output_item.added';
 }
 
+function isResponseOutputItemAddedReasoningChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseOutputItemAddedSchema> & {
+  item: ExtractByType<
+    z.infer<typeof responseOutputItemAddedSchema>['item'],
+    'reasoning'
+  >;
+} {
+  return (
+    isResponseOutputItemAddedChunk(chunk) && chunk.item.type === 'reasoning'
+  );
+}
+
 function isResponseAnnotationAddedChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseAnnotationAddedSchema> {
   return chunk.type === 'response.output_text.annotation.added';
 }
 
+function isResponseReasoningSummaryPartAddedChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryPartAddedSchema> {
+  return chunk.type === 'response.reasoning_summary_part.added';
+}
+
 function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
+function isErrorChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof errorChunkSchema> {
+  return chunk.type === 'error';
 }
 
 type ResponsesModelConfig = {

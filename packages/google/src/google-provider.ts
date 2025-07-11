@@ -10,11 +10,11 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import { googleTools } from './google-tools';
 
 import {
   GoogleGenerativeAIImageSettings,
@@ -61,6 +61,8 @@ Creates a model for image generation.
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV2<string>;
+
+  tools: typeof googleTools;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -165,8 +167,12 @@ export function createGoogleGenerativeAI(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
-
+  provider.tools = googleTools;
   return provider as GoogleGenerativeAIProvider;
+
+
+
+
 }
 
 /**

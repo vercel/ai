@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- b9ddcdd: feat(anthropic): add text_editor_20250429 tool for Claude 4 models
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- fdff8a4: fix(provider/anthropic): correct Claude 4 model ID format
+- 84577c8: fix (providers/anthropic): remove fine grained tool streaming beta
+
 ## 2.0.0-beta.3
 
 ### Patch Changes
