@@ -80,6 +80,51 @@ Allows you to easily create a conversational user interface for your chatbot app
               isOptional: true,
               description: 'Extra body object to send with requests.',
             },
+            {
+              name: 'prepareSendMessagesRequest',
+              type: 'PrepareSendMessagesRequest',
+              isOptional: true,
+              description: 'Function to prepare the request body for chat API calls.',
+              properties: [
+                {
+                  type: 'PrepareSendMessagesRequest',
+                  parameters: [
+                    {
+                      name: 'options',
+                      type: 'PrepareSendMessageRequestOptions',
+                      description: 'Options for preparing the request',
+                      properties: [
+                        {
+                          type: 'PrepareSendMessageRequestOptions',
+                          parameters: [
+                            {
+                              name: 'id',
+                              type: 'string',
+                              description: 'The chat ID',
+                            },
+                            {
+                              name: 'messages',
+                              type: 'UIMessage[]',
+                              description: 'Current messages in the chat',
+                            },
+                            {
+                              name: 'trigger',
+                              type: "'submit-user-message' | 'submit-tool-result' | 'regenerate-assistant-message'",
+                              description: 'The trigger for the request',
+                            },
+                            {
+                              name: 'messageId',
+                              type: 'string | undefined',
+                              description: 'The message ID if applicable',
+                            },
+                          ]
+                        }
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
