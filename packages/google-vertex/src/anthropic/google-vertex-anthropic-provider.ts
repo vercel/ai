@@ -74,9 +74,10 @@ export function createVertexAnthropic(
     settingValue: options.project,
     environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
   });
+
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
+    `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
 
   const createChatModel = (modelId: GoogleVertexAnthropicMessagesModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {
