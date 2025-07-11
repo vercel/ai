@@ -1,12 +1,53 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { ChatComponent } from './chat/chat.component';
+import { CompletionComponent } from './completion/completion.component';
+import { StructuredObjectComponent } from './structured-object/structured-object.component';
+
+type TabType = 'chat' | 'completion' | 'structured-object';
 
 @Component({
   selector: 'app-root',
-  imports: [ChatComponent],
+  standalone: true,
+  imports: [ChatComponent, CompletionComponent, StructuredObjectComponent],
   template: `
     <main class="container">
-      <app-chat />
+      <nav class="tabs">
+        <button
+          class="tab"
+          [class.active]="activeTab() === 'chat'"
+          (click)="activeTab.set('chat')"
+        >
+          Chat
+        </button>
+        <button
+          class="tab"
+          [class.active]="activeTab() === 'completion'"
+          (click)="activeTab.set('completion')"
+        >
+          Completion
+        </button>
+        <button
+          class="tab"
+          [class.active]="activeTab() === 'structured-object'"
+          (click)="activeTab.set('structured-object')"
+        >
+          Structured Object
+        </button>
+      </nav>
+
+      <div class="content">
+        @switch (activeTab()) {
+          @case ('chat') {
+            <app-chat />
+          }
+          @case ('completion') {
+            <app-completion />
+          }
+          @case ('structured-object') {
+            <app-structured-object />
+          }
+        }
+      </div>
     </main>
   `,
   styles: `
@@ -18,14 +59,47 @@ import { ChatComponent } from './chat/chat.component';
     .container {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 1rem;
       height: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10rem;
       box-sizing: border-box;
-      gap: 2rem;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e1e5e9;
+      margin-bottom: 2rem;
+    }
+
+    .tab {
+      background: none;
+      border: none;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #64748b;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: #334155;
+    }
+
+    .tab.active {
+      color: #0066cc;
+      border-bottom-color: #0066cc;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
   `,
 })
 export class AppComponent {
-  title = 'chat';
+  activeTab = signal<TabType>('chat');
 }
