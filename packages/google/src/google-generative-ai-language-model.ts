@@ -370,7 +370,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             });
             if (sources != null) {
               for (const source of sources) {
-                if (source.sourceType === 'url' && !emittedSourceUrls.has(source.url)) {
+                if (
+                  source.sourceType === 'url' &&
+                  !emittedSourceUrls.has(source.url)
+                ) {
                   emittedSourceUrls.add(source.url);
                   controller.enqueue(source);
                 }

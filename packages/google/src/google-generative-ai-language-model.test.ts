@@ -2016,7 +2016,12 @@ describe('doStream', () => {
               safetyRatings: SAFETY_RATINGS,
               groundingMetadata: {
                 groundingChunks: [
-                  { web: { uri: 'https://example.com', title: 'Example Duplicate' } },
+                  {
+                    web: {
+                      uri: 'https://example.com',
+                      title: 'Example Duplicate',
+                    },
+                  },
                   { web: { uri: 'https://another.com', title: 'Another' } },
                 ],
               },
