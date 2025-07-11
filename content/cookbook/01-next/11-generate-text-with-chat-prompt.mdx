@@ -29,62 +29,59 @@ A chat completion allows you to generate text based on a series of messages. Thi
 Let's start by creating a simple chat interface with an input field that sends the user's message and displays the conversation history. You will call the `/api/chat` endpoint to generate the assistant's response.
 
 ```tsx filename='app/page.tsx'
-"use client";
+'use client';
 
-import type { ModelMessage } from "ai";
-import { useState } from "react";
+import type { ModelMessage } from 'ai';
+import { useState } from 'react';
 
 export default function Page() {
-	const [input, setInput] = useState("");
-	const [messages, setMessages] = useState<ModelMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ModelMessage[]>([]);
 
-	return (
-		<div>
-			<input
-				value={input}
-				onChange={(event) => {
-					setInput(event.target.value);
-				}}
-				onKeyDown={async (event) => {
-					if (event.key === "Enter") {
-						setMessages((currentMessages) => [
-							...currentMessages,
-							{ role: "user", content: input },
-						]);
+  return (
+    <div>
+      <input
+        value={input}
+        onChange={event => {
+          setInput(event.target.value);
+        }}
+        onKeyDown={async event => {
+          if (event.key === 'Enter') {
+            setMessages(currentMessages => [
+              ...currentMessages,
+              { role: 'user', content: input },
+            ]);
 
-						const response = await fetch(
-							"/api/chat",
-							{
-								method: "POST",
-								body: JSON.stringify({
-									messages: [...messages, { role: "user", content: input }],
-								}),
-							},
-						);
+            const response = await fetch('/api/chat', {
+              method: 'POST',
+              body: JSON.stringify({
+                messages: [...messages, { role: 'user', content: input }],
+              }),
+            });
 
-						const { messages: newMessages } = await response.json();
+            const { messages: newMessages } = await response.json();
 
-						setMessages((currentMessages) => [
-							...currentMessages,
-							...newMessages,
-						]);
-					}
-				}}
-			/>
+            setMessages(currentMessages => [
+              ...currentMessages,
+              ...newMessages,
+            ]);
+          }
+        }}
+      />
 
-			{messages.map((message, index) => (
-				<div key={`${message.role}-${index}`}>
-					{typeof message.content === "string"
-						? message.content
-						: message.content
-								.filter((part) => part.type === "text")
-								.map((part, partIndex) => (
-									<div key={partIndex}>{part.text}</div>
-								))}
-				</div>
-			))}
-		</div>
-	);
+      {messages.map((message, index) => (
+        <div key={`${message.role}-${index}`}>
+          {typeof message.content === 'string'
+            ? message.content
+            : message.content
+                .filter(part => part.type === 'text')
+                .map((part, partIndex) => (
+                  <div key={partIndex}>{part.text}</div>
+                ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 ```
 
@@ -93,19 +90,19 @@ export default function Page() {
 Next, let's create the `/api/chat` endpoint that generates the assistant's response based on the conversation history.
 
 ```typescript filename='app/api/chat/route.ts'
-import { openai } from "@ai-sdk/openai";
-import { generateText, type ModelMessage } from "ai";
+import { openai } from '@ai-sdk/openai';
+import { generateText, type ModelMessage } from 'ai';
 
 export async function POST(req: Request) {
-	const { messages }: { messages: ModelMessage[] } = await req.json();
+  const { messages }: { messages: ModelMessage[] } = await req.json();
 
-	const { response } = await generateText({
-		model: openai("gpt-4"),
-		system: "You are a helpful assistant.",
-		messages,
-	});
+  const { response } = await generateText({
+    model: openai('gpt-4'),
+    system: 'You are a helpful assistant.',
+    messages,
+  });
 
-	return Response.json({ messages: response.messages });
+  return Response.json({ messages: response.messages });
 }
 ```
 

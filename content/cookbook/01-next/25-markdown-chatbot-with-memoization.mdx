@@ -17,20 +17,20 @@ This recipe uses memoization - a performance optimization technique where the re
 On the server, you use a simple route handler that streams the response from the language model.
 
 ```tsx filename='app/api/chat/route.ts'
-import { openai } from "@ai-sdk/openai";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-	const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
-	const result = streamText({
-		system:
-			"You are a helpful assistant. Respond to the user in Markdown format.",
-		model: openai("gpt-4o"),
-		messages: convertToModelMessages(messages),
-	});
+  const result = streamText({
+    system:
+      'You are a helpful assistant. Respond to the user in Markdown format.',
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
+  });
 
-	return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -39,38 +39,38 @@ export async function POST(req: Request) {
 Next, create a memoized markdown component that will take in raw Markdown text into blocks and only updates when the content actually changes. This component splits Markdown content into blocks using the `marked` library to identify discrete Markdown elements, then uses React's memoization features to optimize re-rendering by only updating blocks that have actually changed.
 
 ```tsx filename='components/memoized-markdown.tsx'
-import { marked } from "marked";
-import { memo, useMemo } from "react";
-import ReactMarkdown from "react-markdown";
+import { marked } from 'marked';
+import { memo, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 function parseMarkdownIntoBlocks(markdown: string): string[] {
-	const tokens = marked.lexer(markdown);
-	return tokens.map((token) => token.raw);
+  const tokens = marked.lexer(markdown);
+  return tokens.map(token => token.raw);
 }
 
 const MemoizedMarkdownBlock = memo(
-	({ content }: { content: string }) => {
-		return <ReactMarkdown>{content}</ReactMarkdown>;
-	},
-	(prevProps, nextProps) => {
-		if (prevProps.content !== nextProps.content) return false;
-		return true;
-	},
+  ({ content }: { content: string }) => {
+    return <ReactMarkdown>{content}</ReactMarkdown>;
+  },
+  (prevProps, nextProps) => {
+    if (prevProps.content !== nextProps.content) return false;
+    return true;
+  },
 );
 
-MemoizedMarkdownBlock.displayName = "MemoizedMarkdownBlock";
+MemoizedMarkdownBlock.displayName = 'MemoizedMarkdownBlock';
 
 export const MemoizedMarkdown = memo(
-	({ content, id }: { content: string; id: string }) => {
-		const blocks = useMemo(() => parseMarkdownIntoBlocks(content), [content]);
+  ({ content, id }: { content: string; id: string }) => {
+    const blocks = useMemo(() => parseMarkdownIntoBlocks(content), [content]);
 
-		return blocks.map((block, index) => (
-			<MemoizedMarkdownBlock content={block} key={`${id}-block_${index}`} />
-		));
-	},
+    return blocks.map((block, index) => (
+      <MemoizedMarkdownBlock content={block} key={`${id}-block_${index}`} />
+    ));
+  },
 );
 
-MemoizedMarkdown.displayName = "MemoizedMarkdown";
+MemoizedMarkdown.displayName = 'MemoizedMarkdown';
 ```
 
 ## Client

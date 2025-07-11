@@ -33,51 +33,51 @@ Let's create a React component that imports the `useChat` hook from the `@ai-sdk
 We will use the `maxSteps` to specify the maximum number of steps (i.e., LLM calls) that can be made to prevent infinite loops. In this example, you will set it to `2` to allow for two backend calls to happen.
 
 ```tsx filename='app/page.tsx'
-"use client";
+'use client';
 
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
-import { useState } from "react";
-import type { ChatMessage } from "../api/chat/route";
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+import type { ChatMessage } from '../api/chat/route';
 
 export default function Page() {
-	const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
 
-	const { messages, sendMessage } = useChat<ChatMessage>({
-		transport: new DefaultChatTransport({
-			api: "/api/chat",
-		}),
-	});
+  const { messages, sendMessage } = useChat<ChatMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
 
-	return (
-		<div>
-			<input
-				className="border"
-				value={input}
-				onChange={(event) => {
-					setInput(event.target.value);
-				}}
-				onKeyDown={async (event) => {
-					if (event.key === "Enter") {
-						sendMessage({
-							role: "user",
-							parts: [{ type: "text", text: input }],
-						});
-					}
-				}}
-			/>
+  return (
+    <div>
+      <input
+        className="border"
+        value={input}
+        onChange={event => {
+          setInput(event.target.value);
+        }}
+        onKeyDown={async event => {
+          if (event.key === 'Enter') {
+            sendMessage({
+              role: 'user',
+              parts: [{ type: 'text', text: input }],
+            });
+          }
+        }}
+      />
 
-			{messages.map((message, index) => (
-				<div key={index}>
-					{message.parts.map((part) => {
-						if (part.type === "text") {
-							return <div key={`${message.id}-text`}>{part.text}</div>;
-						}
-					})}
-				</div>
-			))}
-		</div>
-	);
+      {messages.map((message, index) => (
+        <div key={index}>
+          {message.parts.map(part => {
+            if (part.type === 'text') {
+              return <div key={`${message.id}-text`}>{part.text}</div>;
+            }
+          })}
+        </div>
+      ))}
+    </div>
+  );
 }
 ```
 
@@ -90,55 +90,55 @@ You will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) para
 You will also use zod to specify the schema for the `celsiusToFahrenheit` function's parameters.
 
 ```tsx filename='app/api/chat/route.ts'
-import { openai } from "@ai-sdk/openai";
+import { openai } from '@ai-sdk/openai';
 import {
-	convertToModelMessages,
-	type InferUITool,
-	stepCountIs,
-	streamText,
-	tool,
-	type UIMessage,
-} from "ai";
-import { z } from "zod";
+  convertToModelMessages,
+  type InferUITool,
+  stepCountIs,
+  streamText,
+  tool,
+  type UIMessage,
+} from 'ai';
+import { z } from 'zod';
 
 const tools = {
-	getWeather: tool({
-		description: "Get the weather for a location",
-		inputSchema: z.object({
-			city: z.string().describe("The city to get the weather for"),
-			unit: z
-				.enum(["C", "F"])
-				.describe("The unit to display the temperature in"),
-		}),
-		execute: async ({ city, unit }) => {
-			const weather = {
-				value: 24,
-				description: "Sunny",
-			};
+  getWeather: tool({
+    description: 'Get the weather for a location',
+    inputSchema: z.object({
+      city: z.string().describe('The city to get the weather for'),
+      unit: z
+        .enum(['C', 'F'])
+        .describe('The unit to display the temperature in'),
+    }),
+    execute: async ({ city, unit }) => {
+      const weather = {
+        value: 24,
+        description: 'Sunny',
+      };
 
-			return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`;
-		},
-	}),
+      return `It is currently ${weather.value}°${unit} and ${weather.description} in ${city}!`;
+    },
+  }),
 };
 
 export type ChatTools = {
-	getWeather: InferUITool<typeof tools.getWeather>;
+  getWeather: InferUITool<typeof tools.getWeather>;
 };
 
 export type ChatMessage = UIMessage<never, never, ChatTools>;
 
 export async function POST(req: Request) {
-	const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
-	const result = streamText({
-		model: openai("gpt-4o"),
-		system: "You are a helpful assistant.",
-		messages: convertToModelMessages(messages),
-		stopWhen: stepCountIs(5),
-		tools,
-	});
+  const result = streamText({
+    model: openai('gpt-4o'),
+    system: 'You are a helpful assistant.',
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
+    tools,
+  });
 
-	return result.toUIMessageStreamResponse<ChatMessage>();
+  return result.toUIMessageStreamResponse<ChatMessage>();
 }
 ```
 

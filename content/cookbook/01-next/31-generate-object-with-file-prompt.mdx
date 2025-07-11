@@ -8,7 +8,8 @@ tags: ['next', 'multi-modal']
 
 <Note>
   This feature is limited to models/providers that support PDF inputs
-  ([Anthropic](/providers/ai-sdk-providers/anthropic#pdf-support), [OpenAI](/providers/ai-sdk-providers/openai#pdf-support), [Google
+  ([Anthropic](/providers/ai-sdk-providers/anthropic#pdf-support),
+  [OpenAI](/providers/ai-sdk-providers/openai#pdf-support), [Google
   Gemini](/providers/ai-sdk-providers/google-generative-ai#file-inputs), and
   [Google Vertex](/providers/ai-sdk-providers/google-vertex#file-inputs)).
 </Note>
@@ -20,48 +21,45 @@ With select models, you can send PDFs (files) as part of your prompt. Let's crea
 On the frontend, create a form that allows the user to upload a PDF. When the form is submitted, send the PDF to the `/api/analyze` route.
 
 ```tsx file="app/page.tsx"
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 export default function Page() {
-	const [description, setDescription] = useState<string>();
-	const [loading, setLoading] = useState(false);
+  const [description, setDescription] = useState<string>();
+  const [loading, setLoading] = useState(false);
 
-	return (
-		<div>
-			<form
-				action={async (formData) => {
-					try {
-						setLoading(true);
-						const response = await fetch(
-							"/api/chat",
-							{
-								method: "POST",
-								body: formData,
-							},
-						);
-						setLoading(false);
+  return (
+    <div>
+      <form
+        action={async formData => {
+          try {
+            setLoading(true);
+            const response = await fetch('/api/chat', {
+              method: 'POST',
+              body: formData,
+            });
+            setLoading(false);
 
-						if (response.ok) {
-							setDescription(await response.text());
-						}
-					} catch (error) {
-						console.error("Analysis failed:", error);
-					}
-				}}
-			>
-				<div>
-					<label>Upload Image</label>
-					<input name="pdf" type="file" accept="application/pdf" />
-				</div>
-				<button type="submit" disabled={loading}>
-					Submit{loading && "ing..."}
-				</button>
-			</form>
-			{description && <pre>{description}</pre>}
-		</div>
-	);
+            if (response.ok) {
+              setDescription(await response.text());
+            }
+          } catch (error) {
+            console.error('Analysis failed:', error);
+          }
+        }}
+      >
+        <div>
+          <label>Upload Image</label>
+          <input name="pdf" type="file" accept="application/pdf" />
+        </div>
+        <button type="submit" disabled={loading}>
+          Submit{loading && 'ing...'}
+        </button>
+      </form>
+      {description && <pre>{description}</pre>}
+    </div>
+  );
 }
 ```
 
@@ -70,53 +68,53 @@ export default function Page() {
 On the server, create an API route that receives the PDF, sends it to the LLM, and returns the result. This example uses the [ `generateObject` ](/docs/reference/ai-sdk-core/generate-object) function to generate the summary as part of a structured output.
 
 ```typescript file="app/api/analyze/route.ts"
-import { openai } from "@ai-sdk/openai";
-import { generateObject } from "ai";
-import { z } from "zod";
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
 
 export async function POST(request: Request) {
-	const formData = await request.formData();
-	const file = formData.get("pdf") as File;
+  const formData = await request.formData();
+  const file = formData.get('pdf') as File;
 
-	// Convert the file's arrayBuffer to a Base64 data URL
-	const arrayBuffer = await file.arrayBuffer();
-	const uint8Array = new Uint8Array(arrayBuffer);
+  // Convert the file's arrayBuffer to a Base64 data URL
+  const arrayBuffer = await file.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
 
-	// Convert Uint8Array to an array of characters
-	const charArray = Array.from(uint8Array, (byte) => String.fromCharCode(byte));
-	const binaryString = charArray.join("");
-	const base64Data = btoa(binaryString);
-	const fileDataUrl = `data:application/pdf;base64,${base64Data}`;
+  // Convert Uint8Array to an array of characters
+  const charArray = Array.from(uint8Array, byte => String.fromCharCode(byte));
+  const binaryString = charArray.join('');
+  const base64Data = btoa(binaryString);
+  const fileDataUrl = `data:application/pdf;base64,${base64Data}`;
 
-	const result = await generateObject({
-		model: openai("gpt-4o"),
-		messages: [
-			{
-				role: "user",
-				content: [
-					{
-						type: "text",
-						text: "Analyze the following PDF and generate a summary.",
-					},
-					{
-						type: "file",
-						data: fileDataUrl,
-						mediaType: "application/pdf",
-					},
-				],
-			},
-		],
-		schema: z.object({
-			people: z
-				.object({
-					name: z.string().describe("The name of the person."),
-					age: z.number().min(0).describe("The age of the person."),
-				})
-				.array()
-				.describe("An array of people."),
-		}),
-	});
+  const result = await generateObject({
+    model: openai('gpt-4o'),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Analyze the following PDF and generate a summary.',
+          },
+          {
+            type: 'file',
+            data: fileDataUrl,
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ],
+    schema: z.object({
+      people: z
+        .object({
+          name: z.string().describe('The name of the person.'),
+          age: z.number().min(0).describe('The age of the person.'),
+        })
+        .array()
+        .describe('An array of people.'),
+    }),
+  });
 
-	return Response.json(result.object);
+  return Response.json(result.object);
 }
 ```
