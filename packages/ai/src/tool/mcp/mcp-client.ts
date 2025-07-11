@@ -271,7 +271,7 @@ class MCPClient {
     }
   }
 
-  private async callTool({
+  async callTool({
     name,
     args,
     options,
