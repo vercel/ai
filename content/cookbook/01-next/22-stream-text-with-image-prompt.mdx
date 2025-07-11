@@ -57,12 +57,31 @@ You can replace the `imageUrl` with the actual URL of the image you want to send
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [input, setInput] = useState('');
+
+  const { messages, input, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    })
+  });
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(event.target.value);
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    await sendMessage({
+      role: "user",
+      parts: [{"type": "text", "text": input}]
+    })
+  };
+
   return (
     <div>
       {messages.map(m => (

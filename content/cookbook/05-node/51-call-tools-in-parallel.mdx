@@ -19,7 +19,7 @@ const result = await generateText({
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }: { location: string }) => ({
@@ -28,7 +28,7 @@ const result = await generateText({
       }),
     }),
     cityAttractions: tool({
-      parameters: z.object({ city: z.string() }),
+      inputSchema: z.object({ city: z.string() }),
       execute: async ({ city }: { city: string }) => {
         if (city === 'San Francisco') {
           return {

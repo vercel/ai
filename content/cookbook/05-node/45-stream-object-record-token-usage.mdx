@@ -58,12 +58,12 @@ const result = streamObject({
 
 // your custom function to record token usage:
 function recordTokenUsage({
-  promptTokens,
-  completionTokens,
+  inputTokens,
+  outputTokens,
   totalTokens,
 }: TokenUsage) {
-  console.log('Prompt tokens:', promptTokens);
-  console.log('Completion tokens:', completionTokens);
+  console.log('Prompt tokens:', inputTokens);
+  console.log('Completion tokens:', outputTokens);
   console.log('Total tokens:', totalTokens);
 }
 
