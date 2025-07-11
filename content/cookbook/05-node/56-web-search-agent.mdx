@@ -31,7 +31,7 @@ const { text, sources } = await generateText({
   model: openai.responses('gpt-4o-mini'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
-    web_search_preview: openai.tools.webSearchPreview(),
+    web_search_preview: openai.tools.webSearchPreview({}),
   },
 });
 
@@ -110,7 +110,7 @@ export const exa = new Exa(process.env.EXA_API_KEY);
 
 export const webSearch = tool({
   description: 'Search the web for up-to-date information',
-  parameters: z.object({
+  inputSchema: z.object({
     query: z.string().min(1).max(100).describe('The search query'),
   }),
   execute: async ({ query }) => {
@@ -152,7 +152,7 @@ const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
 
 export const webSearch = tool({
   description: 'Search the web for up-to-date information',
-  parameters: z.object({
+  inputSchema: z.object({
     urlToCrawl: z
       .string()
       .url()

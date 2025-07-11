@@ -22,15 +22,15 @@ const result = streamText({
   messages: [
     {
       role: 'user',
-      content: 'Hello!',
+      content: [{type: 'text', text: 'Hello!'}],
     },
     {
       role: 'assistant',
-      content: 'Hello! How can I help you today?',
+      content: [{type: 'text', text: 'Hello! How can I help you today?'}],
     },
     {
       role: 'user',
-      content: 'I need help with my computer.',
+      content: [{type: 'text', text: 'I need help with my computer.'}],
     },
   ],
 });

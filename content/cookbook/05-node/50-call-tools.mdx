@@ -19,7 +19,7 @@ const result = await generateText({
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
@@ -28,7 +28,7 @@ const result = await generateText({
       }),
     }),
     cityAttractions: tool({
-      parameters: z.object({ city: z.string() }),
+      inputSchema: z.object({ city: z.string() }),
     }),
   },
   prompt:
@@ -55,7 +55,7 @@ async function main() {
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
@@ -64,7 +64,7 @@ async function main() {
         }),
       }),
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     prompt:
@@ -75,12 +75,12 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
       case 'cityAttractions': {
-        toolCall.args.city; // string
+        toolCall.input.city; // string
         break;
       }
 
       case 'weather': {
-        toolCall.args.location; // string
+        toolCall.input.location; // string
         break;
       }
     }
@@ -111,7 +111,7 @@ async function main() {
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
@@ -120,7 +120,7 @@ async function main() {
         }),
       }),
       cityAttractions: tool({
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
       }),
     },
     prompt:
@@ -131,9 +131,9 @@ async function main() {
   for (const toolResult of result.toolResults) {
     switch (toolResult.toolName) {
       case 'weather': {
-        toolResult.args.location; // string
-        toolResult.result.location; // string
-        toolResult.result.temperature; // number
+        toolResult.input.location; // string
+        toolResult.output.location; // string
+        toolResult.output.temperature; // number
         break;
       }
     }
