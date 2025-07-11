@@ -19,10 +19,6 @@ import { createResumableStreamContext } from 'resumable-stream';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const streamContext = createResumableStreamContext({
-    waitUntil: after,
-  });
-
   const { chatId, messages }: { chatId: string; messages: UIMessage[] } =
     await req.json();
 
@@ -37,29 +33,22 @@ export async function POST(req: Request) {
   }
 
   await appendMessageToChat({ chatId, message: recentUserMessage });
-
   await appendStreamId({ chatId, streamId });
 
-  const stream = createUIMessageStream({
-    execute: ({ writer }) => {
-      const result = streamText({
-        model: openai('gpt-4o'),
-        messages: convertToModelMessages(messages),
-      });
-
-      writer.merge(
-        result.toUIMessageStream({
-          onFinish: ({ messages }) => {
-            saveChat({ chatId, messages });
-          },
-        }),
-      );
-    },
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
   });
 
-  return new Response(
-    await streamContext.resumableStream(streamId, () =>
-      stream.pipeThrough(new JsonToSseTransformStream()),
-    ),
-  );
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    onFinish: ({ messages }) => {
+      saveChat({ chatId, messages });
+    },
+    async consumeSseStream({ stream }) {
+      // send the sse stream into a resumable stream sink as well:
+      const streamContext = createResumableStreamContext({ waitUntil: after });
+      await streamContext.createNewResumableStream(streamId, () => stream);
+    },
+  });
 }

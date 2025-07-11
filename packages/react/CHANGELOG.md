@@ -1,5 +1,22 @@
 # @ai-sdk/react
 
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- ai@5.0.0-beta.14
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- d1410bb: fix (ai/react): chat instance recreation in useChat
+- Updated dependencies [377bbcf]
+- Updated dependencies [ce1d1f3]
+- Updated dependencies [c040e2f]
+- Updated dependencies [c808e4d]
+  - ai@5.0.0-beta.13
+
 ## 2.0.0-beta.12
 
 ### Patch Changes

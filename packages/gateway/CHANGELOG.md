@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- 30ab1de: feat (provider/gateway): add grok-4 model id
+
 ## 1.0.0-beta.4
 
 ### Patch Changes

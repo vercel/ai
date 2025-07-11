@@ -1573,6 +1573,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
     originalMessages,
+    generateMessageId,
     onFinish,
     messageMetadata,
     sendReasoning = true,
@@ -1806,7 +1807,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return handleUIMessageStreamFinish<UI_MESSAGE>({
       stream: baseStream,
-      messageId: responseMessageId ?? this.generateId(),
+      messageId: responseMessageId ?? generateMessageId?.(),
       originalMessages,
       onFinish,
       onError,
@@ -1817,6 +1818,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     response: ServerResponse,
     {
       originalMessages,
+      generateMessageId,
       onFinish,
       messageMetadata,
       sendReasoning,
@@ -1831,6 +1833,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       response,
       stream: this.toUIMessageStream({
         originalMessages,
+        generateMessageId,
         onFinish,
         messageMetadata,
         sendReasoning,
@@ -1853,6 +1856,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
+    generateMessageId,
     onFinish,
     messageMetadata,
     sendReasoning,
@@ -1866,6 +1870,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createUIMessageStreamResponse({
       stream: this.toUIMessageStream({
         originalMessages,
+        generateMessageId,
         onFinish,
         messageMetadata,
         sendReasoning,

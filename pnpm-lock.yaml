@@ -428,6 +428,9 @@ importers:
 
   examples/next:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: workspace:*
+        version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -721,8 +724,8 @@ importers:
         specifier: ^4.7.0
         version: 4.7.0
       resumable-stream:
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       zod:
         specifier: 3.25.49
         version: 3.25.49
@@ -13474,9 +13477,6 @@ packages:
   restore-cursor@5.1.0:
     resolution: {integrity: sha512-oMA2dcrw6u0YfxJQXm342bFKX/E4sG9rbTzO9ptUcR/e8A33cHuvStiYOwH7fszkZlZ1z/ta9AAoPk2F4qIOHA==}
     engines: {node: '>=18'}
-
-  resumable-stream@2.0.0:
-    resolution: {integrity: sha512-D7E0wDUnfoy+Lerba/gyuD44OG3G0APqDcQ9soMSerujaVujPLWc5sSCLXf/ZFQPreLb3MKDjSm3TOPXpNtpZw==}
 
   resumable-stream@2.2.0:
     resolution: {integrity: sha512-538Sgz+EQV0Wv2tGzID1V/ETzh/SSWSgqHhMGchZfvNGpCeVMP8BiEK5OIqRw8Up5/ifa93STzMa/k75NhbHdA==}
@@ -29130,8 +29130,6 @@ snapshots:
     dependencies:
       onetime: 7.0.0
       signal-exit: 4.1.0
-
-  resumable-stream@2.0.0: {}
 
   resumable-stream@2.2.0: {}
 
