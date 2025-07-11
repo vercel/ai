@@ -517,7 +517,7 @@ app.post('/api/analyze', async (req, res) => {
     prompt: `Analyze this content: ${JSON.stringify(input)}`,
   });
 
-  result.pipeToResponse(res);
+  result.pipeTextStreamToResponse(res);
 });
 ```
 
@@ -641,4 +641,3 @@ chat.error; // Signal<Error | undefined>
 ## License
 
 Apache-2.0
-
