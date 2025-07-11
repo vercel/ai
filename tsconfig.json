@@ -19,6 +19,7 @@
     { "path": "packages/google" },
     { "path": "packages/google-vertex" },
     { "path": "packages/groq" },
+    { "path": "packages/github-models" },
     { "path": "packages/hume" },
     { "path": "packages/langchain" },
     { "path": "packages/llamaindex" },
