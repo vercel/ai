@@ -968,6 +968,44 @@ describe('doStream', () => {
     });
   });
 
+  it('should transform reasoningConfig to thinking in additionalModelRequestFields', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      maxTokens: 100,
+      providerMetadata: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBody;
+
+    // Should contain thinking in additionalModelRequestFields
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        thinking: {
+          type: 'enabled',
+          budget_tokens: 2000,
+        },
+      },
+          // Should have adjusted maxTokens (100 + 2000)
+    inferenceConfig: {
+      maxTokens: 2100,
+    },
+    });
+
+    // Should NOT contain reasoningConfig at the top level
+    expect(requestBody).not.toHaveProperty('reasoningConfig');
+  });
+
   it('should stream reasoning text deltas', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1078,62 +1116,117 @@ describe('doStream', () => {
   });
 });
 
-describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = [{ type: 'text', text: 'Hello, World!' }],
-    usage = {
-      inputTokens: 4,
-      outputTokens: 34,
-      totalTokens: 38,
-      cacheReadInputTokens: undefined,
-      cacheWriteInputTokens: undefined,
-    },
-    stopReason = 'stop_sequence',
-    trace,
-  }: {
-    content?: Array<
-      | { type: 'text'; text: string }
-      | { type: 'thinking'; thinking: string; signature: string }
-      | { type: 'tool_use'; id: string; name: string; input: unknown }
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-    >;
-    toolCalls?: Array<{
-      id?: string;
-      name: string;
-      args: Record<string, unknown>;
-    }>;
-    usage?: {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-      cacheReadInputTokens?: number;
-      cacheWriteInputTokens?: number;
-    };
-    stopReason?: string;
-    trace?: typeof mockTrace;
-    reasoningContent?:
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-      | Array<
-          BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
-        >;
-  }) {
-    server.urls[generateUrl].response = {
-      type: 'json-value',
-      body: {
-        output: {
-          message: {
-            role: 'assistant',
-            content,
-          },
+it('should transform reasoningConfig to thinking in stream requests', async () => {
+  prepareJsonResponse({});
+  server.urls[streamUrl].response = {
+    type: 'stream-chunks',
+    chunks: [
+      JSON.stringify({
+        contentBlockDelta: {
+          contentBlockIndex: 0,
+          delta: { text: 'Hello' },
         },
-        usage,
-        stopReason,
-        ...(trace ? { trace } : {}),
+      }) + '\n',
+      JSON.stringify({
+        messageStop: {
+          stopReason: 'stop_sequence',
+        },
+      }) + '\n',
+    ],
+  };
+
+  await model.doStream({
+    inputFormat: 'prompt',
+    mode: { type: 'regular' },
+    prompt: TEST_PROMPT,
+    maxTokens: 100,
+    providerMetadata: {
+      bedrock: {
+        reasoningConfig: {
+          type: 'enabled',
+          budgetTokens: 2000,
+        },
       },
-    };
-  }
+    },
+  });
+
+  const requestBody = await server.calls[0].requestBody;
+
+  // Should contain thinking in additionalModelRequestFields
+  expect(requestBody).toMatchObject({
+    additionalModelRequestFields: {
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 2000,
+      },
+    },
+    // Should have adjusted maxTokens (100 + 2000)
+    inferenceConfig: {
+      maxTokens: 2100,
+    },
+  });
+
+  // Should NOT contain thinking at the top level
+  expect(requestBody).not.toHaveProperty('thinking');
+});
+
+function prepareJsonResponse({
+  content = [{ type: 'text', text: 'Hello, World!' }],
+  usage = {
+    inputTokens: 4,
+    outputTokens: 34,
+    totalTokens: 38,
+    cacheReadInputTokens: undefined,
+    cacheWriteInputTokens: undefined,
+  },
+  stopReason = 'stop_sequence',
+  trace,
+}: {
+  content?: Array<
+    | { type: 'text'; text: string }
+    | { type: 'thinking'; thinking: string; signature: string }
+    | { type: 'tool_use'; id: string; name: string; input: unknown }
+    | BedrockReasoningContentBlock
+    | BedrockRedactedReasoningContentBlock
+  >;
+  toolCalls?: Array<{
+    id?: string;
+    name: string;
+    args: Record<string, unknown>;
+  }>;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    cacheReadInputTokens?: number;
+    cacheWriteInputTokens?: number;
+  };
+  stopReason?: string;
+  trace?: typeof mockTrace;
+  reasoningContent?:
+    | BedrockReasoningContentBlock
+    | BedrockRedactedReasoningContentBlock
+    | Array<
+        BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
+      >;
+}) {
+  server.urls[generateUrl].response = {
+    type: 'json-value',
+    body: {
+      output: {
+        message: {
+          role: 'assistant',
+          content,
+        },
+      },
+      usage,
+      stopReason,
+      ...(trace ? { trace } : {}),
+    },
+  };
+}
+
+describe('doGenerate', () => {
 
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
