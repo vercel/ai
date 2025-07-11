@@ -996,10 +996,10 @@ describe('doStream', () => {
           budget_tokens: 2000,
         },
       },
-          // Should have adjusted maxTokens (100 + 2000)
-    inferenceConfig: {
-      maxTokens: 2100,
-    },
+      // Should have adjusted maxTokens (100 + 2000)
+      inferenceConfig: {
+        maxTokens: 2100,
+      },
     });
 
     // Should NOT contain reasoningConfig at the top level
@@ -1227,7 +1227,6 @@ function prepareJsonResponse({
 }
 
 describe('doGenerate', () => {
-
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
