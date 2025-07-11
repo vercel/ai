@@ -1929,6 +1929,66 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream sources during intermediate chunks', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'text' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  { web: { uri: 'https://a.com', title: 'A' } },
+                  { web: { uri: 'https://b.com', title: 'B' } },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'more' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "A",
+          "type": "source",
+          "url": "https://a.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "B",
+          "type": "source",
+          "url": "https://b.com",
+        },
+      ]
+    `);
+  });
+
   it('should stream files', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',

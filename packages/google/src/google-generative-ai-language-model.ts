@@ -361,6 +361,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             const content = candidate.content;
 
+            // Process grounding sources immediately when available
+            const sources = extractSources({
+              groundingMetadata: candidate.groundingMetadata,
+              generateId,
+            });
+            if (sources != null) {
+              for (const source of sources) {
+                controller.enqueue(source);
+              }
+            }
+
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
               // Process text parts individually to handle reasoning parts
@@ -475,16 +486,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 finishReason: candidate.finishReason,
                 hasToolCalls,
               });
-
-              const sources =
-                extractSources({
-                  groundingMetadata: candidate.groundingMetadata,
-                  generateId,
-                }) ?? [];
-
-              for (const source of sources) {
-                controller.enqueue(source);
-              }
 
               providerMetadata = {
                 google: {
