@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.0-beta.7
+
+### Patch Changes
+
+- 209256d: Add missing file_search tool support to OpenAI Responses API
+
 ## 2.0.0-beta.6
 
 ### Patch Changes

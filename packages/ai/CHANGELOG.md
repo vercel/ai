@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- 8e31d46: feat (ai): export SourceDocumentUIPart
+
 ## 5.0.0-beta.14
 
 ### Patch Changes
