@@ -145,15 +145,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       } else {
         inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
       }
-      // Add them to additional model request fields
-      // Add reasoning config to additionalModelRequestFields
-      this.settings.additionalModelRequestFields = {
-        ...this.settings.additionalModelRequestFields,
-        reasoningConfig: {
-          type: reasoningConfigOptions.data?.type,
-          budget_tokens: thinkingBudget,
-        },
-      };
     }
 
     // Remove temperature if thinking is enabled
@@ -176,14 +167,33 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    const {
+      thinking: _,
+      reasoningConfig: __,
+      ...filteredBedrockOptions
+    } = providerMetadata?.bedrock || {};
+
+    const additionalModelRequestFields = {
+      ...this.settings.additionalModelRequestFields,
+      ...(isThinking &&
+        thinkingBudget != null && {
+          thinking: {
+            type: reasoningConfigOptions.data?.type,
+            budget_tokens: thinkingBudget,
+          },
+        }),
+    };
+
     const baseArgs: BedrockConverseInput = {
       system,
-      additionalModelRequestFields: this.settings.additionalModelRequestFields,
+      ...(Object.keys(additionalModelRequestFields).length > 0 && {
+        additionalModelRequestFields,
+      }),
       ...(Object.keys(inferenceConfig).length > 0 && {
         inferenceConfig,
       }),
       messages,
-      ...providerMetadata?.bedrock,
+      ...filteredBedrockOptions,
     };
 
     switch (type) {
