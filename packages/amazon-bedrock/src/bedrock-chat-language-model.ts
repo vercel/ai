@@ -167,17 +167,21 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    const { thinking: _, reasoningConfig: __, ...filteredBedrockOptions } =
-      providerMetadata?.bedrock || {};
+    const {
+      thinking: _,
+      reasoningConfig: __,
+      ...filteredBedrockOptions
+    } = providerMetadata?.bedrock || {};
 
     const additionalModelRequestFields = {
       ...this.settings.additionalModelRequestFields,
-      ...(isThinking && thinkingBudget != null && {
-        thinking: {
-          type: reasoningConfigOptions.data?.type,
-          budget_tokens: thinkingBudget,
-        },
-      }),
+      ...(isThinking &&
+        thinkingBudget != null && {
+          thinking: {
+            type: reasoningConfigOptions.data?.type,
+            budget_tokens: thinkingBudget,
+          },
+        }),
     };
 
     const baseArgs: BedrockConverseInput = {
