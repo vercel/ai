@@ -24,6 +24,7 @@
     "strictInputAccessModifiers": true,
     "strictTemplates": true
   },
+  "include": ["src/**/*"],
   "references": [
     {
       "path": "../../packages/angular"
