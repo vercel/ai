@@ -308,6 +308,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let urlContextMetadata:
+      | z.infer<typeof urlContextMetadataSchema>
+      | undefined = undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -357,6 +360,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             // sometimes the API returns an empty candidates array
             if (candidate == null) {
               return;
+            }
+
+            if (candidate.urlContextMetadata) {
+              urlContextMetadata = candidate.urlContextMetadata;
             }
 
             const content = candidate.content;
@@ -489,7 +496,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               providerMetadata = {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
-                  urlContextMetadata: candidate.urlContextMetadata ?? null,
+                  urlContextMetadata: urlContextMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
                 },
               };
