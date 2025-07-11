@@ -70,7 +70,7 @@ Gemini 2.5 supports tool calling, allowing it to interact with external systems 
 
 ```ts
 import { z } from 'zod';
-import { generateText, tool } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 import { google } from '@ai-sdk/google';
 
 const result = await generateText({
@@ -88,14 +88,12 @@ const result = await generateText({
       }),
     }),
   },
-  maxSteps: 5, // Optional, enables multi step calling
+  stopWhen: stepCountIs(5), // Optional, enables multi step calling
 });
 
 console.log(result.text);
 
-for (const message of result.response.messages) {
-  console.log(message.content);
-}
+console.log(result.steps);
 ```
 
 ### Using Google Search with Gemini
