@@ -2,6 +2,7 @@
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compileOnSave": false,
   "compilerOptions": {
+    "rootDir": "src",
     "outDir": "./dist/out-tsc",
     "strict": true,
     "noImplicitOverride": true,

@@ -1,6 +1,7 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
+    "composite": true,
     "declaration": true,
     "declarationMap": true,
     "outDir": "dist",
@@ -10,7 +11,7 @@
     "skipLibCheck": true,
     "types": ["vitest/globals"]
   },
-  "include": ["src"],
+  "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules"],
   "references": [
     {
