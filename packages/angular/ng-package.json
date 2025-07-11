@@ -1,7 +1,0 @@
-{
-  "$schema": "./node_modules/ng-packagr/ng-package.schema.json",
-  "lib": {
-    "entryFile": "src/public-api.ts"
-  },
-  "allowedNonPeerDependencies": ["ai", "@ai-sdk/provider-utils"]
-}

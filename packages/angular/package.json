@@ -1,76 +1,53 @@
 {
   "name": "@ai-sdk/angular",
-  "description": "Angular implemention of ai-sdk.",
-  "version": "0.2.0",
+  "version": "0.2.1",
+  "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
-  "sideEffects": false,
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "ng-packagr -p ng-package.json",
-    "build:watch": "ng-packagr -p ng-package.json -w",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.json",
+    "build:watch": "pnpm clean && tsup --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "prettier-fix": "prettier --write .",
-    "prettier-check": "prettier --check .",
-    "lint": "eslint .",
-    "test": "vitest --run",
-    "test:update": "vitest --run -u",
-    "test:watch": "vitest"
+    "lint": "eslint \"./**/*.ts*\"",
+    "type-check": "tsc --build",
+    "prettier-check": "prettier --check \"./**/*.ts*\"",
+    "test": "vitest --config vitest.config.ts --run",
+    "test:update": "vitest --config vitest.config.ts --run -u",
+    "test:watch": "vitest --config vitest.config.ts"
   },
-  "files": [
-    "dist/**/*"
-  ],
   "exports": {
+    "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/fesm2022/ai-sdk-angular.mjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
   },
+  "files": [
+    "dist/**/*",
+    "CHANGELOG.md"
+  ],
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
-    "ai": "workspace:*",
-    "tslib": "^2.0.0"
+    "ai": "workspace:*"
   },
   "devDependencies": {
-    "@analogjs/vite-plugin-angular": "^1.19.0",
-    "@angular/build": ">=16.0.0",
-    "@angular/cli": ">=16.0.0",
-    "@angular/compiler-cli": ">=16.0.0",
-    "@types/node": "^24.0.8",
+    "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "jsdom": "^26.1.0",
-    "ng-packagr": ">=16.0.0",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
+    "jsdom": "^24.0.0",
+    "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "typescript-eslint": "^8.26.0",
     "vitest": "^3.0.0"
   },
   "peerDependencies": {
-    "@angular/common": ">=16.0.0",
-    "@angular/compiler": ">=16.0.0",
     "@angular/core": ">=16.0.0",
     "zod": "^3.25.49"
   },
-  "peerDependenciesMeta": {
-    "zod": {
-      "optional": true
-    }
-  },
   "engines": {
     "node": ">=18"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "homepage": "https://ai-sdk.dev/docs",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
-  },
-  "bugs": {
-    "url": "https://github.com/vercel/ai/issues"
-  },
-  "keywords": [
-    "ai",
-    "angular"
-  ]
+  }
 }

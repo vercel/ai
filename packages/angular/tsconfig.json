@@ -1,25 +1,17 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
-  "compileOnSave": false,
   "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
     "strict": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "isolatedModules": true,
-    "experimentalDecorators": true,
-    "importHelpers": false,
-    "composite": true
+    "types": ["vitest/globals"]
   },
-  "angularCompilerOptions": {
-    "enableI18nLegacyMessageIdFormat": false,
-    "strictInjectionParameters": true,
-    "strictInputAccessModifiers": true,
-    "typeCheckHostBindings": true,
-    "strictTemplates": true
-  },
+  "include": ["src"],
+  "exclude": ["dist", "node_modules"],
   "references": [
     {
       "path": "../provider-utils"

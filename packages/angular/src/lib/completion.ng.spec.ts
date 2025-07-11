@@ -4,9 +4,8 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { Completion } from './completion.ng';
 import { beforeAll } from 'vitest';
-import { UIMessageStreamPart } from 'ai';
 
-function formatStreamPart(part: UIMessageStreamPart) {
+function formatStreamPart(part: object) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
