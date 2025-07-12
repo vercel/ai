@@ -5,7 +5,7 @@ import express, { Request, Response } from 'express';
 import z from 'zod';
 
 const app = express();
-app.use(express.json({ strict: false })); // Allow primitives
+app.use(express.json({ strict: false })); // Allow primitives (for analyze endpoint)
 
 app.post('/api/chat', async (req: Request, res: Response) => {
   const { messages, selectedModel } = req.body;
@@ -17,7 +17,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   result.pipeUIMessageStreamToResponse(res);
 });
 
-app.post('/api/completion', async (req, res) => {
+app.post('/api/completion', async (req: Request, res: Response) => {
   const { prompt } = req.body;
 
   const result = streamText({
@@ -28,7 +28,7 @@ app.post('/api/completion', async (req, res) => {
   result.pipeTextStreamToResponse(res);
 });
 
-app.post('/api/analyze', express.raw(), async (req, res) => {
+app.post('/api/analyze', express.raw(), async (req: Request, res: Response) => {
   const input = req.body.toString('utf8');
 
   const result = streamObject({

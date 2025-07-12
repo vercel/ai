@@ -1,36 +1,7 @@
 {
-  "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
-  "compileOnSave": false,
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "./dist/out-tsc",
-    "strict": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "experimentalDecorators": true,
-    "moduleResolution": "bundler",
-    "importHelpers": true,
-    "target": "es2022",
-    "useDefineForClassFields": false
-  },
-  "angularCompilerOptions": {
-    "enableI18nLegacyMessageIdFormat": false,
-    "strictInjectionParameters": true,
-    "strictInputAccessModifiers": true,
-    "strictTemplates": true
-  },
-  "include": ["src/**/*"],
+  "files": [],
   "references": [
-    {
-      "path": "../../packages/angular"
-    },
-    {
-      "path": "../../packages/openai"
-    }
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.server.json" }
   ]
 }

@@ -4,7 +4,9 @@
   "scripts": {
     "ng": "ng",
     "start": "concurrently 'ng serve --proxy-config proxy.conf.json' 'tsx src/server.ts'",
-    "build": "ng build",
+    "build:app": "ng build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build": "pnpm run build:app && pnpm run build:server",
     "watch": "ng build --watch --configuration development",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
@@ -21,10 +23,12 @@
     "@angular/router": "^19.2.0",
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
+    "dotenv": "16.4.5",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zod": "3.25.49",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.15.0",
+    "express": "5.0.1"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^19.2.11",
@@ -32,6 +36,6 @@
     "@angular/compiler-cli": "^19.2.0",
     "concurrently": "^9.1.0",
     "tsx": "4.19.2",
-    "typescript": "~5.7.2"
+    "typescript": "5.8.3"
   }
 }
