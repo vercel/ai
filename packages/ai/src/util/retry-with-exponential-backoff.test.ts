@@ -11,10 +11,9 @@ describe('retryWithExponentialBackoff', () => {
     vi.useRealTimers();
   });
 
-  it('should use rate limit header delay when it is greater than exponential backoff', async () => {
+  it('should use rate limit header delay when present and reasonable', async () => {
     let attempt = 0;
     const retryAfterMs = 3000;
-    const initialDelay = 2000; // Default exponential backoff
 
     const fn = vi.fn().mockImplementation(async () => {
       attempt++;
@@ -35,7 +34,7 @@ describe('retryWithExponentialBackoff', () => {
 
     const promise = retryWithExponentialBackoff()(fn);
 
-    // Should use rate limit delay (3000ms) since it's greater than default (2000ms)
+    // Should use rate limit delay (3000ms)
     await vi.advanceTimersByTimeAsync(retryAfterMs - 100);
     expect(fn).toHaveBeenCalledTimes(1);
 
@@ -82,10 +81,10 @@ describe('retryWithExponentialBackoff', () => {
   });
 
 
-  it('should use exponential backoff when it is greater than rate limit delay', async () => {
+  it('should use exponential backoff when rate limit delay is too long', async () => {
     let attempt = 0;
-    const retryAfterMs = 1000; // Small rate limit delay
-    const initialDelay = 3000; // Larger exponential backoff
+    const retryAfterMs = 70000; // 70 seconds - too long
+    const initialDelay = 2000; // Default exponential backoff
 
     const fn = vi.fn().mockImplementation(async () => {
       attempt++;
@@ -106,7 +105,7 @@ describe('retryWithExponentialBackoff', () => {
 
     const promise = retryWithExponentialBackoff({ initialDelayInMs: initialDelay })(fn);
 
-    // Should use exponential backoff delay (3000ms) since it's greater than rate limit (1000ms)
+    // Should use exponential backoff delay (2000ms) not the rate limit (70000ms)
     await vi.advanceTimersByTimeAsync(initialDelay - 100);
     expect(fn).toHaveBeenCalledTimes(1);
 
@@ -230,7 +229,7 @@ describe('retryWithExponentialBackoff', () => {
 
     it('should handle OpenAI 429 response with retry-after header', async () => {
       let attempt = 0;
-      const delaySeconds = 60; // 60 seconds
+      const delaySeconds = 30; // 30 seconds
 
       const fn = vi.fn().mockImplementation(async () => {
         attempt++;
@@ -261,7 +260,7 @@ describe('retryWithExponentialBackoff', () => {
 
       const promise = retryWithExponentialBackoff()(fn);
 
-      // Should use the delay from retry-after header (60 seconds)
+      // Should use the delay from retry-after header (30 seconds)
       await vi.advanceTimersByTimeAsync(delaySeconds * 1000 - 100);
       expect(fn).toHaveBeenCalledTimes(1);
 
@@ -272,7 +271,7 @@ describe('retryWithExponentialBackoff', () => {
       expect(result).toEqual({ choices: [{ message: { content: 'Hello from GPT!' } }] });
     });
 
-    it('should handle multiple retries respecting both rate limits and exponential backoff', async () => {
+    it('should handle multiple retries with exponential backoff progression', async () => {
       let attempt = 0;
       const baseTime = 1700000000000;
       
@@ -312,7 +311,7 @@ describe('retryWithExponentialBackoff', () => {
 
       const promise = retryWithExponentialBackoff({ maxRetries: 3 })(fn);
 
-      // First retry - uses rate limit delay (5000ms) which is > exponential backoff (2000ms)
+      // First retry - uses rate limit delay (5000ms)
       await vi.advanceTimersByTimeAsync(5000);
       expect(fn).toHaveBeenCalledTimes(2);
 
@@ -396,6 +395,41 @@ describe('retryWithExponentialBackoff', () => {
 
       const result = await promise;
       expect(result).toEqual({ data: 'success' });
+    });
+
+    it('should fall back to exponential backoff when rate limit delay is negative', async () => {
+      let attempt = 0;
+      const initialDelay = 2000;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new APICallError({
+            message: 'Rate limited',
+            url: 'https://api.example.com',
+            requestBodyValues: {},
+            statusCode: 429,
+            isRetryable: true,
+            data: undefined,
+            responseHeaders: {
+              'retry-after-ms': '-1000', // Negative value
+            },
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoff({ initialDelayInMs: initialDelay })(fn);
+
+      // Should use exponential backoff delay (2000ms) not the negative rate limit
+      await vi.advanceTimersByTimeAsync(initialDelay - 100);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
     });
   });
 });

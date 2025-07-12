@@ -7,44 +7,58 @@ export type RetryFunction = <OUTPUT>(
 ) => PromiseLike<OUTPUT>;
 
 /**
- * Parse rate limit headers and return delay in milliseconds.
- * Returns null if no rate limit headers are found.
+ * Determines the retry delay for a failed API call by checking rate limit headers.
+ *
+ * This matches the implementation used by both Anthropic and OpenAI client SDKs:
+ * - First checks for 'retry-after-ms' header (milliseconds)
+ * - Falls back to 'retry-after' header (seconds or HTTP date)
+ * - Only uses the header value if it's reasonable (between 0 and 60 seconds)
+ * - Falls back to exponential backoff if no valid headers or if the delay is unreasonable
+ *
+ * @param error - The API call error containing response headers
+ * @param exponentialBackoffDelay - The calculated exponential backoff delay to use as fallback
+ * @returns The delay in milliseconds to wait before retrying
  */
-function parseRateLimitHeaders(error: APICallError): number | null {
+function getRetryDelay(
+  error: APICallError,
+  exponentialBackoffDelay: number,
+): number {
   const headers = error.responseHeaders;
-  if (!headers) return null;
+  if (!headers) return exponentialBackoffDelay;
 
-  // Check for retry-after-ms header (used by some providers like Anthropic)
+  let timeoutMillis: number | undefined;
+
+  // Note the `retry-after-ms` header may not be standard, but is a good idea and we'd like proactive support for it.
   const retryAfterMs = headers['retry-after-ms'];
   if (retryAfterMs) {
-    const delay = parseInt(retryAfterMs, 10);
-    if (!isNaN(delay) && delay > 0) {
-      return delay;
+    const timeoutMs = parseFloat(retryAfterMs);
+    if (!Number.isNaN(timeoutMs)) {
+      timeoutMillis = timeoutMs;
     }
   }
 
-  // Check for standard retry-after header
+  // About the Retry-After header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
   const retryAfter = headers['retry-after'];
-  if (retryAfter) {
-    // First, try to parse as a number (seconds)
-    const retryAfterSeconds = parseInt(retryAfter, 10);
-    if (!isNaN(retryAfterSeconds)) {
-      return retryAfterSeconds * 1000;
-    }
-
-    // If not a number, try to parse as HTTP date
-    const retryAfterDate = new Date(retryAfter);
-    if (!isNaN(retryAfterDate.getTime())) {
-      const now = Date.now();
-      const delay = retryAfterDate.getTime() - now;
-      if (delay > 0) {
-        return delay;
-      }
+  if (retryAfter && timeoutMillis === undefined) {
+    const timeoutSeconds = parseFloat(retryAfter);
+    if (!Number.isNaN(timeoutSeconds)) {
+      timeoutMillis = timeoutSeconds * 1000;
+    } else {
+      timeoutMillis = Date.parse(retryAfter) - Date.now();
     }
   }
 
+  // If the API asks us to wait a certain amount of time (and it's a reasonable amount),
+  // just do what it says, but otherwise calculate a default
+  if (
+    timeoutMillis !== undefined &&
+    0 <= timeoutMillis &&
+    timeoutMillis < 60 * 1000
+  ) {
+    return timeoutMillis;
+  }
 
-  return null;
+  return exponentialBackoffDelay;
 }
 
 /**
@@ -102,12 +116,9 @@ async function _retryWithExponentialBackoff<OUTPUT>(
       error.isRetryable === true &&
       tryNumber <= maxRetries
     ) {
-      // Check for rate limit headers and use the maximum of rate limit delay and exponential backoff
-      const rateLimitDelay = parseRateLimitHeaders(error);
-      const actualDelay = rateLimitDelay !== null 
-        ? Math.max(rateLimitDelay, delayInMs) 
-        : delayInMs;
-      
+      // Check for rate limit headers and use them if reasonable (0-60s)
+      const actualDelay = getRetryDelay(error, delayInMs);
+
       await delay(actualDelay);
       return _retryWithExponentialBackoff(
         f,
