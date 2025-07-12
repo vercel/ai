@@ -434,9 +434,8 @@ describe('retryWithExponentialBackoff', () => {
   });
 
   describe('custom retry strategy', () => {
-    it('should use custom retryDelay function when provided', async () => {
+    it('should use custom initial delay and backoff factor', async () => {
       let attempt = 0;
-      const customDelays = [1000, 2000, 3000];
 
       const fn = vi.fn().mockImplementation(async () => {
         attempt++;
@@ -455,22 +454,24 @@ describe('retryWithExponentialBackoff', () => {
       const promise = retryWithExponentialBackoff({
         maxRetries: 3,
         retryStrategy: {
-          retryDelay: (attempt) => customDelays[attempt - 1],
+          initialDelayInMs: 500,
+          backoffFactor: 3,
+          respectRateLimitHeaders: false,
         },
       })(fn);
 
       // First attempt fails immediately
       expect(fn).toHaveBeenCalledTimes(1);
 
-      // Should use custom delay (1000ms)
-      await vi.advanceTimersByTimeAsync(900);
+      // Should use custom initial delay (500ms)
+      await vi.advanceTimersByTimeAsync(400);
       expect(fn).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(200);
       expect(fn).toHaveBeenCalledTimes(2);
 
-      // Should use custom delay (2000ms)
-      await vi.advanceTimersByTimeAsync(1900);
+      // Should use backoff factor of 3 (500 * 3 = 1500ms)
+      await vi.advanceTimersByTimeAsync(1400);
       expect(fn).toHaveBeenCalledTimes(2);
 
       await vi.advanceTimersByTimeAsync(200);
@@ -480,13 +481,12 @@ describe('retryWithExponentialBackoff', () => {
       expect(result).toBe('success');
     });
 
-    it('should have access to error in custom retryDelay function', async () => {
+    it('should apply jitter when enabled', async () => {
       let attempt = 0;
-      const retryDelayFn = vi.fn((attempt, error) => {
-        expect(error).toBeInstanceOf(APICallError);
-        expect(error.responseHeaders).toBeDefined();
-        return 1000;
-      });
+      const delays: number[] = [];
+
+      // Mock Math.random to return predictable values
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValueOnce(0.5);
 
       const fn = vi.fn().mockImplementation(async () => {
         attempt++;
@@ -497,9 +497,6 @@ describe('retryWithExponentialBackoff', () => {
             requestBodyValues: {},
             isRetryable: true,
             data: undefined,
-            responseHeaders: {
-              'x-custom-header': 'test',
-            },
           });
         }
         return 'success';
@@ -508,19 +505,65 @@ describe('retryWithExponentialBackoff', () => {
       const promise = retryWithExponentialBackoff({
         maxRetries: 2,
         retryStrategy: {
-          retryDelay: retryDelayFn,
+          initialDelayInMs: 1000,
+          jitter: true,
+          respectRateLimitHeaders: false,
         },
       })(fn);
 
-      await vi.advanceTimersByTimeAsync(1100);
-      const result = await promise;
+      // With jitter, delay should be 1000 + (1000 * 0.1 * 0.5) = 1050ms
+      await vi.advanceTimersByTimeAsync(1040);
+      expect(fn).toHaveBeenCalledTimes(1);
 
-      expect(retryDelayFn).toHaveBeenCalledTimes(1);
-      expect(retryDelayFn).toHaveBeenCalledWith(1, expect.objectContaining({
-        responseHeaders: {
-          'x-custom-header': 'test',
+      await vi.advanceTimersByTimeAsync(20);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+
+      mockRandom.mockRestore();
+    });
+
+    it('should respect maxDelayInMs when configured', async () => {
+      let attempt = 0;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt <= 3) {
+          throw new APICallError({
+            message: 'API error',
+            url: 'https://api.example.com',
+            requestBodyValues: {},
+            isRetryable: true,
+            data: undefined,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoff({
+        maxRetries: 4,
+        retryStrategy: {
+          initialDelayInMs: 1000,
+          backoffFactor: 10, // Would normally result in 1000, 10000, 100000
+          maxDelayInMs: 5000, // Cap at 5000ms
+          respectRateLimitHeaders: false,
         },
-      }));
+      })(fn);
+
+      // First retry: 1000ms
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      // Second retry: capped at 5000ms (would be 10000ms without cap)
+      await vi.advanceTimersByTimeAsync(5100);
+      expect(fn).toHaveBeenCalledTimes(3);
+
+      // Third retry: capped at 5000ms (would be 100000ms without cap)
+      await vi.advanceTimersByTimeAsync(5100);
+      expect(fn).toHaveBeenCalledTimes(4);
+
+      const result = await promise;
       expect(result).toBe('success');
     });
 

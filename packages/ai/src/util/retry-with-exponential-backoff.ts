@@ -7,7 +7,10 @@ export type RetryFunction = <OUTPUT>(
 ) => PromiseLike<OUTPUT>;
 
 export interface RetryStrategy {
-  retryDelay?: (attempt: number, error?: APICallError) => number;
+  initialDelayInMs?: number; // default: 2000
+  backoffFactor?: number; // default: 2
+  maxDelayInMs?: number; // default: no limit
+  jitter?: boolean; // default: false
   respectRateLimitHeaders?: boolean; // default: true
 }
 
@@ -85,8 +88,8 @@ export const retryWithExponentialBackoff =
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
     _retryWithExponentialBackoff(f, {
       maxRetries,
-      delayInMs: initialDelayInMs,
-      backoffFactor,
+      delayInMs: retryStrategy?.initialDelayInMs ?? initialDelayInMs,
+      backoffFactor: retryStrategy?.backoffFactor ?? backoffFactor,
       retryStrategy,
     });
 
@@ -136,23 +139,39 @@ async function _retryWithExponentialBackoff<OUTPUT>(
     ) {
       let actualDelay: number;
 
-      // If custom retry delay function is provided, use it
-      if (retryStrategy?.retryDelay) {
-        actualDelay = retryStrategy.retryDelay(tryNumber, error);
+      // Check if we should respect rate limit headers (default: true)
+      const respectHeaders = retryStrategy?.respectRateLimitHeaders ?? true;
+      
+      if (respectHeaders) {
+        // Try to get delay from rate limit headers
+        actualDelay = getRetryDelay(error, delayInMs);
       } else {
-        // Otherwise, check if we should respect rate limit headers (default: true)
-        const respectHeaders = retryStrategy?.respectRateLimitHeaders ?? true;
-        actualDelay = respectHeaders
-          ? getRetryDelay(error, delayInMs)
-          : delayInMs;
+        // Use the configured delay
+        actualDelay = delayInMs;
+      }
+
+      // Apply jitter if enabled
+      if (retryStrategy?.jitter) {
+        const jitterAmount = actualDelay * 0.1 * Math.random();
+        actualDelay = actualDelay + jitterAmount;
+      }
+
+      // Apply max delay limit if configured
+      if (retryStrategy?.maxDelayInMs !== undefined) {
+        actualDelay = Math.min(actualDelay, retryStrategy.maxDelayInMs);
       }
 
       await delay(actualDelay);
+      
+      // Calculate next delay with backoff
+      const configuredBackoffFactor = retryStrategy?.backoffFactor ?? backoffFactor;
+      const nextDelay = delayInMs * configuredBackoffFactor;
+      
       return _retryWithExponentialBackoff(
         f,
         {
           maxRetries,
-          delayInMs: backoffFactor * delayInMs,
+          delayInMs: nextDelay,
           backoffFactor,
           retryStrategy,
         },

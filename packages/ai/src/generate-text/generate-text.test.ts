@@ -2699,13 +2699,8 @@ describe('generateText', () => {
   });
 
   describe('retry strategy', () => {
-    it('should use custom retry delay', async () => {
+    it('should use custom initial delay and backoff factor', async () => {
       let callCount = 0;
-      const customRetryDelay = jest.fn((attempt, error) => {
-        expect(attempt).toBe(1);
-        expect(error?.message).toContain('simulated error');
-        return 100; // 100ms delay
-      });
 
       const model = new MockLanguageModelV2({
         doGenerate: async () => {
@@ -2714,9 +2709,6 @@ describe('generateText', () => {
             throw {
               message: 'simulated error',
               isRetryable: true,
-              responseHeaders: {
-                'retry-after': '5', // This should be ignored when custom delay is provided
-              },
             };
           }
           return {
@@ -2731,12 +2723,47 @@ describe('generateText', () => {
         prompt: 'test',
         maxRetries: 1,
         retryStrategy: {
-          retryDelay: customRetryDelay,
+          initialDelayInMs: 100,
+          backoffFactor: 2,
+          respectRateLimitHeaders: false,
         },
       });
 
       expect(result.text).toBe('Success after retry');
-      expect(customRetryDelay).toHaveBeenCalledTimes(1);
+      expect(callCount).toBe(2);
+    });
+
+    it('should apply jitter when enabled', async () => {
+      let callCount = 0;
+
+      const model = new MockLanguageModelV2({
+        doGenerate: async () => {
+          callCount++;
+          if (callCount === 1) {
+            throw {
+              message: 'simulated error',
+              isRetryable: true,
+            };
+          }
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Success' }],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        maxRetries: 1,
+        retryStrategy: {
+          initialDelayInMs: 100,
+          jitter: true,
+          respectRateLimitHeaders: false,
+        },
+      });
+
+      expect(result.text).toBe('Success');
       expect(callCount).toBe(2);
     });
 
@@ -2769,14 +2796,15 @@ describe('generateText', () => {
         maxRetries: 1,
         retryStrategy: {
           respectRateLimitHeaders: false,
+          initialDelayInMs: 100, // Use short delay for test
         },
       });
 
       const elapsedTime = Date.now() - startTime;
       expect(result.text).toBe('Success');
       expect(callCount).toBe(2);
-      // Should use default exponential backoff (2s) instead of rate limit header (10s)
-      expect(elapsedTime).toBeLessThan(5000);
+      // Should use configured delay (100ms) instead of rate limit header (10s)
+      expect(elapsedTime).toBeLessThan(1000);
     });
   });
 });
