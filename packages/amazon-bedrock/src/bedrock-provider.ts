@@ -20,6 +20,7 @@ import { BedrockImageModelId } from './bedrock-image-settings';
 import {
   BedrockCredentials,
   createSigV4FetchFunction,
+  createApiKeyFetchFunction,
 } from './bedrock-sigv4-fetch';
 
 export interface AmazonBedrockProviderSettings {
@@ -28,6 +29,31 @@ The AWS region to use for the Bedrock provider. Defaults to the value of the
 `AWS_REGION` environment variable.
    */
   region?: string;
+
+  /**
+API key for authenticating requests using Bearer token authentication.
+When provided, this will be used instead of AWS SigV4 authentication.
+Defaults to the value of the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
+
+@example
+```typescript
+// Using API key directly
+const bedrock = createAmazonBedrock({
+  apiKey: 'your-api-key-here',
+  region: 'us-east-1'
+});
+
+// Using environment variable AWS_BEARER_TOKEN_BEDROCK
+const bedrock = createAmazonBedrock({
+  region: 'us-east-1'
+});
+```
+
+Note: When `apiKey` is provided, it takes precedence over AWS SigV4 authentication.
+If neither `apiKey` nor `AWS_BEARER_TOKEN_BEDROCK` environment variable is set,
+the provider will fall back to AWS SigV4 authentication using AWS credentials.
+   */
+  apiKey?: string;
 
   /**
 The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
@@ -100,40 +126,49 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const sigv4Fetch = createSigV4FetchFunction(async () => {
-    const region = loadSetting({
-      settingValue: options.region,
-      settingName: 'region',
-      environmentVariableName: 'AWS_REGION',
-      description: 'AWS region',
-    });
-    // If a credential provider is provided, use it to get the credentials.
-    if (options.credentialProvider) {
-      return {
-        ...(await options.credentialProvider()),
-        region,
-      };
-    }
-    return {
-      region,
-      accessKeyId: loadSetting({
-        settingValue: options.accessKeyId,
-        settingName: 'accessKeyId',
-        environmentVariableName: 'AWS_ACCESS_KEY_ID',
-        description: 'AWS access key ID',
-      }),
-      secretAccessKey: loadSetting({
-        settingValue: options.secretAccessKey,
-        settingName: 'secretAccessKey',
-        environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-        description: 'AWS secret access key',
-      }),
-      sessionToken: loadOptionalSetting({
-        settingValue: options.sessionToken,
-        environmentVariableName: 'AWS_SESSION_TOKEN',
-      }),
-    };
-  }, options.fetch);
+  // Check for API key authentication first
+  const apiKey = loadOptionalSetting({
+    settingValue: options.apiKey,
+    environmentVariableName: 'AWS_BEARER_TOKEN_BEDROCK',
+  });
+
+  // Use API key authentication if available, otherwise fall back to SigV4
+  const fetchFunction = apiKey
+    ? createApiKeyFetchFunction(apiKey, options.fetch)
+    : createSigV4FetchFunction(async () => {
+        const region = loadSetting({
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
+        });
+        // If a credential provider is provided, use it to get the credentials.
+        if (options.credentialProvider) {
+          return {
+            ...(await options.credentialProvider()),
+            region,
+          };
+        }
+        return {
+          region,
+          accessKeyId: loadSetting({
+            settingValue: options.accessKeyId,
+            settingName: 'accessKeyId',
+            environmentVariableName: 'AWS_ACCESS_KEY_ID',
+            description: 'AWS access key ID',
+          }),
+          secretAccessKey: loadSetting({
+            settingValue: options.secretAccessKey,
+            settingName: 'secretAccessKey',
+            environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+            description: 'AWS secret access key',
+          }),
+          sessionToken: loadOptionalSetting({
+            settingValue: options.sessionToken,
+            environmentVariableName: 'AWS_SESSION_TOKEN',
+          }),
+        };
+      }, options.fetch);
 
   const getBaseUrl = (): string =>
     withoutTrailingSlash(
@@ -150,7 +185,7 @@ export function createAmazonBedrock(
     new BedrockChatLanguageModel(modelId, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
-      fetch: sigv4Fetch,
+      fetch: fetchFunction,
       generateId,
     });
 
@@ -168,14 +203,14 @@ export function createAmazonBedrock(
     new BedrockEmbeddingModel(modelId, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
-      fetch: sigv4Fetch,
+      fetch: fetchFunction,
     });
 
   const createImageModel = (modelId: BedrockImageModelId) =>
     new BedrockImageModel(modelId, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
-      fetch: sigv4Fetch,
+      fetch: fetchFunction,
     });
 
   provider.languageModel = createChatModel;
