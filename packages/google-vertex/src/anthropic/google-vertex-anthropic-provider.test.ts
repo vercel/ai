@@ -108,4 +108,32 @@ describe('google-vertex-anthropic-provider', () => {
       }),
     );
   });
+
+  it('should create a Google Vertex Anthropic provider instance with custom settings', () => {
+    const customProvider = createVertexAnthropic({
+      project: 'custom-project',
+      location: 'custom-location',
+      baseURL: 'https://custom.base.url',
+      headers: { 'Custom-Header': 'value' },
+    });
+
+    expect(customProvider).toBeDefined();
+    expect(typeof customProvider).toBe('function');
+    expect(customProvider.languageModel).toBeDefined();
+  });
+
+  it('should not support URL sources to force base64 conversion', () => {
+    const provider = createVertexAnthropic();
+    provider('test-model-id');
+
+    // Assert that the model constructor was called with the correct configuration
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      {},
+      expect.objectContaining({
+        provider: 'vertex.anthropic.messages',
+        supportsImageUrls: false,
+      }),
+    );
+  });
 });
