@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- 9e16bfd: feat (provider/gateway): update model ids
+
 ## 1.0.0-beta.5
 
 ### Patch Changes
