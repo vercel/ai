@@ -4,5 +4,6 @@ export type { DeepPartial } from './deep-partial';
 export { type ErrorHandler } from './error-handler';
 export { isDeepEqualData } from './is-deep-equal-data';
 export { parsePartialJson } from './parse-partial-json';
+export type { RetryStrategy } from './retry-with-exponential-backoff';
 export { SerialJobExecutor } from './serial-job-executor';
 export { simulateReadableStream } from './simulate-readable-stream';

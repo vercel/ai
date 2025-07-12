@@ -15,6 +15,7 @@ import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { prepareHeaders } from '../../src/util/prepare-headers';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { extractContentText } from '../generate-text/extract-content-text';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -198,6 +199,11 @@ Default and recommended: 'auto' (best mode for the model).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Optional retry strategy configuration.
+       */
+      retryStrategy?: RetryStrategy;
+
+      /**
   Additional provider-specific options. They are passed through
   to the provider from the AI SDK and enable provider-specific
   functionality that can be fully encapsulated in the provider.
@@ -220,6 +226,7 @@ Default and recommended: 'auto' (best mode for the model).
     prompt,
     messages,
     maxRetries: maxRetriesArg,
+    retryStrategy,
     abortSignal,
     headers,
     experimental_repairText: repairText,
@@ -249,7 +256,10 @@ Default and recommended: 'auto' (best mode for the model).
     enumValues,
   });
 
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    retryStrategy,
+  });
 
   const outputStrategy = getOutputStrategy({
     output,

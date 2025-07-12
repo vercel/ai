@@ -1,5 +1,6 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { splitArray } from '../../src/util/split-array';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -31,6 +32,7 @@ export async function embedMany<VALUE>({
   values,
   maxParallelCalls = Infinity,
   maxRetries: maxRetriesArg,
+  retryStrategy,
   abortSignal,
   headers,
   providerOptions,
@@ -52,6 +54,11 @@ Maximum number of retries per embedding model call. Set to 0 to disable retries.
 @default 2
    */
   maxRetries?: number;
+
+  /**
+Optional retry strategy configuration.
+   */
+  retryStrategy?: RetryStrategy;
 
   /**
 Abort signal.
@@ -83,7 +90,10 @@ Only applicable for HTTP-based providers.
    */
   maxParallelCalls?: number;
 }): Promise<EmbedManyResult<VALUE>> {
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    retryStrategy,
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,

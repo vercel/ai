@@ -2697,4 +2697,86 @@ describe('generateText', () => {
       `);
     });
   });
+
+  describe('retry strategy', () => {
+    it('should use custom retry delay', async () => {
+      let callCount = 0;
+      const customRetryDelay = jest.fn((attempt, error) => {
+        expect(attempt).toBe(1);
+        expect(error?.message).toContain('simulated error');
+        return 100; // 100ms delay
+      });
+
+      const model = new MockLanguageModelV2({
+        doGenerate: async () => {
+          callCount++;
+          if (callCount === 1) {
+            throw {
+              message: 'simulated error',
+              isRetryable: true,
+              responseHeaders: {
+                'retry-after': '5', // This should be ignored when custom delay is provided
+              },
+            };
+          }
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Success after retry' }],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        maxRetries: 1,
+        retryStrategy: {
+          retryDelay: customRetryDelay,
+        },
+      });
+
+      expect(result.text).toBe('Success after retry');
+      expect(customRetryDelay).toHaveBeenCalledTimes(1);
+      expect(callCount).toBe(2);
+    });
+
+    it('should respect respectRateLimitHeaders when false', async () => {
+      let callCount = 0;
+      const startTime = Date.now();
+
+      const model = new MockLanguageModelV2({
+        doGenerate: async () => {
+          callCount++;
+          if (callCount === 1) {
+            throw {
+              message: 'rate limit error',
+              isRetryable: true,
+              responseHeaders: {
+                'retry-after': '10', // 10 seconds - should be ignored
+              },
+            };
+          }
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Success' }],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        maxRetries: 1,
+        retryStrategy: {
+          respectRateLimitHeaders: false,
+        },
+      });
+
+      const elapsedTime = Date.now() - startTime;
+      expect(result.text).toBe('Success');
+      expect(callCount).toBe(2);
+      // Should use default exponential backoff (2s) instead of rate limit header (10s)
+      expect(elapsedTime).toBeLessThan(5000);
+    });
+  });
 });

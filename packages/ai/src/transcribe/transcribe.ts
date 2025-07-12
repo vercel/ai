@@ -7,6 +7,7 @@ import {
 } from '../../src/util/detect-media-type';
 import { download } from '../../src/util/download';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { TranscriptionWarning } from '../types/transcription-model';
@@ -31,6 +32,7 @@ export async function transcribe({
   audio,
   providerOptions = {},
   maxRetries: maxRetriesArg,
+  retryStrategy,
   abortSignal,
   headers,
 }: {
@@ -68,6 +70,11 @@ Maximum number of retries per transcript model call. Set to 0 to disable retries
   maxRetries?: number;
 
   /**
+Optional retry strategy configuration.
+   */
+  retryStrategy?: RetryStrategy;
+
+  /**
 Abort signal.
  */
   abortSignal?: AbortSignal;
@@ -78,7 +85,10 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    retryStrategy,
+  });
   const audioData =
     audio instanceof URL
       ? (await download({ url: audio })).data

@@ -12,6 +12,7 @@ import { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { asArray } from '../../src/util/as-array';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -122,6 +123,7 @@ export async function generateText<
   prompt,
   messages,
   maxRetries: maxRetriesArg,
+  retryStrategy,
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
@@ -165,6 +167,11 @@ When the condition is an array, any of the conditions can be met to stop the gen
     stopWhen?:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>;
+
+    /**
+Optional retry strategy configuration.
+     */
+    retryStrategy?: RetryStrategy;
 
     /**
 Optional telemetry configuration (experimental).
@@ -224,7 +231,10 @@ A function that attempts to repair a tool call that failed to parse.
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    retryStrategy,
+  });
 
   const callSettings = prepareCallSettings(settings);
 

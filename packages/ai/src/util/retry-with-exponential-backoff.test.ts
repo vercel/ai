@@ -432,4 +432,204 @@ describe('retryWithExponentialBackoff', () => {
       expect(result).toBe('success');
     });
   });
+
+  describe('custom retry strategy', () => {
+    it('should use custom retryDelay function when provided', async () => {
+      let attempt = 0;
+      const customDelays = [1000, 2000, 3000];
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt <= 2) {
+          throw new APICallError({
+            message: 'API error',
+            url: 'https://api.example.com',
+            requestBodyValues: {},
+            isRetryable: true,
+            data: undefined,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoff({
+        maxRetries: 3,
+        retryStrategy: {
+          retryDelay: (attempt) => customDelays[attempt - 1],
+        },
+      })(fn);
+
+      // First attempt fails immediately
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      // Should use custom delay (1000ms)
+      await vi.advanceTimersByTimeAsync(900);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      // Should use custom delay (2000ms)
+      await vi.advanceTimersByTimeAsync(1900);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(3);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should have access to error in custom retryDelay function', async () => {
+      let attempt = 0;
+      const retryDelayFn = vi.fn((attempt, error) => {
+        expect(error).toBeInstanceOf(APICallError);
+        expect(error.responseHeaders).toBeDefined();
+        return 1000;
+      });
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new APICallError({
+            message: 'API error',
+            url: 'https://api.example.com',
+            requestBodyValues: {},
+            isRetryable: true,
+            data: undefined,
+            responseHeaders: {
+              'x-custom-header': 'test',
+            },
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoff({
+        maxRetries: 2,
+        retryStrategy: {
+          retryDelay: retryDelayFn,
+        },
+      })(fn);
+
+      await vi.advanceTimersByTimeAsync(1100);
+      const result = await promise;
+
+      expect(retryDelayFn).toHaveBeenCalledTimes(1);
+      expect(retryDelayFn).toHaveBeenCalledWith(1, expect.objectContaining({
+        responseHeaders: {
+          'x-custom-header': 'test',
+        },
+      }));
+      expect(result).toBe('success');
+    });
+
+    it('should respect respectRateLimitHeaders flag when false', async () => {
+      let attempt = 0;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new APICallError({
+            message: 'Rate limited',
+            url: 'https://api.example.com',
+            requestBodyValues: {},
+            isRetryable: true,
+            data: undefined,
+            responseHeaders: {
+              'retry-after-ms': '5000',
+            },
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoff({
+        maxRetries: 2,
+        initialDelayInMs: 1000,
+        retryStrategy: {
+          respectRateLimitHeaders: false,
+        },
+      })(fn);
+
+      // Should use exponential backoff (1000ms), not rate limit header (5000ms)
+      await vi.advanceTimersByTimeAsync(900);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should respect rate limit headers by default', async () => {
+      let attempt = 0;
+      const retryAfterMs = 3000;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new APICallError({
+            message: 'Rate limited',
+            url: 'https://api.example.com',
+            requestBodyValues: {},
+            isRetryable: true,
+            data: undefined,
+            responseHeaders: {
+              'retry-after-ms': retryAfterMs.toString(),
+            },
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoff({
+        maxRetries: 2,
+        initialDelayInMs: 1000,
+        retryStrategy: {
+          // respectRateLimitHeaders is true by default
+        },
+      })(fn);
+
+      // Should use rate limit delay (3000ms), not exponential backoff (1000ms)
+      await vi.advanceTimersByTimeAsync(2900);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should work with empty retry strategy object', async () => {
+      let attempt = 0;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new APICallError({
+            message: 'API error',
+            url: 'https://api.example.com',
+            requestBodyValues: {},
+            isRetryable: true,
+            data: undefined,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoff({
+        maxRetries: 2,
+        initialDelayInMs: 1000,
+        retryStrategy: {},
+      })(fn);
+
+      // Should use default exponential backoff
+      await vi.advanceTimersByTimeAsync(1100);
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+  });
 });

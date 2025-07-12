@@ -6,6 +6,11 @@ export type RetryFunction = <OUTPUT>(
   fn: () => PromiseLike<OUTPUT>,
 ) => PromiseLike<OUTPUT>;
 
+export interface RetryStrategy {
+  retryDelay?: (attempt: number, error?: APICallError) => number;
+  respectRateLimitHeaders?: boolean; // default: true
+}
+
 /**
  * Determines the retry delay for a failed API call by checking rate limit headers.
  *
@@ -70,12 +75,19 @@ export const retryWithExponentialBackoff =
     maxRetries = 2,
     initialDelayInMs = 2000,
     backoffFactor = 2,
+    retryStrategy,
+  }: {
+    maxRetries?: number;
+    initialDelayInMs?: number;
+    backoffFactor?: number;
+    retryStrategy?: RetryStrategy;
   } = {}): RetryFunction =>
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
     _retryWithExponentialBackoff(f, {
       maxRetries,
       delayInMs: initialDelayInMs,
       backoffFactor,
+      retryStrategy,
     });
 
 async function _retryWithExponentialBackoff<OUTPUT>(
@@ -84,7 +96,13 @@ async function _retryWithExponentialBackoff<OUTPUT>(
     maxRetries,
     delayInMs,
     backoffFactor,
-  }: { maxRetries: number; delayInMs: number; backoffFactor: number },
+    retryStrategy,
+  }: {
+    maxRetries: number;
+    delayInMs: number;
+    backoffFactor: number;
+    retryStrategy?: RetryStrategy;
+  },
   errors: unknown[] = [],
 ): Promise<OUTPUT> {
   try {
@@ -116,13 +134,28 @@ async function _retryWithExponentialBackoff<OUTPUT>(
       error.isRetryable === true &&
       tryNumber <= maxRetries
     ) {
-      // Check for rate limit headers and use them if reasonable (0-60s)
-      const actualDelay = getRetryDelay(error, delayInMs);
+      let actualDelay: number;
+
+      // If custom retry delay function is provided, use it
+      if (retryStrategy?.retryDelay) {
+        actualDelay = retryStrategy.retryDelay(tryNumber, error);
+      } else {
+        // Otherwise, check if we should respect rate limit headers (default: true)
+        const respectHeaders = retryStrategy?.respectRateLimitHeaders ?? true;
+        actualDelay = respectHeaders
+          ? getRetryDelay(error, delayInMs)
+          : delayInMs;
+      }
 
       await delay(actualDelay);
       return _retryWithExponentialBackoff(
         f,
-        { maxRetries, delayInMs: backoffFactor * delayInMs, backoffFactor },
+        {
+          maxRetries,
+          delayInMs: backoffFactor * delayInMs,
+          backoffFactor,
+          retryStrategy,
+        },
         newErrors,
       );
     }

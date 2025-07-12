@@ -27,6 +27,7 @@ import { createStitchableStream } from '../../src/util/create-stitchable-stream'
 import { DelayedPromise } from '../../src/util/delayed-promise';
 import { now as originalNow } from '../../src/util/now';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -234,6 +235,11 @@ Optional telemetry configuration (experimental).
       experimental_telemetry?: TelemetrySettings;
 
       /**
+Optional retry strategy configuration.
+       */
+      retryStrategy?: RetryStrategy;
+
+      /**
 Additional provider-specific options. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -281,6 +287,7 @@ Callback that is called when the LLM response and the final object validation ar
     prompt,
     messages,
     maxRetries,
+    retryStrategy,
     abortSignal,
     headers,
     experimental_telemetry: telemetry,
@@ -326,6 +333,7 @@ Callback that is called when the LLM response and the final object validation ar
     headers,
     settings,
     maxRetries,
+    retryStrategy,
     abortSignal,
     outputStrategy,
     system,
@@ -370,6 +378,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     telemetry,
     settings,
     maxRetries: maxRetriesArg,
+    retryStrategy,
     abortSignal,
     outputStrategy,
     system,
@@ -389,6 +398,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
+    retryStrategy: RetryStrategy | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
     system: Prompt['system'];
@@ -407,6 +417,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
+      retryStrategy,
     });
 
     const callSettings = prepareCallSettings(settings);

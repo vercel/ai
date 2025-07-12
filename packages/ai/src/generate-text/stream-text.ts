@@ -37,6 +37,7 @@ import { createStitchableStream } from '../../src/util/create-stitchable-stream'
 import { DelayedPromise } from '../../src/util/delayed-promise';
 import { now as originalNow } from '../../src/util/now';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -222,6 +223,7 @@ export function streamText<
   prompt,
   messages,
   maxRetries,
+  retryStrategy,
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
@@ -272,6 +274,11 @@ When the condition is an array, any of the conditions can be met to stop the gen
     stopWhen?:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>;
+
+    /**
+Optional retry strategy configuration.
+     */
+    retryStrategy?: RetryStrategy;
 
     /**
 Optional telemetry configuration (experimental).
@@ -914,6 +921,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
+      retryStrategy,
     });
 
     const tracer = getTracer(telemetry);

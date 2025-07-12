@@ -5,6 +5,7 @@ import {
   detectMediaType,
 } from '../../src/util/detect-media-type';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
@@ -41,6 +42,7 @@ export async function generateSpeech({
   language,
   providerOptions = {},
   maxRetries: maxRetriesArg,
+  retryStrategy,
   abortSignal,
   headers,
 }: {
@@ -102,6 +104,11 @@ Maximum number of retries per speech model call. Set to 0 to disable retries.
   maxRetries?: number;
 
   /**
+Optional retry strategy configuration.
+   */
+  retryStrategy?: RetryStrategy;
+
+  /**
 Abort signal.
  */
   abortSignal?: AbortSignal;
@@ -112,7 +119,10 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<SpeechResult> {
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    retryStrategy,
+  });
 
   const result = await retry(() =>
     model.doGenerate({

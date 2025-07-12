@@ -5,6 +5,7 @@ import {
   imageMediaTypeSignatures,
 } from '../../src/util/detect-media-type';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import {
   DefaultGeneratedFile,
   GeneratedFile,
@@ -41,6 +42,7 @@ export async function generateImage({
   seed,
   providerOptions,
   maxRetries: maxRetriesArg,
+  retryStrategy,
   abortSignal,
   headers,
 }: {
@@ -103,6 +105,11 @@ Maximum number of retries per embedding model call. Set to 0 to disable retries.
   maxRetries?: number;
 
   /**
+Optional retry strategy configuration.
+   */
+  retryStrategy?: RetryStrategy;
+
+  /**
 Abort signal.
  */
   abortSignal?: AbortSignal;
@@ -113,7 +120,10 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    retryStrategy,
+  });
 
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
