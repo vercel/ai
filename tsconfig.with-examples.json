@@ -10,6 +10,9 @@
       "path": "examples/ai-core"
     },
     {
+      "path": "examples/angular"
+    },
+    {
       "path": "examples/express"
     },
     {
