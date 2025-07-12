@@ -83,7 +83,7 @@ export class GoogleGenerativeAIEmbeddingModel
       body: {
         model: `models/${this.modelId}`,
         content: {
-          parts: [{ text: value }]
+          parts: [{ text: value }],
         },
         outputDimensionality: googleOptions?.outputDimensionality,
         taskType: googleOptions?.taskType,

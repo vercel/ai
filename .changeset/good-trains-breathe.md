@@ -13,9 +13,9 @@ Before, AI SDK would always use the batch endpoint, even for embed() calls, whic
 
 This does not have any breaking functionality and is fully tested :)
 if (values.length > 1) {
-  const batchResult = await this.doEmbedBatch({
-    values,
-    options,
-  });
-  return batchResult;
+const batchResult = await this.doEmbedBatch({
+values,
+options,
+});
+return batchResult;
 }
