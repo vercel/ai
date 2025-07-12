@@ -1,4 +1,7 @@
-import { createSigV4FetchFunction } from './bedrock-sigv4-fetch';
+import {
+  createSigV4FetchFunction,
+  createApiKeyFetchFunction,
+} from './bedrock-sigv4-fetch';
 import { vi, describe, it, expect, afterEach } from 'vitest';
 
 // Mock AwsV4Signer so that no real crypto calls are made.
@@ -286,5 +289,287 @@ describe('createSigV4FetchFunction', () => {
 
     // The underlying fetch should not be called
     expect(dummyFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('createApiKeyFetchFunction', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should add Authorization header with Bearer token', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-123';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    const response = await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'content-type': 'application/json',
+        Authorization: 'Bearer test-api-key-123',
+      },
+    });
+    expect(response).toBe(dummyResponse);
+  });
+
+  it('should merge Authorization header with existing headers', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-456';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'Content-Type': 'application/json',
+        'Custom-Header': 'custom-value',
+        'X-Request-ID': 'req-123',
+      },
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'content-type': 'application/json',
+        'custom-header': 'custom-value',
+        'x-request-id': 'req-123',
+        Authorization: 'Bearer test-api-key-456',
+      },
+    });
+  });
+
+  it('should work with Headers instance', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-789';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/json');
+    headers.set('X-Custom', 'value');
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers,
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'content-type': 'application/json',
+        'x-custom': 'value',
+        Authorization: 'Bearer test-api-key-789',
+      },
+    });
+  });
+
+  it('should work with headers as array', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-array';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    const headersArray: [string, string][] = [
+      ['Content-Type', 'application/json'],
+      ['X-Array-Header', 'array-value'],
+    ];
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: headersArray,
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'content-type': 'application/json',
+        'x-array-header': 'array-value',
+        Authorization: 'Bearer test-api-key-array',
+      },
+    });
+  });
+
+  it('should work with GET requests', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-get';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    await fetchFn('http://example.com', {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        Authorization: 'Bearer test-api-key-get',
+      },
+    });
+  });
+
+  it('should work when no headers are provided', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-no-headers';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        Authorization: 'Bearer test-api-key-no-headers',
+      },
+    });
+  });
+
+  it('should work when init is undefined', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-undefined';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    await fetchFn('http://example.com');
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      headers: {
+        Authorization: 'Bearer test-api-key-undefined',
+      },
+    });
+  });
+
+  it('should override existing Authorization header', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-override';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer old-token',
+      },
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'content-type': 'application/json',
+        Authorization: 'Bearer test-api-key-override',
+        authorization: 'Bearer old-token',
+      },
+    });
+  });
+
+  it('should use default fetch when no custom fetch provided', async () => {
+    const originalFetch = globalThis.fetch;
+    const mockGlobalFetch = vi.fn().mockResolvedValue(new Response('OK'));
+    globalThis.fetch = mockGlobalFetch;
+
+    try {
+      const apiKey = 'test-api-key-default';
+      const fetchFn = createApiKeyFetchFunction(apiKey);
+
+      await fetchFn('http://example.com', {
+        method: 'POST',
+        body: '{"test": "data"}',
+      });
+
+      expect(mockGlobalFetch).toHaveBeenCalledWith('http://example.com', {
+        method: 'POST',
+        body: '{"test": "data"}',
+        headers: {
+          Authorization: 'Bearer test-api-key-default',
+        },
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should handle empty string API key', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = '';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        Authorization: 'Bearer ',
+      },
+    });
+  });
+
+  it('should preserve request body and other properties', async () => {
+    const dummyResponse = new Response('OK', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    const apiKey = 'test-api-key-preserve';
+
+    const fetchFn = createApiKeyFetchFunction(apiKey, dummyFetch);
+
+    const requestBody = JSON.stringify({ data: 'test' });
+    await fetchFn('http://example.com', {
+      method: 'PUT',
+      body: requestBody,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      cache: 'no-cache',
+    });
+
+    expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
+      method: 'PUT',
+      body: requestBody,
+      headers: {
+        'content-type': 'application/json',
+        Authorization: 'Bearer test-api-key-preserve',
+      },
+      credentials: 'include',
+      cache: 'no-cache',
+    });
   });
 });
