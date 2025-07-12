@@ -127,10 +127,14 @@ export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
   // Check for API key authentication first
-  const apiKey = loadOptionalSetting({
+  const rawApiKey = loadOptionalSetting({
     settingValue: options.apiKey,
     environmentVariableName: 'AWS_BEARER_TOKEN_BEDROCK',
   });
+
+  // FIX 1: Validate API key to ensure proper fallback to SigV4
+  // Only use API key if it's a non-empty, non-whitespace string
+  const apiKey = rawApiKey && rawApiKey.trim().length > 0 ? rawApiKey.trim() : undefined;
 
   // Use API key authentication if available, otherwise fall back to SigV4
   const fetchFunction = apiKey
@@ -142,32 +146,69 @@ export function createAmazonBedrock(
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
         });
+        
         // If a credential provider is provided, use it to get the credentials.
         if (options.credentialProvider) {
-          return {
-            ...(await options.credentialProvider()),
-            region,
-          };
+          try {
+            return {
+              ...(await options.credentialProvider()),
+              region,
+            };
+          } catch (error) {
+            // FIX 2: Better error handling for credential provider failures
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(
+              `AWS credential provider failed: ${errorMessage}. ` +
+              'Please ensure your credential provider returns valid AWS credentials ' +
+              'with accessKeyId and secretAccessKey properties.'
+            );
+          }
         }
-        return {
-          region,
-          accessKeyId: loadSetting({
-            settingValue: options.accessKeyId,
-            settingName: 'accessKeyId',
-            environmentVariableName: 'AWS_ACCESS_KEY_ID',
-            description: 'AWS access key ID',
-          }),
-          secretAccessKey: loadSetting({
-            settingValue: options.secretAccessKey,
-            settingName: 'secretAccessKey',
-            environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-            description: 'AWS secret access key',
-          }),
-          sessionToken: loadOptionalSetting({
-            settingValue: options.sessionToken,
-            environmentVariableName: 'AWS_SESSION_TOKEN',
-          }),
-        };
+        
+        // FIX 2: Enhanced error handling for SigV4 credential loading
+        try {
+          return {
+            region,
+            accessKeyId: loadSetting({
+              settingValue: options.accessKeyId,
+              settingName: 'accessKeyId',
+              environmentVariableName: 'AWS_ACCESS_KEY_ID',
+              description: 'AWS access key ID',
+            }),
+            secretAccessKey: loadSetting({
+              settingValue: options.secretAccessKey,
+              settingName: 'secretAccessKey',
+              environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+              description: 'AWS secret access key',
+            }),
+            sessionToken: loadOptionalSetting({
+              settingValue: options.sessionToken,
+              environmentVariableName: 'AWS_SESSION_TOKEN',
+            }),
+          };
+        } catch (error) {
+          // Provide helpful error message for missing AWS credentials
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('AWS_ACCESS_KEY_ID') || errorMessage.includes('accessKeyId')) {
+            throw new Error(
+              'AWS SigV4 authentication requires AWS credentials. Please provide either:\n' +
+              '1. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables\n' +
+              '2. Provide accessKeyId and secretAccessKey in options\n' +
+              '3. Use a credentialProvider function\n' +
+              '4. Use API key authentication with AWS_BEARER_TOKEN_BEDROCK or apiKey option\n' +
+              `Original error: ${errorMessage}`
+            );
+          }
+          if (errorMessage.includes('AWS_SECRET_ACCESS_KEY') || errorMessage.includes('secretAccessKey')) {
+            throw new Error(
+              'AWS SigV4 authentication requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. ' +
+              'Please ensure both credentials are provided.\n' +
+              `Original error: ${errorMessage}`
+            );
+          }
+          // Re-throw other errors as-is
+          throw error;
+        }
       }, options.fetch);
 
   const getBaseUrl = (): string =>
