@@ -1,6 +1,7 @@
 import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import {
   RetryFunction,
+  RetryStrategy,
   retryWithExponentialBackoff,
 } from '../../src/util/retry-with-exponential-backoff';
 
@@ -9,8 +10,10 @@ import {
  */
 export function prepareRetries({
   maxRetries,
+  retryStrategy,
 }: {
   maxRetries: number | undefined;
+  retryStrategy?: RetryStrategy;
 }): {
   maxRetries: number;
   retry: RetryFunction;
@@ -37,6 +40,9 @@ export function prepareRetries({
 
   return {
     maxRetries: maxRetriesResult,
-    retry: retryWithExponentialBackoff({ maxRetries: maxRetriesResult }),
+    retry: retryWithExponentialBackoff({ 
+      maxRetries: maxRetriesResult,
+      retryStrategy,
+    }),
   };
 }

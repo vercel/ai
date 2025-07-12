@@ -1,5 +1,6 @@
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -26,6 +27,7 @@ export async function embed<VALUE>({
   value,
   providerOptions,
   maxRetries: maxRetriesArg,
+  retryStrategy,
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
@@ -66,11 +68,19 @@ Only applicable for HTTP-based providers.
   providerOptions?: ProviderOptions;
 
   /**
+   * Optional retry strategy for customizing retry behavior and rate limit handling.
+   */
+  retryStrategy?: RetryStrategy;
+
+  /**
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
-  const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { maxRetries, retry } = prepareRetries({ 
+    maxRetries: maxRetriesArg,
+    retryStrategy,
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,

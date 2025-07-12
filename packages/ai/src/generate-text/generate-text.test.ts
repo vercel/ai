@@ -2697,4 +2697,81 @@ describe('generateText', () => {
       `);
     });
   });
+
+  describe('retry strategy', () => {
+    it('should use custom retry strategy with retryDelay function', async () => {
+      let attempt = 0;
+      const customDelays = [100, 200, 300];
+      
+      const model = new MockLanguageModelV2({
+        doGenerate: async () => {
+          attempt++;
+          if (attempt < 3) {
+            throw new Error('API error');
+          }
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Success after retries' }],
+          };
+        },
+      });
+
+      let retryCallCount = 0;
+      const retryDelay = (attemptNumber: number) => {
+        retryCallCount++;
+        return customDelays[attemptNumber - 1] || 1000;
+      };
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        maxRetries: 3,
+        retryStrategy: {
+          retryDelay,
+        },
+      });
+
+      expect(result.text).toBe('Success after retries');
+      expect(retryCallCount).toBe(2); // 2 retries before success
+    });
+
+    it('should pass retryStrategy to generate functions', async () => {
+      const model = new MockLanguageModelV2({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'Test response' }],
+        }),
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        retryStrategy: {
+          respectRateLimitHeaders: true,
+          retryDelay: (attempt) => attempt * 1000,
+        },
+      });
+
+      expect(result.text).toBe('Test response');
+    });
+
+    it('should work with retryStrategy and no maxRetries specified', async () => {
+      const model = new MockLanguageModelV2({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'Test response' }],
+        }),
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        retryStrategy: {
+          respectRateLimitHeaders: true,
+        },
+      });
+
+      expect(result.text).toBe('Test response');
+    });
+  });
 });

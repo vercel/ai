@@ -37,6 +37,7 @@ import { createStitchableStream } from '../../src/util/create-stitchable-stream'
 import { DelayedPromise } from '../../src/util/delayed-promise';
 import { now as originalNow } from '../../src/util/now';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { RetryStrategy } from '../../src/util/retry-with-exponential-backoff';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -222,6 +223,7 @@ export function streamText<
   prompt,
   messages,
   maxRetries,
+  retryStrategy,
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
@@ -363,6 +365,11 @@ Callback that is called when each step (LLM call) is finished, including interme
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
+Optional retry strategy for customizing retry behavior and rate limit handling.
+    */
+    retryStrategy?: RetryStrategy;
+
+    /**
 Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -377,6 +384,7 @@ Internal. For test use only. May change without notice.
     headers,
     settings,
     maxRetries,
+    retryStrategy,
     abortSignal,
     system,
     prompt,
@@ -543,6 +551,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     headers,
     settings,
     maxRetries: maxRetriesArg,
+    retryStrategy,
     abortSignal,
     system,
     prompt,
@@ -570,6 +579,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
+    retryStrategy: RetryStrategy | undefined;
     abortSignal: AbortSignal | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
@@ -914,6 +924,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
+      retryStrategy,
     });
 
     const tracer = getTracer(telemetry);
