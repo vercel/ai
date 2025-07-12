@@ -81,6 +81,7 @@ const { text } = await generateText({
 ```
 
 This method requires standard AWS environment variables:
+
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_SESSION_TOKEN` (optional, for temporary credentials)
