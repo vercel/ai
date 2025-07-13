@@ -436,8 +436,16 @@ describe('retryWithExponentialBackoff', () => {
   describe('custom retry strategy', () => {
     it('should use custom initial delay and backoff factor', async () => {
       let attempt = 0;
+      const delays: number[] = [];
+      let lastCallTime = 0;
 
       const fn = vi.fn().mockImplementation(async () => {
+        const currentTime = Date.now();
+        if (lastCallTime > 0) {
+          delays.push(currentTime - lastCallTime);
+        }
+        lastCallTime = currentTime;
+        
         attempt++;
         if (attempt <= 2) {
           throw new APICallError({
@@ -464,21 +472,21 @@ describe('retryWithExponentialBackoff', () => {
       expect(fn).toHaveBeenCalledTimes(1);
 
       // Should use custom initial delay (500ms)
-      await vi.advanceTimersByTimeAsync(400);
-      expect(fn).toHaveBeenCalledTimes(1);
-
-      await vi.advanceTimersByTimeAsync(200);
+      await vi.advanceTimersByTimeAsync(500);
       expect(fn).toHaveBeenCalledTimes(2);
 
       // Should use backoff factor of 3 (500 * 3 = 1500ms)
-      await vi.advanceTimersByTimeAsync(1400);
-      expect(fn).toHaveBeenCalledTimes(2);
-
-      await vi.advanceTimersByTimeAsync(200);
+      await vi.advanceTimersByTimeAsync(1500);
       expect(fn).toHaveBeenCalledTimes(3);
 
       const result = await promise;
       expect(result).toBe('success');
+      
+      // Verify the delays were correct (allowing for small timing variations)
+      expect(delays[0]).toBeGreaterThanOrEqual(500);
+      expect(delays[0]).toBeLessThanOrEqual(510);
+      expect(delays[1]).toBeGreaterThanOrEqual(1500);
+      expect(delays[1]).toBeLessThanOrEqual(1510);
     });
 
     it('should apply jitter when enabled', async () => {

@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
   LanguageModelV2Prompt,
@@ -2706,10 +2707,13 @@ describe('generateText', () => {
         doGenerate: async () => {
           callCount++;
           if (callCount === 1) {
-            throw {
+            throw new APICallError({
               message: 'simulated error',
+              url: 'test-url',
+              requestBodyValues: {},
               isRetryable: true,
-            };
+              data: undefined,
+            });
           }
           return {
             ...dummyResponseValues,
@@ -2740,10 +2744,13 @@ describe('generateText', () => {
         doGenerate: async () => {
           callCount++;
           if (callCount === 1) {
-            throw {
+            throw new APICallError({
               message: 'simulated error',
+              url: 'test-url',
+              requestBodyValues: {},
               isRetryable: true,
-            };
+              data: undefined,
+            });
           }
           return {
             ...dummyResponseValues,
@@ -2775,13 +2782,16 @@ describe('generateText', () => {
         doGenerate: async () => {
           callCount++;
           if (callCount === 1) {
-            throw {
+            throw new APICallError({
               message: 'rate limit error',
+              url: 'test-url',
+              requestBodyValues: {},
               isRetryable: true,
+              data: undefined,
               responseHeaders: {
                 'retry-after': '10', // 10 seconds - should be ignored
               },
-            };
+            });
           }
           return {
             ...dummyResponseValues,

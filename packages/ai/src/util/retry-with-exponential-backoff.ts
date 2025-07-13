@@ -172,7 +172,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
         {
           maxRetries,
           delayInMs: nextDelay,
-          backoffFactor,
+          backoffFactor: configuredBackoffFactor,
           retryStrategy,
         },
         newErrors,
