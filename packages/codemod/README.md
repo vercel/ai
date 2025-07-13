@@ -63,30 +63,67 @@ npx @ai-sdk/codemod rename-format-stream-part .
 
 | Codemod                                            | Description                                       |
 | -------------------------------------------------- | ------------------------------------------------- |
+| `flatten-streamtext-file-properties`               | Transforms flatten streamtext file properties     |
+| `migrate-to-data-stream-protocol-v2`               | Transforms migrate to data stream protocol v2     |
 | `remove-ai-stream-methods-from-stream-text-result` | Removes ai stream methods from stream text result |
 | `remove-await-streamobject`                        | Removes await streamobject                        |
 | `remove-await-streamtext`                          | Removes await streamtext                          |
 | `remove-experimental-streamdata`                   | Removes experimental streamdata                   |
+| `rename-datastream-transform-stream`               | Renames datastream transform stream               |
 | `rename-format-stream-part`                        | Renames format stream part                        |
 | `rename-parse-stream-part`                         | Renames parse stream part                         |
+| `replace-content-with-parts`                       | Replaces content with parts                       |
 | `replace-langchain-toaistream`                     | Replaces langchain toaistream                     |
+| `replace-simulate-streaming`                       | Replaces simulate streaming                       |
+| `restructure-file-stream-parts`                    | Transforms restructure file stream parts          |
+| `restructure-source-stream-parts`                  | Transforms restructure source stream parts        |
 
 ### UI Framework Changes
 
 | Codemod                             | Description                        |
 | ----------------------------------- | ---------------------------------- |
+| `move-ui-utils-to-ai`               | Transforms move ui utils to ai     |
 | `remove-experimental-message-types` | Removes experimental message types |
 | `remove-experimental-tool`          | Removes experimental tool          |
 | `remove-experimental-useassistant`  | Removes experimental useassistant  |
+| `remove-get-ui-text`                | Removes get ui text                |
+| `rename-message-to-ui-message`      | Renames message to ui message      |
 | `rewrite-framework-imports`         | Rewrites framework imports         |
 
 ### Utility and Helper Changes
 
-| Codemod                        | Description                   |
-| ------------------------------ | ----------------------------- |
-| `remove-isxxxerror`            | Removes isxxxerror            |
-| `remove-metadata-with-headers` | Removes metadata with headers |
-| `replace-nanoid`               | Replaces nanoid               |
+| Codemod                                           | Description                                             |
+| ------------------------------------------------- | ------------------------------------------------------- |
+| `import-LanguageModelV2-from-provider-package`    | Transforms import LanguageModelV2 from provider package |
+| `move-image-model-maxImagesPerCall`               | Transforms move image model maxImagesPerCall            |
+| `move-langchain-adapter`                          | Transforms move langchain adapter                       |
+| `move-provider-options`                           | Transforms move provider options                        |
+| `move-react-to-ai-sdk`                            | Transforms move react to ai sdk                         |
+| `remove-experimental-wrap-language-model`         | Removes experimental wrap language model                |
+| `remove-isxxxerror`                               | Removes isxxxerror                                      |
+| `remove-metadata-with-headers`                    | Removes metadata with headers                           |
+| `remove-openai-compatibility`                     | Removes openai compatibility                            |
+| `remove-sendExtraMessageFields`                   | Removes sendExtraMessageFields                          |
+| `rename-core-message-to-model-message`            | Renames core message to model message                   |
+| `rename-languagemodelv1providermetadata`          | Renames languagemodelv1providermetadata                 |
+| `rename-max-tokens-to-max-output-tokens`          | Renames max tokens to max output tokens                 |
+| `rename-mime-type-to-media-type`                  | Renames mime type to media type                         |
+| `rename-reasoning-properties`                     | Renames reasoning properties                            |
+| `rename-reasoning-to-reasoningText`               | Renames reasoning to reasoningText                      |
+| `rename-request-options`                          | Renames request options                                 |
+| `replace-bedrock-snake-case`                      | Replaces bedrock snake case                             |
+| `replace-experimental-provider-metadata`          | Replaces experimental provider metadata                 |
+| `replace-generatetext-text-property`              | Replaces generatetext text property                     |
+| `replace-image-type-with-file-type`               | Replaces image type with file type                      |
+| `replace-llamaindex-adapter`                      | Replaces llamaindex adapter                             |
+| `replace-nanoid`                                  | Replaces nanoid                                         |
+| `replace-oncompletion-with-onfinal`               | Replaces oncompletion with onfinal                      |
+| `replace-provider-metadata-with-provider-options` | Replaces provider metadata with provider options        |
+| `replace-rawresponse-with-response`               | Replaces rawresponse with response                      |
+| `replace-redacted-reasoning-type`                 | Replaces redacted reasoning type                        |
+| `replace-textdelta-with-text`                     | Replaces textdelta with text                            |
+| `replace-usage-token-properties`                  | Replaces usage token properties                         |
+| `rsc-package`                                     | Transforms rsc package                                  |
 
 ## CLI Options
 
