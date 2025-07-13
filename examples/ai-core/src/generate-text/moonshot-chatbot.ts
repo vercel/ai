@@ -1,5 +1,5 @@
 import { moonshot } from '@ai-sdk/moonshot';
-import { generateText, tool } from 'ai';
+import { generateText, tool, ModelMessage } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod/v4';
@@ -10,7 +10,7 @@ const terminal = readline.createInterface({
 });
 
 async function main() {
-  const messages = [];
+  const messages: ModelMessage[] = [];
 
   while (true) {
     const userInput = await terminal.question('You: ');
