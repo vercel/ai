@@ -98,12 +98,12 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
     ) => {
       if (typeof messagesParam === 'function') {
-        messagesParam = messagesParam(messages);
+        chatRef.current.messages = messagesParam(chatRef.current.messages);
+      } else {
+        chatRef.current.messages = messagesParam;
       }
-
-      chatRef.current.messages = messagesParam;
     },
-    [messages, chatRef],
+    [chatRef],
   );
 
   useEffect(() => {
