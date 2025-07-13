@@ -384,6 +384,7 @@ Internal. For test use only. May change without notice.
     headers,
     settings,
     maxRetries,
+    retryStrategy,
     abortSignal,
     system,
     prompt,
