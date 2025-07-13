@@ -1,8 +1,25 @@
 {
-    "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
+  "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist"
   },
-  "include": ["src/**/*"],
-  "exclude": ["dist/**/*", "**/*.test.ts"]
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "tsup.config.ts"
+  ],
+  "references": [
+    {
+      "path": "../openai-compatible"
+    },
+    {
+      "path": "../provider"
+    },
+    {
+      "path": "../provider-utils"
+    }
+  ]
 } 
