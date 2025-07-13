@@ -753,4 +753,165 @@ describe('convertToModelMessages', () => {
       `);
     });
   });
+
+  it('should handle assistant message with tool in input-available state', () => {
+    const result = convertToModelMessages([
+      {
+        role: 'assistant',
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'text',
+            text: 'Let me calculate that for you.',
+            state: 'done',
+          },
+          {
+            type: 'tool-calculator',
+            state: 'input-available',
+            toolCallId: 'call1',
+            input: { operation: 'add', numbers: [1, 2] },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Let me calculate that for you.",
+              "type": "text",
+            },
+            {
+              "input": {
+                "numbers": [
+                  1,
+                  2,
+                ],
+                "operation": "add",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call1",
+              "toolName": "calculator",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
+  it('should handle mixed tool states without creating tool messages for input-available tools', () => {
+    const result = convertToModelMessages([
+      {
+        role: 'assistant',
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'text',
+            text: 'Processing multiple tools.',
+            state: 'done',
+          },
+          {
+            type: 'tool-calculator',
+            state: 'output-available',
+            toolCallId: 'call1',
+            input: { operation: 'add', numbers: [1, 2] },
+            output: '3',
+          },
+          {
+            type: 'tool-calculator',
+            state: 'input-available',
+            toolCallId: 'call2',
+            input: { operation: 'multiply', numbers: [3, 4] },
+          },
+          {
+            type: 'tool-calculator',
+            state: 'output-error',
+            toolCallId: 'call3',
+            input: { operation: 'divide', numbers: [10, 0] },
+            errorText: 'Division by zero',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Processing multiple tools.",
+              "type": "text",
+            },
+            {
+              "input": {
+                "numbers": [
+                  1,
+                  2,
+                ],
+                "operation": "add",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call1",
+              "toolName": "calculator",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "numbers": [
+                  3,
+                  4,
+                ],
+                "operation": "multiply",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call2",
+              "toolName": "calculator",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "numbers": [
+                  10,
+                  0,
+                ],
+                "operation": "divide",
+              },
+              "providerExecuted": undefined,
+              "toolCallId": "call3",
+              "toolName": "calculator",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "text",
+                "value": "3",
+              },
+              "toolCallId": "call1",
+              "toolName": "calculator",
+              "type": "tool-result",
+            },
+            {
+              "output": {
+                "type": "error-text",
+                "value": "Division by zero",
+              },
+              "toolCallId": "call3",
+              "toolName": "calculator",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
 });

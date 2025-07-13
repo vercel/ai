@@ -172,8 +172,12 @@ export function convertToModelMessages(
             // check if there are tool invocations with results in the block
             const toolParts = block
               .filter(isToolUIPart)
-              .filter(part => part.providerExecuted !== true);
-
+              .filter(part => part.providerExecuted !== true)
+              .filter(
+                (part): part is ToolUIPart<UITools> =>
+                  part.state === 'output-available' ||
+                  part.state === 'output-error',
+              );
             // tool message with tool results
             if (toolParts.length > 0) {
               modelMessages.push({
