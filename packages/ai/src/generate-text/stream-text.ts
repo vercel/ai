@@ -550,6 +550,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     headers,
     settings,
     maxRetries: maxRetriesArg,
+    retryStrategy,
     abortSignal,
     system,
     prompt,
@@ -577,6 +578,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
+    retryStrategy: RetryStrategy | undefined;
     abortSignal: AbortSignal | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
