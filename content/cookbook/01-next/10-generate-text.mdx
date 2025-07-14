@@ -31,7 +31,7 @@ export default function Page() {
         onClick={async () => {
           setIsLoading(true);
 
-          await fetch('/api/chat', {
+          await fetch('/api/completion', {
             method: 'POST',
             body: JSON.stringify({
               prompt: 'Why is the sky blue?',
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
   const { text } = await generateText({
-    model: openai('gpt-4'),
+    model: openai('gpt-4o'),
     system: 'You are a helpful assistant.',
     prompt,
   });
