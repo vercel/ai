@@ -62,10 +62,11 @@ function getRetryDelay(
 }
 
 /**
-The `retryWithExponentialBackoff` strategy retries a failed API call with an exponential backoff.
+The `retryWithExponentialBackoffRespectingRetryHeaders` strategy retries a failed API call with an exponential backoff,
+while respecting rate limit headers (retry-after-ms and retry-after) if they are provided and reasonable (0-60 seconds).
 You can configure the maximum number of retries, the initial delay, and the backoff factor.
  */
-export const retryWithExponentialBackoff =
+export const retryWithExponentialBackoffRespectingRetryHeaders =
   ({
     maxRetries = 2,
     initialDelayInMs = 2000,

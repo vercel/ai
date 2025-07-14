@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { APICallError } from '@ai-sdk/provider';
-import { retryWithExponentialBackoff } from './retry-with-exponential-backoff';
+import { retryWithExponentialBackoffRespectingRetryHeaders } from './retry-with-exponential-backoff';
 
-describe('retryWithExponentialBackoff', () => {
+describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -32,7 +32,7 @@ describe('retryWithExponentialBackoff', () => {
       return 'success';
     });
 
-    const promise = retryWithExponentialBackoff()(fn);
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders()(fn);
 
     // Should use rate limit delay (3000ms)
     await vi.advanceTimersByTimeAsync(retryAfterMs - 100);
@@ -66,7 +66,7 @@ describe('retryWithExponentialBackoff', () => {
       return 'success';
     });
 
-    const promise = retryWithExponentialBackoff()(fn);
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders()(fn);
 
     // Fast-forward to just before the retry delay
     await vi.advanceTimersByTimeAsync(retryAfterSeconds * 1000 - 100);
@@ -103,7 +103,7 @@ describe('retryWithExponentialBackoff', () => {
       return 'success';
     });
 
-    const promise = retryWithExponentialBackoff({ initialDelayInMs: initialDelay })(fn);
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders({ initialDelayInMs: initialDelay })(fn);
 
     // Should use exponential backoff delay (2000ms) not the rate limit (70000ms)
     await vi.advanceTimersByTimeAsync(initialDelay - 100);
@@ -135,7 +135,7 @@ describe('retryWithExponentialBackoff', () => {
       return 'success';
     });
 
-    const promise = retryWithExponentialBackoff({ initialDelayInMs: initialDelay })(fn);
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders({ initialDelayInMs: initialDelay })(fn);
 
     // Fast-forward to just before the initial delay
     await vi.advanceTimersByTimeAsync(initialDelay - 100);
@@ -171,7 +171,7 @@ describe('retryWithExponentialBackoff', () => {
       return 'success';
     });
 
-    const promise = retryWithExponentialBackoff({ initialDelayInMs: initialDelay })(fn);
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders({ initialDelayInMs: initialDelay })(fn);
 
     // Should fall back to exponential backoff delay
     await vi.advanceTimersByTimeAsync(initialDelay - 100);
@@ -214,7 +214,7 @@ describe('retryWithExponentialBackoff', () => {
         return { content: 'Hello from Claude!' };
       });
 
-      const promise = retryWithExponentialBackoff()(fn);
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders()(fn);
 
       // Should use the delay from retry-after-ms header
       await vi.advanceTimersByTimeAsync(delayMs - 100);
@@ -258,7 +258,7 @@ describe('retryWithExponentialBackoff', () => {
         return { choices: [{ message: { content: 'Hello from GPT!' } }] };
       });
 
-      const promise = retryWithExponentialBackoff()(fn);
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders()(fn);
 
       // Should use the delay from retry-after header (30 seconds)
       await vi.advanceTimersByTimeAsync(delaySeconds * 1000 - 100);
@@ -309,7 +309,7 @@ describe('retryWithExponentialBackoff', () => {
         return { content: 'Success after retries!' };
       });
 
-      const promise = retryWithExponentialBackoff({ maxRetries: 3 })(fn);
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({ maxRetries: 3 })(fn);
 
       // First retry - uses rate limit delay (5000ms)
       await vi.advanceTimersByTimeAsync(5000);
@@ -345,7 +345,7 @@ describe('retryWithExponentialBackoff', () => {
         return 'success';
       });
 
-      const promise = retryWithExponentialBackoff()(fn);
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders()(fn);
 
       // Should use 3 second delay from retry-after-ms
       await vi.advanceTimersByTimeAsync(3000);
@@ -381,7 +381,7 @@ describe('retryWithExponentialBackoff', () => {
         return { data: 'success' };
       });
 
-      const promise = retryWithExponentialBackoff()(fn);
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders()(fn);
 
       await vi.advanceTimersByTimeAsync(0);
       expect(fn).toHaveBeenCalledTimes(1);
@@ -419,7 +419,7 @@ describe('retryWithExponentialBackoff', () => {
         return 'success';
       });
 
-      const promise = retryWithExponentialBackoff({ initialDelayInMs: initialDelay })(fn);
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({ initialDelayInMs: initialDelay })(fn);
 
       // Should use exponential backoff delay (2000ms) not the negative rate limit
       await vi.advanceTimersByTimeAsync(initialDelay - 100);
