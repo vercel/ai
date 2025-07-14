@@ -1,5 +1,13 @@
 # @ai-sdk/xai
 
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- 66b9661: feat (provider/xai): export XaiProviderOptions
+- Updated dependencies [1b101e1]
+  - @ai-sdk/openai-compatible@1.0.0-beta.4
+
 ## 2.0.0-beta.4
 
 ### Patch Changes

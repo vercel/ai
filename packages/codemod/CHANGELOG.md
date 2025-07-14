@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 4e01854: v5 - AI SDK 5.0 codemods package
+
 ## 2.0.0-beta.1
 
 ### Patch Changes
