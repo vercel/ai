@@ -13,6 +13,7 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
+import { UnsupportedModelVersionError } from '../../errors/unsupported-model-version-error';
 
 /**
 Generates speech audio using a speech model.
@@ -105,6 +106,10 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<SpeechResult> {
+  if (typeof model === 'string' || model.specificationVersion !== 'v1') {
+    throw new UnsupportedModelVersionError();
+  }
+
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const result = await retry(() =>
