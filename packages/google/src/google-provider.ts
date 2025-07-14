@@ -169,10 +169,6 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.tools = googleTools;
   return provider as GoogleGenerativeAIProvider;
-
-
-
-
 }
 
 /**
