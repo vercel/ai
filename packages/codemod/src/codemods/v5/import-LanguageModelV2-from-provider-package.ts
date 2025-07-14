@@ -41,8 +41,6 @@ export default createTransformer((fileInfo, api, options, context) => {
     // Change the module source from '@ai-sdk/provider' to 'ai'
     node.source.value = 'ai';
 
-    context.messages.push(
-      `Updated import from '@ai-sdk/provider' to 'ai'`,
-    );
+    context.messages.push(`Updated import from '@ai-sdk/provider' to 'ai'`);
   });
 });
