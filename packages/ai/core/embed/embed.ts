@@ -1,3 +1,4 @@
+import { UnsupportedModelVersionError } from '../../errors/unsupported-model-version-error';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -61,6 +62,10 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult<VALUE>> {
+  if (typeof model === 'string' || model.specificationVersion !== 'v1') {
+    throw new UnsupportedModelVersionError();
+  }
+
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({

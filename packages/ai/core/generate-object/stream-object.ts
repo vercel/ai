@@ -54,6 +54,7 @@ import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
+import { UnsupportedModelVersionError } from '../../errors/unsupported-model-version-error';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -411,6 +412,10 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
       now?: () => number;
     };
   }): StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
+  if (typeof model === 'string' || model.specificationVersion !== 'v1') {
+    throw new UnsupportedModelVersionError();
+  }
+
   validateObjectGenerationInput({
     output,
     mode,

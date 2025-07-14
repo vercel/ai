@@ -8,6 +8,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel } from '../types';
 import { splitArray } from '../util/split-array';
 import { EmbedManyResult } from './embed-many-result';
+import { UnsupportedModelVersionError } from '../../errors/unsupported-model-version-error';
 
 /**
 Embed several values using an embedding model. The type of the value is defined
@@ -66,6 +67,10 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedManyResult<VALUE>> {
+  if (typeof model === 'string' || model.specificationVersion !== 'v1') {
+    throw new UnsupportedModelVersionError();
+  }
+
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({

@@ -12,6 +12,7 @@ import {
   detectMimeType,
   imageMimeTypeSignatures,
 } from '../util/detect-mimetype';
+import { UnsupportedModelVersionError } from '../../errors/unsupported-model-version-error';
 
 /**
 Generates images using an image model.
@@ -106,6 +107,10 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
+  if (typeof model === 'string' || model.specificationVersion !== 'v1') {
+    throw new UnsupportedModelVersionError();
+  }
+
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   // default to 1 if the model has not specified limits on

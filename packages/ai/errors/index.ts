@@ -22,6 +22,7 @@ export { NoSuchToolError } from './no-such-tool-error';
 export { ToolCallRepairError } from './tool-call-repair-error';
 export { ToolExecutionError } from './tool-execution-error';
 export { MCPClientError } from './mcp-client-error';
+export { UnsupportedModelVersionError } from './unsupported-model-version-error';
 
 export { InvalidDataContentError } from '../core/prompt/invalid-data-content-error';
 export { InvalidMessageRoleError } from '../core/prompt/invalid-message-role-error';

@@ -12,6 +12,7 @@ import {
   detectMimeType,
 } from '../util/detect-mimetype';
 import { TranscriptionResult } from './transcribe-result';
+import { UnsupportedModelVersionError } from '../../errors/unsupported-model-version-error';
 
 /**
 Generates transcripts using a transcription model.
@@ -78,6 +79,10 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
+  if (typeof model === 'string' || model.specificationVersion !== 'v1') {
+    throw new UnsupportedModelVersionError();
+  }
+
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
   const audioData =
     audio instanceof URL

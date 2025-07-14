@@ -6,6 +6,7 @@ import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
+import { UnsupportedModelVersionError } from '../../errors/unsupported-model-version-error';
 import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
@@ -19,6 +20,7 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
+import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -64,7 +66,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { stringifyForTelemetry } from '../prompt/stringify-for-telemetry';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -350,6 +351,10 @@ Internal. For test use only. May change without notice.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
+  if (typeof model === 'string' || model.specificationVersion !== 'v1') {
+    throw new UnsupportedModelVersionError();
+  }
+
   return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
     model,
     telemetry,
