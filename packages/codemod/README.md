@@ -21,13 +21,10 @@ This will automatically detect and transform all applicable code patterns in you
 To run codemods for a specific version:
 
 ```sh
-# Run v4 codemods (v3 → v4 migration) - 24 codemods
 npx @ai-sdk/codemod v4
 
-# Run v5 codemods (v4 → v5 migration) - 38 codemods
 npx @ai-sdk/codemod v5
 
-# Run all codemods (both v4 and v5) - 62 codemods
 npx @ai-sdk/codemod upgrade
 ```
 
@@ -130,7 +127,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 ### Commands
 
 ```sh
-npx @ai-sdk/codemod <command> [options]
+npx @ai-sdk/codemod@beta <command> [options]
 ```
 
 **Available Commands:**
@@ -150,19 +147,19 @@ npx @ai-sdk/codemod <command> [options]
 
 ```sh
 # Preview all changes without applying
-npx @ai-sdk/codemod --dry upgrade
+npx @ai-sdk/codemod@beta --dry upgrade
 
 # Preview v4 changes only
-npx @ai-sdk/codemod --dry v4
+npx @ai-sdk/codemod@beta --dry v4
 
 # Preview v5 changes only
-npx @ai-sdk/codemod --dry v5
+npx @ai-sdk/codemod@beta --dry v5
 
 # Show verbose output for specific codemod
-npx @ai-sdk/codemod --verbose v4/remove-experimental-ai-fn-exports src/
+npx @ai-sdk/codemod@beta --verbose v4/remove-experimental-ai-fn-exports src/
 
 # Print transformed code for specific codemod
-npx @ai-sdk/codemod --print v4/replace-baseurl src/config.ts
+npx @ai-sdk/codemod@beta --print v4/replace-baseurl src/config.ts
 ```
 
 ## Best Practices

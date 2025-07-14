@@ -42,7 +42,7 @@ Additionally, you need to update the following peer dependencies:
 The AI SDK provides Codemod transformations to help upgrade your codebase when a
 feature is deprecated, removed, or otherwise changed.
 
-Codemods are transformations that run on your codebase programmatically. They
+Codemods are transformations that run on your codebase automatically. They
 allow you to easily apply many changes without having to manually go through
 every file.
 
@@ -56,25 +56,25 @@ You can run all codemods provided as part of the 5.0 upgrade process by running
 the following command from the root of your project:
 
 ```sh
-npx @ai-sdk/codemod upgrade
+npx @ai-sdk/codemod@beta upgrade
 ```
 
 To run only the v5 codemods (v4 → v5 migration):
 
 ```sh
-npx @ai-sdk/codemod v5
+npx @ai-sdk/codemod@beta v5
 ```
 
 Individual codemods can be run by specifying the name of the codemod:
 
 ```sh
-npx @ai-sdk/codemod <codemod-name> <path>
+npx @ai-sdk/codemod@beta <codemod-name> <path>
 ```
 
 For example, to run a specific v5 codemod:
 
 ```sh
-npx @ai-sdk/codemod v5/rename-format-stream-part src/
+npx @ai-sdk/codemod@beta v5/rename-format-stream-part src/
 ```
 
 See also the [table of codemods](#codemod-table). In addition, the latest set of
@@ -2268,11 +2268,9 @@ import {
 
 ## Codemod Table
 
-The following table lists codemod availability for the AI SDK 5.0 upgrade
-process. Note the codemod `upgrade` command will run all of them for you. This
-list is provided to give visibility into which migrations have some automation.
-It can also be helpful to find the codemod names if you'd like to run a subset
-of codemods. For more, see the [Codemods](#codemods) section.
+The following table lists available codemods for the AI SDK 5.0 upgrade
+process.
+For more information, see the [Codemods](#codemods) section.
 
 | Change                                           | Codemod                                               |
 | ------------------------------------------------ | ----------------------------------------------------- |
