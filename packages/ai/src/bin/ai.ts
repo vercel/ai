@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import { streamText } from '../../core/generate-text/stream-text';
 import { readFileSync, existsSync } from 'fs';
-import { resolve, join } from 'path';
-import { homedir } from 'os';
+import { resolve } from 'path';
 import { gateway } from '@ai-sdk/gateway';
 
 interface FileAttachment {
@@ -20,11 +20,6 @@ interface CLIOptions {
   prompt?: string;
 }
 
-interface ConfigFile {
-  model?: string;
-  system?: string;
-  verbose?: boolean;
-}
 
 function isStdinAvailable(): boolean {
   return !process.stdin.isTTY;
@@ -98,29 +93,7 @@ function readFileContent(filePath: string): FileAttachment {
   };
 }
 
-function loadConfigFile(): ConfigFile {
-  const configPaths = [
-    join(process.cwd(), '.ai.json'),
-    join(process.cwd(), '.ai.config.json'),
-    join(homedir(), '.ai.json'),
-    join(homedir(), '.config', 'ai.json'),
-  ];
-
-  for (const configPath of configPaths) {
-    if (existsSync(configPath)) {
-      try {
-        const configContent = readFileSync(configPath, 'utf8');
-        return JSON.parse(configContent);
-      } catch (error) {
-        console.error(`Warning: Failed to parse config file ${configPath}`);
-      }
-    }
-  }
-
-  return {};
-}
-
-function loadEnvironmentConfig(): ConfigFile {
+function loadEnvironmentConfig() {
   return {
     model: process.env.AI_MODEL,
     system: process.env.AI_SYSTEM,
@@ -131,16 +104,15 @@ function loadEnvironmentConfig(): ConfigFile {
 function parseArgs(): CLIOptions {
   const args = process.argv.slice(2);
 
-  const configFile = loadConfigFile();
   const envConfig = loadEnvironmentConfig();
 
   const options: CLIOptions = {
-    model: envConfig.model || configFile.model || 'openai/gpt-4',
+    model: envConfig.model || 'openai/gpt-4',
     files: [],
     help: false,
     version: false,
-    verbose: envConfig.verbose || configFile.verbose || false,
-    system: envConfig.system || configFile.system,
+    verbose: envConfig.verbose || false,
+    system: envConfig.system,
   };
 
   const promptArgs: string[] = [];
@@ -225,24 +197,12 @@ Options:
   -V, --version            Output the version number
 
 Configuration:
-  The CLI looks for configuration files in the following order:
-  1. .ai.json or .ai.config.json in current directory
-  2. .ai.json in home directory
-  3. .config/ai.json in home directory
-
   Environment variables:
   - AI_MODEL: Default model to use
   - AI_SYSTEM: Default system message
   - AI_VERBOSE: Set to 'true' to enable verbose output
   - VERCEL_OIDC_TOKEN: Vercel OIDC token for authentication
   - AI_GATEWAY_API_KEY: AI Gateway API key for authentication
-
-  Example config file (.ai.json):
-  {
-    "model": "anthropic/claude-3-5-sonnet-20241022",
-    "system": "You are a helpful assistant.",
-    "verbose": true
-  }
 
 Examples:
   npx ai "Hello, world!"
