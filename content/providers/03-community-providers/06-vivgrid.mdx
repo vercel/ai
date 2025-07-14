@@ -67,7 +67,7 @@ Obtain your API key from the [Vivgrid Console](https://console.vivgrid.com).
 You can import the default provider instance `vivgrid` from `@vivgrid/ai-sdk-provider`:
 
 ```typescript
-import { createVivgrid } from "@vivgrid/ai-sdk-provider";
+import { createVivgrid } from '@vivgrid/ai-sdk-provider';
 
 const vivgrid = createVivgrid({
   apiKey: process.env.VIVGRID_API_KEY,
@@ -99,12 +99,12 @@ Available models are documented in the [Vivgrid Models Reference](https://docs.v
 ### generateText
 
 ```javascript
-import { vivgrid } from "@vivgrid/ai-sdk-provider";
-import { generateText } from "ai";
+import { vivgrid } from '@vivgrid/ai-sdk-provider';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: vivgrid(), // Uses console-managed model and system prompt
-  prompt: "Write a vegetable lasagna recipe for 4 people",
+  prompt: 'Write a vegetable lasagna recipe for 4 people',
 });
 
 console.log(text);
@@ -113,12 +113,12 @@ console.log(text);
 ### Streaming Text Generation
 
 ```typescript
-import { vivgrid } from "@vivgrid/ai-sdk-provider";
-import { streamText } from "ai";
+import { vivgrid } from '@vivgrid/ai-sdk-provider';
+import { streamText } from 'ai';
 
 const { textStream } = await streamText({
   model: vivgrid(),
-  prompt: "Tell me a story about a brave little rabbit",
+  prompt: 'Tell me a story about a brave little rabbit',
 });
 
 for await (const textPart of textStream) {
@@ -133,14 +133,14 @@ Tools (LLM Function Calling) can be written in TypeScript with strongly-typed la
 Here's how to implement a `get-weather` tool:
 
 ```typescript
-const description = "Get the current weather for `city_name`";
+const description = 'Get the current weather for `city_name`';
 
 export type Argument = {
   /**
    * The name of the city to query weather for
    */
   city_name: string;
-}
+};
 
 export async function handler(args: Argument) {
   const result = await getWeather(args.city_name);
@@ -151,8 +151,8 @@ export async function handler(args: Argument) {
 Then [deploy it to Vivgrid](https://docs.vivgrid.com/function-calling), and use it in your code like this:
 
 ```typescript
-import { vivgrid } from "@vivgrid/ai-sdk-provider";
-import { generateText } from "ai";
+import { vivgrid } from '@vivgrid/ai-sdk-provider';
+import { generateText } from 'ai';
 
 const { text, toolCalls } = await generateText({
   model: vivgrid(),
