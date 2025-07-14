@@ -21,6 +21,7 @@ export { NoObjectGeneratedError } from './no-object-generated-error';
 export { NoOutputSpecifiedError } from './no-output-specified-error';
 export { NoSuchToolError } from './no-such-tool-error';
 export { ToolCallRepairError } from './tool-call-repair-error';
+export { UnsupportedModelVersionError } from './unsupported-model-version-error';
 
 export { InvalidDataContentError } from '../prompt/invalid-data-content-error';
 export { InvalidMessageRoleError } from '../prompt/invalid-message-role-error';
