@@ -21,10 +21,10 @@ This will automatically detect and transform all applicable code patterns in you
 To run codemods for a specific version:
 
 ```sh
-# Run v4 codemods (v4 → v5 migration) - 24 codemods
+# Run v4 codemods (v3 → v4 migration) - 24 codemods
 npx @ai-sdk/codemod v4
 
-# Run v5 codemods (v5 breaking changes) - 38 codemods
+# Run v5 codemods (v4 → v5 migration) - 38 codemods
 npx @ai-sdk/codemod v5
 
 # Run all codemods (both v4 and v5) - 62 codemods
@@ -54,7 +54,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 
 ## Available Codemods
 
-### v4 Codemods (v4 → v5 Migration)
+### v4 Codemods (v3 → v4 Migration)
 
 | Codemod                                               | Description                                                    |
 | ----------------------------------------------------- | -------------------------------------------------------------- |
@@ -83,7 +83,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v4/replace-token-usage-types`                        | Transforms v4/replace token usage types                        |
 | `v4/rewrite-framework-imports`                        | Transforms v4/rewrite framework imports                        |
 
-### v5 Codemods (v5 Breaking Changes)
+### v5 Codemods (v4 → v5 Migration)
 
 | Codemod                                              | Description                                                   |
 | ---------------------------------------------------- | ------------------------------------------------------------- |
@@ -136,8 +136,8 @@ npx @ai-sdk/codemod <command> [options]
 **Available Commands:**
 
 - `upgrade` - Apply all codemods (v4 + v5)
-- `v4` - Apply v4 codemods (v4 → v5 migration)
-- `v5` - Apply v5 codemods (v5 breaking changes)
+- `v4` - Apply v4 codemods (v3 → v4 migration)
+- `v5` - Apply v5 codemods (v4 → v5 migration)
 - `<codemod-name> <path>` - Apply specific codemod
 
 ### Global Options
