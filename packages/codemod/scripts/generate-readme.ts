@@ -11,18 +11,22 @@ if (!fs.existsSync(codemodsDir)) {
 function scanCodemodsRecursively(dir: string, prefix: string = ''): string[] {
   const files: string[] = [];
   const items = fs.readdirSync(dir);
-  
+
   for (const item of items) {
     const itemPath = path.join(dir, item);
     const stat = fs.statSync(itemPath);
-    
+
     if (stat.isDirectory() && item !== 'lib') {
       files.push(...scanCodemodsRecursively(itemPath, prefix + item + '/'));
-    } else if (stat.isFile() && item.endsWith('.ts') && !item.includes('lib/')) {
+    } else if (
+      stat.isFile() &&
+      item.endsWith('.ts') &&
+      !item.includes('lib/')
+    ) {
       files.push(prefix + item.replace('.ts', ''));
     }
   }
-  
+
   return files;
 }
 
@@ -54,11 +58,11 @@ function categorizeCodemod(name: string): string {
   if (name.startsWith('v4/')) {
     return 'v4 Codemods (v4 → v5 Migration)';
   }
-  
+
   if (name.startsWith('v5/')) {
     return 'v5 Codemods (v5 Breaking Changes)';
   }
-  
+
   return 'General Codemods';
 }
 
